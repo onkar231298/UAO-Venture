@@ -9,12 +9,7 @@ interface SlideData {
   description: string;
   backgroundImage: string;
   foregroundImage: string;
-  overlayElements: Array<{
-    type: 'certification' | 'stat' | 'feature';
-    content: string;
-    position: { x: string; y: string };
-    delay: number;
-  }>;
+
   imageAlt: string;
 }
 
@@ -26,11 +21,7 @@ const slides: SlideData[] = [
     description: "Laboratory-tested organic turmeric powder sourced from certified farms in India. Pharmaceutical grade quality for your premium products.",
     backgroundImage: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
     foregroundImage: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-    overlayElements: [
-      { type: 'certification', content: 'USDA Organic', position: { x: '10%', y: '20%' }, delay: 0.2 },
-      { type: 'stat', content: '95% Curcumin', position: { x: '85%', y: '15%' }, delay: 0.4 },
-      { type: 'feature', content: 'Lab Tested', position: { x: '15%', y: '80%' }, delay: 0.6 }
-    ],
+
     imageAlt: "Premium organic turmeric powder with quality testing"
   },
   {
@@ -40,11 +31,7 @@ const slides: SlideData[] = [
     description: "Standardized ashwagandha extract with optimal withanolides content. Perfect for stress-relief and wellness supplement formulations.",
     backgroundImage: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
     foregroundImage: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-    overlayElements: [
-      { type: 'certification', content: 'India Organic', position: { x: '12%', y: '25%' }, delay: 0.3 },
-      { type: 'stat', content: '5% Withanolides', position: { x: '80%', y: '20%' }, delay: 0.5 },
-      { type: 'feature', content: 'Traditional', position: { x: '20%', y: '75%' }, delay: 0.7 }
-    ],
+
     imageAlt: "Organic ashwagandha roots and powder processing"
   },
   {
@@ -54,11 +41,7 @@ const slides: SlideData[] = [
     description: "State-of-the-art facilities maintaining international quality standards. From USDA to ISO certifications, ensuring excellence.",
     backgroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
     foregroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-    overlayElements: [
-      { type: 'certification', content: 'ISO 9001', position: { x: '8%', y: '30%' }, delay: 0.2 },
-      { type: 'stat', content: 'GMP Certified', position: { x: '82%', y: '25%' }, delay: 0.4 },
-      { type: 'feature', content: 'Lab Facility', position: { x: '18%', y: '70%' }, delay: 0.6 }
-    ],
+
     imageAlt: "Modern organic processing facility with quality control"
   },
   {
@@ -68,11 +51,7 @@ const slides: SlideData[] = [
     description: "Trusted by 500+ businesses globally. Reliable supply chain ensuring consistent quality and timely delivery worldwide.",
     backgroundImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
     foregroundImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-    overlayElements: [
-      { type: 'stat', content: '500+ Clients', position: { x: '10%', y: '35%' }, delay: 0.3 },
-      { type: 'feature', content: '50+ Countries', position: { x: '78%', y: '30%' }, delay: 0.5 },
-      { type: 'certification', content: 'Export Quality', position: { x: '25%', y: '65%' }, delay: 0.7 }
-    ],
+
     imageAlt: "Global shipping and international business partnerships"
   }
 ];
@@ -143,56 +122,13 @@ export default function HeroSlider() {
         />
       </div>
 
-      {/* Floating Elements Layer - Medium parallax */}
-      <div 
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{
-          transform: `translateY(${scrollY * 0.3}px)`,
-          transition: 'transform 0.1s ease-out'
-        }}
-      >
-        {currentSlideData.overlayElements.map((element, index) => (
-          <div
-            key={`${currentSlide}-${index}`}
-            className={`absolute animate-fade-in-up`}
-            style={{
-              left: element.position.x,
-              top: element.position.y,
-              animationDelay: `${element.delay}s`
-            }}
-          >
-            {element.type === 'certification' && (
-              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-                <div className="flex items-center space-x-2 text-green-700">
-                  <Award className="w-4 h-4" />
-                  <span className="font-semibold text-sm">{element.content}</span>
-                </div>
-              </div>
-            )}
-            {element.type === 'stat' && (
-              <div className="bg-green-600 text-white px-4 py-2 rounded-xl shadow-lg">
-                <div className="text-center">
-                  <div className="font-bold text-lg">{element.content}</div>
-                </div>
-              </div>
-            )}
-            {element.type === 'feature' && (
-              <div className="bg-gray-900/80 text-white px-3 py-2 rounded-lg shadow-lg backdrop-blur-sm">
-                <div className="flex items-center space-x-1">
-                  <Leaf className="w-3 h-3" />
-                  <span className="text-sm font-medium">{element.content}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
 
-      {/* Main Content Layer - Fastest parallax */}
+
+      {/* Main Content Layer - Reduced parallax */}
       <div 
         className="relative z-10 min-h-screen flex items-center"
         style={{
-          transform: `translateY(${scrollY * 0.5}px)`,
+          transform: `translateY(${scrollY * 0.1}px)`,
           transition: 'transform 0.1s ease-out'
         }}
       >

@@ -42,37 +42,7 @@ export default function Landing() {
       {/* Hero Slider */}
       <HeroSlider />
 
-      {/* Search Section */}
-      <section className="bg-green-600 text-white py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 max-w-xl">
-              <form onSubmit={handleSearch} className="relative">
-                <Input
-                  type="search"
-                  placeholder="Search for organic ingredients..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-4 pr-12 py-3 rounded-lg text-gray-900 border-0"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-green-700 p-2"
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-              </form>
-            </div>
-            <div className="hidden md:flex items-center space-x-4 text-sm">
-              <a href="#" className="flex items-center space-x-1 hover:text-green-200">
-                <Phone className="w-4 h-4" />
-                <span>+91-98765-43210</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* Product Categories */}
       <section className="py-16 bg-white">
