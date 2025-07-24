@@ -219,23 +219,7 @@ export default function HeroSlider() {
                   />
                 </div>
                 
-                {/* Floating overlays */}
-                <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl z-10 animate-float">
-                  <div className="flex items-center space-x-3">
-                    <Truck className="text-green-600 text-2xl" />
-                    <div>
-                      <div className="font-semibold text-gray-900">Fast Delivery</div>
-                      <div className="text-sm text-gray-500">24-48 Hours</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="absolute -top-6 -right-6 bg-gradient-to-br from-green-600 to-green-700 text-white p-6 rounded-xl shadow-xl z-10 animate-float" style={{ animationDelay: '0.5s' }}>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">500+</div>
-                    <div className="text-sm opacity-90">Products</div>
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>
