@@ -200,9 +200,8 @@ export default function HeroSlider() {
               <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
                 <div 
                   key={`image-${currentSlide}`}
-                  className="absolute inset-0 -right-2 sm:-right-4 lg:-right-6 overflow-hidden shadow-2xl animate-zoom-in rounded-lg sm:rounded-none"
+                  className="absolute inset-0 overflow-hidden shadow-2xl animate-zoom-in rounded-lg"
                   style={{
-                    clipPath: window.innerWidth >= 640 ? 'polygon(15% 0%, 95% 5%, 90% 95%, 0% 100%)' : 'none',
                     animationDelay: '0.5s'
                   }}
                 >
@@ -211,10 +210,9 @@ export default function HeroSlider() {
                     alt={currentSlideData.imageAlt}
                     className="w-full h-full object-cover"
                     style={{
-                      width: window.innerWidth >= 640 ? '110%' : '100%',
+                      width: '100%',
                       height: '100%',
-                      objectPosition: 'center center',
-                      transform: window.innerWidth >= 640 ? 'translateX(-5%)' : 'none'
+                      objectPosition: 'center center'
                     }}
                   />
                 </div>
