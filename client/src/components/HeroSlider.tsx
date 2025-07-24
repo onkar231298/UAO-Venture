@@ -116,35 +116,36 @@ export default function HeroSlider() {
           <div className="relative">
             {/* Trapezoid with Curved Extension */}
             <div className="relative w-full h-[500px]">
-              {/* Main trapezoid shape */}
+              {/* Main trapezoid shape container */}
               <div 
-                className="absolute inset-0 overflow-hidden shadow-2xl"
+                className="absolute inset-0 overflow-hidden shadow-2xl rounded-lg"
                 style={{
-                  clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)',
-                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
+                  clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'
                 }}
               >
                 <img
                   src={currentImageData.image}
                   alt={currentImageData.imageAlt}
-                  className="w-full h-full object-cover transition-all duration-1000 ease-in-out transform hover:scale-105"
+                  className="w-full h-full object-cover transition-all duration-1000 ease-in-out"
                   style={{
-                    clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'
+                    transform: 'scale(1.1)',
+                    objectPosition: 'center center'
                   }}
                 />
               </div>
               
               {/* Curved extension on the right */}
               <div 
-                className="absolute top-0 right-0 w-16 h-full overflow-hidden"
+                className="absolute top-0 -right-2 w-20 h-full overflow-hidden z-10"
                 style={{
-                  clipPath: 'polygon(0% 20%, 100% 0%, 100% 100%, 0% 80%)'
+                  clipPath: 'polygon(0% 15%, 100% 0%, 100% 100%, 0% 85%)'
                 }}
               >
                 <div 
-                  className="w-full h-full bg-green-50"
+                  className="w-full h-full"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)'
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%)',
+                    backdropFilter: 'blur(1px)'
                   }}
                 />
               </div>
