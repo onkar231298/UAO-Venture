@@ -265,6 +265,20 @@
     text-wrap: balance;
   }
   
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
   /* Custom utilities for BFI Organic */
   .bg-bfi-primary {
     background-color: var(--bfi-primary);

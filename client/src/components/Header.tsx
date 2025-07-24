@@ -45,18 +45,21 @@ export default function Header() {
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
       {/* Main Header */}
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-4 sm:space-x-6 lg:space-x-8">
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Leaf className="text-white text-lg" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                  <Leaf className="text-white text-sm sm:text-lg" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-green-600">Bright Fame Organic</h1>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg sm:text-xl font-bold text-green-600">Bright Fame Organic</h1>
                   <p className="text-xs text-gray-500">Pvt. Ltd.</p>
+                </div>
+                <div className="block sm:hidden">
+                  <h1 className="text-base font-bold text-green-600">BFI Organic</h1>
                 </div>
               </div>
             </Link>
@@ -89,7 +92,7 @@ export default function Header() {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Country Selector */}
             <div className="hidden md:flex items-center space-x-2">
               <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -99,8 +102,8 @@ export default function Header() {
             </div>
             
             {/* User Actions */}
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <Button variant="ghost" size="sm" className="hidden sm:flex">
                 <Heart className="w-4 h-4" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
@@ -130,7 +133,7 @@ export default function Header() {
                       <p className="text-xs text-gray-500">{user.email}</p>
                       {user.role && (
                         <Badge variant="outline" className="mt-1 text-xs">
-                          {user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {user.role.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                         </Badge>
                       )}
                     </div>
@@ -170,11 +173,11 @@ export default function Header() {
 
       {/* Search Bar */}
       <div className="bg-green-600 text-white">
-        <div className="container mx-auto px-4 py-2">
-          <div className="flex items-center space-x-4">
-            <button className="lg:hidden flex items-center space-x-1 text-sm">
-              <Menu className="w-4 h-4" />
-              <span>Categories</span>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <button className="lg:hidden flex items-center space-x-1 text-xs sm:text-sm">
+              <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Categories</span>
             </button>
             
             <div className="flex-1 max-w-2xl">
@@ -184,31 +187,39 @@ export default function Header() {
                   placeholder="Search for organic ingredients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300 border-0"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300 border-0"
                 />
                 <Button
                   type="submit"
                   size="sm"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-green-700 p-1 h-auto"
                 >
-                  <Search className="w-4 h-4 text-gray-500" />
+                  <Search className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                 </Button>
               </form>
             </div>
 
-            <div className="hidden md:flex items-center space-x-4 text-sm">
+            <div className="hidden md:flex items-center space-x-3 lg:space-x-4 text-sm">
               <div className="flex items-center space-x-2">
                 <Phone className="text-white w-4 h-4" />
-                <div>
+                <div className="hidden lg:block">
                   <div className="font-medium">+91-98765-43210</div>
                   <div className="text-xs text-green-200">Customer Support</div>
                 </div>
+                <div className="block lg:hidden">
+                  <div className="font-medium text-xs">+91-98765-43210</div>
+                </div>
               </div>
-              <a href="#" className="flex items-center space-x-1 hover:text-green-200 bg-green-700 px-3 py-2 rounded-lg">
-                <Phone className="w-4 h-4" />
+              <a href="#" className="flex items-center space-x-1 hover:text-green-200 bg-green-700 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm">
+                <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
                 <span>WhatsApp</span>
               </a>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button className="md:hidden p-2">
+              <Menu className="w-5 h-5 text-white" />
+            </button>
           </div>
         </div>
       </div>
