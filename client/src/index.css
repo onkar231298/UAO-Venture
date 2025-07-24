@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(142, 76%, 30%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(142, 40%, 95%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(142, 76%, 30%);
+  --radius: 0.5rem;
+  
+  /* BFI Organic Brand Colors */
+  --bfi-primary: hsl(142, 76%, 30%);
+  --bfi-primary-light: hsl(142, 60%, 45%);
+  --bfi-accent: hsl(142, 40%, 95%);
+  --bfi-neutral: hsl(60, 4.8%, 97%);
+  --bfi-success: hsl(142, 76%, 36%);
+  --bfi-warning: hsl(45, 93%, 47%);
+  --bfi-error: hsl(0, 84%, 60%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(142, 76%, 30%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    @apply rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer components {
+  /* BFI Organic specific components */
+  .bfi-gradient {
+    background: linear-gradient(135deg, var(--bfi-primary) 0%, var(--bfi-primary-light) 100%);
+  }
+  
+  .bfi-card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .bfi-input-focus {
+    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary;
+  }
+  
+  /* Product card enhancements */
+  .product-card {
+    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden;
+  }
+  
+  .product-card:hover {
+    @apply shadow-lg;
+  }
+  
+  .product-card img {
+    @apply transition-transform duration-200;
+  }
+  
+  .product-card:hover img {
+    @apply scale-105;
+  }
+  
+  /* CRM specific styles */
+  .crm-sidebar {
+    @apply bg-white border-r border-border;
+  }
+  
+  .crm-nav-item {
+    @apply flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-accent hover:text-primary transition-colors rounded-lg mx-2;
+  }
+  
+  .crm-nav-item.active {
+    @apply bg-primary text-primary-foreground;
+  }
+  
+  /* Status badges */
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .status-confirmed {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .status-shipped {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  .status-delivered {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .status-cancelled {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  /* Loading animations */
+  .loading-shimmer {
+    @apply animate-pulse bg-gray-200;
+  }
+  
+  /* Green Jeeva inspired styling */
+  .organic-badge {
+    @apply bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium;
+  }
+  
+  .certification-icon {
+    @apply w-4 h-4 text-green-500;
+  }
+  
+  /* Enhanced table styles */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+  
+  .data-table th {
+    @apply bg-gray-100 px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b;
+  }
+  
+  .data-table td {
+    @apply px-4 py-3 text-sm text-gray-900 border-b;
+  }
+  
+  .data-table tr:hover {
+    @apply bg-gray-50;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Custom utilities for BFI Organic */
+  .bg-bfi-primary {
+    background-color: var(--bfi-primary);
+  }
+  
+  .bg-bfi-primary-light {
+    background-color: var(--bfi-primary-light);
+  }
+  
+  .bg-bfi-accent {
+    background-color: var(--bfi-accent);
+  }
+  
+  .text-bfi-primary {
+    color: var(--bfi-primary);
+  }
+  
+  .border-bfi-primary {
+    border-color: var(--bfi-primary);
+  }
+  
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
