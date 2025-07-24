@@ -1,156 +1,304 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Shield, Users, Truck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield, Users, Truck, Award, Globe, Leaf } from "lucide-react";
 
-interface ImageData {
+interface SlideData {
   id: number;
-  image: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  backgroundImage: string;
+  foregroundImage: string;
+  overlayElements: Array<{
+    type: 'certification' | 'stat' | 'feature';
+    content: string;
+    position: { x: string; y: string };
+    delay: number;
+  }>;
   imageAlt: string;
 }
 
-const images: ImageData[] = [
+const slides: SlideData[] = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Premium organic turmeric powder with quality testing equipment"
+    title: "PREMIUM TURMERIC",
+    subtitle: "95% Curcumin Excellence",
+    description: "Laboratory-tested organic turmeric powder sourced from certified farms in India. Pharmaceutical grade quality for your premium products.",
+    backgroundImage: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    foregroundImage: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+    overlayElements: [
+      { type: 'certification', content: 'USDA Organic', position: { x: '10%', y: '20%' }, delay: 0.2 },
+      { type: 'stat', content: '95% Curcumin', position: { x: '85%', y: '15%' }, delay: 0.4 },
+      { type: 'feature', content: 'Lab Tested', position: { x: '15%', y: '80%' }, delay: 0.6 }
+    ],
+    imageAlt: "Premium organic turmeric powder with quality testing"
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Organic ashwagandha roots and powder with traditional processing"
+    title: "ASHWAGANDHA ROOT",
+    subtitle: "Adaptogenic Power",
+    description: "Standardized ashwagandha extract with optimal withanolides content. Perfect for stress-relief and wellness supplement formulations.",
+    backgroundImage: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    foregroundImage: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+    overlayElements: [
+      { type: 'certification', content: 'India Organic', position: { x: '12%', y: '25%' }, delay: 0.3 },
+      { type: 'stat', content: '5% Withanolides', position: { x: '80%', y: '20%' }, delay: 0.5 },
+      { type: 'feature', content: 'Traditional', position: { x: '20%', y: '75%' }, delay: 0.7 }
+    ],
+    imageAlt: "Organic ashwagandha roots and powder processing"
   },
   {
     id: 3,
-    image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Modern organic processing facility with quality control laboratory"
+    title: "QUALITY STANDARDS",
+    subtitle: "Global Certifications",
+    description: "State-of-the-art facilities maintaining international quality standards. From USDA to ISO certifications, ensuring excellence.",
+    backgroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    foregroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+    overlayElements: [
+      { type: 'certification', content: 'ISO 9001', position: { x: '8%', y: '30%' }, delay: 0.2 },
+      { type: 'stat', content: 'GMP Certified', position: { x: '82%', y: '25%' }, delay: 0.4 },
+      { type: 'feature', content: 'Lab Facility', position: { x: '18%', y: '70%' }, delay: 0.6 }
+    ],
+    imageAlt: "Modern organic processing facility with quality control"
   },
   {
     id: 4,
-    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Global shipping containers and international business partnerships"
+    title: "GLOBAL SUPPLY",
+    subtitle: "Worldwide Partnerships",
+    description: "Trusted by 500+ businesses globally. Reliable supply chain ensuring consistent quality and timely delivery worldwide.",
+    backgroundImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    foregroundImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+    overlayElements: [
+      { type: 'stat', content: '500+ Clients', position: { x: '10%', y: '35%' }, delay: 0.3 },
+      { type: 'feature', content: '50+ Countries', position: { x: '78%', y: '30%' }, delay: 0.5 },
+      { type: 'certification', content: 'Export Quality', position: { x: '25%', y: '65%' }, delay: 0.7 }
+    ],
+    imageAlt: "Global shipping and international business partnerships"
   }
 ];
 
 export default function HeroSlider() {
-  const [currentImage, setCurrentImage] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
-  // Auto-advance images
+  // Handle scroll for parallax effect
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-advance slides
   useEffect(() => {
     if (!isAutoPlaying) return;
     
     const interval = setInterval(() => {
-      setCurrentImage(prev => (prev + 1) % images.length);
-    }, 4000);
+      setCurrentSlide(prev => (prev + 1) % slides.length);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
 
-  const goToImage = (index: number) => {
-    setCurrentImage(index);
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
     setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
+    setTimeout(() => setIsAutoPlaying(true), 12000);
   };
 
-  const nextImage = () => {
-    setCurrentImage(prev => (prev + 1) % images.length);
+  const nextSlide = () => {
+    setCurrentSlide(prev => (prev + 1) % slides.length);
     setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
+    setTimeout(() => setIsAutoPlaying(true), 12000);
   };
 
-  const prevImage = () => {
-    setCurrentImage(prev => (prev - 1 + images.length) % images.length);
+  const prevSlide = () => {
+    setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
     setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
+    setTimeout(() => setIsAutoPlaying(true), 12000);
   };
 
-  const currentImageData = images[currentImage];
+  const currentSlideData = slides[currentSlide];
 
   return (
-    <section className="relative bg-gradient-to-r from-green-50 to-white py-8 lg:py-12 overflow-hidden">
-      <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[600px]">
-          {/* Static Content Side */}
-          <div className="space-y-6 z-10">
-            <div className="space-y-4">
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                THINK ORGANIC<br />
-                THINK <span className="text-green-600">BRIGHT FAME</span>
-              </h1>
-              <div className="bg-green-600 text-white px-6 py-3 rounded-full inline-block text-lg font-medium">
-                Premium B2B Organic Ingredients
-              </div>
-            </div>
-            
-            <p className="text-gray-600 text-lg max-w-lg leading-relaxed">
-              Your trusted partner for certified organic ingredients. From sourcing to delivery, 
-              we ensure the highest quality standards for your business needs.
-            </p>
-            
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                Explore Products
-              </Button>
-              <Button variant="outline" size="lg">
-                Request Catalog
-              </Button>
-            </div>
-            
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center space-x-2">
-                <Shield className="w-4 h-4 text-green-500" />
-                <span className="font-medium">USDA Organic</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Shield className="w-4 h-4 text-green-500" />
-                <span className="font-medium">ISO Certified</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4 text-green-500" />
-                <span className="font-medium">24/7 Support</span>
-              </div>
-            </div>
-          </div>
+    <section 
+      ref={sliderRef}
+      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-green-900"
+    >
+      {/* Background Layer - Slowest parallax */}
+      <div 
+        className="absolute inset-0 w-full h-full"
+        style={{
+          transform: `translateY(${scrollY * 0.1}px)`,
+          transition: 'transform 0.1s ease-out'
+        }}
+      >
+        <div 
+          className="w-full h-full bg-cover bg-center transition-all duration-2000 ease-in-out"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${currentSlideData.backgroundImage})`,
+            filter: 'blur(1px)'
+          }}
+        />
+      </div>
 
-          {/* Image Slider Side */}
-          <div className="relative">
-            {/* Trapezoid with Curved Extension */}
-            <div className="relative w-full h-[500px]">
-              {/* Extended image container covering both trapezoid and curved extension */}
-              <div 
-                className="absolute inset-0 -right-6 overflow-hidden shadow-2xl"
-                style={{
-                  clipPath: 'polygon(15% 0%, 95% 5%, 90% 95%, 0% 100%)'
-                }}
-              >
-                <img
-                  src={currentImageData.image}
-                  alt={currentImageData.imageAlt}
-                  className="w-full h-full object-cover transition-all duration-1000 ease-in-out"
-                  style={{
-                    width: '110%',
-                    height: '100%',
-                    objectPosition: 'center center',
-                    transform: 'translateX(-5%)'
-                  }}
-                />
+      {/* Floating Elements Layer - Medium parallax */}
+      <div 
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{
+          transform: `translateY(${scrollY * 0.3}px)`,
+          transition: 'transform 0.1s ease-out'
+        }}
+      >
+        {currentSlideData.overlayElements.map((element, index) => (
+          <div
+            key={`${currentSlide}-${index}`}
+            className={`absolute animate-fade-in-up`}
+            style={{
+              left: element.position.x,
+              top: element.position.y,
+              animationDelay: `${element.delay}s`
+            }}
+          >
+            {element.type === 'certification' && (
+              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+                <div className="flex items-center space-x-2 text-green-700">
+                  <Award className="w-4 h-4" />
+                  <span className="font-semibold text-sm">{element.content}</span>
+                </div>
               </div>
-              
-              {/* Image Overlays */}
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg z-10">
-                <div className="flex items-center space-x-2">
-                  <Truck className="text-green-600 text-2xl" />
-                  <div>
-                    <div className="font-semibold text-gray-900">Fast Delivery</div>
-                    <div className="text-sm text-gray-500">24-48 Hours</div>
-                  </div>
+            )}
+            {element.type === 'stat' && (
+              <div className="bg-green-600 text-white px-4 py-2 rounded-xl shadow-lg">
+                <div className="text-center">
+                  <div className="font-bold text-lg">{element.content}</div>
+                </div>
+              </div>
+            )}
+            {element.type === 'feature' && (
+              <div className="bg-gray-900/80 text-white px-3 py-2 rounded-lg shadow-lg backdrop-blur-sm">
+                <div className="flex items-center space-x-1">
+                  <Leaf className="w-3 h-3" />
+                  <span className="text-sm font-medium">{element.content}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Main Content Layer - Fastest parallax */}
+      <div 
+        className="relative z-10 min-h-screen flex items-center"
+        style={{
+          transform: `translateY(${scrollY * 0.5}px)`,
+          transition: 'transform 0.1s ease-out'
+        }}
+      >
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Content Side */}
+            <div className="space-y-8 text-white">
+              <div className="space-y-4">
+                <div className="overflow-hidden">
+                  <h1 
+                    key={`title-${currentSlide}`}
+                    className="text-5xl lg:text-7xl font-bold leading-tight animate-slide-up"
+                  >
+                    <span className="text-white">THINK </span>
+                    <span className="text-green-400">ORGANIC</span><br />
+                    <span className="text-green-400">{currentSlideData.title}</span>
+                  </h1>
+                </div>
+                <div 
+                  key={`subtitle-${currentSlide}`}
+                  className="bg-gradient-to-r from-green-500 to-green-400 text-white px-6 py-3 rounded-full inline-block text-lg font-medium animate-fade-in-right"
+                  style={{ animationDelay: '0.3s' }}
+                >
+                  {currentSlideData.subtitle}
                 </div>
               </div>
               
-              <div className="absolute -top-4 -right-4 bg-green-600 text-white p-4 rounded-xl shadow-lg z-10">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">500+</div>
-                  <div className="text-sm">Products</div>
+              <p 
+                key={`desc-${currentSlide}`}
+                className="text-gray-200 text-xl max-w-lg leading-relaxed animate-fade-in-up"
+                style={{ animationDelay: '0.6s' }}
+              >
+                {currentSlideData.description}
+              </p>
+              
+              <div 
+                className="flex flex-wrap gap-4 animate-fade-in-up"
+                style={{ animationDelay: '0.9s' }}
+              >
+                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white">
+                  Explore Products
+                </Button>
+                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-gray-900">
+                  Request Catalog
+                </Button>
+              </div>
+              
+              <div 
+                className="flex items-center space-x-6 text-sm text-gray-300 animate-fade-in-up"
+                style={{ animationDelay: '1.2s' }}
+              >
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4 text-green-400" />
+                  <span className="font-medium">USDA Organic</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-4 h-4 text-green-400" />
+                  <span className="font-medium">Global Supply</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-green-400" />
+                  <span className="font-medium">24/7 Support</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Foreground Image Layer */}
+            <div className="relative">
+              <div className="relative w-full h-[600px]">
+                <div 
+                  key={`image-${currentSlide}`}
+                  className="absolute inset-0 -right-6 overflow-hidden shadow-2xl animate-zoom-in"
+                  style={{
+                    clipPath: 'polygon(15% 0%, 95% 5%, 90% 95%, 0% 100%)',
+                    animationDelay: '0.5s'
+                  }}
+                >
+                  <img
+                    src={currentSlideData.foregroundImage}
+                    alt={currentSlideData.imageAlt}
+                    className="w-full h-full object-cover"
+                    style={{
+                      width: '110%',
+                      height: '100%',
+                      objectPosition: 'center center',
+                      transform: 'translateX(-5%)'
+                    }}
+                  />
+                </div>
+                
+                {/* Floating overlays */}
+                <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl z-10 animate-float">
+                  <div className="flex items-center space-x-3">
+                    <Truck className="text-green-600 text-2xl" />
+                    <div>
+                      <div className="font-semibold text-gray-900">Fast Delivery</div>
+                      <div className="text-sm text-gray-500">24-48 Hours</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute -top-6 -right-6 bg-gradient-to-br from-green-600 to-green-700 text-white p-6 rounded-xl shadow-xl z-10 animate-float" style={{ animationDelay: '0.5s' }}>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold">500+</div>
+                    <div className="text-sm opacity-90">Products</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -160,43 +308,43 @@ export default function HeroSlider() {
 
       {/* Navigation Controls */}
       <button
-        onClick={prevImage}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 z-20"
-        aria-label="Previous image"
+        onClick={prevSlide}
+        className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-4 rounded-full shadow-lg transition-all duration-300 z-30 border border-white/30"
+        aria-label="Previous slide"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
       
       <button
-        onClick={nextImage}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 z-20"
-        aria-label="Next image"
+        onClick={nextSlide}
+        className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-4 rounded-full shadow-lg transition-all duration-300 z-30 border border-white/30"
+        aria-label="Next slide"
       >
         <ChevronRight className="w-6 h-6" />
       </button>
 
-      {/* Image Indicators */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-        {images.map((_, index) => (
+      {/* Slide Indicators */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-3 z-30">
+        {slides.map((_, index) => (
           <button
             key={index}
-            onClick={() => goToImage(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              index === currentImage 
-                ? 'bg-green-600 w-8' 
-                : 'bg-white/60 hover:bg-white/80'
+            onClick={() => goToSlide(index)}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              index === currentSlide 
+                ? 'bg-green-400 w-12' 
+                : 'bg-white/40 hover:bg-white/60 w-2'
             }`}
-            aria-label={`Go to image ${index + 1}`}
+            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>
 
       {/* Progress Bar */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-green-100">
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20">
         <div 
-          className="h-full bg-green-600 transition-all duration-100 ease-linear"
+          className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300 ease-out"
           style={{ 
-            width: `${((currentImage + 1) / images.length) * 100}%` 
+            width: `${((currentSlide + 1) / slides.length) * 100}%` 
           }}
         />
       </div>
