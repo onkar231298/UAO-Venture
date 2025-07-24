@@ -24,9 +24,7 @@ import {
   Phone,
   LogOut,
   Settings,
-  LayoutDashboard,
-  MessageCircle,
-  Flag
+  LayoutDashboard
 } from "lucide-react";
 
 export default function Header() {
@@ -52,14 +50,12 @@ export default function Header() {
           <div className="flex items-center space-x-8">
             {/* Logo */}
             <Link href="/">
-              <div className="flex items-center space-x-3 cursor-pointer">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Leaf className="text-white text-xl" />
+              <div className="flex items-center space-x-2 cursor-pointer">
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                  <Leaf className="text-white text-lg" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                    BFI Organic
-                  </h1>
+                  <h1 className="text-xl font-bold text-green-600">BFI Organic</h1>
                   <p className="text-xs text-gray-500">Pvt. Ltd.</p>
                 </div>
               </div>
@@ -67,12 +63,12 @@ export default function Header() {
             
             {/* Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
-              <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors font-medium ${location === '/' ? 'text-green-600' : ''}`}>
+              <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
                 Products
               </Link>
               <DropdownMenu>
-                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center font-medium">
-                  Branded Ingredients <ChevronDown className="ml-1 h-3 w-3" />
+                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center">
+                  Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem>Organic Powders</DropdownMenuItem>
@@ -81,46 +77,25 @@ export default function Header() {
                   <DropdownMenuItem>Raw Materials</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors font-medium">
+              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
                 Certifications
               </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors font-medium">
-                Certified Ingredients
-              </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors font-medium">
+              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
                 R&D Lab
               </a>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center font-medium">
-                  Services <ChevronDown className="ml-1 h-3 w-3" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem>Custom Manufacturing</DropdownMenuItem>
-                  <DropdownMenuItem>Quality Testing</DropdownMenuItem>
-                  <DropdownMenuItem>Private Labeling</DropdownMenuItem>
-                  <DropdownMenuItem>R&D Support</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
+                Services
+              </a>
             </nav>
           </div>
 
           <div className="flex items-center space-x-4">
             {/* Country Selector */}
             <div className="hidden md:flex items-center space-x-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-800">
-                  <Flag className="w-4 h-4 text-orange-500" />
-                  <span className="font-medium">India</span>
-                  <ChevronDown className="w-3 h-3" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem>🇮🇳 India</DropdownMenuItem>
-                  <DropdownMenuItem>🇺🇸 United States</DropdownMenuItem>
-                  <DropdownMenuItem>🇬🇧 United Kingdom</DropdownMenuItem>
-                  <DropdownMenuItem>🇨🇦 Canada</DropdownMenuItem>
-                  <DropdownMenuItem>🇦🇺 Australia</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <Globe className="w-4 h-4" />
+                <span>India</span>
+              </div>
             </div>
             
             {/* User Actions */}
@@ -129,8 +104,13 @@ export default function Header() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center space-x-2">
-                      <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">Login</span>
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={user.profileImageUrl || ""} />
+                        <AvatarFallback>
+                          {(user.firstName?.[0] || '') + (user.lastName?.[0] || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden sm:inline">{user.firstName || 'User'}</span>
                       <ChevronDown className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -168,80 +148,69 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" onClick={() => window.location.href = "/api/login"} className="flex items-center space-x-1">
-                  <User className="w-4 h-4" />
+                <Button variant="ghost" onClick={() => window.location.href = "/api/login"}>
+                  <User className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Login</span>
                 </Button>
               )}
               
-              <Button variant="ghost" size="sm" className="relative">
-                <Heart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+              <Button variant="ghost" size="sm">
+                <Heart className="w-4 h-4" />
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
               
-              <Button variant="ghost" size="sm" className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+              <Button variant="ghost" size="sm">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="bg-green-600 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
             </div>
 
-            {/* WhatsApp and Contact Info - Green Jeeva Style */}
-            <div className="flex items-center space-x-4">
-              <Button 
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-                onClick={() => window.open('https://wa.me/919876543210', '_blank')}
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">WhatsApp</span>
-              </Button>
-              
-              <div className="hidden lg:flex items-center space-x-2 text-sm border-l pl-4">
-                <Phone className="text-green-600 w-4 h-4" />
-                <div>
-                  <div className="font-bold text-green-600">+91-98765-43210</div>
-                  <div className="text-xs text-gray-500">Customer Support</div>
-                </div>
+            {/* Contact Info */}
+            <div className="hidden sm:flex items-center space-x-2 text-sm">
+              <Phone className="text-green-600 w-4 h-4" />
+              <div>
+                <div className="font-medium">+91-98765-43210</div>
+                <div className="text-xs text-gray-500">Customer Support</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search Bar - Green Jeeva Style */}
-      <div className="bg-gradient-to-r from-green-600 to-green-500 text-white">
-        <div className="container mx-auto px-4 py-3">
+      {/* Search Bar */}
+      <div className="bg-green-600 text-white">
+        <div className="container mx-auto px-4 py-2">
           <div className="flex items-center space-x-4">
-            <button className="lg:hidden flex items-center space-x-1 text-sm font-medium">
+            <button className="lg:hidden flex items-center space-x-1 text-sm">
               <Menu className="w-4 h-4" />
-              <span>ALL CATEGORIES</span>
+              <span>Categories</span>
             </button>
             
-            <div className="flex-1 max-w-2xl">
+            <div className="flex-1 max-w-xl">
               <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="search"
                   placeholder="Search for organic ingredients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300 border-0 text-base"
+                  className="w-full px-4 py-2 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300 border-0"
                 />
                 <Button
                   type="submit"
                   size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-green-700 p-1 h-auto"
                 >
-                  <Search className="w-4 h-4 text-white" />
+                  <Search className="w-4 h-4 text-gray-500" />
                 </Button>
               </form>
             </div>
 
-            <Button 
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 font-medium"
-              onClick={() => window.open('https://wa.me/919876543210', '_blank')}
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>WhatsApp</span>
-            </Button>
+            <div className="hidden md:flex items-center space-x-4 text-sm">
+              <a href="#" className="flex items-center space-x-1 hover:text-green-200">
+                <Phone className="w-4 h-4" />
+                <span>WhatsApp</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

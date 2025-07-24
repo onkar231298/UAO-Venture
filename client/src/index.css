@@ -24,15 +24,14 @@
   --ring: hsl(142, 76%, 30%);
   --radius: 0.5rem;
   
-  /* BFI Organic Brand Colors - Green Blue Sky Blue Theme */
-  --bfi-primary: hsl(120, 100%, 25%);      /* Deep Green */
-  --bfi-secondary: hsl(200, 100%, 45%);    /* Ocean Blue */
-  --bfi-tertiary: hsl(195, 100%, 70%);     /* Sky Blue */
-  --bfi-accent: hsl(120, 60%, 95%);        /* Light Green Accent */
-  --bfi-neutral: hsl(210, 20%, 98%);       /* Off White */
-  --bfi-success: hsl(120, 100%, 30%);      /* Success Green */
-  --bfi-warning: hsl(45, 93%, 47%);        /* Warning Yellow */
-  --bfi-error: hsl(0, 84%, 60%);           /* Error Red */
+  /* BFI Organic Brand Colors */
+  --bfi-primary: hsl(142, 76%, 30%);
+  --bfi-primary-light: hsl(142, 60%, 45%);
+  --bfi-accent: hsl(142, 40%, 95%);
+  --bfi-neutral: hsl(60, 4.8%, 97%);
+  --bfi-success: hsl(142, 76%, 36%);
+  --bfi-warning: hsl(45, 93%, 47%);
+  --bfi-error: hsl(0, 84%, 60%);
 }
 
 .dark {
