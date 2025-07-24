@@ -1,173 +1,140 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Shield, Users, Truck, Star, Award, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield, Users, Truck } from "lucide-react";
 
-interface SlideData {
+interface ImageData {
   id: number;
-  title: string;
-  subtitle: string;
-  description: string;
   image: string;
   imageAlt: string;
-  features: Array<{
-    icon: any;
-    text: string;
-  }>;
-  ctaText: string;
-  ctaSecondary: string;
 }
 
-const slides: SlideData[] = [
+const images: ImageData[] = [
   {
     id: 1,
-    title: "PREMIUM ORGANIC TURMERIC",
-    subtitle: "Laboratory Tested • 95% Curcumin Content",
-    description: "Sourced directly from certified organic farms in India. Our premium turmeric powder undergoes rigorous quality testing to ensure highest curcumin content for pharmaceutical and nutraceutical applications.",
     image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Premium organic turmeric powder with quality testing equipment",
-    features: [
-      { icon: Award, text: "USDA Organic" },
-      { icon: Shield, text: "95% Curcumin" },
-      { icon: Users, text: "Pharma Grade" }
-    ],
-    ctaText: "View Turmeric Products",
-    ctaSecondary: "Request COA"
+    imageAlt: "Premium organic turmeric powder with quality testing equipment"
   },
   {
     id: 2,
-    title: "ASHWAGANDHA ROOT EXTRACT",
-    subtitle: "Adaptogenic Excellence • Standardized Withanolides",
-    description: "Premium ashwagandha from Rajasthan's finest organic farms. Standardized to contain optimal withanolides levels, perfect for stress-relief supplements and wellness products.",
     image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Organic ashwagandha roots and powder with traditional processing",
-    features: [
-      { icon: Shield, text: "5% Withanolides" },
-      { icon: Award, text: "India Organic" },
-      { icon: Globe, text: "Export Quality" }
-    ],
-    ctaText: "Explore Ashwagandha",
-    ctaSecondary: "Download Specs"
+    imageAlt: "Organic ashwagandha roots and powder with traditional processing"
   },
   {
     id: 3,
-    title: "GLOBAL QUALITY STANDARDS",
-    subtitle: "International Certifications • Trusted Worldwide",
-    description: "Our state-of-the-art facilities maintain the highest international standards. From USDA Organic to ISO certifications, we ensure every batch meets global quality requirements.",
     image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Modern organic processing facility with quality control laboratory",
-    features: [
-      { icon: Award, text: "ISO 9001:2015" },
-      { icon: Shield, text: "HACCP Certified" },
-      { icon: Star, text: "GMP Compliant" }
-    ],
-    ctaText: "View Certifications",
-    ctaSecondary: "Facility Tour"
+    imageAlt: "Modern organic processing facility with quality control laboratory"
   },
   {
     id: 4,
-    title: "TRUSTED BY 500+ BUSINESSES",
-    subtitle: "Global Supply Chain • Reliable Partnership",
-    description: "From small startups to Fortune 500 companies, businesses worldwide trust Bright Fame Organic for consistent quality, reliable supply, and exceptional service in organic ingredients.",
     image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    imageAlt: "Global shipping containers and international business partnerships",
-    features: [
-      { icon: Truck, text: "Fast Delivery" },
-      { icon: Users, text: "24/7 Support" },
-      { icon: Globe, text: "Worldwide Supply" }
-    ],
-    ctaText: "Partner With Us",
-    ctaSecondary: "Success Stories"
+    imageAlt: "Global shipping containers and international business partnerships"
   }
 ];
 
 export default function HeroSlider() {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentImage, setCurrentImage] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  // Auto-advance slides
+  // Auto-advance images
   useEffect(() => {
     if (!isAutoPlaying) return;
     
     const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % slides.length);
-    }, 6000);
+      setCurrentImage(prev => (prev + 1) % images.length);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
 
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
+  const goToImage = (index: number) => {
+    setCurrentImage(index);
     setIsAutoPlaying(false);
     setTimeout(() => setIsAutoPlaying(true), 10000);
   };
 
-  const nextSlide = () => {
-    setCurrentSlide(prev => (prev + 1) % slides.length);
+  const nextImage = () => {
+    setCurrentImage(prev => (prev + 1) % images.length);
     setIsAutoPlaying(false);
     setTimeout(() => setIsAutoPlaying(true), 10000);
   };
 
-  const prevSlide = () => {
-    setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
+  const prevImage = () => {
+    setCurrentImage(prev => (prev - 1 + images.length) % images.length);
     setIsAutoPlaying(false);
     setTimeout(() => setIsAutoPlaying(true), 10000);
   };
 
-  const slide = slides[currentSlide];
+  const currentImageData = images[currentImage];
 
   return (
     <section className="relative bg-gradient-to-r from-green-50 to-white py-16 lg:py-24 overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[600px]">
-          {/* Content Side */}
+          {/* Static Content Side */}
           <div className="space-y-6 z-10">
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                {slide.title.split(' ').map((word, i) => (
-                  <span key={i} className={word === 'ORGANIC' || word === 'TURMERIC' || word === 'ASHWAGANDHA' || word === 'QUALITY' || word === 'TRUSTED' ? 'text-green-600' : ''}>
-                    {word}{' '}
-                  </span>
-                ))}
+                THINK ORGANIC<br />
+                THINK <span className="text-green-600">BRIGHT FAME</span>
               </h1>
               <div className="bg-green-600 text-white px-6 py-3 rounded-full inline-block text-lg font-medium">
-                {slide.subtitle}
+                Premium B2B Organic Ingredients
               </div>
             </div>
             
             <p className="text-gray-600 text-lg max-w-lg leading-relaxed">
-              {slide.description}
+              Your trusted partner for certified organic ingredients. From sourcing to delivery, 
+              we ensure the highest quality standards for your business needs.
             </p>
             
             <div className="flex flex-wrap gap-4">
               <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                {slide.ctaText}
+                Explore Products
               </Button>
               <Button variant="outline" size="lg">
-                {slide.ctaSecondary}
+                Request Catalog
               </Button>
             </div>
             
             <div className="flex items-center space-x-6 text-sm text-gray-600">
-              {slide.features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <feature.icon className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{feature.text}</span>
-                </div>
-              ))}
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4 text-green-500" />
+                <span className="font-medium">USDA Organic</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4 text-green-500" />
+                <span className="font-medium">ISO Certified</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4 text-green-500" />
+                <span className="font-medium">24/7 Support</span>
+              </div>
             </div>
           </div>
 
-          {/* Image Side */}
+          {/* Image Slider Side */}
           <div className="relative">
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-              <img
-                src={slide.image}
-                alt={slide.imageAlt}
-                className="w-full h-[500px] object-cover transition-transform duration-700 hover:scale-105"
-              />
+            {/* Trapezoid/Cross-triangular Image Container */}
+            <div className="relative w-full h-[500px]">
+              <div 
+                className="absolute inset-0 overflow-hidden shadow-2xl"
+                style={{
+                  clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
+                }}
+              >
+                <img
+                  src={currentImageData.image}
+                  alt={currentImageData.imageAlt}
+                  className="w-full h-full object-cover transition-all duration-1000 ease-in-out transform hover:scale-105"
+                  style={{
+                    clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'
+                  }}
+                />
+              </div>
               
               {/* Image Overlays */}
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg">
+              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg z-10">
                 <div className="flex items-center space-x-2">
                   <Truck className="text-green-600 text-2xl" />
                   <div>
@@ -177,7 +144,7 @@ export default function HeroSlider() {
                 </div>
               </div>
               
-              <div className="absolute -top-4 -right-4 bg-green-600 text-white p-4 rounded-xl shadow-lg">
+              <div className="absolute -top-4 -right-4 bg-green-600 text-white p-4 rounded-xl shadow-lg z-10">
                 <div className="text-center">
                   <div className="text-2xl font-bold">500+</div>
                   <div className="text-sm">Products</div>
@@ -190,33 +157,33 @@ export default function HeroSlider() {
 
       {/* Navigation Controls */}
       <button
-        onClick={prevSlide}
+        onClick={prevImage}
         className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 z-20"
-        aria-label="Previous slide"
+        aria-label="Previous image"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
       
       <button
-        onClick={nextSlide}
+        onClick={nextImage}
         className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 z-20"
-        aria-label="Next slide"
+        aria-label="Next image"
       >
         <ChevronRight className="w-6 h-6" />
       </button>
 
-      {/* Slide Indicators */}
+      {/* Image Indicators */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-        {slides.map((_, index) => (
+        {images.map((_, index) => (
           <button
             key={index}
-            onClick={() => goToSlide(index)}
+            onClick={() => goToImage(index)}
             className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              index === currentSlide 
+              index === currentImage 
                 ? 'bg-green-600 w-8' 
                 : 'bg-white/60 hover:bg-white/80'
             }`}
-            aria-label={`Go to slide ${index + 1}`}
+            aria-label={`Go to image ${index + 1}`}
           />
         ))}
       </div>
@@ -226,7 +193,7 @@ export default function HeroSlider() {
         <div 
           className="h-full bg-green-600 transition-all duration-100 ease-linear"
           style={{ 
-            width: `${((currentSlide + 1) / slides.length) * 100}%` 
+            width: `${((currentImage + 1) / images.length) * 100}%` 
           }}
         />
       </div>
