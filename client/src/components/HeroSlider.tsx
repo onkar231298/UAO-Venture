@@ -116,11 +116,11 @@ export default function HeroSlider() {
           <div className="relative">
             {/* Trapezoid with Curved Extension */}
             <div className="relative w-full h-[500px]">
-              {/* Main trapezoid shape container */}
+              {/* Extended image container covering both trapezoid and curved extension */}
               <div 
-                className="absolute inset-0 overflow-hidden shadow-2xl rounded-lg"
+                className="absolute inset-0 -right-6 overflow-hidden shadow-2xl"
                 style={{
-                  clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'
+                  clipPath: 'polygon(15% 0%, 95% 5%, 90% 95%, 0% 100%)'
                 }}
               >
                 <img
@@ -128,24 +128,10 @@ export default function HeroSlider() {
                   alt={currentImageData.imageAlt}
                   className="w-full h-full object-cover transition-all duration-1000 ease-in-out"
                   style={{
-                    transform: 'scale(1.1)',
-                    objectPosition: 'center center'
-                  }}
-                />
-              </div>
-              
-              {/* Curved extension on the right */}
-              <div 
-                className="absolute top-0 -right-2 w-20 h-full overflow-hidden z-10"
-                style={{
-                  clipPath: 'polygon(0% 15%, 100% 0%, 100% 100%, 0% 85%)'
-                }}
-              >
-                <div 
-                  className="w-full h-full"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%)',
-                    backdropFilter: 'blur(1px)'
+                    width: '110%',
+                    height: '100%',
+                    objectPosition: 'center center',
+                    transform: 'translateX(-5%)'
                   }}
                 />
               </div>
