@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
+import ImageSlider from "@/components/ImageSlider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
