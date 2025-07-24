@@ -139,7 +139,7 @@ export class DatabaseStorage implements IStorage {
   }): Promise<{ products: Product[]; total: number }> {
     const conditions = [eq(products.isActive, true)];
     
-    if (filters?.category) {
+    if (filters?.category && !isNaN(parseInt(filters.category))) {
       conditions.push(eq(products.categoryId, parseInt(filters.category)));
     }
     

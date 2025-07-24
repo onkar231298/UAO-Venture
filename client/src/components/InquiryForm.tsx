@@ -39,7 +39,7 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
       }
 
       return await apiRequest("POST", "/api/inquiries", {
-        productId: parseInt(data.productId),
+        productId: parseInt(data.productId.toString()),
         quantity: parseFloat(data.quantity),
         unit: data.unit,
         message: data.message,

@@ -107,7 +107,7 @@ export default function ProductDetail() {
             
             {/* Certifications */}
             <div className="flex items-center space-x-2 mb-4">
-              {product.certifications && (product.certifications as string[]).map((cert, index) => (
+              {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
                 <Badge key={index} variant="outline" className="text-xs">
                   <Shield className="w-3 h-3 mr-1" />
                   {cert}

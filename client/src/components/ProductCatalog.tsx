@@ -17,8 +17,8 @@ interface ProductCatalogProps {
 
 export default function ProductCatalog({ showHeader = true, limit }: ProductCatalogProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [organicFilter, setOrganicFilter] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [organicFilter, setOrganicFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = limit || 12;
@@ -29,8 +29,8 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
 
   const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", {
-      search: searchQuery,
-      category: selectedCategory,
+      search: searchQuery || undefined,
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
       isOrganic: organicFilter === 'true' ? true : organicFilter === 'false' ? false : undefined,
       limit: productsPerPage,
       offset: (currentPage - 1) * productsPerPage,
@@ -82,7 +82,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories?.map((category: Category) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     {category.name}
@@ -100,7 +100,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
                 <SelectValue placeholder="All Products" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Products</SelectItem>
+                <SelectItem value="all">All Products</SelectItem>
                 <SelectItem value="true">Organic Only</SelectItem>
                 <SelectItem value="false">Conventional Only</SelectItem>
               </SelectContent>
@@ -133,16 +133,16 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
                 <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-destructive">×</button>
               </Badge>
             )}
-            {selectedCategory && (
+            {selectedCategory && selectedCategory !== 'all' && (
               <Badge variant="secondary" className="flex items-center space-x-1">
                 <span>Category: {categories?.find((c: Category) => c.id.toString() === selectedCategory)?.name}</span>
-                <button onClick={() => setSelectedCategory("")} className="ml-1 hover:text-destructive">×</button>
+                <button onClick={() => setSelectedCategory("all")} className="ml-1 hover:text-destructive">×</button>
               </Badge>
             )}
-            {organicFilter && (
+            {organicFilter && organicFilter !== 'all' && (
               <Badge variant="secondary" className="flex items-center space-x-1">
                 <span>{organicFilter === 'true' ? 'Organic Only' : 'Conventional Only'}</span>
-                <button onClick={() => setOrganicFilter("")} className="ml-1 hover:text-destructive">×</button>
+                <button onClick={() => setOrganicFilter("all")} className="ml-1 hover:text-destructive">×</button>
               </Badge>
             )}
           </div>
