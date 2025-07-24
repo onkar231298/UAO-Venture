@@ -67,7 +67,7 @@ export default function HeroSlider() {
   const currentImageData = images[currentImage];
 
   return (
-    <section className="relative bg-gradient-to-r from-green-50 to-white py-16 lg:py-24 overflow-hidden">
+    <section className="relative bg-gradient-to-r from-green-50 to-white py-8 lg:py-12 overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[600px]">
           {/* Static Content Side */}
@@ -114,8 +114,9 @@ export default function HeroSlider() {
 
           {/* Image Slider Side */}
           <div className="relative">
-            {/* Trapezoid/Cross-triangular Image Container */}
+            {/* Trapezoid with Curved Extension */}
             <div className="relative w-full h-[500px]">
+              {/* Main trapezoid shape */}
               <div 
                 className="absolute inset-0 overflow-hidden shadow-2xl"
                 style={{
@@ -129,6 +130,21 @@ export default function HeroSlider() {
                   className="w-full h-full object-cover transition-all duration-1000 ease-in-out transform hover:scale-105"
                   style={{
                     clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'
+                  }}
+                />
+              </div>
+              
+              {/* Curved extension on the right */}
+              <div 
+                className="absolute top-0 right-0 w-16 h-full overflow-hidden"
+                style={{
+                  clipPath: 'polygon(0% 20%, 100% 0%, 100% 100%, 0% 80%)'
+                }}
+              >
+                <div 
+                  className="w-full h-full bg-green-50"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)'
                   }}
                 />
               </div>
