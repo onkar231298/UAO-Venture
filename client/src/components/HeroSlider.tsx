@@ -131,25 +131,25 @@ export default function HeroSlider() {
         }}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Content Side */}
-            <div className="space-y-6 sm:space-y-8 text-white text-center lg:text-left order-2 lg:order-1">
+          <div className="flex items-center justify-center min-h-[80vh]">
+            {/* Content Side - Centered */}
+            <div className="space-y-6 sm:space-y-8 text-white text-center max-w-4xl">
               <div className="space-y-3 sm:space-y-4">
                 <div className="overflow-hidden">
                   <h1 
                     key={`title-${currentSlide}`}
-                    className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight animate-slide-up"
+                    className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-tight animate-slide-up"
                   >
                     <span className="text-white">THINK </span>
                     <span className="text-green-400">ORGANIC</span><br />
-                    <span className="text-green-400 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl">
+                    <span className="text-green-400 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
                       {currentSlideData.title}
                     </span>
                   </h1>
                 </div>
                 <div 
                   key={`subtitle-${currentSlide}`}
-                  className="bg-gradient-to-r from-green-500 to-green-400 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full inline-block text-sm sm:text-base lg:text-lg font-medium animate-fade-in-right"
+                  className="bg-gradient-to-r from-green-500 to-green-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full inline-block text-base sm:text-lg lg:text-xl font-medium animate-fade-in-right"
                   style={{ animationDelay: '0.3s' }}
                 >
                   {currentSlideData.subtitle}
@@ -158,63 +158,39 @@ export default function HeroSlider() {
               
               <p 
                 key={`desc-${currentSlide}`}
-                className="text-gray-200 text-base sm:text-lg lg:text-xl max-w-lg mx-auto lg:mx-0 leading-relaxed animate-fade-in-up"
+                className="text-gray-200 text-lg sm:text-xl lg:text-2xl max-w-3xl mx-auto leading-relaxed animate-fade-in-up"
                 style={{ animationDelay: '0.6s' }}
               >
                 {currentSlideData.description}
               </p>
               
               <div 
-                className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 sm:gap-4 animate-fade-in-up"
+                className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 animate-fade-in-up"
                 style={{ animationDelay: '0.9s' }}
               >
-                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg">
                   Explore Products
                 </Button>
-                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-gray-900 w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg">
                   Request Catalog
                 </Button>
               </div>
               
               <div 
-                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-2 sm:space-y-0 sm:space-x-4 lg:space-x-6 text-xs sm:text-sm text-gray-300 animate-fade-in-up"
+                className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-8 text-sm sm:text-base text-gray-300 animate-fade-in-up"
                 style={{ animationDelay: '1.2s' }}
               >
                 <div className="flex items-center space-x-2">
-                  <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                   <span className="font-medium">USDA Organic</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                  <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                   <span className="font-medium">Global Supply</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                   <span className="font-medium">24/7 Support</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Foreground Image Layer */}
-            <div className="relative order-1 lg:order-2">
-              <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
-                <div 
-                  key={`image-${currentSlide}`}
-                  className="absolute inset-0 overflow-hidden shadow-2xl animate-zoom-in rounded-lg"
-                  style={{
-                    animationDelay: '0.5s'
-                  }}
-                >
-                  <img
-                    src={currentSlideData.foregroundImage}
-                    alt={currentSlideData.imageAlt}
-                    className="w-full h-full object-cover"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectPosition: 'center center'
-                    }}
-                  />
                 </div>
               </div>
             </div>
