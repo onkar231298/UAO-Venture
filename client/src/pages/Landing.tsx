@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import HeroSlider from "@/components/HeroSlider";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
@@ -38,73 +39,8 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-green-50 to-white py-16 lg:py-24">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                THINK ORGANIC<br />
-                THINK <span className="text-green-600">BFI ORGANIC</span>
-              </h1>
-              <div className="bg-green-600 text-white px-6 py-3 rounded-full inline-block text-lg font-medium">
-                Premium B2B Organic Ingredients
-              </div>
-              <p className="text-gray-600 text-lg max-w-lg">
-                Your trusted partner for certified organic ingredients. From sourcing to delivery, 
-                we ensure the highest quality standards for your business needs.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                  Explore Products
-                </Button>
-                <Button variant="outline" size="lg">
-                  Request Catalog
-                </Button>
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Shield className="w-4 h-4 text-green-500" />
-                  <span>USDA Organic</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Shield className="w-4 h-4 text-green-500" />
-                  <span>ISO Certified</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="w-4 h-4 text-green-500" />
-                  <span>24/7 Support</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
-                alt="Professional holding organic turmeric powder with laboratory equipment in background"
-                className="rounded-2xl shadow-2xl w-full h-auto"
-              />
-              
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg">
-                <div className="flex items-center space-x-2">
-                  <Truck className="text-green-600 text-2xl" />
-                  <div>
-                    <div className="font-semibold text-gray-900">Fast Delivery</div>
-                    <div className="text-sm text-gray-500">24-48 Hours</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="absolute -top-4 -right-4 bg-green-600 text-white p-4 rounded-xl shadow-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">500+</div>
-                  <div className="text-sm">Products</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Slider */}
+      <HeroSlider />
 
       {/* Search Section */}
       <section className="bg-green-600 text-white py-4">
