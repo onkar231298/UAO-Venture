@@ -104,6 +104,11 @@ export default function Header() {
                 <Heart className="w-4 h-4" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
+              
+              <Button variant="ghost" size="sm">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="bg-green-600 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
+              </Button>
 
               {isAuthenticated && user ? (
                 <DropdownMenu>
@@ -158,11 +163,6 @@ export default function Header() {
                   <span className="hidden sm:inline">Login</span>
                 </Button>
               )}
-              
-              <Button variant="ghost" size="sm">
-                <ShoppingCart className="w-4 h-4" />
-                <span className="bg-green-600 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
-              </Button>
             </div>
           </div>
         </div>
