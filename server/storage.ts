@@ -294,14 +294,86 @@ export class DatabaseStorage implements IStorage {
         .replace(/(^-|-$)/g, '');
     }
     
-    const [newProduct] = await db.insert(products).values(product).returning();
+    // Process array fields to ensure they're properly formatted for PostgreSQL
+    const processedProduct = { ...product };
+    
+    // Convert string arrays to proper arrays if needed
+    if (processedProduct.additionalDocs && typeof processedProduct.additionalDocs === 'string') {
+      try {
+        processedProduct.additionalDocs = JSON.parse(processedProduct.additionalDocs);
+      } catch {
+        processedProduct.additionalDocs = [];
+      }
+    }
+    
+    if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
+      try {
+        processedProduct.galleryImages = JSON.parse(processedProduct.galleryImages);
+      } catch {
+        processedProduct.galleryImages = [];
+      }
+    }
+    
+    if (processedProduct.certifications && typeof processedProduct.certifications === 'string') {
+      try {
+        processedProduct.certifications = JSON.parse(processedProduct.certifications);
+      } catch {
+        processedProduct.certifications = [];
+      }
+    }
+    
+    if (processedProduct.bulkPricing && typeof processedProduct.bulkPricing === 'string') {
+      try {
+        processedProduct.bulkPricing = JSON.parse(processedProduct.bulkPricing);
+      } catch {
+        processedProduct.bulkPricing = [];
+      }
+    }
+    
+    const [newProduct] = await db.insert(products).values(processedProduct).returning();
     return newProduct;
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
+    // Process array fields to ensure they're properly formatted for PostgreSQL
+    const processedProduct = { ...product };
+    
+    // Convert string arrays to proper arrays if needed
+    if (processedProduct.additionalDocs && typeof processedProduct.additionalDocs === 'string') {
+      try {
+        processedProduct.additionalDocs = JSON.parse(processedProduct.additionalDocs);
+      } catch {
+        processedProduct.additionalDocs = [];
+      }
+    }
+    
+    if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
+      try {
+        processedProduct.galleryImages = JSON.parse(processedProduct.galleryImages);
+      } catch {
+        processedProduct.galleryImages = [];
+      }
+    }
+    
+    if (processedProduct.certifications && typeof processedProduct.certifications === 'string') {
+      try {
+        processedProduct.certifications = JSON.parse(processedProduct.certifications);
+      } catch {
+        processedProduct.certifications = [];
+      }
+    }
+    
+    if (processedProduct.bulkPricing && typeof processedProduct.bulkPricing === 'string') {
+      try {
+        processedProduct.bulkPricing = JSON.parse(processedProduct.bulkPricing);
+      } catch {
+        processedProduct.bulkPricing = [];
+      }
+    }
+
     const [updatedProduct] = await db
       .update(products)
-      .set({ ...product, updatedAt: new Date() })
+      .set({ ...processedProduct, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
     return updatedProduct;
