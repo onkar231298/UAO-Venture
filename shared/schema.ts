@@ -347,6 +347,9 @@ export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  productId: z.string().optional(), // Auto-generated if not provided
+  slug: z.string().optional(), // Auto-generated from name if not provided
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

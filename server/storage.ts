@@ -229,6 +229,14 @@ export class DatabaseStorage implements IStorage {
       product.productId = await this.generateProductId();
     }
     
+    // Generate slug from name if not provided
+    if (!product.slug && product.name) {
+      product.slug = product.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
     const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
   }
