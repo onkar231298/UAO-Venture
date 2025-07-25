@@ -33,25 +33,34 @@ export default function UnifiedLogin() {
           redirect: 'manual' // Don't auto-follow redirects
         });
 
+        // Debug logging
+        console.log("Response status:", response.status);
+        console.log("Response type:", response.type);
+        
         // Check if the response is a redirect
         if (response.status === 302) {
           const location = response.headers.get('location');
+          console.log("Redirect location:", location);
           if (location && location.includes('/admin/dashboard')) {
             // Success - redirect to dashboard
+            console.log("Admin login successful, redirecting...");
             window.location.href = "/admin/dashboard";
             return;
           } else {
             // Failed - redirect contains error
+            console.log("Admin login failed, got redirect to:", location);
             setError("Invalid admin credentials. Please try again.");
             setIsLoading(false);
             return;
           }
         } else if (response.status === 200) {
           // Also check for successful response
+          console.log("Got 200 response, redirecting to dashboard");
           window.location.href = "/admin/dashboard";
           return;
         } else {
-          setError("Invalid admin credentials. Please try again.");
+          console.log("Unexpected response status:", response.status);
+          setError(`Login failed with status: ${response.status}`);
           setIsLoading(false);
           return;
         }
