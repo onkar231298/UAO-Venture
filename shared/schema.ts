@@ -117,6 +117,18 @@ export const products = pgTable("products", {
   // Media
   mainImage: varchar("main_image", { length: 500 }),
   galleryImages: jsonb("gallery_images").default("[]"), // Array of image URLs
+
+  // Document URLs - Direct references for easy access
+  coaDocument: varchar("coa_document", { length: 500 }), // Certificate of Analysis
+  certDocument: varchar("cert_document", { length: 500 }), // Organic Certificate
+  specDocument: varchar("spec_document", { length: 500 }), // Technical Specification Sheet
+  msdsDocument: varchar("msds_document", { length: 500 }), // MSDS / Safety Data Sheet
+  nonGmoDocument: varchar("non_gmo_document", { length: 500 }), // Non-GMO Statement
+  businessLicense: varchar("business_license", { length: 500 }), // Business License
+  registrationCert: varchar("registration_cert", { length: 500 }), // Certificate of Registration
+  kosherCert: varchar("kosher_cert", { length: 500 }), // KOSHER-OK Certificate
+  organicNopCert: varchar("organic_nop_cert", { length: 500 }), // Organic-NOP(USDA) Certificate
+  additionalDocs: jsonb("additional_docs").default("[]"), // Array of additional document URLs
   
   // SEO and Visibility
   seoTitle: varchar("seo_title", { length: 255 }),

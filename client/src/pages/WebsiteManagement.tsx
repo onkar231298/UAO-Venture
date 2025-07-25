@@ -39,7 +39,8 @@ import {
   Save,
   X,
   Monitor,
-  Layers
+  Layers,
+  Building2
 } from "lucide-react";
 import type { Product, Category, ProductTag, HeroSlider } from "@shared/schema";
 
@@ -446,11 +447,16 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     currency: product?.currency || "USD",
     mainImage: product?.mainImage || "",
     galleryImages: product?.galleryImages || [],
-    // Document fields
+    // Document fields - Complete set matching product page
     coaDocument: product?.coaDocument || "",
     certDocument: product?.certDocument || "",
     specDocument: product?.specDocument || "",
     msdsDocument: product?.msdsDocument || "",
+    nonGmoDocument: product?.nonGmoDocument || "",
+    businessLicense: product?.businessLicense || "",
+    registrationCert: product?.registrationCert || "",
+    kosherCert: product?.kosherCert || "",
+    organicNopCert: product?.organicNopCert || "",
     additionalDocs: product?.additionalDocs || [],
     seoTitle: product?.seoTitle || "",
     seoDescription: product?.seoDescription || "",
@@ -1076,7 +1082,186 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                 </Label>
                 <p className="text-xs text-gray-500 mb-4">Upload certificates, COAs, specifications, and other documents (PDF, DOC, DOCX)</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Company Specific Documents */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Company Specific Documents
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Business License */}
+                    <div className="space-y-2">
+                      <Label htmlFor="businessLicense" className="text-xs font-medium">Business License</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.businessLicense}
+                          onChange={(e) => setFormData(prev => ({ ...prev, businessLicense: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="businessLicense"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'businessLicense');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.businessLicense && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Business License uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, businessLicense: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Certificate of Registration */}
+                    <div className="space-y-2">
+                      <Label htmlFor="registrationCert" className="text-xs font-medium">Certificate of Registration</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.registrationCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, registrationCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="registrationCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'registrationCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.registrationCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Registration Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, registrationCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* KOSHER Certificate */}
+                    <div className="space-y-2">
+                      <Label htmlFor="kosherCert" className="text-xs font-medium">KOSHER-OK Certificate</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.kosherCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, kosherCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="kosherCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'kosherCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.kosherCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">KOSHER Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, kosherCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Organic NOP (USDA) */}
+                    <div className="space-y-2">
+                      <Label htmlFor="organicNopCert" className="text-xs font-medium">Organic-NOP(USDA) Certificate</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.organicNopCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, organicNopCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="organicNopCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'organicNopCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.organicNopCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Organic-NOP Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, organicNopCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Product Specific Documents */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Product Specific Documents
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* COA Document */}
                   <div className="space-y-2">
                     <Label htmlFor="coaDocument" className="text-xs font-medium">Certificate of Analysis (COA)</Label>
@@ -1240,6 +1425,47 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       </div>
                     )}
                   </div>
+
+                  {/* Non-GMO Statement */}
+                  <div className="space-y-2">
+                    <Label htmlFor="nonGmoDocument" className="text-xs font-medium">Non GMO Statement</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.nonGmoDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, nonGmoDocument: e.target.value }))}
+                        placeholder="Document URL or upload below"
+                        className="flex-1 text-xs"
+                      />
+                    </div>
+                    <Input
+                      id="nonGmoDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="text-xs"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'nonGmoDocument');
+                        }
+                      }}
+                      disabled={uploading}
+                    />
+                    {formData.nonGmoDocument && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700 truncate">Non-GMO Statement uploaded</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, nonGmoDocument: '' }))}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Additional Documents */}
@@ -1337,6 +1563,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                   </div>
                 </div>
               </div>
+            </div>
             </CardContent>
           </Card>
 
