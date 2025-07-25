@@ -360,125 +360,7 @@ export default function ProductDetailGreenJeeva() {
                 onQuantityChange={handleQuantityChange}
               />
 
-              {/* Specification Tabs Section */}
-              <div className="mt-6">
-                <Tabs defaultValue="spec" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
-                    <TabsTrigger value="spec" className="text-xs">Product Spec</TabsTrigger>
-                    <TabsTrigger value="description" className="text-xs">Description</TabsTrigger>
-                    <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
-                    <TabsTrigger value="vendors" className="text-xs">Other Vendors</TabsTrigger>
-                  </TabsList>
 
-                  <TabsContent value="spec" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Product Specifications</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-1 gap-3 text-sm">
-                          {product.botanicalName && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Botanical Name:</span>
-                              <br />
-                              <span className="italic">{product.botanicalName}</span>
-                            </div>
-                          )}
-                          {product.plantPart && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Plant Part Used:</span>
-                              <br />
-                              <span>{product.plantPart}</span>
-                            </div>
-                          )}
-                          {product.form && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Form:</span>
-                              <br />
-                              <span>{product.form}</span>
-                            </div>
-                          )}
-                          {product.origin && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Country of Origin:</span>
-                              <br />
-                              <span>{product.origin}</span>
-                            </div>
-                          )}
-                          {product.shelfLife && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Shelf Life:</span>
-                              <br />
-                              <span>{product.shelfLife}</span>
-                            </div>
-                          )}
-                          {product.meshSize && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Mesh Size:</span>
-                              <br />
-                              <span>{product.meshSize}</span>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="description" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Product Description</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-sm leading-relaxed">{product.description}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="faqs" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Frequently Asked Questions</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                          <div className="border-b pb-3">
-                            <h4 className="font-medium text-gray-900 mb-2 text-sm">What is the moisture content specification?</h4>
-                            <p className="text-xs text-gray-600">The moisture content is maintained at ≤ 10% to ensure optimal stability and prevent microbial growth.</p>
-                          </div>
-                          <div className="border-b pb-3">
-                            <h4 className="font-medium text-gray-900 mb-2 text-sm">What quality testing is performed?</h4>
-                            <p className="text-xs text-gray-600">Each lot undergoes comprehensive testing including organoleptic evaluation, heavy metals analysis, microbial testing, and pesticide residue screening.</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="vendors" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Other Vendors</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {!isAuthenticated ? (
-                          <div className="text-center py-6 bg-gray-50 rounded">
-                            <Users className="w-6 h-6 mx-auto text-gray-400 mb-2" />
-                            <p className="text-gray-600 mb-3 text-sm">You must log in to view other vendors</p>
-                            <Button size="sm" onClick={() => window.location.href = '/api/login'}>
-                              Log in
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-gray-600 text-sm">No other vendors available for this product.</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
 
               {/* Inquiry Form */}
               <Card className="mt-6">
@@ -550,7 +432,137 @@ export default function ProductDetailGreenJeeva() {
           </div>
         </div>
 
+        {/* Full-Width Specification Tabs Section */}
+        <div className="w-full mt-8">
+          <Tabs defaultValue="spec" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6 max-w-2xl mx-auto">
+              <TabsTrigger value="spec" className="text-sm">Product Spec</TabsTrigger>
+              <TabsTrigger value="description" className="text-sm">Description</TabsTrigger>
+              <TabsTrigger value="faqs" className="text-sm">FAQs</TabsTrigger>
+              <TabsTrigger value="vendors" className="text-sm">Other Vendors</TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="spec" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Product Specifications</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
+                    {product.botanicalName && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Botanical Name:</span>
+                        <br />
+                        <span className="italic text-base">{product.botanicalName}</span>
+                      </div>
+                    )}
+                    {product.plantPart && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Plant Part Used:</span>
+                        <br />
+                        <span className="text-base">{product.plantPart}</span>
+                      </div>
+                    )}
+                    {product.form && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Form:</span>
+                        <br />
+                        <span className="text-base">{product.form}</span>
+                      </div>
+                    )}
+                    {product.origin && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Country of Origin:</span>
+                        <br />
+                        <span className="text-base">{product.origin}</span>
+                      </div>
+                    )}
+                    {product.shelfLife && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Shelf Life:</span>
+                        <br />
+                        <span className="text-base">{product.shelfLife}</span>
+                      </div>
+                    )}
+                    {product.meshSize && (
+                      <div className="border-b pb-3">
+                        <span className="font-medium text-gray-600">Mesh Size:</span>
+                        <br />
+                        <span className="text-base">{product.meshSize}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="description" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Product Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-base max-w-none">
+                    <p className="text-base leading-relaxed">{product.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="faqs" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Frequently Asked Questions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="border-b pb-4">
+                      <h4 className="font-medium text-gray-900 mb-3 text-base">What is the moisture content specification?</h4>
+                      <p className="text-base text-gray-600 leading-relaxed">The moisture content is maintained at ≤ 10% to ensure optimal stability and prevent microbial growth.</p>
+                    </div>
+                    <div className="border-b pb-4">
+                      <h4 className="font-medium text-gray-900 mb-3 text-base">What quality testing is performed?</h4>
+                      <p className="text-base text-gray-600 leading-relaxed">Each lot undergoes comprehensive testing including organoleptic evaluation, heavy metals analysis, microbial testing, and pesticide residue screening.</p>
+                    </div>
+                    <div className="border-b pb-4">
+                      <h4 className="font-medium text-gray-900 mb-3 text-base">What are the storage requirements?</h4>
+                      <p className="text-base text-gray-600 leading-relaxed">Store in a cool, dry place away from direct sunlight. Keep in original packaging until use to maintain product quality.</p>
+                    </div>
+                    <div className="pb-4">
+                      <h4 className="font-medium text-gray-900 mb-3 text-base">What certifications does this product have?</h4>
+                      <p className="text-base text-gray-600 leading-relaxed">This product comes with comprehensive certifications including organic certificates, kosher certification, and compliance documentation as specified.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="vendors" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Other Vendors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!isAuthenticated ? (
+                    <div className="text-center py-12 bg-gray-50 rounded">
+                      <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-600 mb-4 text-base">You must log in to view other vendors</p>
+                      <Button size="default" onClick={() => window.location.href = '/api/login'}>
+                        Log in
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded">
+                      <Globe className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-600 text-base">No other vendors available for this product at the moment.</p>
+                      <p className="text-sm text-gray-500 mt-2">Check back later for alternative suppliers.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
