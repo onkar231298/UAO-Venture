@@ -115,42 +115,42 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
         ) : (
           <>
             {/* Mobile-First Pricing Cards for small screens */}
-            <div className="block md:hidden space-y-3">
-              {pricingTiers.map((tier, index) => {
+            <div className="block md:hidden space-y-2">
+              {pricingTiers.slice(0, 3).map((tier, index) => {
                 const pricing = calculatePrice(tier.quantity);
                 const isSelected = selectedQuantity === tier.quantity;
                 
                 return (
-                  <div key={index} className={`p-4 rounded-lg border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                  <div key={index} className={`p-3 rounded-lg border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <div className="font-semibold text-lg text-gray-900">
+                        <div className="font-semibold text-base text-gray-900">
                           {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs text-gray-600">
                           {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
                         </div>
                       </div>
                       <div className="text-right">
                         {pricing.discount > 0 ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs mb-2">
-                            <TrendingDown className="w-3 h-3 mr-1" />
-                            {pricing.discount.toFixed(1)}% off
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs mb-2 px-1 py-0">
+                            <TrendingDown className="w-2 h-2 mr-1" />
+                            {pricing.discount.toFixed(1)}%
                           </Badge>
                         ) : (
-                          <div className="text-xs text-gray-400 mb-2">No discount</div>
+                          <div className="text-xs text-gray-400 mb-2">0.00%</div>
                         )}
                         <Button
                           variant={isSelected ? "default" : "outline"}
                           size="sm"
                           onClick={() => handleQuantitySelect(tier.quantity)}
-                          className={`w-20 ${isSelected ? "bg-green-600 hover:bg-green-700" : ""}`}
+                          className={`w-16 h-7 text-xs ${isSelected ? "bg-green-600 hover:bg-green-700" : ""}`}
                         >
-                          {isSelected ? "Selected" : "Select"}
+                          {isSelected ? "✓" : "Select"}
                         </Button>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs text-gray-500">
                       Total: {formatPrice(pricing.price, userCurrency)}
                     </div>
                   </div>
@@ -161,44 +161,44 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
             {/* Desktop Table for larger screens */}
             <div className="hidden md:block">
               <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full">
+                <table className="w-full min-w-0">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Quantity</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Price per {product.priceUnit || 'kg'}</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Save</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">Select</th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Quantity</th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Price per {product.priceUnit || 'kg'}</th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Save</th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-900">Select</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {pricingTiers.map((tier, index) => {
+                    {pricingTiers.slice(0, 4).map((tier, index) => {
                       const pricing = calculatePrice(tier.quantity);
                       const isSelected = selectedQuantity === tier.quantity;
                       
                       return (
                         <tr key={index} className={`${isSelected ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          <td className="px-2 py-2 text-xs font-medium text-gray-900">
                             {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                          <td className="px-2 py-2 text-xs text-gray-900">
                             {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-2 py-2 text-xs">
                             {pricing.discount > 0 ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                                <TrendingDown className="w-3 h-3 mr-1" />
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs px-1 py-0">
+                                <TrendingDown className="w-2 h-2 mr-1" />
                                 {pricing.discount.toFixed(1)}%
                               </Badge>
                             ) : (
                               <span className="text-gray-400">0.00%</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-2 py-2 text-center">
                             <Button
                               variant={isSelected ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleQuantitySelect(tier.quantity)}
-                              className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                              className={`text-xs px-2 py-1 h-7 ${isSelected ? "bg-green-600 hover:bg-green-700" : ""}`}
                             >
                               {isSelected ? "Selected" : "Select"}
                             </Button>
@@ -216,38 +216,38 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
         {!isLoading && (
           <>
             {/* Custom Quantity Input */}
-            <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
-              <h4 className="font-medium text-sm text-gray-900 mb-2">Custom Quantity</h4>
-              <div className="flex flex-col sm:flex-row gap-2">
+            <div className="bg-gray-50 p-2 rounded-lg">
+              <h4 className="font-medium text-xs text-gray-900 mb-2">Custom Quantity</h4>
+              <div className="flex gap-2">
                 <Input
                   type="number"
-                  placeholder={`Min. ${product.moq || 25} ${product.stockUnit || 'kg'}`}
+                  placeholder={`Min. ${product.moq || 25}`}
                   value={customQuantity}
                   onChange={(e) => handleCustomQuantityChange(e.target.value)}
                   min={product.moq as number || 25}
-                  className="flex-1 text-sm"
+                  className="flex-1 text-xs h-8"
                 />
                 <Button 
                   variant="outline" 
                   onClick={() => handleCustomQuantityChange(customQuantity)}
                   disabled={!customQuantity || parseInt(customQuantity) < (product.moq as number || 25)}
-                  className="text-sm px-4 whitespace-nowrap"
+                  className="text-xs px-3 h-8"
                 >
                   Calculate
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Minimum order quantity: {product.moq || 25} {product.stockUnit || 'kg'}
+              <p className="text-xs text-gray-500 mt-1">
+                MOQ: {product.moq || 25} {product.stockUnit || 'kg'}
               </p>
             </div>
 
             {/* Summary */}
-            <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-blue-900">Selected Quantity</h4>
-                <Package className="w-4 h-4 text-blue-600" />
+            <div className="bg-blue-50 p-2 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-xs text-blue-900">Selected Quantity</h4>
+                <Package className="w-3 h-3 text-blue-600" />
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-1 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Quantity:</span>
                   <span className="font-medium">{selectedQuantity.toLocaleString()} {product.stockUnit || 'kg'}</span>
@@ -256,9 +256,9 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                   <span className="text-gray-600">Price per {product.priceUnit || 'kg'}:</span>
                   <span className="font-medium">{formatPrice(currentPricing.pricePerUnit, userCurrency)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                <div className="flex justify-between items-center pt-1 border-t border-blue-200">
                   <span className="text-gray-600 font-medium">Total Price:</span>
-                  <span className="font-bold text-lg text-blue-600">{formatPrice(currentPricing.price, userCurrency)}</span>
+                  <span className="font-bold text-base text-blue-600">{formatPrice(currentPricing.price, userCurrency)}</span>
                 </div>
                 {currentPricing.discount > 0 && (
                   <div className="flex justify-between items-center">
