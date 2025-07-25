@@ -759,6 +759,7 @@ function ProductForm({
     isActive: product?.isActive ?? true,
     isOrderable: product?.isOrderable ?? true,
     moq: product?.moq?.toString() || "",
+    rate: product?.rate?.toString() || "",
     unit: product?.unit || "kg",
     seoTitle: product?.seoTitle || "",
     seoDescription: product?.seoDescription || "",
@@ -777,6 +778,7 @@ function ProductForm({
       slug,
       categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
       moq: formData.moq ? parseInt(formData.moq) : null,
+      rate: formData.rate ? parseFloat(formData.rate) : null,
     });
   };
 
@@ -877,6 +879,22 @@ function ProductForm({
           />
         </div>
         <div>
+          <Label>Rate (Price Per Unit) *</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.rate}
+              onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
+              placeholder="0.25"
+              className="pl-6"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Base price per unit</p>
+        </div>
+        <div>
           <Label>Unit</Label>
           <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
             <SelectTrigger>
@@ -890,14 +908,15 @@ function ProductForm({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center space-x-4 pt-6">
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={formData.isOrganic}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOrganic: checked }))}
-            />
-            <Label>Organic</Label>
-          </div>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={formData.isOrganic}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOrganic: checked }))}
+          />
+          <Label>Organic</Label>
         </div>
       </div>
       
