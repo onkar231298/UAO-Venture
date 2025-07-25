@@ -269,6 +269,143 @@ export default function ProductDetailGreenJeeva() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Specification Tabs Section - Moved from right column */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg">Product Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="spec" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 mb-4">
+                      <TabsTrigger value="spec" className="text-xs">Product Spec</TabsTrigger>
+                      <TabsTrigger value="description" className="text-xs">Description</TabsTrigger>
+                      <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
+                      <TabsTrigger value="vendors" className="text-xs">Other Vendors</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="spec" className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Product Type:</span>
+                              <span className="font-medium">Extract</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Active Content:</span>
+                              <span className="font-medium">5% by HPLC</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Botanical Name:</span>
+                              <span className="font-medium">Withania Somnifera</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Part Used:</span>
+                              <span className="font-medium">Root</span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Mesh Size:</span>
+                              <span className="font-medium">80-100</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Moisture:</span>
+                              <span className="font-medium">≤ 5%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Heavy Metals:</span>
+                              <span className="font-medium">≤ 10 ppm</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Microbiological:</span>
+                              <span className="font-medium">Complies</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="description" className="space-y-4">
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          Ashwagandha extract is derived from the root of Withania somnifera, 
+                          commonly known as Indian Winter Cherry or Indian Ginseng. This adaptogenic 
+                          herb has been used in traditional Ayurvedic medicine for centuries and is 
+                          renowned for its stress-reducing and revitalizing properties.
+                        </p>
+                        <p className="text-gray-700 text-sm leading-relaxed mt-3">
+                          Our premium extract is standardized to contain 5% withanolides by HPLC, 
+                          ensuring consistent potency and efficacy. The extraction process follows 
+                          strict quality parameters to maintain the bioactive compounds while 
+                          eliminating unwanted substances.
+                        </p>
+                        <div className="mt-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Key Benefits:</h4>
+                          <ul className="text-sm text-gray-700 space-y-1">
+                            <li>• Supports stress management and adaptation</li>
+                            <li>• Promotes healthy energy levels</li>
+                            <li>• Supports cognitive function</li>
+                            <li>• Enhances physical performance</li>
+                            <li>• Supports healthy sleep patterns</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="faqs" className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="border-l-4 border-orange-500 pl-4">
+                          <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
+                          <p className="text-gray-700 text-sm mt-1">
+                            Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
+                            ensuring consistent quality and potency in every batch.
+                          </p>
+                        </div>
+                        <div className="border-l-4 border-orange-500 pl-4">
+                          <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
+                          <p className="text-gray-700 text-sm mt-1">
+                            Store in a cool, dry place away from direct sunlight. Keep in original packaging 
+                            and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
+                          </p>
+                        </div>
+                        <div className="border-l-4 border-orange-500 pl-4">
+                          <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
+                          <p className="text-gray-700 text-sm mt-1">
+                            Yes, this product is certified organic by USDA NOP and EU Organic standards. 
+                            All certificates are available for download in the documents section.
+                          </p>
+                        </div>
+                        <div className="border-l-4 border-orange-500 pl-4">
+                          <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
+                          <p className="text-gray-700 text-sm mt-1">
+                            The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
+                            and can accommodate custom packaging requirements for larger quantities.
+                          </p>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="vendors" className="space-y-4">
+                      <div className="text-center py-8">
+                        <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <h3 className="font-semibold text-gray-900 mb-2">Alternative Suppliers</h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Compare prices and specifications from other verified suppliers
+                        </p>
+                        <Button variant="outline" size="sm">
+                          <Globe className="w-4 h-4 mr-2" />
+                          View Other Suppliers
+                        </Button>
+                        <p className="text-gray-500 text-xs mt-3">
+                          Feature coming soon - Compare multiple suppliers for the best deals
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
@@ -360,127 +497,7 @@ export default function ProductDetailGreenJeeva() {
                 onQuantityChange={handleQuantityChange}
               />
 
-              {/* Specification Tabs Section */}
-              <div className="mt-6">
-                <Tabs defaultValue="spec" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
-                    <TabsTrigger value="spec" className="text-xs">Product Spec</TabsTrigger>
-                    <TabsTrigger value="description" className="text-xs">Description</TabsTrigger>
-                    <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
-                    <TabsTrigger value="vendors" className="text-xs">Other Vendors</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="spec" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Product Specifications</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-1 gap-3 text-sm">
-                          {product.botanicalName && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Botanical Name:</span>
-                              <br />
-                              <span className="italic">{product.botanicalName}</span>
-                            </div>
-                          )}
-                          {product.plantPart && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Plant Part Used:</span>
-                              <br />
-                              <span>{product.plantPart}</span>
-                            </div>
-                          )}
-                          {product.form && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Form:</span>
-                              <br />
-                              <span>{product.form}</span>
-                            </div>
-                          )}
-                          {product.origin && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Country of Origin:</span>
-                              <br />
-                              <span>{product.origin}</span>
-                            </div>
-                          )}
-                          {product.shelfLife && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Shelf Life:</span>
-                              <br />
-                              <span>{product.shelfLife}</span>
-                            </div>
-                          )}
-                          {product.meshSize && (
-                            <div className="border-b pb-2">
-                              <span className="font-medium text-gray-600">Mesh Size:</span>
-                              <br />
-                              <span>{product.meshSize}</span>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="description" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Product Description</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-sm leading-relaxed">{product.description}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="faqs" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Frequently Asked Questions</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                          <div className="border-b pb-3">
-                            <h4 className="font-medium text-gray-900 mb-2 text-sm">What is the moisture content specification?</h4>
-                            <p className="text-xs text-gray-600">The moisture content is maintained at ≤ 10% to ensure optimal stability and prevent microbial growth.</p>
-                          </div>
-                          <div className="border-b pb-3">
-                            <h4 className="font-medium text-gray-900 mb-2 text-sm">What quality testing is performed?</h4>
-                            <p className="text-xs text-gray-600">Each lot undergoes comprehensive testing including organoleptic evaluation, heavy metals analysis, microbial testing, and pesticide residue screening.</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="vendors" className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Other Vendors</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {!isAuthenticated ? (
-                          <div className="text-center py-6 bg-gray-50 rounded">
-                            <Users className="w-6 h-6 mx-auto text-gray-400 mb-2" />
-                            <p className="text-gray-600 mb-3 text-sm">You must log in to view other vendors</p>
-                            <Button size="sm" onClick={() => window.location.href = '/api/login'}>
-                              Log in
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-gray-600 text-sm">No other vendors available for this product.</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              {/* Inquiry Form */}
+              {/* Tell Us Your Requirement Form */}
               <Card className="mt-6">
                 <CardHeader>
                   <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
