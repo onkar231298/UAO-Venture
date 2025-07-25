@@ -217,6 +217,50 @@ function ProductsManagement({
     },
   });
 
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await apiRequest("PUT", `/api/admin/products/${id}`, data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Product updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      setIsEditing(false);
+      setSelectedProduct(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update product",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await apiRequest("DELETE", `/api/admin/products/${productId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Product deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete product",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -319,8 +363,21 @@ function ProductsManagement({
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-4 w-4" />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+                        deleteProductMutation.mutate(product.id);
+                      }
+                    }}
+                    disabled={deleteProductMutation.isPending}
+                  >
+                    {deleteProductMutation.isPending ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -341,8 +398,8 @@ function ProductsManagement({
             setSelectedProduct(null);
           }}
           onSubmit={(data) => {
-            if (isEditing) {
-              // Update product logic
+            if (isEditing && selectedProduct) {
+              updateProductMutation.mutate({ id: selectedProduct.id, data });
             } else {
               createProductMutation.mutate(data);
             }
