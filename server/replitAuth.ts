@@ -40,7 +40,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -285,7 +285,26 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // Handle local admin sessions
+  if (user.isLocal) {
+    // Check if admin session is still valid
+    if (user.claims && user.claims.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      if (now <= user.claims.exp) {
+        return next();
+      } else {
+        return res.status(401).json({ message: "Session expired" });
+      }
+    }
+    return next(); // Local admin session without expiration
+  }
+
+  // Handle Replit OAuth sessions
+  if (!user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

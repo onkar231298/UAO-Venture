@@ -374,20 +374,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin dashboard route
-  app.get("/admin/dashboard", isAuthenticated, async (req: any, res) => {
+  app.get("/admin/dashboard", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      if (!req.isAuthenticated() || !req.user) {
+        return res.redirect("/login");
+      }
+
+      const user = req.user;
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'super_admin')) {
-        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      // Check if this is a local admin session
+      if (user.isLocal && user.claims && user.claims.sub === 'admin_001') {
+        const adminUser = await storage.getUser('admin_001');
+        if (adminUser) {
+          // Serve the React app for admin dashboard
+          res.redirect("/#/admin/dashboard");
+          return;
+        }
       }
       
-      // Serve the React app for admin dashboard
-      res.redirect("/#/admin/dashboard");
+      return res.redirect("/login");
     } catch (error) {
       console.error("Error accessing admin dashboard:", error);
-      res.status(500).json({ message: "Failed to access dashboard" });
+      res.redirect("/login");
     }
   });
 
