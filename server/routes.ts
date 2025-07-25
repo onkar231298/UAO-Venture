@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset: parseInt(offset as string),
       };
 
-      const result = await storage.getProducts(filters);
+      const result = await storage.getAdminProducts(filters);
       res.json(result);
     } catch (error) {
       console.error("Error fetching admin products:", error);

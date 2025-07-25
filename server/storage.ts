@@ -48,6 +48,13 @@ export interface IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }>;
+  getAdminProducts(filters?: {
+    category?: string;
+    search?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ products: Product[]; total: number }>;
   getProduct(id: number): Promise<Product | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -175,7 +182,12 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }> {
-    const conditions = [eq(products.isActive, true)];
+    // For public API, only show active, visible products with active status
+    const conditions = [
+      eq(products.isActive, true),
+      eq(products.isVisible, true),
+      eq(products.status, 'active')
+    ];
     
     if (filters?.category && !isNaN(parseInt(filters.category))) {
       conditions.push(eq(products.categoryId, parseInt(filters.category)));
@@ -189,6 +201,52 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.isOrganic !== undefined) {
       conditions.push(eq(products.isOrganic, filters.isOrganic));
+    }
+
+    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    const [productsResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(products)
+        .where(whereClause)
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0)
+        .orderBy(desc(products.createdAt)),
+      db
+        .select({ count: count() })
+        .from(products)
+        .where(whereClause),
+    ]);
+
+    return {
+      products: productsResult,
+      total: totalResult[0].count,
+    };
+  }
+
+  async getAdminProducts(filters?: {
+    category?: string;
+    search?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ products: Product[]; total: number }> {
+    // For admin API, show all products regardless of visibility
+    const conditions = [eq(products.isActive, true)];
+    
+    if (filters?.category && !isNaN(parseInt(filters.category))) {
+      conditions.push(eq(products.categoryId, parseInt(filters.category)));
+    }
+    
+    if (filters?.search) {
+      conditions.push(
+        sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`}`
+      );
+    }
+    
+    if (filters?.status) {
+      conditions.push(eq(products.status, filters.status));
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
