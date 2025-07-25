@@ -297,13 +297,20 @@ export class DatabaseStorage implements IStorage {
     // Process array fields to ensure they're properly formatted for PostgreSQL
     const processedProduct = { ...product };
     
-    // Convert string arrays to proper arrays if needed
-    if (processedProduct.additionalDocs && typeof processedProduct.additionalDocs === 'string') {
-      try {
-        processedProduct.additionalDocs = JSON.parse(processedProduct.additionalDocs);
-      } catch {
+    // Handle PostgreSQL text[] array for additionalDocs
+    if (processedProduct.additionalDocs !== undefined) {
+      if (typeof processedProduct.additionalDocs === 'string') {
+        try {
+          const parsed = JSON.parse(processedProduct.additionalDocs);
+          processedProduct.additionalDocs = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          processedProduct.additionalDocs = [];
+        }
+      } else if (!Array.isArray(processedProduct.additionalDocs)) {
         processedProduct.additionalDocs = [];
       }
+      // Ensure all elements are strings for PostgreSQL text[] array
+      processedProduct.additionalDocs = processedProduct.additionalDocs.map(item => String(item));
     }
     
     if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
@@ -338,13 +345,20 @@ export class DatabaseStorage implements IStorage {
     // Process array fields to ensure they're properly formatted for PostgreSQL
     const processedProduct = { ...product };
     
-    // Convert string arrays to proper arrays if needed
-    if (processedProduct.additionalDocs && typeof processedProduct.additionalDocs === 'string') {
-      try {
-        processedProduct.additionalDocs = JSON.parse(processedProduct.additionalDocs);
-      } catch {
+    // Handle PostgreSQL text[] array for additionalDocs
+    if (processedProduct.additionalDocs !== undefined) {
+      if (typeof processedProduct.additionalDocs === 'string') {
+        try {
+          const parsed = JSON.parse(processedProduct.additionalDocs);
+          processedProduct.additionalDocs = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          processedProduct.additionalDocs = [];
+        }
+      } else if (!Array.isArray(processedProduct.additionalDocs)) {
         processedProduct.additionalDocs = [];
       }
+      // Ensure all elements are strings for PostgreSQL text[] array
+      processedProduct.additionalDocs = processedProduct.additionalDocs.map(item => String(item));
     }
     
     if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {

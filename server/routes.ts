@@ -444,7 +444,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productId = parseInt(req.params.id);
       const updateData = req.body;
       
-      const product = await storage.updateProduct(productId, updateData);
+      // Debug logging to see what's being sent
+      console.log("Update data received:", JSON.stringify(updateData, null, 2));
+      
+      // Pre-process array fields that might be strings
+      const processedData = { ...updateData };
+      
+      // Handle PostgreSQL array fields (text[]) vs JSONB fields differently
+      
+      // Handle additionalDocs which is a PostgreSQL text[] array
+      if (processedData.additionalDocs !== undefined) {
+        if (typeof processedData.additionalDocs === 'string') {
+          try {
+            const parsed = JSON.parse(processedData.additionalDocs);
+            processedData.additionalDocs = Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            console.log('Failed to parse additionalDocs, setting to empty array:', processedData.additionalDocs);
+            processedData.additionalDocs = [];
+          }
+        } else if (!Array.isArray(processedData.additionalDocs)) {
+          processedData.additionalDocs = [];
+        }
+        // Ensure all elements are strings for PostgreSQL text[] array
+        processedData.additionalDocs = processedData.additionalDocs.map(item => String(item));
+      }
+      
+      // Handle JSONB array fields
+      const jsonbArrayFields = ['galleryImages', 'certifications', 'bulkPricing'];
+      
+      jsonbArrayFields.forEach(field => {
+        if (processedData[field] !== undefined) {
+          if (typeof processedData[field] === 'string') {
+            try {
+              processedData[field] = JSON.parse(processedData[field]);
+            } catch (e) {
+              console.log(`Failed to parse ${field}, setting to empty array:`, processedData[field]);
+              processedData[field] = [];
+            }
+          }
+          // Ensure it's an array
+          if (!Array.isArray(processedData[field])) {
+            processedData[field] = [];
+          }
+        }
+      });
+      
+      console.log("Processed data:", JSON.stringify(processedData, null, 2));
+      
+      const product = await storage.updateProduct(productId, processedData);
       res.json(product);
     } catch (error) {
       console.error("Error updating product:", error);
