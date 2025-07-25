@@ -456,6 +456,22 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                 />
               </div>
 
+              {/* Specification Sheet Section */}
+              <div>
+                <Label htmlFor="specificationSheet">Detailed Specifications</Label>
+                <Textarea
+                  id="specificationSheet"
+                  value={formData.specificationSheet}
+                  onChange={(e) => setFormData(prev => ({ ...prev, specificationSheet: e.target.value }))}
+                  rows={6}
+                  placeholder="Enter detailed product specifications in HTML format or plain text..."
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  You can use HTML formatting for better presentation
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="botanicalName">Botanical Name</Label>
@@ -482,6 +498,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     id="origin"
                     value={formData.origin}
                     onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+                    placeholder="e.g., India, USA, Bulgaria"
                   />
                 </div>
                 <div>
@@ -490,6 +507,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     id="hsCode"
                     value={formData.hsCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, hsCode: e.target.value }))}
+                    placeholder="e.g., 1302.19.90"
                   />
                 </div>
                 <div>
@@ -509,6 +527,323 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Product Type, Grade, and Form */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="productType">Product Type</Label>
+                  <Select
+                    value={formData.productType}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, productType: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="organic">Organic</SelectItem>
+                      <SelectItem value="conventional">Conventional</SelectItem>
+                      <SelectItem value="wildcrafted">Wildcrafted</SelectItem>
+                      <SelectItem value="kosher">Kosher</SelectItem>
+                      <SelectItem value="halal">Halal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="productGrade">Product Grade</Label>
+                  <Select
+                    value={formData.productGrade}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, productGrade: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="food">Food Grade</SelectItem>
+                      <SelectItem value="pharmaceutical">Pharmaceutical Grade</SelectItem>
+                      <SelectItem value="cosmetic">Cosmetic Grade</SelectItem>
+                      <SelectItem value="industrial">Industrial Grade</SelectItem>
+                      <SelectItem value="premium">Premium Grade</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="form">Product Form</Label>
+                  <Select
+                    value={formData.form}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select form" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="powder">Powder</SelectItem>
+                      <SelectItem value="liquid">Liquid</SelectItem>
+                      <SelectItem value="oil">Oil</SelectItem>
+                      <SelectItem value="extract">Extract</SelectItem>
+                      <SelectItem value="whole">Whole/Dried</SelectItem>
+                      <SelectItem value="capsules">Capsules</SelectItem>
+                      <SelectItem value="tablets">Tablets</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tags & Certifications */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags & Certifications</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Quick Add Certification Tags */}
+              <div>
+                <Label className="text-sm font-medium">Quick Add Certifications</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {['USDA NOP', 'NPOP', 'EU Organic', 'FDA Approved', 'GMP Certified', 'ISO Certified', 'Kosher', 'Halal', 'Non-GMO'].map((certName) => (
+                    <Button
+                      key={certName}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!formData.certifications.includes(certName)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            certifications: [...prev.certifications, certName]
+                          }));
+                        }
+                      }}
+                      className="text-xs"
+                      disabled={formData.certifications.includes(certName)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {certName}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selected Certifications */}
+              {formData.certifications.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Selected Certifications</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.certifications.map((cert, index) => (
+                      <Badge key={index} variant="default" className="flex items-center gap-1">
+                        {cert}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              certifications: prev.certifications.filter((_, i) => i !== index)
+                            }));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Available Tags Selection */}
+              {tags.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Available Tags</Label>
+                  <div className="flex flex-wrap gap-2 mt-2 max-h-24 overflow-y-auto">
+                    {tags.map((tag: any) => (
+                      <Button
+                        key={tag.id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (!formData.certifications.includes(tag.name)) {
+                            setFormData(prev => ({
+                              ...prev,
+                              certifications: [...prev.certifications, tag.name]
+                            }));
+                          }
+                        }}
+                        className="text-xs"
+                        disabled={formData.certifications.includes(tag.name)}
+                      >
+                        <Tags className="h-3 w-3 mr-1" />
+                        {tag.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Documents & Media */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents & Media</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Main Product Image */}
+              <div>
+                <Label htmlFor="mainImage">Main Product Image URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="mainImage"
+                    value={formData.mainImage}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mainImage: e.target.value }))}
+                    placeholder="https://example.com/product-image.jpg"
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" size="sm">
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
+                {formData.mainImage && (
+                  <div className="mt-2">
+                    <img 
+                      src={formData.mainImage} 
+                      alt="Product preview" 
+                      className="w-20 h-20 object-cover rounded border"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Gallery Images */}
+              <div>
+                <Label>Gallery Images</Label>
+                <div className="space-y-2">
+                  {formData.galleryImages.map((imageUrl: string, index: number) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Input
+                        value={imageUrl}
+                        onChange={(e) => {
+                          const newImages = [...formData.galleryImages];
+                          newImages[index] = e.target.value;
+                          setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                        }}
+                        placeholder="https://example.com/gallery-image.jpg"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newImages = formData.galleryImages.filter((_: string, i: number) => i !== index);
+                          setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        galleryImages: [...prev.galleryImages, '']
+                      }));
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Gallery Image
+                  </Button>
+                </div>
+              </div>
+
+              {/* Document Upload Section */}
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium">Product Documents</Label>
+                <p className="text-xs text-gray-500 mb-3">Upload certificates, COAs, specifications, and other documents</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="coaDocument" className="text-xs">Certificate of Analysis (COA)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="coaDocument"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm">
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="certDocument" className="text-xs">Organic Certificate</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="certDocument"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm">
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="specDocument" className="text-xs">Technical Specification Sheet</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="specDocument"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm">
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="msdsDocument" className="text-xs">MSDS / Safety Data Sheet</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="msdsDocument"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm">
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-3">
+                  <Label htmlFor="additionalDocs" className="text-xs">Additional Documents</Label>
+                  <Input
+                    id="additionalDocs"
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.jpg,.png"
+                    className="text-xs mt-1"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple files</p>
                 </div>
               </div>
             </CardContent>
