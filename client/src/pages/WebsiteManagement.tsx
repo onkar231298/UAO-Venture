@@ -446,7 +446,44 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Clean and convert form data to proper types
+    const cleanedData = {
+      ...formData,
+      // Convert integer fields, omit if empty string
+      categoryId: formData.categoryId && formData.categoryId !== "" ? parseInt(formData.categoryId as string) : undefined,
+      currentStock: formData.currentStock && formData.currentStock !== "" ? parseFloat(formData.currentStock as string) : undefined,
+      moq: formData.moq && formData.moq !== "" ? parseFloat(formData.moq as string) : undefined,
+      basePrice: formData.basePrice && formData.basePrice !== "" ? parseFloat(formData.basePrice as string) : undefined,
+      
+      // Clean up empty strings for optional text fields
+      botanicalName: formData.botanicalName || undefined,
+      plantPart: formData.plantPart || undefined,
+      origin: formData.origin || undefined,
+      hsCode: formData.hsCode || undefined,
+      productGrade: formData.productGrade || undefined,
+      form: formData.form || undefined,
+      meshSize: formData.meshSize || undefined,
+      curcuminContent: formData.curcuminContent || undefined,
+      moisture: formData.moisture || undefined,
+      totalAsh: formData.totalAsh || undefined,
+      bulkDensity: formData.bulkDensity || undefined,
+      shelfLife: formData.shelfLife || undefined,
+      leadTime: formData.leadTime || undefined,
+      
+      // Ensure arrays are properly formatted
+      certifications: Array.isArray(formData.certifications) ? formData.certifications : [],
+      galleryImages: Array.isArray(formData.galleryImages) ? formData.galleryImages.filter(img => img.trim() !== '') : [],
+    };
+    
+    // Remove undefined values to avoid sending empty data
+    Object.keys(cleanedData).forEach(key => {
+      if (cleanedData[key] === undefined || cleanedData[key] === '') {
+        delete cleanedData[key];
+      }
+    });
+    
+    onSubmit(cleanedData);
   };
 
   return (
