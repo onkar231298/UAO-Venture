@@ -762,20 +762,15 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // Temporary: Show file selected message
-                          toast({
-                            title: "File Selected",
-                            description: `Selected: ${file.name}. Add AWS credentials to enable S3 upload.`,
-                            variant: "default",
-                          });
+                          await handleImageUpload(file, 'mainImage');
                         }
                       }}
                       className="flex-1"
-                      disabled={!process.env.AWS_ACCESS_KEY_ID}
+                      disabled={uploading}
                     />
-                    <Button type="button" variant="outline" size="sm" disabled={!process.env.AWS_ACCESS_KEY_ID}>
+                    <Button type="button" variant="outline" size="sm" disabled={uploading}>
                       <Upload className="h-4 w-4 mr-1" />
-                      {process.env.AWS_ACCESS_KEY_ID ? 'S3 Upload' : 'AWS Setup Required'}
+                      {uploading ? 'Uploading...' : 'S3 Ready'}
                     </Button>
                   </div>
                   

@@ -13,7 +13,7 @@ const s3Client = new S3Client({
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'bfi-organic-products';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'brightfameimages';
 const CDN_URL = process.env.AWS_CLOUDFRONT_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
 
 // Multer S3 Configuration for Direct Upload
