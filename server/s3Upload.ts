@@ -4,17 +4,19 @@ import multer from 'multer';
 import multerS3 from 'multer-s3';
 import path from 'path';
 
-// AWS S3 Configuration
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'brightfameimages';
+const BUCKET_REGION = 'eu-north-1'; // Your bucket is in Stockholm region
+
+// AWS S3 Configuration with correct region
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: BUCKET_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'brightfameimages';
-const CDN_URL = process.env.AWS_CLOUDFRONT_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
+const CDN_URL = process.env.AWS_CLOUDFRONT_URL || `https://${BUCKET_NAME}.s3.${BUCKET_REGION}.amazonaws.com`;
 
 // Multer S3 Configuration for Direct Upload
 export const uploadToS3 = multer({
@@ -39,10 +41,10 @@ export const uploadToS3 = multer({
   },
   fileFilter: (req, file, cb) => {
     // Only allow image files
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype.includes('document')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      cb(new Error('Only image and document files are allowed!'));
     }
   },
 });
