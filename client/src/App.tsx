@@ -14,6 +14,7 @@ import InventoryManagement from "@/pages/crm/InventoryManagement";
 import LogisticsManagement from "@/pages/crm/LogisticsManagement";
 import AccountsManagement from "@/pages/crm/AccountsManagement";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />

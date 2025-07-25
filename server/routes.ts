@@ -373,6 +373,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin dashboard route
+  app.get("/admin/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      }
+      
+      // Serve the React app for admin dashboard
+      res.redirect("/#/admin/dashboard");
+    } catch (error) {
+      console.error("Error accessing admin dashboard:", error);
+      res.status(500).json({ message: "Failed to access dashboard" });
+    }
+  });
+
+  // Admin stats API
+  app.get("/api/admin/stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      }
+
+      // Get dashboard statistics
+      const stats = {
+        totalProducts: 1, // Mock data for now
+        totalInquiries: 0,
+        totalUsers: 1,
+        totalQuotations: 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
