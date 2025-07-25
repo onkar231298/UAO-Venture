@@ -37,7 +37,17 @@ import {
   AlertCircle,
   Target,
   PieChart,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageCircle,
+  Clipboard,
+  Receipt,
+  Hash,
+  ArrowUpDown,
+  AlertTriangle,
+  Send,
+  TrendingDown,
+  Calculator,
+  HardDrive
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -150,9 +160,12 @@ export default function AdminDashboard() {
       section: 'sales',
       children: [
         { id: 'inquiries', label: 'Customer Inquiries', icon: MessageSquare },
-        { id: 'quotations', label: 'Quotations', icon: FileText },
         { id: 'leads', label: 'Lead Management', icon: Target },
-        { id: 'pipeline', label: 'Sales Pipeline', icon: BarChart3 }
+        { id: 'quotations', label: 'Quotations & Pricing', icon: FileText },
+        { id: 'sales-orders', label: 'Sales Orders', icon: ShoppingCart },
+        { id: 'pipeline', label: 'Sales Pipeline', icon: BarChart3 },
+        { id: 'customer-interactions', label: 'Customer Interactions', icon: MessageCircle },
+        { id: 'sales-reports', label: 'Sales Reports', icon: BarChart3 }
       ]
     },
     {
@@ -163,7 +176,10 @@ export default function AdminDashboard() {
       children: [
         { id: 'vendors', label: 'Vendor Management', icon: Building },
         { id: 'purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
-        { id: 'po-history', label: 'PO History', icon: Clock }
+        { id: 'purchase-requests', label: 'Purchase Requests', icon: Clipboard },
+        { id: 'vendor-quotes', label: 'Vendor Quotations', icon: Receipt },
+        { id: 'po-history', label: 'Purchase History', icon: Clock },
+        { id: 'purchase-reports', label: 'Purchase Reports', icon: BarChart3 }
       ]
     },
     {
@@ -172,10 +188,14 @@ export default function AdminDashboard() {
       icon: Warehouse,
       section: 'inventory',
       children: [
-        { id: 'stock', label: 'Stock Management', icon: Package },
-        { id: 'batches', label: 'Batch/Lot Tracking', icon: FileText },
-        { id: 'locations', label: 'Storage Locations', icon: MapPin },
-        { id: 'expiry', label: 'Expiry Tracking', icon: Calendar }
+        { id: 'stock-overview', label: 'Stock Overview', icon: Package },
+        { id: 'stock-levels', label: 'Stock Levels', icon: BarChart3 },
+        { id: 'batch-management', label: 'Batch Management', icon: Hash },
+        { id: 'locations', label: 'Warehouse Locations', icon: MapPin },
+        { id: 'expiry-tracking', label: 'Expiry Tracking', icon: Calendar },
+        { id: 'stock-movements', label: 'Stock Movements', icon: ArrowUpDown },
+        { id: 'low-stock-alerts', label: 'Low Stock Alerts', icon: AlertTriangle },
+        { id: 'inventory-reports', label: 'Inventory Reports', icon: FileText }
       ]
     },
     {
@@ -184,9 +204,12 @@ export default function AdminDashboard() {
       icon: Truck,
       section: 'logistics',
       children: [
-        { id: 'dispatch', label: 'Dispatch Management', icon: Truck },
-        { id: 'shipping', label: 'Shipping Status', icon: MapPin },
-        { id: 'tracking', label: 'Order Tracking', icon: Search }
+        { id: 'dispatch-orders', label: 'Dispatch Orders', icon: Send },
+        { id: 'shipping-management', label: 'Shipping Management', icon: Truck },
+        { id: 'delivery-tracking', label: 'Delivery Tracking', icon: MapPin },
+        { id: 'logistics-partners', label: 'Logistics Partners', icon: Building },
+        { id: 'shipping-rates', label: 'Shipping Rates', icon: DollarSign },
+        { id: 'delivery-reports', label: 'Delivery Reports', icon: FileText }
       ]
     },
     {
@@ -195,9 +218,13 @@ export default function AdminDashboard() {
       icon: CreditCard,
       section: 'accounts',
       children: [
-        { id: 'invoices', label: 'Invoice Management', icon: FileText },
-        { id: 'payments', label: 'Payment Tracking', icon: DollarSign },
-        { id: 'reports', label: 'Financial Reports', icon: PieChart }
+        { id: 'invoicing', label: 'Invoice Management', icon: FileText },
+        { id: 'payments', label: 'Payment Tracking', icon: CreditCard },
+        { id: 'receivables', label: 'Accounts Receivable', icon: TrendingUp },
+        { id: 'payables', label: 'Accounts Payable', icon: TrendingDown },
+        { id: 'financial-reports', label: 'Financial Reports', icon: BarChart3 },
+        { id: 'tax-management', label: 'Tax Management', icon: Calculator },
+        { id: 'budget-planning', label: 'Budget Planning', icon: PieChart }
       ]
     },
     {
@@ -219,9 +246,11 @@ export default function AdminDashboard() {
       section: 'settings',
       children: [
         { id: 'general', label: 'General Settings', icon: Settings },
+        { id: 'company', label: 'Company Profile', icon: Building },
         { id: 'email', label: 'Email Templates', icon: Mail },
         { id: 'notifications', label: 'Notifications', icon: AlertCircle },
-        { id: 'backup', label: 'Backup & Security', icon: CheckSquare }
+        { id: 'security', label: 'Security Settings', icon: CheckSquare },
+        { id: 'backup', label: 'Backup & Restore', icon: HardDrive }
       ]
     }
   ];
