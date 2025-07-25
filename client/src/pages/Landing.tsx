@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Leaf, Search, Star, Shield, Truck, Users, BarChart3, Globe, Phone, Mail, MapPin } from "lucide-react";
+import { Leaf, Search, Star, Shield, Truck, Users, BarChart3, Globe, Phone, Mail, MapPin, Package } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
 export default function Landing() {
@@ -26,7 +26,7 @@ export default function Landing() {
   });
 
   const { data: popularProducts } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", { limit: 4, search: "turmeric ashwagandha moringa spirulina" }],
+    queryKey: ["/api/products", { limit: 4 }],
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -55,63 +55,60 @@ export default function Landing() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              {
-                name: "Herbal Powders",
-                description: "Premium organic herb powders for supplements and food industry",
-                count: "250+ Products",
-                image: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250"
-              },
-              {
-                name: "Liquid Extracts",
-                description: "Concentrated organic extracts with guaranteed potency",
-                count: "180+ Products",
-                image: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250"
-              },
-              {
-                name: "Essential Oils",
-                description: "Pure organic essential oils for cosmetics and wellness",
-                count: "120+ Products",
-                image: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250"
-              },
-              {
-                name: "Raw Materials",
-                description: "Whole organic ingredients and raw materials",
-                count: "95+ Products",
-                image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250"
-              }
-            ].map((category, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-shadow cursor-pointer">
+            {categories?.slice(0, 4).map((category: Category) => (
+              <Card key={category.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
                 <CardContent className="p-6 text-center">
                   <img
-                    src={category.image}
+                    src={`https://images.unsplash.com/photo-${
+                      category.name.includes('Essential') ? '1608571423902-eed4a5ad8108' :
+                      category.name.includes('Extracts') ? '1596040033229-a9821ebd058d' :
+                      category.name.includes('Herbs') ? '1583947215259-38e31be8751f' :
+                      '1506905925346-21bda4d32df4'
+                    }?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`}
                     alt={category.name}
                     className="w-full h-32 object-cover rounded-lg mb-4"
                   />
                   <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{category.description}</p>
-                  <div className="text-green-600 text-sm font-medium">{category.count} →</div>
+                  <p className="text-sm text-gray-600 mb-4">Premium organic {category.name.toLowerCase()} for your business needs</p>
+                  <div className="text-green-600 text-sm font-medium">View Products →</div>
                 </CardContent>
               </Card>
-            ))}
+            )) || (
+              // Loading skeleton for categories
+              Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-full h-32 bg-gray-200 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>
 
-      {/* Popular Products */}
+      {/* Featured Products */}
       <section className="py-8 sm:py-12 lg:py-16 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
             <div className="text-center sm:text-left mb-4 sm:mb-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Popular Products</h2>
-              <p className="text-sm sm:text-base text-gray-600">See what others are buying...</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
+              <p className="text-sm sm:text-base text-gray-600">Discover our premium organic ingredients</p>
             </div>
+            <Button variant="outline" className="text-sm">
+              View All Products →
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {popularProducts?.products?.slice(0, 4).map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
-            )) || (
+            {popularProducts?.products?.length ? (
+              popularProducts.products.slice(0, 4).map((product: Product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
               // Loading skeleton
               Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -125,6 +122,17 @@ export default function Landing() {
               ))
             )}
           </div>
+          
+          {/* Show no products message if API returns empty */}
+          {popularProducts?.products?.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Package className="w-12 h-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No products available</h3>
+              <p className="text-gray-600">Products will appear here once they are added and made visible.</p>
+            </div>
+          )}
         </div>
       </section>
 
