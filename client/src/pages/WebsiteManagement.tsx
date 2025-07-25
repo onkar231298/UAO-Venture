@@ -197,10 +197,8 @@ function ProductsManagement({
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: any) => {
-      return apiRequest("/api/admin/products", {
-        method: "POST",
-        body: JSON.stringify(productData),
-      });
+      const response = await apiRequest("POST", "/api/admin/products", productData);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
