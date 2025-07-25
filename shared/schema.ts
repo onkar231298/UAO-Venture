@@ -350,6 +350,11 @@ export const insertProductSchema = createInsertSchema(products).omit({
 }).extend({
   productId: z.string().optional(), // Auto-generated if not provided
   slug: z.string().optional(), // Auto-generated from name if not provided
+  currentStock: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
