@@ -40,7 +40,8 @@ import {
   X,
   Monitor,
   Layers,
-  Building2
+  Building2,
+  AlertCircle
 } from "lucide-react";
 import type { Product, Category, ProductTag, HeroSlider } from "@shared/schema";
 
@@ -1303,7 +1304,8 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     )}
                   </div>
                   
-                  {/* Certificate Document */}
+                  {/* Certificate Document - Only show if product is organic */}
+                  {formData.isOrganic && (
                   <div className="space-y-2">
                     <Label htmlFor="certDocument" className="text-xs font-medium">Organic Certificate</Label>
                     <div className="flex gap-2">
@@ -1343,6 +1345,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       </div>
                     )}
                   </div>
+                  )}
                   
                   {/* Specification Document */}
                   <div className="space-y-2">
