@@ -446,6 +446,12 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     currency: product?.currency || "USD",
     mainImage: product?.mainImage || "",
     galleryImages: product?.galleryImages || [],
+    // Document fields
+    coaDocument: product?.coaDocument || "",
+    certDocument: product?.certDocument || "",
+    specDocument: product?.specDocument || "",
+    msdsDocument: product?.msdsDocument || "",
+    additionalDocs: product?.additionalDocs || [],
     seoTitle: product?.seoTitle || "",
     seoDescription: product?.seoDescription || "",
     canonicalUrl: product?.canonicalUrl || "",
@@ -492,16 +498,18 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
           [fieldName]: result.files[fieldName]
         }));
         
+        const fileType = fieldName.includes('Document') || fieldName.includes('Docs') ? 'Document' : 'Image';
         toast({
           title: "Upload Successful",
-          description: "Image uploaded to AWS S3 successfully",
+          description: `${fileType} uploaded to AWS S3 successfully`,
         });
       }
     } catch (error) {
       console.error('Upload error:', error);
+      const fileType = fieldName.includes('Document') || fieldName.includes('Docs') ? 'document' : 'image';
       toast({
         title: "Upload Failed",
-        description: "Failed to upload image to AWS S3. Please try again.",
+        description: `Failed to upload ${fileType} to AWS S3. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -1062,17 +1070,29 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
 
               {/* Document Upload Section */}
               <div className="border-t pt-4">
-                <Label className="text-sm font-medium">Product Documents</Label>
-                <p className="text-xs text-gray-500 mb-3">Upload certificates, COAs, specifications, and other documents</p>
+                <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Product Documents
+                </Label>
+                <p className="text-xs text-gray-500 mb-4">Upload certificates, COAs, specifications, and other documents (PDF, DOC, DOCX)</p>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="coaDocument" className="text-xs">Certificate of Analysis (COA)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* COA Document */}
+                  <div className="space-y-2">
+                    <Label htmlFor="coaDocument" className="text-xs font-medium">Certificate of Analysis (COA)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.coaDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, coaDocument: e.target.value }))}
+                        placeholder="Document URL or upload below"
+                        className="flex-1 text-xs"
+                      />
+                    </div>
                     <Input
                       id="coaDocument"
                       type="file"
                       accept=".pdf,.doc,.docx"
-                      className="text-xs mt-1"
+                      className="text-xs"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -1081,15 +1101,39 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       }}
                       disabled={uploading}
                     />
+                    {formData.coaDocument && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700 truncate">COA uploaded successfully</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, coaDocument: '' }))}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
-                  <div>
-                    <Label htmlFor="certDocument" className="text-xs">Organic Certificate</Label>
+                  {/* Certificate Document */}
+                  <div className="space-y-2">
+                    <Label htmlFor="certDocument" className="text-xs font-medium">Organic Certificate</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.certDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, certDocument: e.target.value }))}
+                        placeholder="Document URL or upload below"
+                        className="flex-1 text-xs"
+                      />
+                    </div>
                     <Input
                       id="certDocument"
                       type="file"
                       accept=".pdf,.doc,.docx"
-                      className="text-xs mt-1"
+                      className="text-xs"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -1098,15 +1142,39 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       }}
                       disabled={uploading}
                     />
+                    {formData.certDocument && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700 truncate">Certificate uploaded successfully</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, certDocument: '' }))}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
-                  <div>
-                    <Label htmlFor="specDocument" className="text-xs">Technical Specification Sheet</Label>
+                  {/* Specification Document */}
+                  <div className="space-y-2">
+                    <Label htmlFor="specDocument" className="text-xs font-medium">Technical Specification Sheet</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.specDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, specDocument: e.target.value }))}
+                        placeholder="Document URL or upload below"
+                        className="flex-1 text-xs"
+                      />
+                    </div>
                     <Input
                       id="specDocument"
                       type="file"
                       accept=".pdf,.doc,.docx"
-                      className="text-xs mt-1"
+                      className="text-xs"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -1115,15 +1183,39 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       }}
                       disabled={uploading}
                     />
+                    {formData.specDocument && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700 truncate">Specification uploaded successfully</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, specDocument: '' }))}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
-                  <div>
-                    <Label htmlFor="msdsDocument" className="text-xs">MSDS / Safety Data Sheet</Label>
+                  {/* MSDS Document */}
+                  <div className="space-y-2">
+                    <Label htmlFor="msdsDocument" className="text-xs font-medium">MSDS / Safety Data Sheet</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.msdsDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, msdsDocument: e.target.value }))}
+                        placeholder="Document URL or upload below"
+                        className="flex-1 text-xs"
+                      />
+                    </div>
                     <Input
                       id="msdsDocument"
                       type="file"
                       accept=".pdf,.doc,.docx"
-                      className="text-xs mt-1"
+                      className="text-xs"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -1132,19 +1224,117 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       }}
                       disabled={uploading}
                     />
+                    {formData.msdsDocument && (
+                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                        <FileText className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700 truncate">MSDS uploaded successfully</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, msdsDocument: '' }))}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <div className="mt-3">
-                  <Label htmlFor="additionalDocs" className="text-xs">Additional Documents</Label>
-                  <Input
-                    id="additionalDocs"
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.jpg,.png"
-                    className="text-xs mt-1"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple files</p>
+                {/* Additional Documents */}
+                <div className="mt-4 pt-3 border-t">
+                  <Label className="text-xs font-medium mb-2 block">Additional Documents</Label>
+                  <div className="space-y-3">
+                    {/* Additional Doc Upload Area */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <div className="text-center">
+                        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                        <p className="text-xs text-gray-600 mb-2">Upload Additional Documents</p>
+                        <Input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.jpg,.png"
+                          className="text-xs"
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setUploading(true);
+                              try {
+                                const uploadedDocs = [];
+                                for (const file of files) {
+                                  const formDataUpload = new FormData();
+                                  formDataUpload.append('additionalDocs', file);
+                                  if (formData.name) {
+                                    formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
+                                  }
+
+                                  const response = await fetch('/api/admin/products/upload', {
+                                    method: 'POST',
+                                    body: formDataUpload,
+                                  });
+
+                                  if (response.ok) {
+                                    const result = await response.json();
+                                    if (result.success && result.files.additionalDocs) {
+                                      uploadedDocs.push(result.files.additionalDocs);
+                                    }
+                                  }
+                                }
+                                
+                                if (uploadedDocs.length > 0) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    additionalDocs: [...prev.additionalDocs, ...uploadedDocs]
+                                  }));
+                                  
+                                  toast({
+                                    title: "Upload Successful",
+                                    description: `${uploadedDocs.length} additional documents uploaded successfully`,
+                                  });
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Upload Failed",
+                                  description: "Failed to upload some documents",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setUploading(false);
+                              }
+                            }
+                          }}
+                          disabled={uploading}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, JPG, PNG - Hold Ctrl/Cmd for multiple files</p>
+                      </div>
+                    </div>
+                    
+                    {/* Display uploaded additional documents */}
+                    {formData.additionalDocs.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Uploaded Additional Documents:</Label>
+                        {formData.additionalDocs.map((docUrl: string, index: number) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                            <FileText className="w-3 h-3 text-gray-600" />
+                            <span className="flex-1 truncate text-gray-700">Document {index + 1}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newDocs = formData.additionalDocs.filter((_: string, i: number) => i !== index);
+                                setFormData(prev => ({ ...prev, additionalDocs: newDocs }));
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
