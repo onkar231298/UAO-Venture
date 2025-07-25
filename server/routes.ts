@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+      const files = req.files as { [fieldname: string]: any[] };
       const uploadedFiles: { [key: string]: string | string[] } = {};
 
       // Process uploaded files
@@ -373,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error uploading files to S3:", error);
-      res.status(500).json({ message: "Failed to upload files", error: error.message });
+      res.status(500).json({ message: "Failed to upload files", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -430,31 +430,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin routes for product management
-  app.post('/api/admin/products', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
-        return res.status(403).json({ message: "Insufficient permissions" });
-      }
-
-      const productData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(productData);
-      res.status(201).json(product);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
-      }
-      console.error("Error creating product:", error);
-      res.status(500).json({ message: "Failed to create product" });
-    }
-  });
+  // This duplicate route has been removed - the correct one is defined earlier
 
   app.put('/api/admin/products/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
@@ -596,8 +576,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productData = insertProductSchema.parse(req.body);
-      productData.createdBy = req.user.claims.sub;
-      productData.updatedBy = req.user.claims.sub;
+      productData.createdBy = req.user?.claims?.sub;
+      productData.updatedBy = req.user?.claims?.sub;
       
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
