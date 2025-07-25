@@ -161,10 +161,18 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" onClick={() => window.location.href = "/api/login"}>
-                  <User className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Login</span>
-                </Button>
+                <div className="flex space-x-2">
+                  <Button variant="ghost" onClick={() => window.location.href = "/api/login"}>
+                    <User className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Customer Login</span>
+                  </Button>
+                  <Button 
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm px-2 sm:px-3"
+                    onClick={() => window.location.href = "/admin/login"}
+                  >
+                    Admin Login
+                  </Button>
+                </div>
               )}
             </div>
           </div>
