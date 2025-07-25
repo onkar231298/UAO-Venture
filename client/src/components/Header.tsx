@@ -138,17 +138,32 @@ export default function Header() {
                       )}
                     </div>
                     <DropdownMenuSeparator />
-                    {user.role !== 'customer' && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/dashboard" className="flex items-center">
-                            <LayoutDashboard className="w-4 h-4 mr-2" />
-                            Dashboard
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
+                    {/* Dashboard link based on user role */}
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
                     )}
+                    {user.role === 'customer' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard" className="flex items-center">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          My Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {(user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'customer') && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/staff" className="flex items-center">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          Staff Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <Settings className="w-4 h-4 mr-2" />
                       Settings

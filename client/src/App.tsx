@@ -17,31 +17,29 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public routes - always accessible */}
+      {/* Public routes - always accessible for everyone */}
+      <Route path="/" component={Landing} />
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/product/:slug" component={ProductDetail} />
       
-      {/* Protected routes based on authentication and role */}
-      {!isLoading && isAuthenticated && user ? (
+      {/* Protected dashboard routes - only for authenticated users */}
+      {!isLoading && isAuthenticated && user && (
         <>
-          {/* Admin users get admin dashboard */}
+          {/* Admin dashboard - for admin and super_admin roles */}
           {((user as any).role === 'admin' || (user as any).role === 'super_admin') && (
-            <Route path="/" component={AdminDashboard} />
+            <Route path="/admin/*" component={AdminDashboard} />
           )}
           
-          {/* Customer users get customer dashboard */}
+          {/* Customer dashboard - for customer role */}
           {(user as any).role === 'customer' && (
-            <Route path="/" component={CustomerDashboard} />
+            <Route path="/dashboard" component={CustomerDashboard} />
           )}
           
-          {/* Staff users (all other roles) get staff dashboard */}
+          {/* Staff dashboard - for all other roles */}
           {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') && (
-            <Route path="/" component={StaffDashboard} />
+            <Route path="/staff/*" component={StaffDashboard} />
           )}
         </>
-      ) : (
-        /* Non-authenticated users see landing page */
-        <Route path="/" component={Landing} />
       )}
       
       {/* 404 for any unmatched routes */}
