@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Users,
   Package,
@@ -56,41 +57,40 @@ export default function AdminDashboard() {
   const [authLoading, setAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
 
-  // Check admin authentication
-  useEffect(() => {
-    const checkAdminAuth = async () => {
-      try {
-        const response = await fetch('/api/admin/auth-check', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const user = await response.json();
-          setAdminUser(user);
-        } else {
-          toast({
-            title: "Authentication Required",
-            description: "Please login to access admin dashboard.",
-            variant: "destructive",
-          });
-          setTimeout(() => {
-            window.location.href = "/login";
-          }, 1000);
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        window.location.href = "/login";
-      } finally {
-        setAuthLoading(false);
-      }
-    };
+  // Check admin authentication using useAuth hook
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-    checkAdminAuth();
-  }, [toast]);
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please login to access admin dashboard.",
+          variant: "destructive",
+        });
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Check if user is admin
+      if (user.role !== 'admin' && user.role !== 'super_admin') {
+        toast({
+          title: "Access Denied",
+          description: "Admin privileges required.",
+          variant: "destructive",
+        });
+        window.location.href = '/';
+        return;
+      }
+      
+      setAdminUser(user);
+      setAuthLoading(false);
+    }
+  }, [isAuthenticated, isLoading, user, toast]);
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/admin/stats"],
+    queryKey: ["/api/dashboard/stats"],
     enabled: !!adminUser,
     retry: (failureCount, error) => {
       if (error && (error as any).message?.includes('401')) {

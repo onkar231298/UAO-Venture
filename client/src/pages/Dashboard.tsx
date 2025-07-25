@@ -31,7 +31,7 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
   });
 
-  // Redirect if not authenticated
+  // Redirect logic
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -44,7 +44,13 @@ export default function Dashboard() {
       }, 500);
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+    
+    // Redirect admin users to admin dashboard
+    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+      window.location.href = '/admin/dashboard';
+      return;
+    }
+  }, [isAuthenticated, isLoading, toast, user]);
 
   if (isLoading || !user) {
     return (
