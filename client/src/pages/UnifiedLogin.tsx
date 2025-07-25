@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+
 import { Leaf, AlertCircle } from "lucide-react";
 
 export default function UnifiedLogin() {
@@ -23,6 +23,10 @@ export default function UnifiedLogin() {
       setError("Invalid admin credentials. Please try again.");
       // Clean URL
       window.history.replaceState(null, '', '/login');
+    } else if (urlParams.get('error') === 'customer_failed') {
+      setError("Invalid customer credentials. Please try again.");
+      // Clean URL
+      window.history.replaceState(null, '', '/login');
     }
   }, []);
 
@@ -31,43 +35,29 @@ export default function UnifiedLogin() {
     setIsLoading(true);
     setError("");
 
-    // Check if this looks like admin credentials
-    if (formData.email === "admin@bfiorganic.com" || formData.email.includes("admin")) {
-      // For admin login, create a form and submit it traditionally
-      // This avoids CORS issues with redirect handling
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/admin/login';
-      
-      const emailInput = document.createElement('input');
-      emailInput.type = 'hidden';
-      emailInput.name = 'email';
-      emailInput.value = formData.email;
-      
-      const passwordInput = document.createElement('input');
-      passwordInput.type = 'hidden';
-      passwordInput.name = 'password';
-      passwordInput.value = formData.password;
-      
-      form.appendChild(emailInput);
-      form.appendChild(passwordInput);
-      document.body.appendChild(form);
-      form.submit();
-      return;
-    }
-
-    // If not admin email, redirect to Replit OAuth for customer login
-    if (!formData.email.includes("admin")) {
-      window.location.href = "/api/login";
-      return;
-    }
-
-    setError("Invalid credentials. Please check your email and password.");
-    setIsLoading(false);
-  };
-
-  const handleReplitLogin = () => {
-    window.location.href = "/api/login";
+    // Determine login type based on email
+    const isAdminLogin = formData.email === "admin@bfiorganic.com" || formData.email.includes("admin");
+    const loginEndpoint = isAdminLogin ? '/admin/login' : '/customer/login';
+    
+    // Create form and submit it traditionally to avoid CORS issues
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = loginEndpoint;
+    
+    const emailInput = document.createElement('input');
+    emailInput.type = 'hidden';
+    emailInput.name = 'email';
+    emailInput.value = formData.email;
+    
+    const passwordInput = document.createElement('input');
+    passwordInput.type = 'hidden';
+    passwordInput.name = 'password';
+    passwordInput.value = formData.password;
+    
+    form.appendChild(emailInput);
+    form.appendChild(passwordInput);
+    document.body.appendChild(form);
+    form.submit();
   };
 
   return (
@@ -120,29 +110,19 @@ export default function UnifiedLogin() {
               {isLoading ? "Signing in..." : "Login"}
             </Button>
           </form>
+
           
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+          {/* Demo Credentials Helper */}
+          <div className="mt-4 space-y-2">
+            <div className="p-3 bg-blue-50 rounded-lg text-center">
+              <p className="text-xs text-blue-700 mb-1">Admin Login:</p>
+              <p className="text-xs text-blue-600">admin@bfiorganic.com / BFIAdmin2024!</p>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            <div className="p-3 bg-green-50 rounded-lg text-center">
+              <p className="text-xs text-green-700 mb-1">Demo Customer Login:</p>
+              <p className="text-xs text-green-600">customer@example.com / customer123</p>
+              <p className="text-xs text-green-600">buyer@company.com / buyer123</p>
             </div>
-          </div>
-          
-          {/* Replit OAuth Login */}
-          <Button 
-            onClick={handleReplitLogin}
-            variant="outline"
-            className="w-full"
-          >
-            Continue with Replit
-          </Button>
-          
-          {/* Admin Credentials Helper */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-center">
-            <p className="text-xs text-blue-700 mb-1">Admin Login:</p>
-            <p className="text-xs text-blue-600">admin@bfiorganic.com / BFIAdmin2024!</p>
           </div>
         </CardContent>
       </Card>

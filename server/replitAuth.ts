@@ -78,7 +78,7 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Setup local strategy for admin login
+  // Setup local strategy for both admin and customer login
   passport.use(new LocalStrategy(
     { usernameField: 'email' },
     async (email, password, done) => {
@@ -95,11 +95,51 @@ export async function setupAuth(app: Express) {
                 last_name: adminUser.lastName,
                 exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
               },
-              isLocal: true
+              isLocal: true,
+              isAdmin: true
             };
             return done(null, userSession);
           }
         }
+
+        // Check for demo customer credentials
+        const demoCustomers = [
+          { email: 'customer@example.com', password: 'customer123', id: 'cust_001', firstName: 'John', lastName: 'Doe' },
+          { email: 'buyer@company.com', password: 'buyer123', id: 'cust_002', firstName: 'Jane', lastName: 'Smith' }
+        ];
+
+        const customer = demoCustomers.find(c => c.email === email && c.password === password);
+        if (customer) {
+          // Create/get customer from database
+          let customerUser = await storage.getUser(customer.id);
+          if (!customerUser) {
+            customerUser = await storage.upsertUser({
+              id: customer.id,
+              email: customer.email,
+              firstName: customer.firstName,
+              lastName: customer.lastName,
+              role: 'customer',
+              companyName: null,
+              phoneNumber: null,
+              address: null,
+              profileImageUrl: null
+            });
+          }
+
+          const userSession = {
+            claims: {
+              sub: customerUser.id,
+              email: customerUser.email,
+              first_name: customerUser.firstName,
+              last_name: customerUser.lastName,
+              exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
+            },
+            isLocal: true,
+            isAdmin: false
+          };
+          return done(null, userSession);
+        }
+
         return done(null, false);
       } catch (error) {
         return done(error);
@@ -276,9 +316,16 @@ export async function setupAuth(app: Express) {
     `);
   });
 
+  // Unified login endpoint for both admin and customers
   app.post("/admin/login", passport.authenticate('local', {
     successRedirect: '/admin/dashboard',
     failureRedirect: '/login?error=admin_failed'
+  }));
+
+  // Customer login endpoint
+  app.post("/customer/login", passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login?error=customer_failed'
   }));
 }
 
