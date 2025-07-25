@@ -12,6 +12,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { 
   Package, 
   Upload, 
@@ -647,57 +659,1233 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
 
 // Placeholder components for other tabs
 function CategoriesManagement({ categories, loading }: any) {
+  const { toast } = useToast();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryData: any) => {
+      return apiRequest("/api/admin/categories", {
+        method: "POST",
+        body: JSON.stringify(categoryData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Category created successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setShowCreateForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      return apiRequest(`/api/admin/categories/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Category updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setEditingCategory(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/categories/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Category deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Package className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading categories...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Categories Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Categories Management</h2>
+          <p className="text-gray-600">Manage product categories and hierarchies</p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Category
+        </Button>
+      </div>
+
+      {/* Categories List */}
+      <div className="grid gap-4">
+        {categories.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Package className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories</h3>
+              <p className="text-gray-500 mb-4">Start by adding your first category</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Category
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          categories.map((category: any) => (
+            <Card key={category.id} className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                    <Badge variant="outline">{category.slug}</Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                  {category.parentId && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Parent Category ID: {category.parentId}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingCategory(category)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => deleteCategoryMutation.mutate(category.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Create/Edit Category Form */}
+      {(showCreateForm || editingCategory) && (
+        <CategoryForm
+          category={editingCategory}
+          categories={categories}
+          onSubmit={(data) => {
+            if (editingCategory) {
+              updateCategoryMutation.mutate({ ...data, id: editingCategory.id });
+            } else {
+              createCategoryMutation.mutate(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingCategory(null);
+          }}
+          isLoading={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function CategoryForm({ category, categories, onSubmit, onCancel, isLoading }: any) {
+  const form = useForm({
+    resolver: zodResolver(
+      z.object({
+        name: z.string().min(1, "Name is required"),
+        description: z.string().optional(),
+        parentId: z.number().optional(),
+        isActive: z.boolean().default(true),
+      })
+    ),
+    defaultValues: {
+      name: category?.name || "",
+      description: category?.description || "",
+      parentId: category?.parentId || undefined,
+      isActive: category?.isActive ?? true,
+    },
+  });
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Categories Management</CardTitle>
-        <CardDescription>Manage product categories and hierarchies</CardDescription>
+        <CardTitle>{category ? "Edit Category" : "Add New Category"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-600">Categories management interface will be implemented here.</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Essential Oils" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="parentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Parent Category (Optional)</FormLabel>
+                    <Select
+                      value={field.value?.toString()}
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select parent category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">No Parent</SelectItem>
+                        {categories
+                          .filter((cat: any) => cat.id !== category?.id)
+                          .map((cat: any) => (
+                            <SelectItem key={cat.id} value={cat.id.toString()}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Brief description of this category..."
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Status</FormLabel>
+                    <FormDescription>
+                      Active categories will be visible in product listings
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : category ? "Update Category" : "Create Category"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
 }
 
 function TagsManagement({ tags, loading }: any) {
+  const { toast } = useToast();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTag, setEditingTag] = useState(null);
+
+  const createTagMutation = useMutation({
+    mutationFn: async (tagData: any) => {
+      return apiRequest("/api/admin/tags", {
+        method: "POST",
+        body: JSON.stringify(tagData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag created successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+      setShowCreateForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateTagMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      return apiRequest(`/api/admin/tags/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+      setEditingTag(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTagMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/tags/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Package className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading tags...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Tags Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Tags Management</h2>
+          <p className="text-gray-600">Create and manage product tags for filtering and SEO</p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Tag
+        </Button>
+      </div>
+
+      {/* Quick Add Predefined Tags */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Quick Add Common Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {['USDA NOP', 'NPOP', 'EU Organic', 'FDA Approved', 'GMP Certified', 'ISO Certified', 'Kosher', 'Halal', 'Non-GMO', 'Gluten Free'].map((tagName) => (
+              <Button
+                key={tagName}
+                variant="outline"
+                size="sm"
+                onClick={() => createTagMutation.mutate({ name: tagName, type: 'certification' })}
+                className="text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                {tagName}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tags List */}
+      <div className="grid gap-4">
+        {tags.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Package className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Tags</h3>
+              <p className="text-gray-500 mb-4">Start by adding your first tag</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Tag
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tags.map((tag: any) => (
+              <Card key={tag.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-medium">
+                        {tag.name}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        {tag.type || 'general'}
+                      </Badge>
+                    </div>
+                    {tag.description && (
+                      <p className="text-xs text-gray-600 mt-1">{tag.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setEditingTag(tag)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => deleteTagMutation.mutate(tag.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create/Edit Tag Form */}
+      {(showCreateForm || editingTag) && (
+        <TagForm
+          tag={editingTag}
+          onSubmit={(data) => {
+            if (editingTag) {
+              updateTagMutation.mutate({ ...data, id: editingTag.id });
+            } else {
+              createTagMutation.mutate(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingTag(null);
+          }}
+          isLoading={createTagMutation.isPending || updateTagMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function TagForm({ tag, onSubmit, onCancel, isLoading }: any) {
+  const form = useForm({
+    resolver: zodResolver(
+      z.object({
+        name: z.string().min(1, "Name is required"),
+        description: z.string().optional(),
+        type: z.string().default("general"),
+        color: z.string().optional(),
+      })
+    ),
+    defaultValues: {
+      name: tag?.name || "",
+      description: tag?.description || "",
+      type: tag?.type || "general",
+      color: tag?.color || "#3B82F6",
+    },
+  });
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tags Management</CardTitle>
-        <CardDescription>Create and manage product tags for filtering</CardDescription>
+        <CardTitle>{tag ? "Edit Tag" : "Add New Tag"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-600">Tags management interface will be implemented here.</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tag Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., USDA NOP" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tag Type</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select tag type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="certification">Certification</SelectItem>
+                        <SelectItem value="category">Category</SelectItem>
+                        <SelectItem value="feature">Feature</SelectItem>
+                        <SelectItem value="origin">Origin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Brief description of this tag..."
+                      rows={2}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : tag ? "Update Tag" : "Create Tag"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
 }
 
 function SlidersManagement({ sliders, loading }: any) {
+  const { toast } = useToast();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingSlider, setEditingSlider] = useState(null);
+
+  const createSliderMutation = useMutation({
+    mutationFn: async (sliderData: any) => {
+      return apiRequest("/api/admin/sliders", {
+        method: "POST",
+        body: JSON.stringify(sliderData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Hero slider created successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sliders"] });
+      setShowCreateForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create slider",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSliderMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      return apiRequest(`/api/admin/sliders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Hero slider updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sliders"] });
+      setEditingSlider(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update slider",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSliderMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/sliders/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Hero slider deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sliders"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete slider",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Monitor className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading sliders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Hero Sliders Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Hero Sliders Management</h2>
+          <p className="text-gray-600">Manage homepage hero slider banners and promotions</p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Slider
+        </Button>
+      </div>
+
+      {/* Sliders List */}
+      <div className="grid gap-4">
+        {sliders.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Monitor className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Hero Sliders</h3>
+              <p className="text-gray-500 mb-4">Start by adding your first hero slider</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Slider
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          sliders.map((slider: any) => (
+            <Card key={slider.id} className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-24 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                    {slider.imageUrl ? (
+                      <img 
+                        src={slider.imageUrl} 
+                        alt={slider.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900">{slider.title}</h3>
+                      <Badge 
+                        variant={slider.isActive ? 'default' : 'secondary'}
+                        className={slider.isActive ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {slider.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">{slider.subtitle}</p>
+                    <div className="flex items-center gap-4 mt-1">
+                      <span className="text-xs text-gray-500">
+                        Order: {slider.displayOrder}
+                      </span>
+                      {slider.buttonText && (
+                        <span className="text-xs text-gray-500">
+                          Button: {slider.buttonText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingSlider(slider)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => deleteSliderMutation.mutate(slider.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Create/Edit Slider Form */}
+      {(showCreateForm || editingSlider) && (
+        <SliderForm
+          slider={editingSlider}
+          onSubmit={(data) => {
+            if (editingSlider) {
+              updateSliderMutation.mutate({ ...data, id: editingSlider.id });
+            } else {
+              createSliderMutation.mutate(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingSlider(null);
+          }}
+          isLoading={createSliderMutation.isPending || updateSliderMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function SliderForm({ slider, onSubmit, onCancel, isLoading }: any) {
+  const form = useForm({
+    resolver: zodResolver(
+      z.object({
+        title: z.string().min(1, "Title is required"),
+        subtitle: z.string().optional(),
+        imageUrl: z.string().url("Please enter a valid image URL"),
+        buttonText: z.string().optional(),
+        buttonUrl: z.string().optional(),
+        displayOrder: z.number().min(1, "Display order must be at least 1"),
+        isActive: z.boolean().default(true),
+      })
+    ),
+    defaultValues: {
+      title: slider?.title || "",
+      subtitle: slider?.subtitle || "",
+      imageUrl: slider?.imageUrl || "",
+      buttonText: slider?.buttonText || "",
+      buttonUrl: slider?.buttonUrl || "",
+      displayOrder: slider?.displayOrder || 1,
+      isActive: slider?.isActive ?? true,
+    },
+  });
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hero Sliders Management</CardTitle>
-        <CardDescription>Manage homepage hero slider banners</CardDescription>
+        <CardTitle>{slider ? "Edit Hero Slider" : "Add New Hero Slider"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-600">Hero sliders management interface will be implemented here.</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Main headline..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="displayOrder"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Display Order</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="1" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="subtitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subtitle (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Supporting text..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://example.com/image.jpg" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="buttonText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Button Text (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Shop Now" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="buttonUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Button URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="/products" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Status</FormLabel>
+                    <FormDescription>
+                      Active sliders will be displayed on the homepage
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : slider ? "Update Slider" : "Create Slider"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
 }
 
 function SEOManagement() {
+  const { toast } = useToast();
+  const [seoSettings, setSeoSettings] = useState({
+    siteTitle: "BFI Organic - Premium Organic Ingredients",
+    siteDescription: "Leading supplier of certified organic ingredients and natural products for global markets",
+    siteKeywords: "organic ingredients, natural products, USDA certified, bulk organic",
+    ogImage: "",
+    twitterHandle: "@bfiorganic",
+    googleAnalyticsId: "",
+    googleTagManagerId: "",
+    facebookPixelId: "",
+    structuredDataEnabled: true,
+  });
+
+  const saveSEOSettings = useMutation({
+    mutationFn: async (seoData: any) => {
+      return apiRequest("/api/admin/seo-settings", {
+        method: "POST",
+        body: JSON.stringify(seoData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "SEO settings saved successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save SEO settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const form = useForm({
+    resolver: zodResolver(
+      z.object({
+        siteTitle: z.string().min(1, "Site title is required"),
+        siteDescription: z.string().min(1, "Site description is required"),
+        siteKeywords: z.string().optional(),
+        ogImage: z.string().optional(),
+        twitterHandle: z.string().optional(),
+        googleAnalyticsId: z.string().optional(),
+        googleTagManagerId: z.string().optional(),
+        facebookPixelId: z.string().optional(),
+        structuredDataEnabled: z.boolean().default(true),
+      })
+    ),
+    defaultValues: seoSettings,
+  });
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>SEO Management</CardTitle>
-        <CardDescription>Global SEO settings and structured data</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-600">SEO management interface will be implemented here.</p>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">SEO Management</h2>
+        <p className="text-gray-600">Configure global SEO settings and structured data</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Basic SEO Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Basic SEO Settings</CardTitle>
+            <CardDescription>Configure your site's basic meta information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => saveSEOSettings.mutate(data))} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="siteTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Site Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your site title..." {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        This appears in browser tabs and search results
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="siteDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Site Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Brief description of your site..." 
+                          rows={3}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        This appears in search results (150-160 characters recommended)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="siteKeywords"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Keywords</FormLabel>
+                      <FormControl>
+                        <Input placeholder="keyword1, keyword2, keyword3" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Comma-separated keywords (optional, limited SEO impact)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" disabled={saveSEOSettings.isPending}>
+                  {saveSEOSettings.isPending ? "Saving..." : "Save Basic Settings"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* Social Media & Analytics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Social Media & Analytics</CardTitle>
+            <CardDescription>Configure social sharing and tracking</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="ogImage">Open Graph Image URL</Label>
+              <Input 
+                id="ogImage"
+                placeholder="https://example.com/og-image.jpg"
+                value={seoSettings.ogImage}
+                onChange={(e) => setSeoSettings({...seoSettings, ogImage: e.target.value})}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Image for social media sharing (1200x630px recommended)
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="twitter">Twitter Handle</Label>
+              <Input 
+                id="twitter"
+                placeholder="@yourbrand"
+                value={seoSettings.twitterHandle}
+                onChange={(e) => setSeoSettings({...seoSettings, twitterHandle: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="ga">Google Analytics ID</Label>
+              <Input 
+                id="ga"
+                placeholder="GA4-XXXXXXXXXX"
+                value={seoSettings.googleAnalyticsId}
+                onChange={(e) => setSeoSettings({...seoSettings, googleAnalyticsId: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="gtm">Google Tag Manager ID</Label>
+              <Input 
+                id="gtm"
+                placeholder="GTM-XXXXXXX"
+                value={seoSettings.googleTagManagerId}
+                onChange={(e) => setSeoSettings({...seoSettings, googleTagManagerId: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="fbpixel">Facebook Pixel ID</Label>
+              <Input 
+                id="fbpixel"
+                placeholder="123456789012345"
+                value={seoSettings.facebookPixelId}
+                onChange={(e) => setSeoSettings({...seoSettings, facebookPixelId: e.target.value})}
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">Structured Data</Label>
+                <p className="text-sm text-gray-500">
+                  Enable JSON-LD structured data for products
+                </p>
+              </div>
+              <Switch
+                checked={seoSettings.structuredDataEnabled}
+                onCheckedChange={(checked) => setSeoSettings({...seoSettings, structuredDataEnabled: checked})}
+              />
+            </div>
+
+            <Button 
+              onClick={() => saveSEOSettings.mutate(seoSettings)}
+              disabled={saveSEOSettings.isPending}
+              className="w-full"
+            >
+              {saveSEOSettings.isPending ? "Saving..." : "Save All Settings"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* SEO Tips */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">SEO Best Practices</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Title Tags</h4>
+              <ul className="text-gray-600 space-y-1">
+                <li>• Keep under 60 characters</li>
+                <li>• Include primary keywords</li>
+                <li>• Make each page title unique</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Meta Descriptions</h4>
+              <ul className="text-gray-600 space-y-1">
+                <li>• Keep between 150-160 characters</li>
+                <li>• Include call-to-action</li>
+                <li>• Describe page content accurately</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Images</h4>
+              <ul className="text-gray-600 space-y-1">
+                <li>• Use descriptive alt text</li>
+                <li>• Optimize file sizes</li>
+                <li>• Use relevant file names</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Content</h4>
+              <ul className="text-gray-600 space-y-1">
+                <li>• Create valuable, original content</li>
+                <li>• Use header tags (H1, H2, H3)</li>
+                <li>• Include internal links</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
