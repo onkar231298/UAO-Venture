@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,60 +16,44 @@ export default function UnifiedLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Check for error parameter in URL
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('error') === 'admin_failed') {
+      setError("Invalid admin credentials. Please try again.");
+      // Clean URL
+      window.history.replaceState(null, '', '/login');
+    }
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // First try admin login if it looks like admin credentials
+    // Check if this looks like admin credentials
     if (formData.email === "admin@bfiorganic.com" || formData.email.includes("admin")) {
-      try {
-        const response = await fetch("/admin/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams(formData),
-          credentials: 'include', // Include cookies for session
-          redirect: 'manual' // Don't auto-follow redirects
-        });
-
-        // Debug logging
-        console.log("Response status:", response.status);
-        console.log("Response type:", response.type);
-        
-        // Check if the response is a redirect
-        if (response.status === 302) {
-          const location = response.headers.get('location');
-          console.log("Redirect location:", location);
-          if (location && location.includes('/admin/dashboard')) {
-            // Success - redirect to dashboard
-            console.log("Admin login successful, redirecting...");
-            window.location.href = "/admin/dashboard";
-            return;
-          } else {
-            // Failed - redirect contains error
-            console.log("Admin login failed, got redirect to:", location);
-            setError("Invalid admin credentials. Please try again.");
-            setIsLoading(false);
-            return;
-          }
-        } else if (response.status === 200) {
-          // Also check for successful response
-          console.log("Got 200 response, redirecting to dashboard");
-          window.location.href = "/admin/dashboard";
-          return;
-        } else {
-          console.log("Unexpected response status:", response.status);
-          setError(`Login failed with status: ${response.status}`);
-          setIsLoading(false);
-          return;
-        }
-      } catch (err) {
-        setError("Invalid admin credentials. Please try again.");
-        setIsLoading(false);
-        return;
-      }
+      // For admin login, create a form and submit it traditionally
+      // This avoids CORS issues with redirect handling
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/admin/login';
+      
+      const emailInput = document.createElement('input');
+      emailInput.type = 'hidden';
+      emailInput.name = 'email';
+      emailInput.value = formData.email;
+      
+      const passwordInput = document.createElement('input');
+      passwordInput.type = 'hidden';
+      passwordInput.name = 'password';
+      passwordInput.value = formData.password;
+      
+      form.appendChild(emailInput);
+      form.appendChild(passwordInput);
+      document.body.appendChild(form);
+      form.submit();
+      return;
     }
 
     // If not admin email, redirect to Replit OAuth for customer login

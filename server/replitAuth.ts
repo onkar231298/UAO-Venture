@@ -278,7 +278,7 @@ export async function setupAuth(app: Express) {
 
   app.post("/admin/login", passport.authenticate('local', {
     successRedirect: '/admin/dashboard',
-    failureRedirect: '/admin/login?error=1'
+    failureRedirect: '/login?error=admin_failed'
   }));
 }
 
