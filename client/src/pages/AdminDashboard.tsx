@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       }
       
       // Check if user is admin
-      if (user.role !== 'admin' && user.role !== 'super_admin') {
+      if ((user as any).role !== 'admin' && (user as any).role !== 'super_admin') {
         toast({
           title: "Access Denied",
           description: "Admin privileges required.",
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {adminUser.role?.replace('_', ' ').toUpperCase()}
+                {adminUser?.role?.replace('_', ' ').toUpperCase()}
               </Badge>
             </div>
           </div>
