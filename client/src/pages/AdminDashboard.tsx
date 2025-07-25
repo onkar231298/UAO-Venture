@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import WebsiteManagement from "@/pages/WebsiteManagement";
 import {
   Users,
   Package,
@@ -408,7 +409,11 @@ export default function AdminDashboard() {
           )}
 
           {/* Other sections content */}
-          {activeSection !== 'overview' && (
+          {activeSection === 'website' && (
+            <WebsiteManagement />
+          )}
+          
+          {activeSection !== 'overview' && activeSection !== 'website' && (
             <Card>
               <CardHeader>
                 <CardTitle>
@@ -417,7 +422,6 @@ export default function AdminDashboard() {
                    activeSection === 'purchase' ? 'Purchase Management' :
                    activeSection === 'logistics' ? 'Logistics Management' :
                    activeSection === 'accounts' ? 'Accounts & Finance' :
-                   activeSection === 'website' ? 'Website Management' :
                    activeSection === 'users' ? 'User Management' :
                    activeSection === 'analytics' ? 'Analytics & Reports' :
                    activeSection === 'settings' ? 'System Settings' : 'Module'}
