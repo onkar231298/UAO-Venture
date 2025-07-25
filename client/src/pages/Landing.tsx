@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
-import HeroSlider from "@/components/HeroSlider";
+import ParallaxSlider3D from "@/components/ParallaxSlider3D";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,8 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Hero Slider */}
-      <HeroSlider />
+      {/* Advanced 3D Parallax Slider */}
+      <ParallaxSlider3D />
 
 
 
