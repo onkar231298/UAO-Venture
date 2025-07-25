@@ -2,7 +2,15 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertInquirySchema, insertQuotationSchema, insertProductSchema } from "@shared/schema";
+import { 
+  insertInquirySchema, 
+  insertQuotationSchema, 
+  insertProductSchema, 
+  insertCategorySchema,
+  insertProductTagSchema,
+  insertHeroSliderSchema,
+  insertProductDocumentSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -456,6 +464,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin stats:", error);
       res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  // ==========================================
+  // WEBSITE MANAGEMENT API ROUTES (ADMIN ONLY)
+  // ==========================================
+
+  // Role validation middleware for admin-only routes
+  const isAdminOrWebsiteManager = (req: any, res: any, next: any) => {
+    const user = req.user;
+    if (!user?.claims?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
+  };
+
+  // Get all products (admin view with all fields)
+  app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const { category, search, status, limit = '50', offset = '0' } = req.query;
+      
+      const filters = {
+        category: category as string,
+        search: search as string,
+        status: status as string,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      const result = await storage.getProducts(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching admin products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Create new product
+  app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const productData = insertProductSchema.parse(req.body);
+      productData.createdBy = req.user.claims.sub;
+      productData.updatedBy = req.user.claims.sub;
+      
+      const product = await storage.createProduct(productData);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  // Get all product tags
+  app.get('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const tags = await storage.getProductTags();
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      res.status(500).json({ message: "Failed to fetch tags" });
+    }
+  });
+
+  // Get all hero sliders
+  app.get('/api/admin/sliders', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const sliders = await storage.getHeroSliders();
+      res.json(sliders);
+    } catch (error) {
+      console.error("Error fetching sliders:", error);
+      res.status(500).json({ message: "Failed to fetch sliders" });
+    }
+  });
+
+  // Get active hero sliders (public endpoint for frontend)
+  app.get('/api/sliders/active', async (req, res) => {
+    try {
+      const sliders = await storage.getHeroSliders();
+      const activeSliders = sliders.filter(slider => 
+        slider.status === 'active' && 
+        (!slider.startDate || new Date(slider.startDate) <= new Date()) &&
+        (!slider.endDate || new Date(slider.endDate) >= new Date())
+      );
+      res.json(activeSliders);
+    } catch (error) {
+      console.error("Error fetching active sliders:", error);
+      res.status(500).json({ message: "Failed to fetch active sliders" });
     }
   });
 

@@ -9,16 +9,25 @@ import {
   purchaseOrders,
   inventory,
   productDocuments,
+  productTags,
+  productTagRelations,
+  heroSliders,
   type User,
   type UpsertUser,
   type Product,
   type InsertProduct,
   type Category,
+  type InsertCategory,
   type Inquiry,
   type InsertInquiry,
   type Quotation,
   type InsertQuotation,
   type ProductDocument,
+  type InsertProductDocument,
+  type ProductTag,
+  type InsertProductTag,
+  type HeroSlider,
+  type InsertHeroSlider,
   type Inventory,
   type SalesOrder,
   type PurchaseOrder,
@@ -48,6 +57,29 @@ export interface IStorage {
   // Category operations
   getCategories(): Promise<Category[]>;
   getCategory(id: number): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category>;
+  deleteCategory(id: number): Promise<void>;
+
+  // Product Tag operations
+  getProductTags(): Promise<ProductTag[]>;
+  createProductTag(tag: InsertProductTag): Promise<ProductTag>;
+  updateProductTag(id: number, tag: Partial<InsertProductTag>): Promise<ProductTag>;
+  deleteProductTag(id: number): Promise<void>;
+  assignTagToProduct(productId: number, tagId: number): Promise<void>;
+  removeTagFromProduct(productId: number, tagId: number): Promise<void>;
+
+  // Hero Slider operations
+  getHeroSliders(): Promise<HeroSlider[]>;
+  createHeroSlider(slider: InsertHeroSlider): Promise<HeroSlider>;
+  updateHeroSlider(id: number, slider: Partial<InsertHeroSlider>): Promise<HeroSlider>;
+  deleteHeroSlider(id: number): Promise<void>;
+
+  // Product Document operations
+  getProductDocuments(productId: number): Promise<ProductDocument[]>;
+  createProductDocument(document: InsertProductDocument): Promise<ProductDocument>;
+  updateProductDocument(id: number, document: Partial<InsertProductDocument>): Promise<ProductDocument>;
+  deleteProductDocument(id: number): Promise<void>;
 
   // Inquiry operations
   getInquiries(filters?: {
@@ -108,6 +140,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Generate unique Product ID
+  private async generateProductId(): Promise<string> {
+    const count = await db.select({ count: sql<number>`count(*)` }).from(products);
+    const nextId = (count[0]?.count || 0) + 1;
+    return `BFI${nextId.toString().padStart(3, '0')}`;
+  }
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -186,6 +224,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
+    // Generate unique product ID if not provided
+    if (!product.productId) {
+      product.productId = await this.generateProductId();
+    }
+    
     const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
   }
@@ -213,6 +256,107 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category> {
+    const [updatedCategory] = await db
+      .update(categories)
+      .set(category)
+      .where(eq(categories.id, id))
+      .returning();
+    return updatedCategory;
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    await db.update(categories).set({ isActive: false }).where(eq(categories.id, id));
+  }
+
+  // Product Tag operations
+  async getProductTags(): Promise<ProductTag[]> {
+    return await db.select().from(productTags).where(eq(productTags.isActive, true)).orderBy(asc(productTags.name));
+  }
+
+  async createProductTag(tag: InsertProductTag): Promise<ProductTag> {
+    const [newTag] = await db.insert(productTags).values(tag).returning();
+    return newTag;
+  }
+
+  async updateProductTag(id: number, tag: Partial<InsertProductTag>): Promise<ProductTag> {
+    const [updatedTag] = await db
+      .update(productTags)
+      .set(tag)
+      .where(eq(productTags.id, id))
+      .returning();
+    return updatedTag;
+  }
+
+  async deleteProductTag(id: number): Promise<void> {
+    await db.update(productTags).set({ isActive: false }).where(eq(productTags.id, id));
+  }
+
+  async assignTagToProduct(productId: number, tagId: number): Promise<void> {
+    await db.insert(productTagRelations).values({ productId, tagId });
+  }
+
+  async removeTagFromProduct(productId: number, tagId: number): Promise<void> {
+    await db.delete(productTagRelations)
+      .where(and(
+        eq(productTagRelations.productId, productId),
+        eq(productTagRelations.tagId, tagId)
+      ));
+  }
+
+  // Hero Slider operations
+  async getHeroSliders(): Promise<HeroSlider[]> {
+    return await db.select().from(heroSliders).orderBy(asc(heroSliders.sortOrder));
+  }
+
+  async createHeroSlider(slider: InsertHeroSlider): Promise<HeroSlider> {
+    const [newSlider] = await db.insert(heroSliders).values(slider).returning();
+    return newSlider;
+  }
+
+  async updateHeroSlider(id: number, slider: Partial<InsertHeroSlider>): Promise<HeroSlider> {
+    const [updatedSlider] = await db
+      .update(heroSliders)
+      .set({ ...slider, updatedAt: new Date() })
+      .where(eq(heroSliders.id, id))
+      .returning();
+    return updatedSlider;
+  }
+
+  async deleteHeroSlider(id: number): Promise<void> {
+    await db.delete(heroSliders).where(eq(heroSliders.id, id));
+  }
+
+  // Product Document operations
+  async getProductDocuments(productId: number): Promise<ProductDocument[]> {
+    return await db.select().from(productDocuments)
+      .where(eq(productDocuments.productId, productId))
+      .orderBy(asc(productDocuments.createdAt));
+  }
+
+  async createProductDocument(document: InsertProductDocument): Promise<ProductDocument> {
+    const [newDocument] = await db.insert(productDocuments).values(document).returning();
+    return newDocument;
+  }
+
+  async updateProductDocument(id: number, document: Partial<InsertProductDocument>): Promise<ProductDocument> {
+    const [updatedDocument] = await db
+      .update(productDocuments)
+      .set(document)
+      .where(eq(productDocuments.id, id))
+      .returning();
+    return updatedDocument;
+  }
+
+  async deleteProductDocument(id: number): Promise<void> {
+    await db.delete(productDocuments).where(eq(productDocuments.id, id));
+  }
+
   // Inquiry operations
   async getInquiries(filters?: {
     customerId?: string;
@@ -221,41 +365,8 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ inquiries: Inquiry[]; total: number }> {
-    // Return empty for now
+    // Return empty for now - will implement full functionality later
     return { inquiries: [], total: 0 };
-    
-    if (filters?.customerId) {
-      conditions.push(eq(inquiries.customerId, filters.customerId));
-    }
-    
-    if (filters?.status) {
-      conditions.push(eq(inquiries.status, filters.status));
-    }
-    
-    if (filters?.assignedTo) {
-      conditions.push(eq(inquiries.assignedTo, filters.assignedTo));
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [inquiriesResult, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(inquiries)
-        .where(whereClause)
-        .limit(filters?.limit || 50)
-        .offset(filters?.offset || 0)
-        .orderBy(desc(inquiries.createdAt)),
-      db
-        .select({ count: count() })
-        .from(inquiries)
-        .where(whereClause),
-    ]);
-
-    return {
-      inquiries: inquiriesResult,
-      total: totalResult[0].count,
-    };
   }
 
   async getInquiry(id: number): Promise<Inquiry | undefined> {
