@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
-import ParallaxSlider3D from "@/components/ParallaxSlider3D";
+import ParallaxHero from "@/components/ParallaxHero";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
@@ -39,10 +39,8 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Advanced 3D Parallax Slider */}
-      <ParallaxSlider3D />
-
-
+      {/* Bright Fame Organics Parallax Hero */}
+      <ParallaxHero />
 
       {/* Product Categories */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
