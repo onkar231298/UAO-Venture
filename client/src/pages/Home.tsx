@@ -14,8 +14,9 @@ export default function Home() {
 
   // Redirect admin users to admin dashboard
   useEffect(() => {
-    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
-      window.location.href = '/#/admin/dashboard';
+    if (user && ((user as any).role === 'admin' || (user as any).role === 'super_admin')) {
+      console.log('Home: Redirecting admin user to admin dashboard');
+      window.location.replace('/#/admin/dashboard');
       return;
     }
   }, [user]);

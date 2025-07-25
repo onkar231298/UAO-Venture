@@ -46,8 +46,9 @@ export default function Dashboard() {
     }
     
     // Redirect admin users to admin dashboard
-    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
-      window.location.href = '/#/admin/dashboard';
+    if (user && ((user as any).role === 'admin' || (user as any).role === 'super_admin')) {
+      console.log('Redirecting admin user to admin dashboard');
+      window.location.replace('/#/admin/dashboard');
       return;
     }
   }, [isAuthenticated, isLoading, toast, user]);
