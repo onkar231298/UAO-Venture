@@ -258,87 +258,199 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg border-r flex flex-col">
-        {/* Logo */}
+      <aside className="w-72 bg-white dark:bg-gray-800 shadow-lg border-r flex flex-col">
+        {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <Globe className="w-6 h-6 text-white" />
-              </div>
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">B</span>
             </div>
             <div className="ml-3">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">BFI Organic</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Admin Portal</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">BFI Organic</h1>
             </div>
           </div>
         </div>
 
-        {/* Admin User Info */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Admin User Profile */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <Users className="w-4 h-4 text-green-600" />
+            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-medium text-sm">
+                {adminUser.firstName?.[0]}{adminUser.lastName?.[0]}
+              </span>
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {adminUser.firstName} {adminUser.lastName}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {adminUser.role?.replace('_', ' ').toUpperCase()}
+                {adminUser.email}
+              </p>
+              <p className="text-xs text-gray-500">
+                Admin • BFI Organic Pvt. Ltd.
               </p>
             </div>
           </div>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {navigationItems.map((item) => (
-              <div key={item.id}>
+        <nav className="flex-1 overflow-y-auto">
+          <div className="px-4 py-4">
+            {/* MAIN Section */}
+            <div className="mb-6">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                MAIN
+              </h3>
+              <div className="space-y-1">
                 <button
-                  onClick={() => setActiveSection(item.section)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === item.section
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  onClick={() => setActiveSection('overview')}
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'overview'
+                      ? 'bg-blue-600 text-white'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <item.icon className="mr-3 h-4 w-4" />
-                  {item.label}
+                  <LayoutDashboard className="mr-3 h-5 w-5" />
+                  Dashboard
                 </button>
-                {item.children && activeSection === item.section && (
-                  <div className="ml-6 mt-2 space-y-1">
-                    {item.children.map((child) => (
-                      <button
-                        key={child.id}
-                        onClick={() => setActiveSection(child.id)}
-                        className={`w-full flex items-center px-3 py-2 text-xs rounded-md transition-colors ${
-                          activeSection === child.id
-                            ? 'bg-green-50 text-green-700 dark:bg-green-800 dark:text-green-200'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <child.icon className="mr-2 h-3 w-3" />
-                        {child.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-            ))}
+            </div>
+
+            {/* OPERATIONS Section */}
+            <div className="mb-6">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                OPERATIONS
+              </h3>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveSection('inventory')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'inventory'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Package className="mr-3 h-5 w-5" />
+                  Inventory
+                </button>
+                
+                <button
+                  onClick={() => setActiveSection('sales')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'sales'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <TrendingUp className="mr-3 h-5 w-5" />
+                  Sales Management
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('purchase')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'purchase'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <ShoppingCart className="mr-3 h-5 w-5" />
+                  Purchase Management
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('logistics')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'logistics'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Truck className="mr-3 h-5 w-5" />
+                  Logistics Management
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('accounts')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'accounts'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <DollarSign className="mr-3 h-5 w-5" />
+                  Accounts & Finance
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('website')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'website'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Globe className="mr-3 h-5 w-5" />
+                  Website Management
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('users')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'users'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Users className="mr-3 h-5 w-5" />
+                  User Management
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('analytics')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'analytics'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <BarChart3 className="mr-3 h-5 w-5" />
+                  Analytics & Reports
+                </button>
+              </div>
+            </div>
+
+            {/* PROFILE Section */}
+            <div className="mb-6">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                PROFILE
+              </h3>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveSection('settings')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'settings'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Settings className="mr-3 h-5 w-5" />
+                  System Settings
+                </button>
+              </div>
+            </div>
           </div>
         </nav>
 
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <Button 
-            variant="outline" 
+          <button
             onClick={() => window.location.href = '/api/logout'}
-            className="w-full text-sm"
+            className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           >
-            Logout
-          </Button>
+            <Send className="mr-3 h-4 w-4 rotate-45" />
+            Log out
+          </button>
         </div>
       </aside>
 
