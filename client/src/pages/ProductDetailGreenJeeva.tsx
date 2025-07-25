@@ -153,9 +153,47 @@ export default function ProductDetailGreenJeeva() {
                     </div>
                   ) : (
                     <>
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const allDocs = [
+                            product.businessLicense,
+                            product.registrationCert,
+                            product.kosherCert,
+                            product.organicNopCert,
+                            product.coaDocument,
+                            product.specDocument,
+                            product.msdsDocument,
+                            product.nonGmoDocument,
+                            ...(product.additionalDocs && Array.isArray(product.additionalDocs) ? product.additionalDocs : [])
+                          ].filter(Boolean);
+                          
+                          if (allDocs.length === 0) {
+                            toast({
+                              title: "No Documents",
+                              description: "No documents are available for this product",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
+                          allDocs.forEach(url => window.open(url, '_blank'));
+                        }}
+                      >
                         <Download className="w-4 h-4 mr-2" />
-                        Download All
+                        Download All ({[
+                          product.businessLicense,
+                          product.registrationCert,
+                          product.kosherCert,
+                          product.organicNopCert,
+                          product.coaDocument,
+                          product.specDocument,
+                          product.msdsDocument,
+                          product.nonGmoDocument,
+                          ...(product.additionalDocs && Array.isArray(product.additionalDocs) ? product.additionalDocs : [])
+                        ].filter(Boolean).length})
                       </Button>
                       <Separator />
                       
@@ -163,16 +201,25 @@ export default function ProductDetailGreenJeeva() {
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-gray-700 mb-2">Company Specific Documents</p>
                         {[
-                          'Business License',
-                          'Certificate of Registration', 
-                          'KOSHER-OK',
-                          'Organic-NOP(USDA)'
-                        ].map((doc) => (
-                          <Button key={doc} variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
+                          { name: 'Business License', url: product.businessLicense },
+                          { name: 'Certificate of Registration', url: product.registrationCert },
+                          { name: 'KOSHER-OK', url: product.kosherCert },
+                          { name: 'Organic-NOP(USDA)', url: product.organicNopCert }
+                        ].filter(doc => doc.url).map((doc) => (
+                          <Button 
+                            key={doc.name} 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full justify-start text-xs h-8"
+                            onClick={() => window.open(doc.url, '_blank')}
+                          >
                             <FileText className="w-3 h-3 mr-2" />
-                            {doc} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            {doc.name} <span className="text-blue-600 ml-auto">Download PDF</span>
                           </Button>
                         ))}
+                        {![product.businessLicense, product.registrationCert, product.kosherCert, product.organicNopCert].some(Boolean) && (
+                          <p className="text-xs text-gray-500 py-2">No company documents available</p>
+                        )}
                       </div>
 
                       <Separator />
@@ -181,16 +228,41 @@ export default function ProductDetailGreenJeeva() {
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-gray-700 mb-2">Product Specific Documents</p>
                         {[
-                          'COA Document',
-                          'Specification Sheet',
-                          'MSDS Documents',
-                          'Non GMO Statement'
-                        ].map((doc) => (
-                          <Button key={doc} variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
+                          { name: 'COA Document', url: product.coaDocument },
+                          { name: 'Specification Sheet', url: product.specDocument },
+                          { name: 'MSDS Documents', url: product.msdsDocument },
+                          { name: 'Non GMO Statement', url: product.nonGmoDocument }
+                        ].filter(doc => doc.url).map((doc) => (
+                          <Button 
+                            key={doc.name} 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full justify-start text-xs h-8"
+                            onClick={() => window.open(doc.url, '_blank')}
+                          >
                             <FileText className="w-3 h-3 mr-2" />
-                            {doc} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            {doc.name} <span className="text-blue-600 ml-auto">Download PDF</span>
                           </Button>
                         ))}
+                        {/* Additional Documents */}
+                        {product.additionalDocs && (product.additionalDocs as string[]).length > 0 && (
+                          (product.additionalDocs as string[]).map((docUrl, index) => (
+                            <Button 
+                              key={`additional-${index}`} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start text-xs h-8"
+                              onClick={() => window.open(docUrl, '_blank')}
+                            >
+                              <FileText className="w-3 h-3 mr-2" />
+                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            </Button>
+                          ))
+                        )}
+                        {![product.coaDocument, product.specDocument, product.msdsDocument, product.nonGmoDocument].some(Boolean) && 
+                         (!product.additionalDocs || (product.additionalDocs as string[]).length === 0) && (
+                          <p className="text-xs text-gray-500 py-2">No product documents available</p>
+                        )}
                       </div>
                     </>
                   )}
