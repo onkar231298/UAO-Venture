@@ -139,7 +139,7 @@ export default function WebsiteManagement() {
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-6">
           <ProductsManagement 
-            products={productsData?.products || []}
+            products={(productsData as any)?.products || []}
             categories={categories || []}
             tags={tags || []}
             loading={productsLoading}
@@ -399,7 +399,7 @@ function ProductsManagement({
             setIsEditing(false);
             setSelectedProduct(null);
           }}
-          onSubmit={(data) => {
+          onSubmit={(data: any) => {
             if (isEditing && selectedProduct) {
               updateProductMutation.mutate({ id: selectedProduct.id, data });
             } else {
@@ -548,12 +548,12 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
       hsCode: formData.hsCode || undefined,
       productGrade: formData.productGrade || undefined,
       form: formData.form || undefined,
-      meshSize: formData.meshSize || undefined,
-      curcuminContent: formData.curcuminContent || undefined,
-      moisture: formData.moisture || undefined,
-      totalAsh: formData.totalAsh || undefined,
-      bulkDensity: formData.bulkDensity || undefined,
-      shelfLife: formData.shelfLife || undefined,
+      meshSize: (formData as any).meshSize || undefined,
+      curcuminContent: (formData as any).curcuminContent || undefined,
+      moisture: (formData as any).moisture || undefined,
+      totalAsh: (formData as any).totalAsh || undefined,
+      bulkDensity: (formData as any).bulkDensity || undefined,
+      shelfLife: (formData as any).shelfLife || undefined,
       leadTime: formData.leadTime || undefined,
       
       // Ensure arrays are properly formatted
@@ -563,8 +563,8 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     
     // Remove undefined values to avoid sending empty data
     Object.keys(cleanedData).forEach(key => {
-      if (cleanedData[key] === undefined || cleanedData[key] === '') {
-        delete cleanedData[key];
+      if ((cleanedData as any)[key] === undefined || (cleanedData as any)[key] === '') {
+        delete (cleanedData as any)[key];
       }
     });
     
@@ -1305,7 +1305,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                   </div>
                   
                   {/* Certificate Document - Only show if product is organic */}
-                  {formData.isOrganic && (
+                  {(formData as any).isOrganic && (
                   <div className="space-y-2">
                     <Label htmlFor="certDocument" className="text-xs font-medium">Organic Certificate</Label>
                     <div className="flex gap-2">
@@ -1490,7 +1490,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                             if (files.length > 0) {
                               setUploading(true);
                               try {
-                                const uploadedDocs = [];
+                                const uploadedDocs: any[] = [];
                                 for (const file of files) {
                                   const formDataUpload = new FormData();
                                   formDataUpload.append('additionalDocs', file);
@@ -1514,7 +1514,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                                 if (uploadedDocs.length > 0) {
                                   setFormData(prev => ({
                                     ...prev,
-                                    additionalDocs: [...prev.additionalDocs, ...uploadedDocs]
+                                    additionalDocs: [...(prev as any).additionalDocs, ...uploadedDocs]
                                   }));
                                   
                                   toast({
@@ -1903,6 +1903,9 @@ function CategoriesManagement({ categories, loading }: any) {
     mutationFn: async (categoryData: any) => {
       return apiRequest("/api/admin/categories", {
         method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(categoryData),
       });
     },
@@ -1927,6 +1930,9 @@ function CategoriesManagement({ categories, loading }: any) {
     mutationFn: async ({ id, ...data }: any) => {
       return apiRequest(`/api/admin/categories/${id}`, {
         method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',  
+        },
         body: JSON.stringify(data),
       });
     },
@@ -1951,6 +1957,9 @@ function CategoriesManagement({ categories, loading }: any) {
     mutationFn: async (id: number) => {
       return apiRequest(`/api/admin/categories/${id}`, {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     },
     onSuccess: () => {

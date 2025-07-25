@@ -466,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           processedData.additionalDocs = [];
         }
         // Ensure all elements are strings for PostgreSQL text[] array
-        processedData.additionalDocs = processedData.additionalDocs.map(item => String(item));
+        processedData.additionalDocs = processedData.additionalDocs.map((item: any) => String(item));
       }
       
       // Handle JSONB array fields
@@ -623,8 +623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productData = insertProductSchema.parse(req.body);
-      productData.createdBy = req.user?.claims?.sub;
-      productData.updatedBy = req.user?.claims?.sub;
+      productData.createdBy = (req.user as any)?.claims?.sub;
+      productData.updatedBy = (req.user as any)?.claims?.sub;
       
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
@@ -645,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productId = parseInt(req.params.id);
       const productData = insertProductSchema.partial().parse(req.body);
-      productData.updatedBy = req.user?.claims?.sub;
+      productData.updatedBy = (req.user as any)?.claims?.sub;
       
       const product = await storage.updateProduct(productId, productData);
       res.json(product);
@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tagData = insertProductTagSchema.parse(req.body);
-      tagData.createdBy = req.user?.claims?.sub;
+      // Note: tagData doesn't have createdBy field in the schema
       
       const tag = await storage.createProductTag(tagData);
       res.status(201).json(tag);

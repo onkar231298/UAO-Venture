@@ -310,7 +310,7 @@ export class DatabaseStorage implements IStorage {
         processedProduct.additionalDocs = [];
       }
       // Ensure all elements are strings for PostgreSQL text[] array
-      processedProduct.additionalDocs = processedProduct.additionalDocs.map(item => String(item));
+      processedProduct.additionalDocs = processedProduct.additionalDocs.map((item: any) => String(item));
     }
     
     if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
@@ -358,7 +358,7 @@ export class DatabaseStorage implements IStorage {
         processedProduct.additionalDocs = [];
       }
       // Ensure all elements are strings for PostgreSQL text[] array
-      processedProduct.additionalDocs = processedProduct.additionalDocs.map(item => String(item));
+      processedProduct.additionalDocs = processedProduct.additionalDocs.map((item: any) => String(item));
     }
     
     if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
@@ -710,14 +710,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inventory.productId, productId));
   }
 
-  // Document operations
-  async getProductDocuments(productId: number): Promise<ProductDocument[]> {
-    return await db
-      .select()
-      .from(productDocuments)
-      .where(eq(productDocuments.productId, productId))
-      .orderBy(desc(productDocuments.createdAt));
-  }
+
 
   async uploadProductDocument(document: Omit<ProductDocument, 'id' | 'createdAt'>): Promise<ProductDocument> {
     const [newDocument] = await db.insert(productDocuments).values(document).returning();
