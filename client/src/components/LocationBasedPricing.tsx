@@ -8,12 +8,14 @@ interface LocationBasedPricingProps {
   product: any;
   className?: string;
   showCurrencySelector?: boolean;
+  isAdminView?: boolean; // Only admins can see all currencies
 }
 
 export function LocationBasedPricing({ 
   product, 
   className = "",
-  showCurrencySelector = false 
+  showCurrencySelector = false,
+  isAdminView = false
 }: LocationBasedPricingProps) {
   const [userCurrency, setUserCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(true);
@@ -61,8 +63,8 @@ export function LocationBasedPricing({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Currency Selector (if enabled) */}
-      {showCurrencySelector && (
+      {/* Currency Selector (only for admin view) */}
+      {showCurrencySelector && isAdminView && (
         <div className="flex items-center gap-2">
           <Label className="text-xs text-gray-500">Currency:</Label>
           <Select
@@ -106,30 +108,37 @@ export function LocationBasedPricing({
         )}
 
         {/* Location Detection Info */}
-        {!manualOverride && (
+        {!manualOverride && !isAdminView && (
+          <div className="text-xs text-gray-400">
+            Showing regional pricing for: {currencyInfo?.name}
+          </div>
+        )}
+        {!manualOverride && isAdminView && (
           <div className="text-xs text-gray-400">
             Auto-detected: {currencyInfo?.name}
           </div>
         )}
       </div>
 
-      {/* Available Currency Prices (compact view) */}
-      <div className="flex flex-wrap gap-1">
-        {Object.entries(CURRENCIES).map(([code, info]) => {
-          const currencyPrice = getProductPrice(product, code);
-          if (!currencyPrice || code === displayCurrency) return null;
-          
-          return (
-            <button
-              key={code}
-              onClick={() => setManualOverride(code)}
-              className="text-xs text-gray-500 hover:text-gray-700 underline"
-            >
-              {info.symbol}{currencyPrice.toFixed(2)}
-            </button>
-          );
-        })}
-      </div>
+      {/* Available Currency Prices (admin view only) */}
+      {isAdminView && (
+        <div className="flex flex-wrap gap-1">
+          {Object.entries(CURRENCIES).map(([code, info]) => {
+            const currencyPrice = getProductPrice(product, code);
+            if (!currencyPrice || code === displayCurrency) return null;
+            
+            return (
+              <button
+                key={code}
+                onClick={() => setManualOverride(code)}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                {info.symbol}{currencyPrice.toFixed(2)}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

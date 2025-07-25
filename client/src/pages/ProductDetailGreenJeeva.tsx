@@ -225,7 +225,8 @@ export default function ProductDetailGreenJeeva() {
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                 <LocationBasedPricing 
                   product={product} 
-                  showCurrencySelector={true}
+                  showCurrencySelector={false}
+                  isAdminView={false}
                   className="mb-2"
                 />
                 {product.moq && (

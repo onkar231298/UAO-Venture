@@ -115,7 +115,7 @@ export function formatPrice(price: number, currencyCode: string): string {
   }
 }
 
-// Get appropriate price from product based on user currency
+// Get appropriate price from product based on user currency (location-restricted)
 export function getProductPrice(product: any, userCurrency: string): number | null {
   const priceField = `price${userCurrency}`;
   const price = product[priceField];
@@ -124,17 +124,23 @@ export function getProductPrice(product: any, userCurrency: string): number | nu
     return parseFloat(price);
   }
   
-  // Fallback to USD if user currency not available
-  if (userCurrency !== 'USD' && product.priceUSD && !isNaN(parseFloat(product.priceUSD))) {
-    return parseFloat(product.priceUSD);
-  }
-  
-  // Final fallback to legacy rate field
-  if (product.rate && !isNaN(parseFloat(product.rate))) {
-    return parseFloat(product.rate);
-  }
-  
+  // No fallback - users should only see their regional pricing
   return null;
+}
+
+// Get all available currencies for a product (for admin use only)
+export function getAllProductPrices(product: any): Array<{currency: string, price: number}> {
+  const prices = [];
+  
+  Object.entries(CURRENCIES).forEach(([code, info]) => {
+    const priceField = `price${code}`;
+    const price = product[priceField];
+    if (price && !isNaN(parseFloat(price))) {
+      prices.push({ currency: code, price: parseFloat(price) });
+    }
+  });
+  
+  return prices;
 }
 
 // Format price display with terms
