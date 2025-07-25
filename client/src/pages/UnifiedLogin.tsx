@@ -29,19 +29,26 @@ export default function UnifiedLogin() {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams(formData),
+          redirect: 'manual' // Don't auto-follow redirects
         });
 
-        if (response.ok) {
+        // Check if the response is a redirect (success)
+        if (response.status === 302 || response.status === 200) {
           window.location.href = "/admin/dashboard";
+          return;
+        } else {
+          setError("Invalid admin credentials. Please try again.");
+          setIsLoading(false);
           return;
         }
       } catch (err) {
-        // Continue to regular login if admin login fails
+        setError("Invalid admin credentials. Please try again.");
+        setIsLoading(false);
+        return;
       }
     }
 
-    // If not admin or admin login failed, try regular customer login
-    // For now, redirect to Replit OAuth for customer login
+    // If not admin email, redirect to Replit OAuth for customer login
     if (!formData.email.includes("admin")) {
       window.location.href = "/api/login";
       return;
