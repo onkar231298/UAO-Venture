@@ -205,21 +205,22 @@ export default function ProductDetailGreenJeeva() {
                           { name: 'Certificate of Registration', url: product.registrationCert },
                           { name: 'KOSHER-OK', url: product.kosherCert },
                           { name: 'Organic-NOP(USDA)', url: product.organicNopCert }
-                        ].filter(doc => doc.url).map((doc) => (
+                        ].map((doc) => (
                           <Button 
                             key={doc.name} 
                             variant="ghost" 
                             size="sm" 
-                            className="w-full justify-start text-xs h-8"
-                            onClick={() => window.open(doc.url, '_blank')}
+                            className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => doc.url ? window.open(doc.url, '_blank') : null}
+                            disabled={!doc.url}
                           >
                             <FileText className="w-3 h-3 mr-2" />
-                            {doc.name} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            {doc.name} 
+                            <span className={`ml-auto ${doc.url ? 'text-blue-600' : 'text-gray-400'}`}>
+                              {doc.url ? 'Download PDF' : 'Not Available'}
+                            </span>
                           </Button>
                         ))}
-                        {![product.businessLicense, product.registrationCert, product.kosherCert, product.organicNopCert].some(Boolean) && (
-                          <p className="text-xs text-gray-500 py-2">No company documents available</p>
-                        )}
                       </div>
 
                       <Separator />
@@ -232,16 +233,20 @@ export default function ProductDetailGreenJeeva() {
                           { name: 'Specification Sheet', url: product.specDocument },
                           { name: 'MSDS Documents', url: product.msdsDocument },
                           { name: 'Non GMO Statement', url: product.nonGmoDocument }
-                        ].filter(doc => doc.url).map((doc) => (
+                        ].map((doc) => (
                           <Button 
                             key={doc.name} 
                             variant="ghost" 
                             size="sm" 
-                            className="w-full justify-start text-xs h-8"
-                            onClick={() => window.open(doc.url, '_blank')}
+                            className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => doc.url ? window.open(doc.url, '_blank') : null}
+                            disabled={!doc.url}
                           >
                             <FileText className="w-3 h-3 mr-2" />
-                            {doc.name} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            {doc.name} 
+                            <span className={`ml-auto ${doc.url ? 'text-blue-600' : 'text-gray-400'}`}>
+                              {doc.url ? 'Download PDF' : 'Not Available'}
+                            </span>
                           </Button>
                         ))}
                         {/* Additional Documents */}
@@ -258,10 +263,6 @@ export default function ProductDetailGreenJeeva() {
                               Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
                             </Button>
                           ))
-                        )}
-                        {![product.coaDocument, product.specDocument, product.msdsDocument, product.nonGmoDocument].some(Boolean) && 
-                         (!product.additionalDocs || (product.additionalDocs as string[]).length === 0) && (
-                          <p className="text-xs text-gray-500 py-2">No product documents available</p>
                         )}
                       </div>
                     </>
