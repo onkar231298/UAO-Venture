@@ -185,11 +185,20 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
               <Card key={product.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center space-x-3 sm:space-x-4">
-                    <img
-                      src={(product.images as string[])?.[0] || "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"}
-                      alt={product.name}
-                      className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
-                    />
+                    {(product.images as string[] | null)?.[0] ? (
+                      <img
+                        src={(product.images as string[])[0]}
+                        alt={product.name}
+                        className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling!.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`${(product.images as string[] | null)?.[0] ? 'hidden' : 'flex'} w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg items-center justify-center`}>
+                      <span className="text-gray-400 text-xs">📷</span>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">{product.name}</h3>
                       <p className="text-xs sm:text-sm text-gray-600">SKU: {product.productId}</p>
