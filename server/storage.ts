@@ -311,6 +311,11 @@ export class DatabaseStorage implements IStorage {
       }
       // Ensure all elements are strings for PostgreSQL text[] array
       processedProduct.additionalDocs = processedProduct.additionalDocs.map((item: any) => String(item));
+      
+      // If array is empty, set to null to avoid PostgreSQL array parsing issues
+      if (processedProduct.additionalDocs.length === 0) {
+        processedProduct.additionalDocs = null as any;
+      }
     }
     
     if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
@@ -359,31 +364,32 @@ export class DatabaseStorage implements IStorage {
       }
       // Ensure all elements are strings for PostgreSQL text[] array
       processedProduct.additionalDocs = processedProduct.additionalDocs.map((item: any) => String(item));
-    }
-    
-    if (processedProduct.galleryImages && typeof processedProduct.galleryImages === 'string') {
-      try {
-        processedProduct.galleryImages = JSON.parse(processedProduct.galleryImages);
-      } catch {
-        processedProduct.galleryImages = [];
+      
+      // If array is empty, set to null to avoid PostgreSQL array parsing issues
+      if (processedProduct.additionalDocs.length === 0) {
+        processedProduct.additionalDocs = null as any;
       }
     }
     
-    if (processedProduct.certifications && typeof processedProduct.certifications === 'string') {
-      try {
-        processedProduct.certifications = JSON.parse(processedProduct.certifications);
-      } catch {
-        processedProduct.certifications = [];
-      }
-    }
+    // Handle JSONB fields - ensure they're proper objects/arrays, not strings
+    const jsonbFields = ['galleryImages', 'certifications', 'bulkPricing'];
     
-    if (processedProduct.bulkPricing && typeof processedProduct.bulkPricing === 'string') {
-      try {
-        processedProduct.bulkPricing = JSON.parse(processedProduct.bulkPricing);
-      } catch {
-        processedProduct.bulkPricing = [];
+    jsonbFields.forEach(field => {
+      const fieldValue = (processedProduct as any)[field];
+      if (fieldValue !== undefined) {
+        if (typeof fieldValue === 'string') {
+          try {
+            (processedProduct as any)[field] = JSON.parse(fieldValue);
+          } catch {
+            (processedProduct as any)[field] = [];
+          }
+        } else if (!Array.isArray(fieldValue)) {
+          (processedProduct as any)[field] = [];
+        }
+        
+        // For JSONB fields, empty arrays are fine - no need to convert to null
       }
-    }
+    });
 
     const [updatedProduct] = await db
       .update(products)
