@@ -68,7 +68,7 @@ export default function AdminDashboard() {
           description: "Please login to access admin dashboard.",
           variant: "destructive",
         });
-        window.location.href = '/login';
+        window.location.hash = '/login';
         return;
       }
       
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
           description: "Admin privileges required.",
           variant: "destructive",
         });
-        window.location.href = '/';
+        window.location.hash = '/';
         return;
       }
       
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.hash = "/login";
         }, 500);
         return false;
       }

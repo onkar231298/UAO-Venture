@@ -23,8 +23,13 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes */}
       <Route path="/login" component={UnifiedLogin} />
+      
+      {/* Admin routes - accessible to authenticated admin users */}
       <Route path="/admin/dashboard" component={AdminDashboard} />
+      
+      {/* Authenticated vs non-authenticated routes */}
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
