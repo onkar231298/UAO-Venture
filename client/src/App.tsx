@@ -5,49 +5,46 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
-import Home from "@/pages/Home";
 import ProductDetail from "@/pages/ProductDetail";
-import Dashboard from "@/pages/Dashboard";
-import SalesManagement from "@/pages/crm/SalesManagement";
-import PurchaseManagement from "@/pages/crm/PurchaseManagement";
-import InventoryManagement from "@/pages/crm/InventoryManagement";
-import LogisticsManagement from "@/pages/crm/LogisticsManagement";
-import AccountsManagement from "@/pages/crm/AccountsManagement";
-import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import UnifiedLogin from "@/pages/UnifiedLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
+import CustomerDashboard from "@/pages/CustomerDashboard";
+import StaffDashboard from "@/pages/StaffDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
-      {/* Public routes */}
+      {/* Public routes - always accessible */}
       <Route path="/login" component={UnifiedLogin} />
+      <Route path="/product/:slug" component={ProductDetail} />
       
-      {/* Admin routes - accessible to authenticated admin users */}
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      
-      {/* Authenticated vs non-authenticated routes */}
-      {isLoading || !isAuthenticated ? (
+      {/* Protected routes based on authentication and role */}
+      {!isLoading && isAuthenticated && user ? (
         <>
-          <Route path="/" component={Landing} />
-          <Route path="/product/:slug" component={ProductDetail} />
+          {/* Admin users get admin dashboard */}
+          {((user as any).role === 'admin' || (user as any).role === 'super_admin') && (
+            <Route path="/" component={AdminDashboard} />
+          )}
+          
+          {/* Customer users get customer dashboard */}
+          {(user as any).role === 'customer' && (
+            <Route path="/" component={CustomerDashboard} />
+          )}
+          
+          {/* Staff users (all other roles) get staff dashboard */}
+          {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') && (
+            <Route path="/" component={StaffDashboard} />
+          )}
         </>
       ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/product/:slug" component={ProductDetail} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/crm/sales" component={SalesManagement} />
-          <Route path="/crm/purchase" component={PurchaseManagement} />
-          <Route path="/crm/inventory" component={InventoryManagement} />
-          <Route path="/crm/logistics" component={LogisticsManagement} />
-          <Route path="/crm/accounts" component={AccountsManagement} />
-          <Route path="/crm/website" component={WebsiteManagement} />
-        </>
+        /* Non-authenticated users see landing page */
+        <Route path="/" component={Landing} />
       )}
+      
+      {/* 404 for any unmatched routes */}
       <Route component={NotFound} />
     </Switch>
   );
