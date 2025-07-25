@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import {
   Users,
   Package,
@@ -23,52 +21,55 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
-  const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [adminUser, setAdminUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Redirect to login if not authenticated
+  // Check admin authentication
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/admin/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
+    const checkAdminAuth = async () => {
+      try {
+        const response = await fetch('/api/admin/auth-check', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const user = await response.json();
+          setAdminUser(user);
+        } else {
+          toast({
+            title: "Authentication Required",
+            description: "Please login to access admin dashboard.",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        window.location.href = "/login";
+      } finally {
+        setAuthLoading(false);
+      }
+    };
 
-  // Check if user has admin role
-  useEffect(() => {
-    if (user && !(user as any).role?.includes('admin')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have admin privileges.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
-      return;
-    }
-  }, [user, toast]);
+    checkAdminAuth();
+  }, [toast]);
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
-    enabled: !!user && (user as any).role?.includes('admin'),
+    enabled: !!adminUser,
     retry: (failureCount, error) => {
-      if (isUnauthorizedError(error as Error)) {
+      if (error && (error as any).message?.includes('401')) {
         toast({
-          title: "Session Expired",
+          title: "Session Expired", 
           description: "Please login again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/admin/login";
+          window.location.href = "/login";
         }, 500);
         return false;
       }
@@ -76,7 +77,7 @@ export default function AdminDashboard() {
     }
   });
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (!adminUser) {
     return null;
   }
 
@@ -103,7 +104,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {(user as any).role?.replace('_', ' ').toUpperCase()}
+                {adminUser.role?.replace('_', ' ').toUpperCase()}
               </Badge>
               <Button 
                 variant="outline" 

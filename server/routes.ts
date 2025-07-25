@@ -391,13 +391,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin stats API
-  app.get("/api/admin/stats", isAuthenticated, async (req: any, res) => {
+  // Admin authentication check API
+  app.get("/api/admin/auth-check", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = req.user;
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'super_admin')) {
+      // Check if this is a local admin session
+      if (user.isLocal && user.claims && user.claims.sub === 'admin_001') {
+        const adminUser = await storage.getUser('admin_001');
+        if (adminUser) {
+          res.json({
+            id: adminUser.id,
+            email: adminUser.email,
+            firstName: adminUser.firstName,
+            lastName: adminUser.lastName,
+            role: adminUser.role
+          });
+          return;
+        }
+      }
+
+      return res.status(401).json({ message: "Not admin user" });
+    } catch (error) {
+      console.error("Error checking admin auth:", error);
+      res.status(500).json({ message: "Auth check failed" });
+    }
+  });
+
+  // Admin stats API
+  app.get("/api/admin/stats", async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = req.user;
+      
+      // Check if this is a local admin session
+      if (!user.isLocal || user.claims?.sub !== 'admin_001') {
         return res.status(403).json({ message: "Access denied. Admin privileges required." });
       }
 
