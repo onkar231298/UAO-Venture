@@ -23,29 +23,55 @@ export default function ParallaxHero() {
     {
       title: "Nature Meets Innovation",
       subtitle: "Certified, Traceable, and High-Performance Extracts & Powders for Food, Pharma, and Wellness Applications.",
-      accent: "at Bright Fame Organics"
+      accent: "at Bright Fame Organics",
+      theme: "herbs",
+      backgroundImage: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      overlayColor: "from-green-900/80 via-emerald-800/70 to-teal-700/60",
+      primaryColor: "#22c55e"
     },
     {
-      title: "Premium Organic Ingredients",
+      title: "Premium Organic Ingredients", 
       subtitle: "From Ashwagandha to Turmeric - sourced directly from certified organic farms with complete traceability.",
-      accent: "for Global Markets"
+      accent: "for Global Markets",
+      theme: "spices",
+      backgroundImage: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      overlayColor: "from-amber-900/80 via-orange-800/70 to-red-700/60",
+      primaryColor: "#f59e0b"
     },
     {
       title: "Research-Driven Quality",
       subtitle: "State-of-the-art R&D facilities ensuring every batch meets the highest international standards.",
-      accent: "with Scientific Excellence"
+      accent: "with Scientific Excellence", 
+      theme: "lab",
+      backgroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      overlayColor: "from-blue-900/80 via-indigo-800/70 to-purple-700/60",
+      primaryColor: "#3b82f6"
     }
   ];
 
+  const currentSlideData = slides[currentSlide];
+
   return (
-    <div className="relative h-screen overflow-hidden bg-gradient-to-br from-green-50 via-amber-50 to-emerald-100">
-      {/* Animated Background SVG */}
+    <div className="relative h-screen overflow-hidden">
+      {/* Dynamic Background Image */}
+      <div 
+        className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-2000 ease-in-out"
+        style={{
+          backgroundImage: `url(${currentSlideData.backgroundImage})`,
+          transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
+        }}
+      />
+      
+      {/* Dynamic Gradient Overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${currentSlideData.overlayColor} transition-all duration-2000`} />
+      
+      {/* Animated SVG Overlay */}
       <div className="absolute inset-0 w-full h-full">
         <svg 
           viewBox="0 0 1920 1080" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-80"
           style={{
-            transform: `translateY(${scrollY * 0.5}px)`,
+            transform: `translateY(${scrollY * 0.2}px)`,
           }}
         >
           {/* Sky Layer with Gradient */}
@@ -81,41 +107,117 @@ export default function ParallaxHero() {
           {/* Sky Background */}
           <rect width="1920" height="1080" fill="url(#skyGradient)" />
 
-          {/* Floating Organic Certifications */}
-          <g opacity="0.4">
-            <circle cx="200" cy="150" r="40" fill="#22c55e" opacity="0.2">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; 10,-5; 0,0" 
-                dur="6s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="200" y="155" textAnchor="middle" fontSize="12" fill="#166534" fontWeight="bold">USDA</text>
-            
-            <circle cx="1600" cy="200" r="35" fill="#10b981" opacity="0.2">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; -8,3; 0,0" 
-                dur="7s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="1600" y="205" textAnchor="middle" fontSize="11" fill="#064e3b" fontWeight="bold">EU ORG</text>
+          {/* Dynamic Floating Elements based on theme */}
+          {currentSlideData.theme === 'herbs' && (
+            <g opacity="0.6">
+              <circle cx="200" cy="150" r="40" fill={currentSlideData.primaryColor} opacity="0.3">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 10,-5; 0,0" 
+                  dur="6s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="200" y="155" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">USDA</text>
+              
+              <circle cx="1600" cy="200" r="35" fill={currentSlideData.primaryColor} opacity="0.3">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; -8,3; 0,0" 
+                  dur="7s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="1600" y="205" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">ORGANIC</text>
 
-            <circle cx="1400" cy="120" r="30" fill="#059669" opacity="0.2">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; 5,8; 0,0" 
-                dur="8s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="1400" y="125" textAnchor="middle" fontSize="10" fill="#065f46" fontWeight="bold">NOP</text>
-          </g>
+              <circle cx="1400" cy="120" r="30" fill={currentSlideData.primaryColor} opacity="0.3">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 5,8; 0,0" 
+                  dur="8s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="1400" y="125" textAnchor="middle" fontSize="10" fill="#ffffff" fontWeight="bold">NOP</text>
+            </g>
+          )}
+
+          {currentSlideData.theme === 'spices' && (
+            <g opacity="0.6">
+              <circle cx="300" cy="180" r="45" fill={currentSlideData.primaryColor} opacity="0.4">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 15,-8; 0,0" 
+                  dur="5s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="300" y="188" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">TURMERIC</text>
+              
+              <circle cx="1500" cy="250" r="38" fill={currentSlideData.primaryColor} opacity="0.4">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; -12,6; 0,0" 
+                  dur="6s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="1500" y="258" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">GINGER</text>
+
+              <circle cx="1300" cy="140" r="32" fill={currentSlideData.primaryColor} opacity="0.4">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 8,12; 0,0" 
+                  dur="7s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="1300" y="148" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">CUMIN</text>
+            </g>
+          )}
+
+          {currentSlideData.theme === 'lab' && (
+            <g opacity="0.5">
+              <rect x="250" y="120" width="80" height="60" fill={currentSlideData.primaryColor} opacity="0.3" rx="8">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 5,-3; 0,0" 
+                  dur="8s" 
+                  repeatCount="indefinite"
+                />
+              </rect>
+              <text x="290" y="155" textAnchor="middle" fontSize="10" fill="#ffffff" fontWeight="bold">LAB TESTED</text>
+              
+              <circle cx="1550" cy="180" r="35" fill={currentSlideData.primaryColor} opacity="0.3">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; -6,4; 0,0" 
+                  dur="6s" 
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text x="1550" y="188" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">ISO</text>
+
+              <rect x="1350" y="100" width="70" height="50" fill={currentSlideData.primaryColor} opacity="0.3" rx="6">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="translate" 
+                  values="0,0; 3,7; 0,0" 
+                  dur="7s" 
+                  repeatCount="indefinite"
+                />
+              </rect>
+              <text x="1385" y="130" textAnchor="middle" fontSize="9" fill="#ffffff" fontWeight="bold">HACCP</text>
+            </g>
+          )}
 
           {/* Background Lab Silhouette */}
           <g opacity="0.1" transform="translate(1200, 600)">
@@ -145,68 +247,140 @@ export default function ParallaxHero() {
             </polygon>
           </g>
 
-          {/* Midground - Floating Category Bubbles */}
-          <g opacity="0.8">
-            {/* Herbs Bubble */}
-            <circle cx="400" cy="400" r="60" fill="#22c55e" opacity="0.3">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; 0,-10; 0,0" 
-                dur="4s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#166534" fontWeight="bold">Herbs</text>
+          {/* Dynamic Category Bubbles based on theme */}
+          <g opacity="0.7">
+            {currentSlideData.theme === 'herbs' && (
+              <>
+                <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 0,-10; 0,0" 
+                    dur="4s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Ashwagandha</text>
 
-            {/* Extracts Bubble */}
-            <circle cx="800" cy="350" r="55" fill="#f59e0b" opacity="0.3">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; 5,-8; 0,0" 
-                dur="5s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#92400e" fontWeight="bold">Extracts</text>
+                <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 5,-8; 0,0" 
+                    dur="5s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Tulsi</text>
 
-            {/* Nutra Bubble */}
-            <circle cx="1200" cy="380" r="50" fill="#8b5cf6" opacity="0.3">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; -3,7; 0,0" 
-                dur="6s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#6b21a8" fontWeight="bold">Nutra</text>
+                <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; -3,7; 0,0" 
+                    dur="6s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Neem</text>
+              </>
+            )}
 
-            {/* Spices Bubble */}
-            <circle cx="600" cy="500" r="45" fill="#ef4444" opacity="0.3">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; 8,5; 0,0" 
-                dur="7s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="600" y="505" textAnchor="middle" fontSize="11" fill="#991b1b" fontWeight="bold">Spices</text>
+            {currentSlideData.theme === 'spices' && (
+              <>
+                <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.5">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 0,-12; 0,0" 
+                    dur="4s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Curcumin</text>
 
-            {/* Food Ingredients Bubble */}
-            <circle cx="1000" cy="480" r="40" fill="#06b6d4" opacity="0.3">
-              <animateTransform 
-                attributeName="transform" 
-                type="translate" 
-                values="0,0; -6,-4; 0,0" 
-                dur="5.5s" 
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="1000" y="480" textAnchor="middle" fontSize="10" fill="#0e7490" fontWeight="bold">Food</text>
-            <text x="1000" y="492" textAnchor="middle" fontSize="10" fill="#0e7490" fontWeight="bold">Ingredients</text>
+                <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.5">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 6,-10; 0,0" 
+                    dur="5s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Black Pepper</text>
+
+                <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.5">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; -4,8; 0,0" 
+                    dur="6s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Cardamom</text>
+
+                <circle cx="600" cy="500" r="45" fill={currentSlideData.primaryColor} opacity="0.5">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 10,6; 0,0" 
+                    dur="7s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="600" y="505" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">Cinnamon</text>
+              </>
+            )}
+
+            {currentSlideData.theme === 'lab' && (
+              <>
+                <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 0,-8; 0,0" 
+                    dur="4s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Quality</text>
+
+                <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 4,-6; 0,0" 
+                    dur="5s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Testing</text>
+
+                <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; -2,5; 0,0" 
+                    dur="6s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Research</text>
+
+                <circle cx="600" cy="500" r="45" fill={currentSlideData.primaryColor} opacity="0.4">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="translate" 
+                    values="0,0; 7,4; 0,0" 
+                    dur="7s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                <text x="600" y="505" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">Innovation</text>
+              </>
+            )}
           </g>
 
           {/* 3D Spice Bowl Center */}
@@ -311,15 +485,18 @@ export default function ParallaxHero() {
         <div className="max-w-4xl mx-auto">
           {/* Main Content */}
           <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-800 mb-4">
-              <span className="block">{slides[currentSlide].title}</span>
-              <span className="block text-3xl md:text-4xl text-green-600 font-normal mt-2">
-                {slides[currentSlide].accent}
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 drop-shadow-lg">
+              <span className="block">{currentSlideData.title}</span>
+              <span 
+                className="block text-3xl md:text-4xl font-normal mt-2 transition-all duration-2000"
+                style={{ color: currentSlideData.primaryColor }}
+              >
+                {currentSlideData.accent}
               </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              {slides[currentSlide].subtitle}
+            <p className="text-lg md:text-xl text-gray-100 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
+              {currentSlideData.subtitle}
             </p>
           </div>
 
@@ -327,28 +504,32 @@ export default function ParallaxHero() {
           <div className="space-y-4">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              className="px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              style={{
+                background: `linear-gradient(to right, ${currentSlideData.primaryColor}, ${currentSlideData.primaryColor}dd)`,
+                color: 'white'
+              }}
             >
               Explore Our Products
               <ChevronRight className="ml-2 w-5 h-5" />
             </Button>
             
             {/* Feature Icons */}
-            <div className="flex justify-center items-center space-x-8 mt-8 text-gray-600">
+            <div className="flex justify-center items-center space-x-8 mt-8 text-white">
               <div className="flex items-center space-x-2">
-                <Award className="w-6 h-6 text-yellow-600" />
+                <Award className="w-6 h-6" style={{ color: currentSlideData.primaryColor }} />
                 <span className="text-sm font-medium">Certified</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Leaf className="w-6 h-6 text-green-600" />
+                <Leaf className="w-6 h-6" style={{ color: currentSlideData.primaryColor }} />
                 <span className="text-sm font-medium">100% Organic</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Microscope className="w-6 h-6 text-blue-600" />
+                <Microscope className="w-6 h-6" style={{ color: currentSlideData.primaryColor }} />
                 <span className="text-sm font-medium">Lab Tested</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Beaker className="w-6 h-6 text-purple-600" />
+                <Beaker className="w-6 h-6" style={{ color: currentSlideData.primaryColor }} />
                 <span className="text-sm font-medium">Research Driven</span>
               </div>
             </div>
@@ -362,9 +543,12 @@ export default function ParallaxHero() {
                 onClick={() => setCurrentSlide(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentSlide 
-                    ? 'bg-green-600 scale-125' 
-                    : 'bg-gray-300 hover:bg-gray-400'
+                    ? 'scale-125' 
+                    : 'bg-white/50 hover:bg-white/70'
                 }`}
+                style={{
+                  backgroundColor: index === currentSlide ? currentSlideData.primaryColor : undefined
+                }}
               />
             ))}
           </div>
