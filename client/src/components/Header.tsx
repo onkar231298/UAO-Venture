@@ -67,6 +67,9 @@ export default function Header() {
             {/* Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
               <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
+                Home
+              </Link>
+              <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
                 Products
               </Link>
               <DropdownMenu>

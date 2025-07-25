@@ -27,7 +27,10 @@ function Router() {
         <>
           {/* Admin dashboard - for admin and super_admin roles */}
           {((user as any).role === 'admin' || (user as any).role === 'super_admin') && (
-            <Route path="/admin/*" component={AdminDashboard} />
+            <>
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/*" component={AdminDashboard} />
+            </>
           )}
           
           {/* Customer dashboard - for customer role */}

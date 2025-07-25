@@ -42,7 +42,7 @@ export default function AdminDashboard() {
           description: "Please login to access admin dashboard.",
           variant: "destructive",
         });
-        window.location.hash = '/login';
+        window.location.href = '/login';
         return;
       }
       
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
           description: "Admin privileges required.",
           variant: "destructive",
         });
-        window.location.hash = '/';
+        window.location.href = '/';
         return;
       }
       
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.hash = "/login";
+          window.location.href = "/login";
         }, 500);
         return false;
       }
@@ -105,6 +105,13 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">BFI Admin Portal</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
+          <a 
+            href="/" 
+            className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
+          >
+            <Globe className="w-4 h-4 mr-1" />
+            Back to Website
+          </a>
         </div>
 
         {/* Navigation Menu */}
