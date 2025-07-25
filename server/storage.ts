@@ -182,11 +182,10 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }> {
-    // For public API, only show active, visible products with active status
+    // For public API, show products that are active and visible (regardless of draft/active status)
     const conditions = [
       eq(products.isActive, true),
-      eq(products.isVisible, true),
-      eq(products.status, 'active')
+      eq(products.isVisible, true)
     ];
     
     if (filters?.category && !isNaN(parseInt(filters.category))) {
