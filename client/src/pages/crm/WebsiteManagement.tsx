@@ -760,6 +760,7 @@ function ProductForm({
     isOrderable: product?.isOrderable ?? true,
     moq: product?.moq?.toString() || "",
     rate: product?.rate?.toString() || "",
+    packingSize: product?.packingSize || "",
     unit: product?.unit || "kg",
     seoTitle: product?.seoTitle || "",
     seoDescription: product?.seoDescription || "",
@@ -869,7 +870,7 @@ function ProductForm({
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>MOQ</Label>
           <Input
@@ -893,6 +894,18 @@ function ProductForm({
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">Base price per unit</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Packing Size (One Unit) *</Label>
+          <Input
+            value={formData.packingSize}
+            onChange={(e) => setFormData(prev => ({ ...prev, packingSize: e.target.value }))}
+            placeholder="e.g., 25kg bag, 1kg pouch"
+          />
+          <p className="text-xs text-gray-500 mt-1">Standard package size</p>
         </div>
         <div>
           <Label>Unit</Label>

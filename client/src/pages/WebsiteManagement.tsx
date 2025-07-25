@@ -430,6 +430,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     form: product?.form || "",
     certifications: product?.certifications || [],
     currentStock: product?.currentStock || "",
+    packingSize: product?.packingSize || "",
     moq: product?.moq || "",
     leadTime: product?.leadTime || "",
     sampleAvailable: product?.sampleAvailable ?? true,
@@ -891,49 +892,161 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                 </div>
               </div>
 
-              {/* Gallery Images */}
+              {/* Gallery Images - Enhanced Multi-Upload */}
               <div>
                 <Label>Gallery Images</Label>
-                <div className="space-y-2">
-                  {formData.galleryImages.map((imageUrl: string, index: number) => (
-                    <div key={index} className="flex gap-2 items-center">
+                <div className="space-y-4">
+                  {/* Bulk Upload Section */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="text-center">
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-2">Upload Multiple Images</p>
                       <Input
-                        value={imageUrl}
-                        onChange={(e) => {
-                          const newImages = [...formData.galleryImages];
-                          newImages[index] = e.target.value;
-                          setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > 0) {
+                            setUploading(true);
+                            try {
+                              for (const file of files) {
+                                const formDataUpload = new FormData();
+                                formDataUpload.append('galleryImage', file);
+                                if (formData.name) {
+                                  formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
+                                }
+
+                                const response = await fetch('/api/admin/products/upload', {
+                                  method: 'POST',
+                                  body: formDataUpload,
+                                });
+
+                                if (response.ok) {
+                                  const result = await response.json();
+                                  if (result.success && result.files.galleryImage) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      galleryImages: [...prev.galleryImages, result.files.galleryImage]
+                                    }));
+                                  }
+                                }
+                              }
+                              toast({
+                                title: "Upload Successful",
+                                description: `${files.length} images uploaded successfully`,
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Upload Failed",
+                                description: "Failed to upload some images",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setUploading(false);
+                            }
+                          }
                         }}
-                        placeholder="https://example.com/gallery-image.jpg"
-                        className="flex-1"
+                        className="w-full"
+                        disabled={uploading}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newImages = formData.galleryImages.filter((_: string, i: number) => i !== index);
-                          setFormData(prev => ({ ...prev, galleryImages: newImages }));
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <p className="text-xs text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple images at once</p>
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        galleryImages: [...prev.galleryImages, '']
-                      }));
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Gallery Image
-                  </Button>
+                  </div>
+
+                  {/* Individual Image Management */}
+                  <div className="space-y-2">
+                    {formData.galleryImages.map((imageUrl: string, index: number) => (
+                      <div key={index} className="flex gap-2 items-center p-2 border rounded">
+                        {imageUrl && (
+                          <img 
+                            src={imageUrl} 
+                            alt={`Gallery ${index + 1}`} 
+                            className="w-12 h-12 object-cover rounded border"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <Input
+                          value={imageUrl}
+                          onChange={(e) => {
+                            const newImages = [...formData.galleryImages];
+                            newImages[index] = e.target.value;
+                            setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                          }}
+                          placeholder="https://example.com/gallery-image.jpg or upload above"
+                          className="flex-1"
+                        />
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setUploading(true);
+                              try {
+                                const formDataUpload = new FormData();
+                                formDataUpload.append('galleryImage', file);
+                                if (formData.name) {
+                                  formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
+                                }
+
+                                const response = await fetch('/api/admin/products/upload', {
+                                  method: 'POST',
+                                  body: formDataUpload,
+                                });
+
+                                if (response.ok) {
+                                  const result = await response.json();
+                                  if (result.success && result.files.galleryImage) {
+                                    const newImages = [...formData.galleryImages];
+                                    newImages[index] = result.files.galleryImage;
+                                    setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                                  }
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Upload Failed",
+                                  description: "Failed to upload image",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setUploading(false);
+                              }
+                            }
+                          }}
+                          className="w-24"
+                          disabled={uploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newImages = formData.galleryImages.filter((_: string, i: number) => i !== index);
+                            setFormData(prev => ({ ...prev, galleryImages: newImages }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          galleryImages: [...prev.galleryImages, '']
+                        }));
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Gallery Image Slot
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1033,7 +1146,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
               <CardTitle>Stock & Pricing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="currentStock">Current Stock</Label>
                   <Input
@@ -1043,6 +1156,16 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     value={formData.currentStock}
                     onChange={(e) => setFormData(prev => ({ ...prev, currentStock: e.target.value }))}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="packingSize">Packing Size (One Unit) *</Label>
+                  <Input
+                    id="packingSize"
+                    value={formData.packingSize}
+                    onChange={(e) => setFormData(prev => ({ ...prev, packingSize: e.target.value }))}
+                    placeholder="e.g., 25kg bag, 1kg pouch"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Standard package size</p>
                 </div>
                 <div>
                   <Label htmlFor="moq">MOQ (Minimum Order)</Label>

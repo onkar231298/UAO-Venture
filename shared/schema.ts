@@ -89,6 +89,7 @@ export const products = pgTable("products", {
   // Stock and Pricing
   currentStock: decimal("current_stock", { precision: 10, scale: 2 }).default("0"),
   stockUnit: varchar("stock_unit", { length: 20 }).default("kg"),
+  packingSize: varchar("packing_size", { length: 100 }), // One unit packaging size (e.g., "25kg bag", "1kg pouch")
   moq: decimal("moq", { precision: 10, scale: 2 }), // Minimum order quantity
   leadTime: varchar("lead_time", { length: 100 }), // "5-7 days", "2-3 weeks"
   sampleAvailable: boolean("sample_available").default(true),
@@ -352,6 +353,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
   productId: z.string().optional(), // Auto-generated if not provided
   slug: z.string().optional(), // Auto-generated from name if not provided
   currentStock: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  packingSize: z.string().optional(),
   moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   rate: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),

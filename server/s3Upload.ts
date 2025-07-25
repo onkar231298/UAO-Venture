@@ -84,7 +84,8 @@ export function extractS3Key(imageUrl: string): string {
 // Image upload middleware for products
 export const productImageUpload = uploadToS3.fields([
   { name: 'mainImage', maxCount: 1 },
-  { name: 'galleryImages', maxCount: 10 },
+  { name: 'galleryImage', maxCount: 1 }, // For single gallery image uploads
+  { name: 'galleryImages', maxCount: 10 }, // For multiple gallery image uploads
   { name: 'coaDocument', maxCount: 1 },
   { name: 'certDocument', maxCount: 1 },
   { name: 'specDocument', maxCount: 1 },
