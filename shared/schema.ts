@@ -96,9 +96,10 @@ export const products = pgTable("products", {
   
   // Pricing Structure
   basePrice: decimal("base_price", { precision: 10, scale: 2 }),
+  rate: decimal("rate", { precision: 10, scale: 4 }), // Price per unit (per gram, per kg, etc.)
   priceUnit: varchar("price_unit", { length: 20 }).default("kg"),
   currency: varchar("currency", { length: 5 }).default("USD"),
-  bulkPricing: jsonb("bulk_pricing").default("[]"), // Array of pricing slabs
+  bulkPricing: jsonb("bulk_pricing").default("[]"), // Array of pricing slabs with quantity, price, discount%
   pricingVisibility: varchar("pricing_visibility", { length: 50 }).default("logged_in"), // public, logged_in, request_quote
   
   // Media
@@ -353,8 +354,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
   currentStock: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
-  moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
-  basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  rate: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
