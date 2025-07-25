@@ -1490,10 +1490,8 @@ function TagsManagement({ tags, loading }: any) {
 
   const createTagMutation = useMutation({
     mutationFn: async (tagData: any) => {
-      return apiRequest("/api/admin/tags", {
-        method: "POST",
-        body: JSON.stringify(tagData),
-      });
+      const response = await apiRequest("POST", "/api/admin/tags", tagData);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -1514,10 +1512,8 @@ function TagsManagement({ tags, loading }: any) {
 
   const updateTagMutation = useMutation({
     mutationFn: async ({ id, ...data }: any) => {
-      return apiRequest(`/api/admin/tags/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("PUT", `/api/admin/tags/${id}`, data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -1538,9 +1534,8 @@ function TagsManagement({ tags, loading }: any) {
 
   const deleteTagMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/admin/tags/${id}`, {
-        method: "DELETE",
-      });
+      const response = await apiRequest("DELETE", `/api/admin/tags/${id}`);
+      return await response.json();
     },
     onSuccess: () => {
       toast({

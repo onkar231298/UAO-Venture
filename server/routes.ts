@@ -637,6 +637,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new product tag
+  app.post('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const tagData = insertProductTagSchema.parse(req.body);
+      tagData.createdBy = req.user?.claims?.sub;
+      
+      const tag = await storage.createProductTag(tagData);
+      res.status(201).json(tag);
+    } catch (error) {
+      console.error("Error creating tag:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create tag" });
+    }
+  });
+
+  // Update product tag
+  app.put('/api/admin/tags/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const tagId = parseInt(req.params.id);
+      const tagData = insertProductTagSchema.partial().parse(req.body);
+      
+      const tag = await storage.updateProductTag(tagId, tagData);
+      res.json(tag);
+    } catch (error) {
+      console.error("Error updating tag:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to update tag" });
+    }
+  });
+
+  // Delete product tag
+  app.delete('/api/admin/tags/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const tagId = parseInt(req.params.id);
+      await storage.deleteProductTag(tagId);
+      res.json({ message: "Tag deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting tag:", error);
+      res.status(500).json({ message: "Failed to delete tag" });
+    }
+  });
+
   // Get all hero sliders
   app.get('/api/admin/sliders', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
