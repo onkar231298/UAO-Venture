@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calculator, Package, TrendingDown } from 'lucide-react';
+import { detectUserCurrency, formatPrice, getProductPrice } from '@/lib/currencyUtils';
 import type { Product } from '@shared/schema';
 
 interface QuantityPricingProps {
@@ -20,10 +21,29 @@ interface PricingTier {
 export default function QuantityPricing({ product, onQuantityChange }: QuantityPricingProps) {
   const [selectedQuantity, setSelectedQuantity] = useState<number>(product.moq as number || 25);
   const [customQuantity, setCustomQuantity] = useState<string>('');
+  const [userCurrency, setUserCurrency] = useState<string>('USD');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Detect user currency on component mount
+  useEffect(() => {
+    const detectCurrency = async () => {
+      try {
+        const detectedCurrency = await detectUserCurrency();
+        setUserCurrency(detectedCurrency);
+      } catch (error) {
+        console.warn('Currency detection failed, defaulting to USD:', error);
+        setUserCurrency('USD');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    detectCurrency();
+  }, []);
 
   // Parse bulk pricing from product data
   const bulkPricing = (product.bulkPricing as PricingTier[]) || [];
-  const baseRate = parseFloat(product.rate as string || '0');
+  // Get base rate in user's currency
+  const baseRate = getProductPrice(product, userCurrency) || parseFloat(product.rate as string || '0');
   
   // Default pricing tiers if none exist
   const pricingTiers: PricingTier[] = bulkPricing.length > 0 ? bulkPricing : [
@@ -82,17 +102,24 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Pricing Table */}
-        <div className="overflow-hidden rounded-lg border">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Quantity</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Price per {product.priceUnit}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Save</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">Select</th>
-              </tr>
-            </thead>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center py-4">
+            <div className="animate-pulse">Loading pricing...</div>
+          </div>
+        ) : (
+          <>
+            {/* Pricing Table */}
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-gray-900">Quantity</th>
+                    <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-gray-900 whitespace-nowrap">Price per {product.priceUnit || 'kg'}</th>
+                    <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-gray-900">Save</th>
+                    <th className="px-2 md:px-4 py-3 text-center text-xs md:text-sm font-medium text-gray-900">Select</th>
+                  </tr>
+                </thead>
             <tbody className="divide-y divide-gray-200">
               {pricingTiers.map((tier, index) => {
                 const pricing = calculatePrice(tier.quantity);
@@ -100,15 +127,15 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                 
                 return (
                   <tr key={index} className={`${isSelected ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {tier.quantity.toLocaleString()} {product.stockUnit}
+                    <td className="px-2 md:px-4 py-3 text-xs md:text-sm font-medium text-gray-900">
+                      {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      ${pricing.pricePerUnit.toFixed(4)}/{product.priceUnit}
+                    <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-900 whitespace-nowrap">
+                      {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
                       {pricing.discount > 0 ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                           <TrendingDown className="w-3 h-3 mr-1" />
                           {pricing.discount.toFixed(1)}%
                         </Badge>
@@ -116,12 +143,12 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                         <span className="text-gray-400">0.00%</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 md:px-4 py-3 text-center">
                       <Button
                         variant={isSelected ? "default" : "outline"}
                         size="sm"
                         onClick={() => handleQuantitySelect(tier.quantity)}
-                        className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                        className={`${isSelected ? "bg-green-600 hover:bg-green-700" : ""} text-xs md:text-sm px-2 md:px-3`}
                       >
                         {isSelected ? "Selected" : "Select"}
                       </Button>
@@ -132,80 +159,65 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
             </tbody>
           </table>
         </div>
+        </>
+        )}
 
-        {/* Custom Quantity Input */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium text-sm text-gray-900 mb-2">Custom Quantity</h4>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder={`Min. ${product.moq || 25} ${product.stockUnit}`}
-              value={customQuantity}
-              onChange={(e) => handleCustomQuantityChange(e.target.value)}
-              min={product.moq as number || 25}
-              className="flex-1"
-            />
-            <Button 
-              variant="outline" 
-              onClick={() => handleCustomQuantityChange(customQuantity)}
-              disabled={!customQuantity || parseInt(customQuantity) < (product.moq as number || 25)}
-            >
-              Calculate
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Minimum order quantity: {product.moq || 25} {product.stockUnit}
-          </p>
-        </div>
-
-        {/* Selected Quantity Summary */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-900">Selected Quantity:</span>
-            <span className="text-lg font-bold text-green-700">
-              {selectedQuantity.toLocaleString()} {product.stockUnit}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Price per {product.priceUnit}:</span>
-            <span className="font-medium text-gray-900">
-              ${currentPricing.pricePerUnit.toFixed(4)}
-            </span>
-          </div>
-          
-          {currentPricing.discount > 0 && (
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Discount:</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                -{currentPricing.discount.toFixed(1)}%
-              </Badge>
+        {!isLoading && (
+          <>
+            {/* Custom Quantity Input */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-sm text-gray-900 mb-2">Custom Quantity</h4>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder={`Min. ${product.moq || 25} ${product.stockUnit || 'kg'}`}
+                  value={customQuantity}
+                  onChange={(e) => handleCustomQuantityChange(e.target.value)}
+                  min={product.moq as number || 25}
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleCustomQuantityChange(customQuantity)}
+                  disabled={!customQuantity || parseInt(customQuantity) < (product.moq as number || 25)}
+                >
+                  Calculate
+                </Button>
+              </div>
             </div>
-          )}
-          
-          <div className="border-t border-green-200 pt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-900">Total Price:</span>
-              <span className="text-2xl font-bold text-green-700">
-                ${currentPricing.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Minimum order quantity: {product.moq || 25} {product.stockUnit || 'kg'}
+            </p>
 
-        {/* High Volume Bid Option */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Package className="w-4 h-4 text-blue-600" />
-            <span className="font-medium text-blue-900">Need Higher Volume?</span>
-          </div>
-          <p className="text-sm text-blue-700 mb-3">
-            For quantities above 10,000 {product.stockUnit}, request a custom quote for better pricing.
-          </p>
-          <Button variant="outline" size="sm" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-            Request High Volume Quote
-          </Button>
-        </div>
+            {/* Summary */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-blue-900">Selected Quantity</h4>
+                <Package className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Quantity:</span>
+                  <span className="font-medium">{selectedQuantity.toLocaleString()} {product.stockUnit || 'kg'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Price per {product.priceUnit || 'kg'}:</span>
+                  <span className="font-medium">{formatPrice(currentPricing.pricePerUnit, userCurrency)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Price:</span>
+                  <span className="font-semibold text-lg text-blue-600">{formatPrice(currentPricing.price, userCurrency)}</span>
+                </div>
+                {currentPricing.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">You Save:</span>
+                    <span className="font-medium text-green-600">{currentPricing.discount.toFixed(1)}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
