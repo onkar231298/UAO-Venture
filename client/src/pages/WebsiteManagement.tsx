@@ -357,6 +357,9 @@ function ProductsManagement({
 
 // Product Form Component
 function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
     name: product?.name || "",
     slug: product?.slug || "",
@@ -398,6 +401,50 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
       setFormData(prev => ({ ...prev, slug }));
     }
   }, [formData.name, product]);
+
+  // Handle AWS S3 image upload
+  const handleImageUpload = async (file: File, fieldName: string) => {
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append(fieldName, file);
+      if (formData.name) {
+        formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
+      }
+
+      const response = await fetch('/api/admin/products/upload', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.files[fieldName]) {
+        setFormData(prev => ({
+          ...prev,
+          [fieldName]: result.files[fieldName]
+        }));
+        
+        toast({
+          title: "Upload Successful",
+          description: "Image uploaded to AWS S3 successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload image to AWS S3. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -694,31 +741,59 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
             <CardContent className="space-y-4">
               {/* Main Product Image */}
               <div>
-                <Label htmlFor="mainImage">Main Product Image URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="mainImage"
-                    value={formData.mainImage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, mainImage: e.target.value }))}
-                    placeholder="https://example.com/product-image.jpg"
-                    className="flex-1"
-                  />
-                  <Button type="button" variant="outline" size="sm">
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
-                {formData.mainImage && (
-                  <div className="mt-2">
-                    <img 
-                      src={formData.mainImage} 
-                      alt="Product preview" 
-                      className="w-20 h-20 object-cover rounded border"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
+                <Label htmlFor="mainImage">Main Product Image</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="mainImageUrl"
+                      value={formData.mainImage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, mainImage: e.target.value }))}
+                      placeholder="Enter image URL or upload below"
+                      className="flex-1"
                     />
                   </div>
-                )}
+                  
+                  {/* File Upload for Main Image */}
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      id="mainImageFile"
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'mainImage');
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" size="sm" disabled>
+                      <Upload className="h-4 w-4 mr-1" />
+                      S3 Upload
+                    </Button>
+                  </div>
+                  
+                  {formData.mainImage && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img 
+                        src={formData.mainImage} 
+                        alt="Product preview" 
+                        className="w-20 h-20 object-cover rounded border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({ ...prev, mainImage: '' }))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Gallery Images */}
@@ -775,62 +850,70 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="coaDocument" className="text-xs">Certificate of Analysis (COA)</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        id="coaDocument"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="text-xs"
-                      />
-                      <Button type="button" variant="outline" size="sm">
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Input
+                      id="coaDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="text-xs mt-1"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'coaDocument');
+                        }
+                      }}
+                      disabled={uploading}
+                    />
                   </div>
                   
                   <div>
                     <Label htmlFor="certDocument" className="text-xs">Organic Certificate</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        id="certDocument"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="text-xs"
-                      />
-                      <Button type="button" variant="outline" size="sm">
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Input
+                      id="certDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="text-xs mt-1"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'certDocument');
+                        }
+                      }}
+                      disabled={uploading}
+                    />
                   </div>
                   
                   <div>
                     <Label htmlFor="specDocument" className="text-xs">Technical Specification Sheet</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        id="specDocument"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="text-xs"
-                      />
-                      <Button type="button" variant="outline" size="sm">
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Input
+                      id="specDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="text-xs mt-1"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'specDocument');
+                        }
+                      }}
+                      disabled={uploading}
+                    />
                   </div>
                   
                   <div>
                     <Label htmlFor="msdsDocument" className="text-xs">MSDS / Safety Data Sheet</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        id="msdsDocument"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="text-xs"
-                      />
-                      <Button type="button" variant="outline" size="sm">
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Input
+                      id="msdsDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="text-xs mt-1"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file, 'msdsDocument');
+                        }
+                      }}
+                      disabled={uploading}
+                    />
                   </div>
                 </div>
                 
@@ -981,9 +1064,18 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              {product ? "Update Product" : "Create Product"}
+            <Button type="submit" className="flex items-center gap-2" disabled={uploading}>
+              {uploading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {product ? "Update Product" : "Create Product"}
+                </>
+              )}
             </Button>
           </div>
         </form>

@@ -12,6 +12,7 @@ import {
   insertProductDocumentSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { productImageUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -336,6 +337,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // AWS S3 Image Upload Routes
+
+  // Upload product images and documents
+  app.post('/api/admin/products/upload', isAuthenticated, productImageUpload, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const files = req.files as { [fieldname: string]: Express.MulterS3.File[] };
+      const uploadedFiles: { [key: string]: string | string[] } = {};
+
+      // Process uploaded files
+      for (const [fieldName, fileArray] of Object.entries(files)) {
+        if (fieldName === 'galleryImages' || fieldName === 'additionalDocs') {
+          // Multiple files
+          uploadedFiles[fieldName] = fileArray.map(file => getImageUrl(file.key));
+        } else {
+          // Single file
+          uploadedFiles[fieldName] = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
+        }
+      }
+
+      res.json({
+        success: true,
+        files: uploadedFiles,
+        message: 'Files uploaded successfully to AWS S3'
+      });
+    } catch (error) {
+      console.error("Error uploading files to S3:", error);
+      res.status(500).json({ message: "Failed to upload files", error: error.message });
+    }
+  });
+
+  // Generate presigned URL for direct upload (alternative method)
+  app.post('/api/admin/products/presigned-url', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { filename, contentType, productId } = req.body;
+      
+      if (!filename || !contentType) {
+        return res.status(400).json({ message: "Filename and content type are required" });
+      }
+
+      const timestamp = Date.now();
+      const s3Key = `products/${productId || 'temp'}/${filename}-${timestamp}`;
+      
+      const presignedUrl = await generatePresignedUrl(s3Key, contentType);
+      const publicUrl = getImageUrl(s3Key);
+
+      res.json({
+        presignedUrl,
+        publicUrl,
+        s3Key
+      });
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
+      res.status(500).json({ message: "Failed to generate presigned URL" });
+    }
+  });
+
+  // Delete image from S3
+  app.delete('/api/admin/products/image/:s3Key', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const s3Key = decodeURIComponent(req.params.s3Key);
+      await deleteFromS3(s3Key);
+
+      res.json({ success: true, message: 'Image deleted successfully' });
+    } catch (error) {
+      console.error("Error deleting image from S3:", error);
+      res.status(500).json({ message: "Failed to delete image" });
     }
   });
 
