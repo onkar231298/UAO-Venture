@@ -91,12 +91,37 @@ export default function ProductDetail() {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div>
-            <div className="relative mb-4">
-              <img
-                src={(product.images as string[])?.[0] || "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"}
-                alt={product.name}
-                className="w-full h-80 object-cover rounded-xl"
-              />
+            <div className="relative mb-4 bg-gray-100 rounded-xl">
+              {(() => {
+                const mainImage = (product as any).mainImage;
+                const arrayImage = (product.images as string[])?.[0];
+                const productImage = mainImage || arrayImage;
+                
+                return productImage ? (
+                  <img
+                    src={productImage}
+                    alt={product.name}
+                    className="w-full h-80 object-cover rounded-xl"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling!.classList.remove('hidden');
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-80 flex items-center justify-center bg-gray-100 rounded-xl text-gray-400">
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">📷</div>
+                      <div className="text-lg font-medium">No Preview Available</div>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div className="hidden w-full h-80 flex items-center justify-center bg-gray-100 rounded-xl text-gray-400">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">📷</div>
+                  <div className="text-lg font-medium">Image Failed to Load</div>
+                </div>
+              </div>
               {product.isOrganic && (
                 <Badge className="absolute top-4 left-4 bg-green-600">
                   <Leaf className="w-3 h-3 mr-1" />

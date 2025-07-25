@@ -12,10 +12,11 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  // Get the first image from the product images array, or null if no images
+  // Get the first image from mainImage field or images array
+  const mainImage = (product as any).mainImage;
   const productImages = product.images as string[] | null;
-  const hasImage = productImages && productImages.length > 0;
-  const productImage = hasImage ? productImages[0] : null;
+  const productImage = mainImage || (productImages && productImages.length > 0 ? productImages[0] : null);
+  const hasImage = !!productImage;
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200">
