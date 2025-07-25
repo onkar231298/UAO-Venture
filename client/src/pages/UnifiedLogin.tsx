@@ -29,11 +29,25 @@ export default function UnifiedLogin() {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams(formData),
+          credentials: 'include', // Include cookies for session
           redirect: 'manual' // Don't auto-follow redirects
         });
 
-        // Check if the response is a redirect (success)
-        if (response.status === 302 || response.status === 200) {
+        // Check if the response is a redirect
+        if (response.status === 302) {
+          const location = response.headers.get('location');
+          if (location && location.includes('/admin/dashboard')) {
+            // Success - redirect to dashboard
+            window.location.href = "/admin/dashboard";
+            return;
+          } else {
+            // Failed - redirect contains error
+            setError("Invalid admin credentials. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+        } else if (response.status === 200) {
+          // Also check for successful response
           window.location.href = "/admin/dashboard";
           return;
         } else {
