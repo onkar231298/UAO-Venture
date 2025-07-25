@@ -32,6 +32,7 @@ import {
   Globe
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailGreenJeeva() {
@@ -220,17 +221,19 @@ export default function ProductDetailGreenJeeva() {
                 ))}
               </div>
 
-              {/* Rate Display */}
-              {product.rate && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-green-700">
-                      ${parseFloat(product.rate as string).toFixed(4)}
-                    </span>
-                    <span className="text-sm text-gray-600">/{product.priceUnit}</span>
+              {/* Multi-Currency Pricing Display */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <LocationBasedPricing 
+                  product={product} 
+                  showCurrencySelector={true}
+                  className="mb-2"
+                />
+                {product.moq && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    MOQ: {product.moq} {product.unit || 'kg'} | Lead Time: {product.leadTime || 'Contact us'}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">

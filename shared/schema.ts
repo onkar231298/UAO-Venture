@@ -95,11 +95,22 @@ export const products = pgTable("products", {
   sampleAvailable: boolean("sample_available").default(true),
   stopSell: boolean("stop_sell").default(false),
   
-  // Pricing Structure
+  // Pricing Structure - Multi-Currency Support
   basePrice: decimal("base_price", { precision: 10, scale: 2 }),
   rate: decimal("rate", { precision: 10, scale: 4 }), // Price per unit (per gram, per kg, etc.)
   priceUnit: varchar("price_unit", { length: 20 }).default("kg"),
   currency: varchar("currency", { length: 5 }).default("USD"),
+  
+  // Multi-Currency Pricing
+  priceUSD: decimal("price_usd", { precision: 10, scale: 4 }), // USD price per unit
+  priceINR: decimal("price_inr", { precision: 10, scale: 4 }), // INR price per unit
+  priceEUR: decimal("price_eur", { precision: 10, scale: 4 }), // EUR price per unit
+  priceGBP: decimal("price_gbp", { precision: 10, scale: 4 }), // GBP price per unit
+  
+  // Price Type/Terms (Incoterms)
+  priceType: varchar("price_type", { length: 50 }).default("EXW"), // EXW, FOB, CIF, CFR, DDP, DDU, etc.
+  priceLocation: varchar("price_location", { length: 100 }).default("Warehouse India"), // Location for price terms
+  
   bulkPricing: jsonb("bulk_pricing").default("[]"), // Array of pricing slabs with quantity, price, discount%
   pricingVisibility: varchar("pricing_visibility", { length: 50 }).default("logged_in"), // public, logged_in, request_quote
   
@@ -357,6 +368,12 @@ export const insertProductSchema = createInsertSchema(products).omit({
   moq: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   basePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   rate: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  priceUSD: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  priceINR: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  priceEUR: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  priceGBP: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  priceType: z.string().optional(),
+  priceLocation: z.string().optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

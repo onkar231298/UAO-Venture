@@ -437,6 +437,12 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     stopSell: product?.stopSell ?? false,
     basePrice: product?.basePrice || "",
     rate: product?.rate || "",
+    priceUSD: product?.priceUSD || "",
+    priceINR: product?.priceINR || "",
+    priceEUR: product?.priceEUR || "",
+    priceGBP: product?.priceGBP || "",
+    priceType: product?.priceType || "EXW",
+    priceLocation: product?.priceLocation || "Warehouse India",
     currency: product?.currency || "USD",
     mainImage: product?.mainImage || "",
     galleryImages: product?.galleryImages || [],
@@ -515,6 +521,10 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
       moq: formData.moq && formData.moq !== "" ? parseFloat(formData.moq as string) : undefined,
       rate: formData.rate && formData.rate !== "" ? parseFloat(formData.rate as string) : undefined,
       basePrice: formData.basePrice && formData.basePrice !== "" ? parseFloat(formData.basePrice as string) : undefined,
+      priceUSD: formData.priceUSD && formData.priceUSD !== "" ? parseFloat(formData.priceUSD as string) : undefined,
+      priceINR: formData.priceINR && formData.priceINR !== "" ? parseFloat(formData.priceINR as string) : undefined,
+      priceEUR: formData.priceEUR && formData.priceEUR !== "" ? parseFloat(formData.priceEUR as string) : undefined,
+      priceGBP: formData.priceGBP && formData.priceGBP !== "" ? parseFloat(formData.priceGBP as string) : undefined,
       
       // Clean up empty strings for optional text fields
       botanicalName: formData.botanicalName || undefined,
@@ -1188,58 +1198,164 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                 </div>
               </div>
 
-              {/* Pricing Section */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="rate">Rate (Price Per Unit) *</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-                    <Input
-                      id="rate"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.rate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
-                      placeholder="0.25"
-                      className="pl-6"
-                    />
+              {/* Multi-Currency Pricing Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Multi-Currency Pricing *</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="priceUSD">USD Price (per unit)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                      <Input
+                        id="priceUSD"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.priceUSD}
+                        onChange={(e) => setFormData(prev => ({ ...prev, priceUSD: e.target.value }))}
+                        placeholder="25.00"
+                        className="pl-6"
+                      />
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Base price per unit (kg/gram)</p>
-                </div>
-                <div>
-                  <Label htmlFor="basePrice">Base Price (Optional)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.basePrice}
-                      onChange={(e) => setFormData(prev => ({ ...prev, basePrice: e.target.value }))}
-                      placeholder="25.00"
-                      className="pl-6"
-                    />
+                  <div>
+                    <Label htmlFor="priceINR">INR Price (per unit)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                      <Input
+                        id="priceINR"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.priceINR}
+                        onChange={(e) => setFormData(prev => ({ ...prev, priceINR: e.target.value }))}
+                        placeholder="2000.00"
+                        className="pl-6"
+                      />
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Starting price for MOQ</p>
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="priceEUR">EUR Price (per unit)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                      <Input
+                        id="priceEUR"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.priceEUR}
+                        onChange={(e) => setFormData(prev => ({ ...prev, priceEUR: e.target.value }))}
+                        placeholder="22.00"
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="priceGBP">GBP Price (per unit)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">£</span>
+                      <Input
+                        id="priceGBP"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.priceGBP}
+                        onChange={(e) => setFormData(prev => ({ ...prev, priceGBP: e.target.value }))}
+                        placeholder="20.00"
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Terms & Location */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select
-                    value={formData.currency}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
-                  >
+                  <Label htmlFor="priceType">Price Terms (Incoterms) *</Label>
+                  <Select value={formData.priceType} onValueChange={(value) => setFormData(prev => ({ ...prev, priceType: value }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="INR">INR (₹)</SelectItem>
+                      <SelectItem value="EXW">EXW - Ex Works</SelectItem>
+                      <SelectItem value="FOB">FOB - Free on Board</SelectItem>
+                      <SelectItem value="CIF">CIF - Cost, Insurance & Freight</SelectItem>
+                      <SelectItem value="CFR">CFR - Cost and Freight</SelectItem>
+                      <SelectItem value="DDP">DDP - Delivered Duty Paid</SelectItem>
+                      <SelectItem value="DDU">DDU - Delivered Duty Unpaid</SelectItem>
+                      <SelectItem value="DAP">DAP - Delivered at Place</SelectItem>
+                      <SelectItem value="CPT">CPT - Carriage Paid To</SelectItem>
+                      <SelectItem value="CIP">CIP - Carriage & Insurance Paid</SelectItem>
+                      <SelectItem value="Delivered">Delivered</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-500 mt-1">International trade terms</p>
+                </div>
+                <div>
+                  <Label htmlFor="priceLocation">Price Location/Port *</Label>
+                  <Input
+                    id="priceLocation"
+                    value={formData.priceLocation}
+                    onChange={(e) => setFormData(prev => ({ ...prev, priceLocation: e.target.value }))}
+                    placeholder="e.g., Warehouse India, Mumbai Port, New York"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Specify location for price terms</p>
+                </div>
+              </div>
+
+              {/* Legacy Pricing (for backward compatibility) */}
+              <div className="border-t pt-4">
+                <Label className="text-sm text-gray-600">Legacy Pricing (Optional)</Label>
+                <div className="grid grid-cols-3 gap-4 mt-2">
+                  <div>
+                    <Label htmlFor="rate">Rate (Price Per Unit)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                      <Input
+                        id="rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.rate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
+                        placeholder="0.25"
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="basePrice">Base Price</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                      <Input
+                        id="basePrice"
+                        type="number"
+                        step="0.01"
+                        value={formData.basePrice}
+                        onChange={(e) => setFormData(prev => ({ ...prev, basePrice: e.target.value }))}
+                        placeholder="25.00"
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="currency">Default Currency</Label>
+                    <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="INR">INR</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

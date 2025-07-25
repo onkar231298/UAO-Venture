@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/test-currency" component={TestMultiCurrency} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
