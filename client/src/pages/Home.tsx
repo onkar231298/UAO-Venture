@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Package, MessageSquare, FileText, ShoppingCart, BarChart3, Bell } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export default function Home() {
   const { user } = useAuth() as { user: any };
+
+  // Redirect admin users to admin dashboard
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+      window.location.href = '/#/admin/dashboard';
+      return;
+    }
+  }, [user]);
 
   const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
