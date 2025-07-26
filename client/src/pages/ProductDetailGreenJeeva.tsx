@@ -110,9 +110,9 @@ export default function ProductDetailGreenJeeva() {
           <span>Home</span> / <span>Products</span> / <span className="text-gray-900">{product.name}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid lg:grid-cols-12 gap-8 mb-8">
           {/* Left Column - Product Image & Documents */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-4">
             {/* Product Image */}
             <div className="sticky top-4">
               <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -275,7 +275,7 @@ export default function ProductDetailGreenJeeva() {
           </div>
 
           {/* Middle Column - Product Info */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-4">
             {/* Product Title & Basic Info */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
@@ -355,7 +355,7 @@ export default function ProductDetailGreenJeeva() {
           </div>
 
           {/* Right Column - Pricing & Order */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-4">
             <div className="sticky top-4">
               <QuantityPricing 
                 product={product} 
@@ -363,7 +363,7 @@ export default function ProductDetailGreenJeeva() {
               />
 
               {/* Product Information Tabs Section */}
-              <Card className="mt-6 w-full">
+              <Card className="mt-6 w-full max-w-none">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Product Information</CardTitle>
                 </CardHeader>
