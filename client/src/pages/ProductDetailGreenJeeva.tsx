@@ -365,7 +365,7 @@ export default function ProductDetailGreenJeeva() {
             </div>
           </div>
           {/* Product Information Tabs Section - Spans Middle and Right Columns */}
-          <div className="lg:col-span-8 lg:col-start-5">
+          <div className="lg:col-span-8 lg:col-start-5 -mt-4">
             <Card className="w-full max-w-none">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Product Information</CardTitle>
