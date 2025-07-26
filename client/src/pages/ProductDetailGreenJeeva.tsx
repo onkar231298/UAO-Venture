@@ -381,8 +381,8 @@ export default function ProductDetailGreenJeeva() {
 
                   <TabsContent value="spec" className="m-0 p-4 space-y-4">
                     <div className="w-full">
-                      {/* Check if any specification data exists */}
-                      {!product.botanicalName && !product.plantPart && !product.meshSize && !product.moisture && !product.curcuminContent && !product.form && !product.productGrade && !product.totalAsh ? (
+                      {/* Check if HTML specification sheet exists */}
+                      {!product.specificationSheet || product.specificationSheet.trim() === '' ? (
                         <div className="text-center py-8">
                           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <FileText className="w-6 h-6 text-gray-400" />
@@ -393,80 +393,10 @@ export default function ProductDetailGreenJeeva() {
                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                          {product.productGrade && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Product Grade:</span>
-                              <span className="font-semibold">{product.productGrade}</span>
-                            </div>
-                          )}
-                          {product.form && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Form:</span>
-                              <span className="font-semibold">{product.form}</span>
-                            </div>
-                          )}
-                          {product.meshSize && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Mesh Size:</span>
-                              <span className="font-semibold">{product.meshSize}</span>
-                            </div>
-                          )}
-                          {product.curcuminContent && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Active Content:</span>
-                              <span className="font-semibold">{product.curcuminContent}</span>
-                            </div>
-                          )}
-                          {product.moisture && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Moisture:</span>
-                              <span className="font-semibold">{product.moisture}</span>
-                            </div>
-                          )}
-                          {product.botanicalName && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Botanical Name:</span>
-                              <span className="font-semibold">{product.botanicalName}</span>
-                            </div>
-                          )}
-                          {product.totalAsh && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Total Ash:</span>
-                              <span className="font-semibold">{product.totalAsh}</span>
-                            </div>
-                          )}
-                          {product.plantPart && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Part Used:</span>
-                              <span className="font-semibold">{product.plantPart}</span>
-                            </div>
-                          )}
-                          {product.bulkDensity && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Bulk Density:</span>
-                              <span className="font-semibold">{product.bulkDensity}</span>
-                            </div>
-                          )}
-                          {product.shelfLife && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Shelf Life:</span>
-                              <span className="font-semibold">{product.shelfLife}</span>
-                            </div>
-                          )}
-                          {product.origin && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">Origin:</span>
-                              <span className="font-semibold">{product.origin}</span>
-                            </div>
-                          )}
-                          {product.hsCode && (
-                            <div className="flex justify-between py-2 border-b border-gray-100">
-                              <span className="text-gray-600 font-medium">HS Code:</span>
-                              <span className="font-semibold">{product.hsCode}</span>
-                            </div>
-                          )}
-                        </div>
+                        <div 
+                          className="prose prose-sm max-w-none w-full"
+                          dangerouslySetInnerHTML={{ __html: product.specificationSheet }}
+                        />
                       )}
                     </div>
                   </TabsContent>
