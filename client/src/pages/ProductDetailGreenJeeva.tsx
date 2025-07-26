@@ -355,7 +355,7 @@ export default function ProductDetailGreenJeeva() {
           </div>
 
           {/* Right Column - Pricing & Order */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 w-full">
             <div className="sticky top-4">
               <QuantityPricing 
                 product={product} 
@@ -363,13 +363,13 @@ export default function ProductDetailGreenJeeva() {
               />
 
               {/* Product Information Tabs Section */}
-              <Card className="mt-6 w-full">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Product Information</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Tabs defaultValue="spec" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
+              <div className="mt-6 w-full max-w-none border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
+                <div className="px-6 pt-6 pb-3 border-b border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900">Product Information</h3>
+                </div>
+                <div className="w-full min-w-0">
+                  <Tabs defaultValue="spec" className="w-full min-w-0">
+                    <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50 min-w-0">
                       <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
                       <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
                       <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
@@ -492,8 +492,8 @@ export default function ProductDetailGreenJeeva() {
                       </div>
                     </TabsContent>
                   </Tabs>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Tell Us Your Requirement Form */}
               <Card className="mt-6">
