@@ -363,212 +363,209 @@ export default function ProductDetailGreenJeeva() {
               />
             </div>
           </div>
-        </div>
+          {/* Product Information Tabs Section - Spans Middle and Right Columns */}
+          <div className="lg:col-span-8 lg:col-start-5">
+            <Card className="w-full max-w-none">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Product Information</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Tabs defaultValue="spec" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
+                    <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
+                    <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
+                    <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
+                    <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Other Vendors</TabsTrigger>
+                  </TabsList>
 
-        {/* Full Width Product Information Section */}
-        <div className="mb-8">
-          <Card className="w-full max-w-none">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Product Information</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Tabs defaultValue="spec" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
-                      <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
-                      <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
-                      <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
-                      <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Other Vendors</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="spec" className="m-0 p-4 space-y-4">
-                      <div className="w-full">
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Product Type:</span>
-                            <span className="font-semibold">Extract</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Mesh Size:</span>
-                            <span className="font-semibold">80-100</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Active Content:</span>
-                            <span className="font-semibold">5% by HPLC</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Moisture:</span>
-                            <span className="font-semibold">≤ 5%</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Botanical Name:</span>
-                            <span className="font-semibold">Withania Somnifera</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Heavy Metals:</span>
-                            <span className="font-semibold">≤ 10 ppm</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Part Used:</span>
-                            <span className="font-semibold">Root</span>
-                          </div>
-                          <div className="flex justify-between py-2 border-b border-gray-100">
-                            <span className="text-gray-600 font-medium">Microbiological:</span>
-                            <span className="font-semibold">Complies</span>
-                          </div>
+                  <TabsContent value="spec" className="m-0 p-4 space-y-4">
+                    <div className="w-full">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Product Type:</span>
+                          <span className="font-semibold">Extract</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Mesh Size:</span>
+                          <span className="font-semibold">80-100</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Active Content:</span>
+                          <span className="font-semibold">5% by HPLC</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Moisture:</span>
+                          <span className="font-semibold">≤ 5%</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Botanical Name:</span>
+                          <span className="font-semibold">Withania Somnifera</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Heavy Metals:</span>
+                          <span className="font-semibold">≤ 10 ppm</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Part Used:</span>
+                          <span className="font-semibold">Root</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">Microbiological:</span>
+                          <span className="font-semibold">Complies</span>
                         </div>
                       </div>
-                    </TabsContent>
+                    </div>
+                  </TabsContent>
 
-                    <TabsContent value="description" className="m-0 p-4 space-y-4">
-                      <div className="prose prose-sm max-w-none w-full">
-                        <p className="text-gray-700 text-sm leading-relaxed">
-                          Ashwagandha extract is derived from the root of Withania somnifera, 
-                          commonly known as Indian Winter Cherry or Indian Ginseng. This adaptogenic 
-                          herb has been used in traditional Ayurvedic medicine for centuries and is 
-                          renowned for its stress-reducing and revitalizing properties.
-                        </p>
-                        <p className="text-gray-700 text-sm leading-relaxed mt-3">
-                          Our premium extract is standardized to contain 5% withanolides by HPLC, 
-                          ensuring consistent potency and efficacy. The extraction process follows 
-                          strict quality parameters to maintain the bioactive compounds while 
-                          eliminating unwanted substances.
-                        </p>
-                        <div className="mt-4">
-                          <h4 className="font-semibold text-gray-900 mb-2">Key Benefits:</h4>
-                          <ul className="text-sm text-gray-700 space-y-1">
-                            <li>• Supports stress management and adaptation</li>
-                            <li>• Promotes healthy energy levels</li>
-                            <li>• Supports cognitive function</li>
-                            <li>• Enhances physical performance</li>
-                            <li>• Supports healthy sleep patterns</li>
-                          </ul>
-                        </div>
+                  <TabsContent value="description" className="m-0 p-4 space-y-4">
+                    <div className="prose prose-sm max-w-none w-full">
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        Ashwagandha extract is derived from the root of Withania somnifera, 
+                        commonly known as Indian Winter Cherry or Indian Ginseng. This adaptogenic 
+                        herb has been used in traditional Ayurvedic medicine for centuries and is 
+                        renowned for its stress-reducing and revitalizing properties.
+                      </p>
+                      <p className="text-gray-700 text-sm leading-relaxed mt-3">
+                        Our premium extract is standardized to contain 5% withanolides by HPLC, 
+                        ensuring consistent potency and efficacy. The extraction process follows 
+                        strict quality parameters to maintain the bioactive compounds while 
+                        eliminating unwanted substances.
+                      </p>
+                      <div className="mt-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">Key Benefits:</h4>
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          <li>• Supports stress management and adaptation</li>
+                          <li>• Promotes healthy energy levels</li>
+                          <li>• Supports cognitive function</li>
+                          <li>• Enhances physical performance</li>
+                          <li>• Supports healthy sleep patterns</li>
+                        </ul>
                       </div>
-                    </TabsContent>
+                    </div>
+                  </TabsContent>
 
-                    <TabsContent value="faqs" className="m-0 p-4 space-y-4">
-                      <div className="space-y-4 w-full">
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
-                            ensuring consistent quality and potency in every batch.
-                          </p>
-                        </div>
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            Store in a cool, dry place away from direct sunlight. Keep in original packaging 
-                            and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
-                          </p>
-                        </div>
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            Yes, this product is certified organic by USDA NOP and EU Organic standards. 
-                            All certificates are available for download in the documents section.
-                          </p>
-                        </div>
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
-                            and can accommodate custom packaging requirements for larger quantities.
-                          </p>
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="vendors" className="m-0 p-4 space-y-4">
-                      <div className="text-center py-8 w-full">
-                        <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                        <h3 className="font-semibold text-gray-900 mb-2">Alternative Suppliers</h3>
-                        <p className="text-gray-600 text-sm mb-4">
-                          Compare prices and specifications from other verified suppliers
-                        </p>
-                        <Button variant="outline" size="sm">
-                          <Globe className="w-4 h-4 mr-2" />
-                          View Other Suppliers
-                        </Button>
-                        <p className="text-gray-500 text-xs mt-3">
-                          Feature coming soon - Compare multiple suppliers for the best deals
+                  <TabsContent value="faqs" className="m-0 p-4 space-y-4">
+                    <div className="space-y-4 w-full">
+                      <div className="border-l-4 border-orange-500 pl-4 py-2">
+                        <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
+                        <p className="text-gray-700 text-sm mt-1">
+                          Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
+                          ensuring consistent quality and potency in every batch.
                         </p>
                       </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-        </div>
+                      <div className="border-l-4 border-orange-500 pl-4 py-2">
+                        <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
+                        <p className="text-gray-700 text-sm mt-1">
+                          Store in a cool, dry place away from direct sunlight. Keep in original packaging 
+                          and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
+                        </p>
+                      </div>
+                      <div className="border-l-4 border-orange-500 pl-4 py-2">
+                        <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
+                        <p className="text-gray-700 text-sm mt-1">
+                          Yes, this product is certified organic by USDA NOP and EU Organic standards. 
+                          All certificates are available for download in the documents section.
+                        </p>
+                      </div>
+                      <div className="border-l-4 border-orange-500 pl-4 py-2">
+                        <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
+                        <p className="text-gray-700 text-sm mt-1">
+                          The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
+                          and can accommodate custom packaging requirements for larger quantities.
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
 
-        {/* Bottom Section - Tell Us Your Requirement and Related Products */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Tell Us Your Requirement Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Product*</label>
-                <Input value={product.name} disabled className="mt-1" />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700">Pack Quantity*</label>
-                <div className="flex gap-2 mt-1">
-                  <Input 
-                    type="number" 
-                    placeholder="25" 
-                    value={selectedQuantity}
-                    onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 25)}
-                  />
-                  <Select defaultValue="kg">
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kg">Kg</SelectItem>
-                      <SelectItem value="gm">Gm</SelectItem>
-                      <SelectItem value="lb">Lb</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <TabsContent value="vendors" className="m-0 p-4 space-y-4">
+                    <div className="text-center py-8 w-full">
+                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <h3 className="font-semibold text-gray-900 mb-2">Alternative Suppliers</h3>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Compare prices and specifications from other verified suppliers
+                      </p>
+                      <Button variant="outline" size="sm">
+                        <Globe className="w-4 h-4 mr-2" />
+                        View Other Suppliers
+                      </Button>
+                      <p className="text-gray-500 text-xs mt-3">
+                        Feature coming soon - Compare multiple suppliers for the best deals
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Tell Us Your Requirement Form */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Product*</label>
+                  <Input value={product.name} disabled className="mt-1" />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Total: {selectedQuantity}.00Kg x 1 = {selectedQuantity}.00Kg
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Pack Quantity*</label>
+                  <div className="flex gap-2 mt-1">
+                    <Input 
+                      type="number" 
+                      placeholder="25" 
+                      value={selectedQuantity}
+                      onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 25)}
+                    />
+                    <Select defaultValue="kg">
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">Kg</SelectItem>
+                        <SelectItem value="gm">Gm</SelectItem>
+                        <SelectItem value="lb">Lb</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total: {selectedQuantity}.00Kg x 1 = {selectedQuantity}.00Kg
+                  </p>
+                </div>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                      Place an Enquiry
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Place Enquiry for {product.name}</DialogTitle>
+                    </DialogHeader>
+                    <InquiryForm product={product} />
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+
+            {/* Related Products */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Bought Together</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  See what are often bought with this product!
                 </p>
-              </div>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                    Place an Enquiry
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Place Enquiry for {product.name}</DialogTitle>
-                  </DialogHeader>
-                  <InquiryForm product={product} />
-                </DialogContent>
-              </Dialog>
-            </CardContent>
-          </Card>
-
-          {/* Related Products */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Bought Together</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                See what are often bought with this product!
-              </p>
-              <Button variant="outline" size="sm" className="mt-3 w-full">
-                View Related Products
-              </Button>
-            </CardContent>
-          </Card>
+                <Button variant="outline" size="sm" className="mt-3 w-full">
+                  View Related Products
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
 
 
       </div>
