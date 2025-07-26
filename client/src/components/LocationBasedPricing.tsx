@@ -101,11 +101,9 @@ export function LocationBasedPricing({
         )}
 
         {/* Per Unit Information */}
-        {product.packingSize && (
-          <div className="text-xs text-gray-500">
-            per {product.packingSize}
-          </div>
-        )}
+        <div className="text-xs text-gray-500">
+          per {product.priceUnit || 'kg'}
+        </div>
 
         {/* Location Detection Info */}
         {!manualOverride && !isAdminView && (

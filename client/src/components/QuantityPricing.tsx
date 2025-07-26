@@ -19,7 +19,7 @@ interface PricingTier {
 }
 
 export default function QuantityPricing({ product, onQuantityChange }: QuantityPricingProps) {
-  const [selectedQuantity, setSelectedQuantity] = useState<number>(product.moq as number || 25);
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(parseFloat(product.moq as string || '25'));
   const [customQuantity, setCustomQuantity] = useState<string>('');
   const [userCurrency, setUserCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(true);
@@ -45,14 +45,22 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   // Get base rate in user's currency
   const baseRate = getProductPrice(product, userCurrency) || parseFloat(product.rate as string || '0');
   
-  // Default pricing tiers if none exist
-  const pricingTiers: PricingTier[] = bulkPricing.length > 0 ? bulkPricing : [
-    { quantity: 25, price: baseRate * 25, discount: 0 },
-    { quantity: 100, price: baseRate * 100 * 0.95, discount: 5 },
-    { quantity: 500, price: baseRate * 500 * 0.92, discount: 8 },
-    { quantity: 1000, price: baseRate * 1000 * 0.88, discount: 12 },
-    { quantity: 5000, price: baseRate * 5000 * 0.85, discount: 15 },
+  // Get MOQ from product, default to 25
+  const minOrderQty = parseFloat(product.moq as string || '25');
+  
+  // Default pricing tiers if none exist - ensure all tiers meet MOQ
+  const defaultTiers = [
+    { quantity: Math.max(25, minOrderQty), price: baseRate * Math.max(25, minOrderQty), discount: 0 },
+    { quantity: Math.max(100, minOrderQty), price: baseRate * Math.max(100, minOrderQty) * 0.95, discount: 5 },
+    { quantity: Math.max(500, minOrderQty), price: baseRate * Math.max(500, minOrderQty) * 0.92, discount: 8 },
+    { quantity: Math.max(1000, minOrderQty), price: baseRate * Math.max(1000, minOrderQty) * 0.88, discount: 12 },
+    { quantity: Math.max(5000, minOrderQty), price: baseRate * Math.max(5000, minOrderQty) * 0.85, discount: 15 },
   ];
+  
+  // Filter tiers to only include quantities >= MOQ
+  const pricingTiers: PricingTier[] = bulkPricing.length > 0 
+    ? bulkPricing.filter(tier => tier.quantity >= minOrderQty)
+    : defaultTiers.filter(tier => tier.quantity >= minOrderQty);
 
   const calculatePrice = (quantity: number): { price: number; discount: number; pricePerUnit: number } => {
     // Find the appropriate pricing tier
@@ -84,7 +92,9 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   const handleCustomQuantityChange = (value: string) => {
     setCustomQuantity(value);
     const quantity = parseInt(value) || 0;
-    if (quantity > 0) {
+    const minOrderQty = parseFloat(product.moq as string || '25');
+    
+    if (quantity > 0 && quantity >= minOrderQty) {
       setSelectedQuantity(quantity);
       const pricing = calculatePrice(quantity);
       onQuantityChange?.(quantity, pricing.price, pricing.discount);
