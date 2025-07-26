@@ -95,7 +95,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
 
   return (
     <Card className="w-full max-w-full overflow-hidden" style={{ width: 'calc(100% + 1rem)' }}>
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Calculator className="w-5 h-5" />
           Quantity Pricing
@@ -106,7 +106,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
           </p>
         )}
       </CardHeader>
-      <CardContent className="space-y-4 p-4">
+      <CardContent className="space-y-3 p-3">
         {/* Loading State */}
         {isLoading ? (
           <div className="text-center py-4">
@@ -164,10 +164,10 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                 <table className="w-full min-w-0">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Quantity</th>
-                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Price per {product.priceUnit || 'kg'}</th>
-                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-900">Save</th>
-                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-900">Select</th>
+                      <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-900">Quantity</th>
+                      <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-900">Price per {product.priceUnit || 'kg'}</th>
+                      <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-900">Save</th>
+                      <th className="px-2 py-1.5 text-center text-xs font-medium text-gray-900">Select</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -177,13 +177,13 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                       
                       return (
                         <tr key={index} className={`${isSelected ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
-                          <td className="px-2 py-2 text-xs font-medium text-gray-900">
+                          <td className="px-2 py-1.5 text-xs font-medium text-gray-900">
                             {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
                           </td>
-                          <td className="px-2 py-2 text-xs text-gray-900">
+                          <td className="px-2 py-1.5 text-xs text-gray-900">
                             {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
                           </td>
-                          <td className="px-2 py-2 text-xs">
+                          <td className="px-2 py-1.5 text-xs">
                             {pricing.discount > 0 ? (
                               <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs px-1 py-0">
                                 <TrendingDown className="w-2 h-2 mr-1" />
@@ -193,12 +193,12 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                               <span className="text-gray-400">0.00%</span>
                             )}
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-2 py-1.5 text-center">
                             <Button
                               variant={isSelected ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleQuantitySelect(tier.quantity)}
-                              className={`text-xs px-2 py-1 h-7 ${isSelected ? "bg-green-600 hover:bg-green-700" : ""}`}
+                              className={`text-xs px-2 py-1 h-6 ${isSelected ? "bg-green-600 hover:bg-green-700" : ""}`}
                             >
                               {isSelected ? "Selected" : "Select"}
                             </Button>
@@ -217,7 +217,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
           <>
             {/* Custom Quantity Input */}
             <div className="bg-gray-50 p-2 rounded-lg">
-              <h4 className="font-medium text-xs text-gray-900 mb-2">Custom Quantity</h4>
+              <h4 className="font-medium text-xs text-gray-900 mb-1.5">Custom Quantity</h4>
               <div className="flex gap-2">
                 <Input
                   type="number"
@@ -225,13 +225,13 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                   value={customQuantity}
                   onChange={(e) => handleCustomQuantityChange(e.target.value)}
                   min={product.moq as number || 25}
-                  className="flex-1 text-xs h-8"
+                  className="flex-1 text-xs h-7"
                 />
                 <Button 
                   variant="outline" 
                   onClick={() => handleCustomQuantityChange(customQuantity)}
                   disabled={!customQuantity || parseInt(customQuantity) < (product.moq as number || 25)}
-                  className="text-xs px-3 h-8"
+                  className="text-xs px-2 h-7"
                 >
                   Calculate
                 </Button>
@@ -242,12 +242,12 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
             </div>
 
             {/* Summary */}
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium text-sm text-blue-900">Selected Quantity</h4>
                 <Package className="w-4 h-4 text-blue-600" />
               </div>
-              <div className="space-y-2 text-xs">
+              <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Quantity:</span>
                   <span className="font-medium">{selectedQuantity.toLocaleString()} {product.stockUnit || 'kg'}</span>
@@ -256,7 +256,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                   <span className="text-gray-600">Price per {product.priceUnit || 'kg'}:</span>
                   <span className="font-medium">{formatPrice(currentPricing.pricePerUnit, userCurrency)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                <div className="flex justify-between items-center pt-1.5 border-t border-blue-200">
                   <span className="text-gray-600 font-medium">Total Price:</span>
                   <span className="font-bold text-base text-blue-600">{formatPrice(currentPricing.price, userCurrency)}</span>
                 </div>
