@@ -363,64 +363,60 @@ export default function ProductDetailGreenJeeva() {
               />
 
               {/* Product Information Tabs Section */}
-              <Card className="mt-6">
-                <CardHeader>
+              <Card className="mt-6 w-full">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Product Information</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                   <Tabs defaultValue="spec" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-4">
-                      <TabsTrigger value="spec" className="text-xs">Product Spec</TabsTrigger>
-                      <TabsTrigger value="description" className="text-xs">Description</TabsTrigger>
-                      <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
-                      <TabsTrigger value="vendors" className="text-xs">Other Vendors</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
+                      <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
+                      <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
+                      <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
+                      <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Other Vendors</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="spec" className="space-y-4">
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Product Type:</span>
-                              <span className="font-medium">Extract</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Active Content:</span>
-                              <span className="font-medium">5% by HPLC</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Botanical Name:</span>
-                              <span className="font-medium">Withania Somnifera</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Part Used:</span>
-                              <span className="font-medium">Root</span>
-                            </div>
+                    <TabsContent value="spec" className="m-0 p-4 space-y-4">
+                      <div className="w-full">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Product Type:</span>
+                            <span className="font-semibold">Extract</span>
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Mesh Size:</span>
-                              <span className="font-medium">80-100</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Moisture:</span>
-                              <span className="font-medium">≤ 5%</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Heavy Metals:</span>
-                              <span className="font-medium">≤ 10 ppm</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Microbiological:</span>
-                              <span className="font-medium">Complies</span>
-                            </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Mesh Size:</span>
+                            <span className="font-semibold">80-100</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Active Content:</span>
+                            <span className="font-semibold">5% by HPLC</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Moisture:</span>
+                            <span className="font-semibold">≤ 5%</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Botanical Name:</span>
+                            <span className="font-semibold">Withania Somnifera</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Heavy Metals:</span>
+                            <span className="font-semibold">≤ 10 ppm</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Part Used:</span>
+                            <span className="font-semibold">Root</span>
+                          </div>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">Microbiological:</span>
+                            <span className="font-semibold">Complies</span>
                           </div>
                         </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="description" className="space-y-4">
-                      <div className="prose prose-sm max-w-none">
+                    <TabsContent value="description" className="m-0 p-4 space-y-4">
+                      <div className="prose prose-sm max-w-none w-full">
                         <p className="text-gray-700 text-sm leading-relaxed">
                           Ashwagandha extract is derived from the root of Withania somnifera, 
                           commonly known as Indian Winter Cherry or Indian Ginseng. This adaptogenic 
@@ -446,30 +442,30 @@ export default function ProductDetailGreenJeeva() {
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="faqs" className="space-y-4">
-                      <div className="space-y-4">
-                        <div className="border-l-4 border-orange-500 pl-4">
+                    <TabsContent value="faqs" className="m-0 p-4 space-y-4">
+                      <div className="space-y-4 w-full">
+                        <div className="border-l-4 border-orange-500 pl-4 py-2">
                           <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
                           <p className="text-gray-700 text-sm mt-1">
                             Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
                             ensuring consistent quality and potency in every batch.
                           </p>
                         </div>
-                        <div className="border-l-4 border-orange-500 pl-4">
+                        <div className="border-l-4 border-orange-500 pl-4 py-2">
                           <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
                           <p className="text-gray-700 text-sm mt-1">
                             Store in a cool, dry place away from direct sunlight. Keep in original packaging 
                             and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
                           </p>
                         </div>
-                        <div className="border-l-4 border-orange-500 pl-4">
+                        <div className="border-l-4 border-orange-500 pl-4 py-2">
                           <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
                           <p className="text-gray-700 text-sm mt-1">
                             Yes, this product is certified organic by USDA NOP and EU Organic standards. 
                             All certificates are available for download in the documents section.
                           </p>
                         </div>
-                        <div className="border-l-4 border-orange-500 pl-4">
+                        <div className="border-l-4 border-orange-500 pl-4 py-2">
                           <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
                           <p className="text-gray-700 text-sm mt-1">
                             The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
@@ -479,8 +475,8 @@ export default function ProductDetailGreenJeeva() {
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="vendors" className="space-y-4">
-                      <div className="text-center py-8">
+                    <TabsContent value="vendors" className="m-0 p-4 space-y-4">
+                      <div className="text-center py-8 w-full">
                         <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <h3 className="font-semibold text-gray-900 mb-2">Alternative Suppliers</h3>
                         <p className="text-gray-600 text-sm mb-4">
