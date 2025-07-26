@@ -29,7 +29,8 @@ import {
   Truck,
   Star,
   Users,
-  Globe
+  Globe,
+  Beaker
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
@@ -364,6 +365,113 @@ export default function ProductDetailGreenJeeva() {
               />
             </div>
           </div>
+
+          {/* Sample Request Section - Spans Middle and Right Columns */}
+          <div className="lg:col-span-8 lg:col-start-5 mb-6">
+            <Card className="w-full max-w-none bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Beaker className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Request a Sample</h3>
+                      <p className="text-sm text-gray-600">
+                        Get a free sample to test quality before placing bulk orders
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Sample Size</div>
+                      <div className="font-medium text-sm">25-100g</div>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+                          <Beaker className="w-4 h-4 mr-2" />
+                          Request Sample
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <Beaker className="w-5 h-5 text-orange-600" />
+                            Request Sample - {product.name}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                              Sample Quantity
+                            </label>
+                            <Select defaultValue="50g">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="25g">25g - Quality Test</SelectItem>
+                                <SelectItem value="50g">50g - Standard Sample</SelectItem>
+                                <SelectItem value="100g">100g - Extended Testing</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                              Purpose of Sample
+                            </label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select purpose" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="quality-test">Quality Testing</SelectItem>
+                                <SelectItem value="formulation">Product Formulation</SelectItem>
+                                <SelectItem value="regulatory">Regulatory Approval</SelectItem>
+                                <SelectItem value="customer-demo">Customer Demonstration</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                              Additional Requirements
+                            </label>
+                            <Input 
+                              placeholder="Special packaging, documentation needs, etc."
+                              className="text-sm"
+                            />
+                          </div>
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 text-blue-800 mb-1">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-sm font-medium">Sample Policy</span>
+                            </div>
+                            <ul className="text-xs text-blue-700 space-y-1">
+                              <li>• Free samples up to 100g per product</li>
+                              <li>• Shipping charges may apply for international delivery</li>
+                              <li>• Sample processing time: 2-3 business days</li>
+                              <li>• COA and specifications included</li>
+                            </ul>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1">
+                              Cancel
+                            </Button>
+                            <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                              Submit Request
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Product Information Tabs Section - Spans Middle and Right Columns */}
           <div className="lg:col-span-8 lg:col-start-5 -mt-4">
             <Card className="w-full max-w-none">
