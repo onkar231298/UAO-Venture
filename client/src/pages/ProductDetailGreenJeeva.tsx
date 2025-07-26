@@ -361,9 +361,13 @@ export default function ProductDetailGreenJeeva() {
                 product={product} 
                 onQuantityChange={handleQuantityChange}
               />
+            </div>
+          </div>
+        </div>
 
-              {/* Product Information Tabs Section */}
-              <Card className="mt-6 w-full max-w-none">
+        {/* Full Width Product Information Section */}
+        <div className="mb-8">
+          <Card className="w-full max-w-none">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Product Information</CardTitle>
                 </CardHeader>
@@ -494,75 +498,76 @@ export default function ProductDetailGreenJeeva() {
                   </Tabs>
                 </CardContent>
               </Card>
+        </div>
 
-              {/* Tell Us Your Requirement Form */}
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Product*</label>
-                    <Input value={product.name} disabled className="mt-1" />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Pack Quantity*</label>
-                    <div className="flex gap-2 mt-1">
-                      <Input 
-                        type="number" 
-                        placeholder="25" 
-                        value={selectedQuantity}
-                        onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 25)}
-                      />
-                      <Select defaultValue="kg">
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="kg">Kg</SelectItem>
-                          <SelectItem value="gm">Gm</SelectItem>
-                          <SelectItem value="lb">Lb</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Total: {selectedQuantity}.00Kg x 1 = {selectedQuantity}.00Kg
-                    </p>
-                  </div>
+        {/* Bottom Section - Tell Us Your Requirement and Related Products */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Tell Us Your Requirement Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Product*</label>
+                <Input value={product.name} disabled className="mt-1" />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700">Pack Quantity*</label>
+                <div className="flex gap-2 mt-1">
+                  <Input 
+                    type="number" 
+                    placeholder="25" 
+                    value={selectedQuantity}
+                    onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 25)}
+                  />
+                  <Select defaultValue="kg">
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kg">Kg</SelectItem>
+                      <SelectItem value="gm">Gm</SelectItem>
+                      <SelectItem value="lb">Lb</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total: {selectedQuantity}.00Kg x 1 = {selectedQuantity}.00Kg
+                </p>
+              </div>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                        Place an Enquiry
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Place Enquiry for {product.name}</DialogTitle>
-                      </DialogHeader>
-                      <InquiryForm product={product} />
-                    </DialogContent>
-                  </Dialog>
-                </CardContent>
-              </Card>
-
-              {/* Related Products */}
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-base">Bought Together</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    See what are often bought with this product!
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3 w-full">
-                    View Related Products
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    Place an Enquiry
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Place Enquiry for {product.name}</DialogTitle>
+                  </DialogHeader>
+                  <InquiryForm product={product} />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+
+          {/* Related Products */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Bought Together</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                See what are often bought with this product!
+              </p>
+              <Button variant="outline" size="sm" className="mt-3 w-full">
+                View Related Products
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
 
