@@ -341,11 +341,12 @@ export default function ProductDetailGreenJeeva() {
 
               {/* High Volume Bid */}
               <Card className="bg-blue-50 border-blue-200 mb-6">
-                <CardContent className="p-4">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Want high volume of this product?
-                  </p>
-                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm text-blue-900">Want high volume of this product?</h4>
+                    <Package className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700 w-full">
                     <Package className="w-4 h-4 mr-2" />
                     Place High Volume Bid
                   </Button>
