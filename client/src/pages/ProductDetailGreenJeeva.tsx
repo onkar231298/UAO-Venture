@@ -270,7 +270,99 @@ export default function ProductDetailGreenJeeva() {
                 </CardContent>
               </Card>
 
-              {/* Specification Tabs Section - Moved from right column */}
+
+            </div>
+          </div>
+
+          {/* Middle Column - Product Info */}
+          <div className="lg:col-span-1">
+            {/* Product Title & Basic Info */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                {product.name}
+                <Button variant="ghost" size="sm" onClick={copyProductName} className="p-1">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </h1>
+              <p className="text-gray-600 mb-4">SKU#: {product.productId}</p>
+
+              {/* Certifications */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {cert}
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Multi-Currency Pricing Display */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <LocationBasedPricing 
+                  product={product} 
+                  showCurrencySelector={false}
+                  isAdminView={false}
+                  className="mb-2"
+                />
+                {product.moq && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    MOQ: {product.moq} {product.unit || 'kg'} | Lead Time: {product.leadTime || 'Contact us'}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 mb-6">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Request Quote
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Request Quote for {product.name}</DialogTitle>
+                    </DialogHeader>
+                    <InquiryForm product={product} />
+                  </DialogContent>
+                </Dialog>
+
+                <Button variant="outline" size="default">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Wishlist
+                </Button>
+
+                <Button variant="outline" size="default">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+
+              {/* High Volume Bid */}
+              <Card className="bg-blue-50 border-blue-200 mb-6">
+                <CardContent className="p-4">
+                  <p className="text-sm text-blue-800 mb-2">
+                    Want high volume of this product?
+                  </p>
+                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700">
+                    <Package className="w-4 h-4 mr-2" />
+                    Place High Volume Bid
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Right Column - Pricing & Order */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-4">
+              <QuantityPricing 
+                product={product} 
+                onQuantityChange={handleQuantityChange}
+              />
+
+              {/* Product Information Tabs Section */}
               <Card className="mt-6">
                 <CardHeader>
                   <CardTitle className="text-lg">Product Information</CardTitle>
@@ -406,96 +498,6 @@ export default function ProductDetailGreenJeeva() {
                   </Tabs>
                 </CardContent>
               </Card>
-            </div>
-          </div>
-
-          {/* Middle Column - Product Info */}
-          <div className="lg:col-span-1">
-            {/* Product Title & Basic Info */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                {product.name}
-                <Button variant="ghost" size="sm" onClick={copyProductName} className="p-1">
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </h1>
-              <p className="text-gray-600 mb-4">SKU#: {product.productId}</p>
-
-              {/* Certifications */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {cert}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Multi-Currency Pricing Display */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <LocationBasedPricing 
-                  product={product} 
-                  showCurrencySelector={false}
-                  isAdminView={false}
-                  className="mb-2"
-                />
-                {product.moq && (
-                  <div className="text-sm text-gray-600 mt-2">
-                    MOQ: {product.moq} {product.unit || 'kg'} | Lead Time: {product.leadTime || 'Contact us'}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mb-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Request Quote
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Request Quote for {product.name}</DialogTitle>
-                    </DialogHeader>
-                    <InquiryForm product={product} />
-                  </DialogContent>
-                </Dialog>
-
-                <Button variant="outline" size="default">
-                  <Heart className="w-4 h-4 mr-2" />
-                  Wishlist
-                </Button>
-
-                <Button variant="outline" size="default">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
-              </div>
-
-              {/* High Volume Bid */}
-              <Card className="bg-blue-50 border-blue-200 mb-6">
-                <CardContent className="p-4">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Want high volume of this product?
-                  </p>
-                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700">
-                    <Package className="w-4 h-4 mr-2" />
-                    Place High Volume Bid
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Right Column - Pricing & Order */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <QuantityPricing 
-                product={product} 
-                onQuantityChange={handleQuantityChange}
-              />
 
               {/* Tell Us Your Requirement Form */}
               <Card className="mt-6">
