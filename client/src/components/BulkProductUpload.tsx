@@ -138,7 +138,7 @@ export default function BulkProductUpload() {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    if (selectedCategory) {
+    if (selectedCategory && selectedCategory !== 'general') {
       formData.append('defaultCategory', selectedCategory);
     }
 
@@ -240,7 +240,7 @@ export default function BulkProductUpload() {
 
   const downloadTemplate = async (categoryId?: string) => {
     try {
-      const url = categoryId 
+      const url = (categoryId && categoryId !== 'general')
         ? `/api/admin/products/template?category=${categoryId}`
         : '/api/admin/products/template';
         
@@ -254,7 +254,7 @@ export default function BulkProductUpload() {
       const link = document.createElement('a');
       link.href = downloadUrl;
       
-      const categoryName = categoryId 
+      const categoryName = (categoryId && categoryId !== 'general')
         ? categories?.find(c => c.id.toString() === categoryId)?.name || 'Category'
         : 'General';
       
@@ -297,7 +297,7 @@ export default function BulkProductUpload() {
                   <SelectValue placeholder="Choose category for specialized template" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="" key="general">General Template (All Fields)</SelectItem>
+                  <SelectItem value="general" key="general">General Template (All Fields)</SelectItem>
                   {categories?.map((category) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
                       {category.name}
