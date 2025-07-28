@@ -43,6 +43,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
     targetPrice: "",
     expectedDelivery: "",
     message: "",
+    notes: "",
     urgency: "normal"
   });
   
@@ -52,10 +53,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
 
   const createInquiryMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/inquiries-enhanced`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", `/api/inquiries-enhanced`, data);
     },
     onSuccess: () => {
       toast({
@@ -73,6 +71,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
         targetPrice: "",
         expectedDelivery: "",
         message: "",
+        notes: "",
         urgency: "normal"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
@@ -89,16 +88,14 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation for non-authenticated users
-    if (!isAuthenticated) {
-      if (!formData.contactName || !formData.companyName || !formData.phoneNumber || !formData.emailAddress) {
-        toast({
-          title: "Missing Required Information",
-          description: "Please fill in all contact details.",
-          variant: "destructive",
-        });
-        return;
-      }
+    // Validation for ALL users - contact information is mandatory
+    if (!formData.contactName || !formData.companyName || !formData.phoneNumber || !formData.emailAddress) {
+      toast({
+        title: "Missing Required Information",
+        description: "Please fill in all contact details (Name, Company, Phone, Email).",
+        variant: "destructive",
+      });
+      return;
     }
 
     if (!formData.quantity || !formData.message) {
@@ -209,15 +206,14 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
             </CardContent>
           </Card>
 
-          {/* Contact Information (for non-authenticated users) */}
-          {!isAuthenticated && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-lg text-red-800 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Contact Information (Required)
-                </CardTitle>
-              </CardHeader>
+          {/* Contact Information (Required for ALL users) */}
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-lg text-red-800 flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Contact Information (Required)
+              </CardTitle>
+            </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="contactName">Full Name *</Label>
@@ -262,7 +258,6 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
                 </div>
               </CardContent>
             </Card>
-          )}
 
           {/* Inquiry Details */}
           <Card>
@@ -353,6 +348,17 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
                   required
                   rows={4}
                   placeholder="Please describe your specific requirements, quality standards, packaging preferences, shipping location, and any other relevant details..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Additional Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Any additional information, special instructions, or comments..."
                 />
               </div>
             </CardContent>

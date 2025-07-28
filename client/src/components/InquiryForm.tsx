@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, User } from "lucide-react";
 import type { Product } from "@shared/schema";
 
 interface InquiryFormProps {
@@ -30,6 +30,12 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
     unit: product?.unit || "kg",
     message: "",
     urgency: "normal",
+    // Contact Information (required for all users)
+    contactName: "",
+    companyName: "",
+    phoneNumber: "",
+    emailAddress: "",
+    notes: "",
   });
 
   const inquiryMutation = useMutation({
@@ -44,6 +50,11 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
         unit: data.unit,
         message: data.message,
         urgency: data.urgency,
+        contactName: data.contactName,
+        companyName: data.companyName,
+        phoneNumber: data.phoneNumber,
+        emailAddress: data.emailAddress,
+        notes: data.notes,
       });
     },
     onSuccess: () => {
@@ -59,6 +70,11 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
         unit: product?.unit || "kg",
         message: "",
         urgency: "normal",
+        contactName: "",
+        companyName: "",
+        phoneNumber: "",
+        emailAddress: "",
+        notes: "",
       });
 
       // Invalidate queries
@@ -96,6 +112,16 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
       toast({
         title: "Login Required",
         description: "Please log in to submit an inquiry.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required contact information (required for ALL users)
+    if (!formData.contactName || !formData.companyName || !formData.phoneNumber || !formData.emailAddress) {
+      toast({
+        title: "Missing Contact Information",
+        description: "Please fill in all contact details (Name, Company, Phone, Email).",
         variant: "destructive",
       });
       return;
@@ -205,34 +231,81 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
             </Select>
           </div>
 
+          {/* Contact Information - Required for ALL users */}
+          <div className="space-y-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h4 className="font-medium text-red-800 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Contact Information (Required)
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contactName">Full Name *</Label>
+                <Input
+                  id="contactName"
+                  placeholder="Enter your full name"
+                  value={formData.contactName}
+                  onChange={(e) => handleInputChange("contactName", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name *</Label>
+                <Input
+                  id="companyName"
+                  placeholder="Enter company name"
+                  value={formData.companyName}
+                  onChange={(e) => handleInputChange("companyName", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number *</Label>
+                <Input
+                  id="phoneNumber"
+                  placeholder="+1 (555) 123-4567"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emailAddress">Email Address *</Label>
+                <Input
+                  id="emailAddress"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={formData.emailAddress}
+                  onChange={(e) => handleInputChange("emailAddress", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Additional Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Additional Requirements</Label>
+            <Label htmlFor="message">Requirements & Message *</Label>
             <Textarea
               id="message"
-              placeholder="Please specify any special requirements, certifications needed, packaging preferences, or other details..."
+              placeholder="Please specify your requirements, certifications needed, packaging preferences, quantity details, and any other details..."
               value={formData.message}
               onChange={(e) => handleInputChange("message", e.target.value)}
               rows={4}
+              required
             />
           </div>
 
-          {/* User Information Display */}
-          {user && (
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h4 className="font-medium text-sm text-gray-900 mb-2">Contact Information</h4>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><span className="font-medium">Name:</span> {user.firstName} {user.lastName}</p>
-                <p><span className="font-medium">Email:</span> {user.email}</p>
-                {user.companyName && (
-                  <p><span className="font-medium">Company:</span> {user.companyName}</p>
-                )}
-                {user.phoneNumber && (
-                  <p><span className="font-medium">Phone:</span> {user.phoneNumber}</p>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Additional Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Additional Notes</Label>
+            <Textarea
+              id="notes"
+              placeholder="Any additional information, special instructions, or comments..."
+              value={formData.notes}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
+              rows={3}
+            />
+          </div>
 
           {/* Submit Button */}
           <Button 
