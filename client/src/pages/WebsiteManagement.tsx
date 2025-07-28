@@ -837,8 +837,8 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
               {/* Available Tags Selection */}
               {tags.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Available Tags</Label>
-                  <div className="flex flex-wrap gap-2 mt-2 max-h-24 overflow-y-auto">
+                  <Label className="text-sm font-medium">Available Tags ({tags.length} total)</Label>
+                  <div className="flex flex-wrap gap-2 mt-2 max-h-40 overflow-y-auto p-2 border rounded-md bg-gray-50 dark:bg-gray-800/50">
                     {tags.map((tag: any) => (
                       <Button
                         key={tag.id}
@@ -853,7 +853,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                             }));
                           }
                         }}
-                        className="text-xs"
+                        className="text-xs flex-shrink-0"
                         disabled={formData.certifications.includes(tag.name)}
                       >
                         <Tags className="h-3 w-3 mr-1" />
