@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -132,9 +131,7 @@ export default function SalesManagement() {
 
   return (
     <RoleBasedRoute allowedRoles={['super_admin', 'admin', 'sales_manager', 'sales_executive']}>
-      <div className="min-h-screen bg-background">
-        <Header />
-        
+      <div className="min-h-screen bg-background">        
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
