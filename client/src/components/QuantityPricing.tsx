@@ -19,7 +19,8 @@ interface PricingTier {
 }
 
 export default function QuantityPricing({ product, onQuantityChange }: QuantityPricingProps) {
-  const [selectedQuantity, setSelectedQuantity] = useState<number>(parseFloat(product.moq as string || '25'));
+  const minOrderQty = parseFloat(product.moq as string || '25');
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(minOrderQty);
   const [customQuantity, setCustomQuantity] = useState<string>('');
   const [userCurrency, setUserCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(true);
@@ -45,24 +46,24 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   // Get base rate in user's currency
   const baseRate = getProductPrice(product, userCurrency) || parseFloat(product.rate as string || '0');
   
-  // Get MOQ from product, default to 25
-  const minOrderQty = parseFloat(product.moq as string || '25');
+  // MOQ already defined above
   
   // Default pricing tiers if none exist - ensure all tiers meet MOQ
+  // Tiers show per-kg price with discounts for larger quantities
   const defaultTiers = [
-    { quantity: Math.max(25, minOrderQty), price: baseRate * Math.max(25, minOrderQty), discount: 0 },
-    { quantity: Math.max(100, minOrderQty), price: baseRate * Math.max(100, minOrderQty) * 0.95, discount: 5 },
-    { quantity: Math.max(500, minOrderQty), price: baseRate * Math.max(500, minOrderQty) * 0.92, discount: 8 },
-    { quantity: Math.max(1000, minOrderQty), price: baseRate * Math.max(1000, minOrderQty) * 0.88, discount: 12 },
-    { quantity: Math.max(5000, minOrderQty), price: baseRate * Math.max(5000, minOrderQty) * 0.85, discount: 15 },
-  ];
+    { quantity: Math.max(minOrderQty, minOrderQty), price: baseRate, discount: 0 },
+    { quantity: Math.max(100, minOrderQty), price: baseRate * 0.95, discount: 5 },
+    { quantity: Math.max(500, minOrderQty), price: baseRate * 0.92, discount: 8 },
+    { quantity: Math.max(1000, minOrderQty), price: baseRate * 0.88, discount: 12 },
+    { quantity: Math.max(5000, minOrderQty), price: baseRate * 0.85, discount: 15 },
+  ].filter(tier => tier.quantity >= minOrderQty);
   
   // Filter tiers to only include quantities >= MOQ
   const pricingTiers: PricingTier[] = bulkPricing.length > 0 
     ? bulkPricing.filter(tier => tier.quantity >= minOrderQty)
     : defaultTiers.filter(tier => tier.quantity >= minOrderQty);
 
-  const calculatePrice = (quantity: number): { price: number; discount: number; pricePerUnit: number } => {
+  const calculatePrice = (quantity: number): { totalPrice: number; discount: number; pricePerUnit: number } => {
     // Find the appropriate pricing tier
     let applicableTier = pricingTiers[0];
     for (const tier of pricingTiers) {
@@ -72,11 +73,11 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
     }
 
     const discount = applicableTier.discount;
-    const pricePerUnit = baseRate * (1 - discount / 100);
+    const pricePerUnit = applicableTier.price; // Price per unit from tier
     const totalPrice = pricePerUnit * quantity;
 
     return {
-      price: totalPrice,
+      totalPrice,
       discount,
       pricePerUnit
     };
@@ -86,7 +87,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
     setSelectedQuantity(quantity);
     setCustomQuantity('');
     const pricing = calculatePrice(quantity);
-    onQuantityChange?.(quantity, pricing.price, pricing.discount);
+    onQuantityChange?.(quantity, pricing.totalPrice, pricing.discount);
   };
 
   const handleCustomQuantityChange = (value: string) => {
@@ -97,7 +98,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
     if (quantity > 0 && quantity >= minOrderQty) {
       setSelectedQuantity(quantity);
       const pricing = calculatePrice(quantity);
-      onQuantityChange?.(quantity, pricing.price, pricing.discount);
+      onQuantityChange?.(quantity, pricing.totalPrice, pricing.discount);
     }
   };
 
@@ -161,7 +162,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                       </div>
                     </div>
                     <div className="text-xs text-gray-500">
-                      Total: {formatPrice(pricing.price, userCurrency)}
+                      Total: {formatPrice(pricing.totalPrice, userCurrency)}
                     </div>
                   </div>
                 );
@@ -234,13 +235,13 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                   placeholder={`Min. ${product.moq || 25}`}
                   value={customQuantity}
                   onChange={(e) => handleCustomQuantityChange(e.target.value)}
-                  min={product.moq as number || 25}
+                  min={minOrderQty}
                   className="flex-1 text-xs h-7"
                 />
                 <Button 
                   variant="outline" 
                   onClick={() => handleCustomQuantityChange(customQuantity)}
-                  disabled={!customQuantity || parseInt(customQuantity) < (product.moq as number || 25)}
+                  disabled={!customQuantity || parseInt(customQuantity) < minOrderQty}
                   className="text-xs px-2 h-7"
                 >
                   Calculate
@@ -268,7 +269,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                 </div>
                 <div className="flex justify-between items-center pt-1.5 border-t border-blue-200">
                   <span className="text-gray-600 font-medium">Total Price:</span>
-                  <span className="font-bold text-base text-blue-600">{formatPrice(currentPricing.price, userCurrency)}</span>
+                  <span className="font-bold text-base text-blue-600">{formatPrice(currentPricing.totalPrice, userCurrency)}</span>
                 </div>
                 {currentPricing.discount > 0 && (
                   <div className="flex justify-between items-center">
