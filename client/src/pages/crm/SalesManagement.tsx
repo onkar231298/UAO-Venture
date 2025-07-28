@@ -36,10 +36,11 @@ export default function SalesManagement() {
   const [activeTab, setActiveTab] = useState("inquiries");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [enquiryTypeFilter, setEnquiryTypeFilter] = useState("all");
 
-  // Queries
+  // Queries with enhanced filtering
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
-    queryKey: ["/api/inquiries", { status: statusFilter, search: searchQuery }],
+    queryKey: ["/api/inquiries", { status: statusFilter, search: searchQuery, type: enquiryTypeFilter }],
   });
 
   const { data: quotations, isLoading: quotationsLoading } = useQuery({
@@ -111,6 +112,52 @@ export default function SalesManagement() {
       });
     },
   });
+
+  // Handle CRM Action Dropdown
+  const handleCrmAction = (action: string) => {
+    switch (action) {
+      case 'create_manual_inquiry':
+        toast({
+          title: "Manual Enquiry",
+          description: "Opening manual enquiry creation form...",
+        });
+        // TODO: Open manual inquiry dialog
+        break;
+      
+      case 'view_quotations':
+        setActiveTab('quotations');
+        toast({
+          title: "Quotations",
+          description: "Switched to quotations view",
+        });
+        break;
+      
+      case 'view_sales_orders':
+        setActiveTab('orders');
+        toast({
+          title: "Sales Orders", 
+          description: "Switched to sales orders view",
+        });
+        break;
+      
+      case 'export_crm_data':
+        toast({
+          title: "Export Data",
+          description: "CRM data export feature coming soon...",
+        });
+        break;
+      
+      case 'bulk_actions':
+        toast({
+          title: "Bulk Actions",
+          description: "Bulk operations feature coming soon...",
+        });
+        break;
+      
+      default:
+        break;
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { variant: any; label: string }> = {
@@ -256,31 +303,66 @@ export default function SalesManagement() {
             </div>
           )}
 
-          {/* Filters */}
+          {/* Enhanced Filters with CRM Dropdowns */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <div className="flex flex-wrap gap-4">
-                <div className="relative flex-1 min-w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search inquiries, customers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="relative flex-1 min-w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Search inquiries, customers, products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="quoted">Quoted</SelectItem>
-                    <SelectItem value="converted">Converted</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
+                
+                {/* Filter and CRM Action Dropdowns */}
+                <div className="flex flex-wrap gap-3">
+                  {/* Enquiry Type Filter */}
+                  <Select value={enquiryTypeFilter} onValueChange={setEnquiryTypeFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="All Enquiries" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Enquiries</SelectItem>
+                      <SelectItem value="bulk_order">Bulk Orders</SelectItem>
+                      <SelectItem value="high_volume_bid">High Volume Bids</SelectItem>
+                      <SelectItem value="quote_request">Quote Requests</SelectItem>
+                      <SelectItem value="sample_request">Sample Requests</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="quoted">Quoted</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Sales CRM Actions */}
+                  <Select onValueChange={(value) => handleCrmAction(value)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Sales CRM Actions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="create_manual_inquiry">Create Manual Enquiry</SelectItem>
+                      <SelectItem value="view_quotations">View All Quotations</SelectItem>
+                      <SelectItem value="view_sales_orders">View Sales Orders</SelectItem>
+                      <SelectItem value="export_crm_data">Export CRM Data</SelectItem>
+                      <SelectItem value="bulk_actions">Bulk Actions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
