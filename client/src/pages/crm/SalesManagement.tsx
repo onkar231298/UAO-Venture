@@ -303,9 +303,17 @@ export default function SalesManagement() {
             </div>
           )}
 
-          {/* Enhanced Filters with CRM Dropdowns */}
+          {/* Sales Management Control Panel */}
           <Card className="mb-6">
-            <CardContent className="p-4">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Sales Management Controls</h3>
+                  <p className="text-sm text-gray-600">Filter enquiries, samples, and perform CRM actions</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
               <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
                   <div className="relative flex-1 min-w-64">
@@ -319,40 +327,28 @@ export default function SalesManagement() {
                   </div>
                 </div>
                 
-                {/* Filter and CRM Action Dropdowns */}
-                <div className="flex flex-wrap gap-3">
-                  {/* Enquiry Type Filter */}
+                {/* Organized Dropdown System */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="text-sm text-gray-600 font-medium hidden lg:block">Filters:</div>
+                  
+                  {/* Enquiry and Sample Dropdown */}
                   <Select value={enquiryTypeFilter} onValueChange={setEnquiryTypeFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="All Enquiries" />
+                    <SelectTrigger className="w-56">
+                      <SelectValue placeholder="Enquiry and Sample" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Enquiries</SelectItem>
-                      <SelectItem value="bulk_order">Bulk Orders</SelectItem>
+                      <SelectItem value="all">All Enquiries & Samples</SelectItem>
+                      <SelectItem value="bulk_order">Bulk Order Enquiries</SelectItem>
                       <SelectItem value="high_volume_bid">High Volume Bids</SelectItem>
                       <SelectItem value="quote_request">Quote Requests</SelectItem>
                       <SelectItem value="sample_request">Sample Requests</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  {/* Status Filter */}
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="quoted">Quoted</SelectItem>
-                      <SelectItem value="converted">Converted</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Sales CRM Actions */}
+                  {/* Sales CRM Dropdown */}
                   <Select onValueChange={(value) => handleCrmAction(value)}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Sales CRM Actions" />
+                      <SelectValue placeholder="Sales CRM" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="create_manual_inquiry">Create Manual Enquiry</SelectItem>
@@ -360,6 +356,20 @@ export default function SalesManagement() {
                       <SelectItem value="view_sales_orders">View Sales Orders</SelectItem>
                       <SelectItem value="export_crm_data">Export CRM Data</SelectItem>
                       <SelectItem value="bulk_actions">Bulk Actions</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="quoted">Quoted</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
