@@ -27,7 +27,11 @@ export default function Landing() {
   });
 
   const { data: popularProducts } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", { limit: 4 }],
+    queryKey: ["/api/products", { limit: 4, sortBy: "popular" }],
+  });
+
+  const { data: allProducts, isLoading: allProductsLoading } = useQuery<{ products: Product[]; total: number }>({
+    queryKey: ["/api/products", { limit: 20 }],
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -234,6 +238,100 @@ export default function Landing() {
                 <p className="text-gray-600 text-sm">{feature.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* All Products Listing */}
+      <section className="py-8 sm:py-12 lg:py-16 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Complete Product Range</h2>
+            <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto px-4 sm:px-0">
+              Browse our extensive collection of certified organic ingredients, from traditional herbs to innovative extracts
+            </p>
+          </div>
+          
+          {allProductsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-36 sm:h-48 bg-gray-200 rounded-t-xl"></div>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : allProducts?.products?.length ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {allProducts.products.map((product: Product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              
+              {/* View All Products Button */}
+              <div className="text-center mt-8 sm:mt-12">
+                <Link href="/products">
+                  <Button size="lg" className="px-8 py-3">
+                    View All {allProducts.total} Products →
+                  </Button>
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Package className="w-12 h-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No products available</h3>
+              <p className="text-gray-600">Products will appear here once they are added and made visible.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Featured Products - Most Popular/Searched */}
+      <section className="py-8 sm:py-12 lg:py-16 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+            <div className="text-center sm:text-left mb-4 sm:mb-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Most Popular Products</h2>
+              <p className="text-sm sm:text-base text-gray-600">Our highest searched and most requested organic ingredients</p>
+            </div>
+            <Button variant="outline" className="text-sm">
+              View All Popular Products →
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {popularProducts?.products?.length ? (
+              popularProducts.products.slice(0, 4).map((product: Product) => (
+                <div key={product.id} className="relative">
+                  <div className="absolute -top-2 -right-2 z-10">
+                    <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                      Popular
+                    </div>
+                  </div>
+                  <ProductCard product={product} />
+                </div>
+              ))
+            ) : (
+              // Loading skeleton
+              Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-36 sm:h-48 bg-gray-200 rounded-t-xl"></div>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>
