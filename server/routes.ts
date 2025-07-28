@@ -9,7 +9,8 @@ import {
   insertCategorySchema,
   insertProductTagSchema,
   insertHeroSliderSchema,
-  insertProductDocumentSchema
+  insertProductDocumentSchema,
+  insertSampleRequestSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { productImageUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
@@ -185,6 +186,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating inquiry:", error);
       res.status(500).json({ message: "Failed to update inquiry" });
+    }
+  });
+
+  // Sample Request routes
+
+  // Create sample request (for both logged in and non-logged users)
+  app.post('/api/sample-requests', async (req: any, res) => {
+    try {
+      let customerId = null;
+      
+      // Check if user is authenticated
+      if (req.user && req.user.claims && req.user.claims.sub) {
+        customerId = req.user.claims.sub;
+      }
+      
+      const requestData = insertSampleRequestSchema.parse({ 
+        ...req.body, 
+        customerId 
+      });
+      
+      const sampleRequest = await storage.createSampleRequest(requestData);
+      res.status(201).json(sampleRequest);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sample request data", errors: error.errors });
+      }
+      console.error("Error creating sample request:", error);
+      res.status(500).json({ message: "Failed to create sample request" });
+    }
+  });
+
+  // Get sample requests (admin/sales only)
+  app.get('/api/sample-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { status, limit = '50', offset = '0' } = req.query;
+      
+      const filters: any = {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      // Role-based filtering
+      if (user.role?.includes('sales') && !user.role?.includes('admin')) {
+        filters.assignedTo = userId;
+      }
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      const result = await storage.getSampleRequests(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching sample requests:", error);
+      res.status(500).json({ message: "Failed to fetch sample requests" });
+    }
+  });
+
+  // Update sample request (for admin/sales team)
+  app.put('/api/sample-requests/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const requestId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      const sampleRequest = await storage.updateSampleRequest(requestId, updateData);
+      res.json(sampleRequest);
+    } catch (error) {
+      console.error("Error updating sample request:", error);
+      res.status(500).json({ message: "Failed to update sample request" });
+    }
+  });
+
+  // Enhanced inquiry creation - allow both logged in and non-logged users
+  app.post('/api/inquiries-enhanced', async (req: any, res) => {
+    try {
+      let customerId = null;
+      
+      // Check if user is authenticated
+      if (req.user && req.user.claims && req.user.claims.sub) {
+        customerId = req.user.claims.sub;
+      }
+      
+      const inquiryData = insertInquirySchema.parse({ 
+        ...req.body, 
+        customerId 
+      });
+      
+      const inquiry = await storage.createInquiry(inquiryData);
+      res.status(201).json(inquiry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid inquiry data", errors: error.errors });
+      }
+      console.error("Error creating inquiry:", error);
+      res.status(500).json({ message: "Failed to create inquiry" });
     }
   });
 

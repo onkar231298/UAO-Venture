@@ -5,6 +5,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import InquiryForm from "@/components/InquiryForm";
 import QuantityPricing from "@/components/QuantityPricing";
+import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
+import { SampleRequestForm } from "@/components/SampleRequestForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -340,17 +342,17 @@ export default function ProductDetailGreenJeeva() {
                 </Button>
               </div>
 
-              {/* High Volume Bid */}
+              {/* Enhanced Inquiry Form */}
               <Card className="bg-blue-50 border-blue-200 mb-6">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm text-blue-900">Want high volume of this product?</h4>
-                    <Package className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-medium text-sm text-blue-900">Need pricing or bulk orders?</h4>
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
-                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700 w-full">
-                    <Package className="w-4 h-4 mr-2" />
-                    Place High Volume Bid
-                  </Button>
+                  <EnhancedInquiryForm 
+                    product={product} 
+                    isAuthenticated={isAuthenticated} 
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -387,85 +389,10 @@ export default function ProductDetailGreenJeeva() {
                       <div className="text-xs text-gray-500">Sample Size</div>
                       <div className="font-medium text-sm">25-100g</div>
                     </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                          <Beaker className="w-4 h-4 mr-2" />
-                          Request Sample
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <Beaker className="w-5 h-5 text-orange-600" />
-                            Request Sample - {product.name}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              Sample Quantity
-                            </label>
-                            <Select defaultValue="50g">
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="25g">25g - Quality Test</SelectItem>
-                                <SelectItem value="50g">50g - Standard Sample</SelectItem>
-                                <SelectItem value="100g">100g - Extended Testing</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              Purpose of Sample
-                            </label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select purpose" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="quality-test">Quality Testing</SelectItem>
-                                <SelectItem value="formulation">Product Formulation</SelectItem>
-                                <SelectItem value="regulatory">Regulatory Approval</SelectItem>
-                                <SelectItem value="customer-demo">Customer Demonstration</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              Additional Requirements
-                            </label>
-                            <Input 
-                              placeholder="Special packaging, documentation needs, etc."
-                              className="text-sm"
-                            />
-                          </div>
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <div className="flex items-center gap-2 text-blue-800 mb-1">
-                              <CheckCircle className="w-4 h-4" />
-                              <span className="text-sm font-medium">Sample Policy</span>
-                            </div>
-                            <ul className="text-xs text-blue-700 space-y-1">
-                              <li>• Free samples up to 100g per product</li>
-                              <li>• Shipping charges may apply for international delivery</li>
-                              <li>• Sample processing time: 2-3 business days</li>
-                              <li>• COA and specifications included</li>
-                            </ul>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" className="flex-1">
-                              Cancel
-                            </Button>
-                            <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-                              Submit Request
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <SampleRequestForm 
+                      product={product} 
+                      isAuthenticated={isAuthenticated} 
+                    />
                   </div>
                 </div>
               </CardContent>

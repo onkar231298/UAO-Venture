@@ -12,6 +12,7 @@ import {
   productTags,
   productTagRelations,
   heroSliders,
+  sampleRequests,
   type User,
   type UpsertUser,
   type Product,
@@ -28,6 +29,8 @@ import {
   type InsertProductTag,
   type HeroSlider,
   type InsertHeroSlider,
+  type SampleRequest,
+  type InsertSampleRequest,
   type Inventory,
   type SalesOrder,
   type PurchaseOrder,
@@ -95,12 +98,25 @@ export interface IStorage {
     customerId?: string;
     status?: string;
     assignedTo?: string;
+    inquiryType?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ inquiries: Inquiry[]; total: number }>;
   getInquiry(id: number): Promise<Inquiry | undefined>;
   createInquiry(inquiry: InsertInquiry): Promise<Inquiry>;
   updateInquiry(id: number, inquiry: Partial<InsertInquiry>): Promise<Inquiry>;
+  
+  // Sample Request operations
+  getSampleRequests(filters?: {
+    customerId?: string;
+    status?: string;
+    assignedTo?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ requests: SampleRequest[]; total: number }>;
+  getSampleRequest(id: number): Promise<SampleRequest | undefined>;
+  createSampleRequest(request: InsertSampleRequest): Promise<SampleRequest>;
+  updateSampleRequest(id: number, request: Partial<InsertSampleRequest>): Promise<SampleRequest>;
 
   // Quotation operations
   getQuotations(filters?: {
@@ -344,7 +360,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    const [newProduct] = await db.insert(products).values(processedProduct).returning();
+    const [newProduct] = await db.insert(products).values([processedProduct]).returning();
     
     // Sync certifications with tag system
     if (processedProduct.certifications && Array.isArray(processedProduct.certifications)) {
@@ -459,7 +475,7 @@ export class DatabaseStorage implements IStorage {
         .replace(/(^-|-$)/g, '');
     }
     
-    const [newTag] = await db.insert(productTags).values(tag).returning();
+    const [newTag] = await db.insert(productTags).values([tag]).returning();
     return newTag;
   }
 
@@ -507,7 +523,8 @@ export class DatabaseStorage implements IStorage {
         console.log(`Created tag for certification: ${certName}`);
       } catch (error) {
         // Tag might already exist due to concurrent operations, ignore duplicate errors
-        if (!error.message?.includes('unique') && !error.message?.includes('duplicate')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage?.includes('unique') && !errorMessage?.includes('duplicate')) {
           console.error(`Failed to create tag for certification ${certName}:`, error);
         }
       }
@@ -612,11 +629,36 @@ export class DatabaseStorage implements IStorage {
     customerId?: string;
     status?: string;
     assignedTo?: string;
+    inquiryType?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ inquiries: Inquiry[]; total: number }> {
-    // Return empty for now - will implement full functionality later
-    return { inquiries: [], total: 0 };
+    const conditions = [];
+    if (filters?.customerId) conditions.push(eq(inquiries.customerId, filters.customerId));
+    if (filters?.status) conditions.push(eq(inquiries.status, filters.status));
+    if (filters?.assignedTo) conditions.push(eq(inquiries.assignedTo, filters.assignedTo));
+    if (filters?.inquiryType) conditions.push(eq(inquiries.inquiryType, filters.inquiryType));
+    
+    const whereClause = conditions.length > 0 ? (conditions.length === 1 ? conditions[0] : and(...conditions)) : undefined;
+    
+    const [inquiriesResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(inquiries)
+        .where(whereClause)
+        .orderBy(desc(inquiries.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db
+        .select({ count: count() })
+        .from(inquiries)
+        .where(whereClause)
+    ]);
+    
+    return { 
+      inquiries: inquiriesResult, 
+      total: totalResult[0].count 
+    };
   }
 
   async getInquiry(id: number): Promise<Inquiry | undefined> {
@@ -625,13 +667,73 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInquiry(inquiry: InsertInquiry): Promise<Inquiry> {
-    // Generate inquiry ID
-    const inquiryId = `INQ${Date.now()}`;
+    // Generate inquiry ID based on type
+    const prefix = inquiry.inquiryType === 'high_volume_bid' ? 'BID' : 'INQ';
+    const inquiryId = `${prefix}${Date.now()}`;
     const [newInquiry] = await db
       .insert(inquiries)
       .values({ ...inquiry, inquiryId })
       .returning();
     return newInquiry;
+  }
+
+  // Sample Request operations
+  async getSampleRequests(filters?: {
+    customerId?: string;
+    status?: string;
+    assignedTo?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ requests: SampleRequest[]; total: number }> {
+    const conditions = [];
+    if (filters?.customerId) conditions.push(eq(sampleRequests.customerId, filters.customerId));
+    if (filters?.status) conditions.push(eq(sampleRequests.status, filters.status));
+    if (filters?.assignedTo) conditions.push(eq(sampleRequests.assignedTo, filters.assignedTo));
+    
+    const whereClause = conditions.length > 0 ? (conditions.length === 1 ? conditions[0] : and(...conditions)) : undefined;
+    
+    const [requestsResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(sampleRequests)
+        .where(whereClause)
+        .orderBy(desc(sampleRequests.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db
+        .select({ count: count() })
+        .from(sampleRequests)
+        .where(whereClause)
+    ]);
+    
+    return { 
+      requests: requestsResult, 
+      total: totalResult[0].count 
+    };
+  }
+
+  async getSampleRequest(id: number): Promise<SampleRequest | undefined> {
+    const [request] = await db.select().from(sampleRequests).where(eq(sampleRequests.id, id));
+    return request;
+  }
+
+  async createSampleRequest(request: InsertSampleRequest): Promise<SampleRequest> {
+    // Generate request ID
+    const requestId = `SAM${Date.now()}`;
+    const [newRequest] = await db
+      .insert(sampleRequests)
+      .values({ ...request, requestId })
+      .returning();
+    return newRequest;
+  }
+
+  async updateSampleRequest(id: number, request: Partial<InsertSampleRequest>): Promise<SampleRequest> {
+    const [updatedRequest] = await db
+      .update(sampleRequests)
+      .set({ ...request, updatedAt: new Date() })
+      .where(eq(sampleRequests.id, id))
+      .returning();
+    return updatedRequest;
   }
 
   async updateInquiry(id: number, inquiry: Partial<InsertInquiry>): Promise<Inquiry> {

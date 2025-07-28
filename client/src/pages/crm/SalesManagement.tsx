@@ -51,6 +51,10 @@ export default function SalesManagement() {
     queryKey: ["/api/sales-orders", { status: statusFilter }],
   });
 
+  const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
+    queryKey: ["/api/sample-requests", { status: statusFilter }],
+  });
+
   const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -221,8 +225,9 @@ export default function SalesManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="inquiries">Customer Inquiries</TabsTrigger>
+              <TabsTrigger value="samples">Sample Requests</TabsTrigger>
               <TabsTrigger value="quotations">Quotations</TabsTrigger>
               <TabsTrigger value="orders">Sales Orders</TabsTrigger>
             </TabsList>
@@ -315,6 +320,103 @@ export default function SalesManagement() {
                       <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
                       <p className="text-gray-600">New customer inquiries will appear here</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Sample Requests Tab */}
+            <TabsContent value="samples" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Sample Requests</span>
+                    <span className="text-sm text-gray-500">Manage product sample requests</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {sampleRequestsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : sampleRequests?.requests?.length ? (
+                    <div className="space-y-4">
+                      {sampleRequests.requests.map((request: any) => (
+                        <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <span className="font-medium">SAM-{request.id}</span>
+                              {getStatusBadge(request.status || 'pending')}
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                {request.sampleSize}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Details
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                <Edit className="w-4 h-4 mr-1" />
+                                Update Status
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Contact:</span>
+                              <p className="font-medium">{request.contactName}</p>
+                              <p className="text-xs text-gray-500">{request.companyName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Purpose:</span>
+                              <p className="font-medium capitalize">{request.purpose?.replace('_', ' ')}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Expected Order:</span>
+                              <p className="font-medium">{request.expectedOrderQuantity ? `${request.expectedOrderQuantity} kg` : 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Date:</span>
+                              <p className="font-medium">{new Date(request.createdAt!).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Email:</span>
+                              <p className="font-medium">{request.emailAddress}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Phone:</span>
+                              <p className="font-medium">{request.phoneNumber}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Location:</span>
+                              <p className="font-medium">{request.city}, {request.state}, {request.country}</p>
+                            </div>
+                          </div>
+                          {request.message && (
+                            <div className="mt-2">
+                              <span className="text-gray-600 text-sm">Additional Requirements:</span>
+                              <p className="text-sm mt-1 bg-gray-50 p-2 rounded">{request.message}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V8z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5V3a2 2 0 012-2h2a2 2 0 012 2v2M5 12h14" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
+                      <p className="text-gray-600">New sample requests will appear here</p>
                     </div>
                   )}
                 </CardContent>

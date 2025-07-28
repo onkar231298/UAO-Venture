@@ -220,17 +220,60 @@ export const inventory = pgTable("inventory", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
-// Customer inquiries
+// Customer inquiries - Enhanced for high volume bidding
 export const inquiries = pgTable("inquiries", {
   id: serial("id").primaryKey(),
   inquiryId: varchar("inquiry_id", { length: 50 }).notNull().unique(),
   customerId: varchar("customer_id").references(() => users.id),
   productId: integer("product_id").references(() => products.id),
+  
+  // Contact Information (for non-logged users)
+  contactName: varchar("contact_name", { length: 255 }),
+  companyName: varchar("company_name", { length: 255 }),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  emailAddress: varchar("email_address", { length: 255 }),
+  
+  // Inquiry Details
+  inquiryType: varchar("inquiry_type", { length: 50 }).default("bulk_order"), // bulk_order, high_volume_bid, quote_request
   quantity: decimal("quantity", { precision: 10, scale: 2 }),
   unit: varchar("unit", { length: 50 }),
+  targetPrice: decimal("target_price", { precision: 10, scale: 2 }), // For bidding
+  expectedDelivery: timestamp("expected_delivery"),
   message: text("message"),
   urgency: varchar("urgency", { length: 50 }).default("normal"), // urgent, normal, low
   status: varchar("status", { length: 50 }).default("pending"), // pending, quoted, converted, closed
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Sample requests - New table for sample requests
+export const sampleRequests = pgTable("sample_requests", {
+  id: serial("id").primaryKey(),
+  requestId: varchar("request_id", { length: 50 }).notNull().unique(),
+  customerId: varchar("customer_id").references(() => users.id),
+  productId: integer("product_id").references(() => products.id),
+  
+  // Contact Information (for non-logged users)
+  contactName: varchar("contact_name", { length: 255 }).notNull(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  phoneNumber: varchar("phone_number", { length: 20 }).notNull(),
+  emailAddress: varchar("email_address", { length: 255 }).notNull(),
+  
+  // Sample Details
+  sampleSize: varchar("sample_size", { length: 50 }).default("25g"), // 25g, 50g, 100g
+  purpose: varchar("purpose", { length: 100 }).notNull(), // testing, analysis, product_development, etc.
+  expectedOrderQuantity: decimal("expected_order_quantity", { precision: 10, scale: 2 }),
+  message: text("message"),
+  
+  // Shipping Details
+  shippingAddress: text("shipping_address").notNull(),
+  city: varchar("city", { length: 100 }).notNull(),
+  state: varchar("state", { length: 100 }).notNull(),
+  postalCode: varchar("postal_code", { length: 20 }).notNull(),
+  country: varchar("country", { length: 100 }).notNull(),
+  
+  status: varchar("status", { length: 50 }).default("pending"), // pending, approved, shipped, completed, rejected
   assignedTo: varchar("assigned_to").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -347,6 +390,12 @@ export const inquiriesRelations = relations(inquiries, ({ one, many }) => ({
   quotations: many(quotations),
 }));
 
+export const sampleRequestsRelations = relations(sampleRequests, ({ one }) => ({
+  customer: one(users, { fields: [sampleRequests.customerId], references: [users.id] }),
+  product: one(products, { fields: [sampleRequests.productId], references: [products.id] }),
+  assignedUser: one(users, { fields: [sampleRequests.assignedTo], references: [users.id] }),
+}));
+
 export const quotationsRelations = relations(quotations, ({ one, many }) => ({
   inquiry: one(inquiries, { fields: [quotations.inquiryId], references: [inquiries.id] }),
   customer: one(users, { fields: [quotations.customerId], references: [users.id] }),
@@ -406,16 +455,24 @@ export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({
   updatedAt: true,
 });
 
-export const insertProductDocumentSchema = createInsertSchema(productDocuments).omit({
+export const insertSampleRequestSchema = createInsertSchema(sampleRequests).omit({
   id: true,
+  requestId: true,
   createdAt: true,
+  updatedAt: true,
 });
 
+// Enhanced inquiry schema for high volume bidding
 export const insertInquirySchema = createInsertSchema(inquiries).omit({
   id: true,
   inquiryId: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertProductDocumentSchema = createInsertSchema(productDocuments).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertQuotationSchema = createInsertSchema(quotations).omit({
@@ -442,6 +499,8 @@ export type ProductTag = typeof productTags.$inferSelect;
 export type InsertProductTag = z.infer<typeof insertProductTagSchema>;
 export type HeroSlider = typeof heroSliders.$inferSelect;
 export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
+export type SampleRequest = typeof sampleRequests.$inferSelect;
+export type InsertSampleRequest = z.infer<typeof insertSampleRequestSchema>;
 export type Inventory = typeof inventory.$inferSelect;
 export type SalesOrder = typeof salesOrders.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
