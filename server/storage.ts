@@ -229,7 +229,7 @@ export class DatabaseStorage implements IStorage {
     if (filters?.category && filters.category.length > 0) {
       const categoryNames = filters.category;
       const categoryConditions = categoryNames.map(name => 
-        sql`${products.category} ILIKE ${name}`
+        sql`${products.category} ILIKE ${`%${name}%`}`
       );
       conditions.push(or(...categoryConditions));
     }
@@ -892,6 +892,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(quotations.id, id))
       .returning();
     return updatedQuotation;
+  }
+
+  // Hero slider operations
+  async getHeroSlides(): Promise<HeroSlider[]> {
+    const slides = await db
+      .select()
+      .from(heroSliders)
+      .where(eq(heroSliders.status, 'active'))
+      .orderBy(asc(heroSliders.sortOrder));
+    return slides;
+  }
+
+  async getHeroSlide(id: number): Promise<HeroSlider | undefined> {
+    const [slide] = await db.select().from(heroSliders).where(eq(heroSliders.id, id));
+    return slide;
+  }
+
+  async createHeroSlide(slide: InsertHeroSlider): Promise<HeroSlider> {
+    const [newSlide] = await db
+      .insert(heroSliders)
+      .values(slide)
+      .returning();
+    return newSlide;
+  }
+
+  async updateHeroSlide(id: number, slide: Partial<InsertHeroSlider>): Promise<HeroSlider> {
+    const [updatedSlide] = await db
+      .update(heroSliders)
+      .set({ ...slide, updatedAt: new Date() })
+      .where(eq(heroSliders.id, id))
+      .returning();
+    return updatedSlide;
+  }
+
+  async deleteHeroSlide(id: number): Promise<void> {
+    await db.delete(heroSliders).where(eq(heroSliders.id, id));
   }
 
   // Sales order operations

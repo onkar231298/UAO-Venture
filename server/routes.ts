@@ -150,6 +150,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get hero slides
+  app.get('/api/hero-slides', async (req, res) => {
+    try {
+      const slides = await storage.getHeroSlides();
+      res.json(slides);
+    } catch (error) {
+      console.error("Error fetching hero slides:", error);
+      res.status(500).json({ message: "Failed to fetch hero slides" });
+    }
+  });
+
+
+
   // Get product documents
   app.get('/api/products/:id/documents', async (req, res) => {
     try {
