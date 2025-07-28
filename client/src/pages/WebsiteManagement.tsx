@@ -765,46 +765,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
               <CardTitle>Tags & Certifications</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Quick Add Certification Tags */}
-              <div>
-                <Label className="text-sm font-medium">Quick Add Certifications</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {['USDA NOP', 'NPOP', 'EU Organic', 'FDA Approved', 'GMP Certified', 'ISO Certified', 'Kosher', 'Halal', 'Non-GMO'].map((certName) => (
-                    <Button
-                      key={certName}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        if (!formData.certifications.includes(certName)) {
-                          // Add to product certifications
-                          setFormData(prev => ({
-                            ...prev,
-                            certifications: [...prev.certifications, certName]
-                          }));
-                          
-                          // Also create the tag in background if it doesn't exist
-                          try {
-                            await apiRequest("POST", "/api/admin/tags", {
-                              name: certName,
-                              color: '#22C55E',
-                              description: `Certification tag: ${certName}`,
-                              isActive: true
-                            });
-                          } catch (error) {
-                            // Tag might already exist, ignore error
-                          }
-                        }
-                      }}
-                      className="text-xs"
-                      disabled={formData.certifications.includes(certName)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      {certName}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Selected Certifications */}
               {formData.certifications.length > 0 && (
