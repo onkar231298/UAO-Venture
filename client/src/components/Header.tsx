@@ -78,21 +78,21 @@ export default function Header() {
                 <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center">
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-96 p-4">
+                <DropdownMenuContent className="w-80 p-2">
                   {/* All Ingredients Link */}
                   <Link href="/ingredients">
-                    <DropdownMenuItem className="mb-3 bg-green-50 hover:bg-green-100 font-medium text-green-700">
+                    <DropdownMenuItem className="mb-2 bg-green-50 hover:bg-green-100 font-medium text-green-700 py-2">
                       All Ingredients
                     </DropdownMenuItem>
                   </Link>
                   
-                  <DropdownMenuSeparator className="mb-3" />
+                  <DropdownMenuSeparator className="mb-2" />
                   
                   {/* Categories in Three Columns */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1 max-h-72 overflow-y-auto">
                     {categories.map((category) => (
                       <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
-                        <DropdownMenuItem className="text-sm p-2 hover:bg-gray-50 cursor-pointer">
+                        <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                           {category.name}
                         </DropdownMenuItem>
                       </Link>
@@ -101,7 +101,7 @@ export default function Header() {
                   
                   {/* Show placeholder if no categories loaded */}
                   {categories.length === 0 && (
-                    <div className="text-sm text-gray-500 text-center py-4">
+                    <div className="text-sm text-gray-500 text-center py-2">
                       Loading categories...
                     </div>
                   )}
