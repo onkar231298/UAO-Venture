@@ -28,7 +28,7 @@ export default function ParallaxHero() {
       subtitle: "Certified organic Ashwagandha, Turmeric, Moringa, and 500+ botanical ingredients sourced from trusted farms across India.",
       accent: "for Nutraceuticals & Food Industries",
       theme: "herbs",
-      backgroundImage: "https://images.unsplash.com/photo-1544970503-4ddf0755ee95?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      backgroundImage: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
       overlayColor: "from-green-900/80 via-emerald-800/70 to-teal-700/60",
       primaryColor: "#22c55e",
       buttonText: "Explore Herbs",
@@ -41,7 +41,7 @@ export default function ParallaxHero() {
       subtitle: "Steam distilled essential oils, CO2 extracts, and concentrated oleoresins - from Peppermint to Black Pepper.",
       accent: "Pure & Potent Aromatics",
       theme: "oils",
-      backgroundImage: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      backgroundImage: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
       overlayColor: "from-amber-900/80 via-orange-800/70 to-yellow-700/60",
       primaryColor: "#f59e0b",
       buttonText: "View Essential Oils",
@@ -54,7 +54,7 @@ export default function ParallaxHero() {
       subtitle: "State-of-the-art testing facilities, custom blending services, and regulatory compliance support for your product development.",
       accent: "Scientific Excellence & Innovation", 
       theme: "lab",
-      backgroundImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      backgroundImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
       overlayColor: "from-blue-900/80 via-indigo-800/70 to-purple-700/60",
       primaryColor: "#3b82f6",
       buttonText: "Learn About R&D",
@@ -156,161 +156,7 @@ export default function ParallaxHero() {
           {/* Sky Background */}
           <rect width="1920" height="1080" fill="url(#skyGradient)" />
 
-          {/* Dynamic Floating Elements based on theme */}
-          {currentSlideData.theme === 'herbs' && (
-            <g opacity="0.6">
-              <circle cx="200" cy="150" r="40" fill={currentSlideData.primaryColor} opacity="0.3">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 10,-5; 0,0" 
-                  dur="6s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="200" y="155" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">USDA</text>
-              
-              <circle cx="1600" cy="200" r="35" fill={currentSlideData.primaryColor} opacity="0.3">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; -8,3; 0,0" 
-                  dur="7s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="1600" y="205" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">Organic</text>
 
-              <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 0,-10; 0,0" 
-                  dur="4s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Ashwagandha</text>
-
-              <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 5,-8; 0,0" 
-                  dur="5s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Tulsi</text>
-
-              <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; -3,7; 0,0" 
-                  dur="6s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Neem</text>
-            </g>
-          )}
-
-          {currentSlideData.theme === 'oils' && (
-            <g opacity="0.6">
-              <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.5">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 0,-12; 0,0" 
-                  dur="4s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Peppermint</text>
-
-              <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.5">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 6,-10; 0,0" 
-                  dur="5s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Eucalyptus</text>
-
-              <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.5">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; -4,8; 0,0" 
-                  dur="6s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Lavender</text>
-
-              <circle cx="600" cy="500" r="45" fill={currentSlideData.primaryColor} opacity="0.5">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 10,6; 0,0" 
-                  dur="7s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="600" y="505" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">Tea Tree</text>
-            </g>
-          )}
-
-          {currentSlideData.theme === 'lab' && (
-            <g opacity="0.6">
-              <circle cx="400" cy="400" r="60" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 0,-8; 0,0" 
-                  dur="4s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="400" y="405" textAnchor="middle" fontSize="14" fill="#ffffff" fontWeight="bold">Quality</text>
-
-              <circle cx="800" cy="350" r="55" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 4,-6; 0,0" 
-                  dur="5s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="800" y="355" textAnchor="middle" fontSize="13" fill="#ffffff" fontWeight="bold">Testing</text>
-
-              <circle cx="1200" cy="380" r="50" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; -2,5; 0,0" 
-                  dur="6s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="1200" y="385" textAnchor="middle" fontSize="12" fill="#ffffff" fontWeight="bold">Research</text>
-
-              <circle cx="600" cy="500" r="45" fill={currentSlideData.primaryColor} opacity="0.4">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="translate" 
-                  values="0,0; 8,4; 0,0" 
-                  dur="7s" 
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <text x="600" y="505" textAnchor="middle" fontSize="11" fill="#ffffff" fontWeight="bold">Innovation</text>
-            </g>
-          )}
         </svg>
       </div>
       
@@ -400,11 +246,7 @@ export default function ParallaxHero() {
                 </Link>
               </div>
 
-              {/* Contact Info */}
-              <div className="text-white/80 text-sm">
-                <p>Bright Fame Organic Pvt. Ltd. | Mehsana, Gujarat, India</p>
-                <p>📞 +91-7249847439 | ✉️ info@bfiorganic.com</p>
-              </div>
+
             </div>
           </div>
         </div>
