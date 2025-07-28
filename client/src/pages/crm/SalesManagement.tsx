@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import type { Inquiry, Quotation } from "@shared/schema";
 
-export default function SalesManagement() {
+export default function SalesManagement({ activeSubSection }: { activeSubSection?: string }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -182,10 +182,14 @@ export default function SalesManagement() {
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {(user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' ? 'Admin Dashboard - Sales Management' : 'Sales Management'}
+              {activeSubSection === 'enquiry-sample' ? 'Enquiry and Sample Management' :
+               activeSubSection === 'sales-crm' ? 'Sales CRM' :
+               (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' ? 'Sales Management Dashboard' : 'Sales Management'}
             </h1>
             <p className="text-gray-600">
-              {(user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' 
+              {activeSubSection === 'enquiry-sample' ? 'Manage customer enquiries, bulk orders, high volume bids, and sample requests' :
+               activeSubSection === 'sales-crm' ? 'CRM tools for quotations, sales orders, and customer relationship management' :
+               (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' 
                 ? 'Complete overview of customer inquiries, sample requests, quotations, and sales orders' 
                 : 'Manage customer inquiries, quotations, and sales orders'}
             </p>
@@ -377,48 +381,61 @@ export default function SalesManagement() {
             </CardContent>
           </Card>
 
-          {/* Main Content Tabs */}
+          {/* Dynamic Content Tabs Based on Sub-Section */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="inquiries">
-                Customer Inquiries
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="samples">
-                Sample Requests
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="quotations">
-                Quotations
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="orders">
-                Sales Orders
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
+            <TabsList className={`grid w-full ${
+              activeSubSection === 'enquiry-sample' ? 'grid-cols-2' :
+              activeSubSection === 'sales-crm' ? 'grid-cols-2' :
+              'grid-cols-4'
+            }`}>
+              {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
+                <>
+                  <TabsTrigger value="inquiries">
+                    Customer Inquiries
+                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="samples">
+                    Sample Requests
+                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                    )}
+                  </TabsTrigger>
+                </>
+              )}
+              {(activeSubSection === 'sales-crm' || !activeSubSection) && (
+                <>
+                  <TabsTrigger value="quotations">
+                    Quotations
+                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="orders">
+                    Sales Orders
+                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                    )}
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
-            {/* Inquiries Tab */}
-            <TabsContent value="inquiries" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Customer Inquiries</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Manual Inquiry
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Inquiries Tab - Show for Enquiry & Sample or Full Sales Management */}
+            {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
+              <TabsContent value="inquiries" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Customer Inquiries</span>
+                      <Button size="sm">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Manual Inquiry
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                   {inquiriesLoading ? (
                     <div className="space-y-4">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -499,9 +516,11 @@ export default function SalesManagement() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
-            {/* Sample Requests Tab */}
-            <TabsContent value="samples" className="mt-6">
+            {/* Sample Requests Tab - Show for Enquiry & Sample or Full Sales Management */}
+            {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
+              <TabsContent value="samples" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -596,9 +615,11 @@ export default function SalesManagement() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
-            {/* Quotations Tab */}
-            <TabsContent value="quotations" className="mt-6">
+            {/* Quotations Tab - Show for Sales CRM or Full Sales Management */}
+            {(activeSubSection === 'sales-crm' || !activeSubSection) && (
+              <TabsContent value="quotations" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -669,9 +690,11 @@ export default function SalesManagement() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
-            {/* Sales Orders Tab */}
-            <TabsContent value="orders" className="mt-6">
+            {/* Sales Orders Tab - Show for Sales CRM or Full Sales Management */}
+            {(activeSubSection === 'sales-crm' || !activeSubSection) && (
+              <TabsContent value="orders" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Sales Orders</CardTitle>
@@ -732,6 +755,7 @@ export default function SalesManagement() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>

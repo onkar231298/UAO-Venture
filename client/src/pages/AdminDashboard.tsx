@@ -158,7 +158,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => setActiveSection('sales')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'sales'
+                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm'
                       ? 'bg-gray-100 text-gray-900'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -166,6 +166,34 @@ export default function AdminDashboard() {
                   <TrendingUp className="mr-3 h-5 w-5" />
                   Sales Management
                 </button>
+                
+                {/* Sales Management Sub-items */}
+                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm') && (
+                  <div className="ml-6 mt-2 space-y-1">
+                    <button
+                      onClick={() => setActiveSection('enquiry-sample')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'enquiry-sample'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Send className="mr-3 h-4 w-4" />
+                      Enquiry and Sample
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('sales-crm')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'sales-crm'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Users className="mr-3 h-4 w-4" />
+                      Sales CRM
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={() => setActiveSection('purchase')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
@@ -280,6 +308,8 @@ export default function AdminDashboard() {
                   {activeSection === 'overview' ? 'Dashboard' : 
                    activeSection === 'inventory' ? 'Inventory Management' :
                    activeSection === 'sales' ? 'Sales Management' :
+                   activeSection === 'enquiry-sample' ? 'Enquiry and Sample Management' :
+                   activeSection === 'sales-crm' ? 'Sales CRM' :
                    activeSection === 'purchase' ? 'Purchase Management' :
                    activeSection === 'logistics' ? 'Logistics Management' :
                    activeSection === 'accounts' ? 'Accounts & Finance' :
@@ -421,11 +451,11 @@ export default function AdminDashboard() {
             <WebsiteManagement />
           )}
 
-          {activeSection === 'sales' && (
-            <SalesManagement />
+          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm') && (
+            <SalesManagement activeSubSection={activeSection} />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && (
             <Card>
               <CardHeader>
                 <CardTitle>
