@@ -1000,12 +1000,17 @@ export class DatabaseStorage implements IStorage {
             continue;
           }
 
+          // Get category ID from category name
+          const categoryName = row.category || defaultCategory || '';
+          const categoryId = categoryMap.get(categoryName.toLowerCase());
+          
           // Create product data (all fields from CSV, empty values allowed for optional fields)
           const productData: InsertProduct = {
             productId,
             name: row.name.trim(),
             description: row.description || '',
-            category: row.category || defaultCategory || '',
+            category: categoryName,
+            categoryId: categoryId,
             price: parseFloat(row.price) || 0,
             moq: row.moq || '',
             packingSize: row.packingSize || '',
