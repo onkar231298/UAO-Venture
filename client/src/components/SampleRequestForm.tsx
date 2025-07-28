@@ -233,7 +233,7 @@ export function SampleRequestForm({ product, isAuthenticated }: SampleRequestFor
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   required
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+91-7249847439"
                 />
               </div>
               <div>

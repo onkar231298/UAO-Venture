@@ -313,14 +313,16 @@ export default function Landing() {
                 <div className="flex items-start space-x-2">
                   <MapPin className="w-4 h-4 mt-1" />
                   <div>
-                    <p>123 Organic Industry Hub</p>
-                    <p>Mumbai, Maharashtra 400001</p>
+                    <p>C/O Bright Fame International</p>
+                    <p>Opp. Murlidhar Guest House,</p>
+                    <p>Mehsana-Vishnagar Road, Kansarakui</p>
+                    <p>Mehsana, Gujarat 384001</p>
                     <p>India</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="w-4 h-4" />
-                  <span>+91-98765-43210</span>
+                  <span>+91-7249847439</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4" />
@@ -331,7 +333,7 @@ export default function Landing() {
           </div>
           
           <div className="border-t border-green-500 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-green-200">
-            <p>&copy; 2024 BFI Organic Pvt. Ltd. All rights reserved.</p>
+            <p>&copy; 2024 Bright Fame Organic Pvt. Ltd. All rights reserved.</p>
             <div className="flex space-x-4 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

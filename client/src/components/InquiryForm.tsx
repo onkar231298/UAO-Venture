@@ -262,7 +262,7 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
                 <Label htmlFor="phoneNumber">Phone Number *</Label>
                 <Input
                   id="phoneNumber"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+91-7249847439"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
                   required

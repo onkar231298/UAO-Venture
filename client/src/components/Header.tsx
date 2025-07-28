@@ -216,11 +216,11 @@ export default function Header() {
               <div className="flex items-center space-x-2">
                 <Phone className="text-white w-4 h-4" />
                 <div className="hidden lg:block">
-                  <div className="font-medium">+91-98765-43210</div>
+                  <div className="font-medium">+91-7249847439</div>
                   <div className="text-xs text-green-200">Customer Support</div>
                 </div>
                 <div className="block lg:hidden">
-                  <div className="font-medium text-xs">+91-98765-43210</div>
+                  <div className="font-medium text-xs">+91-7249847439</div>
                 </div>
               </div>
               <a href="#" className="flex items-center space-x-1 hover:text-green-200 bg-green-700 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm">

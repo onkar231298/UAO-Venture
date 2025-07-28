@@ -465,7 +465,7 @@ export default function WebsiteManagement() {
                     <div className="space-y-4">
                       <div>
                         <Label>Site Title</Label>
-                        <Input defaultValue="BFI Organic - Premium B2B Organic Ingredients" />
+                        <Input defaultValue="Bright Fame Organic - Premium B2B Organic Ingredients" />
                       </div>
                       
                       <div>
@@ -634,7 +634,7 @@ export default function WebsiteManagement() {
                     <div className="space-y-4">
                       <div>
                         <Label>Business Phone</Label>
-                        <Input defaultValue="+91-98765-43210" />
+                        <Input defaultValue="+91-7249847439" />
                       </div>
                       
                       <div>
@@ -645,7 +645,7 @@ export default function WebsiteManagement() {
                       <div>
                         <Label>Business Address</Label>
                         <Textarea 
-                          defaultValue="123 Organic Industry Hub, Mumbai, Maharashtra 400001, India"
+                          defaultValue="C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India"
                           rows={3}
                         />
                       </div>
