@@ -2278,6 +2278,27 @@ function TagsManagement({ tags, loading }: any) {
     },
   });
 
+  const migrateTagsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/tags/migrate", {});
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Certification tags synchronized successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to synchronize tags",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -2297,13 +2318,24 @@ function TagsManagement({ tags, loading }: any) {
           <h2 className="text-xl font-semibold text-gray-900">Tags Management</h2>
           <p className="text-gray-600">Create and manage product tags for filtering and SEO</p>
         </div>
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Tag
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => migrateTagsMutation.mutate()}
+            disabled={migrateTagsMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            <Package className="h-4 w-4" />
+            {migrateTagsMutation.isPending ? "Syncing..." : "Sync Product Tags"}
+          </Button>
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Tag
+          </Button>
+        </div>
       </div>
 
       {/* Quick Add Predefined Tags */}

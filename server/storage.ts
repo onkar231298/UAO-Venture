@@ -73,6 +73,8 @@ export interface IStorage {
   createProductTag(tag: InsertProductTag): Promise<ProductTag>;
   updateProductTag(id: number, tag: Partial<InsertProductTag>): Promise<ProductTag>;
   deleteProductTag(id: number): Promise<void>;
+  syncCertificationsToTags(certifications: string[]): Promise<void>;
+  migrateExistingCertificationsToTags(): Promise<void>;
   assignTagToProduct(productId: number, tagId: number): Promise<void>;
   removeTagFromProduct(productId: number, tagId: number): Promise<void>;
 
@@ -343,6 +345,12 @@ export class DatabaseStorage implements IStorage {
     }
     
     const [newProduct] = await db.insert(products).values(processedProduct).returning();
+    
+    // Sync certifications with tag system
+    if (processedProduct.certifications && Array.isArray(processedProduct.certifications)) {
+      await this.syncCertificationsToTags(processedProduct.certifications);
+    }
+    
     return newProduct;
   }
 
@@ -396,6 +404,12 @@ export class DatabaseStorage implements IStorage {
       .set({ ...processedProduct, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
+      
+    // Sync certifications with tag system
+    if (processedProduct.certifications && Array.isArray(processedProduct.certifications)) {
+      await this.syncCertificationsToTags(processedProduct.certifications);
+    }
+    
     return updatedProduct;
   }
 
@@ -452,6 +466,77 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProductTag(id: number): Promise<void> {
     await db.update(productTags).set({ isActive: false }).where(eq(productTags.id, id));
+  }
+
+  // Tag synchronization method
+  async syncCertificationsToTags(certifications: string[]): Promise<void> {
+    if (!certifications || !Array.isArray(certifications)) return;
+    
+    // Get existing tags
+    const existingTags = await this.getProductTags();
+    const existingTagNames = existingTags.map(tag => tag.name);
+    
+    // Find missing certifications that need to be created as tags
+    const missingCertifications = certifications.filter(cert => 
+      cert && typeof cert === 'string' && cert.trim() && !existingTagNames.includes(cert.trim())
+    );
+    
+    // Create missing tags
+    for (const certName of missingCertifications) {
+      const tagSlug = certName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      
+      try {
+        await this.createProductTag({
+          name: certName.trim(),
+          slug: tagSlug,
+          color: '#22C55E', // Green color for certification tags
+          description: `Certification tag: ${certName}`,
+          isActive: true
+        });
+        console.log(`Created tag for certification: ${certName}`);
+      } catch (error) {
+        // Tag might already exist due to concurrent operations, ignore duplicate errors
+        if (!error.message?.includes('unique') && !error.message?.includes('duplicate')) {
+          console.error(`Failed to create tag for certification ${certName}:`, error);
+        }
+      }
+    }
+  }
+
+  // Migration method to sync existing product certifications to tags
+  async migrateExistingCertificationsToTags(): Promise<void> {
+    console.log('Starting migration of existing product certifications to tags...');
+    
+    try {
+      // Get all products with certifications
+      const allProducts = await db.select().from(products).where(eq(products.isActive, true));
+      
+      // Collect all unique certifications
+      const allCertifications = new Set<string>();
+      
+      for (const product of allProducts) {
+        if (product.certifications && Array.isArray(product.certifications)) {
+          product.certifications.forEach((cert: string) => {
+            if (cert && typeof cert === 'string' && cert.trim()) {
+              allCertifications.add(cert.trim());
+            }
+          });
+        }
+      }
+      
+      // Sync all collected certifications to tags
+      if (allCertifications.size > 0) {
+        await this.syncCertificationsToTags(Array.from(allCertifications));
+        console.log(`Migration completed: ${allCertifications.size} unique certifications processed`);
+      } else {
+        console.log('No certifications found to migrate');
+      }
+    } catch (error) {
+      console.error('Failed to migrate existing certifications to tags:', error);
+    }
   }
 
   async assignTagToProduct(productId: number, tagId: number): Promise<void> {

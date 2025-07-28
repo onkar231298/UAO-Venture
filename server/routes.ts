@@ -736,6 +736,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Migrate existing product certifications to tags
+  app.post('/api/admin/tags/migrate', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      await storage.migrateExistingCertificationsToTags();
+      res.json({ message: "Migration completed successfully" });
+    } catch (error) {
+      console.error("Error migrating certifications:", error);
+      res.status(500).json({ message: "Failed to migrate certifications" });
+    }
+  });
+
   // Get all hero sliders
   app.get('/api/admin/sliders', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
