@@ -175,9 +175,14 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Generate unique Product ID
   private async generateProductId(): Promise<string> {
+    const nextNum = await this.getNextProductIdNumber();
+    return `BFI${nextNum.toString().padStart(3, '0')}`;
+  }
+
+  // Get the next product ID number for bulk generation
+  private async getNextProductIdNumber(): Promise<number> {
     const count = await db.select({ count: sql<number>`count(*)` }).from(products);
-    const nextId = (count[0]?.count || 0) + 1;
-    return `BFI${nextId.toString().padStart(3, '0')}`;
+    return (count[0]?.count || 0) + 1;
   }
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
@@ -975,14 +980,53 @@ export class DatabaseStorage implements IStorage {
       const existingProducts = await db.select({ productId: products.productId }).from(products);
       const existingProductIds = new Set(existingProducts.map(p => p.productId));
 
-      // Process each row
+      // Pre-generate unique product IDs for rows that don't have them
+      let nextProductIdNum = await this.getNextProductIdNumber();
+      const csvProductIds = new Set(); // Track IDs within this CSV to prevent duplicates
+      
+      // First pass: assign product IDs and validate
       for (let i = 0; i < rows.length; i++) {
-        const rowIndex = i + 2; // +2 because row 1 is header and we start from 0
+        const rowIndex = i + 2;
+        const row = rows[i];
+        
+        // Skip empty rows
+        if (!row.name || row.name.trim() === '') {
+          continue;
+        }
+
+        // Assign product ID
+        if (!row.productId || row.productId.trim() === '') {
+          row.productId = `BFI${String(nextProductIdNum).padStart(3, '0')}`;
+          nextProductIdNum++;
+        }
+
+        // Check for duplicates within CSV
+        if (csvProductIds.has(row.productId)) {
+          duplicates.push(row.productId);
+          continue;
+        }
+        csvProductIds.add(row.productId);
+
+        // Check for duplicates with existing database products
+        if (existingProductIds.has(row.productId)) {
+          duplicates.push(row.productId);
+          continue;
+        }
+      }
+
+      // Second pass: validate and process each row
+      for (let i = 0; i < rows.length; i++) {
+        const rowIndex = i + 2;
         const row = rows[i];
         
         try {
           // Skip empty rows
           if (!row.name || row.name.trim() === '') {
+            continue;
+          }
+
+          // Skip if this row had duplicate ID
+          if (duplicates.includes(row.productId)) {
             continue;
           }
 
@@ -993,20 +1037,13 @@ export class DatabaseStorage implements IStorage {
             continue;
           }
 
-          // Check for duplicate product IDs
-          const productId = row.productId || await this.generateProductId();
-          if (existingProductIds.has(productId)) {
-            duplicates.push(productId);
-            continue;
-          }
-
           // Get category ID from category name
           const categoryName = row.category || defaultCategory || '';
           const categoryId = categoryMap.get(categoryName.toLowerCase());
           
           // Create product data (all fields from CSV, empty values allowed for optional fields)
           const productData: InsertProduct = {
-            productId,
+            productId: row.productId,
             name: row.name.trim(),
             description: row.description || '',
             category: categoryName,
@@ -1040,7 +1077,7 @@ export class DatabaseStorage implements IStorage {
           };
 
           successfulRows.push(productData);
-          existingProductIds.add(productId); // Prevent duplicates within the same upload
+          existingProductIds.add(row.productId); // Prevent duplicates within the same upload
 
         } catch (error) {
           errors.push({
