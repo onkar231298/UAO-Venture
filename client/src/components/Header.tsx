@@ -64,7 +64,7 @@ export default function Header() {
               <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
                 Home
               </Link>
-              <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
+              <Link href="/products" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}>
                 Products
               </Link>
               <DropdownMenu>
@@ -72,10 +72,21 @@ export default function Header() {
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>Organic Powders</DropdownMenuItem>
-                  <DropdownMenuItem>Herbal Extracts</DropdownMenuItem>
-                  <DropdownMenuItem>Essential Oils</DropdownMenuItem>
-                  <DropdownMenuItem>Raw Materials</DropdownMenuItem>
+                  <Link href="/ingredients">
+                    <DropdownMenuItem>All Ingredients</DropdownMenuItem>
+                  </Link>
+                  <Link href="/products?category=Herbal Powders">
+                    <DropdownMenuItem>Herbal Powders</DropdownMenuItem>
+                  </Link>
+                  <Link href="/products?category=Essential Oils">
+                    <DropdownMenuItem>Essential Oils</DropdownMenuItem>
+                  </Link>
+                  <Link href="/products?category=Herbal Extracts">
+                    <DropdownMenuItem>Herbal Extracts</DropdownMenuItem>
+                  </Link>
+                  <Link href="/products?category=Oleoresins">
+                    <DropdownMenuItem>Oleoresins</DropdownMenuItem>
+                  </Link>
                 </DropdownMenuContent>
               </DropdownMenu>
               <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">

@@ -36,7 +36,7 @@ import {
   type PurchaseOrder,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, asc, count, sql } from "drizzle-orm";
+import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -207,9 +207,15 @@ export class DatabaseStorage implements IStorage {
 
   // Product operations
   async getProducts(filters?: {
-    category?: string;
+    category?: string[];
     search?: string;
     isOrganic?: boolean;
+    healthSupport?: string[];
+    origin?: string[];
+    form?: string[];
+    inStock?: boolean;
+    priceRange?: [number, number];
+    sortBy?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }> {
@@ -219,21 +225,88 @@ export class DatabaseStorage implements IStorage {
       eq(products.isVisible, true)
     ];
     
-    if (filters?.category && !isNaN(parseInt(filters.category))) {
-      conditions.push(eq(products.categoryId, parseInt(filters.category)));
+    // Category filter (support multiple categories)
+    if (filters?.category && filters.category.length > 0) {
+      const categoryNames = filters.category;
+      const categoryConditions = categoryNames.map(name => 
+        sql`${products.category} ILIKE ${name}`
+      );
+      conditions.push(or(...categoryConditions));
     }
     
+    // Search filter
     if (filters?.search) {
       conditions.push(
-        sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`}`
+        sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`} OR ${products.botanicalName} ILIKE ${`%${filters.search}%`}`
       );
     }
     
+    // Organic filter
     if (filters?.isOrganic !== undefined) {
-      conditions.push(eq(products.isOrganic, filters.isOrganic));
+      // Note: we'll use a text field check since the schema shows isOrganic as boolean but we're storing product type as text
+      if (filters.isOrganic) {
+        conditions.push(eq(products.productType, 'organic'));
+      } else {
+        conditions.push(eq(products.productType, 'conventional'));
+      }
+    }
+
+    // Health Support filter
+    if (filters?.healthSupport && filters.healthSupport.length > 0) {
+      const healthConditions = filters.healthSupport.map(health => 
+        sql`${products.healthSupport} ILIKE ${health}`
+      );
+      conditions.push(or(...healthConditions));
+    }
+
+    // Origin filter
+    if (filters?.origin && filters.origin.length > 0) {
+      const originConditions = filters.origin.map(origin => 
+        sql`${products.origin} ILIKE ${origin}`
+      );
+      conditions.push(or(...originConditions));
+    }
+
+    // Form filter
+    if (filters?.form && filters.form.length > 0) {
+      const formConditions = filters.form.map(form => 
+        sql`${products.form} ILIKE ${form}`
+      );
+      conditions.push(or(...formConditions));
+    }
+
+    // Stock filter
+    if (filters?.inStock === true) {
+      conditions.push(sql`${products.currentStock} > 0`);
+    }
+
+    // Price range filter
+    if (filters?.priceRange) {
+      const [minPrice, maxPrice] = filters.priceRange;
+      conditions.push(
+        sql`${products.priceUSD} >= ${minPrice} AND ${products.priceUSD} <= ${maxPrice}`
+      );
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    // Determine sort order
+    let orderBy;
+    switch (filters?.sortBy) {
+      case 'price-low':
+        orderBy = asc(products.priceUSD);
+        break;
+      case 'price-high':
+        orderBy = desc(products.priceUSD);
+        break;
+      case 'name':
+        orderBy = asc(products.name);
+        break;
+      case 'newest':
+      default:
+        orderBy = desc(products.createdAt);
+        break;
+    }
 
     const [productsResult, totalResult] = await Promise.all([
       db
@@ -242,7 +315,7 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
-        .orderBy(desc(products.createdAt)),
+        .orderBy(orderBy),
       db
         .select({ count: count() })
         .from(products)

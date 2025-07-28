@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
+import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import UnifiedLogin from "@/pages/UnifiedLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -20,6 +21,8 @@ function Router() {
     <Switch>
       {/* Public routes - always accessible for everyone */}
       <Route path="/" component={Landing} />
+      <Route path="/products" component={Products} />
+      <Route path="/ingredients" component={Products} />
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/test-currency" component={TestMultiCurrency} />

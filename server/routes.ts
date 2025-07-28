@@ -37,18 +37,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public API routes (no authentication required)
   
-  // Get products with filtering
+  // Get products with advanced filtering
   app.get('/api/products', async (req, res) => {
     try {
-      const { category, search, isOrganic, limit = '50', offset = '0' } = req.query;
+      const { 
+        category, 
+        search, 
+        isOrganic, 
+        healthSupport, 
+        origin, 
+        form, 
+        inStock, 
+        priceMin, 
+        priceMax, 
+        sortBy, 
+        limit = '50', 
+        offset = '0' 
+      } = req.query;
       
-      const filters = {
-        category: category as string,
-        search: search as string,
-        isOrganic: isOrganic === 'true' ? true : isOrganic === 'false' ? false : undefined,
+      const filters: any = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
+
+      // Handle array filters (comma-separated)
+      if (category) {
+        filters.category = Array.isArray(category) ? category : (category as string).split(',');
+      }
+      
+      if (healthSupport) {
+        filters.healthSupport = Array.isArray(healthSupport) ? healthSupport : (healthSupport as string).split(',');
+      }
+      
+      if (origin) {
+        filters.origin = Array.isArray(origin) ? origin : (origin as string).split(',');
+      }
+      
+      if (form) {
+        filters.form = Array.isArray(form) ? form : (form as string).split(',');
+      }
+
+      // Handle other filters
+      if (search) {
+        filters.search = search as string;
+      }
+      
+      if (isOrganic !== undefined) {
+        filters.isOrganic = isOrganic === 'true' ? true : isOrganic === 'false' ? false : undefined;
+      }
+      
+      if (inStock !== undefined) {
+        filters.inStock = inStock === 'true';
+      }
+      
+      if (priceMin && priceMax) {
+        filters.priceRange = [parseFloat(priceMin as string), parseFloat(priceMax as string)];
+      }
+      
+      if (sortBy) {
+        filters.sortBy = sortBy as string;
+      }
 
       const result = await storage.getProducts(filters);
       res.json(result);
