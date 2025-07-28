@@ -1018,6 +1018,7 @@ export class DatabaseStorage implements IStorage {
             form: row.form || '',
             activeContent: row.activeContent || '',
             processingMethod: row.processingMethod || '',
+            healthSupport: row.healthSupport || '',
             meshSize: row.meshSize || '',
             moisture: row.moisture || '',
             ashContent: row.ashContent || '',
@@ -1115,6 +1116,7 @@ export class DatabaseStorage implements IStorage {
       'form',                    // Physical form (powder, liquid, etc.)
       'activeContent',           // Active compound percentage
       'processingMethod',        // Processing method used
+      'healthSupport',           // Functional Category (Antioxidant, Digestive Support, etc.)
       
       // *** OPTIONAL PHYSICAL PROPERTIES (Can be blank) ***
       'meshSize',                // Mesh size specification
@@ -1275,6 +1277,7 @@ export class DatabaseStorage implements IStorage {
       'Fine Powder', // form
       '5% Withanolides', // activeContent
       'Spray Dried', // processingMethod
+      'Stress Relief', // healthSupport
       
       // *** OPTIONAL PHYSICAL PROPERTIES ***
       '80 mesh', // meshSize

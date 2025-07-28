@@ -444,6 +444,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     botanicalName: product?.botanicalName || "",
     plantPart: product?.plantPart || "",
     origin: product?.origin || "",
+    healthSupport: product?.healthSupport || "",
     hsCode: product?.hsCode || "",
     categoryId: product?.categoryId || "",
     productType: product?.productType || "organic",
@@ -565,6 +566,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
       botanicalName: formData.botanicalName || undefined,
       plantPart: formData.plantPart || undefined,
       origin: formData.origin || undefined,
+      healthSupport: formData.healthSupport || undefined,
       hsCode: formData.hsCode || undefined,
       productGrade: formData.productGrade || undefined,
       form: formData.form || undefined,
@@ -676,6 +678,42 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     value={formData.plantPart}
                     onChange={(e) => setFormData(prev => ({ ...prev, plantPart: e.target.value }))}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="origin">Origin</Label>
+                  <Input
+                    id="origin"
+                    value={formData.origin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+                    placeholder="Country/region of origin"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="healthSupport">Health Support</Label>
+                  <Select value={formData.healthSupport} onValueChange={(value) => setFormData(prev => ({ ...prev, healthSupport: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select functional category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Antioxidant">Antioxidant (356)</SelectItem>
+                      <SelectItem value="Digestive Support">Digestive Support (208)</SelectItem>
+                      <SelectItem value="Heart Support">Heart Support (195)</SelectItem>
+                      <SelectItem value="Immune Enhancer">Immune Enhancer (178)</SelectItem>
+                      <SelectItem value="Blood Sugar Support">Blood Sugar Support (148)</SelectItem>
+                      <SelectItem value="Skin Health">Skin Health (135)</SelectItem>
+                      <SelectItem value="Weight Management">Weight Management (101)</SelectItem>
+                      <SelectItem value="Cholesterol Support">Cholesterol Support (88)</SelectItem>
+                      <SelectItem value="Stress Relief">Stress Relief (53)</SelectItem>
+                      <SelectItem value="Bone Health">Bone Health (43)</SelectItem>
+                      <SelectItem value="Eyesight Support">Eyesight Support (40)</SelectItem>
+                      <SelectItem value="Joint Support">Joint Support (39)</SelectItem>
+                      <SelectItem value="Cough and Cold">Cough and Cold (36)</SelectItem>
+                      <SelectItem value="Brain Support">Brain Support (33)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

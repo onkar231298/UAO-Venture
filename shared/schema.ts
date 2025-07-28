@@ -70,6 +70,7 @@ export const products = pgTable("products", {
   categoryId: integer("category_id").references(() => categories.id),
   productType: varchar("product_type", { length: 50 }).default("organic"), // organic, conventional
   productGrade: varchar("product_grade", { length: 100 }), // Food Grade, Pharma Grade, etc.
+  healthSupport: varchar("health_support", { length: 100 }), // Functional Category - Antioxidant, Digestive Support, etc.
   
   // Product Properties
   form: varchar("form", { length: 100 }), // powder, extract, oil, whole, etc.

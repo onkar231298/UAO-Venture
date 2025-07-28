@@ -778,6 +778,7 @@ function ProductForm({
     botanicalName: product?.botanicalName || "",
     plantPart: product?.plantPart || "",
     origin: product?.origin || "",
+    healthSupport: product?.healthSupport || "",
     categoryId: product?.categoryId?.toString() || "",
     form: product?.form || "",
     isOrganic: product?.isOrganic || false,
@@ -863,6 +864,55 @@ function ProductForm({
           <Label>Origin</Label>
           <Input
             value={formData.origin}
+            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label>Health Support</Label>
+          <Select value={formData.healthSupport} onValueChange={(value) => setFormData(prev => ({ ...prev, healthSupport: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select functional category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Antioxidant">Antioxidant (356)</SelectItem>
+              <SelectItem value="Digestive Support">Digestive Support (208)</SelectItem>
+              <SelectItem value="Heart Support">Heart Support (195)</SelectItem>
+              <SelectItem value="Immune Enhancer">Immune Enhancer (178)</SelectItem>
+              <SelectItem value="Blood Sugar Support">Blood Sugar Support (148)</SelectItem>
+              <SelectItem value="Skin Health">Skin Health (135)</SelectItem>
+              <SelectItem value="Weight Management">Weight Management (101)</SelectItem>
+              <SelectItem value="Cholesterol Support">Cholesterol Support (88)</SelectItem>
+              <SelectItem value="Stress Relief">Stress Relief (53)</SelectItem>
+              <SelectItem value="Bone Health">Bone Health (43)</SelectItem>
+              <SelectItem value="Eyesight Support">Eyesight Support (40)</SelectItem>
+              <SelectItem value="Joint Support">Joint Support (39)</SelectItem>
+              <SelectItem value="Cough and Cold">Cough and Cold (36)</SelectItem>
+              <SelectItem value="Brain Support">Brain Support (33)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label>Category</Label>
+          <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Form</Label>
+          <Input
+            value={formData.form}
             onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
           />
         </div>
