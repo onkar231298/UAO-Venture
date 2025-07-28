@@ -2112,7 +2112,7 @@ function CategoryForm({ category, categories, onSubmit, onCancel, isLoading }: a
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No Parent</SelectItem>
+                        <SelectItem value="all">No Parent</SelectItem>
                         {categories
                           .filter((cat: any) => cat.id !== category?.id)
                           .map((cat: any) => (

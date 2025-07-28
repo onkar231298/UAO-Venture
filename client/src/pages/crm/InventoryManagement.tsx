@@ -194,7 +194,7 @@ export default function InventoryManagement() {
                     <SelectValue placeholder="All Products" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Products</SelectItem>
+                    <SelectItem value="all">All Products</SelectItem>
                     {products?.products?.map((product: Product) => (
                       <SelectItem key={product.id} value={product.id.toString()}>
                         {product.name}

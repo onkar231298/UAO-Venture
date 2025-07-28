@@ -138,7 +138,7 @@ export default function LogisticsManagement() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="packed">Packed</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>

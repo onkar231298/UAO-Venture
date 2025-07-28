@@ -36,7 +36,7 @@ export default function SalesManagement() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("inquiries");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Queries
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -277,7 +277,7 @@ export default function SalesManagement() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="quoted">Quoted</SelectItem>
                     <SelectItem value="converted">Converted</SelectItem>
