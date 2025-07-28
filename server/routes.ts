@@ -13,6 +13,7 @@ import {
   insertSampleRequestSchema
 } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
 import { productImageUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
