@@ -500,7 +500,7 @@ export default function ProductDetailGreenJeeva() {
 
                   <TabsContent value="faqs" className="m-0 p-4 space-y-4">
                     <div className="space-y-4 w-full">
-                      {/* Custom FAQs from product upload form */}
+                      {/* Display FAQs from backend - either custom or default */}
                       {product.faqs && (product.faqs as any[]).length > 0 ? (
                         (product.faqs as any[]).map((faq, index) => (
                           <div key={index} className="border-l-4 border-orange-500 pl-4 py-2">
@@ -509,37 +509,20 @@ export default function ProductDetailGreenJeeva() {
                           </div>
                         ))
                       ) : (
-                        /* Default professional FAQs */
-                        <>
-                          <div className="border-l-4 border-orange-500 pl-4 py-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
-                            <p className="text-gray-700 text-sm mt-1">
-                              Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
-                              ensuring consistent quality and potency in every batch.
-                            </p>
+                        /* Fallback message when no FAQs are available */
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <MessageSquare className="w-6 h-6 text-gray-400" />
                           </div>
-                          <div className="border-l-4 border-orange-500 pl-4 py-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
-                            <p className="text-gray-700 text-sm mt-1">
-                              Store in a cool, dry place away from direct sunlight. Keep in original packaging 
-                              and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
-                            </p>
-                          </div>
-                          <div className="border-l-4 border-orange-500 pl-4 py-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
-                            <p className="text-gray-700 text-sm mt-1">
-                              Yes, this product is certified organic by USDA NOP and EU Organic standards. 
-                              All certificates are available for download in the documents section.
-                            </p>
-                          </div>
-                          <div className="border-l-4 border-orange-500 pl-4 py-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
-                            <p className="text-gray-700 text-sm mt-1">
-                              The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
-                              and can accommodate custom packaging requirements for larger quantities.
-                            </p>
-                          </div>
-                        </>
+                          <h3 className="font-semibold text-gray-900 mb-2">No FAQs Available</h3>
+                          <p className="text-gray-600 text-sm mb-4">
+                            Product FAQs have not been added yet. Please contact us with any questions about this product.
+                          </p>
+                          <Button variant="outline" size="sm">
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Ask a Question
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
