@@ -22,7 +22,8 @@ import {
   Download, 
   Heart, 
   Share2, 
-  MessageSquare, 
+  MessageSquare,
+  MessageSquarePlus, 
   Copy,
   Eye,
   FileText,
@@ -553,55 +554,19 @@ export default function ProductDetailGreenJeeva() {
               </CardContent>
             </Card>
 
-            {/* Tell Us Your Requirement Form */}
+            {/* Tell Us Your Requirement Form - Enhanced with Contact Info */}
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle className="text-lg">Tell Us Your Requirement</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquarePlus className="w-5 h-5 text-orange-600" />
+                  Tell Us Your Requirement
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Submit your detailed inquiry with contact information for personalized assistance
+                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Product*</label>
-                  <Input value={product.name} disabled className="mt-1" />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Pack Quantity*</label>
-                  <div className="flex gap-2 mt-1">
-                    <Input 
-                      type="number" 
-                      placeholder="25" 
-                      value={selectedQuantity}
-                      onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 25)}
-                    />
-                    <Select defaultValue="kg">
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kg">Kg</SelectItem>
-                        <SelectItem value="gm">Gm</SelectItem>
-                        <SelectItem value="lb">Lb</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Total: {selectedQuantity}.00Kg x 1 = {selectedQuantity}.00Kg
-                  </p>
-                </div>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                      Place an Enquiry
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Place Enquiry for {product.name}</DialogTitle>
-                    </DialogHeader>
-                    <InquiryForm product={product} />
-                  </DialogContent>
-                </Dialog>
+              <CardContent>
+                <EnhancedInquiryForm product={product} isAuthenticated={isAuthenticated} />
               </CardContent>
             </Card>
 
