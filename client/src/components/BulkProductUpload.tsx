@@ -204,8 +204,8 @@ export default function BulkProductUpload() {
           <Alert className="mt-4">
             <FileSpreadsheet className="h-4 w-4" />
             <AlertDescription>
-              Download a CSV template with essential product information only. 
-              Advanced fields like images, FAQs, and detailed specifications can be added later through the regular product editor.
+              Download a CSV template with all product fields. Only 4 fields are required (name, description, category, price). 
+              All other fields can be left blank and filled later through the product editor.
             </AlertDescription>
           </Alert>
         </div>
@@ -364,12 +364,13 @@ export default function BulkProductUpload() {
         <div className="bg-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold text-blue-900 mb-2">Upload Instructions:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Required fields:</strong> name, description, category, price</li>
-            <li>• Template includes only essential business information</li>
-            <li>• Images, FAQs, tags, and detailed specs can be added later via product editor</li>
-            <li>• All validation errors must be fixed before upload succeeds</li>
+            <li>• <strong>Required fields (must be filled):</strong> name, description, category, price</li>
+            <li>• <strong>Optional fields (can be blank):</strong> All other fields in template</li>
+            <li>• Template includes complete product specification fields for comprehensive data entry</li>
+            <li>• Blank optional fields can be filled later through the product editor</li>
+            <li>• Images, FAQs, and tags are still added through the regular product editor</li>
+            <li>• Only validation errors in required fields will prevent upload</li>
             <li>• Product IDs are auto-generated if not provided</li>
-            <li>• Status options: draft, active, inactive (defaults to draft)</li>
           </ul>
         </div>
       </CardContent>

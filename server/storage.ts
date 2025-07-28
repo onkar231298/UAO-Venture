@@ -1000,7 +1000,7 @@ export class DatabaseStorage implements IStorage {
             continue;
           }
 
-          // Create product data (only basic required fields from CSV)
+          // Create product data (all fields from CSV, empty values allowed for optional fields)
           const productData: InsertProduct = {
             productId,
             name: row.name.trim(),
@@ -1012,8 +1012,16 @@ export class DatabaseStorage implements IStorage {
             origin: row.origin || '',
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
+            extractionMethod: row.extractionMethod || '',
+            solubility: row.solubility || '',
             grade: row.grade || '',
             form: row.form || '',
+            activeContent: row.activeContent || '',
+            processingMethod: row.processingMethod || '',
+            meshSize: row.meshSize || '',
+            moisture: row.moisture || '',
+            ashContent: row.ashContent || '',
+            bulkDensity: row.bulkDensity || '',
             storageConditions: row.storageConditions || '',
             shelfLife: row.shelfLife || '',
             hsCode: row.hsCode || '',
@@ -1025,17 +1033,7 @@ export class DatabaseStorage implements IStorage {
             slug: this.generateSlug(row.name),
             metaTitle: row.metaTitle || row.name,
             metaDescription: row.metaDescription || row.description?.substring(0, 160) || '',
-            
-            // Set default values for optional fields that can be edited later
-            extractionMethod: '',
-            solubility: '',
-            meshSize: '',
-            moisture: '',
-            ashContent: '',
-            bulkDensity: '',
-            activeContent: '',
-            processingMethod: '',
-            keywords: '',
+            keywords: row.keywords || '',
           };
 
           successfulRows.push(productData);
@@ -1095,35 +1093,44 @@ export class DatabaseStorage implements IStorage {
   // Generate product template CSV
   async generateProductTemplate(categoryId?: number): Promise<string> {
     const headers = [
-      // REQUIRED BASIC INFORMATION
+      // *** REQUIRED FIELDS (Must be filled) ***
       'name',                    // Product name (REQUIRED)
-      'description',             // Basic product description (REQUIRED)
+      'description',             // Basic product description (REQUIRED) 
       'category',                // Product category (REQUIRED)
       'price',                   // Base price (REQUIRED)
       
-      // ESSENTIAL BUSINESS FIELDS
+      // *** OPTIONAL BUSINESS FIELDS (Can be blank) ***
       'moq',                     // Minimum order quantity
       'packagingType',           // How it's packaged
       'origin',                  // Country/region of origin
-      'status',                  // draft/active/inactive
+      'status',                  // draft/active/inactive (defaults to draft)
       'isOrganic',               // true/false for organic certification
       
-      // BASIC PRODUCT SPECIFICATIONS
+      // *** OPTIONAL PRODUCT SPECIFICATIONS (Can be blank) ***
       'botanicalName',           // Scientific name
       'plantPart',               // Part of plant used
+      'extractionMethod',        // Extraction method used
+      'solubility',              // Solubility information
       'grade',                   // Quality grade
       'form',                    // Physical form (powder, liquid, etc.)
+      'activeContent',           // Active compound percentage
+      'processingMethod',        // Processing method used
       
-      // STORAGE & HANDLING
+      // *** OPTIONAL PHYSICAL PROPERTIES (Can be blank) ***
+      'meshSize',                // Mesh size specification
+      'moisture',                // Moisture content
+      'ashContent',              // Ash content percentage
+      'bulkDensity',             // Bulk density
+      
+      // *** OPTIONAL STORAGE & TRADE INFO (Can be blank) ***
       'storageConditions',       // Storage requirements
       'shelfLife',               // Shelf life information
-      
-      // TRADE INFORMATION
       'hsCode',                  // HS code for customs
       
-      // BASIC SEO (optional but recommended)
+      // *** OPTIONAL SEO FIELDS (Can be blank) ***
       'metaTitle',               // SEO title
-      'metaDescription'          // SEO description
+      'metaDescription',         // SEO description
+      'keywords'                 // SEO keywords
     ];
 
     // Get category info for example data
@@ -1173,15 +1180,22 @@ export class DatabaseStorage implements IStorage {
   private validateProductRow(row: any, lineNumber: number, categoryMap: Map<string, number>, defaultCategory?: string): Array<{ line: number; field: string; message: string; value?: string }> {
     const errors: Array<{ line: number; field: string; message: string; value?: string }> = [];
 
-    // Required fields
+    // *** REQUIRED FIELDS VALIDATION (These must be filled) ***
+    
+    // Product name is mandatory
     if (!row.name || row.name.trim() === '') {
-      errors.push({ line: lineNumber, field: 'name', message: 'Product name is required' });
+      errors.push({ line: lineNumber, field: 'name', message: 'Product name is required and cannot be blank' });
     }
 
-    // Category validation
+    // Description is mandatory
+    if (!row.description || row.description.trim() === '') {
+      errors.push({ line: lineNumber, field: 'description', message: 'Product description is required and cannot be blank' });
+    }
+
+    // Category validation (mandatory)
     const categoryToCheck = row.category || defaultCategory;
-    if (!categoryToCheck) {
-      errors.push({ line: lineNumber, field: 'category', message: 'Category is required' });
+    if (!categoryToCheck || categoryToCheck.trim() === '') {
+      errors.push({ line: lineNumber, field: 'category', message: 'Category is required and cannot be blank' });
     } else if (!categoryMap.has(categoryToCheck.toLowerCase())) {
       errors.push({ 
         line: lineNumber, 
@@ -1191,8 +1205,10 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // Price validation
-    if (row.price && isNaN(parseFloat(row.price))) {
+    // Price validation (mandatory)
+    if (!row.price || row.price.toString().trim() === '') {
+      errors.push({ line: lineNumber, field: 'price', message: 'Price is required and cannot be blank' });
+    } else if (isNaN(parseFloat(row.price))) {
       errors.push({ 
         line: lineNumber, 
         field: 'price', 
@@ -1201,32 +1217,24 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // Status validation
-    if (row.status && !['draft', 'active', 'inactive'].includes(row.status.toLowerCase())) {
+    // *** OPTIONAL FIELDS VALIDATION (Only validate format if provided) ***
+    
+    // Status validation (only if provided)
+    if (row.status && row.status.trim() !== '' && !['draft', 'active', 'inactive'].includes(row.status.toLowerCase())) {
       errors.push({ 
         line: lineNumber, 
         field: 'status', 
-        message: 'Status must be: draft, active, or inactive', 
+        message: 'Status must be: draft, active, or inactive (or leave blank for default)', 
         value: row.status 
       });
     }
 
-    // Visibility validation
-    if (row.visibility && !['visible', 'hidden'].includes(row.visibility.toLowerCase())) {
-      errors.push({ 
-        line: lineNumber, 
-        field: 'visibility', 
-        message: 'Visibility must be: visible or hidden', 
-        value: row.visibility 
-      });
-    }
-
-    // Boolean validation for isOrganic
-    if (row.isOrganic && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.isOrganic.toLowerCase())) {
+    // Boolean validation for isOrganic (only if provided)
+    if (row.isOrganic && row.isOrganic.trim() !== '' && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.isOrganic.toLowerCase())) {
       errors.push({ 
         line: lineNumber, 
         field: 'isOrganic', 
-        message: 'isOrganic must be: true, false, 1, 0, yes, or no', 
+        message: 'isOrganic must be: true, false, 1, 0, yes, no (or leave blank for false)', 
         value: row.isOrganic 
       });
     }
@@ -1245,35 +1253,44 @@ export class DatabaseStorage implements IStorage {
 
   private generateExampleDataForCategory(categoryName: string): string[] {
     const baseExample = [
-      // REQUIRED BASIC INFORMATION
-      'Ashwagandha Root Extract Powder', // name
-      'Premium quality Ashwagandha root extract powder with 5% withanolides for nutraceutical applications', // description
-      categoryName, // category
-      '25.50', // price
+      // *** REQUIRED FIELDS ***
+      'Ashwagandha Root Extract Powder', // name (REQUIRED)
+      'Premium quality Ashwagandha root extract powder with 5% withanolides for nutraceutical applications', // description (REQUIRED)
+      categoryName, // category (REQUIRED)
+      '25.50', // price (REQUIRED)
       
-      // ESSENTIAL BUSINESS FIELDS
+      // *** OPTIONAL BUSINESS FIELDS ***
       '25 KG', // moq
       '25kg HDPE Drums', // packagingType
       'India', // origin
       'active', // status
       'true', // isOrganic
       
-      // BASIC PRODUCT SPECIFICATIONS
+      // *** OPTIONAL PRODUCT SPECIFICATIONS ***
       'Withania somnifera', // botanicalName
       'Root', // plantPart
+      'Water-Ethanol Extraction', // extractionMethod
+      'Partially soluble in water', // solubility
       'Pharmaceutical Grade', // grade
       'Fine Powder', // form
+      '5% Withanolides', // activeContent
+      'Spray Dried', // processingMethod
       
-      // STORAGE & HANDLING
+      // *** OPTIONAL PHYSICAL PROPERTIES ***
+      '80 mesh', // meshSize
+      '≤ 5%', // moisture
+      '≤ 8%', // ashContent
+      '0.45-0.65 g/ml', // bulkDensity
+      
+      // *** OPTIONAL STORAGE & TRADE INFO ***
       'Store in cool, dry place away from direct sunlight', // storageConditions
       '24 months', // shelfLife
-      
-      // TRADE INFORMATION
       '1302.19', // hsCode
       
-      // BASIC SEO
+      // *** OPTIONAL SEO FIELDS ***
       'Premium Ashwagandha Root Extract Powder - 5% Withanolides', // metaTitle
-      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.' // metaDescription
+      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.', // metaDescription
+      'ashwagandha, withanolides, herbal extract, adaptogen, stress relief' // keywords
     ];
 
     // Customize example based on category

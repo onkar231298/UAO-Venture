@@ -96,12 +96,14 @@ Preferred communication style: Simple, everyday language.
 - New "Bulk Upload" tab in Website Management interface
 - Template download system with category-specific examples
 - Support for both CSV and Excel (.xlsx, .xls) file formats
-- Essential fields only: name, description, category, price, MOQ, packaging, origin, botanical name, storage conditions
-- Comprehensive validation with line-by-line error reporting
+- **Complete field coverage**: All 25+ product specification fields included in template
+- **Required fields (mandatory)**: name, description, category, price
+- **Optional fields (can be blank)**: All other fields - MOQ, packaging, origin, botanical name, extraction method, physical properties, storage conditions, SEO fields, etc.
+- Comprehensive validation with line-by-line error reporting (only for required fields and format validation)
 - Duplicate product ID detection and prevention
 - All-or-nothing upload policy (no partial uploads on validation errors)
 - Detailed upload results showing success/error counts
-- Optional fields (images, FAQs, tags, detailed specifications) can be added later via regular product editor
+- Images, FAQs, and tags still added through regular product editor
 - Auto-generated product IDs if not provided in CSV
 - File size limit: 10MB maximum
 
