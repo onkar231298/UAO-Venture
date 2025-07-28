@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import WebsiteManagement from "@/pages/WebsiteManagement";
+import SalesManagement from "@/pages/crm/SalesManagement";
 import {
   Users,
   Package,
@@ -419,8 +420,12 @@ export default function AdminDashboard() {
           {activeSection === 'website' && (
             <WebsiteManagement />
           )}
+
+          {activeSection === 'sales' && (
+            <SalesManagement />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && (
             <Card>
               <CardHeader>
                 <CardTitle>
