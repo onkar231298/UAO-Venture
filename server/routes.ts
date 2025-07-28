@@ -783,6 +783,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all categories (admin view)
+  app.get('/api/admin/categories', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const categories = await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Create new category
+  app.post('/api/admin/categories', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const categoryData = insertCategorySchema.parse(req.body);
+      
+      const category = await storage.createCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  // Update category
+  app.put('/api/admin/categories/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const categoryData = insertCategorySchema.partial().parse(req.body);
+      
+      const category = await storage.updateCategory(categoryId, categoryData);
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating category:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  // Delete category (soft delete)
+  app.delete('/api/admin/categories/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      
+      await storage.deleteCategory(categoryId);
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
   // Get all product tags
   app.get('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
+import CategoryManagement from "@/components/CategoryManagement";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -203,8 +204,9 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="products">Products</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
@@ -375,6 +377,11 @@ export default function WebsiteManagement() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Categories Management Tab */}
+            <TabsContent value="categories" className="mt-6">
+              <CategoryManagement />
             </TabsContent>
 
             {/* Content Management Tab */}
