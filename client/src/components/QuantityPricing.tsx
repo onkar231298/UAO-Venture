@@ -48,14 +48,14 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   
   // MOQ already defined above
   
-  // Default pricing tiers if none exist - ensure all tiers meet MOQ
-  // Tiers show per-kg price with discounts for larger quantities
+  // Default pricing tiers - quantity thresholds with discount percentages
+  // Price per unit is calculated dynamically based on baseRate and discount
   const defaultTiers = [
     { quantity: Math.max(minOrderQty, minOrderQty), price: baseRate, discount: 0 },
-    { quantity: Math.max(100, minOrderQty), price: baseRate * 0.95, discount: 5 },
-    { quantity: Math.max(500, minOrderQty), price: baseRate * 0.92, discount: 8 },
-    { quantity: Math.max(1000, minOrderQty), price: baseRate * 0.88, discount: 12 },
-    { quantity: Math.max(5000, minOrderQty), price: baseRate * 0.85, discount: 15 },
+    { quantity: Math.max(100, minOrderQty), price: baseRate, discount: 5 },
+    { quantity: Math.max(500, minOrderQty), price: baseRate, discount: 8 },
+    { quantity: Math.max(1000, minOrderQty), price: baseRate, discount: 12 },
+    { quantity: Math.max(5000, minOrderQty), price: baseRate, discount: 15 },
   ].filter(tier => tier.quantity >= minOrderQty);
   
   // Filter tiers to only include quantities >= MOQ
@@ -64,7 +64,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
     : defaultTiers.filter(tier => tier.quantity >= minOrderQty);
 
   const calculatePrice = (quantity: number): { totalPrice: number; discount: number; pricePerUnit: number } => {
-    // Find the appropriate pricing tier
+    // Find the appropriate pricing tier based on quantity
     let applicableTier = pricingTiers[0];
     for (const tier of pricingTiers) {
       if (quantity >= tier.quantity) {
@@ -73,7 +73,8 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
     }
 
     const discount = applicableTier.discount;
-    const pricePerUnit = applicableTier.price; // Price per unit from tier
+    // Calculate per-unit price by applying discount to base rate
+    const pricePerUnit = baseRate * (1 - discount / 100);
     const totalPrice = pricePerUnit * quantity;
 
     return {
