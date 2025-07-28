@@ -1012,22 +1012,22 @@ export class DatabaseStorage implements IStorage {
             category: categoryName,
             categoryId: categoryId,
             price: parseFloat(row.price) || 0,
-            moq: row.moq || '',
+            moq: row.moq ? parseFloat(row.moq) || 0 : 0,
             packingSize: row.packingSize || '',
             leadTime: row.leadTime || '',
-            currentStock: row.currentStock || '',
+            currentStock: row.currentStock ? parseFloat(row.currentStock) || 0 : 0,
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
             origin: row.origin || '',
             healthSupport: row.healthSupport || '',
             hsCode: row.hsCode || '',
             form: row.form || '',
-            basePrice: row.basePrice || '',
-            rate: row.rate || '',
-            priceUSD: row.priceUSD || '',
-            priceINR: row.priceINR || '',
-            priceEUR: row.priceEUR || '',
-            priceGBP: row.priceGBP || '',
+            basePrice: row.basePrice ? parseFloat(row.basePrice) || 0 : 0,
+            rate: row.rate ? parseFloat(row.rate) || 0 : 0,
+            priceUSD: row.priceUSD ? parseFloat(row.priceUSD) || 0 : 0,
+            priceINR: row.priceINR ? parseFloat(row.priceINR) || 0 : 0,
+            priceEUR: row.priceEUR ? parseFloat(row.priceEUR) || 0 : 0,
+            priceGBP: row.priceGBP ? parseFloat(row.priceGBP) || 0 : 0,
             priceType: row.priceType || 'EXW',
             priceLocation: row.priceLocation || 'Warehouse India',
             sampleAvailable: row.sampleAvailable === 'true' || row.sampleAvailable === '1' || true,
@@ -1103,10 +1103,10 @@ export class DatabaseStorage implements IStorage {
       'price',                   // Base price in USD (REQUIRED)
       
       // *** OPTIONAL BUSINESS FIELDS (Can be blank) ***
-      'moq',                     // Minimum order quantity
+      'moq',                     // Minimum order quantity (numeric only, e.g., 25)
       'packingSize',             // Packing size (25kg, 1kg, etc.)
       'leadTime',                // Lead time for delivery
-      'currentStock',            // Current stock quantity
+      'currentStock',            // Current stock quantity (numeric only)
       'status',                  // draft/active/inactive (defaults to draft)
       'sampleAvailable',         // true/false for sample availability
       'stopSell',                // true/false to stop selling
@@ -1216,6 +1216,19 @@ export class DatabaseStorage implements IStorage {
 
     // *** OPTIONAL FIELDS VALIDATION (Only validate format if provided) ***
     
+    // Numeric field validation
+    const numericFields = ['moq', 'currentStock', 'basePrice', 'rate', 'priceUSD', 'priceINR', 'priceEUR', 'priceGBP'];
+    for (const field of numericFields) {
+      if (row[field] && row[field].trim() !== '' && isNaN(parseFloat(row[field]))) {
+        errors.push({
+          line: lineNumber,
+          field: field,
+          message: `${field} must be a numeric value (e.g., 25, 25.50). Remove units like "KG" or text.`,
+          value: row[field]
+        });
+      }
+    }
+    
     // Status validation (only if provided)
     if (row.status && row.status.trim() !== '' && !['draft', 'active', 'inactive'].includes(row.status.toLowerCase())) {
       errors.push({ 
@@ -1226,13 +1239,22 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // Boolean validation for isOrganic (only if provided)
-    if (row.isOrganic && row.isOrganic.trim() !== '' && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.isOrganic.toLowerCase())) {
+    // Boolean validation for sampleAvailable and stopSell (only if provided)
+    if (row.sampleAvailable && row.sampleAvailable.trim() !== '' && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.sampleAvailable.toLowerCase())) {
       errors.push({ 
         line: lineNumber, 
-        field: 'isOrganic', 
-        message: 'isOrganic must be: true, false, 1, 0, yes, no (or leave blank for false)', 
-        value: row.isOrganic 
+        field: 'sampleAvailable', 
+        message: 'sampleAvailable must be: true, false, 1, 0, yes, no (or leave blank for true)', 
+        value: row.sampleAvailable 
+      });
+    }
+
+    if (row.stopSell && row.stopSell.trim() !== '' && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.stopSell.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'stopSell', 
+        message: 'stopSell must be: true, false, 1, 0, yes, no (or leave blank for false)', 
+        value: row.stopSell 
       });
     }
 
@@ -1257,10 +1279,10 @@ export class DatabaseStorage implements IStorage {
       '25.50', // price (REQUIRED)
       
       // *** OPTIONAL BUSINESS FIELDS ***
-      '25 KG', // moq
+      '25', // moq (numeric value only)
       '25kg HDPE Drums', // packingSize
       '7-10 days', // leadTime
-      '500', // currentStock
+      '500', // currentStock (numeric value only)
       'active', // status
       'true', // sampleAvailable
       'false', // stopSell
@@ -1274,12 +1296,12 @@ export class DatabaseStorage implements IStorage {
       'Fine Powder', // form
       
       // *** OPTIONAL PRICING ***
-      '25.50', // basePrice
-      '25.50', // rate
-      '25.50', // priceUSD
-      '2100', // priceINR
-      '23.50', // priceEUR
-      '20.50', // priceGBP
+      '25.50', // basePrice (numeric only)
+      '25.50', // rate (numeric only)
+      '25.50', // priceUSD (numeric only)
+      '2100', // priceINR (numeric only)
+      '23.50', // priceEUR (numeric only)
+      '20.50', // priceGBP (numeric only)
       'EXW', // priceType
       'Warehouse India', // priceLocation
     ];
