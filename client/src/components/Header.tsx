@@ -50,17 +50,12 @@ export default function Header() {
           <div className="flex items-center space-x-4 sm:space-x-6 lg:space-x-8">
             {/* Logo */}
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Leaf className="text-white text-sm sm:text-lg" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg sm:text-xl font-bold text-green-600">Bright Fame Organic</h1>
-                  <p className="text-xs text-gray-500">Pvt. Ltd.</p>
-                </div>
-                <div className="block sm:hidden">
-                  <h1 className="text-base font-bold text-green-600">BFI Organic</h1>
-                </div>
+              <div className="flex items-center cursor-pointer">
+                <img 
+                  src="/attached_assets/Final Logo_1753729864655.png" 
+                  alt="Bright Fame Organic" 
+                  className="h-12 sm:h-16 w-auto object-contain"
+                />
               </div>
             </Link>
             
