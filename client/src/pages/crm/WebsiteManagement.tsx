@@ -6,6 +6,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
 import CategoryManagement from "@/components/CategoryManagement";
+import BulkProductUpload from "@/components/BulkProductUpload";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -204,9 +205,10 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
@@ -382,6 +384,11 @@ export default function WebsiteManagement() {
             {/* Categories Management Tab */}
             <TabsContent value="categories" className="mt-6">
               <CategoryManagement />
+            </TabsContent>
+
+            {/* Bulk Upload Tab */}
+            <TabsContent value="bulk-upload" className="mt-6">
+              <BulkProductUpload />
             </TabsContent>
 
             {/* Content Management Tab */}

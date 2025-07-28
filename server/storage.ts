@@ -37,6 +37,10 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql } from "drizzle-orm";
+import csv from "csv-parser";
+import xlsx from "xlsx";
+import { stringify } from "csv-stringify/sync";
+import { Readable } from "stream";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -76,6 +80,10 @@ export interface IStorage {
   createProductTag(tag: InsertProductTag): Promise<ProductTag>;
   updateProductTag(id: number, tag: Partial<InsertProductTag>): Promise<ProductTag>;
   deleteProductTag(id: number): Promise<void>;
+
+  // Bulk operations
+  bulkUploadProducts(file: any, userId: string, defaultCategory?: string): Promise<any>;
+  generateProductTemplate(categoryId?: number): Promise<string>;
   syncCertificationsToTags(certifications: string[]): Promise<void>;
   migrateExistingCertificationsToTags(): Promise<void>;
   assignTagToProduct(productId: number, tagId: number): Promise<void>;
@@ -938,6 +946,356 @@ export class DatabaseStorage implements IStorage {
       totalOrders: ordersCount.count,
       revenueThisMonth: 0, // TODO: Calculate from actual data
     };
+  }
+
+  // Bulk upload products from CSV/Excel
+  async bulkUploadProducts(file: any, userId: string, defaultCategory?: string): Promise<any> {
+    const errors: Array<{ line: number; field: string; message: string; value?: string }> = [];
+    const successfulRows: any[] = [];
+    const duplicates: string[] = [];
+    let totalRows = 0;
+
+    try {
+      // Parse file based on type
+      let rows: any[] = [];
+      
+      if (file.originalname.endsWith('.csv') || file.mimetype === 'text/csv') {
+        rows = await this.parseCSV(file.buffer);
+      } else {
+        rows = await this.parseExcel(file.buffer);
+      }
+
+      totalRows = rows.length;
+
+      // Get categories and existing products for validation
+      const categoriesData = await this.getCategories();
+      const categoryMap = new Map(categoriesData.map(c => [c.name.toLowerCase(), c.id]));
+      
+      // Get existing product IDs to check for duplicates
+      const existingProducts = await db.select({ productId: products.productId }).from(products);
+      const existingProductIds = new Set(existingProducts.map(p => p.productId));
+
+      // Process each row
+      for (let i = 0; i < rows.length; i++) {
+        const rowIndex = i + 2; // +2 because row 1 is header and we start from 0
+        const row = rows[i];
+        
+        try {
+          // Skip empty rows
+          if (!row.name || row.name.trim() === '') {
+            continue;
+          }
+
+          // Validate required fields
+          const validationErrors = this.validateProductRow(row, rowIndex, categoryMap, defaultCategory);
+          if (validationErrors.length > 0) {
+            errors.push(...validationErrors);
+            continue;
+          }
+
+          // Check for duplicate product IDs
+          const productId = row.productId || await this.generateProductId();
+          if (existingProductIds.has(productId)) {
+            duplicates.push(productId);
+            continue;
+          }
+
+          // Create product data
+          const productData: InsertProduct = {
+            productId,
+            name: row.name.trim(),
+            description: row.description || '',
+            category: row.category || defaultCategory || '',
+            price: parseFloat(row.price) || 0,
+            moq: row.moq || '',
+            packagingType: row.packagingType || '',
+            origin: row.origin || '',
+            botanicalName: row.botanicalName || '',
+            plantPart: row.plantPart || '',
+            extractionMethod: row.extractionMethod || '',
+            solubility: row.solubility || '',
+            meshSize: row.meshSize || '',
+            moisture: row.moisture || '',
+            ashContent: row.ashContent || '',
+            bulkDensity: row.bulkDensity || '',
+            storageConditions: row.storageConditions || '',
+            shelfLife: row.shelfLife || '',
+            hsCode: row.hsCode || '',
+            grade: row.grade || '',
+            form: row.form || '',
+            activeContent: row.activeContent || '',
+            processingMethod: row.processingMethod || '',
+            isOrganic: row.isOrganic === 'true' || row.isOrganic === '1' || false,
+            status: row.status || 'draft',
+            visibility: row.visibility || 'visible',
+            createdBy: userId,
+            updatedBy: userId,
+            slug: this.generateSlug(row.name),
+            metaTitle: row.metaTitle || row.name,
+            metaDescription: row.metaDescription || row.description?.substring(0, 160) || '',
+            keywords: row.keywords || '',
+          };
+
+          successfulRows.push(productData);
+          existingProductIds.add(productId); // Prevent duplicates within the same upload
+
+        } catch (error) {
+          errors.push({
+            line: rowIndex,
+            field: 'row',
+            message: `Failed to process row: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      }
+
+      // If there are validation errors, return them without saving anything
+      if (errors.length > 0) {
+        return {
+          success: false,
+          totalRows,
+          successCount: 0,
+          errorCount: errors.length,
+          errors,
+          duplicates: duplicates.length > 0 ? duplicates : undefined,
+        };
+      }
+
+      // Save all products in a transaction
+      if (successfulRows.length > 0) {
+        await db.insert(products).values(successfulRows);
+      }
+
+      return {
+        success: true,
+        totalRows,
+        successCount: successfulRows.length,
+        errorCount: 0,
+        errors: [],
+        duplicates: duplicates.length > 0 ? duplicates : undefined,
+      };
+
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      return {
+        success: false,
+        totalRows,
+        successCount: 0,
+        errorCount: 1,
+        errors: [{
+          line: 1,
+          field: 'file',
+          message: `Failed to process file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }],
+      };
+    }
+  }
+
+  // Generate product template CSV
+  async generateProductTemplate(categoryId?: number): Promise<string> {
+    const headers = [
+      'name',
+      'description',
+      'category',
+      'price',
+      'moq',
+      'packagingType',
+      'origin',
+      'botanicalName',
+      'plantPart',
+      'extractionMethod',
+      'solubility',
+      'meshSize',
+      'moisture',
+      'ashContent',
+      'bulkDensity',
+      'storageConditions',
+      'shelfLife',
+      'hsCode',
+      'grade',
+      'form',
+      'activeContent',
+      'processingMethod',
+      'isOrganic',
+      'status',
+      'visibility',
+      'metaTitle',
+      'metaDescription',
+      'keywords'
+    ];
+
+    // Get category info for example data
+    let categoryName = 'Herbal Powders';
+    if (categoryId) {
+      const category = await this.getCategory(categoryId);
+      if (category) {
+        categoryName = category.name;
+      }
+    }
+
+    // Generate example data based on category
+    const exampleData = this.generateExampleDataForCategory(categoryName);
+
+    const rows = [
+      headers,
+      exampleData
+    ];
+
+    return stringify(rows, {
+      header: false,
+      columns: headers,
+    });
+  }
+
+  // Helper methods for bulk upload
+  private async parseCSV(buffer: Buffer): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const results: any[] = [];
+      const stream = Readable.from(buffer.toString());
+      
+      stream
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', () => resolve(results))
+        .on('error', reject);
+    });
+  }
+
+  private async parseExcel(buffer: Buffer): Promise<any[]> {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    return xlsx.utils.sheet_to_json(worksheet);
+  }
+
+  private validateProductRow(row: any, lineNumber: number, categoryMap: Map<string, number>, defaultCategory?: string): Array<{ line: number; field: string; message: string; value?: string }> {
+    const errors: Array<{ line: number; field: string; message: string; value?: string }> = [];
+
+    // Required fields
+    if (!row.name || row.name.trim() === '') {
+      errors.push({ line: lineNumber, field: 'name', message: 'Product name is required' });
+    }
+
+    // Category validation
+    const categoryToCheck = row.category || defaultCategory;
+    if (!categoryToCheck) {
+      errors.push({ line: lineNumber, field: 'category', message: 'Category is required' });
+    } else if (!categoryMap.has(categoryToCheck.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'category', 
+        message: 'Invalid category. Category does not exist.', 
+        value: categoryToCheck 
+      });
+    }
+
+    // Price validation
+    if (row.price && isNaN(parseFloat(row.price))) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'price', 
+        message: 'Price must be a valid number', 
+        value: row.price 
+      });
+    }
+
+    // Status validation
+    if (row.status && !['draft', 'active', 'inactive'].includes(row.status.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'status', 
+        message: 'Status must be: draft, active, or inactive', 
+        value: row.status 
+      });
+    }
+
+    // Visibility validation
+    if (row.visibility && !['visible', 'hidden'].includes(row.visibility.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'visibility', 
+        message: 'Visibility must be: visible or hidden', 
+        value: row.visibility 
+      });
+    }
+
+    // Boolean validation for isOrganic
+    if (row.isOrganic && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.isOrganic.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'isOrganic', 
+        message: 'isOrganic must be: true, false, 1, 0, yes, or no', 
+        value: row.isOrganic 
+      });
+    }
+
+    return errors;
+  }
+
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  }
+
+  private generateExampleDataForCategory(categoryName: string): string[] {
+    const baseExample = [
+      'Ashwagandha Root Extract Powder', // name
+      'Premium quality Ashwagandha root extract powder with 5% withanolides for nutraceutical applications', // description
+      categoryName, // category
+      '25.50', // price
+      '25 KG', // moq
+      '25kg HDPE Drums', // packagingType
+      'India', // origin
+      'Withania somnifera', // botanicalName
+      'Root', // plantPart
+      'Water-Ethanol Extraction', // extractionMethod
+      'Partially soluble in water', // solubility
+      '80 mesh', // meshSize
+      '≤ 5%', // moisture
+      '≤ 8%', // ashContent
+      '0.45-0.65 g/ml', // bulkDensity
+      'Store in cool, dry place away from direct sunlight', // storageConditions
+      '24 months', // shelfLife
+      '1302.19', // hsCode
+      'Pharmaceutical Grade', // grade
+      'Fine Powder', // form
+      '5% Withanolides', // activeContent
+      'Spray Dried', // processingMethod
+      'true', // isOrganic
+      'active', // status
+      'visible', // visibility
+      'Premium Ashwagandha Root Extract Powder - 5% Withanolides', // metaTitle
+      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.', // metaDescription
+      'ashwagandha, withanolides, herbal extract, adaptogen, stress relief' // keywords
+    ];
+
+    // Customize example based on category
+    switch (categoryName.toLowerCase()) {
+      case 'essential oils':
+        baseExample[0] = 'Lavender Essential Oil';
+        baseExample[1] = 'Pure lavender essential oil extracted through steam distillation';
+        baseExample[7] = 'Lavandula angustifolia';
+        baseExample[8] = 'Flowers';
+        baseExample[9] = 'Steam Distillation';
+        break;
+      case 'spices & seasonings':
+        baseExample[0] = 'Organic Turmeric Powder';
+        baseExample[1] = 'Premium organic turmeric powder with high curcumin content';
+        baseExample[7] = 'Curcuma longa';
+        baseExample[8] = 'Rhizome';
+        break;
+      case 'whole herbs':
+        baseExample[0] = 'Dried Ginkgo Leaves';
+        baseExample[1] = 'Premium quality dried ginkgo leaves for herbal preparations';
+        baseExample[7] = 'Ginkgo biloba';
+        baseExample[8] = 'Leaves';
+        break;
+    }
+
+    return baseExample;
   }
 }
 

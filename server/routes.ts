@@ -487,6 +487,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Generate presigned URL for direct upload (alternative method)
   app.post('/api/admin/products/presigned-url', isAuthenticated, async (req: any, res) => {
     try {
@@ -843,6 +845,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting category:", error);
       res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Bulk product upload via CSV/Excel
+  app.post('/api/admin/products/bulk-upload', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+    try {
+      const upload = multer({ 
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+        fileFilter: (req, file, cb) => {
+          const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+          if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(csv|xlsx|xls)$/i)) {
+            cb(null, true);
+          } else {
+            cb(new Error('Only CSV and Excel files are allowed'));
+          }
+        }
+      }).single('file');
+
+      upload(req, res, async (err) => {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const result = await storage.bulkUploadProducts(req.file, req.user.claims.sub, req.body.defaultCategory);
+        res.json(result);
+      });
+    } catch (error) {
+      console.error("Error in bulk upload:", error);
+      res.status(500).json({ message: "Failed to process bulk upload" });
+    }
+  });
+
+  // Download product template
+  app.get('/api/admin/products/template', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+    try {
+      const categoryId = req.query.category ? parseInt(req.query.category) : null;
+      const template = await storage.generateProductTemplate(categoryId);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="product-template.csv"');
+      res.send(template);
+    } catch (error) {
+      console.error("Error generating template:", error);
+      res.status(500).json({ message: "Failed to generate template" });
     }
   });
 
