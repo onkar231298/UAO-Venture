@@ -416,166 +416,23 @@ export default function ProductDetailGreenJeeva() {
 
                   <TabsContent value="spec" className="m-0 p-4 space-y-4">
                     <div className="w-full">
-                      {/* Product Specifications Table */}
-                      <div className="space-y-6">
-                        {/* Basic Product Information */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <Package className="w-4 h-4" />
-                            Basic Information
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                            {product.botanicalName && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Botanical Name:</span>
-                                <span className="text-sm font-medium">{product.botanicalName}</span>
-                              </div>
-                            )}
-                            {product.plantPart && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Plant Part:</span>
-                                <span className="text-sm font-medium">{product.plantPart}</span>
-                              </div>
-                            )}
-                            {product.origin && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Origin:</span>
-                                <span className="text-sm font-medium">{product.origin}</span>
-                              </div>
-                            )}
-                            {product.hsCode && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">HS Code:</span>
-                                <span className="text-sm font-medium">{product.hsCode}</span>
-                              </div>
-                            )}
-                            {product.productGrade && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Grade:</span>
-                                <span className="text-sm font-medium">{product.productGrade}</span>
-                              </div>
-                            )}
-                            {product.form && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Form:</span>
-                                <span className="text-sm font-medium capitalize">{product.form}</span>
-                              </div>
-                            )}
+                      {/* Check if HTML specification sheet exists */}
+                      {!product.specificationSheet || product.specificationSheet.trim() === '' ? (
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <FileText className="w-6 h-6 text-gray-400" />
                           </div>
+                          <h3 className="font-semibold text-gray-900 mb-2">No Specifications Available</h3>
+                          <p className="text-gray-600 text-sm">
+                            Product specifications have not been uploaded yet. Please contact us for detailed product information.
+                          </p>
                         </div>
-
-                        {/* Physical Properties */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <Beaker className="w-4 h-4" />
-                            Physical Properties
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                            {product.meshSize && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Mesh Size:</span>
-                                <span className="text-sm font-medium">{product.meshSize}</span>
-                              </div>
-                            )}
-                            {product.curcuminContent && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Active Content:</span>
-                                <span className="text-sm font-medium">{product.curcuminContent}</span>
-                              </div>
-                            )}
-                            {product.moisture && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Moisture:</span>
-                                <span className="text-sm font-medium">{product.moisture}</span>
-                              </div>
-                            )}
-                            {product.totalAsh && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Total Ash:</span>
-                                <span className="text-sm font-medium">{product.totalAsh}</span>
-                              </div>
-                            )}
-                            {product.bulkDensity && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Bulk Density:</span>
-                                <span className="text-sm font-medium">{product.bulkDensity}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Storage & Handling */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <Package className="w-4 h-4" />
-                            Storage & Handling
-                          </h4>
-                          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                            {product.shelfLife && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Shelf Life:</span>
-                                <span className="text-sm font-medium">{product.shelfLife}</span>
-                              </div>
-                            )}
-                            {product.storageConditions && (
-                              <div className="space-y-2">
-                                <span className="text-sm text-gray-600">Storage Conditions:</span>
-                                <p className="text-sm font-medium bg-white p-3 rounded border">{product.storageConditions}</p>
-                              </div>
-                            )}
-                            {product.packingSize && (
-                              <div className="flex justify-between py-2 border-b border-gray-200">
-                                <span className="text-sm text-gray-600">Packing Size:</span>
-                                <span className="text-sm font-medium">{product.packingSize}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Processing Information */}
-                        {product.processing && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                              <Beaker className="w-4 h-4" />
-                              Processing Information
-                            </h4>
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                              <p className="text-sm text-gray-700 leading-relaxed">{product.processing}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Custom HTML Specification Sheet (if available) */}
-                        {product.specificationSheet && product.specificationSheet.trim() !== '' && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              Detailed Specifications
-                            </h4>
-                            <div 
-                              className="prose prose-sm max-w-none w-full bg-white p-4 rounded-lg border"
-                              dangerouslySetInnerHTML={{ __html: product.specificationSheet }}
-                            />
-                          </div>
-                        )}
-
-                        {/* No data message */}
-                        {!product.botanicalName && !product.plantPart && !product.origin && !product.hsCode && 
-                         !product.productGrade && !product.form && !product.meshSize && !product.curcuminContent && 
-                         !product.moisture && !product.totalAsh && !product.bulkDensity && !product.shelfLife && 
-                         !product.storageConditions && !product.packingSize && !product.processing && 
-                         (!product.specificationSheet || product.specificationSheet.trim() === '') && (
-                          <div className="text-center py-8">
-                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                              <FileText className="w-6 h-6 text-gray-400" />
-                            </div>
-                            <h3 className="font-semibold text-gray-900 mb-2">No Specifications Available</h3>
-                            <p className="text-gray-600 text-sm">
-                              Product specifications have not been uploaded yet. Please contact us for detailed product information.
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                      ) : (
+                        <div 
+                          className="prose prose-sm max-w-none w-full"
+                          dangerouslySetInnerHTML={{ __html: product.specificationSheet }}
+                        />
+                      )}
                     </div>
                   </TabsContent>
 
@@ -643,88 +500,46 @@ export default function ProductDetailGreenJeeva() {
 
                   <TabsContent value="faqs" className="m-0 p-4 space-y-4">
                     <div className="space-y-4 w-full">
-                      {/* Dynamic FAQ based on product information */}
-                      {product.curcuminContent && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this product?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            This product is standardized to contain {product.curcuminContent}, ensuring consistent quality and potency in every batch.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {product.storageConditions && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            {product.storageConditions}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {(product.certifications && (product.certifications as string[]).length > 0) && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What certifications does this product have?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            This product is certified with {(product.certifications as string[]).join(', ')}. 
-                            All certificates are available for download in the documents section.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {product.moq && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            The minimum order quantity (MOQ) is {product.moq} {product.stockUnit || 'kg'}. We offer attractive pricing for bulk orders 
-                            and can accommodate custom packaging requirements for larger quantities.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {product.shelfLife && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the shelf life of this product?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            This product has a shelf life of {product.shelfLife} when stored under recommended conditions.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {product.packingSize && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">How is this product packaged?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            This product is available in {product.packingSize} packaging. We also offer custom packaging solutions for bulk orders.
-                          </p>
-                        </div>
-                      )}
-
-                      {product.leadTime && (
-                        <div className="border-l-4 border-orange-500 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 text-sm">What is the delivery time?</h4>
-                          <p className="text-gray-700 text-sm mt-1">
-                            The typical lead time for this product is {product.leadTime}. Delivery time may vary based on order quantity and destination.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {/* Default FAQ if no specific product data is available */}
-                      {!product.curcuminContent && !product.storageConditions && (!product.certifications || (product.certifications as string[]).length === 0) && 
-                       !product.moq && !product.shelfLife && !product.packingSize && !product.leadTime && (
-                        <div className="text-center py-8">
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <MessageSquare className="w-6 h-6 text-gray-400" />
+                      {/* Custom FAQs from product upload form */}
+                      {product.faqs && (product.faqs as any[]).length > 0 ? (
+                        (product.faqs as any[]).map((faq, index) => (
+                          <div key={index} className="border-l-4 border-orange-500 pl-4 py-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">{faq.question}</h4>
+                            <p className="text-gray-700 text-sm mt-1">{faq.answer}</p>
                           </div>
-                          <h3 className="font-semibold text-gray-900 mb-2">FAQs Not Available</h3>
-                          <p className="text-gray-600 text-sm mb-4">
-                            Product-specific FAQs are not available yet. Please contact us with any questions about this product.
-                          </p>
-                          <Button variant="outline" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Ask a Question
-                          </Button>
-                        </div>
+                        ))
+                      ) : (
+                        /* Default professional FAQs */
+                        <>
+                          <div className="border-l-4 border-orange-500 pl-4 py-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">What is the standardization of this extract?</h4>
+                            <p className="text-gray-700 text-sm mt-1">
+                              Our Ashwagandha extract is standardized to contain 5% withanolides by HPLC method, 
+                              ensuring consistent quality and potency in every batch.
+                            </p>
+                          </div>
+                          <div className="border-l-4 border-orange-500 pl-4 py-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">What are the recommended storage conditions?</h4>
+                            <p className="text-gray-700 text-sm mt-1">
+                              Store in a cool, dry place away from direct sunlight. Keep in original packaging 
+                              and ensure proper sealing after use. Avoid exposure to moisture and extreme temperatures.
+                            </p>
+                          </div>
+                          <div className="border-l-4 border-orange-500 pl-4 py-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">Is this product organic certified?</h4>
+                            <p className="text-gray-700 text-sm mt-1">
+                              Yes, this product is certified organic by USDA NOP and EU Organic standards. 
+                              All certificates are available for download in the documents section.
+                            </p>
+                          </div>
+                          <div className="border-l-4 border-orange-500 pl-4 py-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">What is the minimum order quantity?</h4>
+                            <p className="text-gray-700 text-sm mt-1">
+                              The minimum order quantity (MOQ) is 25 kg. We offer attractive pricing for bulk orders 
+                              and can accommodate custom packaging requirements for larger quantities.
+                            </p>
+                          </div>
+                        </>
                       )}
                     </div>
                   </TabsContent>

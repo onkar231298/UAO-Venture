@@ -130,6 +130,9 @@ export const products = pgTable("products", {
   organicNopCert: varchar("organic_nop_cert", { length: 500 }), // Organic-NOP(USDA) Certificate
   additionalDocs: jsonb("additional_docs").default("[]"), // Array of additional document URLs
   
+  // FAQ Section
+  faqs: jsonb("faqs").default("[]"), // Array of {question: string, answer: string}
+  
   // SEO and Visibility
   seoTitle: varchar("seo_title", { length: 255 }),
   seoDescription: text("seo_description"),
