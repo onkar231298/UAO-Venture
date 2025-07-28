@@ -190,14 +190,9 @@ export default function BulkProductUpload() {
         // Simulate processing time
         await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
 
-        // Randomly simulate success/error (90% success rate for demo)
-        if (Math.random() > 0.1) {
-          updatedProducts[i].status = 'success';
-          updatedProducts[i].message = 'Successfully uploaded';
-        } else {
-          updatedProducts[i].status = 'error';
-          updatedProducts[i].error = 'Validation failed: Missing required field';
-        }
+        // Just mark as processing complete - actual results will be updated after API call
+        updatedProducts[i].status = 'processing';
+        updatedProducts[i].message = 'Processing complete...';
         
         setLiveProducts([...updatedProducts]);
         setUploadProgress(((i + 1) / updatedProducts.length) * 100);
@@ -215,6 +210,37 @@ export default function BulkProductUpload() {
 
       const result = await response.json();
       setUploadResult(result);
+
+      // Update live products status based on actual results
+      const finalUpdatedProducts = [...updatedProducts];
+      if (result.success) {
+        // All products were successful
+        finalUpdatedProducts.forEach(product => {
+          product.status = 'success';
+          product.message = 'Successfully uploaded';
+          product.error = undefined;
+        });
+      } else {
+        // Some products had errors - update based on actual error data
+        const errorMap = new Map();
+        result.errors?.forEach(err => {
+          errorMap.set(err.line, err.message);
+        });
+        
+        finalUpdatedProducts.forEach(product => {
+          if (errorMap.has(product.line)) {
+            product.status = 'error';
+            product.error = errorMap.get(product.line);
+            product.message = undefined;
+          } else {
+            product.status = 'success';
+            product.message = 'Successfully uploaded';
+            product.error = undefined;
+          }
+        });
+      }
+      
+      setLiveProducts(finalUpdatedProducts);
 
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
