@@ -53,38 +53,86 @@ export default function Landing() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {categories?.slice(0, 4).map((category: Category) => (
-              <Card key={category.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <img
-                    src={`https://images.unsplash.com/photo-${
-                      category.name.includes('Essential') ? '1608571423902-eed4a5ad8108' :
-                      category.name.includes('Extracts') ? '1596040033229-a9821ebd058d' :
-                      category.name.includes('Herbs') ? '1583947215259-38e31be8751f' :
-                      '1506905925346-21bda4d32df4'
-                    }?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`}
-                    alt={category.name}
-                    className="w-full h-32 object-cover rounded-lg mb-4"
-                  />
-                  <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">Premium organic {category.name.toLowerCase()} for your business needs</p>
-                  <div className="text-green-600 text-sm font-medium">View Products →</div>
-                </CardContent>
-              </Card>
-            )) || (
-              // Loading skeleton for categories
-              Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6 text-center">
-                    <div className="w-full h-32 bg-gray-200 rounded-lg mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+          {/* Show categories in multiple rows - 8 categories total (2 rows of 4) */}
+          <div className="space-y-6">
+            {/* First row - 4 categories */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {categories?.slice(0, 4).map((category: Category) => (
+                <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
+                  <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1">
+                    <CardContent className="p-4 text-center">
+                      <img
+                        src={category.imageUrl || `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`}
+                        alt={category.name}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`;
+                        }}
+                      />
+                      <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">{category.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">Premium organic {category.name.toLowerCase()} for your business needs</p>
+                      <div className="text-green-600 text-sm font-medium group-hover:text-green-700">View Products →</div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )) || (
+                // Loading skeleton for first row
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-full h-32 bg-gray-200 rounded-lg mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Second row - 4 more categories */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {categories?.slice(4, 8).map((category: Category) => (
+                <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
+                  <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1">
+                    <CardContent className="p-4 text-center">
+                      <img
+                        src={category.imageUrl || `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`}
+                        alt={category.name}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250`;
+                        }}
+                      />
+                      <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">{category.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">Premium organic {category.name.toLowerCase()} for your business needs</p>
+                      <div className="text-green-600 text-sm font-medium group-hover:text-green-700">View Products →</div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )) || (
+                // Loading skeleton for second row
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={`second-${i}`} className="animate-pulse">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-full h-32 bg-gray-200 rounded-lg mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* View All Categories Button */}
+            <div className="text-center">
+              <Link href="/products">
+                <Button variant="outline" size="lg" className="mt-4">
+                  View All Categories →
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

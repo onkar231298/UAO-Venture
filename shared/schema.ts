@@ -48,6 +48,7 @@ export const categories = pgTable("categories", {
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description"),
+  imageUrl: varchar("image_url", { length: 500 }), // Category image
   parentId: integer("parent_id"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),

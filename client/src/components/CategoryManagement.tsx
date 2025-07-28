@@ -269,10 +269,9 @@ export default function CategoryManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Slug</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -286,7 +285,24 @@ export default function CategoryManagement() {
                 ) : (
                   filteredCategories.map((category) => (
                     <TableRow key={category.id}>
-                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {category.imageUrl && (
+                            <img 
+                              src={category.imageUrl} 
+                              alt={category.name}
+                              className="w-10 h-10 object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div>
+                            <div className="font-medium">{category.name}</div>
+                            <div className="text-sm text-gray-500">{category.slug}</div>
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-xs">
                         <p className="text-sm text-gray-600 line-clamp-2">
                           {category.description || "No description"}
@@ -297,11 +313,7 @@ export default function CategoryManagement() {
                           {category.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {category.slug}
-                        </code>
-                      </TableCell>
+
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
@@ -353,5 +365,97 @@ export default function CategoryManagement() {
         </Dialog>
       </CardContent>
     </Card>
+  );
+}
+
+// Category Form Component with Image Upload
+interface CategoryFormProps {
+  category?: Category;
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+function CategoryForm({ category, onSubmit, isLoading, onClose }: CategoryFormProps) {
+  const [formData, setFormData] = useState({
+    name: category?.name || "",
+    description: category?.description || "",
+    imageUrl: category?.imageUrl || "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: e.target.value
+    }));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">Category Name</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Enter category name"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Enter category description"
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="imageUrl">Category Image URL</Label>
+        <Input
+          id="imageUrl"
+          type="url"
+          value={formData.imageUrl}
+          onChange={handleImageUrlChange}
+          placeholder="https://example.com/image.jpg"
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          Enter a URL for the category image. This will be displayed in the "Browse by Category" section.
+        </p>
+        
+        {/* Image Preview */}
+        {formData.imageUrl && (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+            <img
+              src={formData.imageUrl}
+              alt="Category preview"
+              className="w-32 h-20 object-cover rounded-lg border"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250';
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Saving..." : category ? "Update Category" : "Create Category"}
+        </Button>
+      </div>
+    </form>
   );
 }
