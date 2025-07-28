@@ -378,7 +378,7 @@ export default function ProductDetailGreenJeeva() {
                       <Beaker className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">Request a Sample</h3>
+                      <h3 className="font-semibold text-gray-900 mb-1">Request a Free Sample</h3>
                       <p className="text-sm text-gray-600">
                         Get a free sample to test quality before placing bulk orders
                       </p>
