@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,17 @@ function CategoryForm({ category, onSubmit, isLoading, onClose }: CategoryFormPr
     description: category?.description || "",
     isActive: category?.isActive ?? true
   });
+
+  // Update form data when category prop changes (important for edit mode)
+  React.useEffect(() => {
+    if (category) {
+      setFormData({
+        name: category.name || "",
+        description: category.description || "",
+        isActive: category.isActive ?? true
+      });
+    }
+  }, [category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
