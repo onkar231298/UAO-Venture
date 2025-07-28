@@ -37,7 +37,8 @@ import {
   AlertCircle,
   Camera,
   Layout,
-  Code
+  Code,
+  Upload
 } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
@@ -205,10 +206,9 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
@@ -223,6 +223,20 @@ export default function WebsiteManagement() {
                   <CardTitle className="flex items-center justify-between">
                     <span>Product Management</span>
                     <div className="flex space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Upload className="w-4 h-4 mr-2" />
+                            Bulk Upload
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Bulk Product Upload</DialogTitle>
+                          </DialogHeader>
+                          <BulkProductUpload />
+                        </DialogContent>
+                      </Dialog>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button size="sm">
@@ -386,10 +400,7 @@ export default function WebsiteManagement() {
               <CategoryManagement />
             </TabsContent>
 
-            {/* Bulk Upload Tab */}
-            <TabsContent value="bulk-upload" className="mt-6">
-              <BulkProductUpload />
-            </TabsContent>
+
 
             {/* Content Management Tab */}
             <TabsContent value="content" className="mt-6">
