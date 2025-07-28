@@ -52,11 +52,14 @@ export default function BulkProductUpload() {
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await apiRequest("/api/admin/products/bulk-upload", {
+      const response = await fetch("/api/admin/products/bulk-upload", {
         method: "POST",
         body: formData,
-        headers: {}, // Let browser set Content-Type for FormData
+        // Don't set Content-Type header, let browser set it for FormData
       });
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
       return response.json();
     },
     onSuccess: (result: UploadResult) => {
@@ -134,7 +137,10 @@ export default function BulkProductUpload() {
         ? `/api/admin/products/template?category=${categoryId}`
         : '/api/admin/products/template';
         
-      const response = await apiRequest(url);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Template download failed: ${response.statusText}`);
+      }
       const blob = await response.blob();
       
       const downloadUrl = window.URL.createObjectURL(blob);
