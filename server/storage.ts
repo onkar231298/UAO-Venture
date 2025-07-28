@@ -451,6 +451,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProductTag(tag: InsertProductTag): Promise<ProductTag> {
+    // Auto-generate slug if not provided
+    if (!tag.slug && tag.name) {
+      tag.slug = tag.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
     const [newTag] = await db.insert(productTags).values(tag).returning();
     return newTag;
   }

@@ -396,6 +396,8 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
 export const insertProductTagSchema = createInsertSchema(productTags).omit({
   id: true,
   createdAt: true,
+}).extend({
+  slug: z.string().optional(), // Auto-generated from name if not provided
 });
 
 export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({

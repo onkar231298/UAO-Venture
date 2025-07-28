@@ -775,12 +775,25 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!formData.certifications.includes(certName)) {
+                          // Add to product certifications
                           setFormData(prev => ({
                             ...prev,
                             certifications: [...prev.certifications, certName]
                           }));
+                          
+                          // Also create the tag in background if it doesn't exist
+                          try {
+                            await apiRequest("POST", "/api/admin/tags", {
+                              name: certName,
+                              color: '#22C55E',
+                              description: `Certification tag: ${certName}`,
+                              isActive: true
+                            });
+                          } catch (error) {
+                            // Tag might already exist, ignore error
+                          }
                         }
                       }}
                       className="text-xs"
@@ -2350,7 +2363,12 @@ function TagsManagement({ tags, loading }: any) {
                 key={tagName}
                 variant="outline"
                 size="sm"
-                onClick={() => createTagMutation.mutate({ name: tagName, type: 'certification' })}
+                onClick={() => createTagMutation.mutate({ 
+                  name: tagName, 
+                  color: '#22C55E',
+                  description: `Certification tag: ${tagName}`,
+                  isActive: true
+                })}
                 className="text-xs"
               >
                 <Plus className="h-3 w-3 mr-1" />
