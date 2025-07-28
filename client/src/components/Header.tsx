@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import type { Category } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +33,11 @@ export default function Header() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch categories for ingredients dropdown
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,22 +78,33 @@ export default function Header() {
                 <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center">
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="w-96 p-4">
+                  {/* All Ingredients Link */}
                   <Link href="/ingredients">
-                    <DropdownMenuItem>All Ingredients</DropdownMenuItem>
+                    <DropdownMenuItem className="mb-3 bg-green-50 hover:bg-green-100 font-medium text-green-700">
+                      All Ingredients
+                    </DropdownMenuItem>
                   </Link>
-                  <Link href="/products?category=Herbal Powders">
-                    <DropdownMenuItem>Herbal Powders</DropdownMenuItem>
-                  </Link>
-                  <Link href="/products?category=Essential Oils">
-                    <DropdownMenuItem>Essential Oils</DropdownMenuItem>
-                  </Link>
-                  <Link href="/products?category=Herbal Extracts">
-                    <DropdownMenuItem>Herbal Extracts</DropdownMenuItem>
-                  </Link>
-                  <Link href="/products?category=Oleoresins">
-                    <DropdownMenuItem>Oleoresins</DropdownMenuItem>
-                  </Link>
+                  
+                  <DropdownMenuSeparator className="mb-3" />
+                  
+                  {/* Categories in Three Columns */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {categories.map((category) => (
+                      <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
+                        <DropdownMenuItem className="text-sm p-2 hover:bg-gray-50 cursor-pointer">
+                          {category.name}
+                        </DropdownMenuItem>
+                      </Link>
+                    ))}
+                  </div>
+                  
+                  {/* Show placeholder if no categories loaded */}
+                  {categories.length === 0 && (
+                    <div className="text-sm text-gray-500 text-center py-4">
+                      Loading categories...
+                    </div>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
