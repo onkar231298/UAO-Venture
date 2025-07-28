@@ -1008,33 +1008,30 @@ export class DatabaseStorage implements IStorage {
             category: row.category || defaultCategory || '',
             price: parseFloat(row.price) || 0,
             moq: row.moq || '',
-            packagingType: row.packagingType || '',
-            origin: row.origin || '',
+            packingSize: row.packingSize || '',
+            leadTime: row.leadTime || '',
+            currentStock: row.currentStock || '',
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
-            extractionMethod: row.extractionMethod || '',
-            solubility: row.solubility || '',
-            grade: row.grade || '',
-            form: row.form || '',
-            activeContent: row.activeContent || '',
-            processingMethod: row.processingMethod || '',
+            origin: row.origin || '',
             healthSupport: row.healthSupport || '',
-            meshSize: row.meshSize || '',
-            moisture: row.moisture || '',
-            ashContent: row.ashContent || '',
-            bulkDensity: row.bulkDensity || '',
-            storageConditions: row.storageConditions || '',
-            shelfLife: row.shelfLife || '',
             hsCode: row.hsCode || '',
-            isOrganic: row.isOrganic === 'true' || row.isOrganic === '1' || false,
+            form: row.form || '',
+            basePrice: row.basePrice || '',
+            rate: row.rate || '',
+            priceUSD: row.priceUSD || '',
+            priceINR: row.priceINR || '',
+            priceEUR: row.priceEUR || '',
+            priceGBP: row.priceGBP || '',
+            priceType: row.priceType || 'EXW',
+            priceLocation: row.priceLocation || 'Warehouse India',
+            sampleAvailable: row.sampleAvailable === 'true' || row.sampleAvailable === '1' || true,
+            stopSell: row.stopSell === 'true' || row.stopSell === '1' || false,
             status: row.status || 'draft',
             visibility: 'visible',
             createdBy: userId,
             updatedBy: userId,
             slug: this.generateSlug(row.name),
-            metaTitle: row.metaTitle || row.name,
-            metaDescription: row.metaDescription || row.description?.substring(0, 160) || '',
-            keywords: row.keywords || '',
           };
 
           successfulRows.push(productData);
@@ -1098,41 +1095,34 @@ export class DatabaseStorage implements IStorage {
       'name',                    // Product name (REQUIRED)
       'description',             // Basic product description (REQUIRED) 
       'category',                // Product category (REQUIRED)
-      'price',                   // Base price (REQUIRED)
+      'price',                   // Base price in USD (REQUIRED)
       
       // *** OPTIONAL BUSINESS FIELDS (Can be blank) ***
       'moq',                     // Minimum order quantity
-      'packagingType',           // How it's packaged
-      'origin',                  // Country/region of origin
+      'packingSize',             // Packing size (25kg, 1kg, etc.)
+      'leadTime',                // Lead time for delivery
+      'currentStock',            // Current stock quantity
       'status',                  // draft/active/inactive (defaults to draft)
-      'isOrganic',               // true/false for organic certification
+      'sampleAvailable',         // true/false for sample availability
+      'stopSell',                // true/false to stop selling
       
       // *** OPTIONAL PRODUCT SPECIFICATIONS (Can be blank) ***
       'botanicalName',           // Scientific name
       'plantPart',               // Part of plant used
-      'extractionMethod',        // Extraction method used
-      'solubility',              // Solubility information
-      'grade',                   // Quality grade
-      'form',                    // Physical form (powder, liquid, etc.)
-      'activeContent',           // Active compound percentage
-      'processingMethod',        // Processing method used
+      'origin',                  // Country/region of origin
       'healthSupport',           // Functional Category (Antioxidant, Digestive Support, etc.)
+      'hsCode',                  // Harmonized System trade code
+      'form',                    // Physical form (powder, liquid, etc.)
       
-      // *** OPTIONAL PHYSICAL PROPERTIES (Can be blank) ***
-      'meshSize',                // Mesh size specification
-      'moisture',                // Moisture content
-      'ashContent',              // Ash content percentage
-      'bulkDensity',             // Bulk density
-      
-      // *** OPTIONAL STORAGE & TRADE INFO (Can be blank) ***
-      'storageConditions',       // Storage requirements
-      'shelfLife',               // Shelf life information
-      'hsCode',                  // HS code for customs
-      
-      // *** OPTIONAL SEO FIELDS (Can be blank) ***
-      'metaTitle',               // SEO title
-      'metaDescription',         // SEO description
-      'keywords'                 // SEO keywords
+      // *** OPTIONAL PRICING (Can be blank) ***
+      'basePrice',               // Base price
+      'rate',                    // Rate per unit
+      'priceUSD',                // Price in USD
+      'priceINR',                // Price in INR
+      'priceEUR',                // Price in EUR
+      'priceGBP',                // Price in GBP
+      'priceType',               // EXW, FOB, CIF, etc.
+      'priceLocation',           // Price location (Warehouse India, etc.)
     ];
 
     // Get category info for example data
@@ -1263,37 +1253,30 @@ export class DatabaseStorage implements IStorage {
       
       // *** OPTIONAL BUSINESS FIELDS ***
       '25 KG', // moq
-      '25kg HDPE Drums', // packagingType
-      'India', // origin
+      '25kg HDPE Drums', // packingSize
+      '7-10 days', // leadTime
+      '500', // currentStock
       'active', // status
-      'true', // isOrganic
+      'true', // sampleAvailable
+      'false', // stopSell
       
       // *** OPTIONAL PRODUCT SPECIFICATIONS ***
       'Withania somnifera', // botanicalName
       'Root', // plantPart
-      'Water-Ethanol Extraction', // extractionMethod
-      'Partially soluble in water', // solubility
-      'Pharmaceutical Grade', // grade
-      'Fine Powder', // form
-      '5% Withanolides', // activeContent
-      'Spray Dried', // processingMethod
+      'India', // origin
       'Stress Relief', // healthSupport
-      
-      // *** OPTIONAL PHYSICAL PROPERTIES ***
-      '80 mesh', // meshSize
-      '≤ 5%', // moisture
-      '≤ 8%', // ashContent
-      '0.45-0.65 g/ml', // bulkDensity
-      
-      // *** OPTIONAL STORAGE & TRADE INFO ***
-      'Store in cool, dry place away from direct sunlight', // storageConditions
-      '24 months', // shelfLife
       '1302.19', // hsCode
+      'Fine Powder', // form
       
-      // *** OPTIONAL SEO FIELDS ***
-      'Premium Ashwagandha Root Extract Powder - 5% Withanolides', // metaTitle
-      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.', // metaDescription
-      'ashwagandha, withanolides, herbal extract, adaptogen, stress relief' // keywords
+      // *** OPTIONAL PRICING ***
+      '25.50', // basePrice
+      '25.50', // rate
+      '25.50', // priceUSD
+      '2100', // priceINR
+      '23.50', // priceEUR
+      '20.50', // priceGBP
+      'EXW', // priceType
+      'Warehouse India', // priceLocation
     ];
 
     // Customize example based on category
