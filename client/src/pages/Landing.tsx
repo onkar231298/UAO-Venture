@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import ParallaxHero from "@/components/ParallaxHero";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
@@ -255,93 +256,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-green-600 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <Leaf className="text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">BFI Organic</h3>
-                  <p className="text-xs text-green-200">Pvt. Ltd.</p>
-                </div>
-              </div>
-              <p className="text-green-200 text-sm mb-4">
-                Your trusted partner for premium organic ingredients with comprehensive B2B solutions.
-              </p>
-              <div className="flex space-x-3">
-                <a href="#" className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center hover:bg-white hover:text-green-600 transition-colors">
-                  <span className="text-sm font-bold">f</span>
-                </a>
-                <a href="#" className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center hover:bg-white hover:text-green-600 transition-colors">
-                  <span className="text-sm font-bold">t</span>
-                </a>
-                <a href="#" className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center hover:bg-white hover:text-green-600 transition-colors">
-                  <span className="text-sm font-bold">in</span>
-                </a>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Products</h4>
-              <ul className="space-y-2 text-sm text-green-200">
-                <li><a href="#" className="hover:text-white transition-colors">Herbal Powders</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Liquid Extracts</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Essential Oils</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Raw Materials</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Custom Blends</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Services</h4>
-              <ul className="space-y-2 text-sm text-green-200">
-                <li><a href="#" className="hover:text-white transition-colors">Quality Testing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">R&D Support</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Regulatory Compliance</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Custom Packaging</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Logistics Solutions</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Contact Info</h4>
-              <div className="space-y-3 text-sm text-green-200">
-                <div className="flex items-start space-x-2">
-                  <MapPin className="w-4 h-4 mt-1" />
-                  <div>
-                    <p>C/O Bright Fame International</p>
-                    <p>Opp. Murlidhar Guest House,</p>
-                    <p>Mehsana-Vishnagar Road, Kansarakui</p>
-                    <p>Mehsana, Gujarat 384001</p>
-                    <p>India</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+91-7249847439</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>info@bfiorganic.com</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-green-500 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-green-200">
-            <p>&copy; 2024 Bright Fame Organic Pvt. Ltd. All rights reserved.</p>
-            <div className="flex space-x-4 mt-4 md:mt-0">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

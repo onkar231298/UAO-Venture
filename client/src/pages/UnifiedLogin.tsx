@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Footer from "@/components/Footer";
 
 import { Leaf, AlertCircle } from "lucide-react";
 
@@ -126,6 +127,7 @@ export default function UnifiedLogin() {
           </div>
         </CardContent>
       </Card>
+      <Footer />
     </div>
   );
 }

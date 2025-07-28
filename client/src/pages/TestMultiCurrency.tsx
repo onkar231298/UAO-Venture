@@ -3,6 +3,7 @@ import { LocationBasedPricing, CompactPricing } from "@/components/LocationBased
 import { AdminLocationTesting } from "@/components/AdminLocationTesting";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export default function TestMultiCurrency() {
   const { data: products, isLoading } = useQuery({
@@ -146,6 +147,7 @@ export default function TestMultiCurrency() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import InquiryForm from "@/components/InquiryForm";
 import QuantityPricing from "@/components/QuantityPricing";
 import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
@@ -586,10 +587,8 @@ export default function ProductDetailGreenJeeva() {
             </Card>
           </div>
         </div>
-
-
-
       </div>
+      <Footer />
     </div>
   );
 }
