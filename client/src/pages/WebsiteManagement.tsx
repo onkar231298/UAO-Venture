@@ -44,6 +44,8 @@ import {
   AlertCircle,
   MessageSquare
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import BulkProductUpload from "@/components/BulkProductUpload";
 import type { Product, Category, ProductTag, HeroSlider } from "@shared/schema";
 
 export default function WebsiteManagement() {
@@ -283,13 +285,29 @@ function ProductsManagement({
           <h2 className="text-xl font-semibold text-gray-900">Product Management</h2>
           <p className="text-gray-600">Upload and manage product information</p>
         </div>
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Bulk Upload
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Bulk Product Upload</DialogTitle>
+              </DialogHeader>
+              <BulkProductUpload />
+            </DialogContent>
+          </Dialog>
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Products List */}
