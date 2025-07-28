@@ -204,8 +204,8 @@ export default function BulkProductUpload() {
           <Alert className="mt-4">
             <FileSpreadsheet className="h-4 w-4" />
             <AlertDescription>
-              Download a CSV template with example data for your selected category. 
-              The template includes all required fields, validation rules, and sample data.
+              Download a CSV template with essential product information only. 
+              Advanced fields like images, FAQs, and detailed specifications can be added later through the regular product editor.
             </AlertDescription>
           </Alert>
         </div>
@@ -364,11 +364,12 @@ export default function BulkProductUpload() {
         <div className="bg-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold text-blue-900 mb-2">Upload Instructions:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Use the template to ensure correct format and required fields</li>
+            <li>• <strong>Required fields:</strong> name, description, category, price</li>
+            <li>• Template includes only essential business information</li>
+            <li>• Images, FAQs, tags, and detailed specs can be added later via product editor</li>
             <li>• All validation errors must be fixed before upload succeeds</li>
-            <li>• Product IDs must be unique (duplicates will be skipped)</li>
-            <li>• Images should be URLs or will be uploaded separately</li>
-            <li>• Required fields: name, category, status, price</li>
+            <li>• Product IDs are auto-generated if not provided</li>
+            <li>• Status options: draft, active, inactive (defaults to draft)</li>
           </ul>
         </div>
       </CardContent>

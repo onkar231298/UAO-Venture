@@ -1000,7 +1000,7 @@ export class DatabaseStorage implements IStorage {
             continue;
           }
 
-          // Create product data
+          // Create product data (only basic required fields from CSV)
           const productData: InsertProduct = {
             productId,
             name: row.name.trim(),
@@ -1012,28 +1012,30 @@ export class DatabaseStorage implements IStorage {
             origin: row.origin || '',
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
-            extractionMethod: row.extractionMethod || '',
-            solubility: row.solubility || '',
-            meshSize: row.meshSize || '',
-            moisture: row.moisture || '',
-            ashContent: row.ashContent || '',
-            bulkDensity: row.bulkDensity || '',
+            grade: row.grade || '',
+            form: row.form || '',
             storageConditions: row.storageConditions || '',
             shelfLife: row.shelfLife || '',
             hsCode: row.hsCode || '',
-            grade: row.grade || '',
-            form: row.form || '',
-            activeContent: row.activeContent || '',
-            processingMethod: row.processingMethod || '',
             isOrganic: row.isOrganic === 'true' || row.isOrganic === '1' || false,
             status: row.status || 'draft',
-            visibility: row.visibility || 'visible',
+            visibility: 'visible',
             createdBy: userId,
             updatedBy: userId,
             slug: this.generateSlug(row.name),
             metaTitle: row.metaTitle || row.name,
             metaDescription: row.metaDescription || row.description?.substring(0, 160) || '',
-            keywords: row.keywords || '',
+            
+            // Set default values for optional fields that can be edited later
+            extractionMethod: '',
+            solubility: '',
+            meshSize: '',
+            moisture: '',
+            ashContent: '',
+            bulkDensity: '',
+            activeContent: '',
+            processingMethod: '',
+            keywords: '',
           };
 
           successfulRows.push(productData);
@@ -1093,34 +1095,35 @@ export class DatabaseStorage implements IStorage {
   // Generate product template CSV
   async generateProductTemplate(categoryId?: number): Promise<string> {
     const headers = [
-      'name',
-      'description',
-      'category',
-      'price',
-      'moq',
-      'packagingType',
-      'origin',
-      'botanicalName',
-      'plantPart',
-      'extractionMethod',
-      'solubility',
-      'meshSize',
-      'moisture',
-      'ashContent',
-      'bulkDensity',
-      'storageConditions',
-      'shelfLife',
-      'hsCode',
-      'grade',
-      'form',
-      'activeContent',
-      'processingMethod',
-      'isOrganic',
-      'status',
-      'visibility',
-      'metaTitle',
-      'metaDescription',
-      'keywords'
+      // REQUIRED BASIC INFORMATION
+      'name',                    // Product name (REQUIRED)
+      'description',             // Basic product description (REQUIRED)
+      'category',                // Product category (REQUIRED)
+      'price',                   // Base price (REQUIRED)
+      
+      // ESSENTIAL BUSINESS FIELDS
+      'moq',                     // Minimum order quantity
+      'packagingType',           // How it's packaged
+      'origin',                  // Country/region of origin
+      'status',                  // draft/active/inactive
+      'isOrganic',               // true/false for organic certification
+      
+      // BASIC PRODUCT SPECIFICATIONS
+      'botanicalName',           // Scientific name
+      'plantPart',               // Part of plant used
+      'grade',                   // Quality grade
+      'form',                    // Physical form (powder, liquid, etc.)
+      
+      // STORAGE & HANDLING
+      'storageConditions',       // Storage requirements
+      'shelfLife',               // Shelf life information
+      
+      // TRADE INFORMATION
+      'hsCode',                  // HS code for customs
+      
+      // BASIC SEO (optional but recommended)
+      'metaTitle',               // SEO title
+      'metaDescription'          // SEO description
     ];
 
     // Get category info for example data
@@ -1242,34 +1245,35 @@ export class DatabaseStorage implements IStorage {
 
   private generateExampleDataForCategory(categoryName: string): string[] {
     const baseExample = [
+      // REQUIRED BASIC INFORMATION
       'Ashwagandha Root Extract Powder', // name
       'Premium quality Ashwagandha root extract powder with 5% withanolides for nutraceutical applications', // description
       categoryName, // category
       '25.50', // price
+      
+      // ESSENTIAL BUSINESS FIELDS
       '25 KG', // moq
       '25kg HDPE Drums', // packagingType
       'India', // origin
+      'active', // status
+      'true', // isOrganic
+      
+      // BASIC PRODUCT SPECIFICATIONS
       'Withania somnifera', // botanicalName
       'Root', // plantPart
-      'Water-Ethanol Extraction', // extractionMethod
-      'Partially soluble in water', // solubility
-      '80 mesh', // meshSize
-      '≤ 5%', // moisture
-      '≤ 8%', // ashContent
-      '0.45-0.65 g/ml', // bulkDensity
-      'Store in cool, dry place away from direct sunlight', // storageConditions
-      '24 months', // shelfLife
-      '1302.19', // hsCode
       'Pharmaceutical Grade', // grade
       'Fine Powder', // form
-      '5% Withanolides', // activeContent
-      'Spray Dried', // processingMethod
-      'true', // isOrganic
-      'active', // status
-      'visible', // visibility
+      
+      // STORAGE & HANDLING
+      'Store in cool, dry place away from direct sunlight', // storageConditions
+      '24 months', // shelfLife
+      
+      // TRADE INFORMATION
+      '1302.19', // hsCode
+      
+      // BASIC SEO
       'Premium Ashwagandha Root Extract Powder - 5% Withanolides', // metaTitle
-      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.', // metaDescription
-      'ashwagandha, withanolides, herbal extract, adaptogen, stress relief' // keywords
+      'High-quality Ashwagandha root extract powder with standardized 5% withanolides. Perfect for nutraceutical and supplement applications.' // metaDescription
     ];
 
     // Customize example based on category
