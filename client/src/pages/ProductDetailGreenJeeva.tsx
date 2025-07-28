@@ -143,8 +143,11 @@ export default function ProductDetailGreenJeeva() {
 
               {/* Document Downloads */}
               <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">All Product Documents</CardTitle>
+                <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                  <CardTitle className="text-base font-semibold text-blue-900 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    All Product Documents
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {!isAuthenticated ? (
@@ -402,8 +405,11 @@ export default function ProductDetailGreenJeeva() {
           {/* Product Information Tabs Section - Spans Middle and Right Columns */}
           <div className="lg:col-span-8 lg:col-start-5 -mt-4">
             <Card className="w-full max-w-none">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Product Information</CardTitle>
+              <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100">
+                <CardTitle className="text-lg text-orange-900 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-orange-600" />
+                  Product Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs defaultValue="spec" className="w-full">

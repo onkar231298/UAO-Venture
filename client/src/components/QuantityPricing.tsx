@@ -107,9 +107,9 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
 
   return (
     <Card className="w-full max-w-full overflow-hidden" style={{ width: 'calc(100% + 1rem)' }}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calculator className="w-5 h-5" />
+      <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+        <CardTitle className="flex items-center gap-2 text-lg text-green-900">
+          <Calculator className="w-5 h-5 text-green-600" />
           Quantity Pricing
         </CardTitle>
         {!isLoading && (
