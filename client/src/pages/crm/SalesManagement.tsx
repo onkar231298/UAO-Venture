@@ -137,9 +137,32 @@ export default function SalesManagement() {
         
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Management</h1>
-            <p className="text-gray-600">Manage customer inquiries, quotations, and sales orders</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {user?.role === 'admin' || user?.role === 'super_admin' ? 'Admin Dashboard - Sales Management' : 'Sales Management'}
+            </h1>
+            <p className="text-gray-600">
+              {user?.role === 'admin' || user?.role === 'super_admin' 
+                ? 'Complete overview of customer inquiries, sample requests, quotations, and sales orders' 
+                : 'Manage customer inquiries, quotations, and sales orders'}
+            </p>
           </div>
+
+          {/* Admin Access Badge */}
+          {(user?.role === 'admin' || user?.role === 'super_admin') && (
+            <div className="mb-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-800">Admin Access Enabled</h3>
+                    <p className="text-sm text-green-600">You have full access to view all customer enquiries, sample requests, quotations, and sales data across all departments.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Cards */}
           {dashboardStats && (
@@ -148,7 +171,12 @@ export default function SalesManagement() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Active Inquiries</p>
+                      <p className="text-sm text-gray-600">
+                        Active Inquiries
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
+                        )}
+                      </p>
                       <p className="text-2xl font-bold">{dashboardStats.totalInquiries}</p>
                     </div>
                     <MessageSquare className="w-8 h-8 text-blue-600" />
@@ -160,7 +188,34 @@ export default function SalesManagement() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Quotations</p>
+                      <p className="text-sm text-gray-600">
+                        Sample Requests
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
+                        )}
+                      </p>
+                      <p className="text-2xl font-bold">{dashboardStats.totalSampleRequests || 0}</p>
+                    </div>
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V8z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5V3a2 2 0 012-2h2a2 2 0 012 2v2M5 12h14" />
+                      </svg>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        Quotations
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
+                        )}
+                      </p>
                       <p className="text-2xl font-bold">{dashboardStats.totalQuotations}</p>
                     </div>
                     <FileText className="w-8 h-8 text-green-600" />
@@ -172,7 +227,12 @@ export default function SalesManagement() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Sales Orders</p>
+                      <p className="text-sm text-gray-600">
+                        Sales Orders
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
+                        )}
+                      </p>
                       <p className="text-2xl font-bold">{dashboardStats.totalOrders}</p>
                     </div>
                     <BarChart3 className="w-8 h-8 text-purple-600" />
@@ -184,7 +244,12 @@ export default function SalesManagement() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Revenue</p>
+                      <p className="text-sm text-gray-600">
+                        Revenue This Month
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
+                        )}
+                      </p>
                       <p className="text-2xl font-bold">${dashboardStats.revenueThisMonth.toLocaleString()}</p>
                     </div>
                     <DollarSign className="w-8 h-8 text-orange-600" />
@@ -226,10 +291,30 @@ export default function SalesManagement() {
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="inquiries">Customer Inquiries</TabsTrigger>
-              <TabsTrigger value="samples">Sample Requests</TabsTrigger>
-              <TabsTrigger value="quotations">Quotations</TabsTrigger>
-              <TabsTrigger value="orders">Sales Orders</TabsTrigger>
+              <TabsTrigger value="inquiries">
+                Customer Inquiries
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="samples">
+                Sample Requests
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="quotations">
+                Quotations
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="orders">
+                Sales Orders
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             {/* Inquiries Tab */}
