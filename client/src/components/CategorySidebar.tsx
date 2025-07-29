@@ -23,40 +23,32 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
 
   return (
     <>
-      {/* Overlay */}
+      {/* Backdrop for mobile */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className={`fixed inset-0 bg-black bg-opacity-25 z-40 md:hidden ${isOpen ? 'block' : 'hidden'}`}
         onClick={onClose}
       />
       
-      {/* Sidebar */}
+      {/* Dropdown Sidebar */}
       <div className={`
-        fixed top-0 left-0 h-full bg-white z-50 shadow-lg transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        w-64 sm:w-72
+        absolute top-full left-0 bg-white shadow-lg border border-gray-200 rounded-lg mt-1 z-50 transition-all duration-200 ease-in-out
+        ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}
+        w-64 max-h-96 overflow-hidden
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-sm font-medium text-gray-700">
             By Category
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-          >
-            <X className="w-5 h-5" />
-          </Button>
+          </h3>
         </div>
 
         {/* Categories List */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="py-2">
+        <div className="max-h-80 overflow-y-auto">
+          <div className="py-1">
             {categories.map((category) => (
               <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
                 <div 
-                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-gray-700 hover:text-gray-900 text-sm border-l-4 border-transparent hover:border-green-500 transition-colors"
+                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-gray-700 hover:text-gray-900 text-sm transition-colors"
                   onClick={handleCategoryClick.bind(null, category.name)}
                 >
                   {category.name}
@@ -67,9 +59,9 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
 
           {/* Loading State */}
           {categories.length === 0 && (
-            <div className="py-2">
-              {Array.from({ length: 12 }).map((_, index) => (
-                <div key={index} className="animate-pulse px-4 py-2">
+            <div className="py-1">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="animate-pulse px-3 py-2">
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                 </div>
               ))}
