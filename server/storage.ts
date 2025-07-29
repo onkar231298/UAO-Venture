@@ -1530,7 +1530,7 @@ export class DatabaseStorage implements IStorage {
       'Root', // plantPart
       'India', // origin
       'organic', // productType (organic/conventional/wildcrafted/kosher/halal)
-      'food', // productGrade (food/pharma/cosmetic/technical)
+      '', // productGrade (leave blank - food/pharma/cosmetic/technical)
       'Stress Relief', // healthSupport
       '1302.19', // hsCode
       'powder', // form (powder/extract/oil/liquid/capsule/tablet)
