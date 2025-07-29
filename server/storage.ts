@@ -518,7 +518,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await db.update(products).set({ isActive: false }).where(eq(products.id, id));
+    // Hard delete - permanently remove from database
+    await db.delete(products).where(eq(products.id, id));
   }
 
   // Category operations
