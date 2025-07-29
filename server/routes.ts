@@ -43,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { 
         category, 
         search, 
-        isOrganic, 
+        materials, 
         healthSupport, 
         origin, 
         form, 
@@ -76,14 +76,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (form) {
         filters.form = Array.isArray(form) ? form : (form as string).split(',');
       }
+      
+      if (materials) {
+        filters.materials = Array.isArray(materials) ? materials : (materials as string).split(',');
+      }
 
       // Handle other filters
       if (search) {
         filters.search = search as string;
-      }
-      
-      if (isOrganic !== undefined) {
-        filters.isOrganic = isOrganic === 'true' ? true : isOrganic === 'false' ? false : undefined;
       }
       
       if (inStock !== undefined) {

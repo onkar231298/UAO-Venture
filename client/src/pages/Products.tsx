@@ -23,7 +23,7 @@ interface ProductFilters {
   healthSupport: string[];
   origin: string[];
   form: string[];
-  isOrganic: boolean | null;
+  materials: string[];
   priceRange: [number, number] | null;
   inStock: boolean | null;
 }
@@ -40,7 +40,7 @@ export default function Products() {
       healthSupport: params.get('healthSupport') ? params.get('healthSupport')!.split(',') : [],
       origin: params.get('origin') ? params.get('origin')!.split(',') : [],
       form: params.get('form') ? params.get('form')!.split(',') : [],
-      isOrganic: params.get('isOrganic') ? params.get('isOrganic') === 'true' : null,
+      materials: params.get('materials') ? params.get('materials')!.split(',') : [],
       priceRange: null,
       inStock: params.get('inStock') ? params.get('inStock') === 'true' : null,
     };
@@ -66,7 +66,7 @@ export default function Products() {
     if (filters.healthSupport.length > 0) params.append('healthSupport', filters.healthSupport.join(','));
     if (filters.origin.length > 0) params.append('origin', filters.origin.join(','));
     if (filters.form.length > 0) params.append('form', filters.form.join(','));
-    if (filters.isOrganic !== null) params.append('isOrganic', filters.isOrganic.toString());
+    if (filters.materials.length > 0) params.append('materials', filters.materials.join(','));
     if (filters.inStock !== null) params.append('inStock', filters.inStock.toString());
     if (filters.priceRange) {
       params.append('priceMin', filters.priceRange[0].toString());
@@ -131,7 +131,7 @@ export default function Products() {
       healthSupport: [],
       origin: [],
       form: [],
-      isOrganic: null,
+      materials: [],
       priceRange: null,
       inStock: null,
     });
@@ -153,7 +153,7 @@ export default function Products() {
     filters.healthSupport.forEach(health => active.push(`Health: ${health}`));
     filters.origin.forEach(origin => active.push(`Origin: ${origin}`));
     filters.form.forEach(form => active.push(`Form: ${form}`));
-    if (filters.isOrganic !== null) active.push(`Organic: ${filters.isOrganic ? 'Yes' : 'No'}`);
+    filters.materials.forEach(material => active.push(`Material: ${material}`));
     if (filters.inStock !== null) active.push(`In Stock: ${filters.inStock ? 'Yes' : 'No'}`);
     setActiveFilters(active);
   }, [filters]);
@@ -235,18 +235,26 @@ export default function Products() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="organic"
-                      checked={filters.isOrganic === true}
-                      onCheckedChange={(checked) => updateFilter('isOrganic', checked ? true : null)}
+                      checked={filters.materials.includes('organic')}
+                      onCheckedChange={() => toggleArrayFilter('materials', 'organic')}
                     />
                     <Label htmlFor="organic" className="text-sm">Organic (Premium)</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="conventional"
-                      checked={filters.isOrganic === false}
-                      onCheckedChange={(checked) => updateFilter('isOrganic', checked ? false : null)}
+                      checked={filters.materials.includes('conventional')}
+                      onCheckedChange={() => toggleArrayFilter('materials', 'conventional')}
                     />
                     <Label htmlFor="conventional" className="text-sm">Conventional</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="wildcrafted"
+                      checked={filters.materials.includes('wildcrafted')}
+                      onCheckedChange={() => toggleArrayFilter('materials', 'wildcrafted')}
+                    />
+                    <Label htmlFor="wildcrafted" className="text-sm">Wildcrafted</Label>
                   </div>
                 </CollapsibleContent>
               </Collapsible>

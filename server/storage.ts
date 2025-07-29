@@ -209,7 +209,7 @@ export class DatabaseStorage implements IStorage {
   async getProducts(filters?: {
     category?: string[];
     search?: string;
-    isOrganic?: boolean;
+    materials?: string[];
     healthSupport?: string[];
     origin?: string[];
     form?: string[];
@@ -241,14 +241,12 @@ export class DatabaseStorage implements IStorage {
       );
     }
     
-    // Organic filter
-    if (filters?.isOrganic !== undefined) {
-      // Note: we'll use a text field check since the schema shows isOrganic as boolean but we're storing product type as text
-      if (filters.isOrganic) {
-        conditions.push(eq(products.productType, 'organic'));
-      } else {
-        conditions.push(eq(products.productType, 'conventional'));
-      }
+    // Materials filter (organic, conventional, wildcrafted)
+    if (filters?.materials && filters.materials.length > 0) {
+      const materialConditions = filters.materials.map(material => 
+        sql`${products.productType} ILIKE ${material}`
+      );
+      conditions.push(or(...materialConditions));
     }
 
     // Health Support filter
