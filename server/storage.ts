@@ -1165,7 +1165,7 @@ export class DatabaseStorage implements IStorage {
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
             origin: row.origin || '',
-            productType: row.productType || 'organic',
+            productType: row.productType ? row.productType.toLowerCase() : 'organic',
             productGrade: row.productGrade || '',
             healthSupport: row.healthSupport || '',
             hsCode: row.hsCode || '',
@@ -1187,8 +1187,8 @@ export class DatabaseStorage implements IStorage {
             priceGBP: row.priceGBP ? parseFloat(row.priceGBP) || 0 : 0,
             priceType: row.priceType || 'EXW',
             priceLocation: row.priceLocation || 'Warehouse India',
-            sampleAvailable: row.sampleAvailable === 'true' || row.sampleAvailable === '1' || true,
-            stopSell: row.stopSell === 'true' || row.stopSell === '1' || false,
+            sampleAvailable: this.parseBooleanFromCsv(row.sampleAvailable, true),
+            stopSell: this.parseBooleanFromCsv(row.stopSell, false),
             status: row.status || 'draft',
             visibility: 'visible',
             createdBy: userId,
@@ -1433,11 +1433,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Product type validation (only if provided)
-    if (row.productType && row.productType.trim() !== '' && !['organic', 'conventional'].includes(row.productType.toLowerCase())) {
+    if (row.productType && row.productType.trim() !== '' && !['organic', 'conventional', 'wildcrafted', 'kosher', 'halal'].includes(row.productType.toLowerCase())) {
       errors.push({ 
         line: lineNumber, 
         field: 'productType', 
-        message: 'productType must be: organic or conventional (or leave blank for organic)', 
+        message: 'productType must be: organic, conventional, wildcrafted, kosher, or halal (or leave blank for organic)', 
         value: row.productType 
       });
     }
@@ -1481,6 +1481,22 @@ export class DatabaseStorage implements IStorage {
     }
     
     return faqs;
+  }
+
+  // Helper method to parse boolean values from CSV
+  private parseBooleanFromCsv(value: string, defaultValue: boolean): boolean {
+    if (!value || value.trim() === '') {
+      return defaultValue;
+    }
+    
+    const lowerValue = value.toLowerCase().trim();
+    if (['true', '1', 'yes', 'y'].includes(lowerValue)) {
+      return true;
+    } else if (['false', '0', 'no', 'n'].includes(lowerValue)) {
+      return false;
+    }
+    
+    return defaultValue;
   }
 
   private generateSlug(name: string): string {
