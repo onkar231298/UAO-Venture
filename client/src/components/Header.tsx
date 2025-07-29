@@ -37,6 +37,7 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showCategorySidebar, setShowCategorySidebar] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Fetch categories for ingredients dropdown
@@ -67,7 +68,7 @@ export default function Header() {
     }
   }, [suggestionsData, searchQuery]);
 
-  // Close suggestions when clicking outside
+  // Close suggestions and mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -77,6 +78,12 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close mobile menu when navigating to new page
+  useEffect(() => {
+    setShowMobileMenu(false);
+    setShowCategorySidebar(false);
+  }, [location]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +124,16 @@ export default function Header() {
               </div>
             </Link>
             
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+
             {/* Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
               <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
@@ -263,6 +280,38 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {showMobileMenu && (
+        <div className="lg:hidden bg-white border-t border-gray-200">
+          <div className="container mx-auto px-4 py-4 space-y-2">
+            <Link 
+              href="/" 
+              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Home
+            </Link>
+            <Link 
+              href="/products" 
+              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Products
+            </Link>
+            <Link 
+              href="/ingredients" 
+              className="block py-2 text-gray-700 hover:text-green-600 transition-colors"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              All Ingredients
+            </Link>
+            <div className="py-2 text-gray-700">Certifications</div>
+            <div className="py-2 text-gray-700">R&D Lab</div>
+            <div className="py-2 text-gray-700">Services</div>
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="bg-green-600 text-white">

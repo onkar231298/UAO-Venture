@@ -33,7 +33,7 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
       <div className={`
         absolute top-full left-0 bg-white shadow-lg border border-gray-200 rounded-lg mt-1 z-50 transition-all duration-200 ease-in-out
         ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}
-        w-64 max-h-96 overflow-hidden
+        w-64 sm:w-80 max-h-96 overflow-hidden
       `}>
         {/* Header */}
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">

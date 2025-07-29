@@ -57,6 +57,8 @@ export default function Products() {
     materials: true,
   });
 
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
@@ -210,8 +212,20 @@ export default function Products() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
+          {/* Mobile Filter Toggle */}
+          <div className="lg:hidden mb-4">
+            <Button 
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+          </div>
+
           {/* Filters Sidebar */}
-          <div className="lg:w-80 space-y-6">
+          <div className={`lg:w-80 space-y-6 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
