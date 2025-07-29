@@ -224,7 +224,10 @@ function ProductsManagement({
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await apiRequest("PUT", `/api/admin/products/${id}`, data);
+      const response = await apiRequest(`/api/admin/products/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -247,7 +250,9 @@ function ProductsManagement({
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: number) => {
-      const response = await apiRequest("DELETE", `/api/admin/products/${productId}`);
+      const response = await apiRequest(`/api/admin/products/${productId}`, {
+        method: "DELETE"
+      });
       return await response.json();
     },
     onSuccess: () => {
