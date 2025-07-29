@@ -127,12 +127,15 @@ export default function Products() {
   };
 
   const toggleArrayFilter = (key: keyof ProductFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: (prev[key] as string[]).includes(value)
-        ? (prev[key] as string[]).filter(item => item !== value)
-        : [...(prev[key] as string[]), value]
-    }));
+    setFilters(prev => {
+      const currentArray = prev[key] as string[] || [];
+      return {
+        ...prev,
+        [key]: currentArray.includes(value)
+          ? currentArray.filter(item => item !== value)
+          : [...currentArray, value]
+      };
+    });
   };
 
   const clearFilters = () => {
@@ -150,9 +153,24 @@ export default function Products() {
 
   const removeFilter = (filterType: string, value?: string) => {
     if (value) {
-      toggleArrayFilter(filterType as keyof ProductFilters, value);
+      // Handle array filters
+      const key = filterType as keyof ProductFilters;
+      if (key === 'category' || key === 'healthSupport' || key === 'origin' || key === 'form' || key === 'materials') {
+        toggleArrayFilter(key, value);
+      }
     } else {
-      updateFilter(filterType as keyof ProductFilters, filterType === 'isOrganic' || filterType === 'inStock' ? null : []);
+      // Handle non-array filters
+      if (filterType === 'search') {
+        updateFilter('search', '');
+      } else if (filterType === 'inStock') {
+        updateFilter('inStock', null);
+      } else {
+        // Clear array filters
+        const key = filterType as keyof ProductFilters;
+        if (key === 'category' || key === 'healthSupport' || key === 'origin' || key === 'form' || key === 'materials') {
+          updateFilter(key, []);
+        }
+      }
     }
   };
 
@@ -206,7 +224,8 @@ export default function Products() {
                           className="h-3 w-3 cursor-pointer" 
                           onClick={() => {
                             const [type, value] = filter.split(': ');
-                            removeFilter(type.toLowerCase(), value);
+                            const filterKey = type.toLowerCase().replace(' ', '');
+                            removeFilter(filterKey, value);
                           }}
                         />
                       </Badge>
