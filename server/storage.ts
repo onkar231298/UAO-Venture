@@ -234,15 +234,27 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(...categoryConditions));
     }
     
-    // Search filter
+    // Search filter with better relevance
     if (filters?.search) {
-      const searchTerm = `%${filters.search}%`;
+      const searchTerm = filters.search.toLowerCase().trim();
+      const exactWordPattern = `% ${searchTerm} %`;
+      const startsWithPattern = `${searchTerm}%`;
+      const containsPattern = `%${searchTerm}%`;
+      
+      // Prioritize exact word matches, then starts with, then contains
       conditions.push(
         or(
-          sql`${products.name} ILIKE ${searchTerm}`,
-          sql`${products.description} ILIKE ${searchTerm}`,
-          sql`${products.botanicalName} ILIKE ${searchTerm}`,
-          sql`${products.productId} ILIKE ${searchTerm}`
+          // Exact word match in name (highest priority)
+          sql`LOWER(${products.name}) LIKE ${exactWordPattern}`,
+          sql`LOWER(${products.name}) LIKE ${startsWithPattern}`,
+          // Exact word match in other fields
+          sql`LOWER(${products.botanicalName}) LIKE ${exactWordPattern}`,
+          sql`LOWER(${products.botanicalName}) LIKE ${startsWithPattern}`,
+          sql`LOWER(${products.productId}) LIKE ${startsWithPattern}`,
+          // Contains match (lower priority)
+          sql`LOWER(${products.name}) LIKE ${containsPattern}`,
+          sql`LOWER(${products.description}) LIKE ${containsPattern}`,
+          sql`LOWER(${products.botanicalName}) LIKE ${containsPattern}`
         )
       );
     }
@@ -294,22 +306,35 @@ export class DatabaseStorage implements IStorage {
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
-    // Determine sort order
+    // Determine sort order with search relevance
     let orderBy;
-    switch (filters?.sortBy) {
-      case 'price-low':
-        orderBy = asc(products.priceUSD);
-        break;
-      case 'price-high':
-        orderBy = desc(products.priceUSD);
-        break;
-      case 'name':
-        orderBy = asc(products.name);
-        break;
-      case 'newest':
-      default:
-        orderBy = desc(products.createdAt);
-        break;
+    if (filters?.search) {
+      // When searching, order by relevance first
+      const searchTerm = filters.search.toLowerCase().trim();
+      orderBy = [
+        // Exact matches first
+        sql`CASE WHEN LOWER(${products.name}) LIKE ${`${searchTerm}%`} THEN 1 
+             WHEN LOWER(${products.name}) LIKE ${`% ${searchTerm} %`} THEN 2
+             WHEN LOWER(${products.botanicalName}) LIKE ${`${searchTerm}%`} THEN 3
+             ELSE 4 END`,
+        asc(products.name) // Then alphabetical
+      ];
+    } else {
+      switch (filters?.sortBy) {
+        case 'price-low':
+          orderBy = asc(products.priceUSD);
+          break;
+        case 'price-high':
+          orderBy = desc(products.priceUSD);
+          break;
+        case 'name':
+          orderBy = asc(products.name);
+          break;
+        case 'newest':
+        default:
+          orderBy = desc(products.createdAt);
+          break;
+      }
     }
 
     const [productsResult, totalResult] = await Promise.all([
@@ -319,7 +344,7 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
-        .orderBy(orderBy),
+        .orderBy(Array.isArray(orderBy) ? orderBy : [orderBy]),
       db
         .select({ count: count() })
         .from(products)
