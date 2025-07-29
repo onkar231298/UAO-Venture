@@ -52,7 +52,7 @@ export default function WebsiteManagement() {
 
   // Queries
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/products", { limit: 100 }],
+    queryKey: ["/api/admin/products", { limit: 100 }],
   });
 
   const { data: categories } = useQuery({
@@ -66,7 +66,7 @@ export default function WebsiteManagement() {
     },
     onSuccess: () => {
       toast({ title: "Product updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error as Error)) {
@@ -92,7 +92,7 @@ export default function WebsiteManagement() {
     },
     onSuccess: () => {
       toast({ title: "Product created successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error as Error)) {

@@ -359,7 +359,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(products)
         .where(whereClause)
-        .limit(filters?.limit || 50)
+        .limit(filters?.limit || 100)
         .offset(filters?.offset || 0)
         .orderBy(desc(products.createdAt)),
       db
