@@ -7,12 +7,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-green-600 font-bold text-sm">BFI</span>
-              </div>
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/image_1753799331148.png" 
+                alt="BFI Organic Logo" 
+                className="w-10 h-10 bg-white rounded-lg p-1"
+              />
               <div>
-                <h3 className="font-bold text-lg">BFI Organic</h3>
+                <h3 className="font-bold text-lg"><strong>Bright Fame Organic</strong></h3>
                 <p className="text-xs text-green-200">Pvt. Ltd.</p>
               </div>
             </div>
