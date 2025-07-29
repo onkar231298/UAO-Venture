@@ -59,7 +59,7 @@ export default function Products() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 100;
 
   // Convert filters to URL query parameters
   const buildQueryParams = (filters: ProductFilters, page: number = 1) => {
@@ -486,6 +486,13 @@ export default function Products() {
                   <Button onClick={clearFilters} variant="outline">
                     Clear Filters
                   </Button>
+                </div>
+              )}
+
+              {/* Debug info */}
+              {productsData && (
+                <div className="text-sm text-gray-500 mb-4">
+                  Showing {productsData.products.length} of {productsData.total} products
                 </div>
               )}
 
