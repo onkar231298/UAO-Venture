@@ -113,18 +113,7 @@ export default function UnifiedLogin() {
           </form>
 
           
-          {/* Demo Credentials Helper */}
-          <div className="mt-4 space-y-2">
-            <div className="p-3 bg-blue-50 rounded-lg text-center">
-              <p className="text-xs text-blue-700 mb-1">Admin Login:</p>
-              <p className="text-xs text-blue-600">admin@bfiorganic.com / BFIAdmin2024!</p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg text-center">
-              <p className="text-xs text-green-700 mb-1">Demo Customer Login:</p>
-              <p className="text-xs text-green-600">customer@example.com / customer123</p>
-              <p className="text-xs text-green-600">buyer@company.com / buyer123</p>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
       <Footer />

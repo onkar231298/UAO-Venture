@@ -84,7 +84,7 @@ export async function setupAuth(app: Express) {
     async (email, password, done) => {
       try {
         // Check for admin credentials
-        if (email === 'admin@bfiorganic.com' && password === 'BFIAdmin2024!') {
+        if (email === 'admin@bfiorganic.com' && password === 'onkar231298') {
           const adminUser = await storage.getUser('admin_001');
           if (adminUser) {
             const userSession = {
@@ -302,7 +302,7 @@ export async function setupAuth(app: Express) {
           <form action="/admin/login" method="POST">
             <div class="form-group">
               <label for="email">Email:</label>
-              <input type="email" id="email" name="email" value="admin@bfiorganic.com" required>
+              <input type="email" id="email" name="email" placeholder="Enter admin email" required>
             </div>
             <div class="form-group">
               <label for="password">Password:</label>
