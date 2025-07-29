@@ -453,26 +453,7 @@ export default function ProductDetailGreenJeeva() {
                             dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br />') }}
                           />
                           
-                          {/* Product Type and Grade Info - Only show if real data exists */}
-                          {(product.productType || (product.productGrade && !['Premium Grade', 'Food Grade', 'Pharma Grade', 'Cosmetic Grade'].includes(product.productGrade))) && (
-                            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <h4 className="font-semibold text-gray-900 mb-2">Product Classification:</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                {product.productType && (
-                                  <div>
-                                    <span className="text-gray-600">Type:</span>
-                                    <span className="ml-2 font-medium capitalize">{product.productType}</span>
-                                  </div>
-                                )}
-                                {product.productGrade && !['Premium Grade', 'Food Grade', 'Pharma Grade', 'Cosmetic Grade'].includes(product.productGrade) && (
-                                  <div>
-                                    <span className="text-gray-600">Grade:</span>
-                                    <span className="ml-2 font-medium">{product.productGrade}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
+
 
                           {/* Certifications Display */}
                           {product.certifications && (product.certifications as string[]).length > 0 && (
