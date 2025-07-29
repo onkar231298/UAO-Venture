@@ -309,16 +309,8 @@ export class DatabaseStorage implements IStorage {
     // Determine sort order with search relevance
     let orderBy;
     if (filters?.search) {
-      // When searching, order by relevance first
-      const searchTerm = filters.search.toLowerCase().trim();
-      orderBy = [
-        // Exact matches first
-        sql`CASE WHEN LOWER(${products.name}) LIKE ${`${searchTerm}%`} THEN 1 
-             WHEN LOWER(${products.name}) LIKE ${`% ${searchTerm} %`} THEN 2
-             WHEN LOWER(${products.botanicalName}) LIKE ${`${searchTerm}%`} THEN 3
-             ELSE 4 END`,
-        asc(products.name) // Then alphabetical
-      ];
+      // When searching, order by name for simplicity (avoid complex SQL in orderBy)
+      orderBy = asc(products.name);
     } else {
       switch (filters?.sortBy) {
         case 'price-low':
@@ -337,14 +329,19 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    let query = db
+      .select()
+      .from(products)
+      .where(whereClause)
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
+      
+    if (orderBy) {
+      query = query.orderBy(orderBy);
+    }
+
     const [productsResult, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(products)
-        .where(whereClause)
-        .limit(filters?.limit || 50)
-        .offset(filters?.offset || 0)
-        .orderBy(Array.isArray(orderBy) ? orderBy : [orderBy]),
+      query,
       db
         .select({ count: count() })
         .from(products)
