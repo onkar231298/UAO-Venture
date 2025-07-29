@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -41,8 +41,10 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log("Search:", searchQuery);
+    if (searchQuery.trim()) {
+      // Navigate to products page with search parameter
+      setLocation(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const handleLogout = () => {
