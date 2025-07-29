@@ -380,7 +380,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.slug, slug));
+    const [product] = await db.select().from(products).where(
+      and(eq(products.slug, slug), eq(products.isActive, true))
+    );
     return product;
   }
 
