@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import type { Category } from "@shared/schema";
+import type { Category, Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,18 +33,65 @@ export default function Header() {
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Fetch categories for ingredients dropdown
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
+  // Fetch search suggestions when user types
+  const { data: suggestionsData } = useQuery<{ products: Product[]; total: number }>({
+    queryKey: ["/api/products", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return { products: [], total: 0 };
+      const response = await fetch(`/api/products?search=${encodeURIComponent(searchQuery.trim())}&limit=5`);
+      if (!response.ok) throw new Error('Failed to fetch suggestions');
+      return response.json();
+    },
+    enabled: searchQuery.length >= 2,
+  });
+
+  // Update suggestions when data changes
+  useEffect(() => {
+    if (suggestionsData?.products) {
+      setSuggestions(suggestionsData.products);
+      setShowSuggestions(searchQuery.length >= 2 && suggestionsData.products.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [suggestionsData, searchQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Navigate to products page with search parameter
+      setShowSuggestions(false);
       setLocation(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const handleSuggestionClick = (product: Product) => {
+    setSearchQuery(product.name);
+    setShowSuggestions(false);
+    setLocation(`/products?search=${encodeURIComponent(product.name)}`);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
   const handleLogout = () => {
@@ -224,13 +271,14 @@ export default function Header() {
               <span className="hidden sm:inline">Categories</span>
             </button>
             
-            <div className="flex-1 max-w-2xl">
+            <div className="flex-1 max-w-2xl" ref={searchRef}>
               <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="search"
                   placeholder="Search for organic ingredients..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleInputChange}
+                  onFocus={() => searchQuery.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
                   className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300 border-0"
                 />
                 <Button
@@ -240,6 +288,49 @@ export default function Header() {
                 >
                   <Search className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                 </Button>
+                
+                {/* Search Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-50 max-h-80 overflow-y-auto">
+                    {suggestions.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleSuggestionClick(product)}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm">
+                            {product.name}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {product.productId} • {product.category}
+                          </div>
+                          {product.description && (
+                            <div className="text-xs text-gray-400 mt-1 line-clamp-1">
+                              {product.description.substring(0, 100)}...
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-green-600">
+                            ${product.priceUSD}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {product.origin}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-2 border-t border-gray-100 bg-gray-50">
+                      <button
+                        onClick={() => handleSearch({ preventDefault: () => {} } as React.FormEvent)}
+                        className="text-xs text-green-600 hover:text-green-700 font-medium"
+                      >
+                        View all results for "{searchQuery}"
+                      </button>
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
