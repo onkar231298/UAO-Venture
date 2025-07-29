@@ -57,9 +57,17 @@ export default function Products() {
     materials: true,
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
   // Convert filters to URL query parameters
-  const buildQueryParams = (filters: ProductFilters) => {
+  const buildQueryParams = (filters: ProductFilters, page: number = 1) => {
     const params = new URLSearchParams();
+    
+    // Pagination parameters
+    params.append('limit', itemsPerPage.toString());
+    params.append('offset', ((page - 1) * itemsPerPage).toString());
     
     if (filters.search) params.append('search', filters.search);
     if (filters.category.length > 0) params.append('category', filters.category.join(','));
@@ -87,11 +95,16 @@ export default function Products() {
     return () => clearTimeout(timeoutId);
   }, [filters]);
 
-  // Fetch products with debounced filters
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedFilters]);
+
+  // Fetch products with debounced filters and pagination
   const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", buildQueryParams(debouncedFilters)],
+    queryKey: ["/api/products", buildQueryParams(debouncedFilters, currentPage)],
     queryFn: async () => {
-      const queryParams = buildQueryParams(debouncedFilters);
+      const queryParams = buildQueryParams(debouncedFilters, currentPage);
       const response = await fetch(`/api/products?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
@@ -477,14 +490,41 @@ export default function Products() {
               )}
 
               {/* Pagination */}
-              {productsData && productsData.total > productsData.products.length && (
+              {productsData && productsData.total > itemsPerPage && (
                 <div className="flex justify-center mt-8">
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">Previous</Button>
-                    <Button variant="outline" size="sm">1</Button>
-                    <Button variant="outline" size="sm">2</Button>
-                    <Button variant="outline" size="sm">3</Button>
-                    <Button variant="outline" size="sm">Next</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, Math.ceil(productsData.total / itemsPerPage)) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(productsData.total / itemsPerPage)))}
+                      disabled={currentPage >= Math.ceil(productsData.total / itemsPerPage)}
+                    >
+                      Next
+                    </Button>
                   </div>
                 </div>
               )}
