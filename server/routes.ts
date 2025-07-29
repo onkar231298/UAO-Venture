@@ -706,7 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all products (admin view with all fields)
   app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
-      const { category, search, status, limit = '50', offset = '0' } = req.query;
+      const { category, search, status, limit = '100', offset = '0' } = req.query;
       
       const filters = {
         category: category as string,
