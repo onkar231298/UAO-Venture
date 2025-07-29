@@ -1199,7 +1199,7 @@ export class DatabaseStorage implements IStorage {
             visibility: 'visible',
             createdBy: userId,
             updatedBy: userId,
-            slug: this.generateSlug(row.name),
+            slug: await this.generateUniqueSlug(row.name),
           };
 
           successfulRows.push(productData);
@@ -1575,6 +1575,24 @@ export class DatabaseStorage implements IStorage {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim();
+  }
+
+  private async generateUniqueSlug(name: string): Promise<string> {
+    const baseSlug = this.generateSlug(name);
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Check if slug already exists in database
+    while (true) {
+      const existing = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+      if (existing.length === 0) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
   }
 
   private generateExampleDataForCategory(categoryName: string): string[] {
