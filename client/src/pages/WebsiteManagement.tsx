@@ -54,6 +54,8 @@ export default function WebsiteManagement() {
   const [activeTab, setActiveTab] = useState("products");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   // Check permissions
   useEffect(() => {
@@ -199,6 +201,8 @@ function ProductsManagement({
 }: any) {
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: any) => {
@@ -271,6 +275,71 @@ function ProductsManagement({
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (productIds: number[]) => {
+      const deletePromises = productIds.map(id => 
+        apiRequest(`/api/admin/products/${id}`, {
+          method: "DELETE"
+        })
+      );
+      await Promise.all(deletePromises);
+      return productIds;
+    },
+    onSuccess: (deletedIds) => {
+      toast({
+        title: "Success",
+        description: `${deletedIds.length} products deleted successfully!`,
+      });
+      setSelectedProducts(new Set());
+      setShowBulkActions(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete products",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle individual product selection
+  const toggleProductSelection = (productId: number) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+    setShowBulkActions(newSelected.size > 0);
+  };
+
+  // Handle select all toggle
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set());
+      setShowBulkActions(false);
+    } else {
+      const allProductIds = new Set(products.map((p: Product) => p.id));
+      setSelectedProducts(allProductIds);
+      setShowBulkActions(true);
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (selectedProducts.size === 0) return;
+    
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${selectedProducts.size} selected products? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      bulkDeleteMutation.mutate(Array.from(selectedProducts));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -315,6 +384,68 @@ function ProductsManagement({
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {showBulkActions && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-orange-900">
+                {selectedProducts.size} product{selectedProducts.size !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedProducts(new Set());
+                  setShowBulkActions(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+              >
+                {bulkDeleteMutation.isPending ? (
+                  <>
+                    <div className="animate-spin h-3 w-3 border border-white border-t-transparent rounded-full mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Delete Selected
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Products List Header with Select All */}
+      {products.length > 0 && (
+        <Card>
+          <CardContent className="py-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selectedProducts.size === products.length && products.length > 0}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Select All Products ({products.length})
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Products List */}
       <div className="grid gap-4">
         {products.length === 0 ? (
@@ -334,6 +465,13 @@ function ProductsManagement({
             <Card key={product.id} className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
+                  {/* Checkbox for bulk selection */}
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.has(product.id)}
+                    onChange={() => toggleProductSelection(product.id)}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                  />
                   <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
                     {product.mainImage ? (
                       <img 
