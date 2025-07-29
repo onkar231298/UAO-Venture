@@ -104,7 +104,7 @@ Preferred communication style: Simple, everyday language.
   - Product form: powder, extract, oil, liquid, capsule, tablet, etc.
   - Health support categories: Antioxidant, Digestive Support, Immune Support, etc.
   - SEO fields: SEO title, meta description, canonical URL
-  - FAQ section: JSON format for questions and answers
+  - FAQ section: 4 separate question/answer pairs (faq1_question, faq1_answer, faq2_question, faq2_answer, etc.)
   - Multi-currency pricing: USD, INR, EUR, GBP with price terms and location
 - **Removed unnecessary fields**: Eliminated physical properties fields (mesh size, moisture, ash content, etc.) that aren't in the actual product form
 - **Enhanced validation**: productType options, productGrade options, FAQ JSON format validation

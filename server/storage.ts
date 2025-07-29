@@ -1176,8 +1176,8 @@ export class DatabaseStorage implements IStorage {
             seoDescription: row.seoDescription || '',
             canonicalUrl: row.canonicalUrl || '',
             
-            // FAQ section - parse JSON if provided
-            faqs: row.faqs && row.faqs.trim() ? JSON.parse(row.faqs) : [],
+            // FAQ section - build from individual fields
+            faqs: this.buildFaqsFromCsvRow(row),
             
             basePrice: row.basePrice ? parseFloat(row.basePrice) || 0 : 0,
             rate: row.rate ? parseFloat(row.rate) || 0 : 0,
@@ -1284,7 +1284,14 @@ export class DatabaseStorage implements IStorage {
       'canonicalUrl',            // Canonical URL
       
       // *** OPTIONAL FAQ SECTION (Can be blank) ***
-      'faqs',                    // FAQ in JSON format: [{"question":"Q1?","answer":"A1"},{"question":"Q2?","answer":"A2"}]
+      'faq1_question',           // FAQ 1 Question
+      'faq1_answer',             // FAQ 1 Answer
+      'faq2_question',           // FAQ 2 Question
+      'faq2_answer',             // FAQ 2 Answer
+      'faq3_question',           // FAQ 3 Question
+      'faq3_answer',             // FAQ 3 Answer
+      'faq4_question',           // FAQ 4 Question
+      'faq4_answer',             // FAQ 4 Answer
       
       // *** OPTIONAL PRICING (Can be blank) ***
       'basePrice',               // Base price
@@ -1435,41 +1442,45 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // FAQ JSON validation (only if provided)
-    if (row.faqs && row.faqs.trim() !== '') {
-      try {
-        const parsedFAQs = JSON.parse(row.faqs);
-        if (!Array.isArray(parsedFAQs)) {
-          errors.push({ 
-            line: lineNumber, 
-            field: 'faqs', 
-            message: 'FAQs must be a JSON array of objects with "question" and "answer" fields', 
-            value: row.faqs 
-          });
-        } else {
-          // Validate each FAQ object
-          parsedFAQs.forEach((faq, index) => {
-            if (!faq.question || !faq.answer) {
-              errors.push({ 
-                line: lineNumber, 
-                field: 'faqs', 
-                message: `FAQ ${index + 1} must have both "question" and "answer" fields`, 
-                value: row.faqs 
-              });
-            }
-          });
-        }
-      } catch (e) {
-        errors.push({ 
-          line: lineNumber, 
-          field: 'faqs', 
-          message: 'FAQs must be valid JSON format: [{"question":"Q1?","answer":"A1"}]', 
-          value: row.faqs 
-        });
-      }
-    }
+    // No additional FAQ validation needed - individual fields are straightforward text
 
     return errors;
+  }
+
+  // Helper method to build FAQs array from individual CSV columns
+  private buildFaqsFromCsvRow(row: any): Array<{question: string, answer: string}> {
+    const faqs = [];
+    
+    // Check each FAQ pair and add to array if both question and answer are provided
+    if (row.faq1_question && row.faq1_question.trim() && row.faq1_answer && row.faq1_answer.trim()) {
+      faqs.push({
+        question: row.faq1_question.trim(),
+        answer: row.faq1_answer.trim()
+      });
+    }
+    
+    if (row.faq2_question && row.faq2_question.trim() && row.faq2_answer && row.faq2_answer.trim()) {
+      faqs.push({
+        question: row.faq2_question.trim(),
+        answer: row.faq2_answer.trim()
+      });
+    }
+    
+    if (row.faq3_question && row.faq3_question.trim() && row.faq3_answer && row.faq3_answer.trim()) {
+      faqs.push({
+        question: row.faq3_question.trim(),
+        answer: row.faq3_answer.trim()
+      });
+    }
+    
+    if (row.faq4_question && row.faq4_question.trim() && row.faq4_answer && row.faq4_answer.trim()) {
+      faqs.push({
+        question: row.faq4_question.trim(),
+        answer: row.faq4_answer.trim()
+      });
+    }
+    
+    return faqs;
   }
 
   private generateSlug(name: string): string {
@@ -1514,7 +1525,14 @@ export class DatabaseStorage implements IStorage {
       '/products/ashwagandha-extract-powder', // canonicalUrl
       
       // *** OPTIONAL FAQ SECTION ***
-      '[{"question":"What is the active content?","answer":"Our Ashwagandha extract contains 5% withanolides"},{"question":"Is this organic certified?","answer":"Yes, this product is certified organic"}]', // faqs (JSON format)
+      'What is the active content?', // faq1_question
+      'Our Ashwagandha extract contains 5% withanolides', // faq1_answer
+      'Is this organic certified?', // faq2_question
+      'Yes, this product is certified organic', // faq2_answer
+      'What is the shelf life?', // faq3_question
+      '24 months when stored properly in cool, dry conditions', // faq3_answer
+      'What are the applications?', // faq4_question
+      'Perfect for nutraceuticals, dietary supplements, and functional foods', // faq4_answer
       
       // *** OPTIONAL PRICING ***
       '25.50', // basePrice (numeric only)
