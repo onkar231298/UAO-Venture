@@ -234,27 +234,24 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(...categoryConditions));
     }
     
-    // Search filter with better relevance
+    // Search filter with better flexibility
     if (filters?.search) {
       const searchTerm = filters.search.toLowerCase().trim();
-      const exactWordPattern = `% ${searchTerm} %`;
-      const startsWithPattern = `${searchTerm}%`;
       const containsPattern = `%${searchTerm}%`;
       
-      // Prioritize exact word matches, then starts with, then contains
+      // Search across multiple fields with ILIKE for case-insensitive matching
       conditions.push(
         or(
-          // Exact word match in name (highest priority)
-          sql`LOWER(${products.name}) LIKE ${exactWordPattern}`,
-          sql`LOWER(${products.name}) LIKE ${startsWithPattern}`,
-          // Exact word match in other fields
-          sql`LOWER(${products.botanicalName}) LIKE ${exactWordPattern}`,
-          sql`LOWER(${products.botanicalName}) LIKE ${startsWithPattern}`,
-          sql`LOWER(${products.productId}) LIKE ${startsWithPattern}`,
-          // Contains match (lower priority)
+          // Name field (highest priority)
           sql`LOWER(${products.name}) LIKE ${containsPattern}`,
+          // Product ID field
+          sql`LOWER(${products.productId}) LIKE ${containsPattern}`,
+          // Botanical name field
+          sql`LOWER(${products.botanicalName}) LIKE ${containsPattern}`,
+          // Description field
           sql`LOWER(${products.description}) LIKE ${containsPattern}`,
-          sql`LOWER(${products.botanicalName}) LIKE ${containsPattern}`
+          // Category field
+          sql`LOWER(${products.category}) LIKE ${containsPattern}`
         )
       );
     }
