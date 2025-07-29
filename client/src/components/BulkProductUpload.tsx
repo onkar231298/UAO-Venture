@@ -190,9 +190,9 @@ export default function BulkProductUpload() {
         // Simulate processing time
         await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
 
-        // Just mark as processing complete - actual results will be updated after API call
+        // Mark as ready for upload - don't show success until API confirms
         updatedProducts[i].status = 'processing';
-        updatedProducts[i].message = 'Processing complete...';
+        updatedProducts[i].message = 'Ready for upload...';
         
         setLiveProducts([...updatedProducts]);
         setUploadProgress(((i + 1) / updatedProducts.length) * 100);
@@ -221,23 +221,36 @@ export default function BulkProductUpload() {
           product.error = undefined;
         });
       } else {
-        // Some products had errors - update based on actual error data
-        const errorMap = new Map();
-        result.errors?.forEach(err => {
-          errorMap.set(err.line, err.message);
-        });
-        
-        finalUpdatedProducts.forEach(product => {
-          if (errorMap.has(product.line)) {
+        // Upload failed - mark all products as failed if it's a database error
+        if (result.errors?.some(err => err.field === 'file')) {
+          finalUpdatedProducts.forEach(product => {
             product.status = 'error';
-            product.error = errorMap.get(product.line);
+            product.error = 'Upload failed - database error or file processing issue';
             product.message = undefined;
-          } else {
-            product.status = 'success';
-            product.message = 'Successfully uploaded';
-            product.error = undefined;
-          }
-        });
+          });
+        } else {
+          // Some products had specific errors - update based on actual error data
+          const errorMap = new Map();
+          result.errors?.forEach(err => {
+            errorMap.set(err.line, err.message);
+          });
+          
+          finalUpdatedProducts.forEach(product => {
+            if (errorMap.has(product.line)) {
+              product.status = 'error';
+              product.error = errorMap.get(product.line);
+              product.message = undefined;
+            } else if (result.successCount > 0) {
+              product.status = 'success';
+              product.message = 'Successfully uploaded';
+              product.error = undefined;
+            } else {
+              product.status = 'error';
+              product.error = 'Upload failed - no products were saved';
+              product.message = undefined;
+            }
+          });
+        }
       }
       
       setLiveProducts(finalUpdatedProducts);

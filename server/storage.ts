@@ -1089,11 +1089,12 @@ export class DatabaseStorage implements IStorage {
       const existingProducts = await db.select({ productId: products.productId }).from(products);
       const existingProductIds = new Set(existingProducts.map(p => p.productId));
 
-      // Pre-generate unique product IDs for rows that don't have them
+      // Pre-generate unique product IDs and slugs for rows that don't have them
       let nextProductIdNum = await this.getNextProductIdNumber();
       const csvProductIds = new Set(); // Track IDs within this CSV to prevent duplicates
+      const csvSlugs = new Set(); // Track slugs within this CSV to prevent duplicates
       
-      // First pass: assign product IDs and validate
+      // First pass: assign product IDs, generate unique slugs, and validate
       for (let i = 0; i < rows.length; i++) {
         const rowIndex = i + 2;
         const row = rows[i];
@@ -1124,6 +1125,24 @@ export class DatabaseStorage implements IStorage {
           duplicates.push(row.productId);
           continue;
         }
+
+        // Pre-generate unique slug to avoid race conditions
+        let baseSlug = this.generateSlug(row.name);
+        let uniqueSlug = baseSlug;
+        let counter = 1;
+        
+        // Check against existing database slugs
+        while (true) {
+          const existingSlug = await db.select().from(products).where(eq(products.slug, uniqueSlug)).limit(1);
+          if (existingSlug.length === 0 && !csvSlugs.has(uniqueSlug)) {
+            break;
+          }
+          uniqueSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+        
+        csvSlugs.add(uniqueSlug);
+        row._generatedSlug = uniqueSlug; // Store for later use
       }
 
       // Second pass: validate and process each row
@@ -1200,7 +1219,7 @@ export class DatabaseStorage implements IStorage {
             isVisible: true,
             createdBy: userId,
             updatedBy: userId,
-            slug: await this.generateUniqueSlug(row.name),
+            slug: row._generatedSlug, // Use pre-generated slug
           };
 
           successfulRows.push(productData);
@@ -1229,7 +1248,22 @@ export class DatabaseStorage implements IStorage {
 
       // Save all products in a transaction
       if (successfulRows.length > 0) {
-        await db.insert(products).values(successfulRows);
+        try {
+          await db.insert(products).values(successfulRows);
+        } catch (dbError) {
+          console.error('Database insertion error:', dbError);
+          return {
+            success: false,
+            totalRows,
+            successCount: 0,
+            errorCount: 1,
+            errors: [{
+              line: 1,
+              field: 'file',
+              message: `Database insertion failed: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`,
+            }],
+          };
+        }
       }
 
       return {
