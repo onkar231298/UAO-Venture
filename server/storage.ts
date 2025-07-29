@@ -1165,9 +1165,29 @@ export class DatabaseStorage implements IStorage {
             botanicalName: row.botanicalName || '',
             plantPart: row.plantPart || '',
             origin: row.origin || '',
+            productType: row.productType || 'organic',
+            productGrade: row.productGrade || '',
             healthSupport: row.healthSupport || '',
             hsCode: row.hsCode || '',
             form: row.form || '',
+            
+            // Physical properties
+            meshSize: row.meshSize || '',
+            curcuminContent: row.curcuminContent || '',
+            moisture: row.moisture || '',
+            totalAsh: row.totalAsh || '',
+            bulkDensity: row.bulkDensity || '',
+            shelfLife: row.shelfLife || '',
+            storageConditions: row.storageConditions || '',
+            processing: row.processing || '',
+            
+            // SEO fields
+            seoTitle: row.seoTitle || '',
+            seoDescription: row.seoDescription || '',
+            
+            // FAQ section - parse JSON if provided
+            faqs: row.faqs && row.faqs.trim() ? JSON.parse(row.faqs) : [],
+            
             basePrice: row.basePrice ? parseFloat(row.basePrice) || 0 : 0,
             rate: row.rate ? parseFloat(row.rate) || 0 : 0,
             priceUSD: row.priceUSD ? parseFloat(row.priceUSD) || 0 : 0,
@@ -1261,9 +1281,28 @@ export class DatabaseStorage implements IStorage {
       'botanicalName',           // Scientific name
       'plantPart',               // Part of plant used
       'origin',                  // Country/region of origin
+      'productType',             // organic/conventional (defaults to organic)
+      'productGrade',            // Food Grade, Pharma Grade, etc.
       'healthSupport',           // Functional Category (Antioxidant, Digestive Support, etc.)
       'hsCode',                  // Harmonized System trade code
       'form',                    // Physical form (powder, liquid, etc.)
+      
+      // *** OPTIONAL PHYSICAL PROPERTIES (Can be blank) ***
+      'meshSize',                // Mesh size specification
+      'curcuminContent',         // Active content percentage
+      'moisture',                // Moisture content percentage
+      'totalAsh',                // Total ash content
+      'bulkDensity',             // Bulk density
+      'shelfLife',               // Product shelf life
+      'storageConditions',       // Storage requirements
+      'processing',              // Processing information
+      
+      // *** OPTIONAL SEO FIELDS (Can be blank) ***
+      'seoTitle',                // SEO page title
+      'seoDescription',          // SEO meta description
+      
+      // *** OPTIONAL FAQ SECTION (Can be blank) ***
+      'faqs',                    // FAQ in JSON format: [{"question":"Q1?","answer":"A1"},{"question":"Q2?","answer":"A2"}]
       
       // *** OPTIONAL PRICING (Can be blank) ***
       'basePrice',               // Base price
@@ -1404,6 +1443,50 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
+    // Product type validation (only if provided)
+    if (row.productType && row.productType.trim() !== '' && !['organic', 'conventional'].includes(row.productType.toLowerCase())) {
+      errors.push({ 
+        line: lineNumber, 
+        field: 'productType', 
+        message: 'productType must be: organic or conventional (or leave blank for organic)', 
+        value: row.productType 
+      });
+    }
+
+    // FAQ JSON validation (only if provided)
+    if (row.faqs && row.faqs.trim() !== '') {
+      try {
+        const parsedFAQs = JSON.parse(row.faqs);
+        if (!Array.isArray(parsedFAQs)) {
+          errors.push({ 
+            line: lineNumber, 
+            field: 'faqs', 
+            message: 'FAQs must be a JSON array of objects with "question" and "answer" fields', 
+            value: row.faqs 
+          });
+        } else {
+          // Validate each FAQ object
+          parsedFAQs.forEach((faq, index) => {
+            if (!faq.question || !faq.answer) {
+              errors.push({ 
+                line: lineNumber, 
+                field: 'faqs', 
+                message: `FAQ ${index + 1} must have both "question" and "answer" fields`, 
+                value: row.faqs 
+              });
+            }
+          });
+        }
+      } catch (e) {
+        errors.push({ 
+          line: lineNumber, 
+          field: 'faqs', 
+          message: 'FAQs must be valid JSON format: [{"question":"Q1?","answer":"A1"}]', 
+          value: row.faqs 
+        });
+      }
+    }
+
     return errors;
   }
 
@@ -1437,9 +1520,28 @@ export class DatabaseStorage implements IStorage {
       'Withania somnifera', // botanicalName
       'Root', // plantPart
       'India', // origin
+      'organic', // productType (organic/conventional)
+      'Food Grade', // productGrade
       'Stress Relief', // healthSupport
       '1302.19', // hsCode
       'Fine Powder', // form
+      
+      // *** OPTIONAL PHYSICAL PROPERTIES ***
+      '80-100 mesh', // meshSize
+      '5%', // curcuminContent (or active content)
+      '5% max', // moisture
+      '8% max', // totalAsh
+      '0.45-0.65 g/ml', // bulkDensity
+      '24 months', // shelfLife
+      'Store in cool, dry place away from direct sunlight', // storageConditions
+      'Spray dried extract from fresh roots', // processing
+      
+      // *** OPTIONAL SEO FIELDS ***
+      'Premium Ashwagandha Root Extract Powder - 5% Withanolides | BFI Organic', // seoTitle
+      'High-quality organic Ashwagandha root extract powder with 5% withanolides. Perfect for nutraceutical applications. Food grade quality from India.', // seoDescription
+      
+      // *** OPTIONAL FAQ SECTION ***
+      '[{"question":"What is the active content?","answer":"Our Ashwagandha extract contains 5% withanolides"},{"question":"Is this organic certified?","answer":"Yes, this product is certified organic"}]', // faqs (JSON format)
       
       // *** OPTIONAL PRICING ***
       '25.50', // basePrice (numeric only)

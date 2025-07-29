@@ -92,18 +92,24 @@ Preferred communication style: Simple, everyday language.
 - Real-time updates across entire platform
 - **29 business categories** including: Herbs & Botanicals, Spices & Seasonings, Essential Oils, Herbal Powders, Whole Herbs, Oleoresins, Spray Dried Fruits and Vegetables, and more
 
-### ✅ 9. CSV/Excel Bulk Product Upload System - COMPLETED
+### ✅ 9. CSV/Excel Bulk Product Upload System - COMPLETED & ENHANCED
 - New "Bulk Upload" tab in Website Management interface
 - Template download system with category-specific examples
 - Support for both CSV and Excel (.xlsx, .xls) file formats
-- **Complete field coverage**: All 25+ product specification fields included in template
+- **Complete field coverage**: All 35+ product specification fields included in template
 - **Required fields (mandatory)**: name, description, category, price
-- **Optional fields (can be blank)**: All other fields - MOQ, packaging, origin, botanical name, extraction method, physical properties, storage conditions, SEO fields, etc.
+- **Optional fields (can be blank)**: All other fields including:
+  - Business fields: MOQ, packaging, lead time, stock, status
+  - Product specifications: botanical name, plant part, origin, product type (organic/conventional), grade
+  - Physical properties: mesh size, active content, moisture, ash, bulk density, shelf life, storage, processing
+  - SEO fields: SEO title, meta description
+  - FAQ section: JSON format for questions and answers
+  - Multi-currency pricing: USD, INR, EUR, GBP with price terms
+- **Enhanced validation**: productType (organic/conventional), FAQ JSON format validation
 - Comprehensive validation with line-by-line error reporting (only for required fields and format validation)
 - Duplicate product ID detection and prevention
 - All-or-nothing upload policy (no partial uploads on validation errors)
 - Detailed upload results showing success/error counts
-- Images, FAQs, and tags still added through regular product editor
 - Auto-generated product IDs if not provided in CSV
 - File size limit: 10MB maximum
 
