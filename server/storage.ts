@@ -1171,19 +1171,10 @@ export class DatabaseStorage implements IStorage {
             hsCode: row.hsCode || '',
             form: row.form || '',
             
-            // Physical properties
-            meshSize: row.meshSize || '',
-            curcuminContent: row.curcuminContent || '',
-            moisture: row.moisture || '',
-            totalAsh: row.totalAsh || '',
-            bulkDensity: row.bulkDensity || '',
-            shelfLife: row.shelfLife || '',
-            storageConditions: row.storageConditions || '',
-            processing: row.processing || '',
-            
             // SEO fields
             seoTitle: row.seoTitle || '',
             seoDescription: row.seoDescription || '',
+            canonicalUrl: row.canonicalUrl || '',
             
             // FAQ section - parse JSON if provided
             faqs: row.faqs && row.faqs.trim() ? JSON.parse(row.faqs) : [],
@@ -1281,25 +1272,16 @@ export class DatabaseStorage implements IStorage {
       'botanicalName',           // Scientific name
       'plantPart',               // Part of plant used
       'origin',                  // Country/region of origin
-      'productType',             // organic/conventional (defaults to organic)
-      'productGrade',            // Food Grade, Pharma Grade, etc.
+      'productType',             // organic/conventional/wildcrafted/kosher/halal (defaults to organic)
+      'productGrade',            // Food Grade, Pharma Grade, Cosmetic Grade, etc.
       'healthSupport',           // Functional Category (Antioxidant, Digestive Support, etc.)
       'hsCode',                  // Harmonized System trade code
-      'form',                    // Physical form (powder, liquid, etc.)
-      
-      // *** OPTIONAL PHYSICAL PROPERTIES (Can be blank) ***
-      'meshSize',                // Mesh size specification
-      'curcuminContent',         // Active content percentage
-      'moisture',                // Moisture content percentage
-      'totalAsh',                // Total ash content
-      'bulkDensity',             // Bulk density
-      'shelfLife',               // Product shelf life
-      'storageConditions',       // Storage requirements
-      'processing',              // Processing information
+      'form',                    // Physical form (powder, liquid, extract, etc.)
       
       // *** OPTIONAL SEO FIELDS (Can be blank) ***
       'seoTitle',                // SEO page title
       'seoDescription',          // SEO meta description
+      'canonicalUrl',            // Canonical URL
       
       // *** OPTIONAL FAQ SECTION (Can be blank) ***
       'faqs',                    // FAQ in JSON format: [{"question":"Q1?","answer":"A1"},{"question":"Q2?","answer":"A2"}]
@@ -1520,25 +1502,16 @@ export class DatabaseStorage implements IStorage {
       'Withania somnifera', // botanicalName
       'Root', // plantPart
       'India', // origin
-      'organic', // productType (organic/conventional)
-      'Food Grade', // productGrade
+      'organic', // productType (organic/conventional/wildcrafted/kosher/halal)
+      'food', // productGrade (food/pharma/cosmetic/technical)
       'Stress Relief', // healthSupport
       '1302.19', // hsCode
-      'Fine Powder', // form
-      
-      // *** OPTIONAL PHYSICAL PROPERTIES ***
-      '80-100 mesh', // meshSize
-      '5%', // curcuminContent (or active content)
-      '5% max', // moisture
-      '8% max', // totalAsh
-      '0.45-0.65 g/ml', // bulkDensity
-      '24 months', // shelfLife
-      'Store in cool, dry place away from direct sunlight', // storageConditions
-      'Spray dried extract from fresh roots', // processing
+      'powder', // form (powder/extract/oil/liquid/capsule/tablet)
       
       // *** OPTIONAL SEO FIELDS ***
       'Premium Ashwagandha Root Extract Powder - 5% Withanolides | BFI Organic', // seoTitle
       'High-quality organic Ashwagandha root extract powder with 5% withanolides. Perfect for nutraceutical applications. Food grade quality from India.', // seoDescription
+      '/products/ashwagandha-extract-powder', // canonicalUrl
       
       // *** OPTIONAL FAQ SECTION ***
       '[{"question":"What is the active content?","answer":"Our Ashwagandha extract contains 5% withanolides"},{"question":"Is this organic certified?","answer":"Yes, this product is certified organic"}]', // faqs (JSON format)
