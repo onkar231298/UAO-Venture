@@ -1345,12 +1345,33 @@ export class DatabaseStorage implements IStorage {
           skipLinesWithError: true
         }))
         .on('data', (data) => {
-          // Only push rows that have the basic required structure
+          // Only push rows that have the basic required structure with valid data
           if (data && typeof data === 'object' && Object.keys(data).length > 0) {
             // Check if this looks like a valid data row (not header or malformed)
             const hasRequiredFields = 'name' in data && 'description' in data && 'category' in data && 'price' in data;
+            
             if (hasRequiredFields) {
-              results.push(data);
+              // Additional validation: ensure these fields have meaningful content
+              const hasValidData = 
+                data.name && data.name.toString().trim().length > 0 &&
+                data.description && data.description.toString().trim().length > 0 &&
+                data.category && data.category.toString().trim().length > 0 &&
+                data.price && data.price.toString().trim().length > 0 &&
+                !isNaN(parseFloat(data.price.toString()));
+              
+              // Reject rows that look like descriptions or benefits (common patterns)
+              const looksLikeDescription = 
+                data.name.toString().toLowerCase().includes('benefits') ||
+                data.name.toString().toLowerCase().includes('key') ||
+                data.name.toString().toLowerCase().includes('our premium') ||
+                data.name.toString().toLowerCase().includes('extract is') ||
+                data.name.toString().toLowerCase().includes('standardized') ||
+                data.name.toString().toLowerCase().includes('contain') ||
+                data.name.toString().length > 100; // Product names shouldn't be essays
+              
+              if (hasValidData && !looksLikeDescription) {
+                results.push(data);
+              }
             }
           }
         })
@@ -1365,11 +1386,34 @@ export class DatabaseStorage implements IStorage {
     const worksheet = workbook.Sheets[sheetName];
     const allRows = xlsx.utils.sheet_to_json(worksheet);
     
-    // Filter to only rows that have the required fields structure
+    // Filter to only rows that have the required fields structure with valid data
     return allRows.filter((row: any) => {
       if (!row || typeof row !== 'object') return false;
       const hasRequiredFields = 'name' in row && 'description' in row && 'category' in row && 'price' in row;
-      return hasRequiredFields;
+      
+      if (hasRequiredFields) {
+        // Additional validation: ensure these fields have meaningful content
+        const hasValidData = 
+          row.name && row.name.toString().trim().length > 0 &&
+          row.description && row.description.toString().trim().length > 0 &&
+          row.category && row.category.toString().trim().length > 0 &&
+          row.price && row.price.toString().trim().length > 0 &&
+          !isNaN(parseFloat(row.price.toString()));
+        
+        // Reject rows that look like descriptions or benefits (common patterns)
+        const looksLikeDescription = 
+          row.name.toString().toLowerCase().includes('benefits') ||
+          row.name.toString().toLowerCase().includes('key') ||
+          row.name.toString().toLowerCase().includes('our premium') ||
+          row.name.toString().toLowerCase().includes('extract is') ||
+          row.name.toString().toLowerCase().includes('standardized') ||
+          row.name.toString().toLowerCase().includes('contain') ||
+          row.name.toString().length > 100; // Product names shouldn't be essays
+        
+        return hasValidData && !looksLikeDescription;
+      }
+      
+      return false;
     });
   }
 
