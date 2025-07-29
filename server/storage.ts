@@ -236,8 +236,14 @@ export class DatabaseStorage implements IStorage {
     
     // Search filter
     if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
       conditions.push(
-        sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`} OR ${products.botanicalName} ILIKE ${`%${filters.search}%`}`
+        or(
+          sql`${products.name} ILIKE ${searchTerm}`,
+          sql`${products.description} ILIKE ${searchTerm}`,
+          sql`${products.botanicalName} ILIKE ${searchTerm}`,
+          sql`${products.productId} ILIKE ${searchTerm}`
+        )
       );
     }
     

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import Header from "@/components/Header";
@@ -76,11 +76,22 @@ export default function Products() {
     return params.toString();
   };
 
-  // Fetch products with filters
+  // Debounced filters for API calls (delay search by 500ms)
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+  
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 300); // 300ms debounce for better UX
+    
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
+
+  // Fetch products with debounced filters
   const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", buildQueryParams(filters)],
+    queryKey: ["/api/products", buildQueryParams(debouncedFilters)],
     queryFn: async () => {
-      const queryParams = buildQueryParams(filters);
+      const queryParams = buildQueryParams(debouncedFilters);
       const response = await fetch(`/api/products?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
