@@ -1098,8 +1098,11 @@ export class DatabaseStorage implements IStorage {
         const rowIndex = i + 2;
         const row = rows[i];
         
-        // Skip empty rows
-        if (!row.name || row.name.trim() === '') {
+        // Skip empty rows or rows with insufficient data
+        if (!row.name || row.name.trim() === '' || 
+            !row.description || row.description.trim() === '' ||
+            !row.category || row.category.trim() === '' ||
+            !row.price || row.price.toString().trim() === '') {
           continue;
         }
 
@@ -1129,8 +1132,11 @@ export class DatabaseStorage implements IStorage {
         const row = rows[i];
         
         try {
-          // Skip empty rows
-          if (!row.name || row.name.trim() === '') {
+          // Skip empty rows or rows with insufficient required data
+          if (!row.name || row.name.trim() === '' || 
+              !row.description || row.description.trim() === '' ||
+              !row.category || row.category.trim() === '' ||
+              !row.price || row.price.toString().trim() === '') {
             continue;
           }
 
@@ -1334,8 +1340,20 @@ export class DatabaseStorage implements IStorage {
       const stream = Readable.from(buffer.toString());
       
       stream
-        .pipe(csv())
-        .on('data', (data) => results.push(data))
+        .pipe(csv({
+          skipEmptyLines: true,
+          skipLinesWithError: true
+        }))
+        .on('data', (data) => {
+          // Only push rows that have the basic required structure
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            // Check if this looks like a valid data row (not header or malformed)
+            const hasRequiredFields = 'name' in data && 'description' in data && 'category' in data && 'price' in data;
+            if (hasRequiredFields) {
+              results.push(data);
+            }
+          }
+        })
         .on('end', () => resolve(results))
         .on('error', reject);
     });
@@ -1345,7 +1363,14 @@ export class DatabaseStorage implements IStorage {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    return xlsx.utils.sheet_to_json(worksheet);
+    const allRows = xlsx.utils.sheet_to_json(worksheet);
+    
+    // Filter to only rows that have the required fields structure
+    return allRows.filter((row: any) => {
+      if (!row || typeof row !== 'object') return false;
+      const hasRequiredFields = 'name' in row && 'description' in row && 'category' in row && 'price' in row;
+      return hasRequiredFields;
+    });
   }
 
   private validateProductRow(row: any, lineNumber: number, categoryMap: Map<string, number>, defaultCategory?: string): Array<{ line: number; field: string; message: string; value?: string }> {
