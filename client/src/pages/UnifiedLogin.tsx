@@ -71,7 +71,7 @@ export default function UnifiedLogin() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-green-600">BFI ORGANIC</CardTitle>
-          <CardDescription>Welcome to Secure Login Portal</CardDescription>
+          <CardDescription>Welcome to BFI Organic Login Portal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
