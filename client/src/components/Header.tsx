@@ -324,7 +324,7 @@ export default function Header() {
               >
                 <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">ALL CATEGORIES</span>
-                <span className="sm:hidden">Menu</span>
+                <span className="sm:hidden">Categories</span>
               </button>
               
               {/* Category Sidebar positioned below button */}
@@ -413,11 +413,6 @@ export default function Header() {
                 <span>WhatsApp</span>
               </a>
             </div>
-
-            {/* Mobile Menu Button */}
-            <button className="md:hidden p-2">
-              <Menu className="w-5 h-5 text-white" />
-            </button>
           </div>
         </div>
       </div>
