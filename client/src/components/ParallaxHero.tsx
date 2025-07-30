@@ -87,7 +87,7 @@ export default function ParallaxHero() {
     if (slides && slides.length > 0) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
-      }, 5000);
+      }, 3500); // Faster transition: 3.5 seconds instead of 5 seconds
       return () => clearInterval(interval);
     }
   }, [slides]);
@@ -104,7 +104,7 @@ export default function ParallaxHero() {
     <div className="relative h-screen overflow-hidden">
       {/* Dynamic Background Image */}
       <div 
-        className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-2000 ease-in-out"
+        className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-800 ease-in-out"
         style={{
           backgroundImage: `url(${currentSlideData.backgroundImage})`,
           transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
@@ -112,7 +112,7 @@ export default function ParallaxHero() {
       />
       
       {/* Dynamic Gradient Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${currentSlideData.overlayColor} transition-all duration-2000`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${currentSlideData.overlayColor} transition-all duration-800`} />
       
       {/* Animated SVG Overlay */}
       <div className="absolute inset-0 w-full h-full">
@@ -167,10 +167,10 @@ export default function ParallaxHero() {
             <div className="mb-8 sm:mb-12">
               {/* Main Title */}
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-                <span className="block transition-all duration-2000">{currentSlideData.title}</span>
+                <span className="block transition-all duration-800">{currentSlideData.title}</span>
                 {currentSlideData.accent && (
                   <span 
-                    className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium mt-2 sm:mt-4 transition-all duration-2000"
+                    className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium mt-2 sm:mt-4 transition-all duration-800"
                     style={{ color: currentSlideData.primaryColor }}
                   >
                     {currentSlideData.accent}
@@ -179,7 +179,7 @@ export default function ParallaxHero() {
               </h1>
               
               {/* Subtitle */}
-              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed transition-all duration-2000">
+              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed transition-all duration-800">
                 {currentSlideData.subtitle}
               </p>
               
@@ -253,7 +253,7 @@ export default function ParallaxHero() {
       </div>
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
         {slides.map((_, index) => (
           <button
             key={index}
@@ -266,6 +266,9 @@ export default function ParallaxHero() {
           />
         ))}
       </div>
+
+      {/* Bottom Dissolving Effect */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/60 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 }
