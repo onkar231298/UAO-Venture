@@ -438,13 +438,8 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* DEBUG: Check if this renders at all */}
-                  <div className="bg-red-500 text-white p-2 mb-4">
-                    ⚠️ FILTER SECTION SHOULD BE HERE - DEBUGGING MODE
-                  </div>
-                  
                   {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
-                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4" style={{display: 'block', visibility: 'visible', minHeight: '200px'}}>
+                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
                     
                     {/* Primary Search Bar */}
@@ -561,6 +556,23 @@ export default function WebsiteManagement() {
                       >
                         Clear All Filters
                       </Button>
+                    </div>
+                  </div>
+
+                  {/* Product Count and Selection */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <input 
+                        type="checkbox" 
+                        id="select-all"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="select-all" className="font-medium">
+                        Select All Products ({filteredProducts?.length || 0})
+                      </Label>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Showing {filteredProducts?.length || 0} of {products?.length || 0} products
                     </div>
                   </div>
 
