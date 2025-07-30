@@ -81,48 +81,65 @@
 }
 
 :root {
+  /* Green Jeeva Inspired Professional Color Scheme */
   --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --foreground: hsl(210, 10%, 23%);
+  --muted: hsl(140, 12%, 97%);
+  --muted-foreground: hsl(210, 6%, 56%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --popover-foreground: hsl(210, 10%, 23%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(142, 76%, 30%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(142, 40%, 95%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(142, 76%, 30%);
+  --card-foreground: hsl(210, 10%, 23%);
+  --border: hsl(140, 15%, 92%);
+  --input: hsl(140, 15%, 92%);
+  --primary: hsl(140, 70%, 35%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(140, 20%, 95%);
+  --secondary-foreground: hsl(210, 10%, 23%);
+  --accent: hsl(140, 25%, 94%);
+  --accent-foreground: hsl(210, 10%, 23%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(140, 70%, 35%);
   --radius: 0.5rem;
   
-  /* BFI Organic Brand Colors */
-  --bfi-primary: hsl(142, 76%, 30%);
-  --bfi-primary-light: hsl(142, 60%, 45%);
-  --bfi-accent: hsl(142, 40%, 95%);
-  --bfi-neutral: hsl(60, 4.8%, 97%);
-  --bfi-success: hsl(142, 76%, 36%);
-  --bfi-warning: hsl(45, 93%, 47%);
-  --bfi-error: hsl(0, 84%, 60%);
+  /* Professional B2B Green Theme - Green Jeeva Inspired */
+  --green-primary: hsl(140, 70%, 35%);     /* Deep professional green */
+  --green-secondary: hsl(140, 60%, 45%);   /* Medium green for hovers */
+  --green-light: hsl(140, 40%, 85%);       /* Light green for backgrounds */
+  --green-accent: hsl(140, 25%, 94%);      /* Very light green accent */
+  --green-dark: hsl(140, 80%, 25%);        /* Dark green for emphasis */
+  
+  /* Neutral Professional Colors */
+  --gray-50: hsl(140, 12%, 98%);
+  --gray-100: hsl(140, 10%, 95%);
+  --gray-200: hsl(140, 8%, 88%);
+  --gray-300: hsl(140, 6%, 75%);
+  --gray-400: hsl(140, 4%, 60%);
+  --gray-500: hsl(140, 3%, 45%);
+  --gray-600: hsl(210, 8%, 35%);
+  --gray-700: hsl(210, 10%, 25%);
+  --gray-800: hsl(210, 12%, 18%);
+  --gray-900: hsl(210, 15%, 12%);
+  
+  /* Status Colors */
+  --success: hsl(140, 70%, 35%);
+  --warning: hsl(45, 95%, 55%);
+  --error: hsl(0, 85%, 58%);
+  --info: hsl(200, 85%, 55%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
+  --background: hsl(210, 15%, 8%);
+  --foreground: hsl(0, 0%, 95%);
+  --muted: hsl(140, 8%, 12%);
+  --muted-foreground: hsl(140, 5%, 65%);
+  --popover: hsl(210, 15%, 8%);
+  --popover-foreground: hsl(0, 0%, 95%);
+  --card: hsl(210, 12%, 10%);
+  --card-foreground: hsl(0, 0%, 95%);
+  --border: hsl(140, 10%, 18%);
+  --input: hsl(140, 10%, 18%);
   --primary: hsl(142, 76%, 30%);
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(240, 3.7%, 15.9%);

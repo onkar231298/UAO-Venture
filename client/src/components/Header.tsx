@@ -108,14 +108,14 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
       {/* Main Header */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 sm:space-x-6 lg:space-x-8">
             {/* Logo */}
             <Link href="/">
-              <div className="flex items-center cursor-pointer">
+              <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
                 <img 
                   src="/attached_assets/Final Logo_1753730040470.png" 
                   alt="Bright Fame Organic" 
@@ -128,28 +128,28 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              className="lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <Menu className="h-5 w-5" />
             </Button>
 
             {/* Navigation */}
-            <nav className="hidden lg:flex items-center space-x-6">
-              <Link href="/" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}>
+            <nav className="hidden lg:flex items-center space-x-8">
+              <Link href="/" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600' : ''}`}>
                 Home
               </Link>
-              <Link href="/products" className={`text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}>
+              <Link href="/products" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600' : ''}`}>
                 Products
               </Link>
               <DropdownMenu>
-                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 transition-colors flex items-center">
+                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1">
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[500px] p-2">
+                <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200">
                   {/* All Ingredients Link */}
                   <Link href="/ingredients">
-                    <DropdownMenuItem className="mb-2 bg-green-50 hover:bg-green-100 font-medium text-green-700 py-2">
+                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center">
                       All Ingredients
                     </DropdownMenuItem>
                   </Link>
@@ -175,13 +175,13 @@ export default function Header() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
+              <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
                 Certifications
               </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
+              <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
                 R&D Lab
               </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 transition-colors">
+              <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
                 Services
               </a>
             </nav>
@@ -198,14 +198,14 @@ export default function Header() {
             
             {/* User Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
-                <Heart className="w-4 h-4" />
+              <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
+                <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
               
-              <Button variant="ghost" size="sm">
-                <ShoppingCart className="w-4 h-4" />
-                <span className="bg-green-600 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
 
               {isAuthenticated && user ? (
