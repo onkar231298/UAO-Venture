@@ -57,8 +57,8 @@ export default function ParallaxHero() {
       backgroundImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
       overlayColor: "from-blue-900/80 via-indigo-800/70 to-purple-700/60",
       primaryColor: "#3b82f6",
-      buttonText: "Learn About R&D",
-      buttonLink: "#services",
+      buttonText: "Explore All Products",
+      buttonLink: "/products",
       order: 3
     }
   ];
@@ -235,13 +235,13 @@ export default function ParallaxHero() {
                   )
                 )}
                 
-                <Link href="/login">
+                <Link href="/products">
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm font-semibold px-8 py-3 text-lg transition-all duration-300"
+                    className="border-white bg-white/10 text-white hover:bg-white hover:text-gray-900 backdrop-blur-sm font-semibold px-8 py-3 text-lg transition-all duration-300 shadow-lg"
                   >
-                    Request Samples
+                    Explore All Products
                   </Button>
                 </Link>
               </div>
