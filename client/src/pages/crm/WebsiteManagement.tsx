@@ -297,8 +297,8 @@ export default function WebsiteManagement() {
     },
   });
 
-  // Extract products from API response
-  const products = (productsData?.products || []) as Product[];
+  // Extract products from API response safely
+  const products = Array.isArray(productsData?.products) ? productsData.products as Product[] : [];
   const filteredProducts = products;
 
   const handleToggleVisibility = (productId: number, isActive: boolean) => {
@@ -397,6 +397,11 @@ export default function WebsiteManagement() {
 
             {/* Products Management Tab */}
             <TabsContent value="products" className="mt-6">
+              {/* ABSOLUTE TEST - This should always show */}
+              <div className="bg-red-500 text-white text-center p-8 mb-4" style={{position: 'relative', zIndex: 9999}}>
+                🚨 PRODUCTS TAB IS RENDERING - TESTING MODE 🚨
+              </div>
+              
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -438,6 +443,10 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* ABSOLUTE TEST 2 - This should show if CardContent renders */}
+                  <div className="bg-yellow-400 text-black text-center p-4 mb-4" style={{position: 'relative', zIndex: 9998}}>
+                    ⚠️ CARDCONTENT IS RENDERING - TESTING MODE ⚠️
+                  </div>
                   {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
                   <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
@@ -1048,16 +1057,7 @@ export default function WebsiteManagement() {
       </div>
     </RoleBasedRoute>
   );
-}
-
-// Product Form Component
-function ProductForm({ 
-  categories, 
-  onSubmit, 
-  isLoading,
-  product
-}: { 
-  categories: Category[]; 
+} 
   onSubmit: (data: any) => void; 
   isLoading: boolean;
   product?: Product;
