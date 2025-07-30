@@ -438,8 +438,10 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Search, Filter, and Sort Controls */}
-                  <div className="space-y-4 mb-6">
+                  {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
+                  <div className="space-y-4 mb-6 bg-white border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Filter & Search Products</h3>
+                    
                     {/* Primary Search Bar */}
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -452,11 +454,13 @@ export default function WebsiteManagement() {
                     </div>
                     
                     {/* Filter Controls */}
-                    <div className="flex flex-wrap gap-3">
-                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-44">
-                          <SelectValue placeholder="All Categories" />
-                        </SelectTrigger>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-1 block">Category</Label>
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All Categories" />
+                          </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Categories</SelectItem>
                           {categories?.map((category: Category) => (
@@ -465,12 +469,15 @@ export default function WebsiteManagement() {
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </Select>
+                        </Select>
+                      </div>
 
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Product Status" />
-                        </SelectTrigger>
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-1 block">Product Status</Label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All Status" />
+                          </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
@@ -478,12 +485,15 @@ export default function WebsiteManagement() {
                           <SelectItem value="draft">Draft</SelectItem>
                           <SelectItem value="out_of_stock">Out of Stock</SelectItem>
                         </SelectContent>
-                      </Select>
+                        </Select>
+                      </div>
 
-                      <Select value={dateFilter} onValueChange={setDateFilter}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Date Added" />
-                        </SelectTrigger>
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-1 block">Date Added</Label>
+                        <Select value={dateFilter} onValueChange={setDateFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All Time" />
+                          </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Time</SelectItem>
                           <SelectItem value="today">Today</SelectItem>
@@ -493,23 +503,29 @@ export default function WebsiteManagement() {
                           <SelectItem value="6months">Last 6 Months</SelectItem>
                           <SelectItem value="year">This Year</SelectItem>
                         </SelectContent>
-                      </Select>
+                        </Select>
+                      </div>
 
-                      <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-                        <SelectTrigger className="w-36">
-                          <SelectValue placeholder="Visibility" />
-                        </SelectTrigger>
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-1 block">Visibility</Label>
+                        <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All Products" />
+                          </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Products</SelectItem>
                           <SelectItem value="visible">Visible</SelectItem>
                           <SelectItem value="hidden">Hidden</SelectItem>
                         </SelectContent>
-                      </Select>
+                        </Select>
+                      </div>
 
-                      <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Sort by..." />
-                        </SelectTrigger>
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-1 block">Sort By</Label>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Latest First" />
+                          </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="newest">Latest First</SelectItem>
                           <SelectItem value="oldest">Oldest First</SelectItem>
@@ -520,8 +536,12 @@ export default function WebsiteManagement() {
                           <SelectItem value="sku-az">SKU A-Z</SelectItem>
                           <SelectItem value="sku-za">SKU Z-A</SelectItem>
                         </SelectContent>
-                      </Select>
-
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    {/* Clear Filters Button */}
+                    <div className="flex justify-end">
                       <Button 
                         variant="outline" 
                         onClick={() => {
