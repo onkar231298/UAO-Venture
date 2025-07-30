@@ -44,8 +44,10 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Bright Fame Organics Parallax Hero */}
-      <ParallaxHero />
+      {/* Bright Fame Organics Parallax Hero - Full Width */}
+      <div className="w-screen -ml-4 sm:-ml-6 lg:-ml-8">
+        <ParallaxHero />
+      </div>
 
       {/* Product Categories */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
