@@ -706,15 +706,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all products (admin view with all fields)
   app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
-      const { category, search, status, limit = '100', offset = '0' } = req.query;
+      const { 
+        category, 
+        search, 
+        status, 
+        dateFilter, 
+        visibility, 
+        sortBy, 
+        limit = '100', 
+        offset = '0' 
+      } = req.query;
       
-      const filters = {
-        category: category as string,
-        search: search as string,
-        status: status as string,
+      const filters: any = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
+
+      if (category && category !== 'all') filters.category = category as string;
+      if (search) filters.search = search as string;
+      if (status && status !== 'all') filters.status = status as string;
+      if (dateFilter && dateFilter !== 'all') filters.dateFilter = dateFilter as string;
+      if (visibility && visibility !== 'all') filters.visibility = visibility as string;
+      if (sortBy) filters.sortBy = sortBy as string;
 
       const result = await storage.getAdminProducts(filters);
       res.json(result);

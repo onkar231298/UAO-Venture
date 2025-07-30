@@ -372,6 +372,8 @@ export class DatabaseStorage implements IStorage {
     category?: string;
     search?: string;
     status?: string;
+    dateFilter?: string;
+    visibility?: string;
     sortBy?: string;
     limit?: number;
     offset?: number;
@@ -391,6 +393,52 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.status) {
       conditions.push(eq(products.status, filters.status));
+    }
+
+    // Date filtering
+    if (filters?.dateFilter) {
+      const now = new Date();
+      let dateCondition;
+      
+      switch (filters.dateFilter) {
+        case 'today':
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          dateCondition = sql`${products.createdAt} >= ${today.toISOString()}`;
+          break;
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          dateCondition = sql`${products.createdAt} >= ${weekAgo.toISOString()}`;
+          break;
+        case 'month':
+          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          dateCondition = sql`${products.createdAt} >= ${monthAgo.toISOString()}`;
+          break;
+        case '3months':
+          const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+          dateCondition = sql`${products.createdAt} >= ${threeMonthsAgo.toISOString()}`;
+          break;
+        case '6months':
+          const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          dateCondition = sql`${products.createdAt} >= ${sixMonthsAgo.toISOString()}`;
+          break;
+        case 'year':
+          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          dateCondition = sql`${products.createdAt} >= ${yearAgo.toISOString()}`;
+          break;
+      }
+      
+      if (dateCondition) {
+        conditions.push(dateCondition);
+      }
+    }
+
+    // Visibility filtering
+    if (filters?.visibility) {
+      if (filters.visibility === 'visible') {
+        conditions.push(eq(products.isVisible, true));
+      } else if (filters.visibility === 'hidden') {
+        conditions.push(eq(products.isVisible, false));
+      }
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];

@@ -47,8 +47,11 @@ export default function WebsiteManagement() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("products");
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
 
   // Queries
   const { data: productsData, isLoading: productsLoading } = useQuery({
@@ -56,6 +59,9 @@ export default function WebsiteManagement() {
       limit: 100, 
       search: searchQuery,
       category: categoryFilter !== "all" ? categoryFilter : "",
+      status: statusFilter !== "all" ? statusFilter : "",
+      dateFilter: dateFilter !== "all" ? dateFilter : "",
+      visibility: visibilityFilter !== "all" ? visibilityFilter : "",
       sortBy 
     }],
   });
@@ -258,22 +264,22 @@ export default function WebsiteManagement() {
                 </CardHeader>
                 <CardContent>
                   {/* Search, Filter, and Sort Controls */}
-                  <div className="flex flex-col lg:flex-row gap-4 mb-6">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Search products by name, SKU, description..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
+                  <div className="space-y-4 mb-6">
+                    {/* Primary Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search products by name, SKU, description..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Filter Controls */}
+                    <div className="flex flex-wrap gap-3">
                       <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-full sm:w-48">
+                        <SelectTrigger className="w-44">
                           <SelectValue placeholder="All Categories" />
                         </SelectTrigger>
                         <SelectContent>
@@ -286,8 +292,47 @@ export default function WebsiteManagement() {
                         </SelectContent>
                       </Select>
 
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Product Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={dateFilter} onValueChange={setDateFilter}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Date Added" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                          <SelectItem value="3months">Last 3 Months</SelectItem>
+                          <SelectItem value="6months">Last 6 Months</SelectItem>
+                          <SelectItem value="year">This Year</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+                        <SelectTrigger className="w-36">
+                          <SelectValue placeholder="Visibility" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Products</SelectItem>
+                          <SelectItem value="visible">Visible</SelectItem>
+                          <SelectItem value="hidden">Hidden</SelectItem>
+                        </SelectContent>
+                      </Select>
+
                       <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-full sm:w-48">
+                        <SelectTrigger className="w-40">
                           <SelectValue placeholder="Sort by..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -308,10 +353,13 @@ export default function WebsiteManagement() {
                           setSearchQuery("");
                           setCategoryFilter("all");
                           setSortBy("newest");
+                          setStatusFilter("all");
+                          setDateFilter("all");
+                          setVisibilityFilter("all");
                         }}
                         className="whitespace-nowrap"
                       >
-                        Clear Filters
+                        Clear All Filters
                       </Button>
                     </div>
                   </div>
