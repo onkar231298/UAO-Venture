@@ -66,7 +66,7 @@ export default function WebsiteManagement() {
     }],
   });
 
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
@@ -123,8 +123,9 @@ export default function WebsiteManagement() {
     },
   });
 
-  // Client-side filtering as backup (server handles most filtering now)
-  const filteredProducts = productsData?.products || [];
+  // Extract products from API response
+  const products = (productsData?.products || []) as Product[];
+  const filteredProducts = products;
 
   const handleToggleVisibility = (productId: number, isActive: boolean) => {
     updateProductMutation.mutate({
@@ -284,7 +285,7 @@ export default function WebsiteManagement() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Categories</SelectItem>
-                          {categories && Array.isArray(categories) && categories.map((category: Category) => (
+                          {categories?.map((category: Category) => (
                             <SelectItem key={category.id} value={category.id.toString()}>
                               {category.name}
                             </SelectItem>
@@ -389,7 +390,7 @@ export default function WebsiteManagement() {
                         <tbody>
                           {filteredProducts.map((product: Product) => {
                             const category = categories?.find((c: Category) => c.id === product.categoryId);
-                            const hasImage = product.images && (product.images as string[]).length > 0;
+                            const hasImage = product.mainImage || (product.galleryImages && Array.isArray(product.galleryImages) && product.galleryImages.length > 0);
                             const hasSEO = product.seoTitle && product.seoDescription;
                             
                             return (
@@ -399,12 +400,12 @@ export default function WebsiteManagement() {
                                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                                       {hasImage ? (
                                         <img 
-                                          src={(product.images as string[])[0]} 
+                                          src={product.mainImage || (Array.isArray(product.galleryImages) ? product.galleryImages[0] : '')} 
                                           alt={product.name}
                                           className="w-full h-full object-cover rounded-lg"
                                         />
                                       ) : (
-                                        <Package className="w-5 h-5 text-gray-400" />
+                                        <Image className="w-5 h-5 text-gray-400" />
                                       )}
                                     </div>
                                     <div>
