@@ -225,13 +225,24 @@ export class DatabaseStorage implements IStorage {
       eq(products.isVisible, true)
     ];
     
-    // Category filter (support multiple categories)
+    // Category filter (support multiple categories by name)
     if (filters?.category && filters.category.length > 0) {
       const categoryNames = filters.category;
-      const categoryConditions = categoryNames.map(name => 
-        sql`${products.category} ILIKE ${`%${name}%`}`
-      );
-      conditions.push(or(...categoryConditions));
+      // First get category IDs from names
+      const categoryResults = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(
+          or(...categoryNames.map(name => 
+            sql`${categories.name} ILIKE ${`%${name}%`}`
+          ))
+        );
+      
+      if (categoryResults.length > 0) {
+        const categoryIds = categoryResults.map(cat => cat.id);
+        const categoryConditions = categoryIds.map(id => eq(products.categoryId, id));
+        conditions.push(or(...categoryConditions));
+      }
     }
     
     // Search filter with better relevance
@@ -262,7 +273,7 @@ export class DatabaseStorage implements IStorage {
     // Materials filter (organic, conventional, wildcrafted)
     if (filters?.materials && filters.materials.length > 0) {
       const materialConditions = filters.materials.map(material => 
-        sql`${products.productType} ILIKE ${material}`
+        sql`${products.productType} ILIKE ${`%${material}%`}`
       );
       conditions.push(or(...materialConditions));
     }
@@ -270,7 +281,7 @@ export class DatabaseStorage implements IStorage {
     // Health Support filter
     if (filters?.healthSupport && filters.healthSupport.length > 0) {
       const healthConditions = filters.healthSupport.map(health => 
-        sql`${products.healthSupport} ILIKE ${health}`
+        sql`${products.healthSupport} ILIKE ${`%${health}%`}`
       );
       conditions.push(or(...healthConditions));
     }
@@ -278,7 +289,7 @@ export class DatabaseStorage implements IStorage {
     // Origin filter
     if (filters?.origin && filters.origin.length > 0) {
       const originConditions = filters.origin.map(origin => 
-        sql`${products.origin} ILIKE ${origin}`
+        sql`${products.origin} ILIKE ${`%${origin}%`}`
       );
       conditions.push(or(...originConditions));
     }
@@ -286,7 +297,7 @@ export class DatabaseStorage implements IStorage {
     // Form filter
     if (filters?.form && filters.form.length > 0) {
       const formConditions = filters.form.map(form => 
-        sql`${products.form} ILIKE ${form}`
+        sql`${products.form} ILIKE ${`%${form}%`}`
       );
       conditions.push(or(...formConditions));
     }
