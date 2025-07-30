@@ -438,8 +438,13 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* DEBUG: Check if this renders at all */}
+                  <div className="bg-red-500 text-white p-2 mb-4">
+                    ⚠️ FILTER SECTION SHOULD BE HERE - DEBUGGING MODE
+                  </div>
+                  
                   {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
-                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4" style={{display: 'block', visibility: 'visible'}}>
+                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4" style={{display: 'block', visibility: 'visible', minHeight: '200px'}}>
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
                     
                     {/* Primary Search Bar */}
