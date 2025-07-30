@@ -101,19 +101,13 @@ export default function ParallaxHero() {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden hero-full-width">
+    <div className="relative h-screen overflow-hidden">
       {/* Dynamic Background Image */}
       <div 
         className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-800 ease-in-out"
         style={{
           backgroundImage: `url(${currentSlideData.backgroundImage})`,
           transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
-          width: '100%',
-          height: '100%',
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0
         }}
       />
       
