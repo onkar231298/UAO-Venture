@@ -41,6 +41,180 @@ import {
 } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
+// Product Form Component
+function ProductForm({ 
+  categories, 
+  onSubmit, 
+  isLoading,
+  product
+}: { 
+  categories: Category[]; 
+  onSubmit: (data: any) => void; 
+  isLoading: boolean;
+  product?: Product;
+}) {
+  const [formData, setFormData] = useState({
+    name: product?.name || "",
+    productId: product?.productId || "",
+    description: product?.description || "",
+    botanicalName: product?.botanicalName || "",
+    plantPart: product?.plantPart || "",
+    origin: product?.origin || "",
+    healthSupport: product?.healthSupport || "",
+    categoryId: product?.categoryId?.toString() || "",
+    form: product?.form || "",
+    isOrganic: product?.isOrganic || false,
+    isActive: product?.isActive ?? true,
+    isOrderable: product?.isOrderable ?? true,
+    moq: product?.moq?.toString() || "",
+    rate: product?.rate?.toString() || "",
+    packingSize: product?.packingSize || "",
+    priceUSD: product?.priceUSD?.toString() || "",
+    priceINR: product?.priceINR?.toString() || "",
+    priceEUR: product?.priceEUR?.toString() || "",
+    priceGBP: product?.priceGBP?.toString() || "",
+    priceType: product?.priceType || "EXW",
+    priceLocation: product?.priceLocation || "Warehouse India",
+    unit: product?.unit || "kg",
+    seoTitle: product?.seoTitle || "",
+    seoDescription: product?.seoDescription || "",
+    seoKeywords: product?.seoKeywords || "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const slug = formData.name.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+    
+    onSubmit({
+      ...formData,
+      slug,
+      categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
+      moq: formData.moq ? parseInt(formData.moq) : null,
+      rate: formData.rate ? parseFloat(formData.rate) : null,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Product Name *</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label>Product ID/SKU *</Label>
+          <Input
+            value={formData.productId}
+            onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
+            required
+          />
+        </div>
+      </div>
+      
+      <div>
+        <Label>Description</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          rows={3}
+        />
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label>Botanical Name</Label>
+          <Input
+            value={formData.botanicalName}
+            onChange={(e) => setFormData(prev => ({ ...prev, botanicalName: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label>Plant Part</Label>
+          <Input
+            value={formData.plantPart}
+            onChange={(e) => setFormData(prev => ({ ...prev, plantPart: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label>Origin</Label>
+          <Input
+            value={formData.origin}
+            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Category *</Label>
+          <Select
+            value={formData.categoryId}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Form</Label>
+          <Select
+            value={formData.form}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select form" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="powder">Powder</SelectItem>
+              <SelectItem value="extract">Extract</SelectItem>
+              <SelectItem value="oil">Oil</SelectItem>
+              <SelectItem value="liquid">Liquid</SelectItem>
+              <SelectItem value="capsule">Capsule</SelectItem>
+              <SelectItem value="tablet">Tablet</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+          />
+          <Label>Active (Visible on website)</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={formData.isOrderable}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOrderable: checked }))}
+          />
+          <Label>Orderable</Label>
+        </div>
+      </div>
+      
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Saving..." : product ? "Update Product" : "Create Product"}
+      </Button>
+    </form>
+  );
+}
+
 export default function WebsiteManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
