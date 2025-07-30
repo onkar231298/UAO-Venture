@@ -341,7 +341,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     let query = db
-      .select()
+      .select({
+        ...products,
+        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
+      })
       .from(products)
       .where(whereClause)
       .limit(filters?.limit || 50)
@@ -393,7 +396,10 @@ export class DatabaseStorage implements IStorage {
 
     const [productsResult, totalResult] = await Promise.all([
       db
-        .select()
+        .select({
+          ...products,
+          isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
+        })
         .from(products)
         .where(whereClause)
         .limit(filters?.limit || 100)
@@ -412,14 +418,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
+    const [product] = await db
+      .select({
+        ...products,
+        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
+      })
+      .from(products)
+      .where(eq(products.id, id));
     return product;
   }
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(
-      and(eq(products.slug, slug), eq(products.isActive, true))
-    );
+    const [product] = await db
+      .select({
+        ...products,
+        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
+      })
+      .from(products)
+      .where(
+        and(eq(products.slug, slug), eq(products.isActive, true))
+      );
     return product;
   }
 
