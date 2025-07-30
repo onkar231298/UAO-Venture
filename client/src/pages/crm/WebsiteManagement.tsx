@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
-// Product Form Component
+// Simple Product Form Component
 function ProductForm({ 
   categories, 
   onSubmit, 
@@ -75,10 +75,8 @@ function ProductForm({
     priceGBP: product?.priceGBP?.toString() || "",
     priceType: product?.priceType || "EXW",
     priceLocation: product?.priceLocation || "Warehouse India",
-    unit: product?.unit || "kg",
     seoTitle: product?.seoTitle || "",
     seoDescription: product?.seoDescription || "",
-    seoKeywords: product?.seoKeywords || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,6 +92,10 @@ function ProductForm({
       categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
       moq: formData.moq ? parseInt(formData.moq) : null,
       rate: formData.rate ? parseFloat(formData.rate) : null,
+      priceUSD: formData.priceUSD ? parseFloat(formData.priceUSD) : null,
+      priceINR: formData.priceINR ? parseFloat(formData.priceINR) : null,
+      priceEUR: formData.priceEUR ? parseFloat(formData.priceEUR) : null,
+      priceGBP: formData.priceGBP ? parseFloat(formData.priceGBP) : null,
     });
   };
 
@@ -109,60 +111,34 @@ function ProductForm({
           />
         </div>
         <div>
-          <Label>Product ID/SKU *</Label>
+          <Label>Product ID</Label>
           <Input
             value={formData.productId}
             onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
-            required
+            placeholder="Auto-generated if left empty"
           />
         </div>
       </div>
-      
+
       <div>
-        <Label>Description</Label>
+        <Label>Description *</Label>
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           rows={3}
+          required
         />
       </div>
-      
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label>Botanical Name</Label>
-          <Input
-            value={formData.botanicalName}
-            onChange={(e) => setFormData(prev => ({ ...prev, botanicalName: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Plant Part</Label>
-          <Input
-            value={formData.plantPart}
-            onChange={(e) => setFormData(prev => ({ ...prev, plantPart: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Origin</Label>
-          <Input
-            value={formData.origin}
-            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-          />
-        </div>
-      </div>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Category *</Label>
-          <Select
-            value={formData.categoryId}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
-          >
+          <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((category) => (
+              {categories.map(category => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
                 </SelectItem>
@@ -171,27 +147,38 @@ function ProductForm({
           </Select>
         </div>
         <div>
-          <Label>Form</Label>
-          <Select
-            value={formData.form}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select form" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="powder">Powder</SelectItem>
-              <SelectItem value="extract">Extract</SelectItem>
-              <SelectItem value="oil">Oil</SelectItem>
-              <SelectItem value="liquid">Liquid</SelectItem>
-              <SelectItem value="capsule">Capsule</SelectItem>
-              <SelectItem value="tablet">Tablet</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label>Origin</Label>
+          <Input
+            value={formData.origin}
+            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+            placeholder="e.g., India"
+          />
         </div>
       </div>
-      
-      <div className="flex items-center space-x-4">
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Price (USD)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.priceUSD}
+            onChange={(e) => setFormData(prev => ({ ...prev, priceUSD: e.target.value }))}
+            placeholder="0.00"
+          />
+        </div>
+        <div>
+          <Label>MOQ</Label>
+          <Input
+            type="number"
+            value={formData.moq}
+            onChange={(e) => setFormData(prev => ({ ...prev, moq: e.target.value }))}
+            placeholder="Minimum order quantity"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-6">
         <div className="flex items-center space-x-2">
           <Switch
             checked={formData.isActive}
@@ -219,6 +206,8 @@ export default function WebsiteManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // State for filters and search
   const [activeTab, setActiveTab] = useState("products");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -227,26 +216,19 @@ export default function WebsiteManagement() {
   const [dateFilter, setDateFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
 
-  // Queries
-  const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/admin/products", { 
-      limit: 100, 
-      search: searchQuery,
-      category: categoryFilter !== "all" ? categoryFilter : "",
-      status: statusFilter !== "all" ? statusFilter : "",
-      dateFilter: dateFilter !== "all" ? dateFilter : "",
-      visibility: visibilityFilter !== "all" ? visibilityFilter : "",
-      sortBy 
-    }],
-  });
-
-  const { data: categories } = useQuery<Category[]>({
+  // Fetch categories
+  const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
   });
 
-  // Mutations
+  // Fetch products
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ["/api/admin/products"],
+  });
+
+  // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<Product> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       return await apiRequest(`/api/admin/products/${id}`, { method: "PUT", body: data });
     },
     onSuccess: () => {
@@ -347,6 +329,19 @@ export default function WebsiteManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
+                    <p className="text-sm text-gray-600">Total Products</p>
+                    <p className="text-2xl font-bold text-blue-600">{products?.length || 0}</p>
+                    <p className="text-xs text-blue-600">In database</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
                     <p className="text-sm text-gray-600">Categories</p>
                     <p className="text-2xl font-bold text-blue-600">{categories?.length || 0}</p>
                     <p className="text-xs text-blue-600">Product categories</p>
@@ -368,40 +363,20 @@ export default function WebsiteManagement() {
                 </div>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Page Views</p>
-                    <p className="text-2xl font-bold text-orange-600">24.5K</p>
-                    <p className="text-xs text-orange-600">This month</p>
-                  </div>
-                  <BarChart3 className="w-8 h-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
-              <TabsTrigger value="media">Media</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
 
             {/* Products Management Tab */}
             <TabsContent value="products" className="mt-6">
-              {/* ABSOLUTE TEST - This should always show */}
-              <div className="bg-red-500 text-white text-center p-8 mb-4" style={{position: 'relative', zIndex: 9999}}>
-                🚨 PRODUCTS TAB IS RENDERING - TESTING MODE 🚨
-              </div>
-              
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -443,11 +418,12 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* ABSOLUTE TEST 2 - This should show if CardContent renders */}
-                  <div className="bg-yellow-400 text-black text-center p-4 mb-4" style={{position: 'relative', zIndex: 9998}}>
-                    ⚠️ CARDCONTENT IS RENDERING - TESTING MODE ⚠️
+                  {/* TESTING - This should show if CardContent renders */}
+                  <div className="bg-green-500 text-white text-center p-4 mb-4" style={{position: 'relative', zIndex: 9999}}>
+                    ✅ FILTER SECTION WORKING - FRESH VERSION
                   </div>
-                  {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
+                  
+                  {/* Search, Filter, and Sort Controls */}
                   <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
                     
@@ -470,14 +446,14 @@ export default function WebsiteManagement() {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="All Categories" />
                           </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {categories?.map((category: Category) => (
-                            <SelectItem key={category.id} value={category.id.toString()}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {categories?.map((category: Category) => (
+                              <SelectItem key={category.id} value={category.id.toString()}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                       </div>
 
@@ -487,13 +463,13 @@ export default function WebsiteManagement() {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="All Status" />
                           </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                        </SelectContent>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
 
@@ -503,15 +479,15 @@ export default function WebsiteManagement() {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="All Time" />
                           </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                          <SelectItem value="3months">Last 3 Months</SelectItem>
-                          <SelectItem value="6months">Last 6 Months</SelectItem>
-                          <SelectItem value="year">This Year</SelectItem>
-                        </SelectContent>
+                          <SelectContent>
+                            <SelectItem value="all">All Time</SelectItem>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="week">This Week</SelectItem>
+                            <SelectItem value="month">This Month</SelectItem>
+                            <SelectItem value="3months">Last 3 Months</SelectItem>
+                            <SelectItem value="6months">Last 6 Months</SelectItem>
+                            <SelectItem value="year">This Year</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
 
@@ -521,11 +497,11 @@ export default function WebsiteManagement() {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="All Products" />
                           </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Products</SelectItem>
-                          <SelectItem value="visible">Visible</SelectItem>
-                          <SelectItem value="hidden">Hidden</SelectItem>
-                        </SelectContent>
+                          <SelectContent>
+                            <SelectItem value="all">All Products</SelectItem>
+                            <SelectItem value="visible">Visible</SelectItem>
+                            <SelectItem value="hidden">Hidden</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
 
@@ -535,36 +511,35 @@ export default function WebsiteManagement() {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Latest First" />
                           </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="newest">Latest First</SelectItem>
-                          <SelectItem value="oldest">Oldest First</SelectItem>
-                          <SelectItem value="name-az">Name A-Z</SelectItem>
-                          <SelectItem value="name-za">Name Z-A</SelectItem>
-                          <SelectItem value="price-high">Price High-Low</SelectItem>
-                          <SelectItem value="price-low">Price Low-High</SelectItem>
-                          <SelectItem value="sku-az">SKU A-Z</SelectItem>
-                          <SelectItem value="sku-za">SKU Z-A</SelectItem>
-                        </SelectContent>
+                          <SelectContent>
+                            <SelectItem value="newest">Latest First</SelectItem>
+                            <SelectItem value="oldest">Oldest First</SelectItem>
+                            <SelectItem value="name-az">Name A-Z</SelectItem>
+                            <SelectItem value="name-za">Name Z-A</SelectItem>
+                            <SelectItem value="price-high">Price High-Low</SelectItem>
+                            <SelectItem value="price-low">Price Low-High</SelectItem>
+                            <SelectItem value="sku-az">SKU A-Z</SelectItem>
+                            <SelectItem value="sku-za">SKU Z-A</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
-                    </div>
-                    
-                    {/* Clear Filters Button */}
-                    <div className="flex justify-end">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setSearchQuery("");
-                          setCategoryFilter("all");
-                          setSortBy("newest");
-                          setStatusFilter("all");
-                          setDateFilter("all");
-                          setVisibilityFilter("all");
-                        }}
-                        className="whitespace-nowrap"
-                      >
-                        Clear All Filters
-                      </Button>
+
+                      <div>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setSearchQuery("");
+                            setCategoryFilter("all");
+                            setSortBy("newest");
+                            setStatusFilter("all");
+                            setDateFilter("all");
+                            setVisibilityFilter("all");
+                          }}
+                          className="w-full mt-4"
+                        >
+                          Clear All Filters
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -594,81 +569,53 @@ export default function WebsiteManagement() {
                     </div>
                   ) : filteredProducts?.length ? (
                     <div className="overflow-x-auto">
-                      <table className="data-table">
+                      <table className="w-full border-collapse border border-gray-200">
                         <thead>
-                          <tr>
-                            <th>Product</th>
-                            <th>SKU</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Visible</th>
-                            <th>Orderable</th>
-                            <th>SEO</th>
-                            <th>Actions</th>
+                          <tr className="bg-gray-50">
+                            <th className="border border-gray-200 p-3 text-left">Product</th>
+                            <th className="border border-gray-200 p-3 text-left">SKU</th>
+                            <th className="border border-gray-200 p-3 text-left">Category</th>
+                            <th className="border border-gray-200 p-3 text-left">Status</th>
+                            <th className="border border-gray-200 p-3 text-left">Visible</th>
+                            <th className="border border-gray-200 p-3 text-left">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredProducts.map((product: Product) => {
                             const category = categories?.find((c: Category) => c.id === product.categoryId);
-                            const hasImage = product.mainImage || (product.galleryImages && Array.isArray(product.galleryImages) && product.galleryImages.length > 0);
-                            const hasSEO = product.seoTitle && product.seoDescription;
                             
                             return (
-                              <tr key={product.id}>
-                                <td>
+                              <tr key={product.id} className="hover:bg-gray-50">
+                                <td className="border border-gray-200 p-3">
                                   <div className="flex items-center space-x-3">
                                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                      {hasImage ? (
-                                        <img 
-                                          src={product.mainImage || (Array.isArray(product.galleryImages) ? product.galleryImages[0] : '')} 
-                                          alt={product.name}
-                                          className="w-full h-full object-cover rounded-lg"
-                                        />
-                                      ) : (
-                                        <Image className="w-5 h-5 text-gray-400" />
-                                      )}
+                                      <Package className="w-5 h-5 text-gray-400" />
                                     </div>
                                     <div>
                                       <p className="font-medium">{product.name}</p>
-                                      {product.isOrganic && (
-                                        <Badge variant="outline" className="text-xs mt-1">
-                                          <span className="text-green-600">Organic</span>
-                                        </Badge>
-                                      )}
+                                      <p className="text-sm text-gray-600">{product.productId}</p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="font-mono text-sm">{product.productId}</td>
-                                <td>{category?.name || '-'}</td>
-                                <td>
-                                  <Badge variant={product.isActive ? "default" : "outline"}>
-                                    {product.isActive ? "Active" : "Draft"}
+                                <td className="border border-gray-200 p-3">
+                                  <Badge variant="outline">{product.productId}</Badge>
+                                </td>
+                                <td className="border border-gray-200 p-3">
+                                  {category?.name || "Uncategorized"}
+                                </td>
+                                <td className="border border-gray-200 p-3">
+                                  <Badge variant={product.isActive ? "default" : "secondary"}>
+                                    {product.isActive ? "Active" : "Inactive"}
                                   </Badge>
                                 </td>
-                                <td>
+                                <td className="border border-gray-200 p-3">
                                   <Switch
                                     checked={product.isActive || false}
                                     onCheckedChange={() => handleToggleVisibility(product.id, product.isActive || false)}
                                     disabled={updateProductMutation.isPending}
                                   />
                                 </td>
-                                <td>
-                                  <Switch
-                                    checked={product.isOrderable || false}
-                                    onCheckedChange={() => handleToggleOrderable(product.id, product.isOrderable || false)}
-                                    disabled={updateProductMutation.isPending}
-                                  />
-                                </td>
-                                <td>
-                                  <div className="flex items-center space-x-1">
-                                    {hasSEO ? (
-                                      <CheckCircle className="w-4 h-4 text-green-500" />
-                                    ) : (
-                                      <AlertCircle className="w-4 h-4 text-orange-500" />
-                                    )}
-                                  </div>
-                                </td>
-                                <td>
+                                <td className="border border-gray-200 p-3">
                                   <div className="flex space-x-2">
                                     <Button variant="outline" size="sm">
                                       <Eye className="w-4 h-4" />
@@ -700,764 +647,44 @@ export default function WebsiteManagement() {
               <CategoryManagement />
             </TabsContent>
 
-
-
             {/* Content Management Tab */}
             <TabsContent value="content" className="mt-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Homepage Content</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Hero Section</h4>
-                        <p className="text-sm text-gray-600 mb-3">Main banner and promotional content</p>
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Hero
-                        </Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Featured Products</h4>
-                        <p className="text-sm text-gray-600 mb-3">Products displayed on homepage</p>
-                        <Button variant="outline" size="sm">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Configure
-                        </Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Testimonials</h4>
-                        <p className="text-sm text-gray-600 mb-3">Customer reviews and feedback</p>
-                        <Button variant="outline" size="sm">
-                          <Users className="w-4 h-4 mr-2" />
-                          Manage
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pages & Policies</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">About Us</h4>
-                        <p className="text-sm text-gray-600 mb-3">Company information and story</p>
-                        <Button variant="outline" size="sm">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Edit Page
-                        </Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Privacy Policy</h4>
-                        <p className="text-sm text-gray-600 mb-3">Data protection and privacy terms</p>
-                        <Button variant="outline" size="sm">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Edit Policy
-                        </Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Terms of Service</h4>
-                        <p className="text-sm text-gray-600 mb-3">Service terms and conditions</p>
-                        <Button variant="outline" size="sm">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Edit Terms
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* SEO Management Tab */}
-            <TabsContent value="seo" className="mt-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>SEO Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Site Title</Label>
-                        <Input defaultValue="Bright Fame Organic - Premium B2B Organic Ingredients" />
-                      </div>
-                      
-                      <div>
-                        <Label>Meta Description</Label>
-                        <Textarea 
-                          defaultValue="Leading supplier of certified organic ingredients for the nutrition, food, and cosmetic industries. Premium quality, bulk quantities, global shipping."
-                          rows={3}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Keywords</Label>
-                        <Textarea 
-                          defaultValue="organic ingredients, bulk organic, herbal powders, organic extracts, B2B ingredients, certified organic"
-                          rows={2}
-                        />
-                      </div>
-                      
-                      <Button>
-                        <Zap className="w-4 h-4 mr-2" />
-                        Update SEO Settings
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Structured Data</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                          <h4 className="font-medium text-green-900">Schema Markup</h4>
-                        </div>
-                        <p className="text-sm text-green-800">
-                          Structured data is properly configured for products and organization
-                        </p>
-                      </div>
-                      
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Globe className="w-5 h-5 text-blue-600" />
-                          <h4 className="font-medium text-blue-900">Sitemap</h4>
-                        </div>
-                        <p className="text-sm text-blue-800 mb-2">
-                          XML sitemap is automatically generated and updated
-                        </p>
-                        <Button variant="outline" size="sm">
-                          <Code className="w-4 h-4 mr-2" />
-                          View Sitemap
-                        </Button>
-                      </div>
-                      
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <BarChart3 className="w-5 h-5 text-purple-600" />
-                          <h4 className="font-medium text-purple-900">SEO Score</h4>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-1 bg-purple-200 rounded-full h-2">
-                            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '92%' }}></div>
-                          </div>
-                          <span className="text-sm font-medium text-purple-900">92%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Media Management Tab */}
-            <TabsContent value="media" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Media Library</span>
-                    <Button size="sm">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Media
-                    </Button>
-                  </CardTitle>
+                  <CardTitle>Content Management</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Media Management</h3>
-                    <p className="text-gray-600 mb-4">Upload and manage product images, banners, and other media files</p>
-                    
-                    <div className="grid md:grid-cols-3 gap-4 text-left mt-6">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <Camera className="w-8 h-8 text-blue-600 mb-2" />
-                        <h4 className="font-medium text-blue-900 mb-1">Product Images</h4>
-                        <p className="text-sm text-blue-800">High-resolution product photos</p>
-                      </div>
-                      
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <Layout className="w-8 h-8 text-green-600 mb-2" />
-                        <h4 className="font-medium text-green-900 mb-1">Banners</h4>
-                        <p className="text-sm text-green-800">Homepage and promotional banners</p>
-                      </div>
-                      
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <FileText className="w-8 h-8 text-purple-600 mb-2" />
-                        <h4 className="font-medium text-purple-900 mb-1">Documents</h4>
-                        <p className="text-sm text-purple-800">COAs, certificates, specifications</p>
-                      </div>
-                    </div>
-                  </div>
+                  <p>Content management features coming soon...</p>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Settings Tab */}
-            <TabsContent value="settings" className="mt-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Website Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Maintenance Mode</Label>
-                          <p className="text-sm text-gray-600">Temporarily disable public access</p>
-                        </div>
-                        <Switch />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Registration Enabled</Label>
-                          <p className="text-sm text-gray-600">Allow new customer registrations</p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Product Reviews</Label>
-                          <p className="text-sm text-gray-600">Enable customer product reviews</p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Newsletter Signup</Label>
-                          <p className="text-sm text-gray-600">Show newsletter subscription form</p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Contact Information</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Business Phone</Label>
-                        <Input defaultValue="+91-7249847439" />
-                      </div>
-                      
-                      <div>
-                        <Label>Support Email</Label>
-                        <Input defaultValue="info@bfiorganic.com" />
-                      </div>
-                      
-                      <div>
-                        <Label>Business Address</Label>
-                        <Textarea 
-                          defaultValue="C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India"
-                          rows={3}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Business Hours</Label>
-                        <Input defaultValue="Monday - Friday: 9:00 AM - 6:00 PM IST" />
-                      </div>
-                      
-                      <Button>
-                        <Settings className="w-4 h-4 mr-2" />
-                        Update Contact Info
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            {/* SEO Management Tab */}
+            <TabsContent value="seo" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>SEO Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>SEO management features coming soon...</p>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Analytics Tab */}
             <TabsContent value="analytics" className="mt-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Website Analytics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-blue-600">Page Views</p>
-                          <p className="text-2xl font-bold text-blue-900">24.5K</p>
-                          <p className="text-xs text-blue-600">+15% vs last month</p>
-                        </div>
-                        <div className="p-4 bg-green-50 rounded-lg">
-                          <p className="text-sm text-green-600">Unique Visitors</p>
-                          <p className="text-2xl font-bold text-green-900">8.2K</p>
-                          <p className="text-xs text-green-600">+8% vs last month</p>
-                        </div>
-                        <div className="p-4 bg-purple-50 rounded-lg">
-                          <p className="text-sm text-purple-600">Bounce Rate</p>
-                          <p className="text-2xl font-bold text-purple-900">32%</p>
-                          <p className="text-xs text-purple-600">-5% vs last month</p>
-                        </div>
-                        <div className="p-4 bg-orange-50 rounded-lg">
-                          <p className="text-sm text-orange-600">Avg. Session</p>
-                          <p className="text-2xl font-bold text-orange-900">4:32</p>
-                          <p className="text-xs text-orange-600">+12% vs last month</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Popular Products</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">Organic Turmeric Powder</span>
-                        <span className="text-sm text-gray-600">1,234 views</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">Organic Ashwagandha Powder</span>
-                        <span className="text-sm text-gray-600">987 views</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">Organic Moringa Powder</span>
-                        <span className="text-sm text-gray-600">756 views</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">Organic Spirulina Powder</span>
-                        <span className="text-sm text-gray-600">623 views</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>Analytics features coming soon...</p>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
       </div>
     </RoleBasedRoute>
-  );
-} 
-  onSubmit: (data: any) => void; 
-  isLoading: boolean;
-  product?: Product;
-}) {
-  const [formData, setFormData] = useState({
-    name: product?.name || "",
-    productId: product?.productId || "",
-    description: product?.description || "",
-    botanicalName: product?.botanicalName || "",
-    plantPart: product?.plantPart || "",
-    origin: product?.origin || "",
-    healthSupport: product?.healthSupport || "",
-    categoryId: product?.categoryId?.toString() || "",
-    form: product?.form || "",
-    isOrganic: product?.isOrganic || false,
-    isActive: product?.isActive ?? true,
-    isOrderable: product?.isOrderable ?? true,
-    moq: product?.moq?.toString() || "",
-    rate: product?.rate?.toString() || "",
-    packingSize: product?.packingSize || "",
-    priceUSD: product?.priceUSD?.toString() || "",
-    priceINR: product?.priceINR?.toString() || "",
-    priceEUR: product?.priceEUR?.toString() || "",
-    priceGBP: product?.priceGBP?.toString() || "",
-    priceType: product?.priceType || "EXW",
-    priceLocation: product?.priceLocation || "Warehouse India",
-    unit: product?.unit || "kg",
-    seoTitle: product?.seoTitle || "",
-    seoDescription: product?.seoDescription || "",
-    seoKeywords: product?.seoKeywords || "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const slug = formData.name.toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
-    
-    onSubmit({
-      ...formData,
-      slug,
-      categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
-      moq: formData.moq ? parseInt(formData.moq) : null,
-      rate: formData.rate ? parseFloat(formData.rate) : null,
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Product Name *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Product ID/SKU *</Label>
-          <Input
-            value={formData.productId}
-            onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
-            required
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label>Description</Label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          rows={3}
-        />
-      </div>
-      
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label>Botanical Name</Label>
-          <Input
-            value={formData.botanicalName}
-            onChange={(e) => setFormData(prev => ({ ...prev, botanicalName: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Plant Part</Label>
-          <Input
-            value={formData.plantPart}
-            onChange={(e) => setFormData(prev => ({ ...prev, plantPart: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Origin</Label>
-          <Input
-            value={formData.origin}
-            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Health Support</Label>
-          <Select value={formData.healthSupport} onValueChange={(value) => setFormData(prev => ({ ...prev, healthSupport: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select functional category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Antioxidant">Antioxidant (356)</SelectItem>
-              <SelectItem value="Digestive Support">Digestive Support (208)</SelectItem>
-              <SelectItem value="Heart Support">Heart Support (195)</SelectItem>
-              <SelectItem value="Immune Enhancer">Immune Enhancer (178)</SelectItem>
-              <SelectItem value="Blood Sugar Support">Blood Sugar Support (148)</SelectItem>
-              <SelectItem value="Skin Health">Skin Health (135)</SelectItem>
-              <SelectItem value="Weight Management">Weight Management (101)</SelectItem>
-              <SelectItem value="Cholesterol Support">Cholesterol Support (88)</SelectItem>
-              <SelectItem value="Stress Relief">Stress Relief (53)</SelectItem>
-              <SelectItem value="Bone Health">Bone Health (43)</SelectItem>
-              <SelectItem value="Eyesight Support">Eyesight Support (40)</SelectItem>
-              <SelectItem value="Joint Support">Joint Support (39)</SelectItem>
-              <SelectItem value="Cough and Cold">Cough and Cold (36)</SelectItem>
-              <SelectItem value="Brain Support">Brain Support (33)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label>Category</Label>
-          <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Form</Label>
-          <Input
-            value={formData.form}
-            onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Category</Label>
-          <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category: Category) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Form</Label>
-          <Select value={formData.form} onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select form" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="powder">Powder</SelectItem>
-              <SelectItem value="extract">Extract</SelectItem>
-              <SelectItem value="oil">Oil</SelectItem>
-              <SelectItem value="whole">Whole</SelectItem>
-              <SelectItem value="capsule">Capsule</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>MOQ</Label>
-          <Input
-            type="number"
-            value={formData.moq}
-            onChange={(e) => setFormData(prev => ({ ...prev, moq: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Label>Rate (Price Per Unit) *</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.rate}
-              onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
-              placeholder="0.25"
-              className="pl-6"
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Base price per unit</p>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Packing Size (One Unit) *</Label>
-          <Input
-            value={formData.packingSize}
-            onChange={(e) => setFormData(prev => ({ ...prev, packingSize: e.target.value }))}
-            placeholder="e.g., 25kg bag, 1kg pouch"
-          />
-          <p className="text-xs text-gray-500 mt-1">Standard package size</p>
-        </div>
-        <div>
-          <Label>Unit</Label>
-          <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="kg">Kilograms</SelectItem>
-              <SelectItem value="lbs">Pounds</SelectItem>
-              <SelectItem value="tons">Metric Tons</SelectItem>
-              <SelectItem value="grams">Grams</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Multi-Currency Pricing */}
-      <div className="space-y-4">
-        <Label className="text-base font-semibold">Multi-Currency Pricing</Label>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>USD Price (per unit)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.priceUSD}
-                onChange={(e) => setFormData(prev => ({ ...prev, priceUSD: e.target.value }))}
-                placeholder="25.00"
-                className="pl-6"
-              />
-            </div>
-          </div>
-          <div>
-            <Label>INR Price (per unit)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">₹</span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.priceINR}
-                onChange={(e) => setFormData(prev => ({ ...prev, priceINR: e.target.value }))}
-                placeholder="2000.00"
-                className="pl-6"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>EUR Price (per unit)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.priceEUR}
-                onChange={(e) => setFormData(prev => ({ ...prev, priceEUR: e.target.value }))}
-                placeholder="22.00"
-                className="pl-6"
-              />
-            </div>
-          </div>
-          <div>
-            <Label>GBP Price (per unit)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">£</span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.priceGBP}
-                onChange={(e) => setFormData(prev => ({ ...prev, priceGBP: e.target.value }))}
-                placeholder="20.00"
-                className="pl-6"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Price Terms & Location */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Price Terms (Incoterms)</Label>
-          <Select value={formData.priceType} onValueChange={(value) => setFormData(prev => ({ ...prev, priceType: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="EXW">EXW - Ex Works</SelectItem>
-              <SelectItem value="FOB">FOB - Free on Board</SelectItem>
-              <SelectItem value="CIF">CIF - Cost, Insurance & Freight</SelectItem>
-              <SelectItem value="CFR">CFR - Cost and Freight</SelectItem>
-              <SelectItem value="DDP">DDP - Delivered Duty Paid</SelectItem>
-              <SelectItem value="DDU">DDU - Delivered Duty Unpaid</SelectItem>
-              <SelectItem value="DAP">DAP - Delivered at Place</SelectItem>
-              <SelectItem value="CPT">CPT - Carriage Paid To</SelectItem>
-              <SelectItem value="CIP">CIP - Carriage & Insurance Paid</SelectItem>
-              <SelectItem value="Delivered">Delivered</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-gray-500 mt-1">International trade terms</p>
-        </div>
-        <div>
-          <Label>Price Location/Port</Label>
-          <Input
-            value={formData.priceLocation}
-            onChange={(e) => setFormData(prev => ({ ...prev, priceLocation: e.target.value }))}
-            placeholder="e.g., Warehouse India, Mumbai Port"
-          />
-          <p className="text-xs text-gray-500 mt-1">Location for price terms</p>
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={formData.isOrganic}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOrganic: checked }))}
-          />
-          <Label>Organic</Label>
-        </div>
-      </div>
-      
-      <div className="space-y-4">
-        <h3 className="font-medium">SEO Information</h3>
-        <div>
-          <Label>SEO Title</Label>
-          <Input
-            value={formData.seoTitle}
-            onChange={(e) => setFormData(prev => ({ ...prev, seoTitle: e.target.value }))}
-            placeholder="Product name - Category | BFI Organic"
-          />
-        </div>
-        <div>
-          <Label>SEO Description</Label>
-          <Textarea
-            value={formData.seoDescription}
-            onChange={(e) => setFormData(prev => ({ ...prev, seoDescription: e.target.value }))}
-            rows={2}
-            placeholder="Brief description for search engines (150-160 characters)"
-          />
-        </div>
-        <div>
-          <Label>Keywords</Label>
-          <Input
-            value={formData.seoKeywords}
-            onChange={(e) => setFormData(prev => ({ ...prev, seoKeywords: e.target.value }))}
-            placeholder="organic, powder, herbal, extract (comma separated)"
-          />
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={formData.isActive}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-          />
-          <Label>Active (Visible on website)</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={formData.isOrderable}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOrderable: checked }))}
-          />
-          <Label>Orderable</Label>
-        </div>
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Saving..." : product ? "Update Product" : "Create Product"}
-      </Button>
-    </form>
   );
 }
