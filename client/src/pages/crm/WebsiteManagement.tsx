@@ -37,8 +37,7 @@ import {
   AlertCircle,
   Camera,
   Layout,
-  Code,
-  Upload
+  Code
 } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
@@ -49,10 +48,16 @@ export default function WebsiteManagement() {
   const [activeTab, setActiveTab] = useState("products");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   // Queries
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/admin/products", { limit: 100 }],
+    queryKey: ["/api/admin/products", { 
+      limit: 100, 
+      search: searchQuery,
+      category: categoryFilter !== "all" ? categoryFilter : "",
+      sortBy 
+    }],
   });
 
   const { data: categories } = useQuery({
@@ -62,7 +67,7 @@ export default function WebsiteManagement() {
   // Mutations
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<Product> }) => {
-      return await apiRequest("PUT", `/api/admin/products/${id}`, data);
+      return await apiRequest(`/api/admin/products/${id}`, { method: "PUT", body: data });
     },
     onSuccess: () => {
       toast({ title: "Product updated successfully" });
@@ -88,7 +93,7 @@ export default function WebsiteManagement() {
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/admin/products", data);
+      return await apiRequest("/api/admin/products", { method: "POST", body: data });
     },
     onSuccess: () => {
       toast({ title: "Product created successfully" });
@@ -112,15 +117,8 @@ export default function WebsiteManagement() {
     },
   });
 
-  const filteredProducts = productsData?.products?.filter((product: Product) => {
-    const matchesSearch = !searchQuery || 
-      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.productId?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = !categoryFilter || product.categoryId?.toString() === categoryFilter;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Client-side filtering as backup (server handles most filtering now)
+  const filteredProducts = productsData?.products || [];
 
   const handleToggleVisibility = (productId: number, isActive: boolean) => {
     updateProductMutation.mutate({
@@ -259,30 +257,63 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Filters */}
-                  <div className="flex flex-wrap gap-4 mb-6">
-                    <div className="relative flex-1 min-w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Search products..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
+                  {/* Search, Filter, and Sort Controls */}
+                  <div className="flex flex-col lg:flex-row gap-4 mb-6">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search products by name, SKU, description..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
                     </div>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories?.map((category: Category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-full sm:w-48">
+                          <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories && Array.isArray(categories) && categories.map((category: Category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-full sm:w-48">
+                          <SelectValue placeholder="Sort by..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="newest">Latest First</SelectItem>
+                          <SelectItem value="oldest">Oldest First</SelectItem>
+                          <SelectItem value="name-az">Name A-Z</SelectItem>
+                          <SelectItem value="name-za">Name Z-A</SelectItem>
+                          <SelectItem value="price-high">Price High-Low</SelectItem>
+                          <SelectItem value="price-low">Price Low-High</SelectItem>
+                          <SelectItem value="sku-az">SKU A-Z</SelectItem>
+                          <SelectItem value="sku-za">SKU Z-A</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setSearchQuery("");
+                          setCategoryFilter("all");
+                          setSortBy("newest");
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        Clear Filters
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Products Table */}

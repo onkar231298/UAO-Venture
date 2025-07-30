@@ -372,6 +372,7 @@ export class DatabaseStorage implements IStorage {
     category?: string;
     search?: string;
     status?: string;
+    sortBy?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }> {
@@ -394,6 +395,36 @@ export class DatabaseStorage implements IStorage {
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
+    // Determine sort order
+    let orderBy;
+    switch (filters?.sortBy) {
+      case 'oldest':
+        orderBy = asc(products.createdAt);
+        break;
+      case 'name-az':
+        orderBy = asc(products.name);
+        break;
+      case 'name-za':
+        orderBy = desc(products.name);
+        break;
+      case 'sku-az':
+        orderBy = asc(products.productId);
+        break;
+      case 'sku-za':
+        orderBy = desc(products.productId);
+        break;
+      case 'price-high':
+        orderBy = desc(products.priceUSD);
+        break;
+      case 'price-low':
+        orderBy = asc(products.priceUSD);
+        break;
+      case 'newest':
+      default:
+        orderBy = desc(products.createdAt);
+        break;
+    }
+
     const [productsResult, totalResult] = await Promise.all([
       db
         .select({
@@ -404,7 +435,7 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause)
         .limit(filters?.limit || 100)
         .offset(filters?.offset || 0)
-        .orderBy(desc(products.createdAt)),
+        .orderBy(orderBy),
       db
         .select({ count: count() })
         .from(products)
