@@ -439,8 +439,8 @@ export default function WebsiteManagement() {
                 </CardHeader>
                 <CardContent>
                   {/* Search, Filter, and Sort Controls - ALWAYS VISIBLE */}
-                  <div className="space-y-4 mb-6 bg-white border rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Filter & Search Products</h3>
+                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4" style={{display: 'block', visibility: 'visible'}}>
+                    <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
                     
                     {/* Primary Search Bar */}
                     <div className="relative">
