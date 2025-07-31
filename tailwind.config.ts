@@ -51,7 +51,7 @@ export default {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
-        // Green Jeeva Inspired Professional Color Palette
+        // Professional B2B Color Palette
         green: {
           50: "var(--green-accent)",
           100: "var(--green-light)",

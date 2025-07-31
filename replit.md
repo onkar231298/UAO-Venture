@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a comprehensive B2B platform combining a customer-facing e-commerce website with a role-based internal CRM system, inspired by Green Jeeva. Its main purpose is to support product discovery, inquiry management, and complete business operations across multiple departments. The platform aims to streamline B2B transactions for organic products.
+This is a comprehensive B2B platform combining a customer-facing e-commerce website with a role-based internal CRM system. Its main purpose is to support product discovery, inquiry management, and complete business operations across multiple departments. The platform aims to streamline B2B transactions for organic products.
 
 ## User Preferences
 
