@@ -487,48 +487,44 @@ export default function ProductDetail() {
                   <p className="text-xs text-gray-600">Current pricing in INR • Prices shown in your regional currency</p>
                 </CardHeader>
                 <CardContent>
-                  {/* Table Layout - Full Width Rows */}
-                  <div className="w-full">
+                  {/* Table Layout - Exact Match */}
+                  <div className="w-full border border-gray-200 rounded-lg overflow-hidden">
                     {/* Header Row */}
-                    <div className="grid grid-cols-4 gap-1 text-sm font-medium text-gray-700 border-b border-gray-300 pb-2 mb-3">
-                      <div>Quantity</div>
-                      <div className="text-center">Price per kg</div>
-                      <div className="text-center">Save</div>
-                      <div className="text-center">Select</div>
+                    <div className="grid grid-cols-4 gap-0 text-sm font-medium text-gray-700 bg-gray-50 border-b border-gray-200">
+                      <div className="px-4 py-3 border-r border-gray-200">Quantity</div>
+                      <div className="px-4 py-3 text-center border-r border-gray-200">Price per kg</div>
+                      <div className="px-4 py-3 text-center border-r border-gray-200">Save</div>
+                      <div className="px-4 py-3 text-center">Select</div>
                     </div>
 
-                    {/* Pricing Rows - Full Width */}
-                    <div className="space-y-0">
-                      {[
-                        { qty: 100, price: 1757.50, discount: 5.0 },
-                        { qty: 500, price: 1702.00, discount: 8.0 },
-                        { qty: 1000, price: 1628.00, discount: 12.0 },
-                        { qty: 5000, price: 1572.50, discount: 15.0 }
-                      ].map((tier, index) => (
-                        <div 
-                          key={index}
-                          className={`w-full py-3 px-4 cursor-pointer transition-colors border-b border-gray-200 ${
-                            selectedQuantity === tier.qty 
-                              ? 'bg-green-100' 
-                              : 'bg-white hover:bg-gray-50'
-                          }`}
-                          onClick={() => setSelectedQuantity(tier.qty)}
-                        >
-                          <div className="grid grid-cols-4 gap-4 text-sm items-center">
-                            <div className="font-medium text-gray-800">{tier.qty} kg</div>
-                            <div className="text-center text-gray-800">₹{tier.price.toFixed(2)}/kg</div>
-                            <div className="text-center text-green-600">~ {tier.discount.toFixed(1)}%</div>
-                            <div className="text-center">
-                              {selectedQuantity === tier.qty ? (
-                                <span className="text-white bg-green-600 px-3 py-1 rounded text-xs font-medium">Selected</span>
-                              ) : (
-                                <span className="text-blue-600 cursor-pointer text-sm font-medium">Select</span>
-                              )}
-                            </div>
-                          </div>
+                    {/* Pricing Rows */}
+                    {[
+                      { qty: 100, price: 1757.50, discount: 5.0 },
+                      { qty: 500, price: 1702.00, discount: 8.0 },
+                      { qty: 1000, price: 1628.00, discount: 12.0 },
+                      { qty: 5000, price: 1572.50, discount: 15.0 }
+                    ].map((tier, index) => (
+                      <div 
+                        key={index}
+                        className={`grid grid-cols-4 gap-0 cursor-pointer transition-colors border-b border-gray-200 last:border-b-0 ${
+                          selectedQuantity === tier.qty 
+                            ? 'bg-green-100' 
+                            : 'bg-white hover:bg-gray-50'
+                        }`}
+                        onClick={() => setSelectedQuantity(tier.qty)}
+                      >
+                        <div className="px-4 py-3 border-r border-gray-200 font-medium text-gray-800">{tier.qty} kg</div>
+                        <div className="px-4 py-3 text-center border-r border-gray-200 text-gray-800">₹{tier.price.toFixed(2)}/kg</div>
+                        <div className="px-4 py-3 text-center border-r border-gray-200 text-green-600">~ {tier.discount.toFixed(1)}%</div>
+                        <div className="px-4 py-3 text-center">
+                          {selectedQuantity === tier.qty ? (
+                            <span className="text-white bg-green-600 px-3 py-1 rounded text-xs font-medium">Selected</span>
+                          ) : (
+                            <span className="text-blue-600 cursor-pointer text-sm font-medium">Select</span>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Custom Quantity */}
