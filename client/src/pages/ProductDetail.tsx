@@ -199,10 +199,10 @@ export default function ProductDetail() {
       {/* Main Product Section */}
       <div className="bg-white">
         <div className="w-full px-0 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             {/* Left Sidebar - Product Image & Documents */}
-            <div className="lg:col-span-3 px-4">
+            <div className="lg:col-span-2 px-4">
               {/* Product Image Card */}
               <div className="bg-gradient-to-br from-orange-50 to-green-50 rounded-xl p-6 mb-6 relative">
                 <div className="absolute top-3 left-3">
@@ -358,7 +358,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Middle - Product Details */}
-            <div className="lg:col-span-5 px-4">
+            <div className="lg:col-span-6 px-4">
               <div className="space-y-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
@@ -506,17 +506,13 @@ export default function ProductDetail() {
                     ].map((tier, index) => (
                       <div 
                         key={index}
-                        className={`grid grid-cols-4 gap-0 cursor-pointer transition-colors border-b border-gray-200 last:border-b-0 ${
-                          selectedQuantity === tier.qty 
-                            ? 'bg-green-100' 
-                            : 'bg-white hover:bg-gray-50'
-                        }`}
+                        className="grid grid-cols-4 gap-0 cursor-pointer transition-colors border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50"
                         onClick={() => setSelectedQuantity(tier.qty)}
                       >
-                        <div className="px-4 py-3 border-r border-gray-200 font-medium text-gray-800">{tier.qty} kg</div>
-                        <div className="px-4 py-3 text-center border-r border-gray-200 text-gray-800">₹{tier.price.toFixed(2)}/kg</div>
-                        <div className="px-4 py-3 text-center border-r border-gray-200 text-green-600">~ {tier.discount.toFixed(1)}%</div>
-                        <div className="px-4 py-3 text-center">
+                        <div className={`px-4 py-3 border-r border-gray-200 font-medium text-gray-800 ${selectedQuantity === tier.qty ? 'bg-green-100' : ''}`}>{tier.qty} kg</div>
+                        <div className={`px-4 py-3 text-center border-r border-gray-200 text-gray-800 ${selectedQuantity === tier.qty ? 'bg-green-100' : ''}`}>₹{tier.price.toFixed(2)}/kg</div>
+                        <div className={`px-4 py-3 text-center border-r border-gray-200 text-green-600 ${selectedQuantity === tier.qty ? 'bg-green-100' : ''}`}>~ {tier.discount.toFixed(1)}%</div>
+                        <div className={`px-4 py-3 text-center ${selectedQuantity === tier.qty ? 'bg-green-100' : ''}`}>
                           {selectedQuantity === tier.qty ? (
                             <span className="text-white bg-green-600 px-3 py-1 rounded text-xs font-medium">Selected</span>
                           ) : (
