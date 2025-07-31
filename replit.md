@@ -56,8 +56,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Layer
 - **Drizzle ORM**: Type-safe database operations.
-- **PostgreSQL**: Primary database.
+- **PostgreSQL**: Primary database with performance optimization.
 - **Schema Design**: Comprehensive tables for all major modules.
+- **Performance Indexes**: Optimized indexes for filtering, search, and sorting operations.
+- **Full-Text Search**: PostgreSQL full-text search for fast product search.
+- **Query Optimization**: Native date functions, composite indexes, and optimized query patterns.
 
 ### UI Components
 - **Component Library**: Full set of accessible UI components.

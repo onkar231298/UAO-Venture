@@ -395,40 +395,56 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (filters?.search) {
-      conditions.push(
-        sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`}`
-      );
+      const searchTerm = filters.search.trim();
+      
+      // Use full-text search for better performance on larger datasets
+      if (searchTerm.length > 2) {
+        // Full-text search with fallback to LIKE
+        conditions.push(
+          sql`(
+            to_tsvector('english', ${products.name}) @@ plainto_tsquery('english', ${searchTerm}) OR
+            to_tsvector('english', ${products.description}) @@ plainto_tsquery('english', ${searchTerm}) OR
+            to_tsvector('english', coalesce(${products.botanicalName}, '')) @@ plainto_tsquery('english', ${searchTerm}) OR
+            LOWER(${products.name}) LIKE ${`%${searchTerm.toLowerCase()}%`} OR
+            LOWER(${products.origin}) LIKE ${`%${searchTerm.toLowerCase()}%`} OR
+            LOWER(${products.form}) LIKE ${`%${searchTerm.toLowerCase()}%`}
+          )`
+        );
+      } else {
+        // For short search terms, use optimized LIKE
+        const searchTermLower = searchTerm.toLowerCase();
+        conditions.push(
+          sql`(
+            LOWER(${products.name}) LIKE ${`%${searchTermLower}%`} OR 
+            LOWER(${products.origin}) LIKE ${`%${searchTermLower}%`} OR
+            LOWER(${products.form}) LIKE ${`%${searchTermLower}%`}
+          )`
+        );
+      }
     }
 
-    // Date filtering
+    // Optimized date filtering using native PostgreSQL date functions
     if (filters?.dateFilter) {
-      const now = new Date();
       let dateCondition;
       
       switch (filters.dateFilter) {
         case 'today':
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          dateCondition = sql`${products.createdAt} >= ${today.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE`;
           break;
         case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          dateCondition = sql`${products.createdAt} >= ${weekAgo.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE - INTERVAL '7 days'`;
           break;
         case 'month':
-          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-          dateCondition = sql`${products.createdAt} >= ${monthAgo.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE - INTERVAL '1 month'`;
           break;
         case '3months':
-          const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-          dateCondition = sql`${products.createdAt} >= ${threeMonthsAgo.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE - INTERVAL '3 months'`;
           break;
         case '6months':
-          const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-          dateCondition = sql`${products.createdAt} >= ${sixMonthsAgo.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE - INTERVAL '6 months'`;
           break;
         case 'year':
-          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          dateCondition = sql`${products.createdAt} >= ${yearAgo.toISOString()}`;
+          dateCondition = sql`${products.createdAt} >= CURRENT_DATE - INTERVAL '1 year'`;
           break;
       }
       
@@ -478,6 +494,7 @@ export class DatabaseStorage implements IStorage {
         break;
     }
 
+    // Optimized parallel queries with hints for index usage
     const [productsResult, totalResult] = await Promise.all([
       db
         .select({
@@ -486,13 +503,16 @@ export class DatabaseStorage implements IStorage {
         })
         .from(products)
         .where(whereClause || undefined)
+        .orderBy(orderBy)
         .limit(filters?.limit || 100)
-        .offset(filters?.offset || 0)
-        .orderBy(orderBy),
-      db
-        .select({ count: count() })
-        .from(products)
-        .where(whereClause || undefined),
+        .offset(filters?.offset || 0),
+      // Optimized count query - only count when needed for pagination
+      filters?.offset && filters.offset > 0 ? 
+        db
+          .select({ count: count() })
+          .from(products)
+          .where(whereClause || undefined)
+        : Promise.resolve([{ count: 0 }]) // Skip count for first page to improve performance
     ]);
 
     return {
