@@ -215,6 +215,10 @@ export default function WebsiteManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
+  
+  // Multiple selection state
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   // Debug log
   console.log("WebsiteManagement component rendering", { searchQuery, activeTab });
@@ -318,6 +322,37 @@ export default function WebsiteManagement() {
       id: productId,
       data: { isOrderable: !isOrderable }
     });
+  };
+
+  // Handle individual product selection
+  const handleProductSelect = (productId: number) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  // Handle select all functionality
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProducts.map(p => p.id));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Bulk update products
+  const bulkUpdateProducts = async (updates: any) => {
+    for (const productId of selectedProducts) {
+      await updateProductMutation.mutateAsync({
+        id: productId,
+        data: updates
+      });
+    }
+    setSelectedProducts([]);
+    setSelectAll(false);
   };
 
   return (
@@ -528,11 +563,33 @@ export default function WebsiteManagement() {
                       <input 
                         type="checkbox" 
                         id="select-all"
+                        checked={selectAll}
+                        onChange={handleSelectAll}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <Label htmlFor="select-all" className="font-medium">
                         Select All Products ({filteredProducts?.length || 0})
                       </Label>
+                      
+                      {/* Bulk Actions */}
+                      {selectedProducts.length > 0 && (
+                        <div className="flex space-x-2 ml-4">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => bulkUpdateProducts({ isActive: true })}
+                          >
+                            Activate Selected ({selectedProducts.length})
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => bulkUpdateProducts({ isActive: false })}
+                          >
+                            Deactivate Selected ({selectedProducts.length})
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <div className="text-sm text-gray-600">
                       Showing {filteredProducts?.length || 0} of {products?.length || 0} products
@@ -551,6 +608,14 @@ export default function WebsiteManagement() {
                       <table className="w-full border-collapse border border-gray-200">
                         <thead>
                           <tr className="bg-gray-50">
+                            <th className="border border-gray-200 p-3 text-left">
+                              <input 
+                                type="checkbox" 
+                                checked={selectAll}
+                                onChange={handleSelectAll}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                            </th>
                             <th className="border border-gray-200 p-3 text-left">Product</th>
                             <th className="border border-gray-200 p-3 text-left">SKU</th>
                             <th className="border border-gray-200 p-3 text-left">Category</th>
@@ -565,6 +630,14 @@ export default function WebsiteManagement() {
                             
                             return (
                               <tr key={product.id} className="hover:bg-gray-50">
+                                <td className="border border-gray-200 p-3">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={selectedProducts.includes(product.id)}
+                                    onChange={() => handleProductSelect(product.id)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                </td>
                                 <td className="border border-gray-200 p-3">
                                   <div className="flex items-center space-x-3">
                                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
