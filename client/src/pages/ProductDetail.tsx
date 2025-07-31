@@ -256,24 +256,59 @@ export default function ProductDetail() {
                 </CardHeader>
                 <CardContent>
                   {isAuthenticated ? (
-                    documents && documents.length > 0 ? (
-                      <div className="space-y-2">
-                        {documents.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                            <span className="text-sm text-gray-700">{doc.title}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => window.open(doc.fileUrl, '_blank')}
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-600">No documents available</p>
-                    )
+                    (() => {
+                      // Collect all document types from product data
+                      const productDocuments = [
+                        { title: "Certificate of Analysis (COA)", url: product.coaDocument, type: "coa" },
+                        { title: "Organic Certificate", url: product.certDocument, type: "cert" },
+                        { title: "Technical Specification Sheet", url: product.specDocument, type: "spec" },
+                        { title: "MSDS / Safety Data Sheet", url: product.msdsDocument, type: "msds" },
+                        { title: "Non-GMO Statement", url: product.nonGmoDocument, type: "nonGmo" },
+                        { title: "Business License", url: product.businessLicense, type: "business" },
+                        { title: "Certificate of Registration", url: product.registrationCert, type: "registration" },
+                        { title: "KOSHER-OK Certificate", url: product.kosherCert, type: "kosher" },
+                        { title: "Organic-NOP(USDA) Certificate", url: product.organicNopCert, type: "organicNop" }
+                      ].filter(doc => doc.url && doc.url.trim() !== "");
+
+                      // Add additional documents from additionalDocs array
+                      const additionalDocs = Array.isArray(product.additionalDocs) 
+                        ? (product.additionalDocs as string[]).map((url, index) => ({
+                            title: `Additional Document ${index + 1}`,
+                            url: url,
+                            type: "additional"
+                          }))
+                        : [];
+
+                      // Combine with documents from productDocuments table
+                      const allDocuments = [
+                        ...productDocuments,
+                        ...additionalDocs,
+                        ...(documents || []).map(doc => ({
+                          title: doc.title,
+                          url: doc.fileUrl,
+                          type: doc.type
+                        }))
+                      ];
+
+                      return allDocuments.length > 0 ? (
+                        <div className="space-y-2">
+                          {allDocuments.map((doc, index) => (
+                            <div key={`${doc.type}-${index}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                              <span className="text-sm text-gray-700">{doc.title}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => window.open(doc.url, '_blank')}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">No documents available</p>
+                      );
+                    })()
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-gray-600 mb-3">You must log in to view documents</p>
