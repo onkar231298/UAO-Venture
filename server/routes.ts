@@ -1004,6 +1004,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schema Validation API Routes
+  
+  // Get schema validation results
+  app.get('/api/admin/schema-validation', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const validationResults = await storage.getSchemaValidationResults();
+      res.json(validationResults);
+    } catch (error) {
+      console.error("Error fetching schema validation results:", error);
+      res.status(500).json({ message: "Failed to fetch validation results" });
+    }
+  });
+
+  // Get schema validation summary
+  app.get('/api/admin/schema-validation/summary', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const summary = await storage.getSchemaValidationSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching schema validation summary:", error);
+      res.status(500).json({ message: "Failed to fetch validation summary" });
+    }
+  });
+
+  // Run schema validation
+  app.post('/api/admin/schema-validation/run', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const results = await storage.runSchemaValidation();
+      res.json({ message: "Schema validation completed", results });
+    } catch (error) {
+      console.error("Error running schema validation:", error);
+      res.status(500).json({ message: "Failed to run schema validation" });
+    }
+  });
+
+  // Export schema validation results as CSV
+  app.get('/api/admin/schema-validation/export', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const csvData = await storage.exportSchemaValidationResults();
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="schema-validation-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvData);
+    } catch (error) {
+      console.error("Error exporting schema validation results:", error);
+      res.status(500).json({ message: "Failed to export validation results" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

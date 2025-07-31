@@ -42,10 +42,12 @@ import {
   Layers,
   Building2,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  CheckCircle2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import BulkProductUpload from "@/components/BulkProductUpload";
+import SchemaValidationChecker from "@/components/SchemaValidationChecker";
 import type { Product, Category, ProductTag, HeroSlider } from "@shared/schema";
 
 export default function WebsiteManagement() {
@@ -118,7 +120,7 @@ export default function WebsiteManagement() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Products
@@ -134,6 +136,10 @@ export default function WebsiteManagement() {
           <TabsTrigger value="sliders" className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
             Hero Sliders
+          </TabsTrigger>
+          <TabsTrigger value="schema" className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Schema Validation
           </TabsTrigger>
           <TabsTrigger value="seo" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -177,6 +183,11 @@ export default function WebsiteManagement() {
             sliders={sliders || []}
             loading={slidersLoading}
           />
+        </TabsContent>
+
+        {/* Schema Validation Tab */}
+        <TabsContent value="schema" className="space-y-6">
+          <SchemaValidationChecker />
         </TabsContent>
 
         {/* SEO Tab */}

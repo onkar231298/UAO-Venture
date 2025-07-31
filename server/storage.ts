@@ -1873,6 +1873,320 @@ export class DatabaseStorage implements IStorage {
 
     return baseExample;
   }
+
+  // Schema Validation Methods
+
+  async getSchemaValidationResults(): Promise<any[]> {
+    try {
+      const products = await this.getAllProducts();
+      const results = products.map(product => this.validateProductSchema(product));
+      return results;
+    } catch (error) {
+      console.error("Error getting schema validation results:", error);
+      throw error;
+    }
+  }
+
+  async getSchemaValidationSummary(): Promise<any> {
+    try {
+      const results = await this.getSchemaValidationResults();
+      
+      const totalProducts = results.length;
+      const validProducts = results.filter(r => r.status === 'valid').length;
+      const warningProducts = results.filter(r => r.status === 'warning').length;
+      const errorProducts = results.filter(r => r.status === 'error').length;
+      
+      const averageScore = totalProducts > 0 
+        ? Math.round(results.reduce((sum, r) => sum + r.score, 0) / totalProducts)
+        : 0;
+      
+      // Calculate common issues
+      const issueMap = new Map<string, number>();
+      results.forEach(result => {
+        result.issues.forEach((issue: any) => {
+          const key = `${issue.field}: ${issue.message}`;
+          issueMap.set(key, (issueMap.get(key) || 0) + 1);
+        });
+      });
+      
+      const commonIssues = Array.from(issueMap.entries())
+        .map(([issue, count]) => ({ issue, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+      
+      return {
+        totalProducts,
+        validProducts,
+        warningProducts,
+        errorProducts,
+        averageScore,
+        commonIssues
+      };
+    } catch (error) {
+      console.error("Error getting schema validation summary:", error);
+      throw error;
+    }
+  }
+
+  async runSchemaValidation(): Promise<any[]> {
+    try {
+      // This method could be extended to save validation results to database
+      const results = await this.getSchemaValidationResults();
+      return results;
+    } catch (error) {
+      console.error("Error running schema validation:", error);
+      throw error;
+    }
+  }
+
+  async exportSchemaValidationResults(): Promise<string> {
+    try {
+      const results = await this.getSchemaValidationResults();
+      
+      const headers = [
+        'Product ID',
+        'Product Name',
+        'Slug',
+        'Status',
+        'Score',
+        'Issues Count',
+        'Missing Required Fields',
+        'Missing Recommended Fields',
+        'SEO Optimization'
+      ];
+      
+      const csvRows = [headers.join(',')];
+      
+      results.forEach(result => {
+        const missingRequired = result.requiredFields
+          .filter((field: any) => !field.present)
+          .map((field: any) => field.field)
+          .join('; ');
+          
+        const missingRecommended = result.recommendedFields
+          .filter((field: any) => !field.present)
+          .map((field: any) => field.field)
+          .join('; ');
+          
+        const seoIssues = result.seoFields
+          .filter((field: any) => !field.present)
+          .map((field: any) => field.field)
+          .join('; ');
+        
+        const row = [
+          `"${result.productId}"`,
+          `"${result.productName}"`,
+          `"${result.slug}"`,
+          `"${result.status}"`,
+          result.score,
+          result.issues.length,
+          `"${missingRequired}"`,
+          `"${missingRecommended}"`,
+          `"${seoIssues}"`
+        ];
+        
+        csvRows.push(row.join(','));
+      });
+      
+      return csvRows.join('\n');
+    } catch (error) {
+      console.error("Error exporting schema validation results:", error);
+      throw error;
+    }
+  }
+
+  private validateProductSchema(product: any): any {
+    const issues: any[] = [];
+    const requiredFields: any[] = [];
+    const recommendedFields: any[] = [];
+    const seoFields: any[] = [];
+    
+    let score = 0;
+    const maxScore = 100;
+    
+    // Required fields validation (40 points total)
+    const requiredFieldChecks = [
+      { field: 'name', weight: 10 },
+      { field: 'description', weight: 10 },
+      { field: 'productId', weight: 5 },
+      { field: 'price/rate', weight: 15 }
+    ];
+    
+    requiredFieldChecks.forEach(({ field, weight }) => {
+      let present = false;
+      let value: any = null;
+      
+      switch (field) {
+        case 'name':
+          present = !!product.name?.trim();
+          value = product.name;
+          break;
+        case 'description':
+          present = !!product.description?.trim();
+          value = product.description;
+          break;
+        case 'productId':
+          present = !!product.productId?.trim();
+          value = product.productId;
+          break;
+        case 'price/rate':
+          present = (product.priceUSD > 0) || (product.rate > 0) || (product.basePrice > 0);
+          value = product.priceUSD || product.rate || product.basePrice;
+          break;
+      }
+      
+      requiredFields.push({
+        field,
+        present,
+        value,
+        required: true,
+        issue: !present ? `${field} is required for schema validation` : undefined
+      });
+      
+      if (present) {
+        score += weight;
+      } else {
+        issues.push({
+          type: 'error',
+          field,
+          message: 'Required field is missing',
+          suggestion: `Add ${field} to improve schema validation`
+        });
+      }
+    });
+    
+    // Recommended fields validation (30 points total)
+    const recommendedFieldChecks = [
+      { field: 'mainImage', weight: 8 },
+      { field: 'botanicalName', weight: 5 },
+      { field: 'origin', weight: 5 },
+      { field: 'form', weight: 4 },
+      { field: 'moq', weight: 4 },
+      { field: 'currentStock', weight: 4 }
+    ];
+    
+    recommendedFieldChecks.forEach(({ field, weight }) => {
+      let present = false;
+      let value: any = null;
+      
+      switch (field) {
+        case 'mainImage':
+          present = !!(product.mainImage?.trim() || product.images?.length > 0);
+          value = product.mainImage || product.images?.[0];
+          break;
+        case 'botanicalName':
+          present = !!product.botanicalName?.trim();
+          value = product.botanicalName;
+          break;
+        case 'origin':
+          present = !!product.origin?.trim();
+          value = product.origin;
+          break;
+        case 'form':
+          present = !!product.form?.trim();
+          value = product.form;
+          break;
+        case 'moq':
+          present = (product.moq && product.moq > 0);
+          value = product.moq;
+          break;
+        case 'currentStock':
+          present = (product.currentStock !== null && product.currentStock !== undefined);
+          value = product.currentStock;
+          break;
+      }
+      
+      recommendedFields.push({
+        field,
+        present,
+        value,
+        required: false
+      });
+      
+      if (present) {
+        score += weight;
+      } else {
+        issues.push({
+          type: 'warning',
+          field,
+          message: 'Recommended field is missing',
+          suggestion: `Add ${field} for better schema completeness`
+        });
+      }
+    });
+    
+    // SEO fields validation (30 points total)
+    const seoFieldChecks = [
+      { field: 'seoTitle', weight: 10 },
+      { field: 'seoDescription', weight: 10 },
+      { field: 'slug', weight: 5 },
+      { field: 'canonicalUrl', weight: 5 }
+    ];
+    
+    seoFieldChecks.forEach(({ field, weight }) => {
+      let present = false;
+      let value: any = null;
+      
+      switch (field) {
+        case 'seoTitle':
+          present = !!product.seoTitle?.trim();
+          value = product.seoTitle;
+          break;
+        case 'seoDescription':
+          present = !!product.seoDescription?.trim();
+          value = product.seoDescription;
+          break;
+        case 'slug':
+          present = !!product.slug?.trim();
+          value = product.slug;
+          break;
+        case 'canonicalUrl':
+          present = !!product.canonicalUrl?.trim();
+          value = product.canonicalUrl;
+          break;
+      }
+      
+      seoFields.push({
+        field,
+        present,
+        value,
+        required: false
+      });
+      
+      if (present) {
+        score += weight;
+      } else {
+        issues.push({
+          type: 'warning',
+          field,
+          message: 'SEO field is missing',
+          suggestion: `Add ${field} for better search engine optimization`
+        });
+      }
+    });
+    
+    // Determine overall status
+    let status: 'valid' | 'warning' | 'error';
+    if (score >= 90) {
+      status = 'valid';
+    } else if (score >= 60) {
+      status = 'warning';
+    } else {
+      status = 'error';
+    }
+    
+    return {
+      productId: product.productId,
+      productName: product.name,
+      slug: product.slug,
+      status,
+      score,
+      issues,
+      requiredFields,
+      recommendedFields,
+      seoFields
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();
