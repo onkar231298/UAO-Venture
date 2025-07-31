@@ -347,14 +347,35 @@ export default function WebsiteManagement() {
 
   // Bulk update products
   const bulkUpdateProducts = async (updates: any) => {
-    for (const productId of selectedProducts) {
-      await updateProductMutation.mutateAsync({
-        id: productId,
-        data: updates
+    try {
+      // Process all updates in parallel for better performance
+      const updatePromises = selectedProducts.map(productId => 
+        updateProductMutation.mutateAsync({
+          id: productId,
+          data: updates
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      // Force cache refresh after all updates complete
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      
+      toast({ 
+        title: `Successfully ${updates.isActive ? 'activated' : 'deactivated'} ${selectedProducts.length} products` 
+      });
+      
+      setSelectedProducts([]);
+      setSelectAll(false);
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+      toast({
+        title: "Error",
+        description: "Some products failed to update",
+        variant: "destructive",
       });
     }
-    setSelectedProducts([]);
-    setSelectAll(false);
   };
 
   return (
