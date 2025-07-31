@@ -219,6 +219,7 @@ export default function WebsiteManagement() {
   // Multiple selection state
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Debug log
   console.log("WebsiteManagement component rendering", { searchQuery, activeTab });
@@ -692,12 +693,50 @@ export default function WebsiteManagement() {
                                 </td>
                                 <td className="border border-gray-200 p-3">
                                   <div className="flex space-x-2">
-                                    <Button variant="outline" size="sm">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => window.open(`/product/${product.slug}`, '_blank')}
+                                      title="View Product"
+                                    >
                                       <Eye className="w-4 h-4" />
                                     </Button>
-                                    <Button variant="outline" size="sm">
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          title="Edit Product"
+                                          onClick={() => setEditingProduct(product)}
+                                        >
+                                          <Edit className="w-4 h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-4xl">
+                                        <DialogHeader>
+                                          <DialogTitle>Edit Product: {product.name}</DialogTitle>
+                                        </DialogHeader>
+                                        <ProductForm 
+                                          categories={categories || []}
+                                          product={product}
+                                          onSubmit={(data) => {
+                                            updateProductMutation.mutate({ 
+                                              id: product.id, 
+                                              data: {
+                                                ...data,
+                                                categoryId: parseInt(data.categoryId),
+                                                priceUSD: parseFloat(data.priceUSD) || 0,
+                                                priceINR: parseFloat(data.priceINR) || 0,
+                                                priceEUR: parseFloat(data.priceEUR) || 0,
+                                                priceGBP: parseFloat(data.priceGBP) || 0,
+                                                moq: parseInt(data.moq) || 0
+                                              }
+                                            });
+                                          }}
+                                          isLoading={updateProductMutation.isPending}
+                                        />
+                                      </DialogContent>
+                                    </Dialog>
                                   </div>
                                 </td>
                               </tr>
