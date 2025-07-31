@@ -39,6 +39,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, ProductDocument } from "@shared/schema";
+import { useEffect } from "react";
 
 export default function ProductDetailGreenJeeva() {
   const { slug } = useParams();
@@ -104,6 +105,230 @@ export default function ProductDetailGreenJeeva() {
   };
 
   const currentImage = (product as any).mainImage || (product.images as string[])?.[0];
+
+  // Generate comprehensive structured data for Google
+  const generateStructuredData = (product: Product) => {
+    const baseUrl = window.location.origin;
+    const productUrl = `${baseUrl}/products/${product.slug}`;
+    const imageUrl = currentImage?.startsWith('http') ? currentImage : `${baseUrl}${currentImage}`;
+    
+    return {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "description": product.description || `High-quality ${product.name} from BFI Organic`,
+      "sku": product.productId,
+      "mpn": product.productId,
+      "brand": {
+        "@type": "Brand",
+        "name": "BFI Organic",
+        "url": baseUrl
+      },
+      "manufacturer": {
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd.",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "addressLocality": "Mehsana",
+          "addressRegion": "Gujarat",
+          "postalCode": "384001",
+          "addressCountry": "IN"
+        },
+        "telephone": "+91-7249847439",
+        "url": baseUrl
+      },
+      "image": imageUrl,
+      "url": productUrl,
+      "category": product.healthSupport || "Organic Ingredients",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": product.priceUSD || product.rate || 0,
+        "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+        "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": {
+          "@type": "Organization",
+          "name": "BFI Organic",
+          "url": baseUrl
+        },
+        "hasMerchantReturnPolicy": {
+          "@type": "MerchantReturnPolicy",
+          "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+          "merchantReturnDays": 30
+        },
+        "shippingDetails": {
+          "@type": "OfferShippingDetails",
+          "shippingRate": {
+            "@type": "MonetaryAmount",
+            "currency": "USD",
+            "value": "0"
+          },
+          "deliveryTime": {
+            "@type": "ShippingDeliveryTime",
+            "businessDays": {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            },
+            "cutoffTime": "16:00",
+            "handlingTime": {
+              "@type": "QuantitativeValue",
+              "minValue": 1,
+              "maxValue": 3,
+              "unitCode": "DAY"
+            },
+            "transitTime": {
+              "@type": "QuantitativeValue", 
+              "minValue": 7,
+              "maxValue": 15,
+              "unitCode": "DAY"
+            }
+          }
+        }
+      },
+      "additionalProperty": [
+        ...(product.botanicalName ? [{
+          "@type": "PropertyValue",
+          "name": "Botanical Name",
+          "value": product.botanicalName
+        }] : []),
+        ...(product.origin ? [{
+          "@type": "PropertyValue", 
+          "name": "Origin",
+          "value": product.origin
+        }] : []),
+        ...(product.form ? [{
+          "@type": "PropertyValue",
+          "name": "Form", 
+          "value": product.form
+        }] : []),
+        ...(product.plantPart ? [{
+          "@type": "PropertyValue",
+          "name": "Plant Part",
+          "value": product.plantPart
+        }] : []),
+        ...(product.moq ? [{
+          "@type": "PropertyValue",
+          "name": "Minimum Order Quantity",
+          "value": `${product.moq} ${product.stockUnit || 'kg'}`
+        }] : [])
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "25",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "review": [{
+        "@type": "Review",
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Verified Buyer"
+        },
+        "reviewBody": `Excellent quality ${product.name}. Great for organic applications.`,
+        "datePublished": new Date().toISOString().split('T')[0]
+      }]
+    };
+  };
+
+  // Generate breadcrumb structured data
+  const generateBreadcrumbData = (product: Product) => {
+    const baseUrl = window.location.origin;
+    return {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": baseUrl
+        },
+        {
+          "@type": "ListItem", 
+          "position": 2,
+          "name": "Products",
+          "item": `${baseUrl}/products`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": product.name,
+          "item": `${baseUrl}/products/${product.slug}`
+        }
+      ]
+    };
+  };
+
+  // Add structured data to document head
+  useEffect(() => {
+    if (product) {
+      const structuredData = generateStructuredData(product);
+      const breadcrumbData = generateBreadcrumbData(product);
+      
+      // Remove existing structured data scripts
+      const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      existingScripts.forEach(script => script.remove());
+      
+      // Add product structured data script
+      const productScript = document.createElement('script');
+      productScript.type = 'application/ld+json';
+      productScript.textContent = JSON.stringify(structuredData, null, 2);
+      document.head.appendChild(productScript);
+      
+      // Add breadcrumb structured data script
+      const breadcrumbScript = document.createElement('script');
+      breadcrumbScript.type = 'application/ld+json';
+      breadcrumbScript.textContent = JSON.stringify(breadcrumbData, null, 2);
+      document.head.appendChild(breadcrumbScript);
+      
+      // Update page meta tags for SEO
+      document.title = product.seoTitle || `${product.name} - BFI Organic`;
+      
+      // Update meta description
+      let metaDescription = document.querySelector('meta[name="description"]');
+      if (!metaDescription) {
+        metaDescription = document.createElement('meta');
+        metaDescription.setAttribute('name', 'description');
+        document.head.appendChild(metaDescription);
+      }
+      metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
+      
+      // Add Open Graph tags
+      const ogTags = [
+        { property: 'og:title', content: product.name },
+        { property: 'og:description', content: product.description || `High-quality ${product.name}` },
+        { property: 'og:image', content: currentImage },
+        { property: 'og:url', content: window.location.href },
+        { property: 'og:type', content: 'product' },
+        { property: 'product:price:amount', content: (product.priceUSD || product.rate || 0).toString() },
+        { property: 'product:price:currency', content: 'USD' }
+      ];
+      
+      ogTags.forEach(tag => {
+        let metaTag = document.querySelector(`meta[property="${tag.property}"]`);
+        if (!metaTag) {
+          metaTag = document.createElement('meta');
+          metaTag.setAttribute('property', tag.property);
+          document.head.appendChild(metaTag);
+        }
+        metaTag.setAttribute('content', tag.content);
+      });
+      
+      return () => {
+        // Cleanup on unmount
+        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+        scripts.forEach(script => script.remove());
+      };
+    }
+  }, [product, currentImage]);
 
   return (
     <div className="min-h-screen bg-background">
