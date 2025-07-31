@@ -221,9 +221,16 @@ export default function WebsiteManagement() {
     queryKey: ["/api/categories"],
   });
 
-  // Fetch products
+  // Fetch products with enhanced parameters
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/admin/products"],
+    queryKey: ["/api/admin/products", { 
+      search: searchQuery, 
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      sort: sortBy,
+      dateFilter: dateFilter !== "all" ? dateFilter : undefined,
+      visibility: visibilityFilter !== "all" ? visibilityFilter : undefined
+    }],
   });
 
   // Update product mutation
@@ -418,14 +425,56 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* TESTING - This should show if CardContent renders */}
-                  <div className="bg-green-500 text-white text-center p-4 mb-4" style={{position: 'relative', zIndex: 9999}}>
-                    ✅ FILTER SECTION WORKING - FRESH VERSION
+                  {/* MULTIPLE VISIBILITY TESTS */}
+                  <div style={{
+                    position: 'fixed',
+                    top: '10px',
+                    right: '10px', 
+                    backgroundColor: 'red',
+                    color: 'white',
+                    padding: '10px',
+                    zIndex: 99999,
+                    border: '3px solid yellow'
+                  }}>
+                    🚨 COMPONENT IS RENDERING - Products: {products?.length || 0}
+                  </div>
+                  
+                  <div className="bg-green-500 text-white text-center p-8 mb-4 text-xl font-bold" style={{
+                    position: 'relative', 
+                    zIndex: 9999,
+                    border: '5px solid red',
+                    margin: '20px 0'
+                  }}>
+                    ✅ FILTER SECTION WORKING - FRESH VERSION - PRODUCTS: {products?.length || 0}
+                  </div>
+                  
+                  <div style={{
+                    backgroundColor: 'yellow',
+                    color: 'black',
+                    padding: '20px',
+                    margin: '20px 0',
+                    border: '3px solid purple',
+                    fontSize: '18px',
+                    fontWeight: 'bold'
+                  }}>
+                    🔍 SEARCH BAR SHOULD BE BELOW THIS MESSAGE
                   </div>
                   
                   {/* Search, Filter, and Sort Controls */}
-                  <div className="space-y-4 mb-6 bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-3">🔍 Filter & Search Products</h3>
+                  <div style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '30px',
+                    margin: '20px 0',
+                    border: '5px solid red',
+                    borderRadius: '10px'
+                  }}>
+                    <h3 style={{
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      marginBottom: '20px',
+                      color: 'white'
+                    }}>🔍 FILTER & SEARCH PRODUCTS - WORKING!</h3>
                     
                     {/* Primary Search Bar */}
                     <div className="relative">
