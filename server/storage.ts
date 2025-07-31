@@ -165,6 +165,7 @@ export interface IStorage {
   // Analytics
   getDashboardStats(userId: string): Promise<{
     totalProducts: number;
+    activeProducts: number;
     totalInquiries: number;
     totalQuotations: number;
     totalOrders: number;
@@ -1180,18 +1181,21 @@ export class DatabaseStorage implements IStorage {
   // Analytics
   async getDashboardStats(userId: string): Promise<{
     totalProducts: number;
+    activeProducts: number;
     totalInquiries: number;
     totalQuotations: number;
     totalOrders: number;
     revenueThisMonth: number;
   }> {
-    const [productsCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
+    const [totalProductsCount] = await db.select({ count: count() }).from(products);
+    const [activeProductsCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
     const [inquiriesCount] = await db.select({ count: count() }).from(inquiries);
     const [quotationsCount] = await db.select({ count: count() }).from(quotations);
     const [ordersCount] = await db.select({ count: count() }).from(salesOrders);
 
     return {
-      totalProducts: productsCount.count,
+      totalProducts: totalProductsCount.count,
+      activeProducts: activeProductsCount.count,
       totalInquiries: inquiriesCount.count,
       totalQuotations: quotationsCount.count,
       totalOrders: ordersCount.count,

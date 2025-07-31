@@ -236,6 +236,11 @@ export default function WebsiteManagement() {
     }],
   });
 
+  // Fetch dashboard stats for accurate totals
+  const { data: dashboardStats } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
   // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
@@ -331,7 +336,7 @@ export default function WebsiteManagement() {
                   <div>
                     <p className="text-sm text-gray-600">Active Products</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {filteredProducts?.filter((p: Product) => p.isActive).length || 0}
+                      {dashboardStats?.activeProducts || 0}
                     </p>
                     <p className="text-xs text-green-600">Live on website</p>
                   </div>
@@ -345,7 +350,7 @@ export default function WebsiteManagement() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Products</p>
-                    <p className="text-2xl font-bold text-blue-600">{products?.length || 0}</p>
+                    <p className="text-2xl font-bold text-blue-600">{dashboardStats?.totalProducts || 0}</p>
                     <p className="text-xs text-blue-600">In database</p>
                   </div>
                   <FileText className="w-8 h-8 text-blue-600" />
