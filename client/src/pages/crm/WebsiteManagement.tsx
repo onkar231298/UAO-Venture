@@ -244,7 +244,11 @@ export default function WebsiteManagement() {
   // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/admin/products/${id}`, { method: "PUT", body: data });
+      const response = await apiRequest(`/api/admin/products/${id}`, { 
+        method: "PUT", 
+        body: JSON.stringify(data) 
+      });
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Product updated successfully" });
@@ -270,7 +274,11 @@ export default function WebsiteManagement() {
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/admin/products", { method: "POST", body: data });
+      const response = await apiRequest("/api/admin/products", { 
+        method: "POST", 
+        body: JSON.stringify(data) 
+      });
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Product created successfully" });
