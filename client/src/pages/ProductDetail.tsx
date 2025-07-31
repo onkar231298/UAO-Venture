@@ -199,10 +199,10 @@ export default function ProductDetail() {
       {/* Main Product Section */}
       <div className="bg-white">
         <div className="w-full px-0 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* Left Sidebar - Product Image & Documents */}
-            <div className="lg:col-span-2 px-4">
+            <div className="lg:col-span-3 px-4">
               {/* Product Image Card */}
               <div className="bg-gradient-to-br from-orange-50 to-green-50 rounded-xl p-6 mb-6 relative">
                 <div className="absolute top-3 left-3">
@@ -358,7 +358,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Middle - Product Details */}
-            <div className="lg:col-span-6 px-4">
+            <div className="lg:col-span-5 px-4">
               <div className="space-y-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
