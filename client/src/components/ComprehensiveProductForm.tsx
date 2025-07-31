@@ -300,19 +300,50 @@ export default function ComprehensiveProductForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="origin">Origin</Label>
-              <Input
-                id="origin"
-                value={formData.origin}
-                onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-              />
+              <Select value={formData.origin} onValueChange={(value) => setFormData(prev => ({ ...prev, origin: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select origin country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="India">India</SelectItem>
+                  <SelectItem value="China">China</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="Germany">Germany</SelectItem>
+                  <SelectItem value="Brazil">Brazil</SelectItem>
+                  <SelectItem value="Mexico">Mexico</SelectItem>
+                  <SelectItem value="Turkey">Turkey</SelectItem>
+                  <SelectItem value="Egypt">Egypt</SelectItem>
+                  <SelectItem value="Madagascar">Madagascar</SelectItem>
+                  <SelectItem value="Sri Lanka">Sri Lanka</SelectItem>
+                  <SelectItem value="Indonesia">Indonesia</SelectItem>
+                  <SelectItem value="Peru">Peru</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="healthSupport">Health Support</Label>
-              <Input
-                id="healthSupport"
-                value={formData.healthSupport}
-                onChange={(e) => setFormData(prev => ({ ...prev, healthSupport: e.target.value }))}
-              />
+              <Select value={formData.healthSupport} onValueChange={(value) => setFormData(prev => ({ ...prev, healthSupport: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select health support" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Antioxidant">Antioxidant</SelectItem>
+                  <SelectItem value="Digestive Support">Digestive Support</SelectItem>
+                  <SelectItem value="Immune Support">Immune Support</SelectItem>
+                  <SelectItem value="Anti-inflammatory">Anti-inflammatory</SelectItem>
+                  <SelectItem value="Cardiovascular Support">Cardiovascular Support</SelectItem>
+                  <SelectItem value="Cognitive Support">Cognitive Support</SelectItem>
+                  <SelectItem value="Energy & Vitality">Energy & Vitality</SelectItem>
+                  <SelectItem value="Respiratory Support">Respiratory Support</SelectItem>
+                  <SelectItem value="Joint & Bone Health">Joint & Bone Health</SelectItem>
+                  <SelectItem value="Skin Health">Skin Health</SelectItem>
+                  <SelectItem value="Weight Management">Weight Management</SelectItem>
+                  <SelectItem value="Detoxification">Detoxification</SelectItem>
+                  <SelectItem value="Hormonal Balance">Hormonal Balance</SelectItem>
+                  <SelectItem value="Sleep Support">Sleep Support</SelectItem>
+                  <SelectItem value="Stress & Mood Support">Stress & Mood Support</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -339,13 +370,17 @@ export default function ComprehensiveProductForm({
                   <SelectValue placeholder="Select form" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="powder">Powder</SelectItem>
-                  <SelectItem value="extract">Extract</SelectItem>
-                  <SelectItem value="oil">Oil</SelectItem>
-                  <SelectItem value="whole">Whole</SelectItem>
-                  <SelectItem value="liquid">Liquid</SelectItem>
-                  <SelectItem value="capsule">Capsule</SelectItem>
-                  <SelectItem value="tablet">Tablet</SelectItem>
+                  <SelectItem value="Powder">Powder</SelectItem>
+                  <SelectItem value="Extract">Extract</SelectItem>
+                  <SelectItem value="Oil">Oil</SelectItem>
+                  <SelectItem value="Whole">Whole</SelectItem>
+                  <SelectItem value="Capsule">Capsule</SelectItem>
+                  <SelectItem value="Tablet">Tablet</SelectItem>
+                  <SelectItem value="Liquid">Liquid</SelectItem>
+                  <SelectItem value="Dried">Dried</SelectItem>
+                  <SelectItem value="Fresh">Fresh</SelectItem>
+                  <SelectItem value="Granules">Granules</SelectItem>
+                  <SelectItem value="Flakes">Flakes</SelectItem>
                 </SelectContent>
               </Select>
             </div>
