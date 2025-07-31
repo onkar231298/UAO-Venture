@@ -6,10 +6,11 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
 import CategoryManagement from "@/components/CategoryManagement";
+import SchemaValidationChecker from "@/components/SchemaValidationChecker";
 import BulkProductUpload from "@/components/BulkProductUpload";
 import ComprehensiveProductForm from "@/components/ComprehensiveProductForm";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +39,9 @@ import {
   AlertCircle,
   Camera,
   Layout,
-  Code
+  Code,
+  CheckCircle2,
+  Tags
 } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
@@ -296,10 +299,18 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="tags" className="flex items-center gap-1">
+                <Tags className="h-4 w-4" />
+                Tags
+              </TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
+              <TabsTrigger value="schema" className="flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4" />
+                Schema Validation
+              </TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
@@ -595,6 +606,19 @@ export default function WebsiteManagement() {
               <CategoryManagement />
             </TabsContent>
 
+            {/* Tags Management Tab */}
+            <TabsContent value="tags" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tags Management</CardTitle>
+                  <CardDescription>Manage product tags and keywords</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Tags management features coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Content Management Tab */}
             <TabsContent value="content" className="mt-6">
               <Card>
@@ -605,6 +629,11 @@ export default function WebsiteManagement() {
                   <p>Content management features coming soon...</p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Schema Validation Tab */}
+            <TabsContent value="schema" className="mt-6">
+              <SchemaValidationChecker />
             </TabsContent>
 
             {/* SEO Management Tab */}
