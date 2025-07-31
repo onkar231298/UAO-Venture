@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
 import CategoryManagement from "@/components/CategoryManagement";
 import BulkProductUpload from "@/components/BulkProductUpload";
-import Header from "@/components/Header";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -310,9 +310,14 @@ export default function WebsiteManagement() {
   return (
     <RoleBasedRoute allowedRoles={['super_admin', 'admin', 'website_manager', 'seo_manager']}>
       <div className="min-h-screen bg-background">
-        <Header />
-        
         <div className="container mx-auto px-4 py-8">
+          {/* Admin Breadcrumb */}
+          <div className="mb-4">
+            <nav className="text-sm text-gray-500">
+              <span>Admin Dashboard</span> → <span className="text-gray-900 font-medium">Website Management</span>
+            </nav>
+          </div>
+          
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Website Management</h1>
             <p className="text-gray-600">Manage products, content, SEO, and website configuration</p>
