@@ -189,7 +189,7 @@ export default function ProductDetail() {
       
       {/* Breadcrumb */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-2">
+        <div className="w-full px-4 py-2">
           <div className="text-sm text-gray-600">
             <span>Home</span> / <span>Products</span> / <span className="text-gray-900">{product.name}</span>
           </div>
@@ -198,11 +198,11 @@ export default function ProductDetail() {
 
       {/* Main Product Section */}
       <div className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="w-full px-0 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
             
             {/* Left Sidebar - Product Image & Documents */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-3 px-4">
               {/* Product Image Card */}
               <div className="bg-gradient-to-br from-orange-50 to-green-50 rounded-xl p-6 mb-6 relative">
                 <div className="absolute top-3 left-3">
@@ -214,12 +214,13 @@ export default function ProductDetail() {
                 
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-800 mb-1">{product.name}</h3>
-                  <div className="relative mx-auto w-48 h-48 mb-4">
+                  <div className="relative mx-auto" style={{ width: '270px', height: '172px' }}>
                     {currentImage ? (
                       <img
                         src={currentImage}
                         alt={product.name}
                         className="w-full h-full object-contain"
+                        style={{ width: '270px', height: '172px' }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -229,7 +230,7 @@ export default function ProductDetail() {
                   </div>
                   
                   {/* Certification Icons */}
-                  <div className="flex justify-center space-x-3">
+                  <div className="flex justify-center space-x-3 mt-4">
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
                       <Leaf className="w-5 h-5 text-green-600" />
                     </div>
@@ -322,10 +323,10 @@ export default function ProductDetail() {
             </div>
 
             {/* Middle - Product Details */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-6 px-4">
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{product.name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-sm text-gray-600">SKU#: </span>
                     <span className="text-sm font-medium text-gray-900">{product.productId}</span>
@@ -339,49 +340,49 @@ export default function ProductDetail() {
                     </Button>
                   </div>
 
-                  {/* Certifications Grid */}
-                  <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                  {/* Certification Tags - Inline badges like in reference */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       USDA NOP
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       NPOP
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       EU Organic
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                      GMP Certified
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                      ISO Certified
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                      Kosher
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       FDA Approved
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                      GMP Certified
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                      ISO Certified
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                      Kosher
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       Halal
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </Badge>
+                    <Badge variant="outline" className="text-xs border-gray-300">
+                      <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                       Non-GMO
-                    </div>
+                    </Badge>
                   </div>
                 </div>
 
                 {/* Pricing Display */}
-                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200 mb-4">
                   <div className="text-2xl font-bold text-green-700 mb-1">₹{pricingData.price.toFixed(2)}</div>
                   <div className="text-sm text-green-600 mb-1">EXW Warehouse India</div>
                   <div className="text-sm text-gray-600 mb-2">per kg</div>
@@ -441,8 +442,8 @@ export default function ProductDetail() {
             </div>
 
             {/* Right Sidebar - Quantity Pricing */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-4">
+            <div className="lg:col-span-3 px-4">
+              <Card className="sticky top-4 bg-green-50 border-green-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Calculator className="w-4 h-4 text-green-600" />
@@ -452,7 +453,7 @@ export default function ProductDetail() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {/* Pricing Table Headers */}
-                  <div className="grid grid-cols-4 gap-1 text-xs font-medium text-gray-700 border-b pb-2">
+                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-gray-700 border-b pb-2">
                     <div>Quantity</div>
                     <div className="text-right">Price per kg</div>
                     <div className="text-right">Save</div>
@@ -469,10 +470,10 @@ export default function ProductDetail() {
                     ].map((tier, index) => (
                       <div 
                         key={index}
-                        className={`grid grid-cols-4 gap-1 text-xs p-2 rounded border cursor-pointer transition-colors ${
+                        className={`grid grid-cols-4 gap-2 text-xs p-2 rounded border cursor-pointer transition-colors ${
                           selectedQuantity === tier.qty 
-                            ? 'border-green-500 bg-green-50' 
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-green-500 bg-green-100' 
+                            : 'border-gray-200 hover:border-gray-300 bg-white'
                         }`}
                         onClick={() => setSelectedQuantity(tier.qty)}
                       >
@@ -481,7 +482,7 @@ export default function ProductDetail() {
                         <div className="text-right text-green-600">~ {tier.discount.toFixed(1)}%</div>
                         <div className="text-right">
                           {selectedQuantity === tier.qty ? (
-                            <span className="text-white bg-green-600 px-1 py-0.5 rounded text-xs">Selected</span>
+                            <span className="text-white bg-green-600 px-2 py-1 rounded text-xs">Selected</span>
                           ) : (
                             <span className="text-blue-600 cursor-pointer text-xs">Select</span>
                           )}
@@ -493,7 +494,7 @@ export default function ProductDetail() {
                   {/* Custom Quantity */}
                   <div className="border-t pt-3">
                     <label className="text-xs font-medium text-gray-700 mb-1 block">Custom Quantity</label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <Input
                         type="number"
                         placeholder="Min. 100"
@@ -549,7 +550,7 @@ export default function ProductDetail() {
 
       {/* Sample Request Section */}
       <div className="bg-orange-50 py-4">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full px-4">
           <Card className="border-orange-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -586,7 +587,7 @@ export default function ProductDetail() {
 
       {/* Product Information Section */}
       <div className="bg-orange-50 py-6">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full px-4">
           <div className="bg-white rounded-lg shadow-sm">
             <div className="border-b border-gray-200 p-4">
               <h2 className="text-lg font-bold text-orange-600 flex items-center gap-2">
@@ -658,7 +659,7 @@ export default function ProductDetail() {
 
       {/* Tell Us Your Requirement Section */}
       <div className="bg-white py-6">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full px-4">
           <Card className="border-orange-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg text-orange-600 flex items-center gap-2">
@@ -689,7 +690,7 @@ export default function ProductDetail() {
 
       {/* Bought Together Section */}
       <div className="bg-gray-50 py-6">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full px-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Bought Together</CardTitle>
