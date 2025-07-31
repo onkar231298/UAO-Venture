@@ -379,8 +379,16 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }> {
-    // For admin API, show all products regardless of visibility
-    const conditions = [eq(products.isActive, true)];
+    // For admin API, show all products but respect status filter
+    const conditions = [];
+    
+    // Handle status filter for active/inactive products
+    if (filters?.status === 'active') {
+      conditions.push(eq(products.isActive, true));
+    } else if (filters?.status === 'inactive') {
+      conditions.push(eq(products.isActive, false));
+    }
+    // If no status filter or "all", don't add isActive condition to show all products
     
     if (filters?.category && !isNaN(parseInt(filters.category))) {
       conditions.push(eq(products.categoryId, parseInt(filters.category)));
@@ -390,10 +398,6 @@ export class DatabaseStorage implements IStorage {
       conditions.push(
         sql`${products.name} ILIKE ${`%${filters.search}%`} OR ${products.description} ILIKE ${`%${filters.search}%`}`
       );
-    }
-    
-    if (filters?.status) {
-      conditions.push(eq(products.status, filters.status));
     }
 
     // Date filtering
@@ -442,7 +446,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+    const whereClause = conditions.length > 1 ? and(...conditions) : (conditions.length === 1 ? conditions[0] : undefined);
 
     // Determine sort order
     let orderBy;
@@ -481,14 +485,14 @@ export class DatabaseStorage implements IStorage {
           isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
         })
         .from(products)
-        .where(whereClause)
+        .where(whereClause || undefined)
         .limit(filters?.limit || 100)
         .offset(filters?.offset || 0)
         .orderBy(orderBy),
       db
         .select({ count: count() })
         .from(products)
-        .where(whereClause),
+        .where(whereClause || undefined),
     ]);
 
     return {
