@@ -507,22 +507,22 @@ export default function ProductDetail() {
                       ].map((tier, index) => (
                         <div 
                           key={index}
-                          className={`w-full border-b border-gray-200 py-2 cursor-pointer transition-colors ${
+                          className={`w-full py-3 px-4 cursor-pointer transition-colors border-b border-gray-200 ${
                             selectedQuantity === tier.qty 
-                              ? 'bg-green-100 border-green-300' 
-                              : 'hover:bg-gray-50'
+                              ? 'bg-green-100' 
+                              : 'bg-white hover:bg-gray-50'
                           }`}
                           onClick={() => setSelectedQuantity(tier.qty)}
                         >
-                          <div className="grid grid-cols-4 gap-1 text-sm">
-                            <div className="font-medium">{tier.qty} kg</div>
-                            <div className="text-center">₹{tier.price.toFixed(2)}/kg</div>
+                          <div className="grid grid-cols-4 gap-4 text-sm items-center">
+                            <div className="font-medium text-gray-800">{tier.qty} kg</div>
+                            <div className="text-center text-gray-800">₹{tier.price.toFixed(2)}/kg</div>
                             <div className="text-center text-green-600">~ {tier.discount.toFixed(1)}%</div>
                             <div className="text-center">
                               {selectedQuantity === tier.qty ? (
-                                <span className="text-white bg-green-600 px-3 py-1 rounded text-xs">Selected</span>
+                                <span className="text-white bg-green-600 px-3 py-1 rounded text-xs font-medium">Selected</span>
                               ) : (
-                                <span className="text-blue-600 cursor-pointer text-sm">Select</span>
+                                <span className="text-blue-600 cursor-pointer text-sm font-medium">Select</span>
                               )}
                             </div>
                           </div>
