@@ -1878,7 +1878,9 @@ export class DatabaseStorage implements IStorage {
 
   async getSchemaValidationResults(): Promise<any[]> {
     try {
-      const products = await this.getAllProducts();
+      // Get all products using the existing getProducts method with high limit
+      const result = await this.getProducts({ limit: 10000, offset: 0 });
+      const products = result.products;
       const results = products.map(product => this.validateProductSchema(product));
       return results;
     } catch (error) {
