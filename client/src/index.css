@@ -81,7 +81,7 @@
 }
 
 :root {
-  /* Professional B2B Color Scheme */
+  /* Green Jeeva Inspired Professional Color Scheme */
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(210, 10%, 23%);
   --muted: hsl(140, 12%, 97%);
@@ -103,7 +103,7 @@
   --ring: hsl(140, 70%, 35%);
   --radius: 0.5rem;
   
-  /* Professional B2B Green Theme */
+  /* Professional B2B Green Theme - Green Jeeva Inspired */
   --green-primary: hsl(140, 70%, 35%);     /* Deep professional green */
   --green-secondary: hsl(140, 60%, 45%);   /* Medium green for hovers */
   --green-light: hsl(140, 40%, 85%);       /* Light green for backgrounds */
@@ -250,7 +250,7 @@
     @apply animate-pulse bg-gray-200;
   }
   
-  /* Organic product styling */
+  /* Green Jeeva inspired styling */
   .organic-badge {
     @apply bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium;
   }

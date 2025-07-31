@@ -1,0 +1,121 @@
+AI Development Prompt for Web Platform Inspired by Green Jeeva
+We are building a comprehensive B2B platform combining a live customer-facing e-commerce website with a role-based internal CRM system for business operations
+Please study:
+•	Homepage UI & navigation from: https://www.greenjeeva.com/
+•	Product detail page UI from: https://www.greenjeeva.com/product/organic-turmeric-root-powder/onh/112023913/66806802
+The platform should replicate the clean public-facing interface of Green Jeeva, where backend CRM elements are not visible on the homepage. Only product browsing, login/register, search, and enquiry options are visible publicly. CRM access is available only to logged-in internal roles.
+________________________________________
+🎯 Platform Overview
+This platform will support:
+•	Public Website (Product discovery, enquiry)
+•	Backend CRM (Sales, Purchase, Inventory, Accounts, Logistics, Document control)
+•	Role-based access for:
+o	Super Admin
+o	Admin
+o	Sales Manager / Executive
+o	Purchase Manager / Executive
+o	Inventory Manager / Executive
+o	Logistics Manager / Executive
+o	Accounts Manager / Executive
+o	SEO Manager
+o	Website Manager
+o	Customer Users
+All modules are tightly interconnected to ensure smooth B2B workflow.
+________________________________________
+🌐 Website Frontend (Customer-facing)
+Use Green Jeeva homepage as reference.
+•	Product Listings
+o	Based on category, form, origin, etc.
+o	Public view with filters
+o	Each product has a unique Product ID used internally
+•	Product Detail Page
+o	Reference: Product Page UI
+o	Shows specs, certs, MOQ, documents, enquiry option
+o	Structured data for SEO must be supported
+•	Enquiry System
+o	Logged-in customers can send product enquiries
+•	Login/Register Page
+o	Users can sign up and login
+o	Role-based redirection after login
+________________________________________
+🧠 Website Management (Backend)
+•	Products are created, edited, and managed from here
+•	Every product is assigned:
+o	Unique Product ID
+o	Category
+o	Form
+o	Certification
+o	SKU unit packings
+•	Used throughout CRM modules: purchase, sales, quotation, documents
+•	Product visibility and orderability controlled from here
+________________________________________
+🛠 CRM Functional Modules
+🔒 Super Admin (Full Access)
+•	Can view/manage all modules
+•	Add/delete users
+•	Access all analytics
+👤 Admin
+•	Similar to Super Admin except for system-level settings
+•	Manages all department-level data
+🧾 Sales Management
+•	Quotation creation
+•	Sales orders
+•	Customer follow-up
+•	Document linking (e.g., COA, invoices)
+•	Assign leads to Sales Executives
+🛒 Purchase Management
+•	Vendor management
+•	Create purchase requests and orders
+•	Track inward materials
+•	Assign tasks to Purchase Executives
+📦 Inventory Management
+•	Accessible by both Inventory and Logistics departments
+•	View product availability
+•	Assign lot numbers, expiry, batch info
+•	Auto-update on PO/dispatch
+🚚 Logistics Management
+•	Can view inventory
+•	Create Packing List for any sales order
+o	Once packing list is created → stock deducted → status updated to "Dispatched"
+💵 Accounts Management
+•	Manage invoices, purchase/sale entries
+•	Payment received/paid tracking
+•	Ledger for each party
+📈 SEO Management
+•	Add Meta Tags (title, description, keywords)
+•	Manage Schema
+•	Must ensure:
+o	Every page supports structured data markup and passes structured data test
+o	Sitemap and robots.txt are correctly configured
+🖥 Website Manager
+•	Manages:
+o	Homepage content
+o	Banner and slider images
+o	Blog/news section
+o	Testimonials, footer, and policies
+•	Controls visibility of products on website
+•	Coordinates with SEO Manager for structure
+________________________________________
+🧑‍💼 Role-Based User Accounts
+Each department has:
+•	Manager (Full access for that module)
+•	Executive (Limited, task-based access)
+Customer users can:
+•	View product catalog
+•	Send enquiries
+•	View past quotations and invoices
+•	Upload documents (e.g., company letterhead)
+•	Track orders and delivery status
+________________________________________
+🔄 Workflow Summary
+•	Product must be created in Website Management first → Only then usable in CRM modules
+•	Example: If a Purchase Executive wants to raise a purchase order, the product must exist
+•	All documentation (COAs, invoices, quotation) are linked to product by Product ID
+•	Data flow between modules is fully interconnected
+________________________________________
+📊 Additional AI Requirements
+•	Enable product auto-tagging and keyword extraction from specs for SEO
+•	Auto-generate meta titles and structured data schema
+•	Dashboard analytics for every module
+•	Notification & task assignment system across CRM
+
