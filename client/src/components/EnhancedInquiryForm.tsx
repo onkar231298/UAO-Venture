@@ -18,9 +18,9 @@ interface Product {
   id: number;
   name: string;
   productId: string;
-  moq: string;
-  priceUnit: string;
-  basePrice: string;
+  moq: string | null;
+  priceUnit: string | null;
+  basePrice: string | null;
 }
 
 interface EnhancedInquiryFormProps {
@@ -53,7 +53,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
 
   const createInquiryMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", `/api/inquiries-enhanced`, data);
+      return apiRequest(`/api/inquiries-enhanced`, { method: "POST", body: data });
     },
     onSuccess: () => {
       toast({
@@ -275,7 +275,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquir
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                     required
                     placeholder="Enter quantity"
-                    min={product.moq}
+                    min={product.moq || undefined}
                   />
                   <p className="text-xs text-gray-600 mt-1">
                     Minimum order: {product.moq} {product.priceUnit}
