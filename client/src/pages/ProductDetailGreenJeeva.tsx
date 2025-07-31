@@ -58,6 +58,132 @@ export default function ProductDetailGreenJeeva() {
     enabled: !!product?.id,
   });
 
+  // Generate comprehensive structured data for Google
+  const generateStructuredData = (product: Product) => {
+    const baseUrl = window.location.origin;
+    const productUrl = `${baseUrl}/products/${product.slug}`;
+    const currentImage = (product as any).mainImage || (product.images as string[])?.[0];
+    const imageUrl = currentImage?.startsWith('http') ? currentImage : `${baseUrl}${currentImage}`;
+    
+    return {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "description": product.description || `High-quality ${product.name} from BFI Organic`,
+      "sku": product.productId,
+      "mpn": product.productId,
+      "brand": {
+        "@type": "Brand",
+        "name": "BFI Organic",
+        "url": baseUrl
+      },
+      "manufacturer": {
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd.",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "addressLocality": "Mehsana",
+          "addressRegion": "Gujarat",
+          "postalCode": "384001",
+          "addressCountry": "IN"
+        },
+        "telephone": "+91-7249847439",
+        "url": baseUrl
+      },
+      "image": imageUrl,
+      "url": productUrl,
+      "category": product.healthSupport || "Organic Ingredients",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": product.priceUSD || product.basePrice || 0,
+        "availability": product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "BFI Organic"
+        }
+      }
+    };
+  };
+
+  const generateBreadcrumbData = (product: Product) => {
+    const baseUrl = window.location.origin;
+    return {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": baseUrl
+        },
+        {
+          "@type": "ListItem", 
+          "position": 2,
+          "name": "Products",
+          "item": `${baseUrl}/products`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": product.name,
+          "item": `${baseUrl}/products/${product.slug}`
+        }
+      ]
+    };
+  };
+
+  // Add structured data to document head
+  useEffect(() => {
+    if (product) {
+      const structuredData = generateStructuredData(product);
+      const breadcrumbData = generateBreadcrumbData(product);
+      
+      // Remove existing structured data scripts
+      const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      existingScripts.forEach(script => script.remove());
+      
+      // Add product structured data script
+      const productScript = document.createElement('script');
+      productScript.type = 'application/ld+json';
+      productScript.textContent = JSON.stringify(structuredData, null, 2);
+      document.head.appendChild(productScript);
+      
+      // Add breadcrumb structured data script
+      const breadcrumbScript = document.createElement('script');
+      breadcrumbScript.type = 'application/ld+json';
+      breadcrumbScript.textContent = JSON.stringify(breadcrumbData, null, 2);
+      document.head.appendChild(breadcrumbScript);
+      
+      // Update page meta tags for SEO
+      document.title = product.seoTitle || `${product.name} - BFI Organic`;
+      
+      // Update meta description
+      let metaDescription = document.querySelector('meta[name="description"]');
+      if (!metaDescription) {
+        metaDescription = document.createElement('meta');
+        metaDescription.setAttribute('name', 'description');
+        document.head.appendChild(metaDescription);
+      }
+      metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
+    }
+  }, [product]);
+
+  const handleQuantityChange = (quantity: number, price: number, discountPercent: number) => {
+    setSelectedQuantity(quantity);
+    setTotalPrice(price);
+    setDiscount(discountPercent);
+  };
+
+  const copyProductName = () => {
+    if (product) {
+      navigator.clipboard.writeText(product.name);
+      toast({ title: "Product name copied to clipboard!" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -93,25 +219,177 @@ export default function ProductDetailGreenJeeva() {
     );
   }
 
-  const handleQuantityChange = (quantity: number, price: number, discountPercent: number) => {
-    setSelectedQuantity(quantity);
-    setTotalPrice(price);
-    setDiscount(discountPercent);
-  };
-
-  const copyProductName = () => {
-    navigator.clipboard.writeText(product.name);
-    toast({ title: "Product name copied to clipboard!" });
-  };
-
   const currentImage = (product as any).mainImage || (product.images as string[])?.[0];
 
-  // Generate comprehensive structured data for Google
-  const generateStructuredData = (product: Product) => {
-    const baseUrl = window.location.origin;
-    const productUrl = `${baseUrl}/products/${product.slug}`;
-    const imageUrl = currentImage?.startsWith('http') ? currentImage : `${baseUrl}${currentImage}`;
-    
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      {/* Product Page Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* Product Image */}
+          <div className="space-y-4">
+            <div className="aspect-square rounded-xl overflow-hidden bg-white border">
+              {currentImage ? (
+                <img 
+                  src={currentImage} 
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <Package className="w-24 h-24" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <p className="text-gray-600 mb-4">{product.description}</p>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <Badge variant="secondary">SKU: {product.productId}</Badge>
+                {product.currentStock > 0 ? (
+                  <Badge variant="default" className="bg-green-100 text-green-800">In Stock</Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-red-100 text-red-800">Out of Stock</Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Pricing */}
+            <QuantityPricing 
+              product={product}
+              onQuantityChange={handleQuantityChange}
+            />
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="flex-1">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Send Inquiry
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Send Product Inquiry</DialogTitle>
+                  </DialogHeader>
+                  <EnhancedInquiryForm 
+                    product={product}
+                    quantity={selectedQuantity}
+                    totalPrice={totalPrice}
+                  />
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" onClick={copyProductName}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Details Tabs */}
+        <Tabs defaultValue="specifications" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="specifications">Specifications</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing</TabsTrigger>
+            <TabsTrigger value="samples">Samples</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="specifications" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Specifications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Basic Information</h4>
+                    <div className="space-y-2 text-sm">
+                      {product.botanicalName && (
+                        <div><span className="font-medium">Botanical Name:</span> {product.botanicalName}</div>
+                      )}
+                      {product.origin && (
+                        <div><span className="font-medium">Origin:</span> {product.origin}</div>
+                      )}
+                      {product.form && (
+                        <div><span className="font-medium">Form:</span> {product.form}</div>
+                      )}
+                      {product.partUsed && (
+                        <div><span className="font-medium">Part Used:</span> {product.partUsed}</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Quality & Standards</h4>
+                    <div className="space-y-2 text-sm">
+                      {product.grade && (
+                        <div><span className="font-medium">Grade:</span> {product.grade}</div>
+                      )}
+                      {product.purity && (
+                        <div><span className="font-medium">Purity:</span> {product.purity}</div>
+                      )}
+                      {product.moisture && (
+                        <div><span className="font-medium">Moisture:</span> {product.moisture}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Available Documents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Document download buttons would be here */}
+                  <p className="text-gray-600">Quality certificates and technical documents available on request.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pricing" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quantity-Based Pricing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LocationBasedPricing product={product} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="samples" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Request Sample</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SampleRequestForm product={product} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      <Footer />
+    </div>
+  );
+}
     return {
       "@context": "https://schema.org/",
       "@type": "Product",
