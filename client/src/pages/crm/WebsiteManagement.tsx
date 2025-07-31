@@ -257,6 +257,7 @@ export default function WebsiteManagement() {
     onSuccess: () => {
       toast({ title: "Product updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error as Error)) {
@@ -287,6 +288,7 @@ export default function WebsiteManagement() {
     onSuccess: () => {
       toast({ title: "Product created successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error as Error)) {
