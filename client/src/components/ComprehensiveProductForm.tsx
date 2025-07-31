@@ -272,6 +272,170 @@ export default function ComprehensiveProductForm({
         </CardContent>
       </Card>
 
+      {/* Product Images */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Product Images
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Main Product Image */}
+          <div>
+            <Label htmlFor="mainImage">Main Product Image</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={formData.mainImage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mainImage: e.target.value }))}
+                  placeholder="Image URL or upload below"
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" disabled={uploading}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  {uploading ? 'Uploading...' : 'S3 Ready'}
+                </Button>
+              </div>
+              <Input
+                id="mainImage"
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    await handleImageUpload(file, 'mainImage');
+                  }
+                }}
+                disabled={uploading}
+              />
+              
+              {formData.mainImage && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img 
+                    src={formData.mainImage} 
+                    alt="Main product image" 
+                    className="w-20 h-20 object-cover rounded border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, mainImage: '' }))}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Gallery Images - Multi-Upload */}
+          <div>
+            <Label>Gallery Images</Label>
+            <div className="space-y-4">
+              {/* Bulk Upload Section */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <div className="text-center">
+                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 mb-2">Upload Multiple Images</p>
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) {
+                        setUploading(true);
+                        try {
+                          for (const file of files) {
+                            const formDataUpload = new FormData();
+                            formDataUpload.append('galleryImages', file);
+                            if (formData.name) {
+                              formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
+                            }
+
+                            const response = await fetch('/api/admin/products/upload', {
+                              method: 'POST',
+                              body: formDataUpload,
+                            });
+
+                            if (!response.ok) throw new Error('Upload failed');
+
+                            const result = await response.json();
+                            const imageUrl = result.files.galleryImages;
+                            
+                            if (imageUrl) {
+                              setFormData(prev => ({
+                                ...prev,
+                                galleryImages: [...(Array.isArray(prev.galleryImages) ? prev.galleryImages : []), imageUrl]
+                              }));
+                            }
+                          }
+                          toast({
+                            title: "Success",
+                            description: `${files.length} images uploaded successfully`,
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Upload Error",
+                            description: "Failed to upload images",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setUploading(false);
+                        }
+                      }
+                    }}
+                    disabled={uploading}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    JPG, PNG, WebP up to 10MB each. Multiple files supported.
+                  </p>
+                </div>
+              </div>
+
+              {/* Gallery Preview */}
+              {Array.isArray(formData.galleryImages) && formData.galleryImages.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {formData.galleryImages.map((image: string, index: number) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Gallery ${index + 1}`}
+                        className="w-full h-20 object-cover rounded border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            galleryImages: Array.isArray(prev.galleryImages) 
+                              ? prev.galleryImages.filter((_: any, i: number) => i !== index) 
+                              : []
+                          }));
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Product Classification */}
       <Card>
         <CardHeader>
