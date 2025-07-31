@@ -199,7 +199,7 @@ export default function ProductDetail() {
       {/* Main Product Section */}
       <div className="bg-white">
         <div className="w-full px-0 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* Left Sidebar - Product Image & Documents */}
             <div className="lg:col-span-3 px-4">
@@ -258,56 +258,91 @@ export default function ProductDetail() {
                 <CardContent>
                   {isAuthenticated ? (
                     (() => {
-                      // Collect all document types from product data
-                      const productDocuments = [
-                        { title: "Certificate of Analysis (COA)", url: product.coaDocument, type: "coa" },
-                        { title: "Organic Certificate", url: product.certDocument, type: "cert" },
-                        { title: "Technical Specification Sheet", url: product.specDocument, type: "spec" },
-                        { title: "MSDS / Safety Data Sheet", url: product.msdsDocument, type: "msds" },
-                        { title: "Non-GMO Statement", url: product.nonGmoDocument, type: "nonGmo" },
-                        { title: "Business License", url: product.businessLicense, type: "business" },
-                        { title: "Certificate of Registration", url: product.registrationCert, type: "registration" },
-                        { title: "KOSHER-OK Certificate", url: product.kosherCert, type: "kosher" },
-                        { title: "Organic-NOP(USDA) Certificate", url: product.organicNopCert, type: "organicNop" }
-                      ].filter(doc => doc.url && doc.url.trim() !== "");
-
-                      // Add additional documents from additionalDocs array
-                      const additionalDocs = Array.isArray(product.additionalDocs) 
-                        ? (product.additionalDocs as string[]).map((url, index) => ({
-                            title: `Additional Document ${index + 1}`,
-                            url: url,
-                            type: "additional"
-                          }))
-                        : [];
-
-                      // Combine with documents from productDocuments table
-                      const allDocuments = [
-                        ...productDocuments,
-                        ...additionalDocs,
-                        ...(documents || []).map(doc => ({
-                          title: doc.title,
-                          url: doc.fileUrl,
-                          type: doc.type
-                        }))
+                      // All document types from product form
+                      const companyDocuments = [
+                        { title: "Business License", url: product.businessLicense, available: !!product.businessLicense },
+                        { title: "Certificate of Registration", url: product.registrationCert, available: !!product.registrationCert },
+                        { title: "KOSHER-OK", url: product.kosherCert, available: !!product.kosherCert },
+                        { title: "Organic-NOP(USDA)", url: product.organicNopCert, available: !!product.organicNopCert }
                       ];
 
-                      return allDocuments.length > 0 ? (
-                        <div className="space-y-2">
-                          {allDocuments.map((doc, index) => (
-                            <div key={`${doc.type}-${index}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                              <span className="text-sm text-gray-700">{doc.title}</span>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => window.open(doc.url, '_blank')}
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
+                      const productSpecificDocs = [
+                        { title: "COA Document", url: product.coaDocument, available: !!product.coaDocument },
+                        { title: "Specification Sheet", url: product.specDocument, available: !!product.specDocument },
+                        { title: "MSDS Documents", url: product.msdsDocument, available: !!product.msdsDocument },
+                        { title: "Non GMO Statement", url: product.nonGmoDocument, available: !!product.nonGmoDocument }
+                      ];
+
+                      const availableDocuments = [...companyDocuments, ...productSpecificDocs].filter(doc => doc.available);
+                      const hasDocuments = availableDocuments.length > 0;
+
+                      return (
+                        <div className="space-y-3">
+                          {hasDocuments && (
+                            <Button variant="outline" className="w-full text-sm mb-3">
+                              <Download className="w-4 h-4 mr-2" />
+                              Download All ({availableDocuments.length})
+                            </Button>
+                          )}
+                          
+                          {/* Company Specific Documents */}
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-800 mb-2">Company Specific Documents</h4>
+                            <div className="space-y-1">
+                              {companyDocuments.map((doc, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 border-b border-gray-100">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700">{doc.title}</span>
+                                  </div>
+                                  {doc.available ? (
+                                    <Button 
+                                      variant="link" 
+                                      size="sm"
+                                      className="text-blue-600 text-xs p-0"
+                                      onClick={() => window.open(doc.url, '_blank')}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">Not Available</span>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Product Specific Documents */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-800 mb-2">Product Specific Documents</h4>
+                            <div className="space-y-1">
+                              {productSpecificDocs.map((doc, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 border-b border-gray-100">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700">{doc.title}</span>
+                                  </div>
+                                  {doc.available ? (
+                                    <Button 
+                                      variant="link" 
+                                      size="sm"
+                                      className="text-blue-600 text-xs p-0"
+                                      onClick={() => window.open(doc.url, '_blank')}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">Not Available</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {!hasDocuments && (
+                            <p className="text-sm text-gray-600 text-center py-4">No documents available</p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-sm text-gray-600">No documents available</p>
                       );
                     })()
                   ) : (
@@ -323,7 +358,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Middle - Product Details */}
-            <div className="lg:col-span-6 px-4">
+            <div className="lg:col-span-5 px-4">
               <div className="space-y-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
@@ -442,7 +477,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Right Sidebar - Quantity Pricing */}
-            <div className="lg:col-span-3 px-4">
+            <div className="lg:col-span-4 px-4">
               <Card className="sticky top-4 bg-green-50 border-green-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -451,61 +486,65 @@ export default function ProductDetail() {
                   </CardTitle>
                   <p className="text-xs text-gray-600">Current pricing in INR • Prices shown in your regional currency</p>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Pricing Table Headers */}
-                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-gray-700 border-b pb-2">
-                    <div>Quantity</div>
-                    <div className="text-right">Price per kg</div>
-                    <div className="text-right">Save</div>
-                    <div className="text-right">Select</div>
-                  </div>
+                <CardContent>
+                  {/* Table Layout - Full Width Rows */}
+                  <div className="w-full">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-4 gap-1 text-sm font-medium text-gray-700 border-b border-gray-300 pb-2 mb-3">
+                      <div>Quantity</div>
+                      <div className="text-center">Price per kg</div>
+                      <div className="text-center">Save</div>
+                      <div className="text-center">Select</div>
+                    </div>
 
-                  {/* Pricing Rows */}
-                  <div className="space-y-1">
-                    {[
-                      { qty: 100, price: 1757.50, discount: 5.0 },
-                      { qty: 500, price: 1702.00, discount: 8.0 },
-                      { qty: 1000, price: 1628.00, discount: 12.0 },
-                      { qty: 5000, price: 1572.50, discount: 15.0 }
-                    ].map((tier, index) => (
-                      <div 
-                        key={index}
-                        className={`grid grid-cols-4 gap-2 text-xs p-2 rounded border cursor-pointer transition-colors ${
-                          selectedQuantity === tier.qty 
-                            ? 'border-green-500 bg-green-100' 
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
-                        }`}
-                        onClick={() => setSelectedQuantity(tier.qty)}
-                      >
-                        <div className="font-medium">{tier.qty} kg</div>
-                        <div className="text-right">₹{tier.price.toFixed(2)}/kg</div>
-                        <div className="text-right text-green-600">~ {tier.discount.toFixed(1)}%</div>
-                        <div className="text-right">
-                          {selectedQuantity === tier.qty ? (
-                            <span className="text-white bg-green-600 px-2 py-1 rounded text-xs">Selected</span>
-                          ) : (
-                            <span className="text-blue-600 cursor-pointer text-xs">Select</span>
-                          )}
+                    {/* Pricing Rows - Full Width */}
+                    <div className="space-y-0">
+                      {[
+                        { qty: 100, price: 1757.50, discount: 5.0 },
+                        { qty: 500, price: 1702.00, discount: 8.0 },
+                        { qty: 1000, price: 1628.00, discount: 12.0 },
+                        { qty: 5000, price: 1572.50, discount: 15.0 }
+                      ].map((tier, index) => (
+                        <div 
+                          key={index}
+                          className={`w-full border-b border-gray-200 py-2 cursor-pointer transition-colors ${
+                            selectedQuantity === tier.qty 
+                              ? 'bg-green-100 border-green-300' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedQuantity(tier.qty)}
+                        >
+                          <div className="grid grid-cols-4 gap-1 text-sm">
+                            <div className="font-medium">{tier.qty} kg</div>
+                            <div className="text-center">₹{tier.price.toFixed(2)}/kg</div>
+                            <div className="text-center text-green-600">~ {tier.discount.toFixed(1)}%</div>
+                            <div className="text-center">
+                              {selectedQuantity === tier.qty ? (
+                                <span className="text-white bg-green-600 px-3 py-1 rounded text-xs">Selected</span>
+                              ) : (
+                                <span className="text-blue-600 cursor-pointer text-sm">Select</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
 
                   {/* Custom Quantity */}
-                  <div className="border-t pt-3">
-                    <label className="text-xs font-medium text-gray-700 mb-1 block">Custom Quantity</label>
+                  <div className="mt-4 pt-3 border-t">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Custom Quantity</label>
                     <div className="flex gap-2">
                       <Input
                         type="number"
                         placeholder="Min. 100"
                         value={customQuantity}
                         onChange={(e) => setCustomQuantity(e.target.value)}
-                        className="flex-1 text-xs h-8"
+                        className="flex-1 text-sm"
                       />
                       <Button 
                         variant="outline"
                         size="sm"
-                        className="text-xs h-8"
                         onClick={() => {
                           const qty = parseInt(customQuantity);
                           if (qty >= 100) setSelectedQuantity(qty);
@@ -518,9 +557,12 @@ export default function ProductDetail() {
                   </div>
 
                   {/* Selected Quantity Summary */}
-                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Selected Quantity</h4>
-                    <div className="space-y-1 text-xs">
+                  <div className="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-1">
+                      <Info className="w-4 h-4" />
+                      Selected Quantity
+                    </h4>
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Quantity:</span>
                         <span className="font-medium">{selectedQuantity} kg</span>
@@ -529,9 +571,9 @@ export default function ProductDetail() {
                         <span>Price per kg:</span>
                         <span className="font-medium">₹{pricingData.price.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between font-bold text-sm border-t pt-1">
+                      <div className="flex justify-between font-bold text-base border-t pt-2">
                         <span>Total Price:</span>
-                        <span>₹{pricingData.total.toLocaleString()}.00</span>
+                        <span className="text-blue-600">₹{pricingData.total.toLocaleString()}.00</span>
                       </div>
                       {pricingData.discount > 0 && (
                         <div className="flex justify-between text-green-600">
