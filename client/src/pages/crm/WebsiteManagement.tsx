@@ -216,6 +216,9 @@ export default function WebsiteManagement() {
   const [dateFilter, setDateFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
 
+  // Debug log
+  console.log("WebsiteManagement component rendering", { searchQuery, activeTab });
+
   // Fetch categories
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
@@ -425,171 +428,80 @@ export default function WebsiteManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* MULTIPLE VISIBILITY TESTS */}
-                  <div style={{
-                    position: 'fixed',
-                    top: '10px',
-                    right: '10px', 
-                    backgroundColor: 'red',
-                    color: 'white',
-                    padding: '10px',
-                    zIndex: 99999,
-                    border: '3px solid yellow'
-                  }}>
-                    🚨 COMPONENT IS RENDERING - Products: {products?.length || 0}
-                  </div>
-                  
-                  <div className="bg-green-500 text-white text-center p-8 mb-4 text-xl font-bold" style={{
-                    position: 'relative', 
-                    zIndex: 9999,
-                    border: '5px solid red',
-                    margin: '20px 0'
-                  }}>
-                    ✅ FILTER SECTION WORKING - FRESH VERSION - PRODUCTS: {products?.length || 0}
-                  </div>
-                  
-                  <div style={{
-                    backgroundColor: 'yellow',
-                    color: 'black',
-                    padding: '20px',
-                    margin: '20px 0',
-                    border: '3px solid purple',
-                    fontSize: '18px',
-                    fontWeight: 'bold'
-                  }}>
-                    🔍 SEARCH BAR SHOULD BE BELOW THIS MESSAGE
-                  </div>
-                  
-                  {/* Search, Filter, and Sort Controls */}
-                  <div style={{
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    padding: '30px',
-                    margin: '20px 0',
-                    border: '5px solid red',
-                    borderRadius: '10px'
-                  }}>
-                    <h3 style={{
-                      fontSize: '24px',
-                      fontWeight: 'bold',
-                      marginBottom: '20px',
-                      color: 'white'
-                    }}>🔍 FILTER & SEARCH PRODUCTS - WORKING!</h3>
+                  {/* SIMPLE SEARCH AND FILTER */}
+                  <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h3 className="text-lg font-semibold mb-4">🔍 Search & Filter Products</h3>
                     
-                    {/* Primary Search Bar */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    {/* Search Bar */}
+                    <div className="mb-4">
                       <Input
                         placeholder="Search products by name, SKU, description..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
+                        className="w-full"
                       />
                     </div>
                     
-                    {/* Filter Controls */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                      <div>
-                        <Label className="text-xs text-gray-600 mb-1 block">Category</Label>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All Categories" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {categories?.map((category: Category) => (
-                              <SelectItem key={category.id} value={category.id.toString()}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    {/* Filter Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      {/* Category Filter */}
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories?.map((category: Category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                      <div>
-                        <Label className="text-xs text-gray-600 mb-1 block">Product Status</Label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Status Filter */}
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                      <div>
-                        <Label className="text-xs text-gray-600 mb-1 block">Date Added</Label>
-                        <Select value={dateFilter} onValueChange={setDateFilter}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All Time" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Time</SelectItem>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="week">This Week</SelectItem>
-                            <SelectItem value="month">This Month</SelectItem>
-                            <SelectItem value="3months">Last 3 Months</SelectItem>
-                            <SelectItem value="6months">Last 6 Months</SelectItem>
-                            <SelectItem value="year">This Year</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Sort By */}
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sort By" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="newest">Latest First</SelectItem>
+                          <SelectItem value="oldest">Oldest First</SelectItem>
+                          <SelectItem value="name-az">Name A-Z</SelectItem>
+                          <SelectItem value="name-za">Name Z-A</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                      <div>
-                        <Label className="text-xs text-gray-600 mb-1 block">Visibility</Label>
-                        <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All Products" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Products</SelectItem>
-                            <SelectItem value="visible">Visible</SelectItem>
-                            <SelectItem value="hidden">Hidden</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-gray-600 mb-1 block">Sort By</Label>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Latest First" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="newest">Latest First</SelectItem>
-                            <SelectItem value="oldest">Oldest First</SelectItem>
-                            <SelectItem value="name-az">Name A-Z</SelectItem>
-                            <SelectItem value="name-za">Name Z-A</SelectItem>
-                            <SelectItem value="price-high">Price High-Low</SelectItem>
-                            <SelectItem value="price-low">Price Low-High</SelectItem>
-                            <SelectItem value="sku-az">SKU A-Z</SelectItem>
-                            <SelectItem value="sku-za">SKU Z-A</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => {
-                            setSearchQuery("");
-                            setCategoryFilter("all");
-                            setSortBy("newest");
-                            setStatusFilter("all");
-                            setDateFilter("all");
-                            setVisibilityFilter("all");
-                          }}
-                          className="w-full mt-4"
-                        >
-                          Clear All Filters
-                        </Button>
-                      </div>
+                      {/* Clear Filters */}
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setSearchQuery("");
+                          setCategoryFilter("all");
+                          setSortBy("newest");
+                          setStatusFilter("all");
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
                     </div>
+                  </div>
+                  
+                  {/* Results Count */}
+                  <div className="mb-4 text-sm text-gray-600">
+                    Showing {filteredProducts?.length || 0} of {products?.length || 0} products
                   </div>
 
                   {/* Product Count and Selection */}

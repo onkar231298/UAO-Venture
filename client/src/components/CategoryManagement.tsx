@@ -26,14 +26,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Search, Tag } from "lucide-react";
 import type { Category } from "@shared/schema";
 
-interface CategoryFormProps {
+interface CategoryForm2Props {
   category?: Category;
   onSubmit: (data: any) => void;
   isLoading: boolean;
   onClose?: () => void;
 }
 
-function CategoryForm({ category, onSubmit, isLoading, onClose }: CategoryFormProps) {
+function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2Props) {
   const [formData, setFormData] = useState({
     name: category?.name || "",
     description: category?.description || "",
@@ -234,7 +234,7 @@ export default function CategoryManagement() {
               <DialogHeader>
                 <DialogTitle>Create New Category</DialogTitle>
               </DialogHeader>
-              <CategoryForm
+              <CategoryForm2
                 onSubmit={(data) => createCategoryMutation.mutate(data)}
                 isLoading={createCategoryMutation.isPending}
                 onClose={() => setIsCreateDialogOpen(false)}
@@ -348,7 +348,7 @@ export default function CategoryManagement() {
               <DialogTitle>Edit Category</DialogTitle>
             </DialogHeader>
             {selectedCategory && (
-              <CategoryForm
+              <CategoryForm2
                 category={selectedCategory}
                 onSubmit={(data) => updateCategoryMutation.mutate({ 
                   id: selectedCategory.id, 
@@ -369,14 +369,7 @@ export default function CategoryManagement() {
 }
 
 // Category Form Component with Image Upload
-interface CategoryFormProps {
-  category?: Category;
-  onSubmit: (data: any) => void;
-  isLoading: boolean;
-  onClose: () => void;
-}
-
-function CategoryForm({ category, onSubmit, isLoading, onClose }: CategoryFormProps) {
+function CategoryForm22({ category, onSubmit, isLoading, onClose }: CategoryForm2Props) {
   const [formData, setFormData] = useState({
     name: category?.name || "",
     description: category?.description || "",
