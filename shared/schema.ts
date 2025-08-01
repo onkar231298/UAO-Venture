@@ -192,12 +192,14 @@ export const productTagRelations = pgTable("product_tag_relations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Hero slider management for homepage
+// Hero slider management for homepage - Enhanced with video support
 export const heroSliders = pgTable("hero_sliders", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   subtitle: text("subtitle"),
-  imageUrl: varchar("image_url", { length: 500 }).notNull(),
+  mediaType: varchar("media_type", { length: 20 }).default("image"), // image, video
+  imageUrl: varchar("image_url", { length: 500 }), // For image slides
+  videoUrl: varchar("video_url", { length: 500 }), // For video slides
   buttonText: varchar("button_text", { length: 100 }),
   buttonUrl: varchar("button_url", { length: 500 }),
   isExternal: boolean("is_external").default(false), // For external URLs

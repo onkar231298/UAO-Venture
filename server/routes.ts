@@ -14,7 +14,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { productImageUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
+import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -513,6 +513,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AWS S3 Image Upload Routes
+
+  // Upload hero slider media (images and videos)
+  app.post('/api/admin/hero-slides/upload', isAuthenticated, heroSliderUpload, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const files = req.files as { [fieldname: string]: any[] };
+      const uploadedFiles: { [key: string]: string | string[] } = {};
+
+      console.log('Hero slider upload request received. Files:', Object.keys(files));
+
+      // Process uploaded files
+      for (const [fieldName, fileArray] of Object.entries(files)) {
+        console.log(`Processing field: ${fieldName}, files:`, fileArray.length);
+        
+        if (fileArray[0]) {
+          console.log(`File details for ${fieldName}:`, {
+            key: fileArray[0].key,
+            location: fileArray[0].location,
+            size: fileArray[0].size,
+            contentType: fileArray[0].contentType
+          });
+        }
+        const url = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
+        uploadedFiles[fieldName] = url;
+        console.log(`Generated URL for ${fieldName}:`, url);
+      }
+
+      res.json({
+        success: true,
+        files: uploadedFiles,
+        message: 'Hero slider media uploaded successfully to AWS S3'
+      });
+    } catch (error) {
+      console.error("Error uploading hero slider media to S3:", error);
+      res.status(500).json({ message: "Failed to upload media", error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
 
   // Upload product images and documents
   app.post('/api/admin/products/upload', isAuthenticated, productImageUpload, async (req: any, res) => {

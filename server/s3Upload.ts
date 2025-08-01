@@ -28,11 +28,21 @@ export const uploadToS3 = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: (req, file, cb) => {
-      // Generate unique filename: products/BFI001/main-image-timestamp.jpg
-      const productId = req.body.productId || 'temp';
+      // Generate unique filename based on upload type
       const timestamp = Date.now();
       const ext = path.extname(file.originalname);
-      const filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
+      let filename: string;
+      
+      if (file.fieldname.includes('slide')) {
+        // Hero slider uploads go to hero-slides folder
+        const slideId = req.body.slideId || 'temp';
+        filename = `hero-slides/${slideId}/${file.fieldname}-${timestamp}${ext}`;
+      } else {
+        // Product uploads go to products folder
+        const productId = req.body.productId || 'temp';
+        filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
+      }
+      
       console.log(`Uploading to S3: ${filename}, Original: ${file.originalname}, Size: ${file.size || 'unknown'}`);
       cb(null, filename);
     },
@@ -100,4 +110,10 @@ export const productImageUpload = uploadToS3.fields([
   { name: 'kosherCert', maxCount: 1 },
   { name: 'organicNopCert', maxCount: 1 },
   { name: 'additionalDocs', maxCount: 5 },
+]);
+
+// Hero slider media upload (supports both images and videos)
+export const heroSliderUpload = uploadToS3.fields([
+  { name: 'slideImage', maxCount: 1 },
+  { name: 'slideVideo', maxCount: 1 },
 ]);
