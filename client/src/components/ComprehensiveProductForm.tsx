@@ -113,10 +113,14 @@ export default function ComprehensiveProductForm({
   useEffect(() => {
     const fetchTags = async () => {
       try {
+        console.log('Fetching tags from API...');
         const response = await fetch('/api/admin/tags');
         if (response.ok) {
           const tags = await response.json();
+          console.log('Tags fetched:', tags);
           setAvailableTags(tags);
+        } else {
+          console.error('Failed to fetch tags, status:', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch tags:', error);
@@ -633,28 +637,36 @@ export default function ComprehensiveProductForm({
           </div>
 
           {/* Product Tags */}
-          <div>
-            <Label>Product Tags</Label>
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2">
-                {selectedTags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                    {tag}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => {
-                        const newTags = selectedTags.filter((_, i) => i !== index);
-                        setSelectedTags(newTags);
-                        setFormData(prev => ({ ...prev, tags: newTags }));
-                      }}
-                    />
-                  </Badge>
-                ))}
+          <div className="border-t pt-4 mt-4">
+            <Label className="text-base font-semibold">Product Tags / Certifications</Label>
+            <p className="text-sm text-gray-600 mb-3">Add certification tags to help customers identify product qualities</p>
+            <div className="space-y-3">
+              {/* Selected Tags Display */}
+              <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md bg-gray-50">
+                {selectedTags.length > 0 ? (
+                  selectedTags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 border-green-200">
+                      {tag}
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-red-600" 
+                        onClick={() => {
+                          const newTags = selectedTags.filter((_, i) => i !== index);
+                          setSelectedTags(newTags);
+                          setFormData(prev => ({ ...prev, tags: newTags }));
+                        }}
+                      />
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No tags selected</span>
+                )}
               </div>
               
+              {/* Tag Selection Dropdown */}
               <Select 
                 value="" 
                 onValueChange={(value) => {
+                  console.log('Selected tag:', value);
                   if (value && !selectedTags.includes(value)) {
                     const newTags = [...selectedTags, value];
                     setSelectedTags(newTags);
@@ -662,26 +674,34 @@ export default function ComprehensiveProductForm({
                   }
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select tags to add" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select certification tags to add" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTags
-                    .filter(tag => !selectedTags.includes(tag.name))
-                    .map(tag => (
-                      <SelectItem key={tag.id} value={tag.name}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          {tag.name}
-                        </div>
-                      </SelectItem>
-                    ))
-                  }
+                  {availableTags.length > 0 ? (
+                    availableTags
+                      .filter(tag => !selectedTags.includes(tag.name))
+                      .map(tag => (
+                        <SelectItem key={tag.id} value={tag.name}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: tag.color }}
+                            />
+                            {tag.name}
+                          </div>
+                        </SelectItem>
+                      ))
+                  ) : (
+                    <SelectItem value="loading" disabled>
+                      Loading tags...
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-gray-500">
+                Available: {availableTags.length} certification tags
+              </p>
             </div>
           </div>
         </CardContent>
