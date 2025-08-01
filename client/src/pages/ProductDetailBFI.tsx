@@ -41,7 +41,7 @@ import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, ProductDocument } from "@shared/schema";
 import { useEffect } from "react";
 
-export default function ProductDetailGreenJeeva() {
+export default function ProductDetailBFI() {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { toast } = useToast();

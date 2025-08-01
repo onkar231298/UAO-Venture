@@ -1,6 +1,6 @@
-import ProductDetailGreenJeeva from "./ProductDetailGreenJeeva";
+import ProductDetailBFI from "./ProductDetailBFI";
 
 export default function ProductDetail() {
-  // Use the new Green Jeeva style layout
-  return <ProductDetailGreenJeeva />;
+  // Use the professional BFI Organic layout
+  return <ProductDetailBFI />;
 }
