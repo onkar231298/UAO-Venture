@@ -203,9 +203,9 @@ export default function ComprehensiveProductForm({
       form: formData.form || undefined,
       leadTime: formData.leadTime || undefined,
       
-      // Ensure arrays are properly formatted
+      // Ensure arrays are properly formatted and filter out empty strings
       certifications: Array.isArray(formData.certifications) ? formData.certifications : [],
-      galleryImages: Array.isArray(formData.galleryImages) ? formData.galleryImages.filter(img => img.trim() !== '') : [],
+      galleryImages: Array.isArray(formData.galleryImages) ? formData.galleryImages.filter(img => img && img.trim() !== '') : [],
       faqs: Array.isArray(formData.faqs) ? (formData.faqs as any[]).filter(faq => faq.question.trim() !== '' && faq.answer.trim() !== '') : [],
     };
     

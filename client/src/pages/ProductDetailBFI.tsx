@@ -77,10 +77,10 @@ export default function ProductDetailBFI() {
       images.push((product as any).mainImage);
     }
     
-    // Add gallery images if they exist and are not duplicates
+    // Add gallery images if they exist and are not duplicates of main image
     if ((product as any).galleryImages && Array.isArray((product as any).galleryImages)) {
       const galleryImages = (product as any).galleryImages.filter((img: string) => 
-        img && img !== (product as any).mainImage
+        img && img.trim() !== '' && img !== (product as any).mainImage
       );
       images.push(...galleryImages);
     }
