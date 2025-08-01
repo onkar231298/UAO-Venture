@@ -138,10 +138,24 @@ export default function ComprehensiveProductForm({
       const result = await response.json();
       
       if (result.success && result.files[fieldName]) {
-        setFormData(prev => ({
-          ...prev,
-          [fieldName]: result.files[fieldName]
-        }));
+        if (fieldName === 'secondImage') {
+          // Handle second image upload
+          const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [];
+          newGalleryImages[0] = Array.isArray(result.files[fieldName]) ? result.files[fieldName][0] : result.files[fieldName];
+          setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
+        } else if (fieldName === 'thirdImage') {
+          // Handle third image upload
+          const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [''];
+          if (newGalleryImages.length < 2) newGalleryImages.push('');
+          newGalleryImages[1] = Array.isArray(result.files[fieldName]) ? result.files[fieldName][0] : result.files[fieldName];
+          setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
+        } else {
+          // Handle main image and other single uploads
+          setFormData(prev => ({
+            ...prev,
+            [fieldName]: result.files[fieldName]
+          }));
+        }
         
         const fileType = fieldName.includes('Document') || fieldName.includes('Docs') ? 'document' : 'image';
         toast({
@@ -333,104 +347,131 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
 
-          {/* Gallery Images - Multi-Upload */}
+          {/* Gallery Images - Individual Upload */}
           <div>
             <Label>Gallery Images</Label>
             <div className="space-y-4">
-              {/* Bulk Upload Section */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <div className="text-center">
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload Multiple Images</p>
+              
+              {/* Second Image */}
+              <div>
+                <Label htmlFor="secondImage">Second Image</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={Array.isArray(formData.galleryImages) && formData.galleryImages[0] ? formData.galleryImages[0] : ''}
+                      onChange={(e) => {
+                        const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [];
+                        newGalleryImages[0] = e.target.value;
+                        setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
+                      }}
+                      placeholder="Image URL or upload below"
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" size="sm" disabled={uploading}>
+                      <Upload className="h-4 w-4 mr-1" />
+                      {uploading ? 'Uploading...' : 'S3 Ready'}
+                    </Button>
+                  </div>
                   <Input
+                    id="secondImage"
                     type="file"
-                    multiple
                     accept="image/*"
                     onChange={async (e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length > 0) {
-                        setUploading(true);
-                        try {
-                          for (const file of files) {
-                            const formDataUpload = new FormData();
-                            formDataUpload.append('galleryImages', file);
-                            if (formData.name) {
-                              formDataUpload.append('productId', formData.name.replace(/[^a-zA-Z0-9]/g, ''));
-                            }
-
-                            const response = await fetch('/api/admin/products/upload', {
-                              method: 'POST',
-                              body: formDataUpload,
-                            });
-
-                            if (!response.ok) throw new Error('Upload failed');
-
-                            const result = await response.json();
-                            const imageUrl = result.files.galleryImages;
-                            
-                            if (imageUrl) {
-                              setFormData(prev => ({
-                                ...prev,
-                                galleryImages: [...(Array.isArray(prev.galleryImages) ? prev.galleryImages : []), imageUrl]
-                              }));
-                            }
-                          }
-                          toast({
-                            title: "Success",
-                            description: `${files.length} images uploaded successfully`,
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Upload Error",
-                            description: "Failed to upload images",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setUploading(false);
-                        }
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        await handleImageUpload(file, 'secondImage');
                       }
                     }}
                     disabled={uploading}
                   />
-                  <p className="text-xs text-gray-500 mt-2">
-                    JPG, PNG, WebP up to 10MB each. Multiple files supported.
-                  </p>
-                </div>
-              </div>
-
-              {/* Gallery Preview */}
-              {Array.isArray(formData.galleryImages) && formData.galleryImages.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {formData.galleryImages.map((image: string, index: number) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Gallery ${index + 1}`}
-                        className="w-full h-20 object-cover rounded border"
+                  
+                  {Array.isArray(formData.galleryImages) && formData.galleryImages[0] && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img 
+                        src={formData.galleryImages[0]} 
+                        alt="Second image" 
+                        className="w-20 h-20 object-cover rounded border"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
                       <Button
                         type="button"
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            galleryImages: Array.isArray(prev.galleryImages) 
-                              ? prev.galleryImages.filter((_: any, i: number) => i !== index) 
-                              : []
-                          }));
+                          const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [];
+                          newGalleryImages[0] = '';
+                          setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Third Image */}
+              <div>
+                <Label htmlFor="thirdImage">Third Image</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={Array.isArray(formData.galleryImages) && formData.galleryImages[1] ? formData.galleryImages[1] : ''}
+                      onChange={(e) => {
+                        const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [''];
+                        newGalleryImages[1] = e.target.value;
+                        setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
+                      }}
+                      placeholder="Image URL or upload below"
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" size="sm" disabled={uploading}>
+                      <Upload className="h-4 w-4 mr-1" />
+                      {uploading ? 'Uploading...' : 'S3 Ready'}
+                    </Button>
+                  </div>
+                  <Input
+                    id="thirdImage"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        await handleImageUpload(file, 'thirdImage');
+                      }
+                    }}
+                    disabled={uploading}
+                  />
+                  
+                  {Array.isArray(formData.galleryImages) && formData.galleryImages[1] && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img 
+                        src={formData.galleryImages[1]} 
+                        alt="Third image" 
+                        className="w-20 h-20 object-cover rounded border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newGalleryImages = Array.isArray(formData.galleryImages) ? [...formData.galleryImages] : [''];
+                          if (newGalleryImages.length < 2) newGalleryImages.push('');
+                          newGalleryImages[1] = '';
+                          setFormData(prev => ({ ...prev, galleryImages: newGalleryImages }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
