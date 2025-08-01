@@ -662,46 +662,53 @@ export default function ComprehensiveProductForm({
                 )}
               </div>
               
-              {/* Tag Selection Dropdown */}
-              <Select 
-                value="" 
-                onValueChange={(value) => {
-                  console.log('Selected tag:', value);
-                  if (value && !selectedTags.includes(value)) {
-                    const newTags = [...selectedTags, value];
-                    setSelectedTags(newTags);
-                    setFormData(prev => ({ ...prev, tags: newTags }));
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select certification tags to add" />
-                </SelectTrigger>
-                <SelectContent>
+              {/* Tag Selection Checkboxes */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Available Certification Tags:</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-white">
                   {availableTags.length > 0 ? (
-                    availableTags
-                      .filter(tag => !selectedTags.includes(tag.name))
-                      .map(tag => (
-                        <SelectItem key={tag.id} value={tag.name}>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: tag.color }}
-                            />
-                            {tag.name}
-                          </div>
-                        </SelectItem>
-                      ))
+                    availableTags.map(tag => (
+                      <div key={tag.id} className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded">
+                        <input
+                          type="checkbox"
+                          id={`tag-${tag.id}`}
+                          checked={selectedTags.includes(tag.name)}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            console.log('Tag checkbox clicked:', tag.name, isChecked);
+                            
+                            let newTags;
+                            if (isChecked) {
+                              // Add tag
+                              newTags = [...selectedTags, tag.name];
+                            } else {
+                              // Remove tag
+                              newTags = selectedTags.filter(t => t !== tag.name);
+                            }
+                            setSelectedTags(newTags);
+                            setFormData(prev => ({ ...prev, tags: newTags }));
+                          }}
+                          className="rounded"
+                        />
+                        <label htmlFor={`tag-${tag.id}`} className="flex items-center gap-2 cursor-pointer text-sm">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </label>
+                      </div>
+                    ))
                   ) : (
-                    <SelectItem value="loading" disabled>
-                      Loading tags...
-                    </SelectItem>
+                    <div className="col-span-2 text-center text-gray-500 text-sm py-4">
+                      Loading certification tags...
+                    </div>
                   )}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Available: {availableTags.length} certification tags
-              </p>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Available: {availableTags.length} certification tags | Selected: {selectedTags.length}
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>
