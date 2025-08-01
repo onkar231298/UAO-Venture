@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InquiryForm from "@/components/InquiryForm";
@@ -39,7 +39,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, ProductDocument } from "@shared/schema";
-import { useEffect } from "react";
 
 export default function ProductDetailBFI() {
   const { slug } = useParams();
@@ -48,6 +47,7 @@ export default function ProductDetailBFI() {
   const [selectedQuantity, setSelectedQuantity] = useState(25);
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
@@ -64,14 +64,66 @@ export default function ProductDetailBFI() {
     setDiscount(discountPercent);
   };
 
+  // Create gallery images array with main image and gallery images
+  const getAllImages = () => {
+    if (!product) return [];
+    
+    const images = [];
+    
+    // Add main image first if it exists
+    if ((product as any).mainImage) {
+      images.push((product as any).mainImage);
+    }
+    
+    // Add gallery images if they exist and are not duplicates
+    if ((product as any).galleryImages && Array.isArray((product as any).galleryImages)) {
+      const galleryImages = (product as any).galleryImages.filter((img: string) => 
+        img && img !== (product as any).mainImage
+      );
+      images.push(...galleryImages);
+    }
+    
+    return images;
+  };
+
+  const allImages = getAllImages();
+  const currentImage = allImages.length > 0 ? allImages[currentImageIndex] : null;
+
+  // Auto-advance carousel every 1 second
+  useEffect(() => {
+    if (allImages.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => 
+        prevIndex === allImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [allImages.length]);
+
+  const goToImage = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === allImages.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const previousImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === 0 ? allImages.length - 1 : prevIndex - 1
+    );
+  };
+
   const copyProductName = () => {
     if (product) {
       navigator.clipboard.writeText(product.name);
       toast({ title: "Product name copied to clipboard!" });
     }
   };
-
-  const currentImage = product ? ((product as any).mainImage || (product.images as string[])?.[0]) : null;
 
   // Add structured data to document head
   useEffect(() => {
@@ -251,15 +303,44 @@ export default function ProductDetailBFI() {
         <div className="grid lg:grid-cols-12 gap-8 mb-8">
           {/* Left Column - Product Image & Documents */}
           <div className="lg:col-span-4">
-            {/* Product Image */}
+            {/* Product Image Carousel */}
             <div className="sticky top-4">
-              <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden group">
                 {currentImage ? (
-                  <img
-                    src={currentImage}
-                    alt={product.name}
-                    className="w-full h-80 object-cover"
-                  />
+                  <div className="relative">
+                    <img
+                      src={currentImage}
+                      alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                      className="w-full h-80 object-cover"
+                    />
+                    
+                    {/* Navigation Arrows - Only show if multiple images */}
+                    {allImages.length > 1 && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+                          onClick={previousImage}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+                          onClick={nextImage}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                        
+                        {/* Image Counter */}
+                        <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                          {currentImageIndex + 1} / {allImages.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full h-80 flex items-center justify-center bg-gray-100 text-gray-400">
                     <div className="text-center">
@@ -268,6 +349,7 @@ export default function ProductDetailBFI() {
                     </div>
                   </div>
                 )}
+                
                 {product.isOrganic && (
                   <Badge className="absolute top-4 left-4 bg-green-600">
                     <Leaf className="w-3 h-3 mr-1" />
@@ -275,6 +357,29 @@ export default function ProductDetailBFI() {
                   </Badge>
                 )}
               </div>
+              
+              {/* Image Thumbnails - Only show if multiple images */}
+              {allImages.length > 1 && (
+                <div className="flex gap-2 mb-6 overflow-x-auto">
+                  {allImages.map((image, index) => (
+                    <button
+                      key={index}
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                        index === currentImageIndex 
+                          ? 'border-orange-500 ring-2 ring-orange-200' 
+                          : 'border-gray-200 hover:border-orange-300'
+                      }`}
+                      onClick={() => goToImage(index)}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} - Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Document Downloads */}
               <Card className="mb-6">
