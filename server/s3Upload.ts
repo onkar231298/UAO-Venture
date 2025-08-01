@@ -23,6 +23,7 @@ export const uploadToS3 = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: BUCKET_NAME,
+    acl: 'public-read', // Make uploaded files publicly readable
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
@@ -32,6 +33,7 @@ export const uploadToS3 = multer({
       const timestamp = Date.now();
       const ext = path.extname(file.originalname);
       const filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
+      console.log(`Uploading to S3: ${filename}`);
       cb(null, filename);
     },
     contentType: multerS3.AUTO_CONTENT_TYPE,
