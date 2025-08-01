@@ -23,7 +23,7 @@ export const uploadToS3 = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: BUCKET_NAME,
-    acl: 'public-read', // Make uploaded files publicly readable
+    // Remove ACL setting as bucket doesn't allow ACLs
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
