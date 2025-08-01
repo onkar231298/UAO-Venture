@@ -910,6 +910,88 @@ export default function ComprehensiveProductForm({
         </CardContent>
       </Card>
 
+      {/* FAQ Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Frequently Asked Questions
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Add custom FAQs for this product. If no FAQs are added, default professional FAQs will be displayed.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(formData.faqs as any[]).map((faq, index) => (
+            <div key={index} className="border rounded-lg p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-medium text-gray-600">FAQ #{index + 1}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newFaqs = [...(formData.faqs as any[])];
+                    newFaqs.splice(index, 1);
+                    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div>
+                <Label htmlFor={`faq-question-${index}`}>Question</Label>
+                <Input
+                  id={`faq-question-${index}`}
+                  value={faq.question}
+                  onChange={(e) => {
+                    const newFaqs = [...(formData.faqs as any[])];
+                    newFaqs[index].question = e.target.value;
+                    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+                  }}
+                  placeholder="Enter the FAQ question"
+                />
+              </div>
+              <div>
+                <Label htmlFor={`faq-answer-${index}`}>Answer</Label>
+                <Textarea
+                  id={`faq-answer-${index}`}
+                  value={faq.answer}
+                  onChange={(e) => {
+                    const newFaqs = [...(formData.faqs as any[])];
+                    newFaqs[index].answer = e.target.value;
+                    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+                  }}
+                  placeholder="Enter the FAQ answer"
+                  rows={3}
+                />
+              </div>
+            </div>
+          ))}
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              const newFaqs = [...(formData.faqs as any[]), { question: '', answer: '' }];
+              setFormData(prev => ({ ...prev, faqs: newFaqs }));
+            }}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add FAQ
+          </Button>
+          
+          {(formData.faqs as any[]).length === 0 && (
+            <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+              <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm text-gray-500 mb-2">No custom FAQs added</p>
+              <p className="text-xs text-gray-400">Default professional FAQs will be displayed on product page</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* SEO Section */}
       <Card>
         <CardHeader>
