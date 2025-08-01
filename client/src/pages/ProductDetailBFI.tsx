@@ -91,7 +91,7 @@ export default function ProductDetailBFI() {
   const allImages = getAllImages();
   const currentImage = allImages.length > 0 ? allImages[currentImageIndex] : null;
 
-  // Auto-advance carousel every 1 second
+  // Auto-advance carousel every 3 seconds
   useEffect(() => {
     if (allImages.length <= 1) return;
     
@@ -99,7 +99,7 @@ export default function ProductDetailBFI() {
       setCurrentImageIndex((prevIndex) => 
         prevIndex === allImages.length - 1 ? 0 : prevIndex + 1
       );
-    }, 1000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [allImages.length]);
