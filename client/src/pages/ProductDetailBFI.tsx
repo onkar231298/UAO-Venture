@@ -34,7 +34,9 @@ import {
   Star,
   Users,
   Globe,
-  Beaker
+  Beaker,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
