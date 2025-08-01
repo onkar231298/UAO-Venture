@@ -73,6 +73,7 @@ export default function ComprehensiveProductForm({
     basePrice: product?.basePrice?.toString() || "",
     rate: product?.rate?.toString() || "",
     priceUSD: product?.priceUSD?.toString() || "",
+    tags: product?.tags || [],
     priceINR: product?.priceINR?.toString() || "",
     priceEUR: product?.priceEUR?.toString() || "",
     priceGBP: product?.priceGBP?.toString() || "",
@@ -104,6 +105,25 @@ export default function ComprehensiveProductForm({
     isOrderable: product?.isOrderable ?? true,
     internalNotes: product?.internalNotes || "",
   });
+
+  const [selectedTags, setSelectedTags] = useState<string[]>(product?.tags || []);
+  const [availableTags, setAvailableTags] = useState<any[]>([]);
+
+  // Fetch available tags
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/admin/tags');
+        if (response.ok) {
+          const tags = await response.json();
+          setAvailableTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tags:', error);
+      }
+    };
+    fetchTags();
+  }, []);
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -207,6 +227,7 @@ export default function ComprehensiveProductForm({
       certifications: Array.isArray(formData.certifications) ? formData.certifications : [],
       galleryImages: Array.isArray(formData.galleryImages) ? formData.galleryImages.filter(img => img && img.trim() !== '') : [],
       faqs: Array.isArray(formData.faqs) ? (formData.faqs as any[]).filter(faq => faq.question.trim() !== '' && faq.answer.trim() !== '') : [],
+      tags: selectedTags, // Include the selected tags
     };
     
     // Remove undefined values to avoid sending empty data
@@ -608,6 +629,59 @@ export default function ComprehensiveProductForm({
                 onChange={(e) => setFormData(prev => ({ ...prev, productGrade: e.target.value }))}
                 placeholder="Food Grade, Pharma Grade, etc."
               />
+            </div>
+          </div>
+
+          {/* Product Tags */}
+          <div>
+            <Label>Product Tags</Label>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {selectedTags.map((tag, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <X 
+                      className="h-3 w-3 cursor-pointer" 
+                      onClick={() => {
+                        const newTags = selectedTags.filter((_, i) => i !== index);
+                        setSelectedTags(newTags);
+                        setFormData(prev => ({ ...prev, tags: newTags }));
+                      }}
+                    />
+                  </Badge>
+                ))}
+              </div>
+              
+              <Select 
+                value="" 
+                onValueChange={(value) => {
+                  if (value && !selectedTags.includes(value)) {
+                    const newTags = [...selectedTags, value];
+                    setSelectedTags(newTags);
+                    setFormData(prev => ({ ...prev, tags: newTags }));
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tags to add" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTags
+                    .filter(tag => !selectedTags.includes(tag.name))
+                    .map(tag => (
+                      <SelectItem key={tag.id} value={tag.name}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

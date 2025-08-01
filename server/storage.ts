@@ -73,6 +73,9 @@ export interface IStorage {
   getCategory(id: number): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category>;
+
+  // Product tags operations
+  getAllProductTags(): Promise<ProductTag[]>;
   deleteCategory(id: number): Promise<void>;
 
   // Product Tag operations
@@ -822,6 +825,12 @@ export class DatabaseStorage implements IStorage {
         eq(productTagRelations.productId, productId),
         eq(productTagRelations.tagId, tagId)
       ));
+  }
+
+  async getAllProductTags(): Promise<ProductTag[]> {
+    return await db.select().from(productTags)
+      .where(eq(productTags.isActive, true))
+      .orderBy(asc(productTags.name));
   }
 
   // Hero Slider operations

@@ -825,6 +825,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all product tags
+  app.get('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const tags = await storage.getAllProductTags();
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching product tags:", error);
+      res.status(500).json({ message: "Failed to fetch product tags" });
+    }
+  });
+
   // Update product
   app.put('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
