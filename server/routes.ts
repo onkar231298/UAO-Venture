@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Multiple files
           uploadedFiles[fieldName] = fileArray.map(file => getImageUrl(file.key));
         } else {
-          // Single file
+          // Single file - includes secondImage, thirdImage, mainImage, documents
           uploadedFiles[fieldName] = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
         }
       }

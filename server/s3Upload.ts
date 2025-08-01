@@ -84,11 +84,18 @@ export function extractS3Key(imageUrl: string): string {
 // Image upload middleware for products
 export const productImageUpload = uploadToS3.fields([
   { name: 'mainImage', maxCount: 1 },
+  { name: 'secondImage', maxCount: 1 }, // For second gallery image
+  { name: 'thirdImage', maxCount: 1 }, // For third gallery image
   { name: 'galleryImage', maxCount: 1 }, // For single gallery image uploads
   { name: 'galleryImages', maxCount: 10 }, // For multiple gallery image uploads
   { name: 'coaDocument', maxCount: 1 },
   { name: 'certDocument', maxCount: 1 },
   { name: 'specDocument', maxCount: 1 },
   { name: 'msdsDocument', maxCount: 1 },
+  { name: 'nonGmoDocument', maxCount: 1 },
+  { name: 'businessLicense', maxCount: 1 },
+  { name: 'registrationCert', maxCount: 1 },
+  { name: 'kosherCert', maxCount: 1 },
+  { name: 'organicNopCert', maxCount: 1 },
   { name: 'additionalDocs', maxCount: 5 },
 ]);
