@@ -13,6 +13,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import VideoUploadTest from "@/pages/VideoUploadTest";
+import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
+      <Route path="/video-slider" component={VideoHeroSliderManager} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
