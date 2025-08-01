@@ -63,14 +63,16 @@ export default function ParallaxHero() {
     }
   ];
 
-  // Map database slides to component format
+  // Map database slides to component format, supporting both image and video
   const processedHeroSlides = heroSlides.map(slide => ({
     id: slide.id,
     title: slide.title,
     subtitle: slide.subtitle,
     accent: `Bright Fame Organics`,
     theme: slide.title.includes('Essential') ? 'oils' : slide.title.includes('R&D') ? 'lab' : 'herbs',
+    mediaType: slide.mediaType || 'image',
     backgroundImage: slide.imageUrl || slide.image_url,
+    videoUrl: slide.videoUrl || slide.video_url,
     overlayColor: slide.title.includes('Essential') ? 'from-amber-900/80 via-orange-800/70 to-yellow-700/60' : 
                   slide.title.includes('R&D') ? 'from-blue-900/80 via-indigo-800/70 to-purple-700/60' : 
                   'from-green-900/80 via-emerald-800/70 to-teal-700/60',
@@ -102,14 +104,31 @@ export default function ParallaxHero() {
 
   return (
     <div className="relative h-screen overflow-hidden">
-      {/* Dynamic Background Image */}
-      <div 
-        className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-800 ease-in-out"
-        style={{
-          backgroundImage: `url(${currentSlideData.backgroundImage})`,
-          transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
-        }}
-      />
+      {/* Dynamic Background Media (Image or Video) */}
+      {currentSlideData.mediaType === 'video' && currentSlideData.videoUrl ? (
+        <video
+          className="absolute inset-0 w-full h-full object-cover transition-all duration-800 ease-in-out"
+          style={{
+            transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
+          }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        >
+          <source src={currentSlideData.videoUrl} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      ) : (
+        <div 
+          className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-800 ease-in-out"
+          style={{
+            backgroundImage: `url(${currentSlideData.backgroundImage})`,
+            transform: `scale(1.1) translateY(${scrollY * 0.3}px)`,
+          }}
+        />
+      )}
       
       {/* Dynamic Gradient Overlay */}
       <div className={`absolute inset-0 bg-gradient-to-br ${currentSlideData.overlayColor} transition-all duration-800`} />
