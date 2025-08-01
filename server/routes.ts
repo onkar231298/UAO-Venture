@@ -527,18 +527,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const files = req.files as { [fieldname: string]: any[] };
       const uploadedFiles: { [key: string]: string | string[] } = {};
 
+      console.log('Upload request received. Files:', Object.keys(files));
+
       // Process uploaded files
       for (const [fieldName, fileArray] of Object.entries(files)) {
         console.log(`Processing field: ${fieldName}, files:`, fileArray.length);
+        
         if (fieldName === 'galleryImages' || fieldName === 'additionalDocs') {
           // Multiple files
           uploadedFiles[fieldName] = fileArray.map(file => {
+            console.log(`File details for ${fieldName}:`, {
+              key: file.key,
+              location: file.location,
+              size: file.size,
+              contentType: file.contentType
+            });
             const url = getImageUrl(file.key);
             console.log(`Generated URL for ${fieldName}:`, url);
             return url;
           });
         } else {
           // Single file - includes secondImage, thirdImage, mainImage, documents
+          if (fileArray[0]) {
+            console.log(`File details for ${fieldName}:`, {
+              key: fileArray[0].key,
+              location: fileArray[0].location,
+              size: fileArray[0].size,
+              contentType: fileArray[0].contentType
+            });
+          }
           const url = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
           uploadedFiles[fieldName] = url;
           console.log(`Generated URL for ${fieldName}:`, url);

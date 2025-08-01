@@ -33,7 +33,7 @@ export const uploadToS3 = multer({
       const timestamp = Date.now();
       const ext = path.extname(file.originalname);
       const filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
-      console.log(`Uploading to S3: ${filename}`);
+      console.log(`Uploading to S3: ${filename}, Original: ${file.originalname}, Size: ${file.size || 'unknown'}`);
       cb(null, filename);
     },
     contentType: multerS3.AUTO_CONTENT_TYPE,
