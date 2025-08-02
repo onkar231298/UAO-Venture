@@ -627,12 +627,23 @@ export default function ComprehensiveProductForm({
             </div>
             <div>
               <Label htmlFor="productGrade">Product Grade</Label>
-              <Input
-                id="productGrade"
-                value={formData.productGrade}
-                onChange={(e) => setFormData(prev => ({ ...prev, productGrade: e.target.value }))}
-                placeholder="Food Grade, Pharma Grade, etc."
-              />
+              <Select value={formData.productGrade} onValueChange={(value) => setFormData(prev => ({ ...prev, productGrade: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select product grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Food Grade">Food Grade</SelectItem>
+                  <SelectItem value="Pharma Grade">Pharma Grade</SelectItem>
+                  <SelectItem value="Cosmetic Grade">Cosmetic Grade</SelectItem>
+                  <SelectItem value="Industrial Grade">Industrial Grade</SelectItem>
+                  <SelectItem value="Feed Grade">Feed Grade</SelectItem>
+                  <SelectItem value="Nutraceutical Grade">Nutraceutical Grade</SelectItem>
+                  <SelectItem value="Export Grade">Export Grade</SelectItem>
+                  <SelectItem value="Premium Grade">Premium Grade</SelectItem>
+                  <SelectItem value="Standard Grade">Standard Grade</SelectItem>
+                  <SelectItem value="Research Grade">Research Grade</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
