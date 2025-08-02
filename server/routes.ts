@@ -231,6 +231,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dynamic sitemap generation - API endpoint to avoid Vite conflicts
+  app.get('/api/sitemap.xml', async (req, res) => {
+    try {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Create basic sitemap structure
+      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Homepage -->
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Main Pages -->
+  <url>
+    <loc>${baseUrl}/products</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>${baseUrl}/ingredients</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>${baseUrl}/blog</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>${baseUrl}/signup</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+
+      try {
+        // Add all product pages
+        const { products } = await storage.getProducts({ limit: 5000 });
+        for (const product of products) {
+          if (product.slug && product.isActive) {
+            const lastmod = product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : today;
+            sitemap += `
+  <url>
+    <loc>${baseUrl}/product/${product.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+          }
+        }
+      } catch (productError) {
+        console.log('Products not available for sitemap:', productError.message);
+      }
+
+      try {
+        // Add category pages
+        const categories = await storage.getCategories();
+        for (const category of categories) {
+          if (category.slug && category.isActive) {
+            sitemap += `
+  <url>
+    <loc>${baseUrl}/products?category=${encodeURIComponent(category.name)}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>`;
+          }
+        }
+      } catch (categoryError) {
+        console.log('Categories not available for sitemap:', categoryError.message);
+      }
+
+      sitemap += `
+</urlset>`;
+
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(sitemap);
+    } catch (error) {
+      console.error('Error generating sitemap:', error);
+      // Return a minimal sitemap on error
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const today = new Date().toISOString().split('T')[0];
+      const minimalSitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/products</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/ingredients</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+      res.setHeader('Content-Type', 'application/xml');
+      res.send(minimalSitemap);
+    }
+  });
+
   // Public API routes (no authentication required)
   
   // Get products with advanced filtering

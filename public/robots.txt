@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://bright-organic.com/sitemap.xml
+Sitemap: https://bright-organic.com/api/sitemap.xml
 
 # Disallow admin and private areas
 Disallow: /admin/
