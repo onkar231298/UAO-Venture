@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Globe, Target, Building2, Save, BarChart3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Globe, Target, Building2, Save, BarChart3, MapPin, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { GlobalSeoSettings } from "@shared/schema";
@@ -30,6 +31,21 @@ export default function GlobalSeoSettings() {
     businessLocation: "",
     pharmaceuticalKeywords: "",
     nutraceuticalKeywords: "",
+    
+    // Region-specific keywords
+    northAmericaKeywords: "",
+    europeKeywords: "",
+    asiaPacificKeywords: "",
+    indiaKeywords: "",
+    middleEastKeywords: "",
+    latinAmericaKeywords: "",
+    
+    // SEO Impact Settings
+    enableAutoMetaTags: true,
+    enableStructuredData: true,
+    enableLocalSeo: true,
+    enableHreflang: false,
+    
     googleAnalyticsId: "",
     googleTagManagerId: "",
     facebookPixelId: "",
@@ -47,6 +63,21 @@ export default function GlobalSeoSettings() {
         businessLocation: settings.businessLocation || "",
         pharmaceuticalKeywords: settings.pharmaceuticalKeywords || "",
         nutraceuticalKeywords: settings.nutraceuticalKeywords || "",
+        
+        // Region-specific keywords
+        northAmericaKeywords: settings.northAmericaKeywords || "",
+        europeKeywords: settings.europeKeywords || "",
+        asiaPacificKeywords: settings.asiaPacificKeywords || "",
+        indiaKeywords: settings.indiaKeywords || "",
+        middleEastKeywords: settings.middleEastKeywords || "",
+        latinAmericaKeywords: settings.latinAmericaKeywords || "",
+        
+        // SEO Impact Settings
+        enableAutoMetaTags: settings.enableAutoMetaTags ?? true,
+        enableStructuredData: settings.enableStructuredData ?? true,
+        enableLocalSeo: settings.enableLocalSeo ?? true,
+        enableHreflang: settings.enableHreflang ?? false,
+        
         googleAnalyticsId: settings.googleAnalyticsId || "",
         googleTagManagerId: settings.googleTagManagerId || "",
         facebookPixelId: settings.facebookPixelId || "",
@@ -84,7 +115,7 @@ export default function GlobalSeoSettings() {
     updateSettingsMutation.mutate(formData);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -195,6 +226,150 @@ export default function GlobalSeoSettings() {
                   onChange={(e) => handleInputChange("businessLocation", e.target.value)}
                   placeholder="Mehsana, Gujarat, India"
                 />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Geographic-Specific Keywords */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Region-Specific Keyword Targeting
+            </h3>
+            <p className="text-sm text-gray-600">Configure keywords specific to different geographic markets to improve local search performance</p>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="northAmericaKeywords">North America Keywords</Label>
+                <Textarea
+                  id="northAmericaKeywords"
+                  value={formData.northAmericaKeywords}
+                  onChange={(e) => handleInputChange("northAmericaKeywords", e.target.value)}
+                  placeholder="FDA approved ingredients, USDA organic, dietary supplements, natural health products, organic certification"
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="europeKeywords">Europe Keywords</Label>
+                <Textarea
+                  id="europeKeywords"
+                  value={formData.europeKeywords}
+                  onChange={(e) => handleInputChange("europeKeywords", e.target.value)}
+                  placeholder="EU organic certification, herbal medicines, botanical extracts, phytotherapy, natural ingredients"
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="asiaPacificKeywords">Asia Pacific Keywords</Label>
+                <Textarea
+                  id="asiaPacificKeywords"
+                  value={formData.asiaPacificKeywords}
+                  onChange={(e) => handleInputChange("asiaPacificKeywords", e.target.value)}
+                  placeholder="traditional medicine, TCM ingredients, Ayurvedic herbs, organic extracts, natural wellness"
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="indiaKeywords">India Keywords</Label>
+                <Textarea
+                  id="indiaKeywords"
+                  value={formData.indiaKeywords}
+                  onChange={(e) => handleInputChange("indiaKeywords", e.target.value)}
+                  placeholder="Ayurvedic ingredients, organic herbs India, pharmaceutical raw materials, herbal extracts manufacturer, Gujarat organic"
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="middleEastKeywords">Middle East Keywords</Label>
+                <Textarea
+                  id="middleEastKeywords"
+                  value={formData.middleEastKeywords}
+                  onChange={(e) => handleInputChange("middleEastKeywords", e.target.value)}
+                  placeholder="halal certified ingredients, Islamic medicine, natural health products, organic spices, herbal supplements"
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="latinAmericaKeywords">Latin America Keywords</Label>
+                <Textarea
+                  id="latinAmericaKeywords"
+                  value={formData.latinAmericaKeywords}
+                  onChange={(e) => handleInputChange("latinAmericaKeywords", e.target.value)}
+                  placeholder="ingredientes orgánicos, extractos naturales, medicina herbaria, productos farmacéuticos naturales"
+                  className="min-h-[80px]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* SEO Impact Configuration */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              SEO Impact Configuration
+            </h3>
+            <p className="text-sm text-gray-600">Enable features that directly improve your search engine optimization</p>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="enableAutoMetaTags">Auto Meta Tags</Label>
+                    <p className="text-xs text-gray-500">Automatically generate meta titles and descriptions for products</p>
+                  </div>
+                  <Switch
+                    id="enableAutoMetaTags"
+                    checked={formData.enableAutoMetaTags}
+                    onCheckedChange={(checked) => handleInputChange("enableAutoMetaTags", checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="enableStructuredData">Structured Data</Label>
+                    <p className="text-xs text-gray-500">Enable rich snippets with product schema markup</p>
+                  </div>
+                  <Switch
+                    id="enableStructuredData"
+                    checked={formData.enableStructuredData}
+                    onCheckedChange={(checked) => handleInputChange("enableStructuredData", checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="enableLocalSeo">Local SEO</Label>
+                    <p className="text-xs text-gray-500">Optimize for local search results in your business location</p>
+                  </div>
+                  <Switch
+                    id="enableLocalSeo"
+                    checked={formData.enableLocalSeo}
+                    onCheckedChange={(checked) => handleInputChange("enableLocalSeo", checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="enableHreflang">Hreflang Tags</Label>
+                    <p className="text-xs text-gray-500">Add hreflang tags for international SEO targeting</p>
+                  </div>
+                  <Switch
+                    id="enableHreflang"
+                    checked={formData.enableHreflang}
+                    onCheckedChange={(checked) => handleInputChange("enableHreflang", checked)}
+                  />
+                </div>
               </div>
             </div>
           </div>

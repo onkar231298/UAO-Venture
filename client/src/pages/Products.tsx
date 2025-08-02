@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Search, Filter, ChevronDown, ChevronUp, Leaf, Globe, Package2, Heart, Award, X } from "lucide-react";
 import SmartSearch from "@/components/SmartSearch";
 import type { Product, Category } from "@shared/schema";
+import { useSEO } from "@/hooks/useSEO";
 
 interface ProductFilters {
   search: string;
@@ -32,6 +33,16 @@ interface ProductFilters {
 
 export default function Products() {
   const [location] = useLocation();
+  
+  // Initialize SEO for products page
+  useSEO({
+    title: "Premium Organic Ingredients & Natural Products",
+    description: "Discover our comprehensive range of organic ingredients, herbal extracts, and natural products. Certified organic, pharmaceutical grade, and sustainably sourced from global suppliers.",
+    keywords: "organic ingredients, herbal extracts, natural products, pharmaceutical ingredients, nutraceutical ingredients, organic herbs, botanical extracts",
+    canonicalUrl: `${window.location.origin}/products`,
+    pageType: "products",
+    pageId: "products-listing"
+  });
   
   // Initialize filters from URL parameters
   const initializeFiltersFromURL = () => {

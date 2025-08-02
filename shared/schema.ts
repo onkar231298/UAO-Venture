@@ -163,6 +163,21 @@ export const globalSeoSettings = pgTable("global_seo_settings", {
   businessLocation: varchar("business_location", { length: 255 }),
   pharmaceuticalKeywords: text("pharmaceutical_keywords"),
   nutraceuticalKeywords: text("nutraceutical_keywords"),
+  
+  // Region-specific keyword targeting
+  northAmericaKeywords: text("north_america_keywords"),
+  europeKeywords: text("europe_keywords"),
+  asiaPacificKeywords: text("asia_pacific_keywords"),
+  indiaKeywords: text("india_keywords"),
+  middleEastKeywords: text("middle_east_keywords"),
+  latinAmericaKeywords: text("latin_america_keywords"),
+  
+  // SEO Impact Configuration
+  enableAutoMetaTags: boolean("enable_auto_meta_tags").default(true),
+  enableStructuredData: boolean("enable_structured_data").default(true),
+  enableLocalSeo: boolean("enable_local_seo").default(true),
+  enableHreflang: boolean("enable_hreflang").default(false),
+  
   googleAnalyticsId: varchar("google_analytics_id", { length: 50 }),
   googleTagManagerId: varchar("google_tag_manager_id", { length: 50 }),
   facebookPixelId: varchar("facebook_pixel_id", { length: 50 }),
