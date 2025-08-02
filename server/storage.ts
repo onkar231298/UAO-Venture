@@ -257,8 +257,12 @@ export class DatabaseStorage implements IStorage {
 
   // Get the next product ID number for bulk generation
   private async getNextProductIdNumber(): Promise<number> {
-    const count = await db.select({ count: sql<number>`count(*)` }).from(products);
-    return (count[0]?.count || 0) + 1;
+    // Find the highest existing product ID number
+    const result = await db.select({ 
+      maxId: sql<number>`COALESCE(MAX(CAST(SUBSTRING(product_id FROM 4) AS INTEGER)), 0)`
+    }).from(products).where(sql`product_id ~ '^BFI[0-9]+$'`);
+    
+    return (result[0]?.maxId || 0) + 1;
   }
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
@@ -657,9 +661,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    // Generate unique product ID if not provided
+    // Generate unique product ID if not provided or ensure uniqueness
     if (!product.productId) {
       product.productId = await this.generateProductId();
+    } else {
+      // Check if provided product ID already exists
+      const existing = await db.select({ count: count() }).from(products).where(eq(products.productId, product.productId));
+      if (existing[0].count > 0) {
+        throw new Error(`Product ID ${product.productId} already exists. Please use a different ID or leave blank to auto-generate.`);
+      }
     }
     
     // Generate slug from name if not provided
