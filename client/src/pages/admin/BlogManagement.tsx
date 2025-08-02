@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,18 +79,41 @@ export default function BlogManagement() {
   });
 
   // Fetch blog posts
-  const { data: blogData, isLoading } = useQuery({
+  const { data: blogData, isLoading, error } = useQuery({
     queryKey: ["/api/blog", { published: "all", limit: 100 }],
-    queryFn: () => fetch("/api/blog?published=all&limit=100").then(res => {
-      if (!res.ok) throw new Error('Failed to fetch blog posts');
-      return res.json();
-    })
+    queryFn: async () => {
+      console.log('Making API call to fetch blog posts...');
+      const response = await fetch("/api/blog?published=all&limit=100");
+      console.log('API response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('API response not ok:', response.status, response.statusText);
+        throw new Error(`Failed to fetch blog posts: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('API response data:', data);
+      return data;
+    }
   });
 
   const blogPosts = blogData?.posts || [];
 
   console.log('Blog data received:', blogData);
   console.log('Number of blog posts:', blogPosts.length);
+  console.log('Is loading:', isLoading);
+  console.log('Error:', error);
+
+  // Debug effect to track component state
+  React.useEffect(() => {
+    console.log('BlogManagement component mounted/updated');
+    console.log('Current state:', { blogData, isLoading, error, blogPostsLength: blogPosts.length });
+  }, [blogData, isLoading, error, blogPosts.length]);
+
+  // Additional debug effect to track when component first loads
+  React.useEffect(() => {
+    console.log('BlogManagement component first mount - triggering query');
+  }, []);
 
   // Filter posts
   const filteredPosts = blogPosts.filter((post: BlogPost) => {
@@ -365,6 +389,17 @@ export default function BlogManagement() {
                   : "Get started by creating your first blog post."
                 }
               </p>
+              <div className="text-xs text-gray-400 space-y-1 mt-4 border-t pt-4">
+                <div><strong>Debug Info:</strong></div>
+                <div>Total from API: {blogPosts.length}</div>
+                <div>After filtering: {filteredPosts.length}</div>
+                <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
+                <div>Error: {error ? error.message : 'None'}</div>
+                <div>Search: "{searchQuery}"</div>
+                <div>Category Filter: {categoryFilter}</div>
+                <div>Status Filter: {statusFilter}</div>
+                <div>API Query Key: {JSON.stringify(["/api/blog", { published: "all", limit: 100 }])}</div>
+              </div>
               {!searchQuery && categoryFilter === "all" && statusFilter === "all" && (
                 <Button onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
