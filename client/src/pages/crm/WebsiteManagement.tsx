@@ -38,9 +38,18 @@ import {
   AlertCircle,
   Camera,
   Layout,
-  Code
+  Code,
+  Tags,
+  Trash2,
+  Save,
+  X,
+  Monitor
 } from "lucide-react";
-import type { Product, Category } from "@shared/schema";
+import type { Product, Category, ProductTag } from "@shared/schema";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 
 
@@ -69,6 +78,11 @@ export default function WebsiteManagement() {
   // Fetch categories
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
+  });
+
+  // Fetch tags
+  const { data: tags, isLoading: tagsLoading } = useQuery({
+    queryKey: ["/api/admin/tags"],
   });
 
   // Fetch products with enhanced parameters
@@ -296,9 +310,10 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="tags">Tags</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -595,6 +610,14 @@ export default function WebsiteManagement() {
               <CategoryManagement />
             </TabsContent>
 
+            {/* Tags Management Tab */}
+            <TabsContent value="tags" className="mt-6">
+              <TagsManagement 
+                tags={tags || []}
+                loading={tagsLoading}
+              />
+            </TabsContent>
+
             {/* Content Management Tab */}
             <TabsContent value="content" className="mt-6">
               <Card>
@@ -634,5 +657,366 @@ export default function WebsiteManagement() {
         </div>
       </div>
     </RoleBasedRoute>
+  );
+}
+
+// TagsManagement Component
+function TagsManagement({ tags, loading }: any) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTag, setEditingTag] = useState(null);
+
+  const createTagMutation = useMutation({
+    mutationFn: async (tagData: any) => {
+      return apiRequest("/api/admin/tags", {
+        method: "POST",
+        body: JSON.stringify(tagData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag created successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+      setShowCreateForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateTagMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      return apiRequest(`/api/admin/tags/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+      setEditingTag(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTagMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/tags/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Tag deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete tag",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const migrateTagsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/admin/tags/migrate", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Certification tags synchronized successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tags"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to synchronize tags",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Tags className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading tags...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Tags Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Tags Management</h2>
+          <p className="text-gray-600">Create and manage product tags for filtering and SEO</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => migrateTagsMutation.mutate()}
+            disabled={migrateTagsMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            <Package className="h-4 w-4" />
+            {migrateTagsMutation.isPending ? "Syncing..." : "Sync Product Tags"}
+          </Button>
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Tag
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Add Predefined Tags */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Quick Add Common Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {['USDA NOP', 'NPOP', 'EU Organic', 'FDA Approved', 'GMP Certified', 'ISO Certified', 'Kosher', 'Halal', 'Non-GMO', 'Gluten Free'].map((tagName) => (
+              <Button
+                key={tagName}
+                variant="outline"
+                size="sm"
+                onClick={() => createTagMutation.mutate({ 
+                  name: tagName, 
+                  color: '#22C55E',
+                  description: `Certification tag: ${tagName}`,
+                  isActive: true
+                })}
+                disabled={createTagMutation.isPending || tags?.some((tag: any) => tag.name === tagName)}
+              >
+                {tags?.some((tag: any) => tag.name === tagName) ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Plus className="h-3 w-3 mr-1" />
+                )}
+                {tagName}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tags List */}
+      <div className="grid gap-4">
+        {tags && tags.length > 0 ? (
+          tags.map((tag: any) => (
+            <Card key={tag.id}>
+              <CardContent className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-4 h-4 rounded-full border"
+                    style={{ backgroundColor: tag.color || '#22C55E' }}
+                  />
+                  <div>
+                    <h4 className="font-medium text-gray-900">{tag.name}</h4>
+                    {tag.description && (
+                      <p className="text-sm text-gray-500">{tag.description}</p>
+                    )}
+                  </div>
+                  <Badge variant={tag.isActive ? "secondary" : "outline"}>
+                    {tag.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingTag(tag)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteTagMutation.mutate(tag.id)}
+                    disabled={deleteTagMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Tags className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Tags</h3>
+              <p className="text-gray-500 mb-4">Start by adding your first product tag</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                Add Tag
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Create/Edit Tag Form */}
+      {(showCreateForm || editingTag) && (
+        <TagForm
+          tag={editingTag}
+          onSubmit={(data) => {
+            if (editingTag) {
+              updateTagMutation.mutate({ id: editingTag.id, ...data });
+            } else {
+              createTagMutation.mutate(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingTag(null);
+          }}
+          isLoading={createTagMutation.isPending || updateTagMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+// Tag Form Component
+const tagFormSchema = z.object({
+  name: z.string().min(1, "Tag name is required"),
+  slug: z.string().optional(),
+  color: z.string().default("#22C55E"),
+  description: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+function TagForm({ tag, onSubmit, onCancel, isLoading }: any) {
+  const form = useForm({
+    resolver: zodResolver(tagFormSchema),
+    defaultValues: {
+      name: tag?.name || "",
+      slug: tag?.slug || "",
+      color: tag?.color || "#22C55E",
+      description: tag?.description || "",
+      isActive: tag?.isActive ?? true,
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{tag ? "Edit Tag" : "Create Tag"}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tag Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., EU Organic" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Color</FormLabel>
+                    <FormControl>
+                      <Input type="color" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Brief description of this tag..."
+                      rows={2}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Status</FormLabel>
+                    <FormDescription>
+                      Active tags will be available for product assignment
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : tag ? "Update Tag" : "Create Tag"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }
