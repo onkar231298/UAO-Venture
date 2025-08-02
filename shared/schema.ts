@@ -86,6 +86,7 @@ export const products = pgTable("products", {
   
   // Certifications and Compliance
   certifications: jsonb("certifications").default("[]"), // Array of certification objects
+  tags: jsonb("tags").default("[]"), // Array of product tags/certifications
   isOrganic: boolean("is_organic").default(false),
   
   // Stock and Pricing
