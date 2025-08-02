@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
+import BlogManagement from "@/pages/admin/BlogManagement";
 import {
   Users,
   Package,
@@ -273,6 +274,17 @@ export default function AdminDashboard() {
                   <Mail className="mr-3 h-5 w-5" />
                   Newsletter Subscriptions
                 </button>
+                <button
+                  onClick={() => setActiveSection('blog')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'blog'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <FileText className="mr-3 h-5 w-5" />
+                  Blog Management
+                </button>
               </div>
             </div>
 
@@ -330,6 +342,7 @@ export default function AdminDashboard() {
                    activeSection === 'users' ? 'User Management' :
                    activeSection === 'analytics' ? 'Analytics & Reports' :
                    activeSection === 'newsletter' ? 'Newsletter Subscriptions' :
+                   activeSection === 'blog' ? 'Blog Management' :
                    activeSection === 'settings' ? 'System Settings' : 'Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -472,8 +485,12 @@ export default function AdminDashboard() {
           {activeSection === 'newsletter' && (
             <NewsletterSubscriptions />
           )}
+
+          {activeSection === 'blog' && (
+            <BlogManagement />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && (
             <Card>
               <CardHeader>
                 <CardTitle>
