@@ -534,12 +534,20 @@ export default function ProductDetailBFI() {
               </h1>
               <p className="text-gray-600 mb-4">SKU#: {product.productId}</p>
 
-              {/* Certifications */}
+              {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
+                {/* Display certifications */}
                 {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
-                  <Badge key={index} variant="outline" className="text-xs">
+                  <Badge key={`cert-${index}`} variant="outline" className="text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {cert}
+                  </Badge>
+                ))}
+                {/* Display tags */}
+                {(product as any).tags && ((product as any).tags as string[]).map((tag: string, index: number) => (
+                  <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {tag}
                   </Badge>
                 ))}
               </div>
@@ -695,18 +703,26 @@ export default function ProductDetailBFI() {
                           
 
 
-                          {/* Certifications Display */}
-                          {product.certifications && (product.certifications as string[]).length > 0 && (
+                          {/* Certifications & Tags Display */}
+                          {((product.certifications && (product.certifications as string[]).length > 0) || ((product as any).tags && ((product as any).tags as string[]).length > 0)) && (
                             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                                 <Shield className="w-4 h-4" />
-                                Certifications & Standards
+                                Certifications & Quality Standards
                               </h4>
                               <div className="flex flex-wrap gap-2">
-                                {(product.certifications as string[]).map((cert: string, index: number) => (
-                                  <Badge key={index} variant="outline" className="text-xs bg-white">
+                                {/* Display certifications */}
+                                {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
+                                  <Badge key={`cert-detail-${index}`} variant="outline" className="text-xs bg-white">
                                     <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
                                     {cert}
+                                  </Badge>
+                                ))}
+                                {/* Display tags */}
+                                {(product as any).tags && ((product as any).tags as string[]).map((tag: string, index: number) => (
+                                  <Badge key={`tag-detail-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                                    <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                                    {tag}
                                   </Badge>
                                 ))}
                               </div>
