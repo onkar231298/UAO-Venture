@@ -341,10 +341,11 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="schema">Schema Validator</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
@@ -664,70 +665,295 @@ export default function WebsiteManagement() {
 
 
 
+            {/* Schema Validator Tab */}
+            <TabsContent value="schema" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="h-5 w-5" />
+                    Google Schema Validator
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-gray-600">
+                    All product pages automatically include structured data (Schema.org) for better SEO and rich snippets.
+                  </p>
+                  
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <h4 className="font-semibold text-green-800">Schema Implementation Active</h4>
+                    </div>
+                    <ul className="text-sm text-green-700 space-y-1">
+                      <li>• Product schema with name, description, SKU, and pricing</li>
+                      <li>• Brand information for BFI Organic</li>
+                      <li>• Availability and stock status</li>
+                      <li>• Breadcrumb navigation</li>
+                      <li>• Additional properties (botanical name, origin, form)</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Test Your Structured Data:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
+                      >
+                        <Globe className="w-4 h-4 mr-2" />
+                        Google Rich Results Test
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://validator.schema.org/', '_blank')}
+                      >
+                        <Code className="w-4 h-4 mr-2" />
+                        Schema.org Validator
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://www.google.com/webmasters/markup-helper/', '_blank')}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Google Markup Helper
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://developers.google.com/search/docs/advanced/structured-data', '_blank')}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Schema Documentation
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Copy any product page URL from your website and test it with these tools to ensure proper structured data implementation.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* SEO Management Tab */}
             <TabsContent value="seo" className="mt-6">
               <div className="space-y-6">
-                {/* Google Schema Validator */}
+                {/* Global SEO Settings */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Code className="h-5 w-5" />
-                      Google Schema Validator
+                      <TrendingUp className="h-5 w-5" />
+                      Global SEO Configuration
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600">
-                      All product pages automatically include structured data (Schema.org) for better SEO and rich snippets.
-                    </p>
-                    
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <h4 className="font-semibold text-green-800">Schema Implementation Active</h4>
+                  <CardContent className="space-y-6">
+                    {/* Site Meta Settings */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold">Global Meta Settings</h4>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <Label htmlFor="siteTitle">Site Title</Label>
+                          <Input 
+                            id="siteTitle" 
+                            placeholder="BFI Organic - Premium Organic Ingredients Supplier"
+                            defaultValue="BFI Organic - Premium Organic Ingredients Supplier"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="siteDescription">Site Description</Label>
+                          <Textarea 
+                            id="siteDescription" 
+                            placeholder="Leading supplier of premium organic ingredients, herbs, and botanical extracts. Certified organic products for pharmaceutical, nutraceutical, and food industries worldwide."
+                            defaultValue="Leading supplier of premium organic ingredients, herbs, and botanical extracts. Certified organic products for pharmaceutical, nutraceutical, and food industries worldwide."
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="keywords">Primary Keywords (comma-separated)</Label>
+                          <Textarea 
+                            id="keywords" 
+                            placeholder="organic ingredients, herbal extracts, pharmaceutical raw materials, nutraceutical ingredients, organic herbs, botanical extracts, organic spices, certified organic, bulk organic ingredients"
+                            defaultValue="organic ingredients, herbal extracts, pharmaceutical raw materials, nutraceutical ingredients, organic herbs, botanical extracts, organic spices, certified organic, bulk organic ingredients"
+                            rows={2}
+                          />
+                        </div>
                       </div>
-                      <ul className="text-sm text-green-700 space-y-1">
-                        <li>• Product schema with name, description, SKU, and pricing</li>
-                        <li>• Brand information for BFI Organic</li>
-                        <li>• Availability and stock status</li>
-                        <li>• Breadcrumb navigation</li>
-                        <li>• Additional properties (botanical name, origin, form)</li>
-                      </ul>
                     </div>
-                    
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">Test Your Structured Data:</h4>
-                      <div className="flex flex-col gap-2">
-                        <Button 
-                          variant="outline" 
-                          className="justify-start"
-                          onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
-                        >
-                          <Globe className="w-4 h-4 mr-2" />
-                          Google Rich Results Test
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="justify-start"
-                          onClick={() => window.open('https://validator.schema.org/', '_blank')}
-                        >
-                          <Code className="w-4 h-4 mr-2" />
-                          Schema.org Validator
-                        </Button>
+
+                    {/* Geographic Targeting */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold">Geographic Targeting</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="primaryRegion">Primary Target Region</Label>
+                          <Select defaultValue="global">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="global">Global (All Regions)</SelectItem>
+                              <SelectItem value="india">India</SelectItem>
+                              <SelectItem value="usa">United States</SelectItem>
+                              <SelectItem value="europe">Europe</SelectItem>
+                              <SelectItem value="asia">Asia Pacific</SelectItem>
+                              <SelectItem value="middleeast">Middle East</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="businessLocation">Business Location</Label>
+                          <Input 
+                            id="businessLocation" 
+                            placeholder="Mehsana, Gujarat, India"
+                            defaultValue="Mehsana, Gujarat, India"
+                          />
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        Copy any product page URL from your website and test it with these tools.
-                      </p>
+                    </div>
+
+                    {/* Industry Keywords */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold">Industry-Specific Keywords</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="pharmaceuticalKw">Pharmaceutical Keywords</Label>
+                          <Textarea 
+                            id="pharmaceuticalKw" 
+                            placeholder="pharmaceutical grade herbs, API raw materials, pharmaceutical excipients, drug intermediates"
+                            rows={2}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="nutraceuticalKw">Nutraceutical Keywords</Label>
+                          <Textarea 
+                            id="nutraceuticalKw" 
+                            placeholder="dietary supplement ingredients, functional food ingredients, health supplements, natural extracts"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* SEO Settings */}
+                {/* Technical SEO */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>SEO Settings</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      Technical SEO Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold">Search Engine Settings</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Enable Site Search</Label>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>XML Sitemap Auto-Generation</Label>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>Robots.txt Optimization</Label>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>Google Analytics Integration</Label>
+                            <Switch />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-semibold">Performance & Indexing</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Image SEO Optimization</Label>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>Lazy Loading</Label>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>AMP Pages</Label>
+                            <Switch />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label>PWA Features</Label>
+                            <Switch />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* SEO Tools & Analytics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      SEO Tools & Monitoring
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600">Advanced SEO configuration and site-wide settings will be available here.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://search.google.com/search-console', '_blank')}
+                      >
+                        <Globe className="w-4 h-4 mr-2" />
+                        Google Search Console
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://analytics.google.com/', '_blank')}
+                      >
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Google Analytics
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://pagespeed.web.dev/', '_blank')}
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        PageSpeed Insights
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://www.google.com/business/', '_blank')}
+                      >
+                        <Building2 className="w-4 h-4 mr-2" />
+                        Google My Business
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://trends.google.com/', '_blank')}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Google Trends
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start"
+                        onClick={() => window.open('https://ads.google.com/home/tools/keyword-planner/', '_blank')}
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Keyword Planner
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
