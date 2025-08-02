@@ -444,7 +444,7 @@ export default function ProductDetailBFI() {
                   </Badge>
                 ))}
                 {/* Display tags */}
-                {(product as any).tags && ((product as any).tags as string[]).map((tag: string, index: number) => (
+                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => (
                   <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {tag}
