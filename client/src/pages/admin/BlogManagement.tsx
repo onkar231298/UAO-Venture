@@ -80,9 +80,16 @@ export default function BlogManagement() {
   // Fetch blog posts
   const { data: blogData, isLoading } = useQuery({
     queryKey: ["/api/blog", { published: "all", limit: 100 }],
+    queryFn: () => fetch("/api/blog?published=all&limit=100").then(res => {
+      if (!res.ok) throw new Error('Failed to fetch blog posts');
+      return res.json();
+    })
   });
 
-  const blogPosts = (blogData as any)?.posts || [];
+  const blogPosts = blogData?.posts || [];
+
+  console.log('Blog data received:', blogData);
+  console.log('Number of blog posts:', blogPosts.length);
 
   // Filter posts
   const filteredPosts = blogPosts.filter((post: BlogPost) => {
