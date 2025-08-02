@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import VideoParallaxHero from "@/components/VideoParallaxHero";
+import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
@@ -44,8 +44,8 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Bright Fame Organics Parallax Hero */}
-      <VideoParallaxHero />
+      {/* Bright Fame Organics Hero Slider with Warehouse Image */}
+      <SimpleHeroSlider />
 
       {/* Product Categories */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
