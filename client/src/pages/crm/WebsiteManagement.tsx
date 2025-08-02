@@ -938,30 +938,44 @@ function SchemaValidatorInterface() {
 
   const runSchemaValidation = async (url: string) => {
     try {
-      // Simulate validation by checking if URL exists and has structured data
+      // Validate by checking if URL exists and has structured data
       const response = await fetch(url);
       const html = await response.text();
       
-      // Check for JSON-LD structured data
+      // Check for JSON-LD structured data with more flexible matching
       const hasJsonLd = html.includes('application/ld+json');
-      const hasProductSchema = html.includes('"@type":"Product"');
-      const hasBreadcrumbs = html.includes('"@type":"BreadcrumbList"');
+      const hasProductSchema = html.includes('"@type": "Product"') || html.includes('"@type":"Product"');
+      const hasBreadcrumbs = html.includes('"@type": "BreadcrumbList"') || html.includes('"@type":"BreadcrumbList"');
+      
+      // Check for essential product schema fields
+      const hasProductName = html.includes('"name":') || html.includes('"name" :');
+      const hasProductSku = html.includes('"sku":') || html.includes('"sku" :');
+      const hasProductBrand = html.includes('"brand":') || html.includes('"brand" :');
+      
+      const errors = [];
+      if (!hasJsonLd) errors.push('Missing JSON-LD structured data');
+      if (!hasProductSchema) errors.push('Missing Product schema');
+      if (!hasProductName) errors.push('Missing product name in schema');
+      if (!hasProductSku) errors.push('Missing product SKU in schema');
+      if (!hasProductBrand) errors.push('Missing product brand in schema');
       
       return {
         url,
-        valid: hasJsonLd && hasProductSchema,
+        valid: hasJsonLd && hasProductSchema && hasProductName && hasProductSku && hasProductBrand,
         hasProductSchema,
         hasBreadcrumbs,
         hasJsonLd,
-        errors: !hasJsonLd ? ['Missing JSON-LD structured data'] : 
-                !hasProductSchema ? ['Missing Product schema'] : []
+        hasProductName,
+        hasProductSku,
+        hasProductBrand,
+        errors
       };
     } catch (error) {
       return {
         url,
         valid: false,
         error: 'Failed to fetch URL',
-        errors: ['URL not accessible']
+        errors: ['URL not accessible: ' + (error as Error).message]
       };
     }
   };
