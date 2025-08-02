@@ -41,6 +41,7 @@ import {
   searchSuggestions,
   searchAnalytics,
   hreflangConfig,
+  globalSeoSettings,
   type ProductFaq,
   type InsertProductFaq,
   type BlogPost,
@@ -55,6 +56,8 @@ import {
   type InsertSearchAnalytics,
   type HreflangConfig,
   type InsertHreflangConfig,
+  type GlobalSeoSettings,
+  type InsertGlobalSeoSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
@@ -230,6 +233,10 @@ export interface IStorage {
   createHreflangConfig(config: InsertHreflangConfig): Promise<HreflangConfig>;
   updateHreflangConfig(id: number, updates: Partial<InsertHreflangConfig>): Promise<HreflangConfig | undefined>;
   deleteHreflangConfig(id: number): Promise<void>;
+
+  // Global SEO Settings methods
+  getGlobalSeoSettings(): Promise<GlobalSeoSettings | undefined>;
+  updateGlobalSeoSettings(settings: Partial<InsertGlobalSeoSettings>): Promise<GlobalSeoSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2459,6 +2466,43 @@ export class DatabaseStorage implements IStorage {
 
   async deleteHreflangConfig(id: number): Promise<void> {
     await db.delete(hreflangConfig).where(eq(hreflangConfig.id, id));
+  }
+
+  // Global SEO Settings methods
+  async getGlobalSeoSettings(): Promise<GlobalSeoSettings | undefined> {
+    const [settings] = await db.select().from(globalSeoSettings)
+      .where(eq(globalSeoSettings.isActive, true))
+      .limit(1);
+    return settings;
+  }
+
+  async updateGlobalSeoSettings(settingsData: Partial<InsertGlobalSeoSettings>): Promise<GlobalSeoSettings> {
+    // Check if settings exist
+    const existingSettings = await this.getGlobalSeoSettings();
+    
+    if (existingSettings) {
+      // Update existing settings
+      const [updatedSettings] = await db.update(globalSeoSettings)
+        .set({ ...settingsData, updatedAt: new Date() })
+        .where(eq(globalSeoSettings.id, existingSettings.id))
+        .returning();
+      return updatedSettings;
+    } else {
+      // Create new settings
+      const [newSettings] = await db.insert(globalSeoSettings)
+        .values({ 
+          siteTitle: "BFI Organic - Premium Organic Ingredients Supplier",
+          siteDescription: "Leading supplier of premium organic ingredients, herbs, and botanical extracts. Certified organic products for pharmaceutical, nutraceutical, and food industries worldwide.",
+          primaryKeywords: "organic ingredients, herbal extracts, pharmaceutical raw materials, nutraceutical ingredients, organic herbs, botanical extracts, organic spices, certified organic",
+          primaryTargetRegion: "Global (All Regions)",
+          businessLocation: "Mehsana, Gujarat, India",
+          pharmaceuticalKeywords: "pharmaceutical grade herbs, API raw materials, pharmaceutical excipients, drug intermediates",
+          nutraceuticalKeywords: "dietary supplement ingredients, functional food ingredients, health supplements, natural extracts",
+          ...settingsData
+        })
+        .returning();
+      return newSettings;
+    }
   }
 }
 

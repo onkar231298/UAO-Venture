@@ -16,7 +16,8 @@ import {
   insertSeoMonitoringSchema,
   insertCoreWebVitalsSchema,
   insertSearchAnalyticsSchema,
-  insertHreflangConfigSchema
+  insertHreflangConfigSchema,
+  insertGlobalSeoSettingsSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -1564,6 +1565,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching popular searches:', error);
       res.status(500).json({ message: "Failed to fetch popular searches" });
+    }
+  });
+
+  // Global SEO Settings routes
+  app.get('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const settings = await storage.getGlobalSeoSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching global SEO settings:', error);
+      res.status(500).json({ message: "Failed to fetch SEO settings" });
+    }
+  });
+
+  app.put('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const settingsData = insertGlobalSeoSettingsSchema.parse(req.body);
+      const settings = await storage.updateGlobalSeoSettings(settingsData);
+      res.json(settings);
+    } catch (error) {
+      console.error('Error updating global SEO settings:', error);
+      res.status(500).json({ message: "Failed to update SEO settings" });
     }
   });
 

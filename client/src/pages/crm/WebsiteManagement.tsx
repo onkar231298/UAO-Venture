@@ -10,6 +10,7 @@ import BulkProductUpload from "@/components/BulkProductUpload";
 import ComprehensiveProductForm from "@/components/ComprehensiveProductForm";
 import SeoManagement from "@/pages/crm/SeoManagement";
 import HeroSliderManagement from "@/components/HeroSliderManagement";
+import GlobalSeoSettings from "@/components/GlobalSeoSettings";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -345,13 +346,14 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="hero-slider">Hero Slider</TabsTrigger>
               <TabsTrigger value="tags">Tags</TabsTrigger>
               <TabsTrigger value="schema">Schema Validator</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
+              <TabsTrigger value="global-seo">Global SEO</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
 
@@ -711,6 +713,11 @@ export default function WebsiteManagement() {
             {/* SEO Management Tab */}
             <TabsContent value="seo" className="mt-6">
               <SeoManagement />
+            </TabsContent>
+
+            {/* Global SEO Configuration Tab */}
+            <TabsContent value="global-seo" className="mt-6">
+              <GlobalSeoSettings />
             </TabsContent>
 
             {/* Analytics Tab */}

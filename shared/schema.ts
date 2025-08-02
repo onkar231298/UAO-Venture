@@ -153,6 +153,26 @@ export const searchAnalytics = pgTable("search_analytics", {
   searchedAt: timestamp("searched_at").defaultNow(),
 });
 
+// Global SEO settings configuration
+export const globalSeoSettings = pgTable("global_seo_settings", {
+  id: serial("id").primaryKey(),
+  siteTitle: varchar("site_title", { length: 255 }).notNull(),
+  siteDescription: text("site_description"),
+  primaryKeywords: text("primary_keywords"), // comma-separated
+  primaryTargetRegion: varchar("primary_target_region", { length: 100 }).default("Global (All Regions)"),
+  businessLocation: varchar("business_location", { length: 255 }),
+  pharmaceuticalKeywords: text("pharmaceutical_keywords"),
+  nutraceuticalKeywords: text("nutraceutical_keywords"),
+  googleAnalyticsId: varchar("google_analytics_id", { length: 50 }),
+  googleTagManagerId: varchar("google_tag_manager_id", { length: 50 }),
+  facebookPixelId: varchar("facebook_pixel_id", { length: 50 }),
+  twitterHandle: varchar("twitter_handle", { length: 50 }),
+  organizationSchema: jsonb("organization_schema"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Hreflang configuration for multi-language
 export const hreflangConfig = pgTable("hreflang_config", {
   id: serial("id").primaryKey(),
@@ -682,3 +702,12 @@ export const insertHreflangConfigSchema = createInsertSchema(hreflangConfig).omi
 });
 export type InsertHreflangConfig = z.infer<typeof insertHreflangConfigSchema>;
 export type HreflangConfig = typeof hreflangConfig.$inferSelect;
+
+// Global SEO Settings schemas
+export const insertGlobalSeoSettingsSchema = createInsertSchema(globalSeoSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertGlobalSeoSettings = z.infer<typeof insertGlobalSeoSettingsSchema>;
+export type GlobalSeoSettings = typeof globalSeoSettings.$inferSelect;
