@@ -17,6 +17,7 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
 import CustomerSignup from "@/pages/CustomerSignup";
+import CustomerLogin from "@/pages/CustomerLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -39,14 +40,14 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
-      <Route path="/login" component={UnifiedLogin} />
+      <Route path="/login" component={CustomerLogin} />
       <Route path="/signup" component={CustomerSignup} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider" component={VideoHeroSliderManager} />
+      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (

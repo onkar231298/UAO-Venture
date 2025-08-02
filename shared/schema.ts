@@ -26,13 +26,16 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth and role management
+// User storage table for Replit Auth and local auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Password field for local authentication (customers)
+  passwordHash: varchar("password_hash"), // bcrypt hash for local auth
+  authProvider: varchar("auth_provider").default("local"), // "local" or "replit"
   role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),

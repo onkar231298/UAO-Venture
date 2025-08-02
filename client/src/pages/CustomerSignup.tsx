@@ -19,6 +19,8 @@ const customerSignupSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(8, 'Please confirm your password'),
   companyName: z.string().min(2, 'Company name is required'),
   phoneNumber: z.string().min(10, 'Please enter a valid phone number'),
   address: z.string().min(10, 'Please enter your complete address'),
@@ -27,6 +29,9 @@ const customerSignupSchema = z.object({
   // Currency and timezone are automatically set based on country
   currency: z.string().optional(),
   timezone: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  path: ['confirmPassword'],
+  message: 'Passwords do not match',
 });
 
 type CustomerSignupForm = z.infer<typeof customerSignupSchema>;
@@ -66,6 +71,8 @@ export default function CustomerSignup() {
       firstName: '',
       lastName: '',
       email: '',
+      password: '',
+      confirmPassword: '',
       companyName: '',
       phoneNumber: '',
       address: '',
@@ -208,6 +215,37 @@ export default function CustomerSignup() {
                 )}
               />
 
+              {/* Password Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password *</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Create a strong password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password *</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Confirm your password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               {/* Business Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -296,7 +334,6 @@ export default function CustomerSignup() {
                     )}
                   />
 
-                  {/* Currency automatically set based on country selection */}
                   <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-600">
                       <strong>Currency:</strong> {form.watch('currency') || 'Will be set based on country'}
@@ -316,6 +353,17 @@ export default function CustomerSignup() {
               >
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
+
+              <div className="text-center text-sm text-gray-600">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/login'}
+                  className="text-green-600 hover:text-green-700 font-medium"
+                >
+                  Sign In Here
+                </button>
+              </div>
             </form>
           </Form>
         </CardContent>

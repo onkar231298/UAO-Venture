@@ -32,15 +32,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Location routes
   registerLocationRoutes(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes - handle both Replit auth and local auth
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      // Check for local session first
+      if (req.session?.user) {
+        const user = await storage.getUser(req.session.user.id);
+        if (user) {
+          return res.json(user);
+        }
       }
-      res.json(user);
+
+      // Fall back to Replit auth
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        const userId = req.user.claims.sub;
+        const user = await storage.getUser(userId);
+        if (user) {
+          return res.json(user);
+        }
+      }
+
+      res.status(401).json({ message: "Unauthorized" });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -1805,21 +1817,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Customer signup route (without authentication)
+  // Customer signup route with password
   app.post('/api/customer/signup', async (req, res) => {
     try {
-      const customerData = {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        email: req.body.email,
-        companyName: req.body.companyName,
-        phoneNumber: req.body.phoneNumber,
-        address: req.body.address,
-        country: req.body.country,
-        currency: req.body.currency,
-        timezone: req.body.timezone,
-        role: 'customer' // Set role to customer
-      };
+      const bcrypt = require('bcryptjs');
+      
+      const { password, confirmPassword, ...customerData } = req.body;
+      
+      // Validate password confirmation
+      if (password !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match" });
+      }
+      
+      if (!password || password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long" });
+      }
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(customerData.email);
@@ -1827,8 +1839,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
+      // Hash the password
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      // Create customer data with hashed password
+      const customerWithAuth = {
+        ...customerData,
+        passwordHash,
+        authProvider: 'local',
+        role: 'customer',
+        id: `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
+
       // Create the customer account
-      const newUser = await storage.createCustomer(customerData);
+      const newUser = await storage.createCustomer(customerWithAuth);
       
       res.json({ 
         message: "Customer account created successfully!", 
@@ -1840,6 +1864,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User with this email already exists" });
       }
       res.status(500).json({ message: "Failed to create customer account" });
+    }
+  });
+
+  // Customer login route
+  app.post('/api/customer/login', async (req, res) => {
+    try {
+      const bcrypt = require('bcryptjs');
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.authProvider !== 'local' || !user.passwordHash) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Create session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        authProvider: 'local'
+      };
+
+      res.json({ 
+        message: "Login successful", 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          country: user.country,
+          currency: user.currency 
+        } 
+      });
+    } catch (error: any) {
+      console.error('Error during login:', error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
