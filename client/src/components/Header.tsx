@@ -175,6 +175,9 @@ export default function Header() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Link href="/blog" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 border-green-600' : ''}`}>
+                Blog
+              </Link>
               <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
                 Certifications
               </a>
@@ -305,6 +308,13 @@ export default function Header() {
               onClick={() => setShowMobileMenu(false)}
             >
               All Ingredients
+            </Link>
+            <Link 
+              href="/blog" 
+              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium' : ''}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Blog
             </Link>
             <div className="py-2 text-gray-700">Certifications</div>
             <div className="py-2 text-gray-700">R&D Lab</div>
