@@ -939,12 +939,17 @@ function SchemaValidatorInterface() {
   // Log URLs for debugging
   console.log('Base URL:', baseUrl);
   console.log('Sample product URL:', productUrls[0]);
+  console.log('Total product URLs to test:', productUrls.length);
 
   const runSchemaValidation = async (url: string) => {
+    console.log('Validating URL:', url);
     try {
       // Validate by checking if URL exists and has structured data
       const response = await fetch(url);
+      console.log('Response status:', response.status);
       const html = await response.text();
+      console.log('Response HTML length:', html.length);
+      console.log('First 200 chars:', html.substring(0, 200));
       
       // Check for JSON-LD structured data with more flexible matching
       const hasJsonLd = html.includes('application/ld+json');
@@ -955,6 +960,15 @@ function SchemaValidatorInterface() {
       const hasProductName = html.includes('"name":') || html.includes('"name" :');
       const hasProductSku = html.includes('"sku":') || html.includes('"sku" :');
       const hasProductBrand = html.includes('"brand":') || html.includes('"brand" :');
+      
+      console.log('Validation results:', {
+        hasJsonLd,
+        hasProductSchema,
+        hasBreadcrumbs,
+        hasProductName,
+        hasProductSku,
+        hasProductBrand
+      });
       
       const errors = [];
       if (!hasJsonLd) errors.push('Missing JSON-LD structured data');
@@ -975,6 +989,7 @@ function SchemaValidatorInterface() {
         errors
       };
     } catch (error) {
+      console.log('Validation error:', error);
       return {
         url,
         valid: false,
