@@ -67,7 +67,7 @@ export default function SimpleHeroSlider() {
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${slide.backgroundImage || slide.background_image || warehouseImage})` }}
+        style={{ backgroundImage: `url(${warehouseImage})` }}
       >
         {/* Gradient Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
