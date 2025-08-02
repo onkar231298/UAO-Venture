@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
+import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import {
   Users,
   Package,
@@ -23,7 +24,8 @@ import {
   Calculator,
   TrendingUp,
   LayoutDashboard,
-  Send
+  Send,
+  Mail
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -260,6 +262,17 @@ export default function AdminDashboard() {
                   <BarChart3 className="mr-3 h-5 w-5" />
                   Analytics & Reports
                 </button>
+                <button
+                  onClick={() => setActiveSection('newsletter')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'newsletter'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Mail className="mr-3 h-5 w-5" />
+                  Newsletter Subscriptions
+                </button>
               </div>
             </div>
 
@@ -316,6 +329,7 @@ export default function AdminDashboard() {
                    activeSection === 'website' ? 'Website Management' :
                    activeSection === 'users' ? 'User Management' :
                    activeSection === 'analytics' ? 'Analytics & Reports' :
+                   activeSection === 'newsletter' ? 'Newsletter Subscriptions' :
                    activeSection === 'settings' ? 'System Settings' : 'Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -454,8 +468,12 @@ export default function AdminDashboard() {
           {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm') && (
             <SalesManagement activeSubSection={activeSection} />
           )}
+
+          {activeSection === 'newsletter' && (
+            <NewsletterSubscriptions />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && (
             <Card>
               <CardHeader>
                 <CardTitle>
