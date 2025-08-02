@@ -937,48 +937,159 @@ function SchemaValidatorInterface() {
     `${baseUrl}/api/product-page/${product.slug}`
   ) || [];
 
+  const validateJsonLdStructure = (html: string) => {
+    const errors = [];
+    const warnings = [];
+    const info = [];
+    
+    try {
+      // Extract JSON-LD scripts
+      const jsonLdRegex = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+      const matches = Array.from(html.matchAll(jsonLdRegex));
+      
+      if (matches.length === 0) {
+        errors.push('No JSON-LD structured data found');
+        return { valid: false, errors, warnings, info, schemas: [] };
+      }
+      
+      const schemas = [];
+      let hasProductSchema = false;
+      let hasBreadcrumbs = false;
+      
+      for (const match of matches) {
+        try {
+          const jsonContent = match[1].trim();
+          const schema = JSON.parse(jsonContent);
+          schemas.push(schema);
+          
+          // Validate Product schema
+          if (schema['@type'] === 'Product') {
+            hasProductSchema = true;
+            info.push('Product schema found');
+            
+            // Required fields validation
+            const requiredFields = ['name', 'description'];
+            const recommendedFields = ['sku', 'brand', 'offers'];
+            
+            requiredFields.forEach(field => {
+              if (!schema[field]) {
+                errors.push(`Missing required field: ${field}`);
+              }
+            });
+            
+            recommendedFields.forEach(field => {
+              if (!schema[field]) {
+                warnings.push(`Missing recommended field: ${field}`);
+              }
+            });
+            
+            // Validate offers structure
+            if (schema.offers) {
+              if (Array.isArray(schema.offers)) {
+                schema.offers.forEach((offer, index) => {
+                  if (!offer['@type'] || offer['@type'] !== 'Offer') {
+                    errors.push(`Offer ${index + 1}: Missing or invalid @type`);
+                  }
+                  if (!offer.availability) {
+                    warnings.push(`Offer ${index + 1}: Missing availability`);
+                  }
+                });
+              } else if (schema.offers['@type'] !== 'Offer') {
+                errors.push('Offer: Missing or invalid @type');
+              }
+            }
+            
+            // Validate brand structure
+            if (schema.brand && typeof schema.brand === 'object') {
+              if (!schema.brand['@type'] || !schema.brand.name) {
+                warnings.push('Brand: Missing @type or name');
+              }
+            }
+          }
+          
+          // Validate BreadcrumbList schema
+          if (schema['@type'] === 'BreadcrumbList') {
+            hasBreadcrumbs = true;
+            info.push('Breadcrumb schema found');
+            
+            if (!schema.itemListElement || !Array.isArray(schema.itemListElement)) {
+              errors.push('BreadcrumbList: Missing or invalid itemListElement');
+            } else {
+              schema.itemListElement.forEach((item, index) => {
+                if (!item['@type'] || item['@type'] !== 'ListItem') {
+                  errors.push(`Breadcrumb item ${index + 1}: Missing or invalid @type`);
+                }
+                if (!item.position || !item.name) {
+                  errors.push(`Breadcrumb item ${index + 1}: Missing position or name`);
+                }
+              });
+            }
+          }
+          
+        } catch (parseError) {
+          errors.push(`Invalid JSON-LD syntax: ${parseError.message}`);
+        }
+      }
+      
+      if (!hasProductSchema) {
+        errors.push('No Product schema found');
+      }
+      
+      if (!hasBreadcrumbs) {
+        warnings.push('No BreadcrumbList schema found');
+      }
+      
+      return {
+        valid: errors.length === 0,
+        errors,
+        warnings,
+        info,
+        schemas,
+        hasProductSchema,
+        hasBreadcrumbs
+      };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: ['Schema validation failed: ' + error.message],
+        warnings: [],
+        info: [],
+        schemas: []
+      };
+    }
+  };
+
   const runSchemaValidation = async (url: string) => {
     try {
-      // Validate by checking if URL exists and has structured data
       const response = await fetch(url);
       const html = await response.text();
       
-      // Check for JSON-LD structured data with more flexible matching
-      const hasJsonLd = html.includes('application/ld+json');
-      const hasProductSchema = html.includes('"@type": "Product"') || html.includes('"@type":"Product"');
-      const hasBreadcrumbs = html.includes('"@type": "BreadcrumbList"') || html.includes('"@type":"BreadcrumbList"');
-      
-      // Check for essential product schema fields
-      const hasProductName = html.includes('"name":') || html.includes('"name" :');
-      const hasProductSku = html.includes('"sku":') || html.includes('"sku" :');
-      const hasProductBrand = html.includes('"brand":') || html.includes('"brand" :');
-      
-      const errors = [];
-      if (!hasJsonLd) errors.push('Missing JSON-LD structured data');
-      if (!hasProductSchema) errors.push('Missing Product schema');
-      if (!hasProductName) errors.push('Missing product name in schema');
-      if (!hasProductSku) errors.push('Missing product SKU in schema');
-      if (!hasProductBrand) errors.push('Missing product brand in schema');
+      const validation = validateJsonLdStructure(html);
       
       return {
         url,
-        valid: hasJsonLd && hasProductSchema && hasProductName && hasProductSku && hasProductBrand,
-        hasProductSchema,
-        hasBreadcrumbs,
-        hasJsonLd,
-        hasProductName,
-        hasProductSku,
-        hasProductBrand,
-        errors
+        ...validation,
+        productName: extractProductName(url),
+        responseStatus: response.status
       };
     } catch (error) {
       return {
         url,
         valid: false,
-        error: 'Failed to fetch URL',
-        errors: ['URL not accessible: ' + (error as Error).message]
+        errors: ['URL not accessible: ' + (error as Error).message],
+        warnings: [],
+        info: [],
+        schemas: [],
+        productName: extractProductName(url),
+        responseStatus: 0
       };
     }
+  };
+  
+  const extractProductName = (url: string) => {
+    const slug = url.split('/').pop() || '';
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const runBatchValidation = async () => {
@@ -990,33 +1101,23 @@ function SchemaValidatorInterface() {
     const results = [];
     const errors = [];
     
-    // Test all available products
-    const testUrls = productUrls;
-    
-    for (let i = 0; i < testUrls.length; i++) {
-      const url = testUrls[i];
-      console.log(`Processing URL ${i + 1}/${testUrls.length}:`, url);
+    for (let i = 0; i < productUrls.length; i++) {
+      const url = productUrls[i];
       
       try {
         const result = await runSchemaValidation(url);
         results.push(result);
         
         if (!result.valid) {
-          console.log('Validation failed for:', url, 'Errors:', result.errors);
           errors.push({
             url: result.url,
             errors: result.errors || [result.error]
           });
-        } else {
-          console.log('Validation passed for:', url);
         }
         
-        setScanProgress(Math.round(((i + 1) / testUrls.length) * 100));
-        
-        // Small delay to prevent overwhelming the server
+        setScanProgress(Math.round(((i + 1) / productUrls.length) * 100));
         await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
-        console.log('Exception during validation:', url, error);
         errors.push({
           url,
           errors: ['Validation failed: ' + (error as Error).message]
@@ -1025,7 +1126,7 @@ function SchemaValidatorInterface() {
     }
     
     setScanResults({
-      total: testUrls.length,
+      total: productUrls.length,
       valid: results.filter(r => r.valid).length,
       invalid: errors.length,
       results
@@ -1035,7 +1136,66 @@ function SchemaValidatorInterface() {
     
     toast({
       title: "Schema Validation Complete",
-      description: `Scanned ${testUrls.length} pages. ${results.filter(r => r.valid).length} valid, ${errors.length} with issues.`,
+      description: `Scanned ${productUrls.length} pages. ${results.filter(r => r.valid).length} valid, ${errors.length} with issues.`,
+    });
+  };
+
+  const runAdvancedValidation = async () => {
+    setIsScanning(true);
+    setScanProgress(0);
+    setScanResults(null);
+    setValidationErrors([]);
+    
+    const results = [];
+    
+    for (let i = 0; i < productUrls.length; i++) {
+      const url = productUrls[i];
+      
+      try {
+        const result = await runSchemaValidation(url);
+        results.push(result);
+        
+        setScanProgress(Math.round(((i + 1) / productUrls.length) * 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        results.push({
+          url,
+          valid: false,
+          errors: ['Validation failed: ' + (error as Error).message],
+          warnings: [],
+          info: [],
+          schemas: [],
+          productName: extractProductName(url),
+          responseStatus: 0
+        });
+      }
+    }
+    
+    const validResults = results.filter(r => r.valid);
+    const invalidResults = results.filter(r => !r.valid);
+    
+    setScanResults({
+      total: productUrls.length,
+      valid: validResults.length,
+      invalid: invalidResults.length,
+      results,
+      validResults,
+      invalidResults
+    });
+    
+    setValidationErrors(invalidResults.map(r => ({
+      url: r.url,
+      productName: r.productName,
+      errors: r.errors,
+      warnings: r.warnings,
+      responseStatus: r.responseStatus
+    })));
+    
+    setIsScanning(false);
+    
+    toast({
+      title: "Advanced Validation Complete",
+      description: `Analyzed ${productUrls.length} pages. ${validResults.length} valid, ${invalidResults.length} with issues.`,
     });
   };
 
@@ -1102,6 +1262,47 @@ function SchemaValidatorInterface() {
     toast({
       title: "Opening Schema.org Validators",
       description: `Opening ${testUrls.length} product pages in Schema.org validator.`,
+    });
+  };
+
+  const downloadAdvancedReport = () => {
+    if (!scanResults) return;
+    
+    const report = {
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalPages: scanResults.total,
+        validPages: scanResults.valid,
+        invalidPages: scanResults.invalid,
+        successRate: Math.round((scanResults.valid / scanResults.total) * 100)
+      },
+      validationDetails: scanResults.results?.map(result => ({
+        productName: result.productName,
+        url: result.url,
+        valid: result.valid,
+        responseStatus: result.responseStatus,
+        errors: result.errors || [],
+        warnings: result.warnings || [],
+        info: result.info || [],
+        schemasFound: result.schemas?.length || 0,
+        hasProductSchema: result.hasProductSchema,
+        hasBreadcrumbs: result.hasBreadcrumbs
+      })) || []
+    };
+    
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schema-validation-report-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Report Downloaded",
+      description: "Advanced schema validation report has been downloaded successfully.",
     });
   };
 
@@ -1190,41 +1391,56 @@ function SchemaValidatorInterface() {
         </CardContent>
       </Card>
 
-      {/* Google Rich Results Bulk Testing */}
+      {/* Advanced Schema Validation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Google Rich Results Testing</span>
+            <span>Advanced Schema Validation</span>
             <Badge variant="secondary">{productUrls.length} Products</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-gray-600">
-            Open all product pages in Google's Rich Results Test tool for comprehensive validation.
+            Comprehensive JSON-LD validation with detailed error reporting and schema analysis.
           </p>
           
           <div className="flex gap-2">
             <Button 
-              onClick={openAllInGoogleTest}
-              disabled={productUrls.length === 0}
+              onClick={runAdvancedValidation}
+              disabled={isScanning || productUrls.length === 0}
               className="flex-1"
             >
-              <Globe className="w-4 h-4 mr-2" />
-              Test All Products in Google Rich Results
+              {isScanning ? (
+                <>
+                  <AlertCircle className="w-4 h-4 mr-2 animate-spin" />
+                  Validating... {scanProgress}%
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Start Advanced Validation
+                </>
+              )}
             </Button>
             
             <Button 
               variant="outline"
-              onClick={openAllInSchemaOrg}
+              onClick={openAllInGoogleTest}
               disabled={productUrls.length === 0}
             >
-              <Code className="w-4 h-4 mr-2" />
-              Test All in Schema.org Validator
+              <Globe className="w-4 h-4 mr-2" />
+              Test in Google Rich Results
             </Button>
-          </div>
-          
-          <div className="text-sm text-gray-500">
-            Note: This will open multiple browser tabs. Please allow pop-ups for this site.
+            
+            {scanResults && (
+              <Button 
+                variant="outline"
+                onClick={downloadAdvancedReport}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Export Results
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
