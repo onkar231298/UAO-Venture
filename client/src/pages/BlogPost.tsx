@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, User, Clock, ArrowLeft, Share2, BookOpen } from "lucide-react";
 import { Link } from "wouter";
+import { useSEO } from "@/hooks/useSEO";
 
 interface BlogPost {
   id: number;
@@ -34,6 +35,17 @@ export default function BlogPost() {
       if (!res.ok) throw new Error('Post not found');
       return res.json();
     })
+  });
+
+  // Initialize SEO for individual blog post
+  useSEO({
+    title: post?.metaTitle || post?.title,
+    description: post?.metaDescription || post?.excerpt,
+    keywords: post?.tags?.join(', '),
+    canonicalUrl: `${window.location.origin}/blog/${slug}`,
+    ogImage: post?.featuredImage,
+    pageType: "article",
+    pageId: slug || "unknown"
   });
 
   if (isLoading) {

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, User, Clock, Search, BookOpen, TrendingUp } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 
 interface BlogPost {
   id: number;
@@ -26,6 +27,16 @@ interface BlogPost {
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+
+  // Initialize SEO for blog page
+  useSEO({
+    title: "Industry Insights & Knowledge Hub",
+    description: "Stay informed about the latest trends, certifications, and best practices in the organic ingredients industry. Educational content for pharmaceutical and nutraceutical professionals.",
+    keywords: "organic ingredients blog, industry insights, pharmaceutical trends, nutraceutical education, organic certification, sustainability",
+    canonicalUrl: `${window.location.origin}/blog`,
+    pageType: "blog",
+    pageId: "blog-listing"
+  });
 
   const { data: blogData, isLoading } = useQuery({
     queryKey: ["/api/blog", { category: selectedCategory, published: true }],
