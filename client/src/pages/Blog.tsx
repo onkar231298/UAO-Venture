@@ -26,7 +26,7 @@ interface BlogPost {
 
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Initialize SEO for blog page
   useSEO({
@@ -39,7 +39,7 @@ export default function Blog() {
   });
 
   const { data: blogData, isLoading } = useQuery({
-    queryKey: ["/api/blog", { category: selectedCategory, published: true }],
+    queryKey: ["/api/blog", { category: selectedCategory === "all" ? "" : selectedCategory, published: true }],
   });
 
   const filteredPosts = blogData?.posts?.filter((post: BlogPost) =>
@@ -48,7 +48,7 @@ export default function Blog() {
   ) || [];
 
   const categories = [
-    { value: "", label: "All Categories" },
+    { value: "all", label: "All Categories" },
     { value: "industry-trends", label: "Industry Trends" },
     { value: "certifications", label: "Certifications" },
     { value: "education", label: "Education" },
@@ -173,20 +173,20 @@ export default function Blog() {
           <div className="text-center py-12">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {searchQuery || selectedCategory ? "No articles found" : "No articles published yet"}
+              {searchQuery || (selectedCategory && selectedCategory !== "all") ? "No articles found" : "No articles published yet"}
             </h3>
             <p className="text-gray-600 mb-4">
-              {searchQuery || selectedCategory 
+              {searchQuery || (selectedCategory && selectedCategory !== "all")
                 ? "Try adjusting your search or filter criteria."
                 : "Check back soon for industry insights and educational content."
               }
             </p>
-            {(searchQuery || selectedCategory) && (
+            {(searchQuery || (selectedCategory && selectedCategory !== "all")) && (
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setSearchQuery("");
-                  setSelectedCategory("");
+                  setSelectedCategory("all");
                 }}
               >
                 Clear Filters
