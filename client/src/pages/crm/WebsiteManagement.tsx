@@ -43,7 +43,9 @@ import {
   Trash2,
   Save,
   X,
-  Monitor
+  Monitor,
+  Building2,
+  MessageSquare
 } from "lucide-react";
 import type { Product, Category, ProductTag } from "@shared/schema";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
