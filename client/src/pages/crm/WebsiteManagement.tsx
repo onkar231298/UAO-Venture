@@ -1000,6 +1000,8 @@ function SchemaValidatorInterface() {
   };
 
   const runBatchValidation = async () => {
+    console.log('Starting batch validation with URLs:', productUrls.slice(0, 3));
+    
     setIsScanning(true);
     setScanProgress(0);
     setScanResults(null);
@@ -1008,33 +1010,43 @@ function SchemaValidatorInterface() {
     const results = [];
     const errors = [];
     
-    for (let i = 0; i < productUrls.length; i++) {
-      const url = productUrls[i];
+    // Test first 10 products only for debugging
+    const testUrls = productUrls.slice(0, 10);
+    console.log('Testing these URLs:', testUrls);
+    
+    for (let i = 0; i < testUrls.length; i++) {
+      const url = testUrls[i];
+      console.log(`Processing URL ${i + 1}/${testUrls.length}:`, url);
+      
       try {
         const result = await runSchemaValidation(url);
         results.push(result);
         
         if (!result.valid) {
+          console.log('Validation failed for:', url, 'Errors:', result.errors);
           errors.push({
             url: result.url,
             errors: result.errors || [result.error]
           });
+        } else {
+          console.log('Validation passed for:', url);
         }
         
-        setScanProgress(Math.round(((i + 1) / productUrls.length) * 100));
+        setScanProgress(Math.round(((i + 1) / testUrls.length) * 100));
         
         // Small delay to prevent overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
+        console.log('Exception during validation:', url, error);
         errors.push({
           url,
-          errors: ['Validation failed']
+          errors: ['Validation failed: ' + (error as Error).message]
         });
       }
     }
     
     setScanResults({
-      total: productUrls.length,
+      total: testUrls.length,
       valid: results.filter(r => r.valid).length,
       invalid: errors.length,
       results
@@ -1044,7 +1056,7 @@ function SchemaValidatorInterface() {
     
     toast({
       title: "Schema Validation Complete",
-      description: `Scanned ${productUrls.length} pages. ${results.filter(r => r.valid).length} valid, ${errors.length} with issues.`,
+      description: `Scanned ${testUrls.length} pages. ${results.filter(r => r.valid).length} valid, ${errors.length} with issues.`,
     });
   };
 
