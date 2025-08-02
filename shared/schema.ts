@@ -37,6 +37,12 @@ export const users = pgTable("users", {
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
   address: text("address"),
+  // Location fields for pricing
+  country: varchar("country", { length: 100 }),
+  currency: varchar("currency", { length: 10 }).default("USD"), // USD, EUR, INR, etc.
+  timezone: varchar("timezone", { length: 100 }),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

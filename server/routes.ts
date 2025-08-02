@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { registerLocationRoutes } from "./routes-location";
 import { 
   insertInquirySchema, 
   insertQuotationSchema, 
@@ -27,6 +28,9 @@ import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Location routes
+  registerLocationRoutes(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

@@ -69,6 +69,11 @@ async function upsertUser(
     companyName: null,
     phoneNumber: null,
     address: null,
+    country: null, // Will be detected on first login
+    currency: "USD", // Default, will be updated based on location
+    timezone: null,
+    latitude: null,
+    longitude: null,
   });
 }
 

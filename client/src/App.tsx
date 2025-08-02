@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocationSync } from "@/hooks/useLocationSync";
 import { seoService } from "@/services/seoService";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -27,6 +28,9 @@ function Router() {
   
   // Track page views when routes change
   useAnalytics();
+  
+  // Sync user location data after authentication
+  useLocationSync();
 
   return (
     <Switch>
