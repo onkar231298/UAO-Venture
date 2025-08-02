@@ -16,6 +16,7 @@ import ProductDetail from "@/pages/ProductDetail";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
+import CustomerSignup from "@/pages/CustomerSignup";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
       <Route path="/login" component={UnifiedLogin} />
+      <Route path="/signup" component={CustomerSignup} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />

@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   timezone: varchar("timezone", { length: 100 }),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  profileData: jsonb("profile_data"), // Additional profile information
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

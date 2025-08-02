@@ -61,13 +61,23 @@ export function LocationBasedPricing({
           <div className="text-blue-600 text-sm mb-3">
             Our prices are customized based on your location and business needs.
           </div>
-          <Button 
-            onClick={() => window.location.href = '/api/login'} 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            size="sm"
-          >
-            Sign In / Register
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button 
+              onClick={() => window.location.href = '/api/login'} 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              Sign In
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/signup'} 
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              size="sm"
+            >
+              Register
+            </Button>
+          </div>
         </div>
       </div>
     );

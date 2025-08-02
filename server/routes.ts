@@ -1685,6 +1685,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer signup route (without authentication)
+  app.post('/api/customer/signup', async (req, res) => {
+    try {
+      const customerData = {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: req.body.email,
+        companyName: req.body.companyName,
+        phoneNumber: req.body.phoneNumber,
+        address: req.body.address,
+        country: req.body.country,
+        currency: req.body.currency,
+        timezone: req.body.timezone,
+        role: 'customer' // Set role to customer
+      };
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(customerData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Create the customer account
+      const newUser = await storage.createCustomer(customerData);
+      
+      res.json({ 
+        message: "Customer account created successfully!", 
+        user: { id: newUser.id, email: newUser.email, role: newUser.role } 
+      });
+    } catch (error: any) {
+      console.error('Error creating customer account:', error);
+      if (error.message?.includes('duplicate key')) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      res.status(500).json({ message: "Failed to create customer account" });
+    }
+  });
+
   // Newsletter subscription routes
   app.post('/api/newsletter/subscribe', async (req, res) => {
     try {
