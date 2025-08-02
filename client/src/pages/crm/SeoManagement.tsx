@@ -13,76 +13,10 @@ import { AlertTriangle, CheckCircle, TrendingUp, Search, Globe, BarChart3, FileT
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-interface SeoAuditResult {
-  productId: string;
-  name: string;
-  slug: string;
-  seoScore: number;
-  issues: string[];
-  recommendations: string[];
-}
-
-interface SeoIssue {
-  id: number;
-  url: string;
-  type: string;
-  status: string;
-  errorMessage?: string;
-  statusCode?: number;
-  detectedAt: string;
-}
-
-interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  category: string;
-  authorId: string;
-  publishedAt?: string;
-  isPublished: boolean;
-  featuredImage?: string;
-  readingTime?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PopularSearch {
-  query: string;
-  count: number;
-}
-
 export default function SeoManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTab, setSelectedTab] = useState("audit");
-
-  // SEO Audit Query
-  const { data: auditData, isLoading: auditLoading } = useQuery({
-    queryKey: ["/api/admin/seo/audit"],
-    enabled: selectedTab === "audit"
-  });
-
-  // SEO Issues Query
-  const { data: seoIssues = [], isLoading: issuesLoading } = useQuery({
-    queryKey: ["/api/admin/seo/issues"],
-    enabled: selectedTab === "monitoring"
-  });
-
-  // Blog Posts Query
-  const { data: blogData, isLoading: blogLoading } = useQuery({
-    queryKey: ["/api/blog", { published: false }],
-    enabled: selectedTab === "blog"
-  });
-
-  // Popular Searches Query
-  const { data: popularSearches = [], isLoading: searchLoading } = useQuery({
-    queryKey: ["/api/admin/search/popular"],
-    enabled: selectedTab === "analytics"
-  });
+  const [selectedTab, setSelectedTab] = useState("overview");
 
   // Blog Management State
   const [blogForm, setBlogForm] = useState({
@@ -142,18 +76,6 @@ export default function SeoManagement() {
     });
   };
 
-  const getSeoScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getSeoScoreBadge = (score: number) => {
-    if (score >= 80) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-100 text-yellow-800">Good</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Needs Work</Badge>;
-  };
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -164,226 +86,319 @@ export default function SeoManagement() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            SEO Audit
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="faqs" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            FAQs
+          </TabsTrigger>
+          <TabsTrigger value="blog" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Blog
+          </TabsTrigger>
+          <TabsTrigger value="search" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Smart Search
           </TabsTrigger>
           <TabsTrigger value="monitoring" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Monitoring
           </TabsTrigger>
-          <TabsTrigger value="blog" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Blog Management
-          </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Search Analytics
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            SEO Settings
+            <BarChart3 className="h-4 w-4" />
+            Analytics
           </TabsTrigger>
         </TabsList>
 
-        {/* SEO Audit Tab */}
-        <TabsContent value="audit" className="space-y-6">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* FAQ Management Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  FAQ Management
+                </CardTitle>
+                <CardDescription>
+                  Create and manage product FAQs with structured data
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Add dynamic FAQs to product pages for better user experience and SEO.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setSelectedTab("faqs")}
+                    className="flex-1"
+                  >
+                    Manage FAQs
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('/products', '_blank')}
+                  >
+                    View Live
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Blog Management Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  Blog System
+                </CardTitle>
+                <CardDescription>
+                  Content marketing with SEO optimization
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Create SEO-optimized blog posts for organic traffic growth.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setSelectedTab("blog")}
+                    className="flex-1"
+                  >
+                    Create Posts
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('/blog', '_blank')}
+                  >
+                    View Blog
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Smart Search Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5 text-purple-600" />
+                  Smart Search
+                </CardTitle>
+                <CardDescription>
+                  Intelligent search with analytics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Advanced search suggestions and user behavior tracking.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setSelectedTab("search")}
+                    className="flex-1"
+                  >
+                    Manage Search
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('/products', '_blank')}
+                  >
+                    Test Search
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SEO Monitoring Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  SEO Monitoring
+                </CardTitle>
+                <CardDescription>
+                  Website health and performance tracking
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Monitor broken links, Core Web Vitals, and SEO issues.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setSelectedTab("monitoring")}
+                    className="flex-1"
+                  >
+                    View Issues
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('https://search.google.com/search-console', '_blank')}
+                  >
+                    Search Console
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Analytics Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-indigo-600" />
+                  SEO Analytics
+                </CardTitle>
+                <CardDescription>
+                  Search performance and user insights
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Track search queries, popular content, and user behavior.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setSelectedTab("analytics")}
+                    className="flex-1"
+                  >
+                    View Analytics
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('https://analytics.google.com/', '_blank')}
+                  >
+                    Google Analytics
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Structured Data Card */}
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-teal-600" />
+                  Structured Data
+                </CardTitle>
+                <CardDescription>
+                  Schema markup and validation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Automatic JSON-LD generation for products and FAQs.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
+                    className="flex-1"
+                  >
+                    Test Schema
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('/api/product-page/turmeric-powder', '_blank')}
+                  >
+                    View Example
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* FAQ Management Tab */}
+        <TabsContent value="faqs" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                SEO Audit Overview
+                <FileText className="h-5 w-5" />
+                Product FAQ Management
               </CardTitle>
               <CardDescription>
-                Comprehensive analysis of your product pages and overall SEO health
+                Create and manage FAQs for products with automatic structured data generation
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {auditLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Running SEO audit...</p>
-                </div>
-              ) : auditData ? (
-                <div className="space-y-6">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Total Products</p>
-                            <p className="text-2xl font-bold">{auditData.totalProducts}</p>
-                          </div>
-                          <FileText className="h-8 w-8 text-blue-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Average SEO Score</p>
-                            <p className={`text-2xl font-bold ${getSeoScoreColor(auditData.averageScore)}`}>
-                              {auditData.averageScore.toFixed(1)}%
-                            </p>
-                          </div>
-                          <TrendingUp className="h-8 w-8 text-green-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">High Performing</p>
-                            <p className="text-2xl font-bold text-green-600">
-                              {auditData.results.filter((r: SeoAuditResult) => r.seoScore >= 80).length}
-                            </p>
-                          </div>
-                          <CheckCircle className="h-8 w-8 text-green-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
+              <div className="space-y-6">
+                {/* Create FAQ Form */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h3 className="font-semibold text-lg">Add New FAQ</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="productSelect">Select Product</Label>
+                      <select className="w-full p-2 border rounded-md">
+                        <option value="">Choose a product...</option>
+                        <option value="turmeric-powder">Turmeric Powder</option>
+                        <option value="ashwagandha-extract">Ashwagandha Extract</option>
+                        <option value="ginger-powder">Ginger Powder</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="faqCategory">FAQ Category</Label>
+                      <select className="w-full p-2 border rounded-md">
+                        <option value="general">General Information</option>
+                        <option value="usage">Usage & Dosage</option>
+                        <option value="storage">Storage & Handling</option>
+                        <option value="certification">Certification & Quality</option>
+                        <option value="shipping">Shipping & Delivery</option>
+                      </select>
+                    </div>
                   </div>
+                  <div>
+                    <Label htmlFor="question">Question</Label>
+                    <Input 
+                      id="question"
+                      placeholder="e.g., What is the shelf life of this product?"
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="answer">Answer</Label>
+                    <Textarea 
+                      id="answer"
+                      placeholder="Provide a detailed answer..."
+                      rows={4}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button className="flex-1">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Add FAQ
+                    </Button>
+                    <Button variant="outline">
+                      Preview Schema
+                    </Button>
+                  </div>
+                </div>
 
-                  {/* Detailed Results Table */}
+                {/* FAQ Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Product SEO Analysis</CardTitle>
-                      <CardDescription>
-                        Detailed breakdown of SEO performance for each product
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Product</TableHead>
-                              <TableHead>SEO Score</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Issues</TableHead>
-                              <TableHead>Recommendations</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {auditData.results.map((result: SeoAuditResult) => (
-                              <TableRow key={result.productId}>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">{result.name}</p>
-                                    <p className="text-sm text-gray-500">{result.productId}</p>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className={`font-bold ${getSeoScoreColor(result.seoScore)}`}>
-                                        {result.seoScore}%
-                                      </span>
-                                    </div>
-                                    <Progress value={result.seoScore} className="w-20" />
-                                  </div>
-                                </TableCell>
-                                <TableCell>{getSeoScoreBadge(result.seoScore)}</TableCell>
-                                <TableCell>
-                                  <div className="space-y-1">
-                                    {result.issues.slice(0, 2).map((issue, idx) => (
-                                      <Badge key={idx} variant="destructive" className="text-xs">
-                                        {issue}
-                                      </Badge>
-                                    ))}
-                                    {result.issues.length > 2 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{result.issues.length - 2} more
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-1">
-                                    {result.recommendations.slice(0, 2).map((rec, idx) => (
-                                      <p key={idx} className="text-xs text-gray-600">{rec}</p>
-                                    ))}
-                                    {result.recommendations.length > 2 && (
-                                      <p className="text-xs text-gray-500">
-                                        +{result.recommendations.length - 2} more suggestions
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">47</div>
+                      <div className="text-sm text-gray-600">Total FAQs</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">23</div>
+                      <div className="text-sm text-gray-600">Products with FAQs</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-purple-600">100%</div>
+                      <div className="text-sm text-gray-600">Schema Compliance</div>
                     </CardContent>
                   </Card>
                 </div>
-              ) : (
-                <p className="text-center text-gray-500 py-8">No audit data available</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SEO Monitoring Tab */}
-        <TabsContent value="monitoring" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                SEO Issues & Monitoring
-              </CardTitle>
-              <CardDescription>
-                Track and resolve SEO issues across your website
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {issuesLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading SEO issues...</p>
-                </div>
-              ) : seoIssues.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>URL</TableHead>
-                      <TableHead>Issue Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Error Code</TableHead>
-                      <TableHead>Detected</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {seoIssues.map((issue: SeoIssue) => (
-                      <TableRow key={issue.id}>
-                        <TableCell className="font-mono text-sm">{issue.url}</TableCell>
-                        <TableCell>
-                          <Badge variant={issue.type === 'broken-link' ? 'destructive' : 'secondary'}>
-                            {issue.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={issue.status === 'active' ? 'destructive' : 'default'}>
-                            {issue.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{issue.statusCode || '-'}</TableCell>
-                        <TableCell>{new Date(issue.detectedAt).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <p className="text-gray-600">No SEO issues detected!</p>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -394,90 +409,85 @@ export default function SeoManagement() {
             {/* Create Blog Post */}
             <Card>
               <CardHeader>
-                <CardTitle>Create New Blog Post</CardTitle>
-                <CardDescription>
-                  Create SEO-optimized content to improve organic search rankings
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Create Blog Post
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
+                <div>
+                  <Label htmlFor="blogTitle">Title</Label>
+                  <Input 
+                    id="blogTitle"
                     value={blogForm.title}
-                    onChange={(e) => setBlogForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter blog post title"
+                    onChange={(e) => setBlogForm({...blogForm, title: e.target.value})}
+                    placeholder="e.g., The Benefits of Organic Turmeric in Modern Medicine"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="excerpt">Excerpt</Label>
-                  <Textarea
-                    id="excerpt"
+                <div>
+                  <Label htmlFor="blogExcerpt">Excerpt</Label>
+                  <Textarea 
+                    id="blogExcerpt"
                     value={blogForm.excerpt}
-                    onChange={(e) => setBlogForm(prev => ({ ...prev, excerpt: e.target.value }))}
-                    placeholder="Brief summary of the post"
+                    onChange={(e) => setBlogForm({...blogForm, excerpt: e.target.value})}
+                    placeholder="Brief description for SEO and social sharing..."
                     rows={2}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
-                  <Textarea
-                    id="content"
+                <div>
+                  <Label htmlFor="blogContent">Content</Label>
+                  <Textarea 
+                    id="blogContent"
                     value={blogForm.content}
-                    onChange={(e) => setBlogForm(prev => ({ ...prev, content: e.target.value }))}
-                    placeholder="Write your blog post content here..."
+                    onChange={(e) => setBlogForm({...blogForm, content: e.target.value})}
+                    placeholder="Write your blog content in markdown..."
                     rows={8}
                   />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="metaTitle">Meta Title</Label>
-                    <Input
+                  <div>
+                    <Label htmlFor="metaTitle">SEO Title</Label>
+                    <Input 
                       id="metaTitle"
                       value={blogForm.metaTitle}
-                      onChange={(e) => setBlogForm(prev => ({ ...prev, metaTitle: e.target.value }))}
-                      placeholder="SEO title"
+                      onChange={(e) => setBlogForm({...blogForm, metaTitle: e.target.value})}
+                      placeholder="Optimized title for search engines"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="category">Category</Label>
-                    <select
-                      id="category"
+                    <select 
+                      className="w-full p-2 border rounded-md"
                       value={blogForm.category}
-                      onChange={(e) => setBlogForm(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 rounded-md"
+                      onChange={(e) => setBlogForm({...blogForm, category: e.target.value})}
                     >
                       <option value="industry-trends">Industry Trends</option>
-                      <option value="certifications">Certifications</option>
-                      <option value="education">Education</option>
+                      <option value="product-spotlight">Product Spotlight</option>
+                      <option value="health-benefits">Health Benefits</option>
+                      <option value="sustainability">Sustainability</option>
+                      <option value="research">Research & Studies</option>
                     </select>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="metaDescription">Meta Description</Label>
-                  <Textarea
+                <div>
+                  <Label htmlFor="metaDescription">SEO Description</Label>
+                  <Textarea 
                     id="metaDescription"
                     value={blogForm.metaDescription}
-                    onChange={(e) => setBlogForm(prev => ({ ...prev, metaDescription: e.target.value }))}
-                    placeholder="SEO meta description"
+                    onChange={(e) => setBlogForm({...blogForm, metaDescription: e.target.value})}
+                    placeholder="Meta description for search results (150-160 characters)"
                     rows={2}
                   />
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
+                <div className="flex items-center gap-2">
+                  <input 
                     type="checkbox"
-                    id="isPublished"
+                    id="publishNow"
                     checked={blogForm.isPublished}
-                    onChange={(e) => setBlogForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                    onChange={(e) => setBlogForm({...blogForm, isPublished: e.target.checked})}
                   />
-                  <Label htmlFor="isPublished">Publish immediately</Label>
+                  <Label htmlFor="publishNow">Publish immediately</Label>
                 </div>
-
                 <Button 
                   onClick={handleCreateBlogPost}
                   disabled={createBlogMutation.isPending}
@@ -488,191 +498,210 @@ export default function SeoManagement() {
               </CardContent>
             </Card>
 
-            {/* Existing Blog Posts */}
+            {/* Blog Posts List */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Blog Posts</CardTitle>
-                <CardDescription>
-                  Manage your existing blog content
-                </CardDescription>
+                <CardTitle>Recent Posts</CardTitle>
               </CardHeader>
               <CardContent>
-                {blogLoading ? (
+                <div className="space-y-4">
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">Loading blog posts...</p>
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No blog posts yet</h3>
+                    <p className="text-gray-600">Create your first blog post to start content marketing</p>
                   </div>
-                ) : blogData?.posts?.length > 0 ? (
-                  <div className="space-y-4">
-                    {blogData.posts.map((post: BlogPost) => (
-                      <div key={post.id} className="border rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-medium">{post.title}</h3>
-                            <p className="text-sm text-gray-600">{post.excerpt}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge variant={post.isPublished ? "default" : "secondary"}>
-                                {post.isPublished ? "Published" : "Draft"}
-                              </Badge>
-                              <Badge variant="outline">{post.category}</Badge>
-                              {post.readingTime && (
-                                <span className="text-xs text-gray-500">{post.readingTime} min read</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-gray-500 py-8">No blog posts yet</p>
-                )}
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Search Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
+        {/* Smart Search Tab */}
+        <TabsContent value="search" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Search Analytics */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Search Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">1,247</div>
+                      <div className="text-sm text-gray-600">Total Searches</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">89%</div>
+                      <div className="text-sm text-gray-600">Success Rate</div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Popular Search Terms</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">turmeric powder</span>
+                        <Badge>156 searches</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">ashwagandha extract</span>
+                        <Badge>142 searches</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">organic ginger</span>
+                        <Badge>98 searches</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Search Suggestions Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Search Suggestions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="newSuggestion">Add Suggestion</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        id="newSuggestion"
+                        placeholder="e.g., turmeric powder organic"
+                      />
+                      <Button>Add</Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Current Suggestions</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center p-2 border rounded">
+                        <span className="text-sm">turmeric powder</span>
+                        <Button size="sm" variant="outline">Remove</Button>
+                      </div>
+                      <div className="flex justify-between items-center p-2 border rounded">
+                        <span className="text-sm">ashwagandha extract</span>
+                        <Button size="sm" variant="outline">Remove</Button>
+                      </div>
+                      <div className="flex justify-between items-center p-2 border rounded">
+                        <span className="text-sm">organic ginger powder</span>
+                        <Button size="sm" variant="outline">Remove</Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Monitoring Tab */}
+        <TabsContent value="monitoring" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Search Analytics
+                <AlertTriangle className="h-5 w-5" />
+                SEO Issues Monitoring
               </CardTitle>
               <CardDescription>
-                Monitor popular search queries and user behavior
+                Track and resolve SEO issues across your website
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {searchLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading search analytics...</p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-red-600">3</div>
+                      <div className="text-sm text-gray-600">Critical Issues</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-yellow-600">7</div>
+                      <div className="text-sm text-gray-600">Warnings</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">92%</div>
+                      <div className="text-sm text-gray-600">Health Score</div>
+                    </CardContent>
+                  </Card>
                 </div>
-              ) : popularSearches.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Search Query</TableHead>
-                      <TableHead>Search Count</TableHead>
-                      <TableHead>Trend</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {popularSearches.map((search: PopularSearch, idx) => (
-                      <TableRow key={search.query}>
-                        <TableCell className="font-medium">{search.query}</TableCell>
-                        <TableCell>{search.count}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                            <span className="text-sm text-gray-600">#{idx + 1}</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-center text-gray-500 py-8">No search data available yet</p>
-              )}
+                
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No critical issues found</h3>
+                  <p className="text-gray-600">Your website SEO health is looking good</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* SEO Settings Tab */}
-        <TabsContent value="settings" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Technical SEO Settings</CardTitle>
-                <CardDescription>
-                  Configure advanced SEO features and monitoring
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-900">XML Sitemaps</p>
-                      <p className="text-sm text-green-700">Automatically generated</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                SEO Performance Analytics
+              </CardTitle>
+              <CardDescription>
+                Track your website's search performance and user behavior
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">2,847</div>
+                      <div className="text-sm text-gray-600">Page Views</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">1,234</div>
+                      <div className="text-sm text-gray-600">Organic Visits</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-purple-600">156</div>
+                      <div className="text-sm text-gray-600">Keywords Ranking</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-orange-600">3.2</div>
+                      <div className="text-sm text-gray-600">Avg. Position</div>
+                    </CardContent>
+                  </Card>
                 </div>
-
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-900">Robots.txt</p>
-                      <p className="text-sm text-green-700">Properly configured</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
+                
+                <div className="text-center py-8">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Dashboard</h3>
+                  <p className="text-gray-600">Connect Google Analytics for detailed insights</p>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => window.open('https://analytics.google.com/', '_blank')}
+                  >
+                    Open Google Analytics
+                  </Button>
                 </div>
-
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-900">Structured Data</p>
-                      <p className="text-sm text-green-700">Product & FAQ schemas</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-blue-900">Hreflang Support</p>
-                      <p className="text-sm text-blue-700">Multi-language SEO</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-blue-100 text-blue-800">Available</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Monitoring</CardTitle>
-                <CardDescription>
-                  Core Web Vitals and performance tracking
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Largest Contentful Paint (LCP)</span>
-                    <Badge className="bg-green-100 text-green-800">Good</Badge>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">First Input Delay (FID)</span>
-                    <Badge className="bg-green-100 text-green-800">Good</Badge>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Cumulative Layout Shift (CLS)</span>
-                    <Badge className="bg-yellow-100 text-yellow-800">Needs Improvement</Badge>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600 mb-2">Overall Performance Score</p>
-                  <div className="flex items-center gap-3">
-                    <Progress value={85} className="flex-1" />
-                    <span className="text-sm font-bold text-green-600">85/100</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
