@@ -921,25 +921,34 @@ function SchemaValidatorInterface() {
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Get all product URLs for batch testing
+  // Get all product URLs for batch testing - force fresh data
   const { data: products } = useQuery({
-    queryKey: ["/api/products", { limit: 1000 }],
+    queryKey: ["/api/products", { limit: 1000, timestamp: Date.now() }],
     queryFn: async () => {
-      const response = await fetch("/api/products?limit=1000");
+      const response = await fetch("/api/products?limit=1000&_t=" + Date.now());
       if (!response.ok) throw new Error("Failed to fetch products");
       return response.json();
     },
   });
 
   const baseUrl = window.location.origin;
-  const productUrls = products?.products?.map((product: any) => 
-    `${baseUrl}/api/product-page/${product.slug}`
-  ) || [];
+  // Force regeneration of URLs using the API endpoint pattern
+  const productUrls = products?.products?.map((product: any) => {
+    const apiUrl = `${baseUrl}/api/product-page/${product.slug}`;
+    console.log('Generated URL for', product.slug, ':', apiUrl);
+    return apiUrl;
+  }) || [];
 
-  // Log URLs for debugging
+  // Log URLs for debugging - force fresh console output
+  console.log('=== SCHEMA VALIDATOR DEBUG ===');
   console.log('Base URL:', baseUrl);
-  console.log('Sample product URL:', productUrls[0]);
+  console.log('Total products loaded:', products?.products?.length || 0);
+  console.log('Sample product URLs:');
+  productUrls.slice(0, 5).forEach((url, i) => {
+    console.log(`  ${i + 1}. ${url}`);
+  });
   console.log('Total product URLs to test:', productUrls.length);
+  console.log('================================');
 
   const runSchemaValidation = async (url: string) => {
     console.log('Validating URL:', url);
@@ -1000,7 +1009,17 @@ function SchemaValidatorInterface() {
   };
 
   const runBatchValidation = async () => {
-    console.log('Starting batch validation with URLs:', productUrls.slice(0, 3));
+    console.log('=== STARTING BATCH VALIDATION ===');
+    console.log('productUrls array:', productUrls);
+    console.log('First 3 URLs:', productUrls.slice(0, 3));
+    
+    // Force page reload if we detect old URLs
+    const hasOldUrls = productUrls.some(url => url.includes('/products/') && !url.includes('/api/product-page/'));
+    if (hasOldUrls) {
+      console.error('DETECTED OLD URLs! Forcing page reload...');
+      window.location.reload();
+      return;
+    }
     
     setIsScanning(true);
     setScanProgress(0);
@@ -1010,9 +1029,9 @@ function SchemaValidatorInterface() {
     const results = [];
     const errors = [];
     
-    // Test first 10 products only for debugging
-    const testUrls = productUrls.slice(0, 10);
-    console.log('Testing these URLs:', testUrls);
+    // Test first 5 products only for debugging
+    const testUrls = productUrls.slice(0, 5);
+    console.log('Final test URLs:', testUrls);
     
     for (let i = 0; i < testUrls.length; i++) {
       const url = testUrls[i];
