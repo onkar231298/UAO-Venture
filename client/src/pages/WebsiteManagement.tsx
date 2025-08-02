@@ -217,8 +217,30 @@ function ProductsManagement({
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: any) => {
-      const response = await apiRequest("POST", "/api/admin/products", productData);
-      return await response.json();
+      // Extract FAQ data before sending to product API
+      const { faqs, ...productPayload } = productData;
+      
+      // Create the product first
+      const response = await apiRequest("POST", "/api/admin/products", productPayload);
+      const newProduct = await response.json();
+      
+      // If there are FAQs, save them separately
+      if (faqs && Array.isArray(faqs) && faqs.length > 0) {
+        console.log('Saving FAQs for new product:', newProduct.id, faqs);
+        const faqPromises = faqs.map((faq: any) => 
+          apiRequest(`/api/admin/products/${newProduct.id}/faqs`, {
+            method: "POST",
+            body: JSON.stringify({
+              question: faq.question,
+              answer: faq.answer,
+              displayOrder: 0
+            })
+          })
+        );
+        await Promise.all(faqPromises);
+      }
+      
+      return newProduct;
     },
     onSuccess: () => {
       toast({
@@ -239,11 +261,48 @@ function ProductsManagement({
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      // Extract FAQ data before sending to product API
+      const { faqs, ...productPayload } = data;
+      
+      // Update the product first
       const response = await apiRequest(`/api/admin/products/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data)
+        body: JSON.stringify(productPayload)
       });
-      return await response.json();
+      const updatedProduct = await response.json();
+      
+      // Handle FAQs separately - get existing FAQs first
+      const existingFaqsResponse = await fetch(`/api/products/${id}/faqs`);
+      const existingFaqs = existingFaqsResponse.ok ? await existingFaqsResponse.json() : [];
+      
+      // Delete existing FAQs
+      if (existingFaqs.length > 0) {
+        console.log('Deleting existing FAQs for product:', id);
+        const deletePromises = existingFaqs.map((faq: any) => 
+          apiRequest(`/api/admin/products/faqs/${faq.id}`, {
+            method: "DELETE"
+          })
+        );
+        await Promise.all(deletePromises);
+      }
+      
+      // If there are new FAQs, save them
+      if (faqs && Array.isArray(faqs) && faqs.length > 0) {
+        console.log('Saving new FAQs for product:', id, faqs);
+        const faqPromises = faqs.map((faq: any) => 
+          apiRequest(`/api/admin/products/${id}/faqs`, {
+            method: "POST",
+            body: JSON.stringify({
+              question: faq.question,
+              answer: faq.answer,
+              displayOrder: 0
+            })
+          })
+        );
+        await Promise.all(faqPromises);
+      }
+      
+      return updatedProduct;
     },
     onSuccess: () => {
       toast({
@@ -251,6 +310,7 @@ function ProductsManagement({
         description: "Product updated successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products", selectedProduct?.id, "faqs"] });
       setIsEditing(false);
       setSelectedProduct(null);
     },
