@@ -378,7 +378,7 @@ export class DatabaseStorage implements IStorage {
     // Load tags for each product
     const productsWithTags = await Promise.all(
       productsResult.map(async (product) => {
-        const productTags = await db
+        const productTagsForProduct = await db
           .select({
             id: productTags.id,
             name: productTags.name,
@@ -397,7 +397,7 @@ export class DatabaseStorage implements IStorage {
         
         return {
           ...product,
-          tags: productTags,
+          tags: productTagsForProduct,
         };
       })
     );
