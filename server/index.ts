@@ -1,9 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { serveXMLFiles, handleSitemapRequests } from "./middleware";
-import fs from "fs";
-import path from "path";
 
 const app = express();
 app.use(express.json());
@@ -12,18 +9,15 @@ app.use(express.urlencoded({ extended: false }));
 // Serve attached assets
 app.use('/attached_assets', express.static('attached_assets'));
 
-// Handle sitemap requests directly before any other middleware
-app.get('/sitemap.xml', (req, res) => {
-  const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
-  
-  if (fs.existsSync(sitemapPath)) {
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    return res.sendFile(sitemapPath);
+// Serve public directory for static assets including sitemap.xml
+app.use(express.static('public', {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('sitemap.xml')) {
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
   }
-  
-  res.status(404).send('Sitemap not found');
-});
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
