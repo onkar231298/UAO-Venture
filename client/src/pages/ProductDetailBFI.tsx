@@ -1,5 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import ProductFAQs from "@/components/ProductFAQs";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
@@ -643,32 +644,7 @@ export default function ProductDetailBFI() {
                   </TabsContent>
 
                   <TabsContent value="faqs" className="m-0 p-4 space-y-4">
-                    <div className="space-y-4 w-full">
-                      {/* Display FAQs from backend - either custom or default */}
-                      {product.faqs && (product.faqs as any[]).length > 0 ? (
-                        (product.faqs as any[]).map((faq, index) => (
-                          <div key={index} className="border-l-4 border-orange-500 pl-4 py-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">{faq.question}</h4>
-                            <p className="text-gray-700 text-sm mt-1">{faq.answer}</p>
-                          </div>
-                        ))
-                      ) : (
-                        /* Fallback message when no FAQs are available */
-                        <div className="text-center py-8">
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <MessageSquare className="w-6 h-6 text-gray-400" />
-                          </div>
-                          <h3 className="font-semibold text-gray-900 mb-2">No FAQs Available</h3>
-                          <p className="text-gray-600 text-sm mb-4">
-                            Product FAQs have not been added yet. Please contact us with any questions about this product.
-                          </p>
-                          <Button variant="outline" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Ask a Question
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    <ProductFAQs productId={product.id} />
                   </TabsContent>
 
                   <TabsContent value="vendors" className="m-0 p-4 space-y-4">

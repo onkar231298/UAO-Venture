@@ -34,6 +34,27 @@ import {
   type Inventory,
   type SalesOrder,
   type PurchaseOrder,
+  productFaqs,
+  blogPosts,
+  seoMonitoring,
+  coreWebVitals,
+  searchSuggestions,
+  searchAnalytics,
+  hreflangConfig,
+  type ProductFaq,
+  type InsertProductFaq,
+  type BlogPost,
+  type InsertBlogPost,
+  type SeoMonitoring,
+  type InsertSeoMonitoring,
+  type CoreWebVitals,
+  type InsertCoreWebVitals,
+  type SearchSuggestion,
+  type InsertSearchSuggestion,
+  type SearchAnalytics,
+  type InsertSearchAnalytics,
+  type HreflangConfig,
+  type InsertHreflangConfig,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
@@ -174,6 +195,41 @@ export interface IStorage {
     totalOrders: number;
     revenueThisMonth: number;
   }>;
+
+  // Product FAQ methods
+  getProductFaqs(productId: number): Promise<ProductFaq[]>;
+  createProductFaq(faq: InsertProductFaq): Promise<ProductFaq>;
+  updateProductFaq(id: number, updates: Partial<InsertProductFaq>): Promise<ProductFaq | undefined>;
+  deleteProductFaq(id: number): Promise<void>;
+
+  // Blog methods
+  getBlogPosts(filters?: { category?: string; published?: boolean; limit?: number; offset?: number }): Promise<{ posts: BlogPost[]; total: number }>;
+  getBlogPost(id: number): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: number, updates: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: number): Promise<void>;
+
+  // SEO monitoring methods
+  getSeoIssues(type?: string): Promise<SeoMonitoring[]>;
+  createSeoIssue(issue: InsertSeoMonitoring): Promise<SeoMonitoring>;
+  updateSeoIssue(id: number, updates: Partial<InsertSeoMonitoring>): Promise<SeoMonitoring | undefined>;
+  deleteSeoIssue(id: number): Promise<void>;
+
+  // Core Web Vitals methods
+  getCoreWebVitals(url?: string): Promise<CoreWebVitals[]>;
+  recordCoreWebVitals(vitals: InsertCoreWebVitals): Promise<CoreWebVitals>;
+
+  // Search methods
+  getSearchSuggestions(query: string): Promise<SearchSuggestion[]>;
+  recordSearchAnalytics(analytics: InsertSearchAnalytics): Promise<SearchAnalytics>;
+  getPopularSearches(limit?: number): Promise<SearchAnalytics[]>;
+
+  // Hreflang methods
+  getHreflangConfig(pageType: string, pageId: string): Promise<HreflangConfig[]>;
+  createHreflangConfig(config: InsertHreflangConfig): Promise<HreflangConfig>;
+  updateHreflangConfig(id: number, updates: Partial<InsertHreflangConfig>): Promise<HreflangConfig | undefined>;
+  deleteHreflangConfig(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2231,6 +2287,178 @@ export class DatabaseStorage implements IStorage {
       recommendedFields,
       seoFields
     };
+  }
+
+  // Product FAQ methods
+  async getProductFaqs(productId: number): Promise<ProductFaq[]> {
+    return await db.select().from(productFaqs)
+      .where(and(eq(productFaqs.productId, productId), eq(productFaqs.isActive, true)))
+      .orderBy(asc(productFaqs.displayOrder));
+  }
+
+  async createProductFaq(faq: InsertProductFaq): Promise<ProductFaq> {
+    const [newFaq] = await db.insert(productFaqs).values(faq).returning();
+    return newFaq;
+  }
+
+  async updateProductFaq(id: number, updates: Partial<InsertProductFaq>): Promise<ProductFaq | undefined> {
+    const [updatedFaq] = await db.update(productFaqs)
+      .set(updates)
+      .where(eq(productFaqs.id, id))
+      .returning();
+    return updatedFaq;
+  }
+
+  async deleteProductFaq(id: number): Promise<void> {
+    await db.delete(productFaqs).where(eq(productFaqs.id, id));
+  }
+
+  // Blog methods
+  async getBlogPosts(filters?: { category?: string; published?: boolean; limit?: number; offset?: number }): Promise<{ posts: BlogPost[]; total: number }> {
+    const conditions = [];
+    
+    if (filters?.published !== undefined) {
+      conditions.push(eq(blogPosts.isPublished, filters.published));
+    }
+    
+    if (filters?.category) {
+      conditions.push(eq(blogPosts.category, filters.category));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [postsData, totalData] = await Promise.all([
+      db.select().from(blogPosts)
+        .where(whereCondition)
+        .orderBy(desc(blogPosts.publishedAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: count() }).from(blogPosts).where(whereCondition)
+    ]);
+
+    return {
+      posts: postsData,
+      total: totalData[0]?.count || 0
+    };
+  }
+
+  async getBlogPost(id: number): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post;
+  }
+
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    const [newPost] = await db.insert(blogPosts).values(post).returning();
+    return newPost;
+  }
+
+  async updateBlogPost(id: number, updates: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
+    const [updatedPost] = await db.update(blogPosts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(blogPosts.id, id))
+      .returning();
+    return updatedPost;
+  }
+
+  async deleteBlogPost(id: number): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // SEO monitoring methods
+  async getSeoIssues(type?: string): Promise<SeoMonitoring[]> {
+    const whereCondition = type ? eq(seoMonitoring.type, type) : undefined;
+    return await db.select().from(seoMonitoring)
+      .where(whereCondition)
+      .orderBy(desc(seoMonitoring.detectedAt));
+  }
+
+  async createSeoIssue(issue: InsertSeoMonitoring): Promise<SeoMonitoring> {
+    const [newIssue] = await db.insert(seoMonitoring).values(issue).returning();
+    return newIssue;
+  }
+
+  async updateSeoIssue(id: number, updates: Partial<InsertSeoMonitoring>): Promise<SeoMonitoring | undefined> {
+    const [updatedIssue] = await db.update(seoMonitoring)
+      .set({ ...updates, lastChecked: new Date() })
+      .where(eq(seoMonitoring.id, id))
+      .returning();
+    return updatedIssue;
+  }
+
+  async deleteSeoIssue(id: number): Promise<void> {
+    await db.delete(seoMonitoring).where(eq(seoMonitoring.id, id));
+  }
+
+  // Core Web Vitals methods
+  async getCoreWebVitals(url?: string): Promise<CoreWebVitals[]> {
+    const whereCondition = url ? eq(coreWebVitals.url, url) : undefined;
+    return await db.select().from(coreWebVitals)
+      .where(whereCondition)
+      .orderBy(desc(coreWebVitals.measuredAt))
+      .limit(100);
+  }
+
+  async recordCoreWebVitals(vitals: InsertCoreWebVitals): Promise<CoreWebVitals> {
+    const [newVitals] = await db.insert(coreWebVitals).values(vitals).returning();
+    return newVitals;
+  }
+
+  // Search methods
+  async getSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
+    return await db.select().from(searchSuggestions)
+      .where(and(
+        sql`${searchSuggestions.query} ILIKE ${`%${query}%`}`,
+        eq(searchSuggestions.isActive, true)
+      ))
+      .orderBy(desc(searchSuggestions.popularity))
+      .limit(10);
+  }
+
+  async recordSearchAnalytics(analytics: InsertSearchAnalytics): Promise<SearchAnalytics> {
+    const [newAnalytics] = await db.insert(searchAnalytics).values(analytics).returning();
+    return newAnalytics;
+  }
+
+  async getPopularSearches(limit = 10): Promise<SearchAnalytics[]> {
+    return await db.select({
+      query: searchAnalytics.query,
+      count: count(searchAnalytics.query)
+    }).from(searchAnalytics)
+      .groupBy(searchAnalytics.query)
+      .orderBy(desc(count(searchAnalytics.query)))
+      .limit(limit) as any;
+  }
+
+  // Hreflang methods
+  async getHreflangConfig(pageType: string, pageId: string): Promise<HreflangConfig[]> {
+    return await db.select().from(hreflangConfig)
+      .where(and(
+        eq(hreflangConfig.pageType, pageType),
+        eq(hreflangConfig.pageId, pageId),
+        eq(hreflangConfig.isActive, true)
+      ));
+  }
+
+  async createHreflangConfig(config: InsertHreflangConfig): Promise<HreflangConfig> {
+    const [newConfig] = await db.insert(hreflangConfig).values(config).returning();
+    return newConfig;
+  }
+
+  async updateHreflangConfig(id: number, updates: Partial<InsertHreflangConfig>): Promise<HreflangConfig | undefined> {
+    const [updatedConfig] = await db.update(hreflangConfig)
+      .set(updates)
+      .where(eq(hreflangConfig.id, id))
+      .returning();
+    return updatedConfig;
+  }
+
+  async deleteHreflangConfig(id: number): Promise<void> {
+    await db.delete(hreflangConfig).where(eq(hreflangConfig.id, id));
   }
 }
 

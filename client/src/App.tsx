@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
@@ -27,6 +29,8 @@ function Router() {
       <Route path="/ingredients" component={Products} />
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={VideoHeroSliderManager} />

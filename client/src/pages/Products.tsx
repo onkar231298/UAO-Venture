@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Search, Filter, ChevronDown, ChevronUp, Leaf, Globe, Package2, Heart, Award, X } from "lucide-react";
+import SmartSearch from "@/components/SmartSearch";
 import type { Product, Category } from "@shared/schema";
 
 interface ProductFilters {

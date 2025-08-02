@@ -10,7 +10,13 @@ import {
   insertProductTagSchema,
   insertHeroSliderSchema,
   insertProductDocumentSchema,
-  insertSampleRequestSchema
+  insertSampleRequestSchema,
+  insertProductFaqSchema,
+  insertBlogPostSchema,
+  insertSeoMonitoringSchema,
+  insertCoreWebVitalsSchema,
+  insertSearchAnalyticsSchema,
+  insertHreflangConfigSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -61,7 +67,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productUrl = `${baseUrl}/products/${product.slug}`;
       const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
 
-      // Generate structured data
+      // Get product FAQs for schema
+      const productFaqs = await storage.getProductFaqs(product.id);
+      
+      // Generate enhanced structured data with FAQ schema
       const structuredData = {
         "@context": "https://schema.org/",
         "@type": "Product",
@@ -123,6 +132,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       };
 
+      // Add FAQ schema if FAQs exist
+      const faqSchema = productFaqs?.length > 0 ? {
+        "@context": "https://schema.org/",
+        "@type": "FAQPage",
+        "mainEntity": productFaqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      } : null;
+
       const breadcrumbData = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -181,6 +204,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <script type="application/ld+json">
               ${JSON.stringify(breadcrumbData, null, 2)}
             </script>
+            
+            ${faqSchema ? `<!-- Structured Data - FAQ Schema -->
+            <script type="application/ld+json">
+              ${JSON.stringify(faqSchema, null, 2)}
+            </script>` : ''}
           </head>
           <body>
             <div id="root"></div>
@@ -1294,6 +1322,275 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting schema validation results:", error);
       res.status(500).json({ message: "Failed to export validation results" });
+    }
+  });
+
+  // SEO ENHANCEMENT ROUTES
+
+  // Product FAQ routes
+  app.get('/api/products/:productId/faqs', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const faqs = await storage.getProductFaqs(productId);
+      res.json(faqs);
+    } catch (error) {
+      console.error('Error fetching product FAQs:', error);
+      res.status(500).json({ message: "Failed to fetch FAQs" });
+    }
+  });
+
+  app.post('/api/admin/products/:productId/faqs', isAuthenticated, async (req: any, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const faqData = insertProductFaqSchema.parse({ ...req.body, productId });
+      const faq = await storage.createProductFaq(faqData);
+      res.json(faq);
+    } catch (error) {
+      console.error('Error creating product FAQ:', error);
+      res.status(500).json({ message: "Failed to create FAQ" });
+    }
+  });
+
+  app.put('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const faq = await storage.updateProductFaq(id, updates);
+      if (!faq) {
+        return res.status(404).json({ message: "FAQ not found" });
+      }
+      res.json(faq);
+    } catch (error) {
+      console.error('Error updating product FAQ:', error);
+      res.status(500).json({ message: "Failed to update FAQ" });
+    }
+  });
+
+  app.delete('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteProductFaq(id);
+      res.json({ message: "FAQ deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting product FAQ:', error);
+      res.status(500).json({ message: "Failed to delete FAQ" });
+    }
+  });
+
+  // Blog routes
+  app.get('/api/blog', async (req, res) => {
+    try {
+      const { category, published = 'true', limit = '10', offset = '0' } = req.query;
+      const filters = {
+        category: category as string,
+        published: published === 'true',
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      };
+      const result = await storage.getBlogPosts(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.get('/api/blog/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const post = await storage.getBlogPostBySlug(slug);
+      if (!post) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error('Error fetching blog post:', error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
+  app.post('/api/admin/blog', isAuthenticated, async (req: any, res) => {
+    try {
+      const postData = insertBlogPostSchema.parse({
+        ...req.body,
+        authorId: req.user.claims.sub
+      });
+      const post = await storage.createBlogPost(postData);
+      res.json(post);
+    } catch (error) {
+      console.error('Error creating blog post:', error);
+      res.status(500).json({ message: "Failed to create blog post" });
+    }
+  });
+
+  app.put('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const post = await storage.updateBlogPost(id, updates);
+      if (!post) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      res.status(500).json({ message: "Failed to update blog post" });
+    }
+  });
+
+  app.delete('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteBlogPost(id);
+      res.json({ message: "Blog post deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting blog post:', error);
+      res.status(500).json({ message: "Failed to delete blog post" });
+    }
+  });
+
+  // SEO monitoring routes
+  app.get('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
+    try {
+      const { type } = req.query;
+      const issues = await storage.getSeoIssues(type as string);
+      res.json(issues);
+    } catch (error) {
+      console.error('Error fetching SEO issues:', error);
+      res.status(500).json({ message: "Failed to fetch SEO issues" });
+    }
+  });
+
+  app.post('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
+    try {
+      const issueData = insertSeoMonitoringSchema.parse(req.body);
+      const issue = await storage.createSeoIssue(issueData);
+      res.json(issue);
+    } catch (error) {
+      console.error('Error creating SEO issue:', error);
+      res.status(500).json({ message: "Failed to create SEO issue" });
+    }
+  });
+
+  // Search suggestion routes
+  app.get('/api/search/suggestions', async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q) {
+        return res.json([]);
+      }
+      const suggestions = await storage.getSearchSuggestions(q as string);
+      res.json(suggestions);
+    } catch (error) {
+      console.error('Error fetching search suggestions:', error);
+      res.status(500).json({ message: "Failed to fetch search suggestions" });
+    }
+  });
+
+  app.post('/api/search/analytics', async (req, res) => {
+    try {
+      const analyticsData = insertSearchAnalyticsSchema.parse(req.body);
+      const analytics = await storage.recordSearchAnalytics(analyticsData);
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error recording search analytics:', error);
+      res.status(500).json({ message: "Failed to record search analytics" });
+    }
+  });
+
+  app.get('/api/admin/search/popular', isAuthenticated, async (req: any, res) => {
+    try {
+      const { limit = '10' } = req.query;
+      const popularSearches = await storage.getPopularSearches(parseInt(limit as string));
+      res.json(popularSearches);
+    } catch (error) {
+      console.error('Error fetching popular searches:', error);
+      res.status(500).json({ message: "Failed to fetch popular searches" });
+    }
+  });
+
+  // SEO audit endpoint
+  app.get('/api/admin/seo/audit', isAuthenticated, async (req: any, res) => {
+    try {
+      // Get all products for SEO audit
+      const { products } = await storage.getAdminProducts({ limit: 1000 });
+      
+      const auditResults = await Promise.all(
+        products.map(async (product) => {
+          // Get FAQs for this product
+          const faqs = await storage.getProductFaqs(product.id);
+          
+          // Basic SEO audit
+          const audit = {
+            productId: product.productId,
+            name: product.name,
+            slug: product.slug,
+            seoScore: 0,
+            issues: [] as string[],
+            recommendations: [] as string[]
+          };
+
+          // Check SEO fields
+          if (!product.seoTitle) {
+            audit.issues.push('Missing SEO title');
+            audit.recommendations.push('Add a descriptive SEO title');
+          } else {
+            audit.seoScore += 20;
+          }
+
+          if (!product.seoDescription) {
+            audit.issues.push('Missing SEO description');
+            audit.recommendations.push('Add a compelling meta description');
+          } else {
+            audit.seoScore += 20;
+          }
+
+          if (!product.mainImage) {
+            audit.issues.push('Missing main image');
+            audit.recommendations.push('Add a high-quality product image');
+          } else {
+            audit.seoScore += 15;
+          }
+
+          if (!product.description || product.description.length < 100) {
+            audit.issues.push('Poor product description');
+            audit.recommendations.push('Improve product description (min 100 characters)');
+          } else {
+            audit.seoScore += 15;
+          }
+
+          if (faqs.length === 0) {
+            audit.issues.push('No FAQs available');
+            audit.recommendations.push('Add frequently asked questions');
+          } else {
+            audit.seoScore += 15;
+          }
+
+          if (!product.botanicalName) {
+            audit.issues.push('Missing botanical name');
+            audit.recommendations.push('Add botanical name for better search relevance');
+          } else {
+            audit.seoScore += 10;
+          }
+
+          if (!product.origin) {
+            audit.recommendations.push('Add country of origin');
+          } else {
+            audit.seoScore += 5;
+          }
+
+          return audit;
+        })
+      );
+
+      res.json({
+        totalProducts: products.length,
+        averageScore: auditResults.reduce((sum, audit) => sum + audit.seoScore, 0) / auditResults.length,
+        results: auditResults
+      });
+    } catch (error) {
+      console.error('Error performing SEO audit:', error);
+      res.status(500).json({ message: "Failed to perform SEO audit" });
     }
   });
 

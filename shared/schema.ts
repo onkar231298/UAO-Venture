@@ -54,6 +54,102 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Blog posts for SEO content
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"),
+  metaTitle: varchar("meta_title", { length: 255 }),
+  metaDescription: text("meta_description"),
+  tags: text("tags").array(),
+  category: varchar("category", { length: 100 }), // industry-trends, certifications, education
+  authorId: varchar("author_id").references(() => users.id),
+  publishedAt: timestamp("published_at"),
+  isPublished: boolean("is_published").default(false),
+  featuredImage: varchar("featured_image", { length: 500 }),
+  readingTime: integer("reading_time"), // in minutes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// FAQ for products
+export const productFaqs = pgTable("product_faqs", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// SEO monitoring and tracking
+export const seoMonitoring = pgTable("seo_monitoring", {
+  id: serial("id").primaryKey(),
+  url: varchar("url", { length: 500 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // broken-link, crawl-error, 404-error
+  status: varchar("status", { length: 50 }).default("active"), // active, resolved, ignored
+  errorMessage: text("error_message"),
+  statusCode: integer("status_code"),
+  referrerUrl: varchar("referrer_url", { length: 500 }),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  lastChecked: timestamp("last_checked").defaultNow(),
+});
+
+// Core Web Vitals monitoring
+export const coreWebVitals = pgTable("core_web_vitals", {
+  id: serial("id").primaryKey(),
+  url: varchar("url", { length: 500 }).notNull(),
+  lcp: decimal("lcp", { precision: 10, scale: 3 }), // Largest Contentful Paint
+  fid: decimal("fid", { precision: 10, scale: 3 }), // First Input Delay
+  cls: decimal("cls", { precision: 10, scale: 3 }), // Cumulative Layout Shift
+  fcp: decimal("fcp", { precision: 10, scale: 3 }), // First Contentful Paint
+  ttfb: decimal("ttfb", { precision: 10, scale: 3 }), // Time to First Byte
+  deviceType: varchar("device_type", { length: 20 }), // mobile, desktop
+  connectionType: varchar("connection_type", { length: 20 }),
+  score: integer("score"), // Overall performance score 0-100
+  measuredAt: timestamp("measured_at").defaultNow(),
+});
+
+// Search suggestions and analytics
+export const searchSuggestions = pgTable("search_suggestions", {
+  id: serial("id").primaryKey(),
+  query: varchar("query", { length: 255 }).notNull(),
+  suggestion: varchar("suggestion", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  popularity: integer("popularity").default(0),
+  resultCount: integer("result_count").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Search analytics
+export const searchAnalytics = pgTable("search_analytics", {
+  id: serial("id").primaryKey(),
+  query: varchar("query", { length: 255 }).notNull(),
+  resultCount: integer("result_count").default(0),
+  sessionId: varchar("session_id", { length: 100 }),
+  userId: varchar("user_id").references(() => users.id),
+  clickedProductId: integer("clicked_product_id").references(() => products.id),
+  searchedAt: timestamp("searched_at").defaultNow(),
+});
+
+// Hreflang configuration for multi-language
+export const hreflangConfig = pgTable("hreflang_config", {
+  id: serial("id").primaryKey(),
+  pageType: varchar("page_type", { length: 50 }).notNull(), // product, category, blog, static
+  pageId: varchar("page_id", { length: 100 }).notNull(), // ID of the specific page
+  language: varchar("language", { length: 10 }).notNull(), // en, es, fr, de, etc.
+  region: varchar("region", { length: 10 }), // US, GB, FR, DE, etc.
+  url: varchar("url", { length: 500 }).notNull(),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Products table - Enhanced for Website Management
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -512,3 +608,61 @@ export type InsertSampleRequest = z.infer<typeof insertSampleRequestSchema>;
 export type Inventory = typeof inventory.$inferSelect;
 export type SalesOrder = typeof salesOrders.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+
+// Blog post schemas
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+
+// Product FAQ schemas
+export const insertProductFaqSchema = createInsertSchema(productFaqs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertProductFaq = z.infer<typeof insertProductFaqSchema>;
+export type ProductFaq = typeof productFaqs.$inferSelect;
+
+// SEO monitoring schemas
+export const insertSeoMonitoringSchema = createInsertSchema(seoMonitoring).omit({
+  id: true,
+  detectedAt: true,
+  lastChecked: true,
+});
+export type InsertSeoMonitoring = z.infer<typeof insertSeoMonitoringSchema>;
+export type SeoMonitoring = typeof seoMonitoring.$inferSelect;
+
+// Core Web Vitals schemas
+export const insertCoreWebVitalsSchema = createInsertSchema(coreWebVitals).omit({
+  id: true,
+  measuredAt: true,
+});
+export type InsertCoreWebVitals = z.infer<typeof insertCoreWebVitalsSchema>;
+export type CoreWebVitals = typeof coreWebVitals.$inferSelect;
+
+// Search suggestion schemas
+export const insertSearchSuggestionSchema = createInsertSchema(searchSuggestions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSearchSuggestion = z.infer<typeof insertSearchSuggestionSchema>;
+export type SearchSuggestion = typeof searchSuggestions.$inferSelect;
+
+// Search analytics schemas
+export const insertSearchAnalyticsSchema = createInsertSchema(searchAnalytics).omit({
+  id: true,
+  searchedAt: true,
+});
+export type InsertSearchAnalytics = z.infer<typeof insertSearchAnalyticsSchema>;
+export type SearchAnalytics = typeof searchAnalytics.$inferSelect;
+
+// Hreflang configuration schemas
+export const insertHreflangConfigSchema = createInsertSchema(hreflangConfig).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertHreflangConfig = z.infer<typeof insertHreflangConfigSchema>;
+export type HreflangConfig = typeof hreflangConfig.$inferSelect;
