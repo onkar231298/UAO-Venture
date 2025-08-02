@@ -91,9 +91,9 @@ export default function SeoManagement() {
             <Settings className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="faqs" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            FAQs
+          <TabsTrigger value="schema" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            Schema Validation
           </TabsTrigger>
           <TabsTrigger value="blog" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -116,33 +116,33 @@ export default function SeoManagement() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* FAQ Management Card */}
+            {/* Schema Validation Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  FAQ Management
+                  <Globe className="h-5 w-5 text-blue-600" />
+                  Schema Validation
                 </CardTitle>
                 <CardDescription>
-                  Create and manage product FAQs with structured data
+                  Test and validate structured data markup
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Add dynamic FAQs to product pages for better user experience and SEO.
+                  Validate your product schema and test rich results with Google tools.
                 </p>
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => setSelectedTab("faqs")}
+                    onClick={() => setSelectedTab("schema")}
                     className="flex-1"
                   >
-                    Manage FAQs
+                    Validate Schema
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => window.open('/products', '_blank')}
+                    onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
                   >
-                    View Live
+                    Google Test
                   </Button>
                 </div>
               </CardContent>
@@ -311,92 +311,165 @@ export default function SeoManagement() {
           </div>
         </TabsContent>
 
-        {/* FAQ Management Tab */}
-        <TabsContent value="faqs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Product FAQ Management
-              </CardTitle>
-              <CardDescription>
-                Create and manage FAQs for products with automatic structured data generation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Create FAQ Form */}
-                <div className="border rounded-lg p-4 space-y-4">
-                  <h3 className="font-semibold text-lg">Add New FAQ</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="productSelect">Select Product</Label>
-                      <select className="w-full p-2 border rounded-md">
-                        <option value="">Choose a product...</option>
-                        <option value="turmeric-powder">Turmeric Powder</option>
-                        <option value="ashwagandha-extract">Ashwagandha Extract</option>
-                        <option value="ginger-powder">Ginger Powder</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label htmlFor="faqCategory">FAQ Category</Label>
-                      <select className="w-full p-2 border rounded-md">
-                        <option value="general">General Information</option>
-                        <option value="usage">Usage & Dosage</option>
-                        <option value="storage">Storage & Handling</option>
-                        <option value="certification">Certification & Quality</option>
-                        <option value="shipping">Shipping & Delivery</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="question">Question</Label>
-                    <Input 
-                      id="question"
-                      placeholder="e.g., What is the shelf life of this product?"
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="answer">Answer</Label>
-                    <Textarea 
-                      id="answer"
-                      placeholder="Provide a detailed answer..."
-                      rows={4}
-                      className="w-full"
-                    />
-                  </div>
+        {/* Schema Validation Tab */}
+        <TabsContent value="schema" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Schema Testing Tools */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Google Structured Data Testing
+                </CardTitle>
+                <CardDescription>
+                  Test your pages with Google's Rich Results Test
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="testUrl">URL to Test</Label>
                   <div className="flex gap-2">
-                    <Button className="flex-1">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Add FAQ
+                    <Input 
+                      id="testUrl"
+                      placeholder="https://your-domain.com/product-page-url"
+                      defaultValue={`${window.location.origin}/product/organic-turmeric-powder`}
+                    />
+                    <Button onClick={() => {
+                      const url = (document.getElementById('testUrl') as HTMLInputElement).value;
+                      window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(url)}`, '_blank');
+                    }}>
+                      Test URL
                     </Button>
-                    <Button variant="outline">
-                      Preview Schema
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Quick Test Links:</h4>
+                  <div className="grid gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(window.location.origin + '/product/organic-turmeric-powder')}`, '_blank')}
+                    >
+                      Test Turmeric Powder Page
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(window.location.origin + '/products')}`, '_blank')}
+                    >
+                      Test Products Listing Page
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(window.location.origin)}`, '_blank')}
+                    >
+                      Test Homepage
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Schema Validation Tools */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Schema Validation Tools
+                </CardTitle>
+                <CardDescription>
+                  Additional validation and testing tools
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">External Validation Tools:</h4>
+                  <div className="grid gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open('https://validator.schema.org/', '_blank')}
+                    >
+                      Schema.org Validator
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open('https://search.google.com/search-console', '_blank')}
+                    >
+                      Google Search Console
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open('https://developers.facebook.com/tools/debug/', '_blank')}
+                    >
+                      Facebook Open Graph Debugger
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => window.open('https://cards-dev.twitter.com/validator', '_blank')}
+                    >
+                      Twitter Card Validator
                     </Button>
                   </div>
                 </div>
 
-                {/* FAQ Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">47</div>
-                      <div className="text-sm text-gray-600">Total FAQs</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">23</div>
-                      <div className="text-sm text-gray-600">Products with FAQs</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-purple-600">100%</div>
-                      <div className="text-sm text-gray-600">Schema Compliance</div>
-                    </CardContent>
-                  </Card>
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">View Raw Schema Data:</h4>
+                  <div className="grid gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open('/api/product-page/organic-turmeric-powder', '_blank')}
+                    >
+                      View Product Schema JSON
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open('/api/schema/organization', '_blank')}
+                    >
+                      View Organization Schema
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Schema Status Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Schema Implementation Status</CardTitle>
+              <CardDescription>
+                Current structured data implementation across your website
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="font-semibold text-green-900">Product Schema</div>
+                  <div className="text-sm text-green-700">Active on all products</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="font-semibold text-green-900">FAQ Schema</div>
+                  <div className="text-sm text-green-700">Dynamic FAQ support</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="font-semibold text-green-900">Organization</div>
+                  <div className="text-sm text-green-700">Company details</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Settings className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <div className="font-semibold text-blue-900">Breadcrumbs</div>
+                  <div className="text-sm text-blue-700">Auto-generated</div>
                 </div>
               </div>
             </CardContent>
