@@ -69,7 +69,7 @@ export const products = pgTable("products", {
   origin: varchar("origin", { length: 100 }), // Country of Origin
   hsCode: varchar("hs_code", { length: 20 }), // HS Code
   categoryId: integer("category_id").references(() => categories.id),
-  productType: varchar("product_type", { length: 50 }).default("organic"), // organic, conventional
+  productType: varchar("product_type", { length: 50 }).default("organic"), // organic, natural, conventional, synthetic, nature_identical, other
   productGrade: varchar("product_grade", { length: 100 }), // Food Grade, Pharma Grade, etc.
   healthSupport: varchar("health_support", { length: 100 }), // Functional Category - Antioxidant, Digestive Support, etc.
   

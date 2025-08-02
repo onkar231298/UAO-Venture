@@ -647,6 +647,30 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
 
+          {/* Product Type Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="productType">Product Type *</Label>
+              <Select value={formData.productType} onValueChange={(value) => setFormData(prev => ({ ...prev, productType: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select product type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="organic">Organic</SelectItem>
+                  <SelectItem value="natural">Natural</SelectItem>
+                  <SelectItem value="conventional">Conventional</SelectItem>
+                  <SelectItem value="synthetic">Synthetic</SelectItem>
+                  <SelectItem value="nature_identical">Nature Identical</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">This will appear as a green badge on product cards</p>
+            </div>
+            <div>
+              {/* Empty space for visual balance */}
+            </div>
+          </div>
+
           {/* Product Tags */}
           <div className="border-t pt-4 mt-4">
             <Label className="text-base font-semibold">Product Tags / Certifications</Label>

@@ -41,11 +41,27 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
               </div>
             </div>
-            {product.isOrganic && (
+            {product.productType && (
               <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
                 <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                <span className="hidden sm:inline">Organic</span>
-                <span className="sm:hidden">Org</span>
+                <span className="hidden sm:inline">
+                  {product.productType === 'organic' ? 'Organic' :
+                   product.productType === 'natural' ? 'Natural' :
+                   product.productType === 'conventional' ? 'Conventional' :
+                   product.productType === 'synthetic' ? 'Synthetic' :
+                   product.productType === 'nature_identical' ? 'Nature Identical' :
+                   product.productType === 'other' ? 'Other' : 
+                   'Organic'}
+                </span>
+                <span className="sm:hidden">
+                  {product.productType === 'organic' ? 'Org' :
+                   product.productType === 'natural' ? 'Nat' :
+                   product.productType === 'conventional' ? 'Conv' :
+                   product.productType === 'synthetic' ? 'Syn' :
+                   product.productType === 'nature_identical' ? 'N.I.' :
+                   product.productType === 'other' ? 'Other' : 
+                   'Org'}
+                </span>
               </Badge>
             )}
             <div className="absolute top-1 sm:top-2 right-1 sm:right-2">

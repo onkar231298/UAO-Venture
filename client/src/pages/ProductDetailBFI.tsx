@@ -352,10 +352,16 @@ export default function ProductDetailBFI() {
                   </div>
                 )}
                 
-                {product.isOrganic && (
+                {product.productType && (
                   <Badge className="absolute top-4 left-4 bg-green-600">
                     <Leaf className="w-3 h-3 mr-1" />
-                    Organic
+                    {product.productType === 'organic' ? 'Organic' :
+                     product.productType === 'natural' ? 'Natural' :
+                     product.productType === 'conventional' ? 'Conventional' :
+                     product.productType === 'synthetic' ? 'Synthetic' :
+                     product.productType === 'nature_identical' ? 'Nature Identical' :
+                     product.productType === 'other' ? 'Other' : 
+                     'Organic'}
                   </Badge>
                 )}
               </div>
