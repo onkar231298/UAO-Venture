@@ -26,18 +26,27 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth and role management
+// User storage table for custom authentication and role management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  userType: varchar("user_type").default("internal"), // internal (admin/staff) or customer
   role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
   companyName: varchar("company_name"),
+  businessType: varchar("business_type"), // Manufacturer, Distributor, Retailer, etc.
+  companySize: varchar("company_size"), // 1-10, 11-50, 51-200, 200+
+  region: varchar("region"), // North America, Europe, Asia-Pacific, India, Other
+  country: varchar("country"),
   phoneNumber: varchar("phone_number"),
   address: text("address"),
+  taxId: varchar("tax_id"),
+  emailVerified: boolean("email_verified").default(false),
   isActive: boolean("is_active").default(true),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -560,16 +569,34 @@ export const quotationsRelations = relations(quotations, ({ one, many }) => ({
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
+// Insert schema for user registration (without password requirement for internal use)
+export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
-  role: true,
-  companyName: true,
-  phoneNumber: true,
-  address: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLoginAt: true,
+});
+
+// Login schema
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Customer registration schema
+export const customerRegistrationSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  companyName: z.string().min(1, "Company name is required"),
+  businessType: z.string().min(1, "Business type is required"),
+  companySize: z.string().min(1, "Company size is required"),
+  region: z.string().min(1, "Region is required"),
+  country: z.string().min(1, "Country is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  address: z.string().optional(),
+  taxId: z.string().optional(),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
@@ -640,6 +667,8 @@ export const insertQuotationSchema = createInsertSchema(quotations).omit({
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type LoginData = z.infer<typeof loginSchema>;
+export type CustomerRegistration = z.infer<typeof customerRegistrationSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertInquiry = z.infer<typeof insertInquirySchema>;

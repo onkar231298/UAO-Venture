@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
 import OptimizedImage from "./OptimizedImage";
-import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
+import BlurredContent from "./BlurredContent";
+import { Shield, Leaf, Award, Star, Heart, MessageSquare, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import type { Product } from "@shared/schema";
 
 interface ProductCardProps {
@@ -13,6 +15,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { isAuthenticated } = useAuth();
+  
   // Get the first image from mainImage field or images array
   const mainImage = (product as any).mainImage;
   const productImages = product.images as string[] | null;
@@ -113,31 +117,67 @@ export default function ProductCard({ product }: ProductCardProps) {
                 )}
               </div>
             )}
+
+            {/* Pricing Section - Show only to authenticated users */}
+            <BlurredContent
+              isAuthenticated={isAuthenticated}
+              title="Member Pricing"
+              message="Login to view competitive B2B pricing"
+              className="mb-3"
+            >
+              <div className="space-y-2">
+                {product.basePrice && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Starting from:</span>
+                    <span className="font-semibold text-green-700">${product.basePrice}/kg</span>
+                  </div>
+                )}
+                {product.moq && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">MOQ:</span>
+                    <span className="text-xs font-medium">{product.moq} kg</span>
+                  </div>
+                )}
+              </div>
+            </BlurredContent>
           </CardContent>
         </div>
       </Link>
       
       <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
         <div className="flex space-x-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
-                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                <span className="hidden sm:inline">Get Quote</span>
-                <span className="sm:hidden">Quote</span>
+          {isAuthenticated ? (
+            <>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
+                    <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="hidden sm:inline">Get Quote</span>
+                    <span className="sm:hidden">Quote</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Request Quote for {product.name}</DialogTitle>
+                  </DialogHeader>
+                  <InquiryForm product={product} />
+                </DialogContent>
+              </Dialog>
+              
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                Sample
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Request Quote for {product.name}</DialogTitle>
-              </DialogHeader>
-              <InquiryForm product={product} />
-            </DialogContent>
-          </Dialog>
-          
-          <Button variant="outline" size="sm" className="text-sm">
-            Sample
-          </Button>
+            </>
+          ) : (
+            <Button 
+              className="w-full bg-orange-600 hover:bg-orange-700 text-xs sm:text-sm py-2"
+              onClick={() => window.location.href = '/login'}
+            >
+              <Lock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden sm:inline">Login for Pricing & Quote</span>
+              <span className="sm:hidden">Login to Order</span>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

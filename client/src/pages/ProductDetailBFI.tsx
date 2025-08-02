@@ -42,7 +42,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { LocationBasedPricing } from "@/components/LocationBasedPricing";
+import BlurredContent from "@/components/BlurredContent";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -316,7 +316,7 @@ export default function ProductDetailBFI() {
                   {!isAuthenticated ? (
                     <div className="text-center py-4 bg-gray-50 rounded">
                       <p className="text-sm text-gray-600 mb-3">You must log in to view documents</p>
-                      <Button size="sm" onClick={() => window.location.href = '/api/login'}>
+                      <Button size="sm" onClick={() => window.location.href = '/login'}>
                         Log in
                       </Button>
                     </div>
@@ -473,47 +473,89 @@ export default function ProductDetailBFI() {
                 ))}
               </div>
 
-              {/* Multi-Currency Pricing Display */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <LocationBasedPricing 
-                  product={product} 
-                  showCurrencySelector={false}
-                  isAdminView={false}
-                  className="mb-2"
-                />
-                {product.moq && (
-                  <div className="text-sm text-gray-600 mt-2">
-                    MOQ: {product.moq} {product.stockUnit || 'kg'} | Lead Time: {product.leadTime || 'Contact us'}
+              {/* Blurred Pricing Display - Member Only */}
+              <BlurredContent
+                isAuthenticated={isAuthenticated}
+                title="Member Pricing"
+                message="Create an account to view competitive B2B pricing"
+                className="mb-4"
+              >
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {product.basePrice && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700">Base Price:</span>
+                        <span className="text-lg font-bold text-green-700">${product.basePrice}/kg</span>
+                      </div>
+                    )}
+                    {product.moq && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">MOQ:</span>
+                        <span className="text-sm font-medium">{product.moq} {product.stockUnit || 'kg'}</span>
+                      </div>
+                    )}
+                    {product.leadTime && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Lead Time:</span>
+                        <span className="text-sm font-medium">{product.leadTime}</span>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t border-green-200">
+                      <p className="text-xs text-green-700 font-medium">
+                        🎯 Volume discounts available • Regional pricing
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              </BlurredContent>
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Request Quote
+                {isAuthenticated ? (
+                  <>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Request Quote
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Request Quote for {product.name}</DialogTitle>
+                        </DialogHeader>
+                        <InquiryForm product={product} />
+                      </DialogContent>
+                    </Dialog>
+
+                    <Button variant="outline" size="default">
+                      <Heart className="w-4 h-4 mr-2" />
+                      Wishlist
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Request Quote for {product.name}</DialogTitle>
-                    </DialogHeader>
-                    <InquiryForm product={product} />
-                  </DialogContent>
-                </Dialog>
 
-                <Button variant="outline" size="default">
-                  <Heart className="w-4 h-4 mr-2" />
-                  Wishlist
-                </Button>
-
-                <Button variant="outline" size="default">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
+                    <Button variant="outline" size="default">
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  </>
+                ) : (
+                  <div className="w-full flex gap-2">
+                    <Button 
+                      className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => window.location.href = '/login'}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Login to Request Quote
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="default"
+                      onClick={() => window.location.href = '/register'}
+                    >
+                      Register
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Enhanced Inquiry Form */}

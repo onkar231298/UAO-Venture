@@ -70,9 +70,19 @@ import { stringify } from "csv-stringify/sync";
 import { Readable } from "stream";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations for custom authentication
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(userData: UpsertUser & { id: string }): Promise<User>;
+  updateUser(id: string, userData: Partial<UpsertUser>): Promise<User | undefined>;
+  updateUserLastLogin(id: string): Promise<void>;
+  getUsers(filters?: {
+    userType?: string;
+    region?: string;
+    businessType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ users: User[]; total: number }>;
 
   // Product operations
   getProducts(filters?: {
@@ -264,25 +274,100 @@ export class DatabaseStorage implements IStorage {
     
     return (result[0]?.maxId || 0) + 1;
   }
-  // User operations (mandatory for Replit Auth)
+  // User operations for custom authentication
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser & { id: string }): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+      .values({
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
     return user;
+  }
+
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserLastLogin(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  // Get users with filtering (for admin management)
+  async getUsers(filters?: {
+    userType?: string;
+    region?: string;
+    businessType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ users: User[]; total: number }> {
+    const conditions = [];
+    
+    if (filters?.userType) {
+      conditions.push(eq(users.userType, filters.userType));
+    }
+    
+    if (filters?.region) {
+      conditions.push(eq(users.region, filters.region));
+    }
+    
+    if (filters?.businessType) {
+      conditions.push(eq(users.businessType, filters.businessType));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const totalResult = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(users)
+      .where(whereClause);
+    
+    const total = totalResult[0]?.count || 0;
+
+    // Get users with pagination
+    let query = db.select().from(users);
+    
+    if (whereClause) {
+      query = query.where(whereClause);
+    }
+    
+    query = query.orderBy(desc(users.createdAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    if (filters?.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const userList = await query;
+    
+    return { users: userList, total };
   }
 
   // Product operations
