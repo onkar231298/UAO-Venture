@@ -23,6 +23,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
+import bcrypt from "bcryptjs";
 import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1820,7 +1821,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer signup route with password
   app.post('/api/customer/signup', async (req, res) => {
     try {
-      const bcrypt = require('bcryptjs');
       
       const { password, confirmPassword, ...customerData } = req.body;
       

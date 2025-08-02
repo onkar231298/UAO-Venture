@@ -279,20 +279,20 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomer(customerData: any): Promise<User> {
     const newCustomer = {
-      id: `customer_${Date.now()}`, // Generate unique customer ID
+      id: customerData.id || `customer_${Date.now()}`, // Use provided ID or generate unique customer ID
       email: customerData.email,
       firstName: customerData.firstName,
       lastName: customerData.lastName,
-      role: 'customer',
+      passwordHash: customerData.passwordHash, // Include password hash
+      authProvider: customerData.authProvider || 'local',
+      role: customerData.role || 'customer',
+      companyName: customerData.companyName,
+      phoneNumber: customerData.phoneNumber,
+      address: customerData.address,
       country: customerData.country,
       currency: customerData.currency,
       timezone: customerData.timezone,
-      // Store additional customer info in a JSON field if needed
-      profileData: {
-        companyName: customerData.companyName,
-        phoneNumber: customerData.phoneNumber,
-        address: customerData.address,
-      }
+      isActive: true
     };
 
     const [user] = await db.insert(users).values(newCustomer).returning();
