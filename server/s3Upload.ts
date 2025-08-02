@@ -3,9 +3,10 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import path from 'path';
+import type { Request } from 'express';
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'brightfameimages';
-const BUCKET_REGION = 'eu-north-1'; // Your bucket is in Stockholm region
+const BUCKET_REGION = process.env.AWS_REGION || 'eu-north-1'; // Your bucket is in Stockholm region
 
 // AWS S3 Configuration with correct region
 const s3Client = new S3Client({
@@ -18,45 +19,57 @@ const s3Client = new S3Client({
 
 const CDN_URL = process.env.AWS_CLOUDFRONT_URL || `https://${BUCKET_NAME}.s3.${BUCKET_REGION}.amazonaws.com`;
 
-// Multer S3 Configuration for Direct Upload
+// Multer S3 Configuration for Direct Upload with better error handling
 export const uploadToS3 = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: BUCKET_NAME,
     // Remove ACL setting as bucket doesn't allow ACLs
-    metadata: (req, file, cb) => {
+    metadata: (req: any, file: any, cb: any) => {
+      console.log('Setting metadata for file:', file.fieldname);
       cb(null, { fieldName: file.fieldname });
     },
-    key: (req, file, cb) => {
-      // Generate unique filename based on upload type
-      const timestamp = Date.now();
-      const ext = path.extname(file.originalname);
-      let filename: string;
-      
-      if (file.fieldname.includes('slide')) {
-        // Hero slider uploads go to hero-slides folder
-        const slideId = req.body.slideId || 'temp';
-        filename = `hero-slides/${slideId}/${file.fieldname}-${timestamp}${ext}`;
-      } else {
-        // Product uploads go to products folder
-        const productId = req.body.productId || 'temp';
-        filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
+    key: (req: any, file: any, cb: any) => {
+      try {
+        // Generate unique filename based on upload type
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname);
+        let filename: string;
+        
+        if (file.fieldname.includes('slide') || file.fieldname.includes('Slide')) {
+          // Hero slider uploads go to hero-slides folder
+          const slideId = req.body.slideId || 'temp';
+          filename = `hero-slides/${slideId}/${file.fieldname}-${timestamp}${ext}`;
+        } else {
+          // Product uploads go to products folder
+          const productId = req.body.productId || 'temp';
+          filename = `products/${productId}/${file.fieldname}-${timestamp}${ext}`;
+        }
+        
+        console.log(`S3 Upload Config: Bucket=${BUCKET_NAME}, Region=${BUCKET_REGION}, Key=${filename}`);
+        console.log(`File details: Original=${file.originalname}, Type=${file.mimetype}, Size=${file.size || 'unknown'}`);
+        cb(null, filename);
+      } catch (error) {
+        console.error('Error generating S3 key:', error);
+        cb(error);
       }
-      
-      console.log(`Uploading to S3: ${filename}, Original: ${file.originalname}, Size: ${file.size || 'unknown'}`);
-      cb(null, filename);
     },
     contentType: multerS3.AUTO_CONTENT_TYPE,
   }),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // Increased to 10MB limit
   },
-  fileFilter: (req, file, cb) => {
-    // Only allow image files
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype.includes('document')) {
+  fileFilter: (req: any, file: any, cb: any) => {
+    console.log('File filter check:', file.mimetype, file.originalname);
+    // Allow image files and documents
+    if (file.mimetype.startsWith('image/') || 
+        file.mimetype === 'application/pdf' || 
+        file.mimetype.includes('document') ||
+        file.mimetype.includes('video/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image and document files are allowed!'));
+      console.error('File type not allowed:', file.mimetype);
+      cb(new Error('Only image, video, and document files are allowed!'));
     }
   },
 });
