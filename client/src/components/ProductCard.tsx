@@ -28,10 +28,10 @@ export default function ProductCard({ product }: ProductCardProps) {
               <OptimizedImage
                 src={productImage}
                 alt={product.name}
-                className="w-full h-36 sm:h-40 md:h-48 object-cover group-hover:scale-105 transition-transform duration-200"
+                className="w-full h-44 sm:h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-200"
                 lazy={true}
                 placeholder={
-                  <div className="w-full h-36 sm:h-40 md:h-48 flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                  <div className="w-full h-44 sm:h-48 md:h-52 flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl mb-2">📷</div>
                       <div className="text-xs sm:text-sm font-medium">Loading...</div>
@@ -40,7 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 }
               />
             ) : (
-              <div className="w-full h-36 sm:h-40 md:h-48 flex items-center justify-center bg-gray-100 text-gray-400">
+              <div className="w-full h-44 sm:h-48 md:h-52 flex items-center justify-center bg-gray-100 text-gray-400">
                 <div className="text-center">
                   <div className="text-2xl sm:text-3xl mb-2">📷</div>
                   <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
