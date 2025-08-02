@@ -356,6 +356,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create hero slide
+  app.post('/api/hero-slides', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const slideData = insertHeroSliderSchema.parse(req.body);
+      const slide = await storage.createHeroSlide(slideData);
+      res.json(slide);
+    } catch (error) {
+      console.error("Error creating hero slide:", error);
+      res.status(500).json({ message: "Failed to create hero slide" });
+    }
+  });
+
+  // Update hero slide
+  app.put('/api/hero-slides/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { id } = req.params;
+      const slideData = req.body;
+      const slide = await storage.updateHeroSlide(parseInt(id), slideData);
+      res.json(slide);
+    } catch (error) {
+      console.error("Error updating hero slide:", error);
+      res.status(500).json({ message: "Failed to update hero slide" });
+    }
+  });
+
+  // Delete hero slide
+  app.delete('/api/hero-slides/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteHeroSlide(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting hero slide:", error);
+      res.status(500).json({ message: "Failed to delete hero slide" });
+    }
+  });
+
 
 
   // Get product documents

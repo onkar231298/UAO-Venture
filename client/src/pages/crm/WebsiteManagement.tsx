@@ -9,6 +9,7 @@ import CategoryManagement from "@/components/CategoryManagement";
 import BulkProductUpload from "@/components/BulkProductUpload";
 import ComprehensiveProductForm from "@/components/ComprehensiveProductForm";
 import SeoManagement from "@/pages/crm/SeoManagement";
+import HeroSliderManagement from "@/components/HeroSliderManagement";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -344,9 +345,10 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="hero-slider">Hero Slider</TabsTrigger>
               <TabsTrigger value="tags">Tags</TabsTrigger>
               <TabsTrigger value="schema">Schema Validator</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
@@ -656,6 +658,39 @@ export default function WebsiteManagement() {
             {/* Categories Management Tab */}
             <TabsContent value="categories" className="mt-6">
               <CategoryManagement />
+            </TabsContent>
+
+            {/* Hero Slider Management Tab */}
+            <TabsContent value="hero-slider" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Layout className="w-5 h-5" />
+                      Hero Slider Management
+                    </span>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Slide
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Add New Hero Slide</DialogTitle>
+                        </DialogHeader>
+                        <div className="p-4 text-center text-gray-600">
+                          Hero slide form will be available here
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <HeroSliderManagement />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Tags Management Tab */}

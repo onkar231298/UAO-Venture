@@ -54,6 +54,22 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Hero slides for homepage
+export const heroSlides = pgTable("hero_slides", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 255 }),
+  description: text("description"),
+  backgroundImage: varchar("background_image", { length: 500 }).notNull(),
+  textColor: varchar("text_color", { length: 20 }).default("white"), // white, black
+  buttonText: varchar("button_text", { length: 100 }),
+  buttonLink: varchar("button_link", { length: 500 }),
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Blog posts for SEO content
 export const blogPosts = pgTable("blog_posts", {
   id: serial("id").primaryKey(),

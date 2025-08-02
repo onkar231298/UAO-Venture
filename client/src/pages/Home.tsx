@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ProductCatalog from "@/components/ProductCatalog";
 import Dashboard from "@/pages/Dashboard";
-import ParallaxHero from "@/components/ParallaxHero";
+import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -92,8 +92,8 @@ export default function Home() {
       <div className="min-h-screen bg-background">
         <Header />
         
-        {/* Parallax Hero Section */}
-        <ParallaxHero />
+        {/* Simple Hero Slider */}
+        <SimpleHeroSlider />
         
         {/* About Section */}
         <section className="py-20 bg-white">
