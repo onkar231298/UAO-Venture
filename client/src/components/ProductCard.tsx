@@ -91,6 +91,22 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.botanicalName && (
               <p className="text-xs text-gray-500 mb-2 sm:mb-3 italic line-clamp-1">{product.botanicalName}</p>
             )}
+            
+            {/* Product Tags */}
+            {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {product.tags.slice(0, 3).map((tag, index) => (
+                  <Badge key={index} variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
+                    {typeof tag === 'string' ? tag : tag.name}
+                  </Badge>
+                ))}
+                {product.tags.length > 3 && (
+                  <Badge variant="outline" className="text-xs px-1 py-0 bg-gray-50 text-gray-600">
+                    +{product.tags.length - 3}
+                  </Badge>
+                )}
+              </div>
+            )}
           </CardContent>
         </div>
       </Link>

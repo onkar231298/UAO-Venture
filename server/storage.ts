@@ -214,6 +214,7 @@ export class DatabaseStorage implements IStorage {
     category?: string[];
     search?: string;
     materials?: string[];
+    productType?: string[];
     healthSupport?: string[];
     origin?: string[];
     form?: string[];
@@ -280,6 +281,14 @@ export class DatabaseStorage implements IStorage {
         sql`${products.productType} ILIKE ${`%${material}%`}`
       );
       conditions.push(or(...materialConditions));
+    }
+
+    // Product Type filter (organic, natural, conventional, synthetic, nature_identical, other)
+    if (filters?.productType && filters.productType.length > 0) {
+      const productTypeConditions = filters.productType.map(type => 
+        eq(products.productType, type)
+      );
+      conditions.push(or(...productTypeConditions));
     }
 
     // Health Support filter
@@ -366,8 +375,35 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause),
     ]);
 
+    // Load tags for each product
+    const productsWithTags = await Promise.all(
+      productsResult.map(async (product) => {
+        const productTags = await db
+          .select({
+            id: productTags.id,
+            name: productTags.name,
+            slug: productTags.slug,
+            color: productTags.color,
+            description: productTags.description,
+          })
+          .from(productTags)
+          .innerJoin(productTagRelations, eq(productTagRelations.tagId, productTags.id))
+          .where(
+            and(
+              eq(productTagRelations.productId, product.id),
+              eq(productTags.isActive, true)
+            )
+          );
+        
+        return {
+          ...product,
+          tags: productTags,
+        };
+      })
+    );
+
     return {
-      products: productsResult,
+      products: productsWithTags,
       total: totalResult[0].count,
     };
   }

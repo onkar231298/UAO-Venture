@@ -165,6 +165,37 @@ export default function WebsiteManagement() {
     },
   });
 
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await apiRequest(`/api/admin/products/${productId}`, { 
+        method: "DELETE"
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Product deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => window.location.href = "/api/login", 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Extract products from API response safely
   const products = Array.isArray(productsData?.products) ? productsData.products as Product[] : [];
   const filteredProducts = products;
@@ -586,6 +617,20 @@ export default function WebsiteManagement() {
                                         />
                                       </DialogContent>
                                     </Dialog>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        if (window.confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+                                          deleteProductMutation.mutate(product.id);
+                                        }
+                                      }}
+                                      disabled={deleteProductMutation.isPending}
+                                      title="Delete Product"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>

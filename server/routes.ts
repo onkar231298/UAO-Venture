@@ -44,6 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category, 
         search, 
         materials, 
+        productType,
         healthSupport, 
         origin, 
         form, 
@@ -79,6 +80,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (materials) {
         filters.materials = Array.isArray(materials) ? materials : (materials as string).split(',');
+      }
+      
+      if (productType) {
+        filters.productType = Array.isArray(productType) ? productType : (productType as string).split(',');
       }
 
       // Handle other filters
