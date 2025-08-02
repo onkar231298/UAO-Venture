@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
-import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,9 +58,6 @@ export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
       });
     },
     onSuccess: () => {
-      // Track inquiry submission for analytics
-      trackEvent('submit_inquiry', 'inquiry', product?.name || 'Product Inquiry', product?.id);
-      
       toast({
         title: "Inquiry Submitted",
         description: "Your inquiry has been submitted successfully. Our team will contact you soon.",

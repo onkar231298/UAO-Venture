@@ -9,16 +9,6 @@ app.use(express.urlencoded({ extended: false }));
 // Serve attached assets
 app.use('/attached_assets', express.static('attached_assets'));
 
-// Serve public directory for static assets including sitemap.xml
-app.use(express.static('public', {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('sitemap.xml')) {
-      res.setHeader('Content-Type', 'application/xml');
-      res.setHeader('Cache-Control', 'public, max-age=3600');
-    }
-  }
-}));
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

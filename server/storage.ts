@@ -72,8 +72,6 @@ import { Readable } from "stream";
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createCustomer(customerData: any): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Product operations
@@ -269,33 +267,6 @@ export class DatabaseStorage implements IStorage {
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-
-  async createCustomer(customerData: any): Promise<User> {
-    const newCustomer = {
-      id: customerData.id || `customer_${Date.now()}`, // Use provided ID or generate unique customer ID
-      email: customerData.email,
-      firstName: customerData.firstName,
-      lastName: customerData.lastName,
-      passwordHash: customerData.passwordHash, // Include password hash
-      authProvider: customerData.authProvider || 'local',
-      role: customerData.role || 'customer',
-      companyName: customerData.companyName,
-      phoneNumber: customerData.phoneNumber,
-      address: customerData.address,
-      country: customerData.country,
-      currency: customerData.currency,
-      timezone: customerData.timezone,
-      isActive: true
-    };
-
-    const [user] = await db.insert(users).values(newCustomer).returning();
     return user;
   }
 

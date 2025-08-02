@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-
-# Sitemap location
-Sitemap: https://bright-organic.com/sitemap.xml
-
-# Company: Bright Fame Organic Pvt. Ltd.
-# Website: https://bright-organic.com
-# Contact: +91-7249847439
