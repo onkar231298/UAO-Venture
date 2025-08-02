@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
+import OptimizedImage from "./OptimizedImage";
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
 import type { Product } from "@shared/schema";
 
@@ -24,23 +25,28 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="cursor-pointer">
           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
             {hasImage ? (
-              <img
+              <OptimizedImage
                 src={productImage}
                 alt={product.name}
                 className="w-full h-36 sm:h-40 md:h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                onError={(e) => {
-                  // If image fails to load, show placeholder
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling!.classList.remove('hidden');
-                }}
+                lazy={true}
+                placeholder={
+                  <div className="w-full h-36 sm:h-40 md:h-48 flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                      <div className="text-xs sm:text-sm font-medium">Loading...</div>
+                    </div>
+                  </div>
+                }
               />
-            ) : null}
-            <div className={`${hasImage ? 'hidden' : 'flex'} w-full h-36 sm:h-40 md:h-48 items-center justify-center bg-gray-100 text-gray-400`}>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl mb-2">📷</div>
-                <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
+            ) : (
+              <div className="w-full h-36 sm:h-40 md:h-48 flex items-center justify-center bg-gray-100 text-gray-400">
+                <div className="text-center">
+                  <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                  <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
+                </div>
               </div>
-            </div>
+            )}
             {product.productType && (
               <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
                 <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />

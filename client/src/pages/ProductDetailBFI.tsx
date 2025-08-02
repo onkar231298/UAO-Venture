@@ -1,6 +1,8 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
+import OptimizedImage from "@/components/OptimizedImage";
+import ImagePreloader from "@/components/ImagePreloader";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
@@ -196,6 +198,9 @@ export default function ProductDetailBFI() {
           <span>Home</span> / <span>Products</span> / <span className="text-gray-900">{product.name}</span>
         </nav>
 
+        {/* Preload product images for better performance */}
+        <ImagePreloader imageUrls={allImages} priority={true} />
+        
         <div className="grid lg:grid-cols-12 gap-8 mb-8">
           {/* Left Column - Product Image & Documents */}
           <div className="lg:col-span-4">
@@ -204,10 +209,20 @@ export default function ProductDetailBFI() {
               <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden group">
                 {currentImage ? (
                   <div className="relative">
-                    <img
+                    <OptimizedImage
                       src={currentImage}
                       alt={`${product.name} - Image ${currentImageIndex + 1}`}
                       className="w-full h-80 object-cover"
+                      priority={currentImageIndex === 0} // Prioritize first image
+                      lazy={false} // Don't lazy load main product images
+                      placeholder={
+                        <div className="w-full h-80 flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                          <div className="text-center">
+                            <div className="text-4xl mb-3">📷</div>
+                            <div className="text-lg font-medium">Loading Image...</div>
+                          </div>
+                        </div>
+                      }
                     />
                     
                     {/* Navigation Arrows - Only show if multiple images */}
@@ -273,10 +288,16 @@ export default function ProductDetailBFI() {
                       }`}
                       onClick={() => goToImage(index)}
                     >
-                      <img
+                      <OptimizedImage
                         src={image}
                         alt={`${product.name} - Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
+                        lazy={true}
+                        placeholder={
+                          <div className="w-full h-full bg-gray-100 animate-pulse flex items-center justify-center">
+                            <div className="text-xs text-gray-400">📷</div>
+                          </div>
+                        }
                       />
                     </button>
                   ))}
