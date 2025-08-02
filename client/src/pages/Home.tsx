@@ -31,6 +31,10 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
+        
+        {/* Simple Hero Slider for customers */}
+        <SimpleHeroSlider />
+        
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

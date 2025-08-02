@@ -71,7 +71,7 @@ export default function SimpleHeroSlider() {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: `url('/attached_assets/unnamed (1)_1754134468984.webp')`,
+          backgroundImage: `url('/attached_assets/unnamed%20(1)_1754134468984.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
