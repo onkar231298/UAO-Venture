@@ -921,44 +921,27 @@ function SchemaValidatorInterface() {
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Get all product URLs for batch testing - force fresh data
+  // Get all product URLs for batch testing
   const { data: products } = useQuery({
-    queryKey: ["/api/products", { limit: 1000, timestamp: Date.now() }],
+    queryKey: ["/api/products", { limit: 1000 }],
     queryFn: async () => {
-      const response = await fetch("/api/products?limit=1000&_t=" + Date.now());
+      const response = await fetch("/api/products?limit=1000");
       if (!response.ok) throw new Error("Failed to fetch products");
       return response.json();
     },
   });
 
   const baseUrl = window.location.origin;
-  // Force regeneration of URLs using the API endpoint pattern
-  const productUrls = products?.products?.map((product: any) => {
-    const apiUrl = `${baseUrl}/api/product-page/${product.slug}`;
-    console.log('Generated URL for', product.slug, ':', apiUrl);
-    return apiUrl;
-  }) || [];
-
-  // Log URLs for debugging - force fresh console output
-  console.log('=== SCHEMA VALIDATOR DEBUG ===');
-  console.log('Base URL:', baseUrl);
-  console.log('Total products loaded:', products?.products?.length || 0);
-  console.log('Sample product URLs:');
-  productUrls.slice(0, 5).forEach((url, i) => {
-    console.log(`  ${i + 1}. ${url}`);
-  });
-  console.log('Total product URLs to test:', productUrls.length);
-  console.log('================================');
+  // Generate URLs for the API endpoint pattern
+  const productUrls = products?.products?.map((product: any) => 
+    `${baseUrl}/api/product-page/${product.slug}`
+  ) || [];
 
   const runSchemaValidation = async (url: string) => {
-    console.log('Validating URL:', url);
     try {
       // Validate by checking if URL exists and has structured data
       const response = await fetch(url);
-      console.log('Response status:', response.status);
       const html = await response.text();
-      console.log('Response HTML length:', html.length);
-      console.log('First 200 chars:', html.substring(0, 200));
       
       // Check for JSON-LD structured data with more flexible matching
       const hasJsonLd = html.includes('application/ld+json');
@@ -969,15 +952,6 @@ function SchemaValidatorInterface() {
       const hasProductName = html.includes('"name":') || html.includes('"name" :');
       const hasProductSku = html.includes('"sku":') || html.includes('"sku" :');
       const hasProductBrand = html.includes('"brand":') || html.includes('"brand" :');
-      
-      console.log('Validation results:', {
-        hasJsonLd,
-        hasProductSchema,
-        hasBreadcrumbs,
-        hasProductName,
-        hasProductSku,
-        hasProductBrand
-      });
       
       const errors = [];
       if (!hasJsonLd) errors.push('Missing JSON-LD structured data');
@@ -998,7 +972,6 @@ function SchemaValidatorInterface() {
         errors
       };
     } catch (error) {
-      console.log('Validation error:', error);
       return {
         url,
         valid: false,
@@ -1009,18 +982,6 @@ function SchemaValidatorInterface() {
   };
 
   const runBatchValidation = async () => {
-    console.log('=== STARTING BATCH VALIDATION ===');
-    console.log('productUrls array:', productUrls);
-    console.log('First 3 URLs:', productUrls.slice(0, 3));
-    
-    // Force page reload if we detect old URLs
-    const hasOldUrls = productUrls.some(url => url.includes('/products/') && !url.includes('/api/product-page/'));
-    if (hasOldUrls) {
-      console.error('DETECTED OLD URLs! Forcing page reload...');
-      window.location.reload();
-      return;
-    }
-    
     setIsScanning(true);
     setScanProgress(0);
     setScanResults(null);
@@ -1029,9 +990,8 @@ function SchemaValidatorInterface() {
     const results = [];
     const errors = [];
     
-    // Test first 5 products only for debugging
-    const testUrls = productUrls.slice(0, 5);
-    console.log('Final test URLs:', testUrls);
+    // Test all available products
+    const testUrls = productUrls;
     
     for (let i = 0; i < testUrls.length; i++) {
       const url = testUrls[i];
