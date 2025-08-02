@@ -42,6 +42,7 @@ import {
   searchAnalytics,
   hreflangConfig,
   globalSeoSettings,
+  newsletterSubscriptions,
   type ProductFaq,
   type InsertProductFaq,
   type BlogPost,
@@ -58,6 +59,8 @@ import {
   type InsertHreflangConfig,
   type GlobalSeoSettings,
   type InsertGlobalSeoSettings,
+  type NewsletterSubscription,
+  type InsertNewsletterSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
@@ -237,6 +240,12 @@ export interface IStorage {
   // Global SEO Settings methods
   getGlobalSeoSettings(): Promise<GlobalSeoSettings | undefined>;
   updateGlobalSeoSettings(settings: Partial<InsertGlobalSeoSettings>): Promise<GlobalSeoSettings>;
+
+  // Newsletter subscription methods
+  subscribeToNewsletter(subscription: InsertNewsletterSubscription): Promise<NewsletterSubscription>;
+  getNewsletterSubscription(email: string): Promise<NewsletterSubscription | undefined>;
+  unsubscribeFromNewsletter(email: string): Promise<void>;
+  getNewsletterSubscriptions(filters?: { isActive?: boolean; limit?: number; offset?: number }): Promise<{ subscriptions: NewsletterSubscription[]; total: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2503,6 +2512,88 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newSettings;
     }
+  }
+
+  // Newsletter subscription methods
+  async subscribeToNewsletter(subscription: InsertNewsletterSubscription): Promise<NewsletterSubscription> {
+    try {
+      const [newSubscription] = await db.insert(newsletterSubscriptions)
+        .values(subscription)
+        .returning();
+      return newSubscription;
+    } catch (error: any) {
+      // Handle duplicate email error
+      if (error.code === '23505') { // PostgreSQL unique violation
+        // Check if subscription exists but is inactive
+        const [existingSubscription] = await db.select()
+          .from(newsletterSubscriptions)
+          .where(eq(newsletterSubscriptions.email, subscription.email));
+        
+        if (existingSubscription && !existingSubscription.isActive) {
+          // Reactivate existing subscription
+          const [reactivatedSubscription] = await db.update(newsletterSubscriptions)
+            .set({ 
+              isActive: true, 
+              subscribedAt: new Date(),
+              source: subscription.source || 'blog',
+              updatedAt: new Date()
+            })
+            .where(eq(newsletterSubscriptions.email, subscription.email))
+            .returning();
+          return reactivatedSubscription;
+        }
+        
+        // If already active, return existing subscription
+        if (existingSubscription) {
+          return existingSubscription;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async getNewsletterSubscription(email: string): Promise<NewsletterSubscription | undefined> {
+    const [subscription] = await db.select()
+      .from(newsletterSubscriptions)
+      .where(eq(newsletterSubscriptions.email, email));
+    return subscription;
+  }
+
+  async unsubscribeFromNewsletter(email: string): Promise<void> {
+    await db.update(newsletterSubscriptions)
+      .set({ 
+        isActive: false,
+        updatedAt: new Date()
+      })
+      .where(eq(newsletterSubscriptions.email, email));
+  }
+
+  async getNewsletterSubscriptions(filters?: { 
+    isActive?: boolean; 
+    limit?: number; 
+    offset?: number 
+  }): Promise<{ subscriptions: NewsletterSubscription[]; total: number }> {
+    const conditions = [];
+    
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(newsletterSubscriptions.isActive, filters.isActive));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [subscriptionsData, totalData] = await Promise.all([
+      db.select().from(newsletterSubscriptions)
+        .where(whereCondition)
+        .orderBy(desc(newsletterSubscriptions.subscribedAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: count() }).from(newsletterSubscriptions).where(whereCondition)
+    ]);
+
+    return {
+      subscriptions: subscriptionsData,
+      total: totalData[0]?.count || 0
+    };
   }
 }
 

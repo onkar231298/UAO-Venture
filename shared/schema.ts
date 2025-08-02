@@ -726,3 +726,27 @@ export const insertGlobalSeoSettingsSchema = createInsertSchema(globalSeoSetting
 });
 export type InsertGlobalSeoSettings = z.infer<typeof insertGlobalSeoSettingsSchema>;
 export type GlobalSeoSettings = typeof globalSeoSettings.$inferSelect;
+
+// Newsletter subscriptions table
+export const newsletterSubscriptions = pgTable("newsletter_subscriptions", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  subscribedAt: timestamp("subscribed_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  source: varchar("source", { length: 50 }).default("blog"), // blog, footer, popup, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Newsletter subscription schemas
+export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterSubscriptions).omit({
+  id: true,
+  subscribedAt: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export type InsertNewsletterSubscription = z.infer<typeof insertNewsletterSubscriptionSchema>;
+export type NewsletterSubscription = typeof newsletterSubscriptions.$inferSelect;

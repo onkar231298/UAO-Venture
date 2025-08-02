@@ -17,7 +17,8 @@ import {
   insertCoreWebVitalsSchema,
   insertSearchAnalyticsSchema,
   insertHreflangConfigSchema,
-  insertGlobalSeoSettingsSchema
+  insertGlobalSeoSettingsSchema,
+  insertNewsletterSubscriptionSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -1672,6 +1673,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error performing SEO audit:', error);
       res.status(500).json({ message: "Failed to perform SEO audit" });
+    }
+  });
+
+  // Newsletter subscription routes
+  app.post('/api/newsletter/subscribe', async (req, res) => {
+    try {
+      const subscriptionData = insertNewsletterSubscriptionSchema.parse(req.body);
+      const subscription = await storage.subscribeToNewsletter(subscriptionData);
+      res.json({ 
+        message: "Successfully subscribed to newsletter!", 
+        subscription: { id: subscription.id, email: subscription.email } 
+      });
+    } catch (error: any) {
+      console.error('Error subscribing to newsletter:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+      res.status(500).json({ message: "Failed to subscribe to newsletter" });
+    }
+  });
+
+  app.post('/api/newsletter/unsubscribe', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      await storage.unsubscribeFromNewsletter(email);
+      res.json({ message: "Successfully unsubscribed from newsletter" });
+    } catch (error) {
+      console.error('Error unsubscribing from newsletter:', error);
+      res.status(500).json({ message: "Failed to unsubscribe from newsletter" });
+    }
+  });
+
+  app.get('/api/admin/newsletter/subscriptions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { isActive, limit = '50', offset = '0' } = req.query;
+      const filters = {
+        isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      };
+      const result = await storage.getNewsletterSubscriptions(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching newsletter subscriptions:', error);
+      res.status(500).json({ message: "Failed to fetch newsletter subscriptions" });
     }
   });
 

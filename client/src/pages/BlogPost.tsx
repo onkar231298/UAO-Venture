@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, User, Clock, ArrowLeft, Share2, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { useSEO } from "@/hooks/useSEO";
+import NewsletterSubscription from "@/components/NewsletterSubscription";
 
 interface BlogPost {
   id: number;
@@ -175,25 +176,8 @@ export default function BlogPost() {
           <Separator className="my-8" />
 
           {/* Article Footer */}
-          <footer className="bg-gray-100 rounded-lg p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Stay Updated
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Get the latest insights and updates from BFI Organic delivered to your inbox.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <Button className="bg-orange-600 hover:bg-orange-700">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
+          <footer>
+            <NewsletterSubscription variant="default" source="blog-post" />
           </footer>
         </article>
 
