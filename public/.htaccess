@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Force XML content type for sitemap files
+<Files "sitemap.xml">
+    ForceType application/xml
+</Files>
+
+# Redirect api/sitemap.xml to the static file if Express route fails
+RewriteCond %{REQUEST_URI} ^/api/sitemap\.xml$
+RewriteRule ^api/sitemap\.xml$ /sitemap.xml [L,R=301]

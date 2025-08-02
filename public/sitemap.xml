@@ -37,7 +37,7 @@
     <priority>0.6</priority>
   </url>
 
-  <!-- Key Product Pages -->
+  <!-- Sample Product Pages -->
   <url>
     <loc>https://bright-organic.com/product/organic-ashwagandha-root-powder</loc>
     <lastmod>2025-08-02</lastmod>
@@ -54,6 +54,13 @@
   
   <url>
     <loc>https://bright-organic.com/product/organic-moringa-leaf-powder</loc>
+    <lastmod>2025-08-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://bright-organic.com/product/organic-spirulina-powder</loc>
     <lastmod>2025-08-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -76,6 +83,13 @@
   
   <url>
     <loc>https://bright-organic.com/products?category=Superfoods</loc>
+    <lastmod>2025-08-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://bright-organic.com/products?category=Essential%20Oils</loc>
     <lastmod>2025-08-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
