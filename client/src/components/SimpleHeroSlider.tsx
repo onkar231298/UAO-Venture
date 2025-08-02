@@ -66,14 +66,14 @@ export default function SimpleHeroSlider() {
   const slide = activeSlides[currentSlide];
 
   return (
-    <div className="relative h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:bg-fixed bg-scroll"
         style={{ 
-          backgroundImage: `url('/attached_assets/unnamed%20(1)_1754134468984.webp')`,
+          backgroundImage: `url('${slide.backgroundImage}')`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat'
         }}
       >
@@ -85,23 +85,25 @@ export default function SimpleHeroSlider() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center">
-        <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-3xl">
+      <div className="relative z-10 h-full flex items-center py-8 sm:py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl">
             {/* Animated Text Coming from Left and Right */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Title - Animate from Left */}
               <h1 
-                className={`text-5xl lg:text-7xl font-bold ${slide.textColor === 'white' ? 'text-white' : 'text-gray-900'} 
+                className={`text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold
+                          ${slide.textColor === 'white' ? 'text-white' : 'text-gray-900'} 
                           transform transition-all duration-1000 ease-out
-                          animate-[slideInLeft_1s_ease-out_0.2s_both]`}
+                          animate-[slideInLeft_1s_ease-out_0.2s_both] leading-tight`}
               >
                 {slide.title}
               </h1>
 
               {/* Subtitle - Animate from Right */}
               <h2 
-                className={`text-2xl lg:text-3xl font-semibold ${slide.textColor === 'white' ? 'text-blue-200' : 'text-blue-600'} 
+                className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold
+                          ${slide.textColor === 'white' ? 'text-blue-200' : 'text-blue-600'} 
                           transform transition-all duration-1000 ease-out
                           animate-[slideInRight_1s_ease-out_0.4s_both]`}
               >
@@ -110,8 +112,9 @@ export default function SimpleHeroSlider() {
 
               {/* Description - Animate from Left with delay */}
               <p 
-                className={`text-lg lg:text-xl ${slide.textColor === 'white' ? 'text-gray-200' : 'text-gray-700'} 
-                          max-w-2xl leading-relaxed
+                className={`text-sm sm:text-base md:text-lg lg:text-xl
+                          ${slide.textColor === 'white' ? 'text-gray-200' : 'text-gray-700'} 
+                          max-w-3xl leading-relaxed
                           transform transition-all duration-1000 ease-out
                           animate-[slideInLeft_1s_ease-out_0.6s_both]`}
               >
@@ -122,7 +125,8 @@ export default function SimpleHeroSlider() {
               <div className="animate-[fadeIn_1s_ease-out_0.8s_both]">
                 <Button 
                   size="lg"
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 text-lg font-semibold
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 sm:px-8 py-3 
+                           text-sm sm:text-base md:text-lg font-semibold
                            transform transition-all duration-300 hover:scale-105 shadow-lg"
                 >
                   Explore Products
@@ -138,32 +142,32 @@ export default function SimpleHeroSlider() {
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-6 top-1/2 transform -translate-y-1/2 z-20
-                     bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-3
+            className="absolute left-3 sm:left-6 top-1/2 transform -translate-y-1/2 z-20
+                     bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 sm:p-3
                      transition-all duration-300 hover:scale-110"
             aria-label="Previous slide"
           >
-            <ChevronLeft className="w-6 h-6 text-white" />
+            <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
           </button>
 
           <button
             onClick={nextSlide}
-            className="absolute right-6 top-1/2 transform -translate-y-1/2 z-20
-                     bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-3
+            className="absolute right-3 sm:right-6 top-1/2 transform -translate-y-1/2 z-20
+                     bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 sm:p-3
                      transition-all duration-300 hover:scale-110"
             aria-label="Next slide"
           >
-            <ChevronRight className="w-6 h-6 text-white" />
+            <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
           </button>
 
           {/* Slide Indicators */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-            <div className="flex space-x-3">
+          <div className="absolute bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="flex space-x-2 sm:space-x-3">
               {activeSlides.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
                     index === currentSlide
                       ? 'bg-orange-500 scale-125'
                       : 'bg-white/50 hover:bg-white/70'
