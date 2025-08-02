@@ -1,10 +1,9 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://bright-organic.com/api/sitemap.xml
+# Sitemap location
+Sitemap: https://bright-organic.com/sitemap.xml
 
-# Disallow admin and private areas
-Disallow: /admin/
-Disallow: /dashboard/
-Disallow: /login/
+# Company: Bright Fame Organic Pvt. Ltd.
+# Website: https://bright-organic.com
+# Contact: +91-7249847439
