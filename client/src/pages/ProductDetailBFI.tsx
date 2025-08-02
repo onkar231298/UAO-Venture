@@ -577,10 +577,17 @@ export default function ProductDetailBFI() {
           {/* Right Column - Pricing & Order */}
           <div className="lg:col-span-4">
             <div className="sticky top-4">
-              <QuantityPricing 
-                product={product} 
-                onQuantityChange={handleQuantityChange}
-              />
+              <BlurredContent
+                isAuthenticated={isAuthenticated}
+                title="Member Pricing Table"
+                message="Register to view volume pricing and place orders"
+                className=""
+              >
+                <QuantityPricing 
+                  product={product} 
+                  onQuantityChange={handleQuantityChange}
+                />
+              </BlurredContent>
             </div>
           </div>
 

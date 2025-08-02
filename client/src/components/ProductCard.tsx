@@ -117,29 +117,6 @@ export default function ProductCard({ product }: ProductCardProps) {
                 )}
               </div>
             )}
-
-            {/* Pricing Section - Show only to authenticated users */}
-            <BlurredContent
-              isAuthenticated={isAuthenticated}
-              title="Member Pricing"
-              message="Login to view competitive B2B pricing"
-              className="mb-3"
-            >
-              <div className="space-y-2">
-                {product.basePrice && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Starting from:</span>
-                    <span className="font-semibold text-green-700">${product.basePrice}/kg</span>
-                  </div>
-                )}
-                {product.moq && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">MOQ:</span>
-                    <span className="text-xs font-medium">{product.moq} kg</span>
-                  </div>
-                )}
-              </div>
-            </BlurredContent>
           </CardContent>
         </div>
       </Link>
