@@ -669,74 +669,7 @@ export default function WebsiteManagement() {
 
             {/* Schema Validator Tab */}
             <TabsContent value="schema" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Code className="h-5 w-5" />
-                    Google Schema Validator
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-gray-600">
-                    All product pages automatically include structured data (Schema.org) for better SEO and rich snippets.
-                  </p>
-                  
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <h4 className="font-semibold text-green-800">Schema Implementation Active</h4>
-                    </div>
-                    <ul className="text-sm text-green-700 space-y-1">
-                      <li>• Product schema with name, description, SKU, and pricing</li>
-                      <li>• Brand information for BFI Organic</li>
-                      <li>• Availability and stock status</li>
-                      <li>• Breadcrumb navigation</li>
-                      <li>• Additional properties (botanical name, origin, form)</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">Test Your Structured Data:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
-                        className="justify-start"
-                        onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
-                      >
-                        <Globe className="w-4 h-4 mr-2" />
-                        Google Rich Results Test
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="justify-start"
-                        onClick={() => window.open('https://validator.schema.org/', '_blank')}
-                      >
-                        <Code className="w-4 h-4 mr-2" />
-                        Schema.org Validator
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="justify-start"
-                        onClick={() => window.open('https://www.google.com/webmasters/markup-helper/', '_blank')}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Google Markup Helper
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="justify-start"
-                        onClick={() => window.open('https://developers.google.com/search/docs/advanced/structured-data', '_blank')}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Schema Documentation
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Copy any product page URL from your website and test it with these tools to ensure proper structured data implementation.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <SchemaValidatorInterface />
             </TabsContent>
 
             {/* SEO Management Tab */}
@@ -976,6 +909,341 @@ export default function WebsiteManagement() {
         </div>
       </div>
     </RoleBasedRoute>
+  );
+}
+
+// Schema Validator Component
+function SchemaValidatorInterface() {
+  const { toast } = useToast();
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
+  const [scanProgress, setScanProgress] = useState(0);
+
+  // Get all product URLs for batch testing
+  const { data: products } = useQuery({
+    queryKey: ["/api/products", { limit: 1000 }],
+    queryFn: async () => {
+      const response = await fetch("/api/products?limit=1000");
+      if (!response.ok) throw new Error("Failed to fetch products");
+      return response.json();
+    },
+  });
+
+  const baseUrl = window.location.origin;
+  const productUrls = products?.products?.map((product: any) => 
+    `${baseUrl}/products/${product.slug}`
+  ) || [];
+
+  const runSchemaValidation = async (url: string) => {
+    try {
+      // Simulate validation by checking if URL exists and has structured data
+      const response = await fetch(url);
+      const html = await response.text();
+      
+      // Check for JSON-LD structured data
+      const hasJsonLd = html.includes('application/ld+json');
+      const hasProductSchema = html.includes('"@type":"Product"');
+      const hasBreadcrumbs = html.includes('"@type":"BreadcrumbList"');
+      
+      return {
+        url,
+        valid: hasJsonLd && hasProductSchema,
+        hasProductSchema,
+        hasBreadcrumbs,
+        hasJsonLd,
+        errors: !hasJsonLd ? ['Missing JSON-LD structured data'] : 
+                !hasProductSchema ? ['Missing Product schema'] : []
+      };
+    } catch (error) {
+      return {
+        url,
+        valid: false,
+        error: 'Failed to fetch URL',
+        errors: ['URL not accessible']
+      };
+    }
+  };
+
+  const runBatchValidation = async () => {
+    setIsScanning(true);
+    setScanProgress(0);
+    setScanResults(null);
+    setValidationErrors([]);
+    
+    const results = [];
+    const errors = [];
+    
+    for (let i = 0; i < productUrls.length; i++) {
+      const url = productUrls[i];
+      try {
+        const result = await runSchemaValidation(url);
+        results.push(result);
+        
+        if (!result.valid) {
+          errors.push({
+            url: result.url,
+            errors: result.errors || [result.error]
+          });
+        }
+        
+        setScanProgress(Math.round(((i + 1) / productUrls.length) * 100));
+        
+        // Small delay to prevent overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        errors.push({
+          url,
+          errors: ['Validation failed']
+        });
+      }
+    }
+    
+    setScanResults({
+      total: productUrls.length,
+      valid: results.filter(r => r.valid).length,
+      invalid: errors.length,
+      results
+    });
+    setValidationErrors(errors);
+    setIsScanning(false);
+    
+    toast({
+      title: "Schema Validation Complete",
+      description: `Scanned ${productUrls.length} pages. ${results.filter(r => r.valid).length} valid, ${errors.length} with issues.`,
+    });
+  };
+
+  const downloadReport = () => {
+    if (!scanResults) return;
+    
+    const report = {
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalPages: scanResults.total,
+        validPages: scanResults.valid,
+        invalidPages: scanResults.invalid,
+        successRate: `${Math.round((scanResults.valid / scanResults.total) * 100)}%`
+      },
+      validationErrors,
+      allResults: scanResults.results
+    };
+    
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schema-validation-report-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Report Downloaded",
+      description: "Schema validation report has been downloaded successfully.",
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Schema Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Schema Implementation Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Product schema with name, description, SKU, and pricing</li>
+              <li>• Brand information for BFI Organic</li>
+              <li>• Availability and stock status</li>
+              <li>• Breadcrumb navigation</li>
+              <li>• Additional properties (botanical name, origin, form)</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Single URL Validator */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Single URL</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter product URL to validate..."
+              value={currentUrl}
+              onChange={(e) => setCurrentUrl(e.target.value)}
+            />
+            <Button 
+              onClick={() => window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(currentUrl)}`, '_blank')}
+              disabled={!currentUrl}
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Test with Google
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.open(`https://validator.schema.org/#url=${encodeURIComponent(currentUrl)}`, '_blank')}
+              disabled={!currentUrl}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Schema.org Test
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Batch Validation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Bulk Schema Validation</span>
+            <Badge variant="secondary">{productUrls.length} Products</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-600">
+            Scan all product pages to validate their structured data implementation.
+          </p>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={runBatchValidation}
+              disabled={isScanning || productUrls.length === 0}
+              className="flex-1"
+            >
+              {isScanning ? (
+                <>
+                  <AlertCircle className="w-4 h-4 mr-2 animate-spin" />
+                  Scanning... {scanProgress}%
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Start Schema Validation Scan
+                </>
+              )}
+            </Button>
+            
+            {scanResults && (
+              <Button 
+                variant="outline"
+                onClick={downloadReport}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Download Report
+              </Button>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          {isScanning && (
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${scanProgress}%` }}
+              ></div>
+            </div>
+          )}
+
+          {/* Scan Results Summary */}
+          {scanResults && (
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="text-2xl font-bold text-green-600">{scanResults.valid}</div>
+                <div className="text-sm text-green-700">Valid Pages</div>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <div className="text-2xl font-bold text-red-600">{scanResults.invalid}</div>
+                <div className="text-sm text-red-700">Pages with Issues</div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="text-2xl font-bold text-blue-600">
+                  {Math.round((scanResults.valid / scanResults.total) * 100)}%
+                </div>
+                <div className="text-sm text-blue-700">Success Rate</div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Validation Errors ({validationErrors.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {validationErrors.map((error, index) => (
+                <div key={index} className="border-l-4 border-red-500 pl-4 py-2 bg-red-50">
+                  <div className="font-medium text-red-900 text-sm">{error.url}</div>
+                  <ul className="text-red-700 text-xs mt-1">
+                    {error.errors.map((err: string, i: number) => (
+                      <li key={i}>• {err}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* External Testing Tools */}
+      <Card>
+        <CardHeader>
+          <CardTitle>External Validation Tools</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Google Rich Results Test
+            </Button>
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => window.open('https://validator.schema.org/', '_blank')}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Schema.org Validator
+            </Button>
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => window.open('https://www.google.com/webmasters/markup-helper/', '_blank')}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Google Markup Helper
+            </Button>
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => window.open('https://developers.google.com/search/docs/advanced/structured-data', '_blank')}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Schema Documentation
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
