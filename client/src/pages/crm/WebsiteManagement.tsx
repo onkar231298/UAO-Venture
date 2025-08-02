@@ -1039,6 +1039,72 @@ function SchemaValidatorInterface() {
     });
   };
 
+  const openAllInGoogleTest = () => {
+    if (productUrls.length === 0) {
+      toast({
+        title: "No Products Found",
+        description: "No products available for testing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Ask for confirmation before opening many tabs
+    const confirmed = window.confirm(
+      `This will open ${productUrls.length} tabs in Google Rich Results Test. Continue?`
+    );
+    
+    if (!confirmed) return;
+
+    // Open first 10 products to avoid browser limitations
+    const testUrls = productUrls.slice(0, 10);
+    
+    testUrls.forEach((url, index) => {
+      setTimeout(() => {
+        const googleTestUrl = `https://search.google.com/test/rich-results?url=${encodeURIComponent(url)}`;
+        window.open(googleTestUrl, '_blank');
+      }, index * 500); // 500ms delay between each tab to avoid blocking
+    });
+
+    toast({
+      title: "Opening Google Rich Results Tests",
+      description: `Opening ${testUrls.length} product pages in Google's validator.`,
+    });
+  };
+
+  const openAllInSchemaOrg = () => {
+    if (productUrls.length === 0) {
+      toast({
+        title: "No Products Found",
+        description: "No products available for testing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Ask for confirmation before opening many tabs
+    const confirmed = window.confirm(
+      `This will open ${productUrls.length} tabs in Schema.org validator. Continue?`
+    );
+    
+    if (!confirmed) return;
+
+    // Open first 10 products to avoid browser limitations
+    const testUrls = productUrls.slice(0, 10);
+    
+    testUrls.forEach((url, index) => {
+      setTimeout(() => {
+        const schemaTestUrl = `https://validator.schema.org/#url=${encodeURIComponent(url)}`;
+        window.open(schemaTestUrl, '_blank');
+      }, index * 500); // 500ms delay between each tab
+    });
+
+    toast({
+      title: "Opening Schema.org Validators",
+      description: `Opening ${testUrls.length} product pages in Schema.org validator.`,
+    });
+  };
+
   const downloadReport = () => {
     if (!scanResults) return;
     
@@ -1120,6 +1186,45 @@ function SchemaValidatorInterface() {
               <Code className="w-4 h-4 mr-2" />
               Schema.org Test
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Google Rich Results Bulk Testing */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Google Rich Results Testing</span>
+            <Badge variant="secondary">{productUrls.length} Products</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-600">
+            Open all product pages in Google's Rich Results Test tool for comprehensive validation.
+          </p>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={openAllInGoogleTest}
+              disabled={productUrls.length === 0}
+              className="flex-1"
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Test All Products in Google Rich Results
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={openAllInSchemaOrg}
+              disabled={productUrls.length === 0}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Test All in Schema.org Validator
+            </Button>
+          </div>
+          
+          <div className="text-sm text-gray-500">
+            Note: This will open multiple browser tabs. Please allow pop-ups for this site.
           </div>
         </CardContent>
       </Card>
