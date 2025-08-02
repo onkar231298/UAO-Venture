@@ -341,11 +341,10 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
@@ -663,28 +662,75 @@ export default function WebsiteManagement() {
               />
             </TabsContent>
 
-            {/* Content Management Tab */}
-            <TabsContent value="content" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Content Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Content management features coming soon...</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
+
 
             {/* SEO Management Tab */}
             <TabsContent value="seo" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>SEO Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>SEO management features coming soon...</p>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {/* Google Schema Validator */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Code className="h-5 w-5" />
+                      Google Schema Validator
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-gray-600">
+                      All product pages automatically include structured data (Schema.org) for better SEO and rich snippets.
+                    </p>
+                    
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800">Schema Implementation Active</h4>
+                      </div>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Product schema with name, description, SKU, and pricing</li>
+                        <li>• Brand information for BFI Organic</li>
+                        <li>• Availability and stock status</li>
+                        <li>• Breadcrumb navigation</li>
+                        <li>• Additional properties (botanical name, origin, form)</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h4 className="font-semibold">Test Your Structured Data:</h4>
+                      <div className="flex flex-col gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="justify-start"
+                          onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
+                        >
+                          <Globe className="w-4 h-4 mr-2" />
+                          Google Rich Results Test
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="justify-start"
+                          onClick={() => window.open('https://validator.schema.org/', '_blank')}
+                        >
+                          <Code className="w-4 h-4 mr-2" />
+                          Schema.org Validator
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Copy any product page URL from your website and test it with these tools.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* SEO Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SEO Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">Advanced SEO configuration and site-wide settings will be available here.</p>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Analytics Tab */}
