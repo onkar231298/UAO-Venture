@@ -11,7 +11,7 @@ import {
   productDocuments,
   productTags,
   productTagRelations,
-  heroSliders,
+  heroSlides,
   sampleRequests,
   type User,
   type UpsertUser,
@@ -1158,12 +1158,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Hero slider operations
-  async getHeroSlides(): Promise<HeroSlider[]> {
+  async getHeroSlides(): Promise<any[]> {
     const slides = await db
       .select()
-      .from(heroSliders)
-      .where(eq(heroSliders.status, 'active'))
-      .orderBy(asc(heroSliders.sortOrder));
+      .from(heroSlides)
+      .where(eq(heroSlides.isActive, true))
+      .orderBy(asc(heroSlides.displayOrder));
     return slides;
   }
 

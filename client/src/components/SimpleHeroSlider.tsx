@@ -36,6 +36,7 @@ export default function SimpleHeroSlider() {
     }
   ];
 
+  // If we have slides from database, use them, otherwise use default with warehouse image
   const activeSlides = slides.length > 0 ? slides.filter(slide => slide.isActive) : defaultSlides;
 
   // Auto-advance slides if multiple slides exist
@@ -66,7 +67,7 @@ export default function SimpleHeroSlider() {
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${slide.backgroundImage})` }}
+        style={{ backgroundImage: `url(${slide.backgroundImage || slide.background_image || warehouseImage})` }}
       >
         {/* Gradient Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
