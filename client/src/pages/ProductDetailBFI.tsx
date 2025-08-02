@@ -127,133 +127,26 @@ export default function ProductDetailBFI() {
     }
   };
 
-  // Add structured data to document head
+  // Update page meta tags for SEO (structured data is now handled server-side)
   useEffect(() => {
     if (product) {
-      const baseUrl = window.location.origin;
-      const productUrl = `${baseUrl}/products/${product.slug}`;
-      const imageUrl = currentImage?.startsWith('http') ? currentImage : `${baseUrl}${currentImage}`;
-      
-      const structuredData = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": product.name,
-        "description": product.description || `High-quality ${product.name} from BFI Organic`,
-        "sku": product.productId,
-        "mpn": product.productId,
-        "brand": {
-          "@type": "Brand",
-          "name": "BFI Organic",
-          "url": baseUrl
-        },
-        "manufacturer": {
-          "@type": "Organization",
-          "name": "Bright Fame Organic Pvt. Ltd.",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
-            "addressLocality": "Mehsana",
-            "addressRegion": "Gujarat",
-            "postalCode": "384001",
-            "addressCountry": "IN"
-          },
-          "telephone": "+91-7249847439",
-          "url": baseUrl
-        },
-        "image": imageUrl,
-        "url": productUrl,
-        "category": product.healthSupport || "Organic Ingredients",
-        "offers": {
-          "@type": "Offer",
-          "priceCurrency": "USD",
-          "price": product.priceUSD || product.rate || 0,
-          "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-          "itemCondition": "https://schema.org/NewCondition",
-          "seller": {
-            "@type": "Organization",
-            "name": "BFI Organic",
-            "url": baseUrl
-          }
-        },
-        "additionalProperty": [
-          ...(product.botanicalName ? [{
-            "@type": "PropertyValue",
-            "name": "Botanical Name",
-            "value": product.botanicalName
-          }] : []),
-          ...(product.origin ? [{
-            "@type": "PropertyValue", 
-            "name": "Origin",
-            "value": product.origin
-          }] : []),
-          ...(product.form ? [{
-            "@type": "PropertyValue",
-            "name": "Form", 
-            "value": product.form
-          }] : [])
-        ]
-      };
-
-      const breadcrumbData = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": baseUrl
-          },
-          {
-            "@type": "ListItem", 
-            "position": 2,
-            "name": "Products",
-            "item": `${baseUrl}/products`
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": product.name,
-            "item": `${baseUrl}/products/${product.slug}`
-          }
-        ]
-      };
-      
-      // Remove existing structured data scripts
-      const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
-      existingScripts.forEach(script => script.remove());
-      
-      // Add product structured data script
-      const productScript = document.createElement('script');
-      productScript.type = 'application/ld+json';
-      productScript.textContent = JSON.stringify(structuredData, null, 2);
-      document.head.appendChild(productScript);
-      
-      // Add breadcrumb structured data script
-      const breadcrumbScript = document.createElement('script');
-      breadcrumbScript.type = 'application/ld+json';
-      breadcrumbScript.textContent = JSON.stringify(breadcrumbData, null, 2);
-      document.head.appendChild(breadcrumbScript);
-      
-      // Update page meta tags for SEO
-      document.title = product.seoTitle || `${product.name} - BFI Organic`;
-      
-      // Update meta description
-      let metaDescription = document.querySelector('meta[name="description"]');
-      if (!metaDescription) {
-        metaDescription = document.createElement('meta');
-        metaDescription.setAttribute('name', 'description');
-        document.head.appendChild(metaDescription);
+      // Update page title if not already set by server
+      if (document.title === 'Vite + React + TS') {
+        document.title = product.seoTitle || `${product.name} - BFI Organic`;
       }
-      metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
       
-      return () => {
-        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-        scripts.forEach(script => script.remove());
-      };
+      // Update meta description if not already set by server
+      let metaDescription = document.querySelector('meta[name="description"]');
+      if (!metaDescription || metaDescription.getAttribute('content') === '') {
+        if (!metaDescription) {
+          metaDescription = document.createElement('meta');
+          metaDescription.setAttribute('name', 'description');
+          document.head.appendChild(metaDescription);
+        }
+        metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
+      }
     }
-  }, [product, currentImage]);
+  }, [product]);
 
   if (isLoading) {
     return (
