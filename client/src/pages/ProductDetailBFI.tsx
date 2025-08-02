@@ -4,6 +4,7 @@ import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/analytics";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -93,6 +94,13 @@ export default function ProductDetailBFI() {
 
   const allImages = getAllImages();
   const currentImage = allImages.length > 0 ? allImages[currentImageIndex] : null;
+
+  // Track product view for analytics
+  useEffect(() => {
+    if (product) {
+      trackEvent('view_product', 'product', product.name, product.id);
+    }
+  }, [product]);
 
   // Auto-advance carousel every 3 seconds
   useEffect(() => {
