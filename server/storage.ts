@@ -720,6 +720,23 @@ export class DatabaseStorage implements IStorage {
     
     const [newProduct] = await db.insert(products).values([processedProduct]).returning();
     
+    // Handle FAQs - if provided in the faqs field, save them to the productFaqs table
+    if (processedProduct.faqs && Array.isArray(processedProduct.faqs) && processedProduct.faqs.length > 0) {
+      console.log('Creating FAQs for new product:', newProduct.id, processedProduct.faqs);
+      for (let i = 0; i < processedProduct.faqs.length; i++) {
+        const faq = processedProduct.faqs[i];
+        if (faq.question && faq.answer) {
+          await this.createProductFaq({
+            productId: newProduct.id,
+            question: faq.question,
+            answer: faq.answer,
+            displayOrder: i + 1,
+            isActive: true
+          });
+        }
+      }
+    }
+    
     // Sync certifications with tag system
     if (processedProduct.certifications && Array.isArray(processedProduct.certifications)) {
       await this.syncCertificationsToTags(processedProduct.certifications);
@@ -778,6 +795,29 @@ export class DatabaseStorage implements IStorage {
       .set({ ...processedProduct, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
+    
+    // Handle FAQs - if provided in the faqs field, sync them to the productFaqs table
+    if (processedProduct.faqs !== undefined) {
+      // First delete existing FAQs for this product
+      await db.delete(productFaqs).where(eq(productFaqs.productId, id));
+      
+      // If new FAQs are provided, add them
+      if (Array.isArray(processedProduct.faqs) && processedProduct.faqs.length > 0) {
+        console.log('Updating FAQs for product:', id, processedProduct.faqs);
+        for (let i = 0; i < processedProduct.faqs.length; i++) {
+          const faq = processedProduct.faqs[i];
+          if (faq.question && faq.answer) {
+            await this.createProductFaq({
+              productId: id,
+              question: faq.question,
+              answer: faq.answer,
+              displayOrder: i + 1,
+              isActive: true
+            });
+          }
+        }
+      }
+    }
       
     // Sync certifications with tag system
     if (processedProduct.certifications && Array.isArray(processedProduct.certifications)) {
