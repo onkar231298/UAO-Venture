@@ -35,8 +35,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Server-side rendered product pages with structured data
-  app.get('/products/:slug', async (req, res) => {
+  // Server-side rendered product pages with structured data - using API route to avoid Vite conflicts
+  app.get('/api/product-page/:slug', async (req, res) => {
     try {
       const { slug } = req.params;
       const product = await storage.getProductBySlug(slug);

@@ -933,8 +933,12 @@ function SchemaValidatorInterface() {
 
   const baseUrl = window.location.origin;
   const productUrls = products?.products?.map((product: any) => 
-    `${baseUrl}/products/${product.slug}`
+    `${baseUrl}/api/product-page/${product.slug}`
   ) || [];
+
+  // Log URLs for debugging
+  console.log('Base URL:', baseUrl);
+  console.log('Sample product URL:', productUrls[0]);
 
   const runSchemaValidation = async (url: string) => {
     try {
