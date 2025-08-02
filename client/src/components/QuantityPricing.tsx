@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calculator, Package, TrendingDown } from 'lucide-react';
 import { detectUserCurrency, formatPrice, getProductPrice } from '@/lib/currencyUtils';
+import { useAuth } from '@/hooks/useAuth';
 import type { Product } from '@shared/schema';
 
 interface QuantityPricingProps {
@@ -19,11 +20,50 @@ interface PricingTier {
 }
 
 export default function QuantityPricing({ product, onQuantityChange }: QuantityPricingProps) {
+  const { isAuthenticated } = useAuth();
   const minOrderQty = parseFloat(product.moq as string || '25');
   const [selectedQuantity, setSelectedQuantity] = useState<number>(minOrderQty);
   const [customQuantity, setCustomQuantity] = useState<string>('');
   const [userCurrency, setUserCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Return login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Card className="w-full max-w-full overflow-hidden">
+        <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-lg text-green-900">
+            <Calculator className="w-5 h-5 text-green-600" />
+            Sign in for Quantity Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="text-center space-y-4">
+            <div className="text-gray-600">
+              Our quantity-based pricing is customized for your location and business needs.
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                onClick={() => window.location.href = '/api/login'} 
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/signup'} 
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-50"
+                size="sm"
+              >
+                Register
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Detect user currency on component mount
   useEffect(() => {

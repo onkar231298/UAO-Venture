@@ -24,7 +24,8 @@ const customerSignupSchema = z.object({
   address: z.string().min(10, 'Please enter your complete address'),
   // Location fields for pricing
   country: z.string().min(2, 'Please select your country'),
-  currency: z.string().min(3, 'Please select your preferred currency'),
+  // Currency and timezone are automatically set based on country
+  currency: z.string().optional(),
   timezone: z.string().optional(),
 });
 
@@ -69,7 +70,7 @@ export default function CustomerSignup() {
       phoneNumber: '',
       address: '',
       country: '',
-      currency: 'USD',
+      currency: '',
       timezone: '',
     },
   });
@@ -295,51 +296,26 @@ export default function CustomerSignup() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Currency *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(CURRENCIES).map(([code, info]) => (
-                              <SelectItem key={code} value={code}>
-                                {info.symbol} {code} - {info.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Currency automatically set based on country selection */}
+                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm text-gray-600">
+                      <strong>Currency:</strong> {form.watch('currency') || 'Will be set based on country'}
+                    </div>
+                  </div>
                 </div>
+
+                <p className="text-xs text-gray-500 mt-2">
+                  Your currency and timezone are automatically determined by your selected country for accurate pricing.
+                </p>
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full bg-green-600 hover:bg-green-700" 
+                className="w-full bg-green-600 hover:bg-green-700"
                 disabled={isLoading}
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
-
-              <div className="text-center text-sm text-gray-600">
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => window.location.href = '/api/login'}
-                  className="text-green-600 hover:text-green-700 font-medium"
-                >
-                  Sign In Here
-                </button>
-              </div>
             </form>
           </Form>
         </CardContent>
