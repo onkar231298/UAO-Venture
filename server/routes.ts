@@ -1441,12 +1441,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/blog', async (req, res) => {
     try {
       const { category, published = 'true', limit = '10', offset = '0' } = req.query;
-      const filters = {
+      const filters: any = {
         category: category as string,
-        published: published === 'true',
         limit: parseInt(limit as string),
         offset: parseInt(offset as string)
       };
+      
+      // Only filter by published status if not "all"
+      if (published !== 'all') {
+        filters.published = published === 'true';
+      }
+      
       const result = await storage.getBlogPosts(filters);
       res.json(result);
     } catch (error) {

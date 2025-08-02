@@ -2346,7 +2346,7 @@ export class DatabaseStorage implements IStorage {
     const [postsData, totalData] = await Promise.all([
       db.select().from(blogPosts)
         .where(whereCondition)
-        .orderBy(desc(blogPosts.publishedAt))
+        .orderBy(desc(blogPosts.createdAt))
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0),
       db.select({ count: count() }).from(blogPosts).where(whereCondition)
