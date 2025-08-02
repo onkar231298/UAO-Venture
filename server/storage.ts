@@ -351,10 +351,10 @@ export class DatabaseStorage implements IStorage {
       );
     }
     
-    // Materials filter (organic, conventional, wildcrafted)
+    // Materials filter - maps to productType field (organic, natural, conventional, wildcrafted)
     if (filters?.materials && filters.materials.length > 0) {
       const materialConditions = filters.materials.map(material => 
-        sql`${products.productType} ILIKE ${`%${material}%`}`
+        eq(products.productType, material)
       );
       conditions.push(or(...materialConditions));
     }

@@ -136,11 +136,12 @@ export default function Products() {
 
   // Extract unique filter options from products
   const healthSupportOptions = [
-    "Antioxidant", "Digestive Support", "Immune Support", "Anti-inflammatory",
-    "Cardiovascular Support", "Cognitive Support", "Energy & Vitality",
-    "Respiratory Support", "Joint & Bone Health", "Skin Health",
-    "Weight Management", "Detoxification", "Hormonal Balance",
-    "Sleep Support", "Stress & Mood Support"
+    "Stress Relief", "Cognitive Function", "Stress & Mood Support", 
+    "Cardiovascular Support", "Cognitive Support", "Anti-inflammatory",
+    "Antioxidant", "Digestive Support", "Hormonal Balance", 
+    "Immune Support", "Skin Health", "Energy & Vitality",
+    "Respiratory Support", "Joint & Bone Health", "Weight Management", 
+    "Detoxification", "Sleep Support"
   ];
 
   const originOptions = [
@@ -312,6 +313,14 @@ export default function Products() {
                       onCheckedChange={() => toggleArrayFilter('materials', 'organic')}
                     />
                     <Label htmlFor="organic" className="text-sm">Organic (Premium)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="natural"
+                      checked={filters.materials.includes('natural')}
+                      onCheckedChange={() => toggleArrayFilter('materials', 'natural')}
+                    />
+                    <Label htmlFor="natural" className="text-sm">Natural</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
