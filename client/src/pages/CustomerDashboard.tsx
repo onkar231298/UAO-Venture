@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -16,6 +17,7 @@ export default function CustomerDashboard() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [location] = useLocation();
+  const [selectedQuotation, setSelectedQuotation] = useState(null);
 
   // Data fetching for customer-specific data
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -471,10 +473,144 @@ export default function CustomerDashboard() {
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" onClick={() => setSelectedQuotation(quotation)}>
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Details
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <FileText className="w-5 h-5" />
+                              Quotation Details - {quotation.quotationId}
+                            </DialogTitle>
+                            <DialogDescription>
+                              Complete quotation information and terms
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="space-y-6">
+                            {/* Header Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-600">Quotation ID</h4>
+                                <p className="text-lg font-bold">{quotation.quotationId}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-600">Status</h4>
+                                <Badge className={getStatusColor(quotation.status)}>
+                                  {quotation.status}
+                                </Badge>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-600">Created Date</h4>
+                                <p>{quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : 'N/A'}</p>
+                              </div>
+                            </div>
+
+                            {/* Pricing Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <h3 className="text-lg font-semibold border-b pb-2">Pricing Details</h3>
+                                <div className="space-y-3">
+                                  <div>
+                                    <span className="font-medium">Total Amount:</span>
+                                    <div className="text-2xl font-bold text-green-600">
+                                      {quotation.currency || 'USD'} {quotation.totalAmount}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Price Type:</span>
+                                    <div className="text-lg capitalize">
+                                      {quotation.priceType?.replace('_', ' ') || 'Ex-Warehouse'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Currency:</span>
+                                    <div className="text-lg">{quotation.currency || 'USD'}</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <h3 className="text-lg font-semibold border-b pb-2">Validity & Timeline</h3>
+                                <div className="space-y-3">
+                                  <div>
+                                    <span className="font-medium">Valid Until:</span>
+                                    <div className="text-lg">
+                                      {quotation.validUntil ? 
+                                        new Date(quotation.validUntil).toLocaleDateString() : 
+                                        'Not specified'
+                                      }
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Created:</span>
+                                    <div>{quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : 'N/A'}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Last Updated:</span>
+                                    <div>{quotation.updatedAt ? new Date(quotation.updatedAt).toLocaleDateString() : 'N/A'}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Terms and Conditions */}
+                            {quotation.terms && (
+                              <div className="space-y-3">
+                                <h3 className="text-lg font-semibold border-b pb-2">Terms & Conditions</h3>
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                  <pre className="whitespace-pre-wrap text-sm">{quotation.terms}</pre>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Notes */}
+                            {quotation.notes && (
+                              <div className="space-y-3">
+                                <h3 className="text-lg font-semibold border-b pb-2">Additional Notes</h3>
+                                <div className="p-4 bg-blue-50 rounded-lg">
+                                  <p className="text-sm">{quotation.notes}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Company Information */}
+                            <div className="space-y-3">
+                              <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
+                              <div className="p-4 bg-green-50 rounded-lg">
+                                <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
+                                <p className="text-sm mt-1">C/O Bright Fame International</p>
+                                <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
+                                <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
+                                <p className="text-sm mt-2">Phone: +91-7249847439</p>
+                                <p className="text-sm">Email: admin@bfiorganic.com</p>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 pt-4 border-t">
+                              {quotation.status === 'sent' && (
+                                <Button className="bg-green-600 hover:bg-green-700">
+                                  <Package className="w-4 h-4 mr-2" />
+                                  Accept Quotation
+                                </Button>
+                              )}
+                              <Button variant="outline">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Download PDF
+                              </Button>
+                              <Button variant="outline">
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Contact Sales
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                       {quotation.status === 'sent' && (
                         <Button size="sm" className="bg-green-600 hover:bg-green-700">
                           <Package className="w-4 h-4 mr-1" />
