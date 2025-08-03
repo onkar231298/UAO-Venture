@@ -658,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filters.assignedTo = userId;
       }
 
-      if (status) {
+      if (status && status !== 'all') {
         filters.status = status as string;
       }
 
