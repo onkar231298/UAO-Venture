@@ -2115,6 +2115,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Robots.txt route
+  app.get('/robots.txt', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(`User-agent: *
+Allow: /
+
+# Important pages
+Allow: /products
+Allow: /ingredients
+Allow: /about
+Allow: /contact
+
+# Block admin areas
+Disallow: /admin/
+Disallow: /crm/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://bright-organic.com/sitemap.xml`);
+  });
+
+  // Sitemap.xml route
+  app.get('/sitemap.xml', async (req, res) => {
+    try {
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      
+      // Get all products and categories for sitemap
+      const products = await storage.getProducts({ limit: 10000, offset: 0 });
+      const categories = await storage.getCategories();
+      const blogPosts = await storage.getBlogPosts({ limit: 1000, offset: 0, published: true });
+      
+      const baseUrl = 'https://bright-organic.com';
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/products</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/ingredients</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/about</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/contact</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>`;
+
+      // Add category pages
+      for (const category of categories) {
+        sitemap += `
+  <url>
+    <loc>${baseUrl}/ingredients/${category.slug}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      }
+
+      // Add product pages
+      for (const product of products.products) {
+        if (product.slug && product.isActive) {
+          sitemap += `
+  <url>
+    <loc>${baseUrl}/products/${product.slug}</loc>
+    <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+        }
+      }
+
+      // Add blog posts if any
+      if (blogPosts.posts) {
+        for (const post of blogPosts.posts) {
+          if (post.slug && post.published) {
+            sitemap += `
+  <url>
+    <loc>${baseUrl}/blog/${post.slug}</loc>
+    <lastmod>${post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+          }
+        }
+      }
+
+      sitemap += `
+</urlset>`;
+
+      res.send(sitemap);
+    } catch (error) {
+      console.error('Error generating sitemap:', error);
+      res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><error>Failed to generate sitemap</error>');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
