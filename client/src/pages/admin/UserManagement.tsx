@@ -393,10 +393,10 @@ export default function UserManagement() {
                                         <Label className="text-sm font-medium text-gray-500">Password</Label>
                                         <div className="flex items-center gap-2 mt-1">
                                           <Input
-                                            type={showPassword ? "text" : "password"}
+                                            type="text"
                                             value={customerDetails.password ? (showPassword ? customerDetails.password : "••••••••••••••••") : "No password set"}
                                             readOnly
-                                            className="flex-1 text-sm"
+                                            className="flex-1 text-sm font-mono"
                                             placeholder={customerDetails.password ? "" : "Password not available"}
                                           />
                                           <Button
