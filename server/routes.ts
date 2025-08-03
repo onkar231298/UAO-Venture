@@ -2117,15 +2117,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Robots.txt route
   app.get('/robots.txt', (req, res) => {
-    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
     res.send(`User-agent: *
 Allow: /
-
-# Important pages
-Allow: /products
-Allow: /ingredients
-Allow: /about
-Allow: /contact
 
 # Block admin areas
 Disallow: /admin/
