@@ -311,7 +311,7 @@ class SEOService {
     regions.forEach(({ lang, region, url }) => {
       const link = document.createElement('link');
       link.rel = 'alternate';
-      link.hrefLang = `${lang}-${region}`;
+      link.hreflang = `${lang}-${region}`;
       link.href = url;
       document.head.appendChild(link);
     });
@@ -319,7 +319,7 @@ class SEOService {
     // Add x-default
     const defaultLink = document.createElement('link');
     defaultLink.rel = 'alternate';
-    defaultLink.hrefLang = 'x-default';
+    defaultLink.hreflang = 'x-default';
     defaultLink.href = `${window.location.origin}${window.location.pathname}`;
     document.head.appendChild(defaultLink);
   }
