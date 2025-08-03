@@ -633,9 +633,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's inquiries
   app.get('/api/inquiries', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Admin inquiries request - User:', req.user);
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
+      console.log('Found user:', user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -660,7 +662,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filters.status = status as string;
       }
 
+      console.log('Using filters:', filters);
       const result = await storage.getInquiries(filters);
+      console.log('Inquiry results:', result);
       res.json(result);
     } catch (error) {
       console.error("Error fetching inquiries:", error);

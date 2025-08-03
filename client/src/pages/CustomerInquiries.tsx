@@ -13,7 +13,7 @@ export default function CustomerInquiries() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const [, setLocation] = useLocation();
 
-  const { data: inquiries = [], isLoading } = useQuery({
+  const { data: inquiries, isLoading } = useQuery({
     queryKey: [`/api/customer/inquiries/${customer?.id}`],
     enabled: !!customer?.id,
   });
@@ -72,7 +72,7 @@ export default function CustomerInquiries() {
                 </Card>
               ))}
             </div>
-          ) : !inquiries || !inquiries.inquiries || (Array.isArray(inquiries.inquiries) && inquiries.inquiries.length === 0) ? (
+          ) : !inquiries || !(inquiries as any).inquiries || (Array.isArray((inquiries as any).inquiries) && (inquiries as any).inquiries.length === 0) ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -87,7 +87,7 @@ export default function CustomerInquiries() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {(Array.isArray(inquiries.inquiries) ? inquiries.inquiries : []).map((inquiry: any) => (
+              {(Array.isArray((inquiries as any).inquiries) ? (inquiries as any).inquiries : []).map((inquiry: any) => (
                 <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
