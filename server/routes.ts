@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/register-customer', async (req, res) => {
     try {
       const validatedData = customerRegistrationSchema.parse(req.body);
-      const { password, ...userData } = validatedData;
+      const { password, confirmPassword, ...userData } = validatedData;
       
       const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
 

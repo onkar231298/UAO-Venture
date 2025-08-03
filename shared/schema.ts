@@ -763,6 +763,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const customerRegistrationSchema = insertUserSchema.extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Please confirm your password"),
 }).pick({
   firstName: true,
   lastName: true,
@@ -772,6 +773,10 @@ export const customerRegistrationSchema = insertUserSchema.extend({
   country: true,
   industryType: true,
   password: true,
+  confirmPassword: true,
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
