@@ -212,11 +212,11 @@ export default function ProductDetailBFI() {
                     <OptimizedImage
                       src={currentImage}
                       alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-64 sm:h-72 md:h-80 object-cover"
+                      className="w-full aspect-square object-cover"
                       priority={currentImageIndex === 0} // Prioritize first image
                       lazy={false} // Don't lazy load main product images
                       placeholder={
-                        <div className="w-full h-64 sm:h-72 md:h-80 flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                        <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
                           <div className="text-center">
                             <div className="text-4xl mb-3">📷</div>
                             <div className="text-lg font-medium">Loading Image...</div>
@@ -253,7 +253,7 @@ export default function ProductDetailBFI() {
                     )}
                   </div>
                 ) : (
-                  <div className="w-full h-64 sm:h-72 md:h-80 flex items-center justify-center bg-gray-100 text-gray-400">
+                  <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
                     <div className="text-center">
                       <div className="text-4xl mb-3">📷</div>
                       <div className="text-lg font-medium">No Preview Available</div>
