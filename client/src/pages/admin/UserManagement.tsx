@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Users, UserCheck, Building, Globe, Mail, Phone, Calendar, Download, Search, Filter } from "lucide-react";
+import { Users, UserCheck, Building, Globe, Mail, Phone, Calendar, Download, Search, Filter, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
@@ -27,6 +27,7 @@ export default function UserManagement() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("customers");
   const [selectedCustomer, setSelectedCustomer] = useState<User | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [filters, setFilters] = useState<CustomerFilters>({
     search: "",
     country: "",
@@ -336,7 +337,10 @@ export default function UserManagement() {
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  onClick={() => setSelectedCustomer(customer)}
+                                  onClick={() => {
+                                    setSelectedCustomer(customer);
+                                    setShowPassword(false); // Reset password visibility when switching customers
+                                  }}
                                 >
                                   View Details
                                 </Button>
@@ -384,6 +388,25 @@ export default function UserManagement() {
                                         <p className="text-sm">
                                           {customerDetails.createdAt ? new Date(customerDetails.createdAt).toLocaleDateString() : "N/A"}
                                         </p>
+                                      </div>
+                                      <div>
+                                        <Label className="text-sm font-medium text-gray-500">Password</Label>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <Input
+                                            type={showPassword ? "text" : "password"}
+                                            value={customerDetails.password || "N/A"}
+                                            readOnly
+                                            className="flex-1 text-sm"
+                                          />
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="px-2"
+                                          >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
