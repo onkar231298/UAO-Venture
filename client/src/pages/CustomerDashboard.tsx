@@ -40,6 +40,34 @@ export default function CustomerDashboard() {
     enabled: isCustomerAuthenticated && !!customer?.id
   });
 
+  const queryClient = useQueryClient();
+
+  // Accept quotation mutation
+  const acceptQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}/accept`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to accept quotation');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/quotations/${customer?.id}`] });
+      toast({
+        title: "Quotation Accepted",
+        description: "Your quotation has been accepted successfully. Our sales team will contact you to proceed with the order.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to accept quotation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   if (!isCustomerAuthenticated) {
     return <div className="flex items-center justify-center min-h-screen">Please login to access your dashboard.</div>;
   }
@@ -414,6 +442,17 @@ export default function CustomerDashboard() {
             My Quotations
           </CardTitle>
           <CardDescription>View and manage your quotation requests</CardDescription>
+          <div className="flex gap-2 mt-4">
+            <Badge variant="outline" className="text-xs">
+              📋 <strong>Sent:</strong> Ready for your review and acceptance
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              ✅ <strong>Accepted:</strong> Orders confirmed and processing
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              ⏰ <strong>Expired:</strong> Past validity date
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {quotationsLoading ? (
@@ -594,9 +633,13 @@ export default function CustomerDashboard() {
                             {/* Action Buttons */}
                             <div className="flex gap-3 pt-4 border-t">
                               {quotation.status === 'sent' && (
-                                <Button className="bg-green-600 hover:bg-green-700">
+                                <Button 
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                                  disabled={acceptQuotationMutation.isPending}
+                                >
                                   <Package className="w-4 h-4 mr-2" />
-                                  Accept Quotation
+                                  {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
                                 </Button>
                               )}
                               <Button variant="outline">
@@ -612,9 +655,14 @@ export default function CustomerDashboard() {
                         </DialogContent>
                       </Dialog>
                       {quotation.status === 'sent' && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                          disabled={acceptQuotationMutation.isPending}
+                        >
                           <Package className="w-4 h-4 mr-1" />
-                          Accept Quote
+                          {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quote'}
                         </Button>
                       )}
                     </div>

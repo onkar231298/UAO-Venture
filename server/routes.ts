@@ -953,6 +953,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Accept quotation (for customers)
+  app.patch('/api/quotations/:id/accept', async (req: any, res) => {
+    try {
+      const quotationId = parseInt(req.params.id);
+      const quotation = await storage.updateQuotation(quotationId, { 
+        status: 'accepted',
+        updatedAt: new Date()
+      });
+      res.json(quotation);
+    } catch (error) {
+      console.error("Error accepting quotation:", error);
+      res.status(500).json({ message: "Failed to accept quotation" });
+    }
+  });
+
   // Get sales orders
   app.get('/api/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
