@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Filter, Download, MessageSquare, TrendingUp, DollarSign, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
+import QuotationForm from "@/components/QuotationForm";
 
 export default function SalesManagement() {
   const { user, isLoading: authLoading } = useAuth();
@@ -431,79 +432,3 @@ const getStatusBadge = (status: string) => {
   );
 };
 
-// Quotation Form Component
-function QuotationForm({ 
-  inquiry, 
-  onSubmit, 
-  isLoading 
-}: { 
-  inquiry: Inquiry; 
-  onSubmit: (data: any) => void; 
-  isLoading: boolean; 
-}) {
-  const [formData, setFormData] = useState({
-    inquiryId: inquiry.id,
-    customerId: inquiry.customerId,
-    validUntil: "",
-    totalAmount: "",
-    terms: "",
-    notes: "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      totalAmount: parseFloat(formData.totalAmount),
-      validUntil: formData.validUntil ? new Date(formData.validUntil) : null,
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Valid Until</Label>
-          <Input
-            type="date"
-            value={formData.validUntil}
-            onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Total Amount ($)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={formData.totalAmount}
-            onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
-            required
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label>Terms & Conditions</Label>
-        <Textarea
-          value={formData.terms}
-          onChange={(e) => setFormData(prev => ({ ...prev, terms: e.target.value }))}
-          placeholder="Enter payment terms, delivery conditions, etc."
-        />
-      </div>
-      
-      <div>
-        <Label>Notes</Label>
-        <Textarea
-          value={formData.notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Additional notes or comments"
-        />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Creating..." : "Create Quotation"}
-      </Button>
-    </form>
-  );
-}
