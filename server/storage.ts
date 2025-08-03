@@ -1183,14 +1183,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInquiry(inquiry: InsertInquiry): Promise<Inquiry> {
-    // Generate inquiry ID based on type
-    const prefix = inquiry.inquiryType === 'high_volume_bid' ? 'BID' : 'INQ';
-    const inquiryId = `${prefix}${Date.now()}`;
-    const [newInquiry] = await db
-      .insert(inquiries)
-      .values({ ...inquiry, inquiryId })
-      .returning();
-    return newInquiry;
+    try {
+      // Generate inquiry ID based on type
+      const prefix = inquiry.inquiryType === 'high_volume_bid' ? 'BID' : 'INQ';
+      const inquiryId = `${prefix}${Date.now()}`;
+      
+      console.log('Creating inquiry with data:', { ...inquiry, inquiryId });
+      
+      const [newInquiry] = await db
+        .insert(inquiries)
+        .values({ 
+          ...inquiry, 
+          inquiryId,
+          status: 'pending',
+          createdAt: new Date()
+        })
+        .returning();
+      
+      console.log('Inquiry created successfully:', newInquiry);
+      return newInquiry;
+    } catch (error) {
+      console.error('Database error creating inquiry:', error);
+      throw error;
+    }
   }
 
   // Sample Request operations

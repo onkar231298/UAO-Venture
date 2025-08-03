@@ -170,7 +170,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
           Bid for High Volume
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {currentConfig.icon}
@@ -178,7 +178,8 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-6 p-1">
           {/* Inquiry Type Selection */}
           <Card className={`${currentConfig.color} border`}>
             <CardHeader className="pb-3">
@@ -312,22 +313,20 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
                 </div>
               </div>
 
-              {inquiryType === "high_volume_bid" && (
-                <div>
-                  <Label htmlFor="targetPrice">Target Price (Optional)</Label>
-                  <Input
-                    id="targetPrice"
-                    type="number"
-                    step="0.01"
-                    value={formData.targetPrice}
-                    onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })}
-                    placeholder="Enter your target price per unit"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">
-                    Current base price: ${product.basePrice}/{product.priceUnit}
-                  </p>
-                </div>
-              )}
+              <div>
+                <Label htmlFor="targetPrice">Bidding Price (Optional)</Label>
+                <Input
+                  id="targetPrice"
+                  type="number"
+                  step="0.01"
+                  value={formData.targetPrice}
+                  onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })}
+                  placeholder="Enter your bidding price per unit in USD"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  Your proposed price per {product.priceUnit || 'unit'}
+                </p>
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -395,7 +394,8 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
               {createInquiryMutation.isPending ? "Submitting..." : "Submit Bid for High Volume"}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
