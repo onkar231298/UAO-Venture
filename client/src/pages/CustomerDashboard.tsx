@@ -1,458 +1,343 @@
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import RoleBasedRoute from "@/components/RoleBasedRoute";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Package, 
-  MessageSquare, 
-  FileText, 
-  ShoppingCart, 
-  User, 
-  Building, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar,
-  Heart,
-  Download,
-  TrendingUp,
-  Clock,
-  Search,
-  Filter
-} from "lucide-react";
-import { useCustomerAuth } from "@/hooks/useCustomerAuth";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
-import CustomerSidebar from "@/components/CustomerSidebar";
+import { Input } from "@/components/ui/input";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 export default function CustomerDashboard() {
-  const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
-  const [, setLocation] = useLocation();
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch customer's inquiries
-  const { data: inquiriesData } = useQuery({
-    queryKey: ["/api/customer/inquiries", customer?.id],
-    queryFn: async () => {
-      if (!customer?.id) return { inquiries: [], total: 0 };
-      try {
-        const response = await fetch(`/api/customer/inquiries/${customer.id}`);
-        if (!response.ok) return { inquiries: [], total: 0 };
-        const data = await response.json();
-        return Array.isArray(data) ? { inquiries: data, total: data.length } : data;
-      } catch (error) {
-        console.error('Error fetching inquiries:', error);
-        return { inquiries: [], total: 0 };
-      }
-    },
-    enabled: !!customer?.id,
+  // Data fetching for customer-specific data
+  const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
+    queryKey: [`/api/customer/inquiries/${user?.id}`],
+    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
   });
 
-  // Fetch customer's sample requests
-  const { data: sampleRequestsData } = useQuery({
-    queryKey: ["/api/customer/sample-requests", customer?.id],
-    queryFn: async () => {
-      if (!customer?.id) return { requests: [], total: 0 };
-      try {
-        const response = await fetch(`/api/customer/sample-requests/${customer.id}`);
-        if (!response.ok) return { requests: [], total: 0 };
-        const data = await response.json();
-        return Array.isArray(data) ? { requests: data, total: data.length } : data;
-      } catch (error) {
-        console.error('Error fetching sample requests:', error);
-        return { requests: [], total: 0 };
-      }
-    },
-    enabled: !!customer?.id,
+  const { data: savedProducts, isLoading: savedLoading } = useQuery({
+    queryKey: [`/api/customer/saved-products/${user?.id}`],
+    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
   });
 
-  // Fetch customer's quotations
-  const { data: quotationsData } = useQuery({
-    queryKey: ["/api/customer/quotations", customer?.id],
-    queryFn: async () => {
-      if (!customer?.id) return { quotations: [], total: 0 };
-      try {
-        const response = await fetch(`/api/customer/quotations/${customer.id}`);
-        if (!response.ok) return { quotations: [], total: 0 };
-        const data = await response.json();
-        return Array.isArray(data) ? { quotations: data, total: data.length } : data;
-      } catch (error) {
-        console.error('Error fetching quotations:', error);
-        return { quotations: [], total: 0 };
-      }
-    },
-    enabled: !!customer?.id,
+  const { data: quotations, isLoading: quotationsLoading } = useQuery({
+    queryKey: [`/api/customer/quotations/${user?.id}`],
+    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
   });
 
-  // Fetch popular products for recommendations
-  const { data: productsData } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", "popular"],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/products?limit=6&sort=popular');
-        if (!response.ok) return { products: [], total: 0 };
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        return { products: [], total: 0 };
-      }
-    },
+  const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
+    queryKey: [`/api/customer/sample-requests/${user?.id}`],
+    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
   });
 
-  if (!isCustomerAuthenticated || !customer) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>Customer Access Required</CardTitle>
-            <CardDescription>Please log in to access your dashboard</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button onClick={() => setLocation('/login')}>
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'responded': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'urgent': return 'border-red-500 text-red-700';
+      case 'high': return 'border-orange-500 text-orange-700';
+      case 'normal': return 'border-yellow-500 text-yellow-700';
+      case 'low': return 'border-gray-500 text-gray-700';
+      default: return 'border-gray-500 text-gray-700';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Customer Sidebar */}
-      <CustomerSidebar />
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Dashboard Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Welcome back, {customer.firstName}!
-                </h1>
-                <p className="text-gray-600">Manage your organic ingredient needs</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setLocation('/products')}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Browse Products
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6">
-          {/* Dashboard Stats */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Inquiries</p>
-                    <p className="text-2xl font-bold text-gray-900">{inquiriesData?.total || 0}</p>
-                  </div>
-                  <MessageSquare className="w-8 h-8 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Sample Requests</p>
-                    <p className="text-2xl font-bold text-gray-900">{sampleRequestsData?.total || 0}</p>
-                  </div>
-                  <Heart className="w-8 h-8 text-red-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Quotations</p>
-                    <p className="text-2xl font-bold text-gray-900">{quotationsData?.total || 0}</p>
-                  </div>
-                  <Download className="w-8 h-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Account Status</p>
-                    <Badge className="bg-green-100 text-green-700">
-                      {customer.accountStatus}
-                    </Badge>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-purple-500" />
-                </div>
-              </CardContent>
-            </Card>
+    <RoleBasedRoute allowedRoles={['customer']}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Customer Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {(user as any)?.firstName} {(user as any)?.lastName}</p>
+            <p className="text-sm text-gray-500">{(user as any)?.companyName}</p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Quick Actions & Products */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Quick Actions */}
+          {/* Search and Filter */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by product, inquiry ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Horizontal Tabs Layout */}
+          <Tabs defaultValue="my-inquiries" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="my-inquiries">My Inquiries</TabsTrigger>
+              <TabsTrigger value="saved-products">Saved Products</TabsTrigger>
+              <TabsTrigger value="my-quotations">My Quotations</TabsTrigger>
+              <TabsTrigger value="sample-requests">Sample Requests</TabsTrigger>
+            </TabsList>
+
+            {/* My Inquiries Tab */}
+            <TabsContent value="my-inquiries" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Start exploring our premium organic ingredients</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    My Inquiries
+                  </CardTitle>
+                  <CardDescription>Track your product inquiries and their status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <Button 
-                      className="h-auto p-4 justify-start" 
-                      variant="outline"
-                      onClick={() => setLocation('/products')}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Package className="w-6 h-6 text-green-600" />
-                        <div className="text-left">
-                          <div className="font-semibold">Browse Products</div>
-                          <div className="text-sm text-gray-500">Explore our ingredient catalog</div>
+                  {inquiriesLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : inquiries && (inquiries as any).inquiries?.length ? (
+                    <div className="space-y-4">
+                      {(inquiries as any).inquiries.map((inquiry: any) => (
+                        <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{inquiry.inquiryId}</span>
+                              <Badge className={getStatusColor(inquiry.status)}>
+                                {inquiry.status}
+                              </Badge>
+                              <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
+                                {inquiry.urgency}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock className="w-4 h-4" />
+                              {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <div className="grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Product:</span>
+                              <p className="font-medium">{inquiry.productName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Quantity:</span>
+                              <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Type:</span>
+                              <p className="font-medium capitalize">{inquiry.inquiryType?.replace('_', ' ')}</p>
+                            </div>
+                          </div>
+                          {inquiry.message && (
+                            <div className="mt-2">
+                              <span className="text-gray-600 text-sm">Message:</span>
+                              <p className="text-sm mt-1">{inquiry.message}</p>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </Button>
-
-                    <Button 
-                      className="h-auto p-4 justify-start" 
-                      variant="outline"
-                      onClick={() => {
-                        // TODO: Implement inquiry form
-                        alert('Inquiry form coming soon!');
-                      }}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <MessageSquare className="w-6 h-6 text-blue-600" />
-                        <div className="text-left">
-                          <div className="font-semibold">Submit Inquiry</div>
-                          <div className="text-sm text-gray-500">Get product information</div>
-                        </div>
-                      </div>
-                    </Button>
-
-                    <Button 
-                      className="h-auto p-4 justify-start" 
-                      variant="outline"
-                      onClick={() => {
-                        // TODO: Implement catalog download
-                        alert('Catalog download coming soon!');
-                      }}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FileText className="w-6 h-6 text-purple-600" />
-                        <div className="text-left">
-                          <div className="font-semibold">Download Catalog</div>
-                          <div className="text-sm text-gray-500">Get our complete product list</div>
-                        </div>
-                      </div>
-                    </Button>
-
-                    <Button 
-                      className="h-auto p-4 justify-start" 
-                      variant="outline"
-                      onClick={() => {
-                        // TODO: Implement quote request
-                        alert('Quote request coming soon!');
-                      }}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <ShoppingCart className="w-6 h-6 text-orange-600" />
-                        <div className="text-left">
-                          <div className="font-semibold">Request Quote</div>
-                          <div className="text-sm text-gray-500">Get pricing for bulk orders</div>
-                        </div>
-                      </div>
-                    </Button>
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries yet</h3>
+                      <p className="text-gray-600">Your product inquiries will appear here</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Recommended Products */}
+            {/* Saved Products Tab */}
+            <TabsContent value="saved-products" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recommended Products</CardTitle>
-                  <CardDescription>Popular organic ingredients from our catalog</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5" />
+                    Saved Products
+                  </CardTitle>
+                  <CardDescription>Products you've saved for later reference</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {productsData?.products && productsData.products.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {productsData.products.slice(0, 4).map((product) => (
-                        <div 
-                          key={product.id} 
-                          className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => setLocation(`/product/${product.slug}`)}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-sm line-clamp-2">{product.name}</h4>
-                            <Badge variant="outline" className="text-xs ml-2">
-                              {product.origin}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-600 mb-2">{product.productId}</p>
+                  {savedLoading ? (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-48 rounded"></div>
+                      ))}
+                    </div>
+                  ) : savedProducts && (savedProducts as any).length ? (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {(savedProducts as any).map((product: any) => (
+                        <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="aspect-square bg-gray-100 rounded-lg mb-3"></div>
+                          <h3 className="font-medium mb-2">{product.name}</h3>
+                          <p className="text-sm text-gray-600 mb-2">{product.category}</p>
                           <div className="flex justify-between items-center">
-                            <span className="text-green-600 font-semibold">${product.priceUSD}</span>
+                            <span className="text-sm font-medium">{product.productId}</span>
                             <Button size="sm" variant="outline">
-                              View Details
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
                             </Button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Loading product recommendations...</p>
+                    <div className="text-center py-8">
+                      <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No saved products yet</h3>
+                      <p className="text-gray-600">Save products to your wishlist for quick access later</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Recent Activity */}
+            {/* My Quotations Tab */}
+            <TabsContent value="my-quotations" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Your recent interactions with BFI Organic</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    My Quotations
+                  </CardTitle>
+                  <CardDescription>Quotations received for your inquiries</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No recent activity</p>
-                    <p className="text-sm">Start exploring products to see activity here</p>
-                  </div>
+                  {quotationsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-20 rounded"></div>
+                      ))}
+                    </div>
+                  ) : quotations && (quotations as any).quotations?.length ? (
+                    <div className="space-y-4">
+                      {(quotations as any).quotations.map((quotation: any) => (
+                        <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">QUO-{quotation.id}</span>
+                              <Badge className={getStatusColor(quotation.status)}>
+                                {quotation.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock className="w-4 h-4" />
+                              {formatDistanceToNow(new Date(quotation.createdAt), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <div className="grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Product:</span>
+                              <p className="font-medium">{quotation.productName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Quantity:</span>
+                              <p className="font-medium">{quotation.quantity} {quotation.unit}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Price:</span>
+                              <p className="font-medium">${quotation.unitPrice} per {quotation.unit}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No quotations yet</h3>
+                      <p className="text-gray-600">Quotations for your inquiries will appear here</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            </div>
+            </TabsContent>
 
-            {/* Right Column - Profile & Company Info */}
-            <div className="space-y-6">
-              {/* Customer Profile */}
+            {/* Sample Requests Tab */}
+            <TabsContent value="sample-requests" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Customer Profile
+                    <Package className="w-5 h-5" />
+                    Sample Requests
                   </CardTitle>
+                  <CardDescription>Track your product sample requests</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Full Name</label>
-                    <p className="font-semibold">{customer.firstName} {customer.lastName}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Email</label>
-                    <p className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      {customer.email}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Phone</label>
-                    <p className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      {customer.phoneNumber}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Country</label>
-                    <p className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      {customer.country}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => setLocation('/customer/profile')}
-                    >
-                      Edit Profile
-                    </Button>
-                  </div>
+                <CardContent>
+                  {sampleRequestsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : sampleRequests && (sampleRequests as any).requests?.length ? (
+                    <div className="space-y-4">
+                      {(sampleRequests as any).requests.map((request: any) => (
+                        <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">SAM-{request.id}</span>
+                              <Badge className={getStatusColor(request.status)}>
+                                {request.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock className="w-4 h-4" />
+                              {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Product:</span>
+                              <p className="font-medium">{request.productName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Sample Type:</span>
+                              <p className="font-medium capitalize">{request.sampleType}</p>
+                            </div>
+                          </div>
+                          {request.notes && (
+                            <div className="mt-2">
+                              <span className="text-gray-600 text-sm">Notes:</span>
+                              <p className="text-sm mt-1">{request.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests yet</h3>
+                      <p className="text-gray-600">Your product sample requests will appear here</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-
-              {/* Company Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building className="w-5 h-5" />
-                    Company Info
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Company Name</label>
-                    <p className="font-semibold">{customer.companyName}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Industry</label>
-                    <p>{customer.industryType}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Member Since</label>
-                    <p className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Links */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Links</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation('/products')}
-                  >
-                    <Search className="w-4 h-4 mr-2" />
-                    Search Products
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation('/products?category=herbal-powders')}
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Browse by Category
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation('/blog')}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Read Our Blog
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-    </div>
+    </RoleBasedRoute>
   );
 }

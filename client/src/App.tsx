@@ -42,9 +42,9 @@ function Router() {
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/customer/profile" component={CustomerProfile} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
-      <Route path="/customer/inquiries" component={CustomerInquiries} />
-      <Route path="/customer/saved" component={CustomerSavedProducts} />
-      <Route path="/customer/quotes" component={CustomerQuotes} />
+      <Route path="/customer/inquiries" component={CustomerDashboard} />
+      <Route path="/customer/saved" component={CustomerDashboard} />
+      <Route path="/customer/quotes" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
       <Route path="/product/:slug" component={ProductDetail} />
@@ -66,9 +66,12 @@ function Router() {
             </>
           )}
           
-          {/* Customer dashboard - for customer role */}
-          {(user as any).role === 'customer' && (
-            <Route path="/dashboard" component={CustomerDashboard} />
+          {/* Customer dashboard - for customer userType */}
+          {(user as any).userType === 'customer' && (
+            <>
+              <Route path="/customer/*" component={CustomerDashboard} />
+              <Route path="/dashboard" component={CustomerDashboard} />
+            </>
           )}
           
           {/* Staff dashboard - for all other roles */}
