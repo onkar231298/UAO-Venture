@@ -415,9 +415,9 @@ export default function CustomerDashboard() {
                 <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
               ))}
             </div>
-          ) : quotations && quotations.length ? (
+          ) : quotations && quotations.quotations && quotations.quotations.length ? (
             <div className="space-y-4">
-              {quotations.map((quotation: any) => (
+              {quotations.quotations.map((quotation: any) => (
                 <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
