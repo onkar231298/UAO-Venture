@@ -43,6 +43,11 @@ interface CustomerData {
   email: string;
   companyName?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
 }
 
 const companyDetails = {
@@ -78,17 +83,38 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     }
   };
   
-  // Header
-  doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, 60, { align: 'center' });
-  doc.moveTo(40, 100).lineTo(550, 100).strokeColor(orangeColor).lineWidth(3).stroke();
+  // Header with Logo and Company Info
+  let yPos = 40;
+  
+  try {
+    // Add company logo (left side)
+    doc.image('server/bfi-logo.png', 40, yPos, { width: 120, height: 60 });
+  } catch (error) {
+    console.log('Logo not found, skipping logo insertion');
+  }
+  
+  // Company header info (right side)
+  doc.fontSize(16).fillColor(orangeColor).text('BRIGHT FAME ORGANIC', 180, yPos + 5);
+  doc.fontSize(10).fillColor('black')
+     .text('Your Trusted Ingredient Partner', 180, yPos + 25)
+     .text(`${companyDetails.phone} | ${companyDetails.email}`, 180, yPos + 40)
+     .text(companyDetails.website, 180, yPos + 55);
+  
+  yPos += 80;
+  
+  // Quotation Title
+  doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
+  doc.moveTo(40, yPos + 40).lineTo(550, yPos + 40).strokeColor(orangeColor).lineWidth(3).stroke();
+  
+  yPos += 60;
   
   // Quote Info
-  let yPos = 120;
   doc.fontSize(10).fillColor('black')
      .text(`Quotation#: ${quotation.quotationId}`, 400, yPos)
-     .text(`Quotation Date: ${new Date(quotation.quotationDate).toLocaleDateString('en-GB')}`, 400, yPos + 15);
+     .text(`Quotation Date: ${new Date(quotation.quotationDate).toLocaleDateString('en-GB')}`, 400, yPos + 15)
+     .text(`Valid Until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 400, yPos + 30);
   
-  yPos += 50;
+  yPos += 65;
   
   // Company Info Box (Left)
   doc.fillColor('#f8f9fa').rect(40, yPos, 250, 140).fill()
@@ -117,11 +143,43 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   doc.fontSize(12).fillColor(orangeColor).text('Quotation to', 310, yPos + 10);
   doc.moveTo(310, yPos + 25).lineTo(540, yPos + 25).strokeColor(orangeColor).stroke();
   
+  let customerYPos = yPos + 35;
   doc.fontSize(10).fillColor('black')
-     .text(customer.name, 310, yPos + 35, { width: 230 });
+     .text(`Contact Person: ${customer.name}`, 310, customerYPos, { width: 230 });
   
-  if (quotation.customerCompanyName) {
-    doc.text(quotation.customerCompanyName, 310, yPos + 50, { width: 230 });
+  customerYPos += 15;
+  if (customer.companyName || quotation.customerCompanyName) {
+    const companyName = customer.companyName || quotation.customerCompanyName;
+    doc.text(`Company: ${companyName}`, 310, customerYPos, { width: 230 });
+    customerYPos += 15;
+  }
+  
+  if (customer.email) {
+    doc.text(`Email: ${customer.email}`, 310, customerYPos, { width: 230 });
+    customerYPos += 15;
+  }
+  
+  if (customer.phone) {
+    doc.text(`Phone: ${customer.phone}`, 310, customerYPos, { width: 230 });
+    customerYPos += 15;
+  }
+  
+  // Customer address
+  if (customer.address || quotation.customerAddress) {
+    const address = customer.address || quotation.customerAddress;
+    doc.text(`Address: ${address}`, 310, customerYPos, { width: 230 });
+    customerYPos += 15;
+  }
+  
+  // City, State, Country, Postal Code
+  const locationParts = [];
+  if (customer.city || quotation.customerCity) locationParts.push(customer.city || quotation.customerCity);
+  if (customer.state || quotation.customerState) locationParts.push(customer.state || quotation.customerState);
+  if (customer.country || quotation.customerCountry) locationParts.push(customer.country || quotation.customerCountry);
+  if (customer.postalCode || quotation.customerPostalCode) locationParts.push(customer.postalCode || quotation.customerPostalCode);
+  
+  if (locationParts.length > 0) {
+    doc.text(locationParts.join(', '), 310, customerYPos, { width: 230 });
   }
   if (quotation.customerAddress) {
     doc.text(quotation.customerAddress, 310, yPos + 65, { width: 230 });

@@ -1013,6 +1013,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discountPercent: quotation.discountPercent,
         discountAmount: quotation.discountAmount,
         includeGst: quotation.includeGst,
+        gstNumber: quotation.gstNumber,
+        gstPercentage: quotation.gstPercentage,
+        gstAmount: quotation.gstAmount,
         sellerGstin: quotation.sellerGstin,
         sellerPan: quotation.sellerPan,
         buyerGstin: quotation.buyerGstin,
@@ -1028,10 +1031,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const customerData = {
-        name: customer.name || customer.email,
+        name: customer.firstName && customer.lastName ? `${customer.firstName} ${customer.lastName}` : customer.email,
         email: customer.email,
         companyName: customer.companyName,
         phone: customer.phoneNumber,
+        address: customer.address,
+        city: customer.city,
+        state: customer.state,
+        country: customer.country,
+        postalCode: customer.postalCode,
       };
 
       // Generate PDF
