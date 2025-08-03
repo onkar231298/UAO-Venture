@@ -205,8 +205,9 @@ export default function SalesManagement() {
 
           {/* Horizontal Tabs Layout */}
           <Tabs defaultValue="quote-requests" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
+              <TabsTrigger value="accepted-quotes">Accepted Quotes</TabsTrigger>
               <TabsTrigger value="high-volume-bid">High Volume Bid</TabsTrigger>
               <TabsTrigger value="sample-request">Sample Request</TabsTrigger>
             </TabsList>
@@ -309,6 +310,114 @@ export default function SalesManagement() {
                     <p className="text-gray-600">New customer inquiries will appear here</p>
                   </div>
                 )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="accepted-quotes" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Accepted Quotations - Ready for Order Processing</span>
+                    <div className="flex gap-2">
+                      <Badge className="bg-green-100 text-green-800">
+                        {(quotations as any)?.quotations?.filter((q: any) => q.status === 'accepted')?.length || 0} Accepted
+                      </Badge>
+                      <Button size="sm" variant="outline">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Orders
+                      </Button>
+                    </div>
+                  </CardTitle>
+                  <CardDescription>
+                    Quotations accepted by customers - process these into sales orders
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {quotationsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : (quotations as any)?.quotations?.filter((q: any) => q.status === 'accepted')?.length ? (
+                    <div className="space-y-4">
+                      {(quotations as any).quotations
+                        .filter((quotation: any) => quotation.status === 'accepted')
+                        .map((quotation: any) => (
+                        <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50 bg-green-50 border-green-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <span className="font-semibold text-lg">{quotation.quotationId}</span>
+                              <Badge className="bg-green-600 text-white">ACCEPTED</Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {quotation.currency || 'USD'}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xl font-bold text-green-600">
+                                {quotation.currency || 'USD'} {quotation.totalAmount}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {quotation.priceType?.replace('_', ' ') || 'Ex-Warehouse'}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
+                            <div>
+                              <span className="font-medium text-gray-600">Customer:</span>
+                              <div>{quotation.customerId}</div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-600">Accepted Date:</span>
+                              <div>{quotation.updatedAt ? new Date(quotation.updatedAt).toLocaleDateString() : 'N/A'}</div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-600">Valid Until:</span>
+                              <div>{quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString() : 'N/A'}</div>
+                            </div>
+                          </div>
+
+                          {quotation.terms && (
+                            <div className="bg-white rounded border p-3 mb-3">
+                              <span className="font-medium text-gray-600">Terms & Conditions:</span>
+                              <p className="text-sm mt-1 whitespace-pre-line">{quotation.terms}</p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-3 border-t">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Clock className="w-4 h-4" />
+                              Created: {quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : 'N/A'}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Details
+                              </Button>
+                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                <Package className="w-4 h-4 mr-1" />
+                                Create Sales Order
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Mail className="w-4 h-4 mr-1" />
+                                Contact Customer
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                      <p className="text-gray-500 mb-2">No accepted quotations yet</p>
+                      <p className="text-xs text-gray-400">
+                        Quotations accepted by customers will appear here for order processing
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
