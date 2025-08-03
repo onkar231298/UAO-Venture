@@ -107,7 +107,7 @@ export default function CustomerDashboard() {
       case 'inquiries':
         return renderInquiries();
       case 'high-volume-bids':
-        return renderHighVolumeBids();
+        return renderInquiries(); // Redirect to inquiries with tabs
       case 'saved':
         return renderSavedProducts();
       case 'quotes':
