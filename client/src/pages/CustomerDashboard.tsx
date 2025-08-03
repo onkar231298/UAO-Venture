@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
-import RoleBasedRoute from "@/components/RoleBasedRoute";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,33 +11,33 @@ import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock
 import { formatDistanceToNow } from "date-fns";
 
 export default function CustomerDashboard() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Data fetching for customer-specific data
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
-    queryKey: [`/api/customer/inquiries/${user?.id}`],
-    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
+    queryKey: [`/api/customer/inquiries/${customer?.id}`],
+    enabled: isCustomerAuthenticated && !!customer?.id
   });
 
   const { data: savedProducts, isLoading: savedLoading } = useQuery({
-    queryKey: [`/api/customer/saved-products/${user?.id}`],
-    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
+    queryKey: [`/api/customer/saved-products/${customer?.id}`],
+    enabled: isCustomerAuthenticated && !!customer?.id
   });
 
   const { data: quotations, isLoading: quotationsLoading } = useQuery({
-    queryKey: [`/api/customer/quotations/${user?.id}`],
-    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
+    queryKey: [`/api/customer/quotations/${customer?.id}`],
+    enabled: isCustomerAuthenticated && !!customer?.id
   });
 
   const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
-    queryKey: [`/api/customer/sample-requests/${user?.id}`],
-    enabled: !authLoading && !!user?.id && (user as any)?.userType === 'customer'
+    queryKey: [`/api/customer/sample-requests/${customer?.id}`],
+    enabled: isCustomerAuthenticated && !!customer?.id
   });
 
-  if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!isCustomerAuthenticated) {
+    return <div className="flex items-center justify-center min-h-screen">Please login to access your dashboard.</div>;
   }
 
   const getStatusColor = (status: string) => {
@@ -62,13 +61,12 @@ export default function CustomerDashboard() {
   };
 
   return (
-    <RoleBasedRoute allowedRoles={['customer']}>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Customer Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {(user as any)?.firstName} {(user as any)?.lastName}</p>
-            <p className="text-sm text-gray-500">{(user as any)?.companyName}</p>
+            <p className="text-gray-600">Welcome back, {customer?.firstName} {customer?.lastName}</p>
+            <p className="text-sm text-gray-500">{customer?.companyName}</p>
           </div>
 
           {/* Search and Filter */}
@@ -338,6 +336,5 @@ export default function CustomerDashboard() {
           </Tabs>
         </div>
       </div>
-    </RoleBasedRoute>
-  );
+    );
 }

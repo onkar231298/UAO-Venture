@@ -66,13 +66,7 @@ function Router() {
             </>
           )}
           
-          {/* Customer dashboard - for customer userType */}
-          {(user as any).userType === 'customer' && (
-            <>
-              <Route path="/customer/*" component={CustomerDashboard} />
-              <Route path="/dashboard" component={CustomerDashboard} />
-            </>
-          )}
+          {/* Customer dashboard - accessible without admin auth */}
           
           {/* Staff dashboard - for all other roles */}
           {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') && (
