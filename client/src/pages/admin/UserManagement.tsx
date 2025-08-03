@@ -66,7 +66,9 @@ export default function UserManagement() {
   };
 
   const handleFilterChange = (key: keyof CustomerFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+    // Convert "all" back to empty string for filtering
+    const filterValue = value === "all" ? "" : value;
+    setFilters(prev => ({ ...prev, [key]: filterValue, page: 1 }));
   };
 
   const exportCustomers = async () => {
@@ -191,12 +193,12 @@ export default function UserManagement() {
                     />
                   </div>
                 </div>
-                <Select value={filters.country} onValueChange={(value) => handleFilterChange('country', value)}>
+                <Select value={filters.country || "all"} onValueChange={(value) => handleFilterChange('country', value)}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Country" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Countries</SelectItem>
+                    <SelectItem value="all">All Countries</SelectItem>
                     <SelectItem value="United States">United States</SelectItem>
                     <SelectItem value="Canada">Canada</SelectItem>
                     <SelectItem value="United Kingdom">United Kingdom</SelectItem>
@@ -204,12 +206,12 @@ export default function UserManagement() {
                     <SelectItem value="India">India</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={filters.accountStatus} onValueChange={(value) => handleFilterChange('accountStatus', value)}>
+                <Select value={filters.accountStatus || "all"} onValueChange={(value) => handleFilterChange('accountStatus', value)}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
