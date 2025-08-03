@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -218,99 +219,204 @@ export default function CustomerDashboard() {
   const renderInquiries = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">My Inquiries</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Inquiries & Bids</h1>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
           New Inquiry
         </Button>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search by product, inquiry ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabbed Interface */}
+      <Tabs defaultValue="inquiries" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="inquiries">Quote Requests</TabsTrigger>
+          <TabsTrigger value="high-volume-bids">High Volume Bids</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            My Inquiries
-          </CardTitle>
-          <CardDescription>Track your product inquiries and their status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {inquiriesLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-              ))}
-            </div>
-          ) : inquiries?.inquiries && inquiries.inquiries.length ? (
-            <div className="space-y-4">
-              {inquiries.inquiries.map((inquiry: any) => (
-                <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
-                        <Badge className={getStatusColor(inquiry.status)}>
-                          {inquiry.status}
-                        </Badge>
-                        <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
-                          {inquiry.urgency}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Product:</span> {inquiry.productName}
-                        </div>
-                        <div>
-                          <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
-                        </div>
-                        <div>
-                          <span className="font-medium">Type:</span> {inquiry.inquiryType}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                          <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
-                        </div>
-                      </div>
-                      {inquiry.message && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
-                          <span className="font-medium">Message:</span> {inquiry.message}
-                        </div>
-                      )}
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                  </div>
+        <TabsContent value="inquiries" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Quote Requests
+              </CardTitle>
+              <CardDescription>Standard inquiries and quote requests</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Search and Filter */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search quote requests..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">No inquiries found</p>
-              <Button className="mt-4">
-                <Plus className="w-4 h-4 mr-2" />
-                Submit Your First Inquiry
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+
+              {inquiriesLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                  ))}
+                </div>
+              ) : (inquiries as any)?.inquiries && (inquiries as any).inquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order').length > 0 ? (
+                <div className="space-y-4">
+                  {(inquiries as any).inquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order').map((inquiry: any) => (
+                    <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
+                            <Badge className={getStatusColor(inquiry.status)}>
+                              {inquiry.status}
+                            </Badge>
+                            <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
+                              {inquiry.urgency}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Product:</span> {inquiry.productName}
+                            </div>
+                            <div>
+                              <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
+                            </div>
+                            <div>
+                              <span className="font-medium">Type:</span> {inquiry.inquiryType}
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                              <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
+                            </div>
+                          </div>
+                          {inquiry.message && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                              <span className="font-medium">Message:</span> {inquiry.message}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No quote requests found</p>
+                  <Button className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Submit Your First Inquiry
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="high-volume-bids" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                High Volume Bids
+              </CardTitle>
+              <CardDescription>Large quantity orders and bulk purchase requests</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Search and Filter */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search high volume bids..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {inquiriesLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                  ))}
+                </div>
+              ) : highVolumeBids && highVolumeBids.length > 0 ? (
+                <div className="space-y-4">
+                  {highVolumeBids.map((bid: any) => (
+                    <div key={bid.id} className="border-l-4 border-l-blue-500 border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">BID-{bid.id}</span>
+                            <Badge className={getStatusColor(bid.status)}>
+                              {bid.status}
+                            </Badge>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              {parseInt(bid.quantity) >= 10000 ? 'Premium Volume' : 'High Volume'}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Product:</span> {bid.productName}
+                            </div>
+                            <div>
+                              <span className="font-medium text-blue-600">Volume:</span> {bid.quantity} {bid.unit}
+                            </div>
+                            <div>
+                              <span className="font-medium">Bid ID:</span> {bid.inquiryId}
+                            </div>
+                          </div>
+                          {bid.message && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded text-sm">
+                              <span className="font-medium">Requirements:</span> {bid.message}
+                            </div>
+                          )}
+                          <div className="flex items-center mt-2">
+                            <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                            <span className="text-sm text-gray-500">
+                              Submitted {formatDistanceToNow(new Date(bid.createdAt))} ago
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Details
+                          </Button>
+                          {bid.status === 'pending' && (
+                            <Button size="sm">
+                              <FileText className="w-4 h-4 mr-1" />
+                              Track Progress
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <TrendingUp className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No high volume bids found</p>
+                  <Button className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Submit High Volume Bid
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 

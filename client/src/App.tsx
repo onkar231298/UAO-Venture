@@ -43,8 +43,12 @@ function Router() {
       <Route path="/customer/profile" component={CustomerProfile} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
       <Route path="/customer/inquiries" component={CustomerDashboard} />
+      <Route path="/customer/high-volume-bids" component={CustomerDashboard} />
+      <Route path="/customer/sample-requests" component={CustomerDashboard} />
       <Route path="/customer/saved" component={CustomerDashboard} />
       <Route path="/customer/quotes" component={CustomerDashboard} />
+      <Route path="/customer/downloads" component={CustomerDashboard} />
+      <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
       <Route path="/product/:slug" component={ProductDetail} />
