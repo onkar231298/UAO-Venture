@@ -230,9 +230,10 @@ export default function CustomerDashboard() {
 
       {/* Tabbed Interface */}
       <Tabs defaultValue="inquiries" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="inquiries">Quote Requests</TabsTrigger>
-          <TabsTrigger value="high-volume-bids">High Volume Bids</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="inquiries">My Enquiry</TabsTrigger>
+          <TabsTrigger value="high-volume-bids">High Volume Bid</TabsTrigger>
+          <TabsTrigger value="received-quotes">Received Quotes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inquiries" className="mt-6">
@@ -240,9 +241,9 @@ export default function CustomerDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
-                Quote Requests & Quotations
+                My Enquiry
               </CardTitle>
-              <CardDescription>Complete inquiry lifecycle - from request to quotation</CardDescription>
+              <CardDescription>All submitted inquiries and requests</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Search and Filter */}
@@ -250,7 +251,7 @@ export default function CustomerDashboard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search inquiries and quotations..."
+                    placeholder="Search my enquiries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -258,243 +259,66 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {/* Quotation Process Flow */}
-              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
-                  <FileText className="w-4 h-4 mr-2" />
-                  How the Quotation Process Works
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
-                    <p className="font-medium">Submit Inquiry</p>
-                    <p className="text-xs text-gray-600">Submit product inquiry with quantity and requirements</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
-                    <p className="font-medium">Sales Review</p>
-                    <p className="text-xs text-gray-600">Our sales team reviews your inquiry and prepares detailed quotation</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
-                    <p className="font-medium">Quotation Sent</p>
-                    <p className="text-xs text-gray-600">You receive formal quotation with pricing, terms, and validity period</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">4</div>
-                    <p className="font-medium">Place Order</p>
-                    <p className="text-xs text-gray-600">Accept quotation to proceed with your order</p>
-                  </div>
-                </div>
-              </div>
-
-              {inquiriesLoading || quotationsLoading ? (
+              {inquiriesLoading ? (
                 <div className="space-y-4">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="animate-pulse bg-gray-100 h-20 rounded"></div>
+                    <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                  ))}
+                </div>
+              ) : allInquiries && allInquiries.length > 0 ? (
+                <div className="space-y-4">
+                  {allInquiries.map((inquiry: any) => (
+                    <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
+                            <Badge className={getStatusColor(inquiry.status)}>
+                              {inquiry.status}
+                            </Badge>
+                            <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
+                              {inquiry.urgency}
+                            </Badge>
+                            {inquiry.inquiryType === 'bulk_order' && (
+                              <Badge className="bg-blue-100 text-blue-800">
+                                High Volume
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Product:</span> {inquiry.productName}
+                            </div>
+                            <div>
+                              <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                              <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
+                            </div>
+                          </div>
+                          {inquiry.message && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                              <span className="font-medium">Requirements:</span> {inquiry.message}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Display All Regular Inquiries with their Quotations */}
-                  {regularInquiries.length > 0 ? (
-                    regularInquiries.map((inquiry: any) => {
-                      // Find related quotations for this inquiry
-                      const relatedQuotations = (quotations as any)?.quotations?.filter((q: any) => 
-                        q.inquiryId === inquiry.inquiryId || q.customerId === inquiry.customerId
-                      ) || [];
-
-                      return (
-                        <div key={inquiry.id} className="border rounded-lg overflow-hidden">
-                          {/* Inquiry Section */}
-                          <div className="p-4 bg-gray-50 border-b">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
-                                  <Badge className={getStatusColor(inquiry.status)}>
-                                    {inquiry.status}
-                                  </Badge>
-                                  <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
-                                    {inquiry.urgency}
-                                  </Badge>
-                                  {relatedQuotations.length > 0 && (
-                                    <Badge className="bg-green-100 text-green-800">
-                                      {relatedQuotations.length} Quote{relatedQuotations.length > 1 ? 's' : ''} Received
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                  <div>
-                                    <span className="font-medium">Product:</span> {inquiry.productName}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                                    <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
-                                  </div>
-                                </div>
-                                {inquiry.message && (
-                                  <div className="mt-3 p-3 bg-white rounded text-sm">
-                                    <span className="font-medium">Requirements:</span> {inquiry.message}
-                                  </div>
-                                )}
-                              </div>
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View Details
-                              </Button>
-                            </div>
-                          </div>
-
-                          {/* Related Quotations Section */}
-                          {relatedQuotations.length > 0 && (
-                            <div className="p-4">
-                              <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                                <FileText className="w-4 h-4 mr-2" />
-                                Received Quotations ({relatedQuotations.length})
-                              </h4>
-                              <div className="space-y-3">
-                                {relatedQuotations.map((quotation: any) => (
-                                  <div key={quotation.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="font-semibold">{quotation.quotationId}</span>
-                                          <Badge className={`${
-                                            quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                            quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                            quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
-                                            'bg-gray-100 text-gray-800'
-                                          }`}>
-                                            {quotation.status}
-                                          </Badge>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                                          <div>
-                                            <span className="font-medium">Price:</span> {quotation.currency} {quotation.totalAmount?.toLocaleString()}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">Terms:</span> {quotation.paymentTerms}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">Delivery:</span> {quotation.deliveryTerms}
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="flex space-x-2 ml-4">
-                                        <Button variant="outline" size="sm">
-                                          <Eye className="w-4 h-4 mr-1" />
-                                          View Quote
-                                        </Button>
-                                        {quotation.status === 'sent' && (
-                                          <Button 
-                                            size="sm" 
-                                            className="bg-green-600 hover:bg-green-700"
-                                            onClick={() => acceptQuotationMutation.mutate(quotation.id)}
-                                            disabled={acceptQuotationMutation.isPending}
-                                          >
-                                            <Package className="w-4 h-4 mr-1" />
-                                            {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* No Quotations Yet */}
-                          {relatedQuotations.length === 0 && inquiry.status === 'pending' && (
-                            <div className="p-4 bg-yellow-50 border-t">
-                              <div className="flex items-center text-yellow-800">
-                                <Clock className="w-4 h-4 mr-2" />
-                                <span className="text-sm">Awaiting quotation from sales team...</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div>
-                      {/* Show Standalone Quotations if no regular inquiries */}
-                      {(quotations as any)?.quotations && (quotations as any).quotations.length > 0 ? (
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Your Quotations</h3>
-                          <div className="space-y-3">
-                            {(quotations as any).quotations.map((quotation: any) => (
-                              <div key={quotation.id} className="border border-green-200 bg-green-50 rounded-lg p-4">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="font-semibold">{quotation.quotationId}</span>
-                                      <Badge className={`${
-                                        quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                        quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                        quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
-                                      }`}>
-                                        {quotation.status}
-                                      </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                                      <div>
-                                        <span className="font-medium">Product:</span> {quotation.productName}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">Price:</span> {quotation.currency} {quotation.totalAmount?.toLocaleString()}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">Terms:</span> {quotation.paymentTerms}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex space-x-2 ml-4">
-                                    <Button variant="outline" size="sm">
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      View
-                                    </Button>
-                                    {quotation.status === 'sent' && (
-                                      <Button 
-                                        size="sm" 
-                                        className="bg-green-600 hover:bg-green-700"
-                                        onClick={() => acceptQuotationMutation.mutate(quotation.id)}
-                                        disabled={acceptQuotationMutation.isPending}
-                                      >
-                                        <Package className="w-4 h-4 mr-1" />
-                                        {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                          <p className="text-gray-500">No quote requests found</p>
-                          <p className="text-xs text-gray-400 mb-4">Standard inquiries will appear here. High volume bids are in the next tab.</p>
-                          <Button className="mt-4">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Submit Your First Inquiry
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <div className="text-center py-8">
+                  <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No inquiries found</p>
+                  <Button className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Submit Your First Inquiry
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -591,6 +415,255 @@ export default function CustomerDashboard() {
                   <Button className="mt-4">
                     <Plus className="w-4 h-4 mr-2" />
                     Submit High Volume Bid
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="received-quotes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Received Quotes
+              </CardTitle>
+              <CardDescription>All quotations received from our sales team</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Search and Filter */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search received quotes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Quotation Process Flow */}
+              <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 className="font-semibold text-green-900 mb-3 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Quotation Status Guide
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
+                    <span className="text-xs">Being prepared by sales team</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-100 text-blue-800">Sent</Badge>
+                    <span className="text-xs">Ready for your review</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">Accepted</Badge>
+                    <span className="text-xs">Confirmed and processing</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-red-100 text-red-800">Expired</Badge>
+                    <span className="text-xs">Past validity date</span>
+                  </div>
+                </div>
+              </div>
+
+              {quotationsLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-gray-100 h-20 rounded"></div>
+                  ))}
+                </div>
+              ) : (quotations as any)?.quotations && (quotations as any).quotations.length > 0 ? (
+                <div className="space-y-4">
+                  {(quotations as any).quotations.map((quotation: any) => (
+                    <div key={quotation.id} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="font-semibold text-lg">{quotation.quotationId}</span>
+                            <Badge className={`${
+                              quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                              quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                              quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {quotation.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-3">
+                            <div>
+                              <span className="font-medium">Product:</span> {quotation.productName}
+                            </div>
+                            <div>
+                              <span className="font-medium">Quantity:</span> {quotation.quantity} {quotation.unit}
+                            </div>
+                            <div>
+                              <span className="font-medium">Total Price:</span> {quotation.currency} {quotation.totalAmount?.toLocaleString()}
+                            </div>
+                            <div>
+                              <span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Payment Terms:</span> {quotation.paymentTerms}
+                            </div>
+                            <div>
+                              <span className="font-medium">Delivery Terms:</span> {quotation.deliveryTerms}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2 ml-4">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Details
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Quotation Details - {quotation.quotationId}</DialogTitle>
+                                <DialogDescription>
+                                  Complete quotation information and pricing details
+                                </DialogDescription>
+                              </DialogHeader>
+                              
+                              <div className="space-y-6">
+                                {/* Quotation Header */}
+                                <div className="border-b pb-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h3 className="font-semibold mb-2">Quotation Information</h3>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">Quote ID:</span> {quotation.quotationId}</p>
+                                        <p><span className="font-medium">Date:</span> {new Date(quotation.createdAt).toLocaleDateString()}</p>
+                                        <p><span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}</p>
+                                        <p><span className="font-medium">Status:</span> 
+                                          <Badge className={`ml-2 ${
+                                            quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                            quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                            quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
+                                          }`}>
+                                            {quotation.status}
+                                          </Badge>
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold mb-2">Product Details</h3>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">Product:</span> {quotation.productName}</p>
+                                        <p><span className="font-medium">Quantity:</span> {quotation.quantity} {quotation.unit}</p>
+                                        <p><span className="font-medium">Unit Price:</span> {quotation.currency} {quotation.unitPrice}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Pricing Details */}
+                                <div>
+                                  <h3 className="font-semibold mb-3">Pricing Breakdown</h3>
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex justify-between">
+                                        <span>Unit Price:</span>
+                                        <span>{quotation.currency} {quotation.unitPrice}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Quantity:</span>
+                                        <span>{quotation.quantity} {quotation.unit}</span>
+                                      </div>
+                                      <div className="border-t pt-2 flex justify-between font-semibold">
+                                        <span>Total Amount:</span>
+                                        <span>{quotation.currency} {quotation.totalAmount?.toLocaleString()}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Terms and Conditions */}
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <h3 className="font-semibold mb-2">Payment Terms</h3>
+                                    <p className="text-sm bg-blue-50 p-3 rounded">{quotation.paymentTerms}</p>
+                                  </div>
+                                  <div>
+                                    <h3 className="font-semibold mb-2">Delivery Terms</h3>
+                                    <p className="text-sm bg-blue-50 p-3 rounded">{quotation.deliveryTerms}</p>
+                                  </div>
+                                </div>
+
+                                {/* Company Information */}
+                                <div className="space-y-3">
+                                  <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
+                                  <div className="p-4 bg-green-50 rounded-lg">
+                                    <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
+                                    <p className="text-sm mt-1">C/O Bright Fame International</p>
+                                    <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
+                                    <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
+                                    <p className="text-sm mt-2">Phone: +91-7249847439</p>
+                                    <p className="text-sm">Email: admin@bfiorganic.com</p>
+                                  </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-3 pt-4 border-t">
+                                  {quotation.status === 'sent' && (
+                                    <Button 
+                                      className="bg-green-600 hover:bg-green-700"
+                                      onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                                      disabled={acceptQuotationMutation.isPending}
+                                    >
+                                      <Package className="w-4 h-4 mr-2" />
+                                      {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
+                                    </Button>
+                                  )}
+                                  <Button variant="outline">
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Download PDF
+                                  </Button>
+                                  <Button variant="outline">
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Contact Sales
+                                  </Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          {quotation.status === 'sent' && (
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                              disabled={acceptQuotationMutation.isPending}
+                            >
+                              <Package className="w-4 h-4 mr-1" />
+                              {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No quotations received yet</p>
+                  <p className="text-xs text-gray-400 mb-4">Quotations will appear here after our sales team reviews your inquiries.</p>
+                  <Button className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Submit an Inquiry
                   </Button>
                 </div>
               )}
