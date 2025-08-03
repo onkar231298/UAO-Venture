@@ -170,7 +170,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
           Bid for High Volume
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {currentConfig.icon}
@@ -178,10 +178,10 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-6 p-1">
+        <div className="flex-1 overflow-y-auto px-1">
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {/* Inquiry Type Selection */}
-          <Card className={`${currentConfig.color} border`}>
+          <Card className={`${currentConfig.color} border mb-4`}>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center justify-between">
                 Inquiry Type
@@ -378,23 +378,26 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
             </CardContent>
           </Card>
 
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createInquiryMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {createInquiryMutation.isPending ? "Submitting..." : "Submit Bid for High Volume"}
-            </Button>
-          </div>
-          </form>
+        </form>
+        </div>
+        
+        {/* Fixed footer buttons */}
+        <div className="border-t bg-white p-4 flex justify-end gap-3 mt-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={createInquiryMutation.isPending}
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={handleSubmit}
+          >
+            {createInquiryMutation.isPending ? "Submitting..." : "Submit Bid for High Volume"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
