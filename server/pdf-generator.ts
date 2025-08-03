@@ -21,6 +21,9 @@ interface QuotationData {
   discountPercent?: string;
   discountAmount?: string;
   includeGst?: boolean;
+  gstNumber?: string;
+  gstPercentage?: string;
+  gstAmount?: string;
   sellerGstin?: string;
   sellerPan?: string;
   buyerGstin?: string;
@@ -57,6 +60,7 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   
   const subtotal = quotation.subtotal || quotation.totalAmount;
   const discountAmount = quotation.discountAmount || "0.00";
+  const gstAmount = quotation.gstAmount || "0.00";
   const finalAmount = quotation.totalAmount;
   const amount = parseFloat(finalAmount);
   const amountInWords = `${quotation.currency} ${amount.toLocaleString()} Only`;

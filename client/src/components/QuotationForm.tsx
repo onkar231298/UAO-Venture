@@ -38,7 +38,12 @@ Delivery: Ex-works
 Validity: 30 days from quotation date
 Quality: As per specifications
 Packaging: Standard export packaging`,
-    notes: ""
+    notes: "",
+    // GST fields
+    includeGst: false,
+    gstNumber: "",
+    gstPercentage: "18.00", // Default GST rate
+    discountPercent: "0.00"
   });
 
   const [items, setItems] = useState<QuotationItem[]>([
@@ -91,23 +96,60 @@ Packaging: Standard export packaging`,
     }
   };
 
-  const getTotalAmount = (): number => {
+  const getSubtotal = (): number => {
     return items.reduce((sum, item) => sum + item.totalPrice, 0);
+  };
+
+  const getDiscountAmount = (): number => {
+    const subtotal = getSubtotal();
+    const discountPercent = parseFloat(formData.discountPercent) || 0;
+    return (subtotal * discountPercent) / 100;
+  };
+
+  const getGstAmount = (): number => {
+    if (!formData.includeGst) return 0;
+    const subtotalAfterDiscount = getSubtotal() - getDiscountAmount();
+    const gstPercent = parseFloat(formData.gstPercentage) || 0;
+    return (subtotalAfterDiscount * gstPercent) / 100;
+  };
+
+  const getTotalAmount = (): number => {
+    return getSubtotal() - getDiscountAmount() + getGstAmount();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const subtotal = getSubtotal();
+    const discountAmount = getDiscountAmount();
+    const gstAmount = getGstAmount();
+    const totalAmount = getTotalAmount();
+    
     const quotationData = {
       inquiryId: formData.inquiryId,
       customerId: formData.customerId,
       validUntil: formData.validUntil,
-      totalAmount: getTotalAmount().toString(),
+      totalAmount: totalAmount.toString(),
+      subtotal: subtotal.toString(),
+      discountPercent: formData.discountPercent,
+      discountAmount: discountAmount.toString(),
       currency: formData.currency,
       priceType: formData.priceType,
       status: formData.status,
       terms: formData.terms,
-      notes: formData.notes
+      notes: formData.notes,
+      includeGst: formData.includeGst,
+      gstNumber: formData.includeGst ? formData.gstNumber : null,
+      gstPercentage: formData.includeGst ? formData.gstPercentage : null,
+      gstAmount: formData.includeGst ? gstAmount.toString() : null,
+      items: items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice.toString(),
+        specifications: item.specifications
+      }))
     };
 
     onSubmit(quotationData);
@@ -305,12 +347,102 @@ Packaging: Standard export packaging`,
 
           <Separator />
           
-          <div className="flex justify-end">
-            <div className="text-right">
-              <div className="text-lg font-semibold">
-                Total Amount: {formData.currency} {getTotalAmount().toFixed(2)}
+          {/* Pricing & Tax Calculations */}
+          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Pricing & Tax Calculations</h3>
+            
+            {/* Discount Section */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="discountPercent">Discount (%)</Label>
+                <Input
+                  id="discountPercent"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={formData.discountPercent}
+                  onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
+                  placeholder="0.00"
+                />
               </div>
-              <div className="text-sm text-gray-500">{formData.priceType.toUpperCase().replace('_', '-')}</div>
+            </div>
+            
+            {/* GST Section */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="includeGst"
+                  checked={formData.includeGst}
+                  onChange={(e) => setFormData({ ...formData, includeGst: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="includeGst" className="font-medium">
+                  Include GST (for domestic transactions)
+                </Label>
+              </div>
+              
+              {formData.includeGst && (
+                <div className="grid grid-cols-2 gap-4 pl-6">
+                  <div>
+                    <Label htmlFor="gstNumber">GST Number</Label>
+                    <Input
+                      id="gstNumber"
+                      value={formData.gstNumber}
+                      onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
+                      placeholder="Enter GST Number"
+                      maxLength={15}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gstPercentage">GST Rate (%)</Label>
+                    <Select 
+                      value={formData.gstPercentage} 
+                      onValueChange={(value) => setFormData({ ...formData, gstPercentage: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0.00">0% - Exempt</SelectItem>
+                        <SelectItem value="5.00">5% - Essential goods</SelectItem>
+                        <SelectItem value="12.00">12% - Standard rate</SelectItem>
+                        <SelectItem value="18.00">18% - Standard rate</SelectItem>
+                        <SelectItem value="28.00">28% - Luxury goods</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Price Breakdown */}
+            <div className="border-t pt-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span className="font-medium">{formData.currency} {getSubtotal().toFixed(2)}</span>
+              </div>
+              
+              {parseFloat(formData.discountPercent) > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount ({formData.discountPercent}%):</span>
+                  <span className="font-medium">- {formData.currency} {getDiscountAmount().toFixed(2)}</span>
+                </div>
+              )}
+              
+              {formData.includeGst && parseFloat(formData.gstPercentage) > 0 && (
+                <div className="flex justify-between text-sm text-blue-600">
+                  <span>GST ({formData.gstPercentage}%):</span>
+                  <span className="font-medium">+ {formData.currency} {getGstAmount().toFixed(2)}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
+                <span>Total Amount:</span>
+                <span>{formData.currency} {getTotalAmount().toFixed(2)}</span>
+              </div>
+              <div className="text-right text-sm text-gray-500">{formData.priceType.toUpperCase().replace('_', '-')}</div>
             </div>
           </div>
         </CardContent>
