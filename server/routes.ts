@@ -2139,13 +2139,31 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Sitemap.xml route
   app.get('/sitemap.xml', async (req, res) => {
     try {
-      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
       res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
       
-      // Get all products and categories for sitemap
-      const products = await storage.getProducts({ limit: 10000, offset: 0 });
-      const categories = await storage.getCategories();
-      const blogPosts = await storage.getBlogPosts({ limit: 1000, offset: 0, published: true });
+      // Get all products and categories for sitemap with error handling
+      let products = { products: [] };
+      let categories = [];
+      let blogPosts = { posts: [] };
+      
+      try {
+        products = await storage.getProducts({ limit: 10000, offset: 0 });
+      } catch (error) {
+        console.error('Error fetching products for sitemap:', error);
+      }
+      
+      try {
+        categories = await storage.getCategories();
+      } catch (error) {
+        console.error('Error fetching categories for sitemap:', error);
+      }
+      
+      try {
+        blogPosts = await storage.getBlogPosts({ limit: 1000, offset: 0, published: true });
+      } catch (error) {
+        console.error('Error fetching blog posts for sitemap:', error);
+      }
       
       const baseUrl = 'https://bright-organic.com';
       const currentDate = new Date().toISOString().split('T')[0];
@@ -2184,36 +2202,48 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   </url>`;
 
       // Add category pages
-      for (const category of categories) {
-        sitemap += `
+      if (categories && Array.isArray(categories)) {
+        for (const category of categories) {
+          if (category && category.slug) {
+            // Escape special characters in URLs
+            const escapedSlug = category.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            sitemap += `
   <url>
-    <loc>${baseUrl}/ingredients/${category.slug}</loc>
+    <loc>${baseUrl}/ingredients/${escapedSlug}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
+          }
+        }
       }
 
       // Add product pages
-      for (const product of products.products) {
-        if (product.slug && product.isActive) {
-          sitemap += `
+      if (products && products.products && Array.isArray(products.products)) {
+        for (const product of products.products) {
+          if (product && product.slug && product.isActive !== false) {
+            // Escape special characters in URLs
+            const escapedSlug = product.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            sitemap += `
   <url>
-    <loc>${baseUrl}/products/${product.slug}</loc>
+    <loc>${baseUrl}/products/${escapedSlug}</loc>
     <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
+          }
         }
       }
 
       // Add blog posts if any
-      if (blogPosts.posts) {
+      if (blogPosts && blogPosts.posts && Array.isArray(blogPosts.posts)) {
         for (const post of blogPosts.posts) {
-          if (post.slug && post.published) {
+          if (post && post.slug && post.published) {
+            // Escape special characters in URLs
+            const escapedSlug = post.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             sitemap += `
   <url>
-    <loc>${baseUrl}/blog/${post.slug}</loc>
+    <loc>${baseUrl}/blog/${escapedSlug}</loc>
     <lastmod>${post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -2228,7 +2258,30 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       res.send(sitemap);
     } catch (error) {
       console.error('Error generating sitemap:', error);
-      res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><error>Failed to generate sitemap</error>');
+      // Return a basic sitemap instead of 500 error
+      const basicSitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://bright-organic.com/</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://bright-organic.com/products</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://bright-organic.com/ingredients</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.send(basicSitemap);
     }
   });
 
