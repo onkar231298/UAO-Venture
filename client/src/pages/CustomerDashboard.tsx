@@ -101,7 +101,7 @@ export default function CustomerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Inquiries</p>
-                <p className="text-2xl font-bold text-gray-900">{inquiries?.length || 0}</p>
+                <p className="text-2xl font-bold text-gray-900">{inquiries?.total || 0}</p>
               </div>
               <MessageSquare className="w-8 h-8 text-blue-600" />
             </div>
@@ -152,15 +152,15 @@ export default function CustomerDashboard() {
           <CardDescription>Your latest inquiries and updates</CardDescription>
         </CardHeader>
         <CardContent>
-          {inquiries && inquiries.length > 0 ? (
+          {inquiries?.inquiries && inquiries.inquiries.length > 0 ? (
             <div className="space-y-4">
-              {inquiries.slice(0, 3).map((inquiry: any) => (
+              {inquiries.inquiries.slice(0, 3).map((inquiry: any) => (
                 <div key={inquiry.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <MessageSquare className="w-5 h-5 text-blue-600" />
                     <div>
                       <p className="font-medium">{inquiry.inquiryId}</p>
-                      <p className="text-sm text-gray-500">{inquiry.product}</p>
+                      <p className="text-sm text-gray-500">{inquiry.productName}</p>
                     </div>
                   </div>
                   <Badge className={`${getStatusColor(inquiry.status)}`}>
@@ -217,9 +217,9 @@ export default function CustomerDashboard() {
                 <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
               ))}
             </div>
-          ) : inquiries && inquiries.length ? (
+          ) : inquiries?.inquiries && inquiries.inquiries.length ? (
             <div className="space-y-4">
-              {inquiries.map((inquiry: any) => (
+              {inquiries.inquiries.map((inquiry: any) => (
                 <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -234,13 +234,13 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="font-medium">Product:</span> {inquiry.product}
+                          <span className="font-medium">Product:</span> {inquiry.productName}
                         </div>
                         <div>
                           <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
                         </div>
                         <div>
-                          <span className="font-medium">Type:</span> {inquiry.type}
+                          <span className="font-medium">Type:</span> {inquiry.inquiryType}
                         </div>
                         <div className="flex items-center">
                           <Clock className="w-4 h-4 mr-1 text-gray-400" />
