@@ -167,13 +167,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <span>Product Inquiry</span>
-          {product && <span className="text-sm font-normal text-gray-600">for {product.name}</span>}
-        </CardTitle>
-      </CardHeader>
+    <div className="p-2">
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Product Selection (if not pre-selected) */}
@@ -338,6 +332,6 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
           </p>
         </form>
       </CardContent>
-    </Card>
+    </div>
   );
 }

@@ -499,15 +499,17 @@ export default function ProductDetailBFI() {
                       Request Quote
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                       <DialogTitle>Request Quote for {product.name}</DialogTitle>
                     </DialogHeader>
-                    <InquiryForm 
-                      product={product} 
-                      customerData={customer}
-                      isCustomerAuthenticated={isCustomerAuthenticated}
-                    />
+                    <div className="flex-1 overflow-y-auto">
+                      <InquiryForm 
+                        product={product} 
+                        customerData={customer}
+                        isCustomerAuthenticated={isCustomerAuthenticated}
+                      />
+                    </div>
                   </DialogContent>
                 </Dialog>
 
