@@ -577,17 +577,48 @@ export default function ProductDetailBFI() {
           {/* Right Column - Pricing & Order */}
           <div className="lg:col-span-4">
             <div className="sticky top-4">
-              <BlurredContent
-                isAuthenticated={isAuthenticated}
-                title="Member Pricing Table"
-                message="Register to view volume pricing and place orders"
-                className=""
-              >
+              {isAuthenticated ? (
                 <QuantityPricing 
                   product={product} 
                   onQuantityChange={handleQuantityChange}
                 />
-              </BlurredContent>
+              ) : (
+                <div className="bg-white rounded-lg border shadow-sm p-6 text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-orange-100 rounded-full">
+                      <div className="text-orange-600 text-2xl">🔒</div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Member Pricing
+                  </h3>
+                  
+                  <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                    Register to view volume pricing and place orders
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <button 
+                      onClick={() => window.location.href = '/login'}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                    >
+                      Login to View Pricing
+                    </button>
+                    
+                    <button 
+                      onClick={() => window.location.href = '/register'}
+                      className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors"
+                    >
+                      Create Free Account
+                    </button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-4">
+                    Join thousands of businesses accessing our B2B marketplace
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
