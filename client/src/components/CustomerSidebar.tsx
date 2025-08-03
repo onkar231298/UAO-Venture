@@ -21,19 +21,56 @@ import {
   Home
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export default function CustomerSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [location, setLocation] = useLocation();
   const { customer, logoutCustomer } = useCustomerAuth();
 
+  // Fetch counts for badges
+  const { data: inquiriesData } = useQuery({
+    queryKey: ["/api/customer/inquiries", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return [];
+      try {
+        const response = await fetch(`/api/customer/inquiries/${customer.id}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!customer?.id,
+  });
+
+  const { data: quotationsData } = useQuery({
+    queryKey: ["/api/customer/quotations", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return [];
+      try {
+        const response = await fetch(`/api/customer/quotations/${customer.id}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!customer?.id,
+  });
+
+  const inquiriesCount = Array.isArray(inquiriesData) ? inquiriesData.length : 0;
+  const quotationsCount = Array.isArray(quotationsData) ? quotationsData.length : 0;
+
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },
     { icon: Package, label: "Browse Products", href: "/products" },
     { icon: Search, label: "Search", href: "/products?search=true" },
-    { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: "0" },
+    { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString() },
     { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: "0" },
-    { icon: ShoppingCart, label: "Quote Requests", href: "/customer/quotes", badge: "0" },
+    { icon: ShoppingCart, label: "Quote Requests", href: "/customer/quotes", badge: quotationsCount.toString() },
     { icon: Download, label: "Downloads", href: "/customer/downloads" },
     { icon: FileText, label: "Catalogs", href: "/customer/catalogs" },
     { icon: User, label: "My Profile", href: "/customer/profile" },

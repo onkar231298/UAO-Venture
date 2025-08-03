@@ -34,9 +34,15 @@ export default function CustomerDashboard() {
     queryKey: ["/api/customer/inquiries", customer?.id],
     queryFn: async () => {
       if (!customer?.id) return { inquiries: [], total: 0 };
-      const response = await fetch(`/api/customer/inquiries/${customer.id}`);
-      if (!response.ok) throw new Error('Failed to fetch inquiries');
-      return response.json();
+      try {
+        const response = await fetch(`/api/customer/inquiries/${customer.id}`);
+        if (!response.ok) return { inquiries: [], total: 0 };
+        const data = await response.json();
+        return Array.isArray(data) ? { inquiries: data, total: data.length } : data;
+      } catch (error) {
+        console.error('Error fetching inquiries:', error);
+        return { inquiries: [], total: 0 };
+      }
     },
     enabled: !!customer?.id,
   });
@@ -46,9 +52,15 @@ export default function CustomerDashboard() {
     queryKey: ["/api/customer/sample-requests", customer?.id],
     queryFn: async () => {
       if (!customer?.id) return { requests: [], total: 0 };
-      const response = await fetch(`/api/customer/sample-requests/${customer.id}`);
-      if (!response.ok) throw new Error('Failed to fetch sample requests');
-      return response.json();
+      try {
+        const response = await fetch(`/api/customer/sample-requests/${customer.id}`);
+        if (!response.ok) return { requests: [], total: 0 };
+        const data = await response.json();
+        return Array.isArray(data) ? { requests: data, total: data.length } : data;
+      } catch (error) {
+        console.error('Error fetching sample requests:', error);
+        return { requests: [], total: 0 };
+      }
     },
     enabled: !!customer?.id,
   });
@@ -58,9 +70,15 @@ export default function CustomerDashboard() {
     queryKey: ["/api/customer/quotations", customer?.id],
     queryFn: async () => {
       if (!customer?.id) return { quotations: [], total: 0 };
-      const response = await fetch(`/api/customer/quotations/${customer.id}`);
-      if (!response.ok) throw new Error('Failed to fetch quotations');
-      return response.json();
+      try {
+        const response = await fetch(`/api/customer/quotations/${customer.id}`);
+        if (!response.ok) return { quotations: [], total: 0 };
+        const data = await response.json();
+        return Array.isArray(data) ? { quotations: data, total: data.length } : data;
+      } catch (error) {
+        console.error('Error fetching quotations:', error);
+        return { quotations: [], total: 0 };
+      }
     },
     enabled: !!customer?.id,
   });
@@ -69,9 +87,15 @@ export default function CustomerDashboard() {
   const { data: productsData } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "popular"],
     queryFn: async () => {
-      const response = await fetch('/api/products?limit=6&sort=popular');
-      if (!response.ok) throw new Error('Failed to fetch products');
-      return response.json();
+      try {
+        const response = await fetch('/api/products?limit=6&sort=popular');
+        if (!response.ok) return { products: [], total: 0 };
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        return { products: [], total: 0 };
+      }
     },
   });
 
