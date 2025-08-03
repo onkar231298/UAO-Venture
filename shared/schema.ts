@@ -26,27 +26,18 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for traditional email/password auth and role management
+// User storage table for Replit Auth and role management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique().notNull(),
-  passwordHash: varchar("password_hash").notNull(),
-  firstName: varchar("first_name").notNull(),
-  lastName: varchar("last_name").notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
-  userType: varchar("user_type").default("customer"), // customer, internal
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
   address: text("address"),
   isActive: boolean("is_active").default(true),
-  isVerified: boolean("is_verified").default(false),
-  verificationToken: varchar("verification_token"),
-  resetPasswordToken: varchar("reset_password_token"),
-  resetPasswordExpires: timestamp("reset_password_expires"),
-  lastLoginAt: timestamp("last_login_at"),
-  loginAttempts: integer("login_attempts").default(0),
-  lockedUntil: timestamp("locked_until"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -569,15 +560,16 @@ export const quotationsRelations = relations(quotations, ({ one, many }) => ({
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const upsertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
-  updatedAt: true,
-  passwordHash: true,
+export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+  role: true,
+  companyName: true,
+  phoneNumber: true,
+  address: true,
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
@@ -646,8 +638,7 @@ export const insertQuotationSchema = createInsertSchema(quotations).omit({
 });
 
 // Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type UpsertUser = z.infer<typeof upsertUserSchema>;
+export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;

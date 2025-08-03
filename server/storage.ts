@@ -14,7 +14,6 @@ import {
   heroSlides,
   sampleRequests,
   type User,
-  type InsertUser,
   type UpsertUser,
   type Product,
   type InsertProduct,
@@ -265,96 +264,10 @@ export class DatabaseStorage implements IStorage {
     
     return (result[0]?.maxId || 0) + 1;
   }
-  // User operations for traditional auth
+  // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
-    return user;
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
-    return user;
-  }
-
-  async updateUser(id: string, updates: Partial<User>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
-
-  async getUsers(filters?: {
-    userType?: string;
-    role?: string;
-    isActive?: boolean;
-    search?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<{ users: User[]; total: number }> {
-    const conditions = [];
-    
-    if (filters?.userType) {
-      conditions.push(eq(users.userType, filters.userType));
-    }
-    
-    if (filters?.role) {
-      conditions.push(eq(users.role, filters.role));
-    }
-    
-    if (filters?.isActive !== undefined) {
-      conditions.push(eq(users.isActive, filters.isActive));
-    }
-    
-    if (filters?.search) {
-      const searchTerm = `%${filters.search}%`;
-      conditions.push(
-        or(
-          sql`${users.firstName} ILIKE ${searchTerm}`,
-          sql`${users.lastName} ILIKE ${searchTerm}`,
-          sql`${users.email} ILIKE ${searchTerm}`,
-          sql`${users.companyName} ILIKE ${searchTerm}`
-        )
-      );
-    }
-    
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-    
-    // Get total count
-    const totalResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(users)
-      .where(whereClause);
-    
-    const total = totalResult[0]?.count || 0;
-    
-    // Get users with pagination
-    let query = db.select().from(users).where(whereClause);
-    
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    
-    if (filters?.offset) {
-      query = query.offset(filters.offset);
-    }
-    
-    query = query.orderBy(desc(users.createdAt));
-    
-    const userList = await query;
-    
-    return { users: userList, total };
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
