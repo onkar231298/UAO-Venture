@@ -61,7 +61,7 @@ export default function CustomerQuotes() {
             <h1 className="text-2xl font-bold text-gray-900">My Quotations</h1>
           </div>
 
-          {isLoading ? (
+          {isLoading || !quotations ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -73,7 +73,7 @@ export default function CustomerQuotes() {
                 </Card>
               ))}
             </div>
-          ) : quotations.length === 0 ? (
+          ) : !quotations || (Array.isArray(quotations) && quotations.length === 0) ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -88,7 +88,7 @@ export default function CustomerQuotes() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {quotations.map((quotation: any) => (
+              {(Array.isArray(quotations) ? quotations : []).map((quotation: any) => (
                 <Card key={quotation.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">

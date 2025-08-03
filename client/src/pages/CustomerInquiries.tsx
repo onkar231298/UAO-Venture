@@ -60,7 +60,7 @@ export default function CustomerInquiries() {
             <h1 className="text-2xl font-bold text-gray-900">My Inquiries</h1>
           </div>
 
-          {isLoading ? (
+          {isLoading || !inquiries ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
@@ -72,7 +72,7 @@ export default function CustomerInquiries() {
                 </Card>
               ))}
             </div>
-          ) : inquiries.length === 0 ? (
+          ) : !inquiries || (Array.isArray(inquiries) && inquiries.length === 0) ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -87,7 +87,7 @@ export default function CustomerInquiries() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {inquiries.map((inquiry: any) => (
+              {(Array.isArray(inquiries) ? inquiries : []).map((inquiry: any) => (
                 <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
