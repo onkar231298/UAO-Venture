@@ -8,6 +8,8 @@ import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
 import { useEffect } from "react";
+import { initGA } from "./lib/analytics";
+import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -30,6 +32,9 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  
+  // Track page views when routes change
+  useAnalytics();
 
   return (
     <Switch>
@@ -87,9 +92,16 @@ function Router() {
 }
 
 function App() {
-  // Initialize SEO service on app load
+  // Initialize SEO service and Google Analytics on app load
   useEffect(() => {
     seoService.initializeSettings();
+    
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+    }
   }, []);
 
   return (
