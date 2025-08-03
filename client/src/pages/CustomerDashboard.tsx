@@ -240,9 +240,9 @@ export default function CustomerDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
-                Quote Requests
+                Quote Requests & Quotations
               </CardTitle>
-              <CardDescription>Standard inquiries and quote requests</CardDescription>
+              <CardDescription>Complete inquiry lifecycle - from request to quotation</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Search and Filter */}
@@ -250,7 +250,7 @@ export default function CustomerDashboard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search quote requests..."
+                    placeholder="Search inquiries and quotations..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -258,64 +258,243 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {inquiriesLoading ? (
+              {/* Quotation Process Flow */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  How the Quotation Process Works
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
+                    <p className="font-medium">Submit Inquiry</p>
+                    <p className="text-xs text-gray-600">Submit product inquiry with quantity and requirements</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
+                    <p className="font-medium">Sales Review</p>
+                    <p className="text-xs text-gray-600">Our sales team reviews your inquiry and prepares detailed quotation</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
+                    <p className="font-medium">Quotation Sent</p>
+                    <p className="text-xs text-gray-600">You receive formal quotation with pricing, terms, and validity period</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">4</div>
+                    <p className="font-medium">Place Order</p>
+                    <p className="text-xs text-gray-600">Accept quotation to proceed with your order</p>
+                  </div>
+                </div>
+              </div>
+
+              {inquiriesLoading || quotationsLoading ? (
                 <div className="space-y-4">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                  ))}
-                </div>
-              ) : regularInquiries && regularInquiries.length > 0 ? (
-                <div className="space-y-4">
-                  {regularInquiries.map((inquiry: any) => (
-                    <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
-                            <Badge className={getStatusColor(inquiry.status)}>
-                              {inquiry.status}
-                            </Badge>
-                            <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
-                              {inquiry.urgency}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">Product:</span> {inquiry.productName}
-                            </div>
-                            <div>
-                              <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
-                            </div>
-                            <div>
-                              <span className="font-medium">Type:</span> {inquiry.inquiryType}
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                              <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
-                            </div>
-                          </div>
-                          {inquiry.message && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
-                              <span className="font-medium">Message:</span> {inquiry.message}
-                            </div>
-                          )}
-                        </div>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      </div>
-                    </div>
+                    <div key={i} className="animate-pulse bg-gray-100 h-20 rounded"></div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500">No quote requests found</p>
-                  <Button className="mt-4">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Submit Your First Inquiry
-                  </Button>
+                <div className="space-y-6">
+                  {/* Display All Regular Inquiries with their Quotations */}
+                  {regularInquiries.length > 0 ? (
+                    regularInquiries.map((inquiry: any) => {
+                      // Find related quotations for this inquiry
+                      const relatedQuotations = (quotations as any)?.quotations?.filter((q: any) => 
+                        q.inquiryId === inquiry.inquiryId || q.customerId === inquiry.customerId
+                      ) || [];
+
+                      return (
+                        <div key={inquiry.id} className="border rounded-lg overflow-hidden">
+                          {/* Inquiry Section */}
+                          <div className="p-4 bg-gray-50 border-b">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-semibold text-lg">{inquiry.inquiryId}</span>
+                                  <Badge className={getStatusColor(inquiry.status)}>
+                                    {inquiry.status}
+                                  </Badge>
+                                  <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
+                                    {inquiry.urgency}
+                                  </Badge>
+                                  {relatedQuotations.length > 0 && (
+                                    <Badge className="bg-green-100 text-green-800">
+                                      {relatedQuotations.length} Quote{relatedQuotations.length > 1 ? 's' : ''} Received
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <span className="font-medium">Product:</span> {inquiry.productName}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                                    <span>{formatDistanceToNow(new Date(inquiry.createdAt))} ago</span>
+                                  </div>
+                                </div>
+                                {inquiry.message && (
+                                  <div className="mt-3 p-3 bg-white rounded text-sm">
+                                    <span className="font-medium">Requirements:</span> {inquiry.message}
+                                  </div>
+                                )}
+                              </div>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Details
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Related Quotations Section */}
+                          {relatedQuotations.length > 0 && (
+                            <div className="p-4">
+                              <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Received Quotations ({relatedQuotations.length})
+                              </h4>
+                              <div className="space-y-3">
+                                {relatedQuotations.map((quotation: any) => (
+                                  <div key={quotation.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="font-semibold">{quotation.quotationId}</span>
+                                          <Badge className={`${
+                                            quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                            quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                            quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
+                                          }`}>
+                                            {quotation.status}
+                                          </Badge>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-medium">Price:</span> {quotation.currency} {quotation.totalAmount?.toLocaleString()}
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Terms:</span> {quotation.paymentTerms}
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Delivery:</span> {quotation.deliveryTerms}
+                                          </div>
+                                          <div>
+                                            <span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex space-x-2 ml-4">
+                                        <Button variant="outline" size="sm">
+                                          <Eye className="w-4 h-4 mr-1" />
+                                          View Quote
+                                        </Button>
+                                        {quotation.status === 'sent' && (
+                                          <Button 
+                                            size="sm" 
+                                            className="bg-green-600 hover:bg-green-700"
+                                            onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                                            disabled={acceptQuotationMutation.isPending}
+                                          >
+                                            <Package className="w-4 h-4 mr-1" />
+                                            {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* No Quotations Yet */}
+                          {relatedQuotations.length === 0 && inquiry.status === 'pending' && (
+                            <div className="p-4 bg-yellow-50 border-t">
+                              <div className="flex items-center text-yellow-800">
+                                <Clock className="w-4 h-4 mr-2" />
+                                <span className="text-sm">Awaiting quotation from sales team...</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div>
+                      {/* Show Standalone Quotations if no regular inquiries */}
+                      {(quotations as any)?.quotations && (quotations as any).quotations.length > 0 ? (
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Your Quotations</h3>
+                          <div className="space-y-3">
+                            {(quotations as any).quotations.map((quotation: any) => (
+                              <div key={quotation.id} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="font-semibold">{quotation.quotationId}</span>
+                                      <Badge className={`${
+                                        quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                        quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                        quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
+                                      }`}>
+                                        {quotation.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                      <div>
+                                        <span className="font-medium">Product:</span> {quotation.productName}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Price:</span> {quotation.currency} {quotation.totalAmount?.toLocaleString()}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Terms:</span> {quotation.paymentTerms}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex space-x-2 ml-4">
+                                    <Button variant="outline" size="sm">
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      View
+                                    </Button>
+                                    {quotation.status === 'sent' && (
+                                      <Button 
+                                        size="sm" 
+                                        className="bg-green-600 hover:bg-green-700"
+                                        onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                                        disabled={acceptQuotationMutation.isPending}
+                                      >
+                                        <Package className="w-4 h-4 mr-1" />
+                                        {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                          <p className="text-gray-500">No quote requests found</p>
+                          <p className="text-xs text-gray-400 mb-4">Standard inquiries will appear here. High volume bids are in the next tab.</p>
+                          <Button className="mt-4">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Submit Your First Inquiry
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
