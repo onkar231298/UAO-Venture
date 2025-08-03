@@ -9,7 +9,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InquiryForm from "@/components/InquiryForm";
 import QuantityPricing from "@/components/QuantityPricing";
-import BlurredQuantityPricing from "@/components/BlurredQuantityPricing";
 import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
 import { SampleRequestForm } from "@/components/SampleRequestForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,11 +39,10 @@ import {
   Globe,
   Beaker,
   ChevronLeft,
-  ChevronRight,
-  Lock
+  ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import BlurredContent from "@/components/BlurredContent";
+import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -318,7 +316,7 @@ export default function ProductDetailBFI() {
                   {!isAuthenticated ? (
                     <div className="text-center py-4 bg-gray-50 rounded">
                       <p className="text-sm text-gray-600 mb-3">You must log in to view documents</p>
-                      <Button size="sm" onClick={() => window.location.href = '/login'}>
+                      <Button size="sm" onClick={() => window.location.href = '/api/login'}>
                         Log in
                       </Button>
                     </div>
@@ -475,96 +473,47 @@ export default function ProductDetailBFI() {
                 ))}
               </div>
 
-              {/* Pricing Display - Always visible but numbers blurred for non-authenticated */}
+              {/* Multi-Currency Pricing Display */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <div className="space-y-3">
-                  {product.basePrice && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Base Price:</span>
-                      <span className="text-lg font-bold text-green-700">
-                        {isAuthenticated ? (
-                          `$${product.basePrice}/kg`
-                        ) : (
-                          <span className="blur-sm">$${product.basePrice}/kg</span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {product.moq && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">MOQ:</span>
-                      <span className="text-sm font-medium">
-                        {isAuthenticated ? (
-                          `${product.moq} ${product.stockUnit || 'kg'}`
-                        ) : (
-                          <>
-                            <span className="blur-sm">{product.moq}</span> {product.stockUnit || 'kg'}
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {product.leadTime && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Lead Time:</span>
-                      <span className="text-sm font-medium">{product.leadTime}</span>
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-green-200">
-                    <p className="text-xs text-green-700 font-medium">
-                      🎯 Volume discounts available • Regional pricing
-                    </p>
+                <LocationBasedPricing 
+                  product={product} 
+                  showCurrencySelector={false}
+                  isAdminView={false}
+                  className="mb-2"
+                />
+                {product.moq && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    MOQ: {product.moq} {product.stockUnit || 'kg'} | Lead Time: {product.leadTime || 'Contact us'}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">
-                {isAuthenticated ? (
-                  <>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Request Quote
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Request Quote for {product.name}</DialogTitle>
-                        </DialogHeader>
-                        <InquiryForm product={product} />
-                      </DialogContent>
-                    </Dialog>
-
-                    <Button variant="outline" size="default">
-                      <Heart className="w-4 h-4 mr-2" />
-                      Wishlist
-                    </Button>
-
-                    <Button variant="outline" size="default">
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
-                    </Button>
-                  </>
-                ) : (
-                  <div className="w-full flex gap-2">
-                    <Button 
-                      className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
-                      onClick={() => window.location.href = '/login'}
-                    >
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="bg-orange-600 hover:bg-orange-700 text-white">
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      Login to Request Quote
+                      Request Quote
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="default"
-                      onClick={() => window.location.href = '/register'}
-                    >
-                      Register
-                    </Button>
-                  </div>
-                )}
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Request Quote for {product.name}</DialogTitle>
+                    </DialogHeader>
+                    <InquiryForm product={product} />
+                  </DialogContent>
+                </Dialog>
+
+                <Button variant="outline" size="default">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Wishlist
+                </Button>
+
+                <Button variant="outline" size="default">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
               </div>
 
               {/* Enhanced Inquiry Form */}
@@ -585,165 +534,11 @@ export default function ProductDetailBFI() {
 
           {/* Right Column - Pricing & Order */}
           <div className="lg:col-span-4">
-            <div className="sticky top-4 space-y-4">
-              {isAuthenticated ? (
-                <QuantityPricing 
-                  product={product} 
-                  onQuantityChange={handleQuantityChange}
-                />
-              ) : (
-                <div className="relative">
-                  {/* Blurred Quantity Pricing Table - numbers only */}
-                  <BlurredQuantityPricing product={product} />
-                  
-                  {/* Overlay with Login/Signup Buttons */}
-                  <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center px-6 py-8">
-                      <p className="text-gray-700 mb-4 font-medium">
-                        Login/Sign up to see discounted prices for you
-                      </p>
-                      
-                      <div className="space-y-3">
-                        <button 
-                          onClick={() => window.location.href = '/login'}
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
-                        >
-                          Login
-                        </button>
-                        
-                        <button 
-                          onClick={() => window.location.href = '/register'}
-                          className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-6 rounded-md transition-colors"
-                        >
-                          Sign Up
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Documents Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Product Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {documents && documents.length > 0 ? (
-                    <div className="space-y-3">
-                      {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-4 h-4 text-gray-600" />
-                            <div>
-                              <div className="font-medium text-sm">{doc.title}</div>
-                              <div className="text-xs text-gray-500">{doc.type}</div>
-                            </div>
-                          </div>
-                          {isAuthenticated ? (
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <Download className="w-4 h-4 mr-1" />
-                                View
-                              </a>
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => window.location.href = '/login'}
-                            >
-                              <Lock className="w-4 h-4 mr-1" />
-                              Login to View
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* Show sample documents list even if no actual documents */}
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="font-medium text-sm">Certificate of Analysis (COA)</div>
-                            <div className="text-xs text-gray-500">PDF Document</div>
-                          </div>
-                        </div>
-                        {isAuthenticated ? (
-                          <Button size="sm" variant="outline" disabled>
-                            <Download className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => window.location.href = '/login'}
-                          >
-                            <Lock className="w-4 h-4 mr-1" />
-                            Login to View
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="font-medium text-sm">Technical Data Sheet</div>
-                            <div className="text-xs text-gray-500">PDF Document</div>
-                          </div>
-                        </div>
-                        {isAuthenticated ? (
-                          <Button size="sm" variant="outline" disabled>
-                            <Download className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => window.location.href = '/login'}
-                          >
-                            <Lock className="w-4 h-4 mr-1" />
-                            Login to View
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="font-medium text-sm">Organic Certificate</div>
-                            <div className="text-xs text-gray-500">PDF Document</div>
-                          </div>
-                        </div>
-                        {isAuthenticated ? (
-                          <Button size="sm" variant="outline" disabled>
-                            <Download className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => window.location.href = '/login'}
-                          >
-                            <Lock className="w-4 h-4 mr-1" />
-                            Login to View
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <div className="sticky top-4">
+              <QuantityPricing 
+                product={product} 
+                onQuantityChange={handleQuantityChange}
+              />
             </div>
           </div>
 

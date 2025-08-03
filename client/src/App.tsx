@@ -12,8 +12,7 @@ import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+import UnifiedLogin from "@/pages/UnifiedLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -30,8 +29,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />  
+      <Route path="/login" component={UnifiedLogin} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
@@ -42,8 +40,8 @@ function Router() {
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
         <>
-          {/* Admin dashboard - for internal users with admin/super_admin roles */}
-          {(user.userType === 'internal' && (user.role === 'admin' || user.role === 'super_admin')) && (
+          {/* Admin dashboard - for admin and super_admin roles */}
+          {((user as any).role === 'admin' || (user as any).role === 'super_admin') && (
             <>
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/*" component={AdminDashboard} />
@@ -51,13 +49,13 @@ function Router() {
             </>
           )}
           
-          {/* Customer dashboard - for customer users */}
-          {user.userType === 'customer' && (
+          {/* Customer dashboard - for customer role */}
+          {(user as any).role === 'customer' && (
             <Route path="/dashboard" component={CustomerDashboard} />
           )}
           
-          {/* Staff dashboard - for internal users with other roles */}
-          {(user.userType === 'internal' && user.role !== 'admin' && user.role !== 'super_admin') && (
+          {/* Staff dashboard - for all other roles */}
+          {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') && (
             <Route path="/staff/*" component={StaffDashboard} />
           )}
         </>
