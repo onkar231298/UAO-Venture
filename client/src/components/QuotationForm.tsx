@@ -114,14 +114,15 @@ Packaging: Standard export packaging`,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Customer & Inquiry Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Customer & Inquiry Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Customer & Inquiry Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Customer & Inquiry Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium">Customer</Label>
               <p className="text-sm">{inquiry.contactName}</p>
@@ -132,21 +133,21 @@ Packaging: Standard export packaging`,
               <p className="text-sm">{inquiry.emailAddress}</p>
               <p className="text-xs text-gray-500">{inquiry.phoneNumber}</p>
             </div>
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Original Message</Label>
-            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{inquiry.message}</p>
-          </div>
-        </CardContent>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Original Message</Label>
+              <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{inquiry.message}</p>
+            </div>
+          </CardContent>
       </Card>
 
-      {/* Quotation Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quotation Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        {/* Quotation Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Quotation Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="validUntil">Valid Until</Label>
               <Input
@@ -304,15 +305,16 @@ Packaging: Standard export packaging`,
         </CardContent>
       </Card>
 
-      {/* Submit */}
-      <div className="flex justify-end space-x-3">
-        <Button type="button" variant="outline">
-          Save as Draft
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating..." : formData.status === "sent" ? "Send Quotation" : "Create Quotation"}
-        </Button>
-      </div>
-    </form>
+        {/* Submit */}
+        <div className="flex justify-end space-x-3 sticky bottom-0 bg-white pt-4 border-t">
+          <Button type="button" variant="outline">
+            Save as Draft
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Creating..." : formData.status === "sent" ? "Send Quotation" : "Create Quotation"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

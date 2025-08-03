@@ -254,15 +254,17 @@ export default function SalesManagement() {
                                   Create Quote
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
+                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Create Quotation for INQ-{inquiry.id}</DialogTitle>
                                 </DialogHeader>
-                                <QuotationForm 
-                                  inquiry={inquiry} 
-                                  onSubmit={(data: any) => createQuotationMutation.mutate(data)}
-                                  isLoading={createQuotationMutation.isPending}
-                                />
+                                <div className="max-h-[75vh] overflow-y-auto pr-2">
+                                  <QuotationForm 
+                                    inquiry={inquiry} 
+                                    onSubmit={(data: any) => createQuotationMutation.mutate(data)}
+                                    isLoading={createQuotationMutation.isPending}
+                                  />
+                                </div>
                               </DialogContent>
                             </Dialog>
                           </div>
