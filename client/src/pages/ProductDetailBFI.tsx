@@ -315,10 +315,10 @@ export default function ProductDetailBFI() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {!isAuthenticated ? (
+                  {!isAuthenticated && !isCustomerAuthenticated ? (
                     <div className="text-center py-4 bg-gray-50 rounded">
                       <p className="text-sm text-gray-600 mb-3">You must log in to view documents</p>
-                      <Button size="sm" onClick={() => window.location.href = '/api/login'}>
+                      <Button size="sm" onClick={() => window.location.href = '/login'}>
                         Log in
                       </Button>
                     </div>

@@ -111,7 +111,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isCustomerAuthenticated) {
       toast({
         title: "Login Required",
         description: "Please log in to submit an inquiry.",
@@ -146,7 +146,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isCustomerAuthenticated) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
@@ -155,7 +155,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
           <Button 
             variant="link" 
             className="p-0 ml-1" 
-            onClick={() => window.location.href = "/api/login"}
+            onClick={() => window.location.href = "/login"}
           >
             Login here
           </Button>
