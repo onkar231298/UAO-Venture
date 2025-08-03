@@ -66,8 +66,8 @@ export default function CustomerSidebar() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },
-    { icon: Package, label: "Browse Products", href: "/products" },
-    { icon: Search, label: "Search", href: "/products?search=true" },
+    { icon: Package, label: "Browse Products", href: "/customer/products" },
+    { icon: Search, label: "Search", href: "/customer/search" },
     { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString() },
     { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: "0" },
     { icon: ShoppingCart, label: "Quote Requests", href: "/customer/quotes", badge: quotationsCount.toString() },

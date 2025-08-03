@@ -33,7 +33,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("inquiries");
+  const [activeTab, setActiveTab] = useState("quote-requests");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [enquiryTypeFilter, setEnquiryTypeFilter] = useState("all");
@@ -388,59 +388,36 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
           {/* Dynamic Content Tabs Based on Sub-Section */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={`grid w-full ${
-              activeSubSection === 'enquiry-sample' ? 'grid-cols-2' :
-              activeSubSection === 'sales-crm' ? 'grid-cols-2' :
-              'grid-cols-4'
-            }`}>
-              {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
-                <>
-                  <TabsTrigger value="inquiries">
-                    Customer Inquiries
-                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="samples">
-                    Sample Requests
-                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                    )}
-                  </TabsTrigger>
-                </>
-              )}
-              {(activeSubSection === 'sales-crm' || !activeSubSection) && (
-                <>
-                  <TabsTrigger value="quotations">
-                    Quotations
-                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="orders">
-                    Sales Orders
-                    {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                      <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                    )}
-                  </TabsTrigger>
-                </>
-              )}
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="quote-requests">
+                Quote Requests
+                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="high-volume-bid">
+                High Volume Bid
+                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="sample-request">
+                Sample Request
+                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
-            {/* Inquiries Tab - Show for Customer Inquiries, Bidding Requests, Sample Requests or Full Sales Management */}
-            {(activeSubSection === 'enquiry-sample' || activeSubSection === 'bidding-requests' || activeSubSection === 'sample-requests' || !activeSubSection) && (
-              <TabsContent value="inquiries" className="mt-6">
+            {/* Quote Requests Tab */}
+            <TabsContent value="quote-requests" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>
-                        {activeSubSection === 'bidding-requests' ? 'High Volume Bidding Requests' :
-                         activeSubSection === 'sample-requests' ? 'Sample Requests' :
-                         'Customer Inquiries'}
-                      </span>
+                      <span>Quote Requests</span>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
-                        Manual Inquiry
+                        New Quote Request
                       </Button>
                     </CardTitle>
                   </CardHeader>
@@ -525,11 +502,77 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 </CardContent>
               </Card>
             </TabsContent>
-            )}
 
-            {/* Sample Requests Tab - Show for Enquiry & Sample or Full Sales Management */}
-            {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
-              <TabsContent value="samples" className="mt-6">
+            {/* High Volume Bid Tab */}
+            <TabsContent value="high-volume-bid" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>High Volume Bids</span>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Bid Request
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {inquiriesLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : (inquiries as any)?.inquiries?.filter((inquiry: Inquiry) => inquiry.inquiryType === 'high_volume_bid').length ? (
+                    <div className="space-y-4">
+                      {(inquiries as any).inquiries.filter((inquiry: Inquiry) => inquiry.inquiryType === 'high_volume_bid').map((inquiry: Inquiry) => (
+                        <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <span className="font-medium">{(inquiry as any).productName || 'High Volume Bid'}</span>
+                              <span className="text-sm text-gray-600">INQ-{inquiry.id}</span>
+                              {getStatusBadge(inquiry.status || 'pending')}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                              <Button size="sm">
+                                <FileText className="w-4 h-4 mr-1" />
+                                Create Quote
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Customer:</span>
+                              <p className="font-medium">{inquiry.contactName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Quantity:</span>
+                              <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Date:</span>
+                              <p className="font-medium">{new Date(inquiry.createdAt!).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids found</h3>
+                      <p className="text-gray-600">Large quantity bid requests will appear here</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Sample Requests Tab */}
+            <TabsContent value="sample-request" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -624,147 +667,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 </CardContent>
               </Card>
             </TabsContent>
-            )}
 
-            {/* Quotations Tab - Show for Sales CRM or Full Sales Management */}
-            {(activeSubSection === 'sales-crm' || !activeSubSection) && (
-              <TabsContent value="quotations" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Quotations</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Quotation
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {quotationsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (quotations as any)?.quotations?.length ? (
-                    <div className="space-y-4">
-                      {(quotations as any).quotations.map((quotation: Quotation) => (
-                        <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">{quotation.quotationId}</span>
-                              {getStatusBadge(quotation.status || 'draft')}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Edit className="w-4 h-4 mr-1" />
-                                Edit
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="grid md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{quotation.customerId}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Amount:</span>
-                              <p className="font-medium">${quotation.totalAmount}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Valid Until:</span>
-                              <p className="font-medium">
-                                {quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString() : 'N/A'}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Created:</span>
-                              <p className="font-medium">{new Date(quotation.createdAt!).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No quotations found</h3>
-                      <p className="text-gray-600">Created quotations will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            )}
-
-            {/* Sales Orders Tab - Show for Sales CRM or Full Sales Management */}
-            {(activeSubSection === 'sales-crm' || !activeSubSection) && (
-              <TabsContent value="orders" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sales Orders</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {ordersLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (salesOrders as any)?.orders?.length ? (
-                    <div className="space-y-4">
-                      {(salesOrders as any).orders.map((order: any) => (
-                        <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">{order.orderId}</span>
-                              {getStatusBadge(order.status || 'pending')}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="grid md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{order.customerId}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Amount:</span>
-                              <p className="font-medium">${order.totalAmount}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Expected Delivery:</span>
-                              <p className="font-medium">
-                                {order.expectedDelivery ? new Date(order.expectedDelivery).toLocaleDateString() : 'TBD'}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Order Date:</span>
-                              <p className="font-medium">{new Date(order.orderDate).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sales orders found</h3>
-                      <p className="text-gray-600">Confirmed orders will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            )}
           </Tabs>
         </div>
       </div>
@@ -772,79 +675,20 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   );
 }
 
-// Quotation Form Component
-function QuotationForm({ 
-  inquiry, 
-  onSubmit, 
-  isLoading 
-}: { 
-  inquiry: Inquiry; 
-  onSubmit: (data: any) => void; 
-  isLoading: boolean; 
-}) {
-  const [formData, setFormData] = useState({
-    inquiryId: inquiry.id,
-    customerId: inquiry.customerId,
-    validUntil: "",
-    totalAmount: "",
-    terms: "",
-    notes: "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      totalAmount: parseFloat(formData.totalAmount),
-      validUntil: formData.validUntil ? new Date(formData.validUntil) : null,
-    });
+// Helper function to get status badge styling
+const getStatusBadge = (status: string) => {
+  const statusColors = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    quoted: 'bg-blue-100 text-blue-800',
+    converted: 'bg-green-100 text-green-800',
+    closed: 'bg-gray-100 text-gray-800'
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Valid Until</Label>
-          <Input
-            type="date"
-            value={formData.validUntil}
-            onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label>Total Amount ($)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={formData.totalAmount}
-            onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
-            required
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label>Terms & Conditions</Label>
-        <Textarea
-          value={formData.terms}
-          onChange={(e) => setFormData(prev => ({ ...prev, terms: e.target.value }))}
-          placeholder="Enter payment terms, delivery conditions, etc."
-        />
-      </div>
-      
-      <div>
-        <Label>Notes</Label>
-        <Textarea
-          value={formData.notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Additional notes or comments"
-        />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Creating..." : "Create Quotation"}
-      </Button>
-    </form>
+    <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.pending}>
+      {status}
+    </Badge>
   );
-}
+};
+
+

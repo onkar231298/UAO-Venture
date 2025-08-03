@@ -45,6 +45,8 @@ function Router() {
       <Route path="/customer/inquiries" component={CustomerInquiries} />
       <Route path="/customer/saved" component={CustomerSavedProducts} />
       <Route path="/customer/quotes" component={CustomerQuotes} />
+      <Route path="/customer/products" component={Products} />
+      <Route path="/customer/search" component={Products} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
