@@ -20,6 +20,7 @@ import VideoUploadTest from "@/pages/VideoUploadTest";
 import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import CustomerRegistration from "@/pages/CustomerRegistration";
 import CustomerLogin from "@/pages/CustomerLogin";
+import CustomerProfile from "@/pages/CustomerProfile";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/login" component={UnifiedLogin} />
 
       <Route path="/register" component={CustomerRegistration} />
+      <Route path="/customer/profile" component={CustomerProfile} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />

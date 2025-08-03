@@ -73,12 +73,14 @@ export default function UnifiedLogin() {
 
       if (response.ok) {
         const result = await response.json();
+        // Store customer data locally for the profile page
+        localStorage.setItem('customer_user_data', JSON.stringify(result.user));
         toast({
           title: "Login Successful!",
           description: `Welcome back, ${result.user.firstName}!`,
         });
-        // Redirect to customer dashboard or home
-        setLocation('/dashboard');
+        // Redirect to customer profile page
+        setLocation('/customer/profile');
       } else {
         const error = await response.json();
         throw new Error(error.message || "Login failed");
