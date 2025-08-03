@@ -578,40 +578,39 @@ export default function ProductDetailBFI() {
                   onQuantityChange={handleQuantityChange}
                 />
               ) : (
-                <div className="bg-white rounded-lg border shadow-sm p-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-orange-100 rounded-full">
-                      <div className="text-orange-600 text-2xl">🔒</div>
+                <div className="relative">
+                  {/* Blurred Quantity Pricing Table */}
+                  <div className="filter blur-sm pointer-events-none select-none">
+                    <QuantityPricing 
+                      product={product} 
+                      onQuantityChange={handleQuantityChange}
+                    />
+                  </div>
+                  
+                  {/* Overlay with Login/Signup Buttons */}
+                  <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-center px-6 py-8">
+                      <p className="text-gray-700 mb-4 font-medium">
+                        Login/Sign up to see discounted prices for you
+                      </p>
+                      
+                      <div className="space-y-3">
+                        <button 
+                          onClick={() => window.location.href = '/login'}
+                          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
+                        >
+                          Login
+                        </button>
+                        
+                        <button 
+                          onClick={() => window.location.href = '/register'}
+                          className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-6 rounded-md transition-colors"
+                        >
+                          Sign Up
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Member Pricing
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                    Register to view volume pricing and place orders
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <button 
-                      onClick={() => window.location.href = '/login'}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                    >
-                      Login to View Pricing
-                    </button>
-                    
-                    <button 
-                      onClick={() => window.location.href = '/register'}
-                      className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors"
-                    >
-                      Create Free Account
-                    </button>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500 mt-4">
-                    Join thousands of businesses accessing our B2B marketplace
-                  </p>
                 </div>
               )}
             </div>
