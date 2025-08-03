@@ -29,7 +29,6 @@ export default function SalesManagement() {
   const [dateFilter, setDateFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
-  const [selectedAction, setSelectedAction] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
 
@@ -240,106 +239,7 @@ export default function SalesManagement() {
             </Card>
           </div>
 
-          {/* Filters and Search */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Search & Filters</CardTitle>
-              <CardDescription>Filter and search through sales data</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search by customer, product, or inquiry ID..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  {/* Action Dropdown */}
-                  <Select value={selectedAction} onValueChange={setSelectedAction}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Actions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bulk_follow_up">Bulk Follow Up</SelectItem>
-                      <SelectItem value="export_leads">Export Leads</SelectItem>
-                      <SelectItem value="assign_sales_rep">Assign Sales Rep</SelectItem>
-                      <SelectItem value="mark_priority">Mark as Priority</SelectItem>
-                      <SelectItem value="send_newsletter">Send Newsletter</SelectItem>
-                      <SelectItem value="create_campaign">Create Campaign</SelectItem>
-                      <SelectItem value="view_analytics">View Analytics</SelectItem>
-                      <SelectItem value="generate_reports">Generate Reports</SelectItem>
-                      <SelectItem value="view_sales_orders">View Sales Orders</SelectItem>
-                      <SelectItem value="export_crm_data">Export CRM Data</SelectItem>
-                      <SelectItem value="bulk_actions">Bulk Actions</SelectItem>
-                    </SelectContent>
-                  </Select>
 
-                  {/* Status Filter */}
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="responded">Responded</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Date Filter */}
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Date Range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Time</SelectItem>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="yesterday">Yesterday</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                      <SelectItem value="quarter">This Quarter</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Urgency Filter */}
-                  <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Urgency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Urgency</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Sort Filter */}
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Sort By" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="high_value">High Value</SelectItem>
-                      <SelectItem value="urgency">By Urgency</SelectItem>
-                      <SelectItem value="company">By Company</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Horizontal Tabs Layout */}
           <Tabs defaultValue="quote-requests" className="w-full">
@@ -362,6 +262,53 @@ export default function SalesManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Quote Requests Filters */}
+                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search inquiries by customer, company, or product..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="responded">Responded</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={dateFilter} onValueChange={setDateFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Date" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Urgency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 {inquiriesLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -494,6 +441,49 @@ export default function SalesManagement() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Accepted Quotes Filters */}
+                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-green-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search accepted quotations by customer or quotation ID..."
+                          className="pl-10 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Select defaultValue="accepted">
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="accepted">Accepted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Date" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="high_value">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Sort" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="high_value">High Value</SelectItem>
+                          <SelectItem value="newest">Newest</SelectItem>
+                          <SelectItem value="oldest">Oldest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   {quotationsLoading ? (
                     <div className="space-y-4">
                       {Array.from({ length: 3 }).map((_, i) => (
@@ -594,6 +584,53 @@ export default function SalesManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* High Volume Bid Filters */}
+                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search high volume bids by customer or product..."
+                          className="pl-10 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="quoted">Quoted</SelectItem>
+                          <SelectItem value="negotiating">Negotiating</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="1000+">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Min Qty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1000+">1000+ kg</SelectItem>
+                          <SelectItem value="5000+">5000+ kg</SelectItem>
+                          <SelectItem value="10000+">10000+ kg</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Date" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
                 {inquiriesLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -647,6 +684,54 @@ export default function SalesManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Sample Requests Filters */}
+                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-orange-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search sample requests by customer or product..."
+                          className="pl-10 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Priority</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Date" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 {sampleRequestsLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
