@@ -52,7 +52,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider" component={VideoHeroSliderManager} />
+      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
