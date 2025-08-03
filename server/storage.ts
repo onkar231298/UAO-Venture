@@ -313,6 +313,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         id: customerId,
         ...data,
+        password: data.password, // Explicitly include password
         userType: 'customer',
         role: 'customer',
         isActive: true,

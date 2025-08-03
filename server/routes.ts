@@ -22,6 +22,7 @@ import {
   customerRegistrationSchema
 } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import multer from "multer";
 import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 
@@ -81,10 +82,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already registered" });
       }
 
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
       // Create customer user
       const user = await storage.createCustomer({
         ...userData,
-        password,
+        password: hashedPassword,
         userType: 'customer',
         accountStatus: 'active',
         registrationIp: clientIp,
@@ -109,6 +113,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Customer login route
+  app.post('/api/auth/customer-login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find customer by email
+      const customer = await storage.getUserByEmail(email);
+      if (!customer || customer.userType !== 'customer') {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, customer.password || '');
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Return customer info (without password)
+      const { password: _, ...customerInfo } = customer;
+      res.json({
+        message: "Login successful",
+        user: customerInfo
+      });
+    } catch (error) {
+      console.error("Error during customer login:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 

@@ -394,9 +394,10 @@ export default function UserManagement() {
                                         <div className="flex items-center gap-2 mt-1">
                                           <Input
                                             type={showPassword ? "text" : "password"}
-                                            value={customerDetails.password || "N/A"}
+                                            value={customerDetails.password || "No password set"}
                                             readOnly
                                             className="flex-1 text-sm"
+                                            placeholder={customerDetails.password ? "" : "Password not available"}
                                           />
                                           <Button
                                             variant="ghost"
