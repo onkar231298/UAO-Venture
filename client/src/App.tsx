@@ -33,7 +33,7 @@ function Router() {
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
       <Route path="/login" component={UnifiedLogin} />
-      <Route path="/customer-login" component={CustomerLogin} />
+
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />

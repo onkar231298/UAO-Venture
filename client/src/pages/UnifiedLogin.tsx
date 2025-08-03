@@ -5,60 +5,95 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import Footer from "@/components/Footer";
 
-import { Leaf, AlertCircle } from "lucide-react";
+import { Leaf, AlertCircle, Users, UserCheck } from "lucide-react";
 
 export default function UnifiedLogin() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [adminData, setAdminData] = useState({ email: "", password: "" });
+  const [customerData, setCustomerData] = useState({ email: "", password: "" });
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [error, setError] = useState("");
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Check for error parameter in URL
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('error') === 'admin_failed') {
       setError("Invalid admin credentials. Please try again.");
-      // Clean URL
       window.history.replaceState(null, '', '/login');
     } else if (urlParams.get('error') === 'customer_failed') {
       setError("Invalid customer credentials. Please try again.");
-      // Clean URL
       window.history.replaceState(null, '', '/login');
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsAdminLoading(true);
     setError("");
-
-    // Determine login type based on email
-    const isAdminLogin = formData.email === "admin@bfiorganic.com" || formData.email.includes("admin");
-    const loginEndpoint = isAdminLogin ? '/admin/login' : '/customer/login';
     
-    // Create form and submit it traditionally to avoid CORS issues
+    // Create form and submit for admin login (existing Replit Auth)
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = loginEndpoint;
+    form.action = '/admin/login';
     
     const emailInput = document.createElement('input');
     emailInput.type = 'hidden';
     emailInput.name = 'email';
-    emailInput.value = formData.email;
+    emailInput.value = adminData.email;
     
     const passwordInput = document.createElement('input');
     passwordInput.type = 'hidden';
     passwordInput.name = 'password';
-    passwordInput.value = formData.password;
+    passwordInput.value = adminData.password;
     
     form.appendChild(emailInput);
     form.appendChild(passwordInput);
     document.body.appendChild(form);
     form.submit();
+  };
+
+  const handleCustomerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCustomerLoading(true);
+    setError("");
+    
+    try {
+      const response = await apiRequest('/api/auth/customer-login', {
+        method: 'POST',
+        body: JSON.stringify(customerData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "Login Successful!",
+          description: `Welcome back, ${result.user.firstName}!`,
+        });
+        // Redirect to customer dashboard or home
+        setLocation('/dashboard');
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+    } catch (error: any) {
+      console.error("Customer login error:", error);
+      setError(error.message || "Invalid credentials. Please try again.");
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCustomerLoading(false);
+    }
   };
 
   return (
@@ -81,38 +116,104 @@ export default function UnifiedLogin() {
             </Alert>
           )}
           
-          {/* Email/Password Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
+          <Tabs defaultValue="customer" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="customer" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Customer Login
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4" />
+                Staff Login
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+            <TabsContent value="customer" className="space-y-4">
+              <form onSubmit={handleCustomerSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer-email">Email</Label>
+                  <Input
+                    id="customer-email"
+                    type="email"
+                    value={customerData.email}
+                    onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="customer-password">Password</Label>
+                  <Input
+                    id="customer-password"
+                    type="password"
+                    value={customerData.password}
+                    onChange={(e) => setCustomerData({ ...customerData, password: e.target.value })}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isCustomerLoading}>
+                  {isCustomerLoading ? "Signing in..." : "Customer Login"}
+                </Button>
+              </form>
+              
+              <div className="text-center text-sm text-gray-600">
+                Don't have an account?{" "}
+                <a href="/register" className="text-green-600 hover:text-green-700 font-medium">
+                  Register here
+                </a>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800 font-medium mb-1">Test Customer:</p>
+                <div className="text-xs text-blue-700">
+                  <p>Email: komal@gmail.com</p>
+                  <p>Password: 12345678</p>
+                </div>
+              </div>
+            </TabsContent>
             
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Login"}
-            </Button>
-          </form>
-
-          
+            <TabsContent value="admin" className="space-y-4">
+              <form onSubmit={handleAdminSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">Admin Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    value={adminData.email}
+                    onChange={(e) => setAdminData({ ...adminData, email: e.target.value })}
+                    placeholder="Enter admin email"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Admin Password</Label>
+                  <Input
+                    id="admin-password"
+                    type="password"
+                    value={adminData.password}
+                    onChange={(e) => setAdminData({ ...adminData, password: e.target.value })}
+                    placeholder="Enter admin password"
+                    required
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isAdminLoading}>
+                  {isAdminLoading ? "Signing in..." : "Staff Login"}
+                </Button>
+              </form>
+              
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-800 font-medium mb-1">Staff Access:</p>
+                <div className="text-xs text-gray-700">
+                  <p>For BFI Organic team members only</p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
         </CardContent>
       </Card>
