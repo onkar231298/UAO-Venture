@@ -457,6 +457,30 @@ export const quotations = pgTable("quotations", {
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  
+  // PDF Generation Fields (Optional)
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).default("0.00"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00"),
+  
+  // Tax Information (Optional - for domestic transactions)
+  includeGst: boolean("include_gst").default(false),
+  sellerGstin: varchar("seller_gstin", { length: 15 }), // Optional - BFI Organic GSTIN
+  sellerPan: varchar("seller_pan", { length: 10 }), // Optional - BFI Organic PAN
+  buyerGstin: varchar("buyer_gstin", { length: 15 }), // Optional - Customer GSTIN
+  buyerPan: varchar("buyer_pan", { length: 10 }), // Optional - Customer PAN
+  
+  // Customer Billing Details (for PDF)
+  customerCompanyName: varchar("customer_company_name", { length: 255 }),
+  customerAddress: text("customer_address"),
+  customerCity: varchar("customer_city", { length: 100 }),
+  customerState: varchar("customer_state", { length: 100 }),
+  customerCountry: varchar("customer_country", { length: 100 }),
+  customerPostalCode: varchar("customer_postal_code", { length: 20 }),
+  
+  // Additional PDF fields
+  placeOfSupply: varchar("place_of_supply", { length: 100 }),
+  countryOfSupply: varchar("country_of_supply", { length: 100 }),
 });
 
 // Quotation items

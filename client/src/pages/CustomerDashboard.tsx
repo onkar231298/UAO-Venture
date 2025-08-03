@@ -627,7 +627,10 @@ export default function CustomerDashboard() {
                                       {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
                                     </Button>
                                   )}
-                                  <Button variant="outline">
+                                  <Button 
+                                    variant="outline"
+                                    onClick={() => window.open(`/api/quotations/${quotation.id}/pdf`, '_blank')}
+                                  >
                                     <FileText className="w-4 h-4 mr-2" />
                                     Download PDF
                                   </Button>

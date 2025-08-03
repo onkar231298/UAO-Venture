@@ -968,6 +968,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate PDF for quotation
+  app.get('/api/quotations/:id/pdf', async (req: any, res) => {
+    try {
+      const quotationId = parseInt(req.params.id);
+      
+      // Get quotation with product details
+      const result = await storage.getQuotations({ 
+        limit: 1000, 
+        offset: 0 
+      });
+      
+      const quotation = result.quotations.find(q => q.id === quotationId);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      // Get customer details
+      const customer = await storage.getUser(quotation.customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Import PDF generator
+      const { generateQuotationPDF } = await import('./pdf-generator');
+      
+      // Prepare quotation data for PDF
+      const quotationData = {
+        id: quotation.id,
+        quotationId: quotation.quotationId,
+        quotationDate: quotation.createdAt,
+        validUntil: quotation.validUntil,
+        productName: quotation.productName,
+        quantity: quotation.quantity,
+        unit: quotation.unit,
+        unitPrice: quotation.unitPrice,
+        totalAmount: quotation.totalAmount,
+        currency: quotation.currency,
+        terms: quotation.terms,
+        notes: quotation.notes,
+        paymentTerms: quotation.paymentTerms,
+        deliveryTerms: quotation.deliveryTerms,
+        subtotal: quotation.subtotal,
+        discountPercent: quotation.discountPercent,
+        discountAmount: quotation.discountAmount,
+        includeGst: quotation.includeGst,
+        sellerGstin: quotation.sellerGstin,
+        sellerPan: quotation.sellerPan,
+        buyerGstin: quotation.buyerGstin,
+        buyerPan: quotation.buyerPan,
+        customerCompanyName: quotation.customerCompanyName,
+        customerAddress: quotation.customerAddress,
+        customerCity: quotation.customerCity,
+        customerState: quotation.customerState,
+        customerCountry: quotation.customerCountry,
+        customerPostalCode: quotation.customerPostalCode,
+        placeOfSupply: quotation.placeOfSupply,
+        countryOfSupply: quotation.countryOfSupply,
+      };
+
+      const customerData = {
+        name: customer.name || customer.email,
+        email: customer.email,
+        companyName: customer.companyName,
+        phone: customer.phoneNumber,
+      };
+
+      // Generate PDF
+      const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Quotation-${quotation.quotationId}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      // Send PDF
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF", error: error.message });
+    }
+  });
+
   // Get sales orders
   app.get('/api/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
