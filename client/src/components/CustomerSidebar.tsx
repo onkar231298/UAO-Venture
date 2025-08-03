@@ -32,14 +32,14 @@ export default function CustomerSidebar() {
   const { data: inquiriesData } = useQuery({
     queryKey: ["/api/customer/inquiries", customer?.id],
     queryFn: async () => {
-      if (!customer?.id) return [];
+      if (!customer?.id) return { inquiries: [], total: 0 };
       try {
         const response = await fetch(`/api/customer/inquiries/${customer.id}`);
-        if (!response.ok) return [];
+        if (!response.ok) return { inquiries: [], total: 0 };
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        return data;
       } catch (error) {
-        return [];
+        return { inquiries: [], total: 0 };
       }
     },
     enabled: !!customer?.id,
@@ -48,9 +48,26 @@ export default function CustomerSidebar() {
   const { data: quotationsData } = useQuery({
     queryKey: ["/api/customer/quotations", customer?.id],
     queryFn: async () => {
-      if (!customer?.id) return [];
+      if (!customer?.id) return { quotations: [], total: 0 };
       try {
         const response = await fetch(`/api/customer/quotations/${customer.id}`);
+        if (!response.ok) return { quotations: [], total: 0 };
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        return { quotations: [], total: 0 };
+      }
+    },
+    enabled: !!customer?.id,
+  });
+
+  // Fetch saved products count
+  const { data: savedProductsData } = useQuery({
+    queryKey: ["/api/customer/saved-products", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return [];
+      try {
+        const response = await fetch(`/api/customer/saved-products/${customer.id}`);
         if (!response.ok) return [];
         const data = await response.json();
         return Array.isArray(data) ? data : [];
@@ -61,15 +78,16 @@ export default function CustomerSidebar() {
     enabled: !!customer?.id,
   });
 
-  const inquiriesCount = Array.isArray(inquiriesData) ? inquiriesData.length : 0;
-  const quotationsCount = Array.isArray(quotationsData) ? quotationsData.length : 0;
+  const inquiriesCount = inquiriesData?.total || 0;
+  const quotationsCount = quotationsData?.total || 0;
+  const savedProductsCount = Array.isArray(savedProductsData) ? savedProductsData.length : 0;
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },
     { icon: Package, label: "Browse Products", href: "/customer/products" },
     { icon: Search, label: "Search", href: "/customer/search" },
     { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString() },
-    { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: "0" },
+    { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: savedProductsCount.toString() },
     { icon: ShoppingCart, label: "Quote Requests", href: "/customer/quotes", badge: quotationsCount.toString() },
     { icon: Download, label: "Downloads", href: "/customer/downloads" },
     { icon: FileText, label: "Catalogs", href: "/customer/catalogs" },
