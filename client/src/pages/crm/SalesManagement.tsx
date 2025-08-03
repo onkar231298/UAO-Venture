@@ -3,365 +3,181 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest } from "@/lib/queryClient";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { 
-  BarChart3, 
-  MessageSquare, 
-  FileText, 
-  Users, 
-  TrendingUp,
-  Search,
-  Plus,
-  Edit,
-  Eye,
-  Calendar,
-  DollarSign
-} from "lucide-react";
-import type { Inquiry, Quotation } from "@shared/schema";
+import { Search, Filter, Download, MessageSquare, TrendingUp, DollarSign, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
+import { type Inquiry } from "@shared/schema";
 
-export default function SalesManagement({ activeSubSection }: { activeSubSection?: string }) {
-  const { user } = useAuth();
+export default function SalesManagement() {
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("quote-requests");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [enquiryTypeFilter, setEnquiryTypeFilter] = useState("all");
 
-  // Queries with enhanced filtering
+  // State management
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedAction, setSelectedAction] = useState("");
+
+  // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
-    queryKey: ["/api/inquiries", { status: statusFilter, search: searchQuery, type: enquiryTypeFilter }],
-    staleTime: 0, // Always fetch fresh data
+    queryKey: ['/api/inquiries'],
+    enabled: !authLoading && !!user
   });
 
   const { data: quotations, isLoading: quotationsLoading } = useQuery({
-    queryKey: ["/api/quotations", { status: statusFilter }],
-  });
-
-  const { data: salesOrders, isLoading: ordersLoading } = useQuery({
-    queryKey: ["/api/sales-orders", { status: statusFilter }],
+    queryKey: ['/api/quotations'],
+    enabled: !authLoading && !!user
   });
 
   const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
-    queryKey: ["/api/sample-requests", { status: statusFilter }],
-  });
-
-  const { data: dashboardStats } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: ['/api/sample-requests'],
+    enabled: !authLoading && !!user
   });
 
   // Mutations
-  const updateInquiryMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<Inquiry> }) => {
-      return await apiRequest("PUT", `/api/inquiries/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({ title: "Inquiry updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => window.location.href = "/api/login", 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update inquiry",
-        variant: "destructive",
-      });
-    },
-  });
-
   const createQuotationMutation = useMutation({
-    mutationFn: async (data: Partial<Quotation>) => {
-      return await apiRequest("POST", "/api/quotations", data);
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/quotations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        if (isUnauthorizedError(response)) {
+          throw new Error('UNAUTHORIZED');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create quotation');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Quotation created successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      toast({
+        title: "Success",
+        description: "Quotation created successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => window.location.href = "/api/login", 500);
+    onError: (error: Error) => {
+      if (error.message === 'UNAUTHORIZED') {
         return;
       }
       toast({
         title: "Error",
-        description: "Failed to create quotation",
-        variant: "destructive",
+        description: error.message,
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  // Handle CRM Action Dropdown
-  const handleCrmAction = (action: string) => {
-    switch (action) {
-      case 'create_manual_inquiry':
-        toast({
-          title: "Manual Enquiry",
-          description: "Opening manual enquiry creation form...",
-        });
-        // TODO: Open manual inquiry dialog
-        break;
-      
-      case 'view_quotations':
-        setActiveTab('quotations');
-        toast({
-          title: "Quotations",
-          description: "Switched to quotations view",
-        });
-        break;
-      
-      case 'view_sales_orders':
-        setActiveTab('orders');
-        toast({
-          title: "Sales Orders", 
-          description: "Switched to sales orders view",
-        });
-        break;
-      
-      case 'export_crm_data':
-        toast({
-          title: "Export Data",
-          description: "CRM data export feature coming soon...",
-        });
-        break;
-      
-      case 'bulk_actions':
-        toast({
-          title: "Bulk Actions",
-          description: "Bulk operations feature coming soon...",
-        });
-        break;
-      
-      default:
-        break;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: any; label: string }> = {
-      pending: { variant: "secondary", label: "Pending" },
-      quoted: { variant: "default", label: "Quoted" },
-      converted: { variant: "default", label: "Converted" },
-      closed: { variant: "outline", label: "Closed" },
-      draft: { variant: "secondary", label: "Draft" },
-      sent: { variant: "default", label: "Sent" },
-      accepted: { variant: "default", label: "Accepted" },
-      rejected: { variant: "destructive", label: "Rejected" },
-      expired: { variant: "outline", label: "Expired" },
-    };
-
-    const config = statusMap[status] || { variant: "secondary", label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   return (
-    <RoleBasedRoute allowedRoles={['super_admin', 'admin', 'sales_manager', 'sales_executive']}>
-      <div className="min-h-screen bg-background">        
+    <RoleBasedRoute requiredRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+      <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {activeSubSection === 'enquiry-sample' ? 'Customer Inquiries' :
-               activeSubSection === 'bidding-requests' ? 'Bidding Requests' :
-               activeSubSection === 'sample-requests' ? 'Sample Requests' :
-               activeSubSection === 'sales-crm' ? 'Sales CRM' :
-               (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' ? 'Sales Management Dashboard' : 'Sales Management'}
-            </h1>
-            <p className="text-gray-600">
-              {activeSubSection === 'enquiry-sample' ? 'Manage customer inquiries and product information requests' :
-               activeSubSection === 'bidding-requests' ? 'Manage high volume bidding requests and bulk orders' :
-               activeSubSection === 'sample-requests' ? 'Manage sample requests and product evaluations' :
-               activeSubSection === 'sales-crm' ? 'CRM tools for quotations, sales orders, and customer relationship management' :
-               (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' 
-                ? 'Complete overview of customer inquiries, sample requests, quotations, and sales orders' 
-                : 'Manage customer inquiries, quotations, and sales orders'}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Management</h1>
+            <p className="text-gray-600">Manage customer inquiries, quotations, and sales pipeline</p>
           </div>
 
-          {/* Admin Access Badge */}
-          {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-            <div className="mb-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-green-800">Admin Access Enabled</h3>
-                    <p className="text-sm text-green-600">You have full access to view all customer enquiries, sample requests, quotations, and sales data across all departments.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Dashboard Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{(inquiries as any)?.total || 0}</div>
+                <p className="text-xs text-muted-foreground">Active customer inquiries</p>
+              </CardContent>
+            </Card>
 
-          {/* Stats Cards */}
-          {dashboardStats && (
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Active Inquiries
-                        {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
-                        )}
-                      </p>
-                      <p className="text-2xl font-bold">{(dashboardStats as any)?.totalInquiries || 0}</p>
-                    </div>
-                    <MessageSquare className="w-8 h-8 text-blue-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Sample Requests
-                        {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
-                        )}
-                      </p>
-                      <p className="text-2xl font-bold">{(dashboardStats as any)?.totalSampleRequests || 0}</p>
-                    </div>
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V8z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5V3a2 2 0 012-2h2a2 2 0 012 2v2M5 12h14" />
-                      </svg>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Quotations
-                        {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
-                        )}
-                      </p>
-                      <p className="text-2xl font-bold">{(dashboardStats as any)?.totalQuotations || 0}</p>
-                    </div>
-                    <FileText className="w-8 h-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Sales Orders
-                        {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
-                        )}
-                      </p>
-                      <p className="text-2xl font-bold">{(dashboardStats as any)?.totalOrders || 0}</p>
-                    </div>
-                    <BarChart3 className="w-8 h-8 text-purple-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Revenue This Month
-                        {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">All Departments</span>
-                        )}
-                      </p>
-                      <p className="text-2xl font-bold">${((dashboardStats as any)?.revenueThisMonth || 0).toLocaleString()}</p>
-                    </div>
-                    <DollarSign className="w-8 h-8 text-orange-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Quotes</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{(quotations as any)?.total || 0}</div>
+                <p className="text-xs text-muted-foreground">Awaiting customer response</p>
+              </CardContent>
+            </Card>
 
-          {/* Sales Management Control Panel */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Sample Requests</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{(sampleRequests as any)?.total || 0}</div>
+                <p className="text-xs text-muted-foreground">Product sample requests</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">12.5%</div>
+                <p className="text-xs text-muted-foreground">Inquiry to order conversion</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters and Search */}
           <Card className="mb-6">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Sales Management Controls</h3>
-                  <p className="text-sm text-gray-600">Filter enquiries, samples, and perform CRM actions</p>
-                </div>
-              </div>
+            <CardHeader>
+              <CardTitle>Search & Filters</CardTitle>
+              <CardDescription>Filter and search through sales data</CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="relative flex-1 min-w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search inquiries, customers, products..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by customer, product, or inquiry ID..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
                     />
                   </div>
                 </div>
                 
-                {/* Organized Dropdown System */}
-                <div className="flex flex-wrap gap-3 items-center">
-                  <div className="text-sm text-gray-600 font-medium hidden lg:block">Filters:</div>
-                  
-                  {/* Enquiry and Sample Dropdown */}
-                  <Select value={enquiryTypeFilter} onValueChange={setEnquiryTypeFilter}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Enquiry and Sample" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Enquiries & Samples</SelectItem>
-                      <SelectItem value="bulk_order">Bulk Order Enquiries</SelectItem>
-                      <SelectItem value="high_volume_bid">High Volume Bids</SelectItem>
-                      <SelectItem value="quote_request">Quote Requests</SelectItem>
-                      <SelectItem value="sample_request">Sample Requests</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Sales CRM Dropdown */}
-                  <Select onValueChange={(value) => handleCrmAction(value)}>
+                <div className="flex gap-2">
+                  {/* Action Dropdown */}
+                  <Select value={selectedAction} onValueChange={setSelectedAction}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Sales CRM" />
+                      <SelectValue placeholder="Actions" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="create_manual_inquiry">Create Manual Enquiry</SelectItem>
-                      <SelectItem value="view_quotations">View All Quotations</SelectItem>
+                      <SelectItem value="bulk_follow_up">Bulk Follow Up</SelectItem>
+                      <SelectItem value="export_leads">Export Leads</SelectItem>
+                      <SelectItem value="assign_sales_rep">Assign Sales Rep</SelectItem>
+                      <SelectItem value="mark_priority">Mark as Priority</SelectItem>
+                      <SelectItem value="send_newsletter">Send Newsletter</SelectItem>
+                      <SelectItem value="create_campaign">Create Campaign</SelectItem>
+                      <SelectItem value="view_analytics">View Analytics</SelectItem>
+                      <SelectItem value="generate_reports">Generate Reports</SelectItem>
                       <SelectItem value="view_sales_orders">View Sales Orders</SelectItem>
                       <SelectItem value="export_crm_data">Export CRM Data</SelectItem>
                       <SelectItem value="bulk_actions">Bulk Actions</SelectItem>
@@ -386,289 +202,208 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
             </CardContent>
           </Card>
 
-          {/* Dynamic Content Tabs Based on Sub-Section */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="quote-requests">
-                Quote Requests
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="high-volume-bid">
-                High Volume Bid
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="sample-request">
-                Sample Request
-                {((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin') && (
-                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">All</span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+          {/* Three Column Layout - Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* Quote Requests Tab */}
-            <TabsContent value="quote-requests" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Quote Requests</span>
-                      <Button size="sm">
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Quote Request
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                  {inquiriesLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (inquiries as any)?.inquiries?.length ? (
-                    <div className="space-y-4">
-                      {(inquiries as any).inquiries.map((inquiry: Inquiry) => (
-                        <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">INQ-{inquiry.id}</span>
-                              {getStatusBadge(inquiry.status || 'pending')}
-                              <Badge variant="outline" className={
-                                inquiry.urgency === 'urgent' ? 'border-red-500 text-red-700' :
-                                inquiry.urgency === 'normal' ? 'border-yellow-500 text-yellow-700' :
-                                'border-gray-500 text-gray-700'
-                              }>
-                                {inquiry.urgency}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm">
-                                    <FileText className="w-4 h-4 mr-1" />
-                                    Create Quote
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Create Quotation for INQ-{inquiry.id}</DialogTitle>
-                                  </DialogHeader>
-                                  <QuotationForm 
-                                    inquiry={inquiry} 
-                                    onSubmit={(data: any) => createQuotationMutation.mutate(data)}
-                                    isLoading={createQuotationMutation.isPending}
-                                  />
-                                </DialogContent>
-                              </Dialog>
-                            </div>
+            {/* Column 1: Quote Requests */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Quote Requests</span>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Quote Request
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {inquiriesLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                    ))}
+                  </div>
+                ) : (inquiries as any)?.inquiries?.length ? (
+                  <div className="space-y-4">
+                    {(inquiries as any).inquiries.map((inquiry: Inquiry) => (
+                      <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-3">
+                            <span className="font-medium">INQ-{inquiry.id}</span>
+                            {getStatusBadge(inquiry.status || 'pending')}
+                            <Badge variant="outline" className={
+                              inquiry.urgency === 'urgent' ? 'border-red-500 text-red-700' :
+                              inquiry.urgency === 'normal' ? 'border-yellow-500 text-yellow-700' :
+                              'border-gray-500 text-gray-700'
+                            }>
+                              {inquiry.urgency}
+                            </Badge>
                           </div>
-                          <div className="grid md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{inquiry.customerId}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Quantity:</span>
-                              <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Date:</span>
-                              <p className="font-medium">{new Date(inquiry.createdAt!).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                          {inquiry.message && (
-                            <div className="mt-2">
-                              <span className="text-gray-600 text-sm">Message:</span>
-                              <p className="text-sm mt-1">{inquiry.message}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
-                      <p className="text-gray-600">New customer inquiries will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* High Volume Bid Tab */}
-            <TabsContent value="high-volume-bid" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>High Volume Bids</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Bid Request
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {inquiriesLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (inquiries as any)?.inquiries?.filter((inquiry: Inquiry) => inquiry.inquiryType === 'high_volume_bid').length ? (
-                    <div className="space-y-4">
-                      {(inquiries as any).inquiries.filter((inquiry: Inquiry) => inquiry.inquiryType === 'high_volume_bid').map((inquiry: Inquiry) => (
-                        <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">{(inquiry as any).productName || 'High Volume Bid'}</span>
-                              <span className="text-sm text-gray-600">INQ-{inquiry.id}</span>
-                              {getStatusBadge(inquiry.status || 'pending')}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Button size="sm">
-                                <FileText className="w-4 h-4 mr-1" />
-                                Create Quote
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="grid md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{inquiry.contactName}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Quantity:</span>
-                              <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Date:</span>
-                              <p className="font-medium">{new Date(inquiry.createdAt!).toLocaleDateString()}</p>
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm">
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Create Quote
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Create Quotation for INQ-{inquiry.id}</DialogTitle>
+                                </DialogHeader>
+                                <QuotationForm 
+                                  inquiry={inquiry} 
+                                  onSubmit={(data: any) => createQuotationMutation.mutate(data)}
+                                  isLoading={createQuotationMutation.isPending}
+                                />
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids found</h3>
-                      <p className="text-gray-600">Large quantity bid requests will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Sample Requests Tab */}
-            <TabsContent value="sample-request" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Sample Requests</span>
-                    <span className="text-sm text-gray-500">Manage product sample requests</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {sampleRequestsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (sampleRequests as any)?.requests?.length ? (
-                    <div className="space-y-4">
-                      {(sampleRequests as any).requests.map((request: any) => (
-                        <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">SAM-{request.id}</span>
-                              {getStatusBadge(request.status || 'pending')}
-                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                {request.sampleSize}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View Details
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Edit className="w-4 h-4 mr-1" />
-                                Update Status
-                              </Button>
-                            </div>
+                        <div className="grid md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Customer:</span>
+                            <p className="font-medium">{inquiry.contactName}</p>
                           </div>
-                          <div className="grid md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Contact:</span>
-                              <p className="font-medium">{request.contactName}</p>
-                              <p className="text-xs text-gray-500">{request.companyName}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Purpose:</span>
-                              <p className="font-medium capitalize">{request.purpose?.replace('_', ' ')}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Expected Order:</span>
-                              <p className="font-medium">{request.expectedOrderQuantity ? `${request.expectedOrderQuantity} kg` : 'Not specified'}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Date:</span>
-                              <p className="font-medium">{new Date(request.createdAt!).toLocaleDateString()}</p>
-                            </div>
+                          <div>
+                            <span className="text-gray-600">Product:</span>
+                            <p className="font-medium">{(inquiry as any).productName}</p>
                           </div>
-                          <div className="mt-3 grid md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Email:</span>
-                              <p className="font-medium">{request.emailAddress}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Phone:</span>
-                              <p className="font-medium">{request.phoneNumber}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Location:</span>
-                              <p className="font-medium">{request.city}, {request.state}, {request.country}</p>
-                            </div>
+                          <div>
+                            <span className="text-gray-600">Quantity:</span>
+                            <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
                           </div>
-                          {request.message && (
-                            <div className="mt-2">
-                              <span className="text-gray-600 text-sm">Additional Requirements:</span>
-                              <p className="text-sm mt-1 bg-gray-50 p-2 rounded">{request.message}</p>
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V8z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5V3a2 2 0 012-2h2a2 2 0 012 2v2M5 12h14" />
-                        </svg>
+                        {inquiry.message && (
+                          <div className="mt-2">
+                            <span className="text-gray-600 text-sm">Message:</span>
+                            <p className="text-sm mt-1">{inquiry.message}</p>
+                          </div>
+                        )}
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
-                      <p className="text-gray-600">New sample requests will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
+                    <p className="text-gray-600">New customer inquiries will appear here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          </Tabs>
+            {/* Column 2: High Volume Bids */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>High Volume Bids</span>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Bid Request
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {inquiriesLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                    ))}
+                  </div>
+                ) : (inquiries as any)?.inquiries?.filter((inq: Inquiry) => inq.inquiryType === 'bulk_order').length ? (
+                  <div className="space-y-4">
+                    {(inquiries as any).inquiries.filter((inq: Inquiry) => inq.inquiryType === 'bulk_order').map((inquiry: Inquiry) => (
+                      <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-3">
+                            <span className="font-medium">BID-{inquiry.id}</span>
+                            {getStatusBadge(inquiry.status || 'pending')}
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Bid
+                          </Button>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Customer:</span>
+                            <p className="font-medium">{inquiry.contactName}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Volume:</span>
+                            <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids found</h3>
+                    <p className="text-gray-600">Large quantity bid requests will appear here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Column 3: Sample Requests */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Sample Requests</span>
+                  <span className="text-sm text-gray-500">Manage product sample requests</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sampleRequestsLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                    ))}
+                  </div>
+                ) : (sampleRequests as any)?.requests?.length ? (
+                  <div className="space-y-4">
+                    {(sampleRequests as any).requests.map((request: any) => (
+                      <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-3">
+                            <span className="font-medium">SAM-{request.id}</span>
+                            {getStatusBadge(request.status || 'pending')}
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Package className="w-4 h-4 mr-1" />
+                            Process
+                          </Button>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Customer:</span>
+                            <p className="font-medium">{request.customerName}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Product:</span>
+                            <p className="font-medium">{request.productName}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
+                    <p className="text-gray-600">New sample requests will appear here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </RoleBasedRoute>
@@ -767,5 +502,3 @@ function QuotationForm({
     </form>
   );
 }
-
-
