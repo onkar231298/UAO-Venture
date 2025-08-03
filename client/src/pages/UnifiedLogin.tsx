@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import Footer from "@/components/Footer";
 
 import { Leaf, AlertCircle, Users, UserCheck } from "lucide-react";
@@ -21,6 +22,7 @@ export default function UnifiedLogin() {
   const [error, setError] = useState("");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { loginCustomer } = useCustomerAuth();
 
   // Check for error parameter in URL
   React.useEffect(() => {
@@ -73,8 +75,8 @@ export default function UnifiedLogin() {
 
       if (response.ok) {
         const result = await response.json();
-        // Store customer data locally for the profile page
-        localStorage.setItem('customer_user_data', JSON.stringify(result.user));
+        // Use the customer auth context to login
+        loginCustomer(result.user);
         toast({
           title: "Login Successful!",
           description: `Welcome back, ${result.user.firstName}!`,
@@ -168,13 +170,7 @@ export default function UnifiedLogin() {
                 </a>
               </div>
               
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 font-medium mb-1">Test Customer:</p>
-                <div className="text-xs text-blue-700">
-                  <p>Email: komal@gmail.com</p>
-                  <p>Password: 12345678</p>
-                </div>
-              </div>
+
             </TabsContent>
             
             <TabsContent value="admin" className="space-y-4">

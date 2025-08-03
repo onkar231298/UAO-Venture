@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
 import type { Category, Product } from "@shared/schema";
 import CategorySidebar from "@/components/CategorySidebar";
@@ -33,6 +34,7 @@ import {
 export default function Header() {
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
+  const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -273,16 +275,60 @@ export default function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : isCustomerAuthenticated && customer ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="bg-green-100 text-green-700">
+                          {customer.firstName?.[0]}{customer.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden sm:inline">{customer.firstName}</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">{customer.firstName} {customer.lastName}</p>
+                      <p className="text-xs text-gray-500">{customer.email}</p>
+                      <Badge variant="outline" className="mt-1 text-xs bg-green-50 text-green-700 border-green-200">
+                        Customer
+                      </Badge>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/customer/profile" className="flex items-center">
+                        <User className="w-4 h-4 mr-2" />
+                        My Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/products" className="flex items-center">
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Browse Products
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => {
+                      logoutCustomer();
+                      setLocation('/');
+                    }}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" onClick={() => window.location.href = "/login"}>
+                  <Button variant="ghost" onClick={() => setLocation("/login")}>
                     <User className="w-4 h-4 mr-2" />
                     <span className="hidden sm:inline">Login</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.location.href = "/register"}
+                    onClick={() => setLocation("/register")}
                     className="bg-green-600 text-white hover:bg-green-700 border-green-600"
                   >
                     <span className="hidden sm:inline">Register</span>

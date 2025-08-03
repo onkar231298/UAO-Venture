@@ -1,24 +1,17 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Package, MessageSquare, FileText, ShoppingCart, User, Building, Phone, Mail, MapPin, Calendar } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useLocation } from "wouter";
 
-// Simple customer profile page that works without complex auth state
 export default function CustomerProfile() {
-  const [customerData, setCustomerData] = useState<any>(null);
+  const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
+  const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    // Check if we have customer data from login
-    const userData = localStorage.getItem('customer_user_data');
-    if (userData) {
-      setCustomerData(JSON.parse(userData));
-    }
-  }, []);
-
-  if (!customerData) {
+  if (!isCustomerAuthenticated || !customer) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -46,7 +39,7 @@ export default function CustomerProfile() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome, {customerData.firstName} {customerData.lastName}!
+            Welcome, {customer.firstName} {customer.lastName}!
           </h1>
           <p className="text-gray-600">
             Manage your profile and explore our premium organic ingredients
@@ -68,14 +61,14 @@ export default function CustomerProfile() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">Full Name</label>
-                      <p className="text-lg font-semibold">{customerData.firstName} {customerData.lastName}</p>
+                      <p className="text-lg font-semibold">{customer.firstName} {customer.lastName}</p>
                     </div>
                     
                     <div>
                       <label className="text-sm font-medium text-gray-500">Email Address</label>
                       <p className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-gray-400" />
-                        {customerData.email}
+                        {customer.email}
                       </p>
                     </div>
                     
@@ -83,7 +76,7 @@ export default function CustomerProfile() {
                       <label className="text-sm font-medium text-gray-500">Phone Number</label>
                       <p className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-gray-400" />
-                        {customerData.phoneNumber}
+                        {customer.phoneNumber}
                       </p>
                     </div>
                   </div>
@@ -93,7 +86,7 @@ export default function CustomerProfile() {
                       <label className="text-sm font-medium text-gray-500">Company</label>
                       <p className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-gray-400" />
-                        {customerData.companyName}
+                        {customer.companyName}
                       </p>
                     </div>
                     
@@ -101,13 +94,13 @@ export default function CustomerProfile() {
                       <label className="text-sm font-medium text-gray-500">Country</label>
                       <p className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-gray-400" />
-                        {customerData.country}
+                        {customer.country}
                       </p>
                     </div>
                     
                     <div>
                       <label className="text-sm font-medium text-gray-500">Industry</label>
-                      <p>{customerData.industryType}</p>
+                      <p>{customer.industryType}</p>
                     </div>
                   </div>
                 </div>
@@ -118,7 +111,7 @@ export default function CustomerProfile() {
                       <label className="text-sm font-medium text-gray-500">Account Status</label>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="bg-green-100 text-green-700">
-                          {customerData.accountStatus}
+                          {customer.accountStatus}
                         </Badge>
                       </div>
                     </div>
@@ -127,7 +120,7 @@ export default function CustomerProfile() {
                       <label className="text-sm font-medium text-gray-500">Member Since</label>
                       <p className="flex items-center gap-2 mt-1">
                         <Calendar className="w-4 h-4 text-gray-400" />
-                        {new Date(customerData.createdAt).toLocaleDateString()}
+                        {new Date(customer.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -172,7 +165,7 @@ export default function CustomerProfile() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => window.location.href = '/products'}
+                  onClick={() => setLocation('/products')}
                 >
                   Explore Products
                 </Button>
@@ -180,8 +173,8 @@ export default function CustomerProfile() {
                   variant="destructive" 
                   className="w-full"
                   onClick={() => {
-                    localStorage.removeItem('customer_user_data');
-                    window.location.href = '/';
+                    logoutCustomer();
+                    setLocation('/');
                   }}
                 >
                   Logout
