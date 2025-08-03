@@ -101,7 +101,7 @@ Packaging: Standard export packaging`,
     const quotationData = {
       inquiryId: formData.inquiryId,
       customerId: formData.customerId,
-      validUntil: new Date(formData.validUntil),
+      validUntil: formData.validUntil,
       totalAmount: getTotalAmount().toString(),
       currency: formData.currency,
       priceType: formData.priceType,

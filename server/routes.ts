@@ -921,7 +921,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Received quotation data:", req.body);
-      const quotationData = insertQuotationSchema.parse({ ...req.body, createdBy: userId });
+      
+      // Convert string date to Date object if needed
+      const processedData = {
+        ...req.body,
+        createdBy: userId,
+        validUntil: typeof req.body.validUntil === 'string' ? new Date(req.body.validUntil) : req.body.validUntil
+      };
+      
+      const quotationData = insertQuotationSchema.parse(processedData);
       console.log("Parsed quotation data:", quotationData);
       
       const quotation = await storage.createQuotation(quotationData);
