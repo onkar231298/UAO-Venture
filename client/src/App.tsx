@@ -18,6 +18,8 @@ import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import VideoUploadTest from "@/pages/VideoUploadTest";
 import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
+import CustomerRegistration from "@/pages/CustomerRegistration";
+import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +32,7 @@ function Router() {
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
       <Route path="/login" component={UnifiedLogin} />
+      <Route path="/register" component={CustomerRegistration} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />

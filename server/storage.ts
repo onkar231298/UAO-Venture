@@ -14,7 +14,7 @@ import {
   heroSlides,
   sampleRequests,
   type User,
-  type UpsertUser,
+  type InsertUser,
   type Product,
   type InsertProduct,
   type Category,
@@ -72,7 +72,20 @@ import { Readable } from "stream";
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  upsertUser(user: InsertUser): Promise<User>;
+  
+  // Customer operations
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createCustomer(data: InsertUser & { password: string }): Promise<User>;
+  getCustomers(filters?: {
+    search?: string;
+    country?: string;
+    industryType?: string;
+    accountStatus?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ customers: User[]; total: number }>;
+  updateCustomer(id: string, data: Partial<InsertUser>): Promise<User>;
 
   // Product operations
   getProducts(filters?: {
@@ -270,7 +283,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async upsertUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -281,6 +294,93 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  // Customer operations
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createCustomer(data: InsertUser & { password: string }): Promise<User> {
+    // Generate unique customer ID
+    const customerId = `customer_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: customerId,
+        ...data,
+        userType: 'customer',
+        role: 'customer',
+        isActive: true,
+      })
+      .returning();
+    return user;
+  }
+
+  async getCustomers(filters?: {
+    search?: string;
+    country?: string;
+    industryType?: string;
+    accountStatus?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ customers: User[]; total: number }> {
+    const conditions = [eq(users.userType, 'customer')];
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(users.firstName, `%${filters.search}%`),
+          like(users.lastName, `%${filters.search}%`),
+          like(users.email, `%${filters.search}%`),
+          like(users.companyName, `%${filters.search}%`)
+        )
+      );
+    }
+    
+    if (filters?.country) {
+      conditions.push(eq(users.country, filters.country));
+    }
+    
+    if (filters?.industryType) {
+      conditions.push(eq(users.industryType, filters.industryType));
+    }
+    
+    if (filters?.accountStatus) {
+      conditions.push(eq(users.accountStatus, filters.accountStatus));
+    }
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(...conditions));
+
+    const customers = await db
+      .select()
+      .from(users)
+      .where(and(...conditions))
+      .orderBy(desc(users.createdAt))
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
+
+    return {
+      customers,
+      total: totalResult.count,
+    };
+  }
+
+  async updateCustomer(id: string, data: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }

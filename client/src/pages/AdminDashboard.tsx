@@ -9,6 +9,7 @@ import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
+import UserManagement from "@/pages/admin/UserManagement";
 import {
   Users,
   Package,
@@ -489,8 +490,12 @@ export default function AdminDashboard() {
           {activeSection === 'blog' && (
             <BlogManagement />
           )}
+
+          {activeSection === 'users' && (
+            <UserManagement />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
             <Card>
               <CardHeader>
                 <CardTitle>

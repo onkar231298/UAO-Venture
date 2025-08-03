@@ -274,10 +274,21 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" onClick={() => window.location.href = "/login"}>
-                  <User className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Login</span>
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" onClick={() => window.location.href = "/login"}>
+                    <User className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.location.href = "/register"}
+                    className="bg-green-600 text-white hover:bg-green-700 border-green-600"
+                  >
+                    <span className="hidden sm:inline">Register</span>
+                    <span className="sm:hidden">Sign Up</span>
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -376,7 +387,7 @@ export default function Header() {
                             {product.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {product.productId} • {product.category}
+                            {product.productId} • {product.origin || 'Global'}
                           </div>
                           {product.description && (
                             <div className="text-xs text-gray-400 mt-1 line-clamp-1">

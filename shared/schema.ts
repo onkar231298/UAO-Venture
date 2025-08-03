@@ -34,9 +34,15 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
+  userType: varchar("user_type").default("customer"), // staff, customer
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
   address: text("address"),
+  country: varchar("country"),
+  industryType: varchar("industry_type"),
+  accountStatus: varchar("account_status").default("active"), // pending, active, suspended
+  referralSource: varchar("referral_source"),
+  registrationIp: varchar("registration_ip"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -560,17 +566,6 @@ export const quotationsRelations = relations(quotations, ({ one, many }) => ({
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
-  role: true,
-  companyName: true,
-  phoneNumber: true,
-  address: true,
-});
 
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
@@ -638,7 +633,6 @@ export const insertQuotationSchema = createInsertSchema(quotations).omit({
 });
 
 // Types
-export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
@@ -750,3 +744,36 @@ export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterS
 
 export type InsertNewsletterSubscription = z.infer<typeof insertNewsletterSubscriptionSchema>;
 export type NewsletterSubscription = typeof newsletterSubscriptions.$inferSelect;
+
+// User types and schemas
+export type User = typeof users.$inferSelect;
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  companyName: z.string().min(1, "Company name is required"),
+  country: z.string().min(1, "Country is required"),
+});
+
+export const customerRegistrationSchema = insertUserSchema.extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  captchaToken: z.string().min(1, "CAPTCHA verification is required"),
+}).pick({
+  firstName: true,
+  lastName: true,
+  email: true,
+  phoneNumber: true,
+  companyName: true,
+  country: true,
+  industryType: true,
+  password: true,
+  captchaToken: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type CustomerRegistration = z.infer<typeof customerRegistrationSchema>;

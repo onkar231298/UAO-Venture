@@ -18,7 +18,8 @@ import {
   insertSearchAnalyticsSchema,
   insertHreflangConfigSchema,
   insertGlobalSeoSettingsSchema,
-  insertNewsletterSubscriptionSchema
+  insertNewsletterSubscriptionSchema,
+  customerRegistrationSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -40,6 +41,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // CAPTCHA verification function
+  async function verifyCaptcha(token: string, remoteip?: string): Promise<boolean> {
+    try {
+      const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          secret: process.env.RECAPTCHA_SECRET_KEY!,
+          response: token,
+          ...(remoteip && { remoteip }),
+        }),
+      });
+      
+      const data = await response.json();
+      return data.success === true;
+    } catch (error) {
+      console.error('CAPTCHA verification error:', error);
+      return false;
+    }
+  }
+
+  // Customer registration endpoint
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const validatedData = customerRegistrationSchema.parse(req.body);
+      const { captchaToken, password, ...userData } = validatedData;
+      
+      // Verify CAPTCHA
+      const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+      const captchaValid = await verifyCaptcha(captchaToken, clientIp);
+      if (!captchaValid) {
+        return res.status(400).json({ message: "CAPTCHA verification failed" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Create customer user
+      const user = await storage.createCustomer({
+        ...userData,
+        password,
+        userType: 'customer',
+        accountStatus: 'active',
+        registrationIp: clientIp,
+      });
+
+      res.status(201).json({ 
+        message: "Account created successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          companyName: user.companyName,
+        }
+      });
+    } catch (error) {
+      console.error("Customer registration error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Admin customer management routes
+  app.get('/api/admin/customers', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { search, country, industryType, accountStatus, page = '1', limit = '20' } = req.query;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      const result = await storage.getCustomers({
+        search: search as string,
+        country: country as string,
+        industryType: industryType as string,
+        accountStatus: accountStatus as string,
+        limit: parseInt(limit),
+        offset,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ message: "Failed to fetch customers" });
+    }
+  });
+
+  app.get('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const customer = await storage.getUser(req.params.id);
+      if (!customer || customer.userType !== 'customer') {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      res.json(customer);
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      res.status(500).json({ message: "Failed to fetch customer" });
+    }
+  });
+
+  app.put('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updates = req.body;
+      delete updates.password; // Don't allow password updates through this endpoint
+      delete updates.id; // Don't allow ID changes
+
+      const updatedCustomer = await storage.updateCustomer(req.params.id, updates);
+      res.json(updatedCustomer);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      res.status(500).json({ message: "Failed to update customer" });
     }
   });
 
