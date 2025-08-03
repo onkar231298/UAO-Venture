@@ -40,6 +40,9 @@ export default function CustomerDashboard() {
     enabled: isCustomerAuthenticated && !!customer?.id
   });
 
+  // Filter high volume bids from inquiries
+  const highVolumeBids = inquiries?.inquiries?.filter((inq: any) => inq.inquiryType === 'bulk_order') || [];
+
   const queryClient = useQueryClient();
 
   // Accept quotation mutation
@@ -102,10 +105,14 @@ export default function CustomerDashboard() {
         return renderDashboardOverview();
       case 'inquiries':
         return renderInquiries();
+      case 'high-volume-bids':
+        return renderHighVolumeBids();
       case 'saved':
         return renderSavedProducts();
       case 'quotes':
         return renderQuotations();
+      case 'sample-requests':
+        return renderSampleRequests();
       case 'downloads':
         return renderDownloads();
       case 'catalogs':
@@ -155,10 +162,10 @@ export default function CustomerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Quotes</p>
-                <p className="text-2xl font-bold text-gray-900">{quotations?.length || 0}</p>
+                <p className="text-sm font-medium text-gray-600">High Volume Bids</p>
+                <p className="text-2xl font-bold text-gray-900">{highVolumeBids?.length || 0}</p>
               </div>
-              <FileText className="w-8 h-8 text-green-600" />
+              <TrendingUp className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -167,10 +174,10 @@ export default function CustomerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Sample Requests</p>
-                <p className="text-2xl font-bold text-gray-900">{sampleRequests?.length || 0}</p>
+                <p className="text-sm font-medium text-gray-600">Active Quotes</p>
+                <p className="text-2xl font-bold text-gray-900">{quotations?.length || 0}</p>
               </div>
-              <Package className="w-8 h-8 text-purple-600" />
+              <FileText className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -758,6 +765,196 @@ export default function CustomerDashboard() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+
+  const renderHighVolumeBids = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">High Volume Bids</h1>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          New Bid Request
+        </Button>
+      </div>
+
+      {/* High Volume Bids List */}
+      <div className="space-y-4">
+        {inquiriesLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : highVolumeBids && highVolumeBids.length > 0 ? (
+          highVolumeBids.map((bid: any) => (
+            <Card key={bid.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <h3 className="font-semibold text-lg">BID-{bid.id}</h3>
+                      <p className="text-sm text-gray-500">High Volume Bid Request</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className={`${getStatusColor(bid.status)}`}>
+                      {bid.status}
+                    </Badge>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      {parseInt(bid.quantity) >= 10000 ? 'Premium Volume' : 'High Volume'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Product</p>
+                    <p className="font-medium">{bid.productName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Volume</p>
+                    <p className="font-medium text-blue-600">{bid.quantity} {bid.unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Bid ID</p>
+                    <p className="font-medium">{bid.inquiryId}</p>
+                  </div>
+                </div>
+                
+                {bid.message && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600">Requirements</p>
+                    <p className="text-sm bg-blue-50 p-3 rounded">{bid.message}</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-500">
+                      Submitted {bid.createdAt && formatDistanceToNow(new Date(bid.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                    {bid.status === 'pending' && (
+                      <Button size="sm">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Track Progress
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids yet</h3>
+              <p className="text-gray-600 mb-4">You haven't submitted any high volume bid requests yet.</p>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Submit High Volume Bid
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderSampleRequests = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">Sample Requests</h1>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Request Sample
+        </Button>
+      </div>
+
+      {/* Sample Requests List */}
+      <div className="space-y-4">
+        {sampleRequestsLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (sampleRequests as any)?.requests && (sampleRequests as any).requests.length > 0 ? (
+          (sampleRequests as any).requests.map((request: any) => (
+            <Card key={request.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <Package className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <h3 className="font-semibold text-lg">{request.requestId}</h3>
+                      <p className="text-sm text-gray-500">Sample Request</p>
+                    </div>
+                  </div>
+                  <Badge className={`${getStatusColor(request.status || 'pending')}`}>
+                    {request.status || 'pending'}
+                  </Badge>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Product</p>
+                    <p className="font-medium">{request.productName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Customer</p>
+                    <p className="font-medium">{request.customerName}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-500">
+                      Requested {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Track Sample
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests yet</h3>
+              <p className="text-gray-600 mb-4">You haven't requested any product samples yet.</p>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Request First Sample
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 

@@ -78,17 +78,39 @@ export default function CustomerSidebar() {
     enabled: !!customer?.id,
   });
 
+  const { data: sampleRequestsData } = useQuery({
+    queryKey: ["/api/customer/sample-requests", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return { requests: [], total: 0 };
+      try {
+        const response = await fetch(`/api/customer/sample-requests/${customer.id}`);
+        if (!response.ok) return { requests: [], total: 0 };
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        return { requests: [], total: 0 };
+      }
+    },
+    enabled: !!customer?.id,
+  });
+
   const inquiriesCount = inquiriesData?.total || 0;
   const quotationsCount = quotationsData?.total || 0;
   const savedProductsCount = Array.isArray(savedProductsData) ? savedProductsData.length : 0;
+  const sampleRequestsCount = sampleRequestsData?.total || 0;
+  
+  // Calculate high volume bids from inquiries (bulk_order type)
+  const highVolumeBidsCount = inquiriesData?.inquiries?.filter((inq: any) => inq.inquiryType === 'bulk_order').length || 0;
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },
     { icon: Package, label: "Browse Products", href: "/customer/products" },
     { icon: Search, label: "Search", href: "/customer/search" },
     { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString() },
+    { icon: ShoppingCart, label: "High Volume Bids", href: "/customer/high-volume-bids", badge: highVolumeBidsCount.toString() },
     { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: savedProductsCount.toString() },
-    { icon: ShoppingCart, label: "Quote Requests", href: "/customer/quotes", badge: quotationsCount.toString() },
+    { icon: FileText, label: "Quote Requests", href: "/customer/quotes", badge: quotationsCount.toString() },
+    { icon: Package, label: "Sample Requests", href: "/customer/sample-requests", badge: sampleRequestsCount.toString() },
     { icon: Download, label: "Downloads", href: "/customer/downloads" },
     { icon: FileText, label: "Catalogs", href: "/customer/catalogs" },
     { icon: User, label: "My Profile", href: "/customer/profile" },
