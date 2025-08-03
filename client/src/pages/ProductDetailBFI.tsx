@@ -526,7 +526,7 @@ export default function ProductDetailBFI() {
               <Card className="bg-blue-50 border-blue-200 mb-6">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm text-blue-900">Need pricing or bulk orders?</h4>
+                    <h4 className="font-medium text-sm text-blue-900">Bid for High Volume?</h4>
                     <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
                   <EnhancedInquiryForm 

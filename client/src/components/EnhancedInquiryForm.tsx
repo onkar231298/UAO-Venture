@@ -167,7 +167,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       <DialogTrigger asChild>
         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
           <MessageSquarePlus className="w-4 h-4 mr-2" />
-          Send Inquiry
+          Bid for High Volume
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -392,7 +392,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
               disabled={createInquiryMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {createInquiryMutation.isPending ? "Submitting..." : "Submit Inquiry"}
+              {createInquiryMutation.isPending ? "Submitting..." : "Submit Bid for High Volume"}
             </Button>
           </div>
         </form>

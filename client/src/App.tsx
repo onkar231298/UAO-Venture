@@ -22,6 +22,9 @@ import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import CustomerRegistration from "@/pages/CustomerRegistration";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerProfile from "@/pages/CustomerProfile";
+import CustomerInquiries from "@/pages/CustomerInquiries";
+import CustomerSavedProducts from "@/pages/CustomerSavedProducts";
+import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 
@@ -39,6 +42,9 @@ function Router() {
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/customer/profile" component={CustomerProfile} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
+      <Route path="/customer/inquiries" component={CustomerInquiries} />
+      <Route path="/customer/saved" component={CustomerSavedProducts} />
+      <Route path="/customer/quotes" component={CustomerQuotes} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
