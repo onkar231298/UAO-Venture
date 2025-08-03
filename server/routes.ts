@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, requireAuth, requireAdmin, requireRole } from "./auth";
 import { 
   insertInquirySchema, 
   insertQuotationSchema, 
@@ -29,17 +29,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // User management endpoints
+  app.get('/api/admin/users', requireAdmin, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      const { userType, role, isActive, search, limit = 50, offset = 0 } = req.query;
+      
+      const filters: any = {};
+      if (userType) filters.userType = userType;
+      if (role) filters.role = role;
+      if (isActive !== undefined) filters.isActive = isActive === 'true';
+      if (search) filters.search = search;
+      filters.limit = parseInt(limit);
+      filters.offset = parseInt(offset);
+      
+      const result = await storage.getUsers(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/admin/users', requireAdmin, async (req: any, res) => {
+    try {
+      const userData = req.body;
+      // Only admin can create internal users
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.put('/api/admin/users/:id', requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const user = await storage.updateUser(id, updates);
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
     }
   });
 
@@ -359,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create hero slide
-  app.post('/api/hero-slides', isAuthenticated, async (req: any, res) => {
+  app.post('/api/hero-slides', requireAdmin, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -378,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update hero slide
-  app.put('/api/hero-slides/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/hero-slides/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -398,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete hero slide
-  app.delete('/api/hero-slides/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/hero-slides/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -433,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Protected API routes (authentication required)
 
   // Create inquiry
-  app.post('/api/inquiries', isAuthenticated, async (req: any, res) => {
+  app.post('/api/inquiries', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const inquiryData = insertInquirySchema.parse({ ...req.body, customerId: userId });
@@ -450,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's inquiries
-  app.get('/api/inquiries', isAuthenticated, async (req: any, res) => {
+  app.get('/api/inquiries', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -486,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update inquiry (for sales team)
-  app.put('/api/inquiries/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/inquiries/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -535,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get sample requests (admin/sales only)
-  app.get('/api/sample-requests', isAuthenticated, async (req: any, res) => {
+  app.get('/api/sample-requests', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -569,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update sample request (for admin/sales team)
-  app.put('/api/sample-requests/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/sample-requests/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -616,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get quotations
-  app.get('/api/quotations', isAuthenticated, async (req: any, res) => {
+  app.get('/api/quotations', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -650,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create quotation (for sales team)
-  app.post('/api/quotations', isAuthenticated, async (req: any, res) => {
+  app.post('/api/quotations', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -673,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get sales orders
-  app.get('/api/sales-orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/sales-orders', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -707,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get purchase orders (for purchase team)
-  app.get('/api/purchase-orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/purchase-orders', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -736,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get inventory (for inventory and logistics teams)
-  app.get('/api/inventory', isAuthenticated, async (req: any, res) => {
+  app.get('/api/inventory', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -756,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard analytics
-  app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/dashboard/stats', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const stats = await storage.getDashboardStats(userId);
@@ -770,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AWS S3 Image Upload Routes
 
   // Upload hero slider media (images and videos)
-  app.post('/api/admin/hero-slides/upload', isAuthenticated, heroSliderUpload, async (req: any, res) => {
+  app.post('/api/admin/hero-slides/upload', requireAuth, heroSliderUpload, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -813,7 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload product images and documents
-  app.post('/api/admin/products/upload', isAuthenticated, productImageUpload, async (req: any, res) => {
+  app.post('/api/admin/products/upload', requireAuth, productImageUpload, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -874,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Generate presigned URL for direct upload (alternative method)
-  app.post('/api/admin/products/presigned-url', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/products/presigned-url', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -907,7 +938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete image from S3
-  app.delete('/api/admin/products/image/:s3Key', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/products/image/:s3Key', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -929,7 +960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin dashboard route
   app.get("/admin/dashboard", async (req: any, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      if (!req.requireAuth() || !req.user) {
         return res.redirect("/login");
       }
 
@@ -955,7 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin authentication check API
   app.get("/api/admin/auth-check", async (req: any, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      if (!req.requireAuth() || !req.user) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
@@ -986,7 +1017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin stats API
   app.get("/api/admin/stats", async (req: any, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      if (!req.requireAuth() || !req.user) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
@@ -1026,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Get all products (admin view with all fields)
-  app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/products', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const { 
         category, 
@@ -1060,7 +1091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new product
-  app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.post('/api/admin/products', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productData = insertProductSchema.parse(req.body);
       productData.createdBy = (req.user as any)?.claims?.sub;
@@ -1081,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all product tags
-  app.get('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/tags', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tags = await storage.getAllProductTags();
       res.json(tags);
@@ -1092,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update product
-  app.put('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.put('/api/admin/products/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const productData = insertProductSchema.partial().parse(req.body);
@@ -1113,7 +1144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete product
-  app.delete('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.delete('/api/admin/products/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       await storage.deleteProduct(productId);
@@ -1125,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all categories (admin view)
-  app.get('/api/admin/categories', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/categories', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const categories = await storage.getCategories();
       res.json(categories);
@@ -1136,7 +1167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new category
-  app.post('/api/admin/categories', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.post('/api/admin/categories', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
       
@@ -1155,7 +1186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update category
-  app.put('/api/admin/categories/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.put('/api/admin/categories/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       const categoryData = insertCategorySchema.partial().parse(req.body);
@@ -1175,7 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete category (soft delete)
-  app.delete('/api/admin/categories/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.delete('/api/admin/categories/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       
@@ -1188,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk product upload via CSV/Excel
-  app.post('/api/admin/products/bulk-upload', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.post('/api/admin/products/bulk-upload', requireAuth, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const upload = multer({ 
         storage: multer.memoryStorage(),
@@ -1222,7 +1253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download product template
-  app.get('/api/admin/products/template', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.get('/api/admin/products/template', requireAuth, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const categoryId = req.query.category ? parseInt(req.query.category) : null;
       const template = await storage.generateProductTemplate(categoryId);
@@ -1237,7 +1268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all product tags
-  app.get('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/tags', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tags = await storage.getProductTags();
       res.json(tags);
@@ -1248,7 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new product tag
-  app.post('/api/admin/tags', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.post('/api/admin/tags', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tagData = insertProductTagSchema.parse(req.body);
       // Note: tagData doesn't have createdBy field in the schema
@@ -1268,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update product tag
-  app.put('/api/admin/tags/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.put('/api/admin/tags/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tagId = parseInt(req.params.id);
       const tagData = insertProductTagSchema.partial().parse(req.body);
@@ -1288,7 +1319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete product tag
-  app.delete('/api/admin/tags/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.delete('/api/admin/tags/:id', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const tagId = parseInt(req.params.id);
       await storage.deleteProductTag(tagId);
@@ -1300,7 +1331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Migrate existing product certifications to tags
-  app.post('/api/admin/tags/migrate', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.post('/api/admin/tags/migrate', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       await storage.migrateExistingCertificationsToTags();
       res.json({ message: "Migration completed successfully" });
@@ -1311,7 +1342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all hero sliders
-  app.get('/api/admin/sliders', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/sliders', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const sliders = await storage.getHeroSliders();
       res.json(sliders);
@@ -1340,7 +1371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Schema Validation API Routes
   
   // Get schema validation results
-  app.get('/api/admin/schema-validation', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/schema-validation', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const validationResults = await storage.getSchemaValidationResults();
       res.json(validationResults);
@@ -1351,7 +1382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get schema validation summary
-  app.get('/api/admin/schema-validation/summary', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/schema-validation/summary', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const summary = await storage.getSchemaValidationSummary();
       res.json(summary);
@@ -1362,7 +1393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Run schema validation
-  app.post('/api/admin/schema-validation/run', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.post('/api/admin/schema-validation/run', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const results = await storage.runSchemaValidation();
       res.json({ message: "Schema validation completed", results });
@@ -1373,7 +1404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export schema validation results as CSV
-  app.get('/api/admin/schema-validation/export', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+  app.get('/api/admin/schema-validation/export', requireAuth, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const csvData = await storage.exportSchemaValidationResults();
       res.setHeader('Content-Type', 'text/csv');
@@ -1399,7 +1430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/products/:productId/faqs', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/products/:productId/faqs', requireAuth, async (req: any, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const faqData = insertProductFaqSchema.parse({ ...req.body, productId });
@@ -1411,7 +1442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/products/faqs/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -1426,7 +1457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/products/faqs/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteProductFaq(id);
@@ -1474,7 +1505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/blog', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/blog', requireAuth, async (req: any, res) => {
     try {
       const postData = insertBlogPostSchema.parse({
         ...req.body,
@@ -1488,7 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/blog/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -1503,7 +1534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/blog/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteBlogPost(id);
@@ -1515,7 +1546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SEO monitoring routes
-  app.get('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/seo/issues', requireAuth, async (req: any, res) => {
     try {
       const { type } = req.query;
       const issues = await storage.getSeoIssues(type as string);
@@ -1526,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/seo/issues', requireAuth, async (req: any, res) => {
     try {
       const issueData = insertSeoMonitoringSchema.parse(req.body);
       const issue = await storage.createSeoIssue(issueData);
@@ -1563,7 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/search/popular', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/search/popular', requireAuth, async (req: any, res) => {
     try {
       const { limit = '10' } = req.query;
       const popularSearches = await storage.getPopularSearches(parseInt(limit as string));
@@ -1575,7 +1606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Global SEO Settings routes
-  app.get('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/seo/settings', requireAuth, async (req: any, res) => {
     try {
       const settings = await storage.getGlobalSeoSettings();
       res.json(settings);
@@ -1585,7 +1616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/seo/settings', requireAuth, async (req: any, res) => {
     try {
       const settingsData = insertGlobalSeoSettingsSchema.parse(req.body);
       const settings = await storage.updateGlobalSeoSettings(settingsData);
@@ -1597,7 +1628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SEO audit endpoint
-  app.get('/api/admin/seo/audit', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/seo/audit', requireAuth, async (req: any, res) => {
     try {
       // Get all products for SEO audit
       const { products } = await storage.getAdminProducts({ limit: 1000 });
@@ -1713,7 +1744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/newsletter/subscriptions', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/newsletter/subscriptions', requireAuth, async (req: any, res) => {
     try {
       const { isActive, limit = '50', offset = '0' } = req.query;
       const filters = {

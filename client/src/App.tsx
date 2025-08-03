@@ -4,7 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
 import { useEffect } from "react";
 import Landing from "@/pages/Landing";
@@ -12,7 +12,8 @@ import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
-import UnifiedLogin from "@/pages/UnifiedLogin";
+import AuthPage from "@/pages/AuthPage";
+import UserManagement from "@/pages/UserManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -29,7 +30,8 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
-      <Route path="/login" component={UnifiedLogin} />
+      <Route path="/login" component={AuthPage} />
+      <Route path="/auth" component={AuthPage} />
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
@@ -46,6 +48,9 @@ function Router() {
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/*" component={AdminDashboard} />
               <Route path="/dashboard" component={AdminDashboard} />
+              <Route path="/users" component={UserManagement} />
+              <Route path="/user-management" component={UserManagement} />
+              <Route path="/admin/users" component={UserManagement} />
             </>
           )}
           
@@ -75,10 +80,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
