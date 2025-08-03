@@ -473,14 +473,9 @@ export default function ProductDetailBFI() {
                 ))}
               </div>
 
-              {/* Blurred Pricing Display - Member Only */}
-              <BlurredContent
-                isAuthenticated={isAuthenticated}
-                title="Member Pricing"
-                message="Create an account to view competitive B2B pricing"
-                className="mb-4"
-              >
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              {/* Pricing Display - Member Only */}
+              {isAuthenticated && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                   <div className="space-y-3">
                     {product.basePrice && (
                       <div className="flex justify-between items-center">
@@ -507,7 +502,7 @@ export default function ProductDetailBFI() {
                     </div>
                   </div>
                 </div>
-              </BlurredContent>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">
