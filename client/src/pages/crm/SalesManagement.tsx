@@ -54,9 +54,6 @@ export default function SalesManagement() {
       });
       
       if (!response.ok) {
-        if (isUnauthorizedError(response)) {
-          throw new Error('UNAUTHORIZED');
-        }
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create quotation');
       }
@@ -88,7 +85,7 @@ export default function SalesManagement() {
   }
 
   return (
-    <RoleBasedRoute requiredRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+    <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
