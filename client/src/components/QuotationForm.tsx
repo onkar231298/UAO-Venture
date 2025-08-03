@@ -31,6 +31,8 @@ export default function QuotationForm({ inquiry, onSubmit, isLoading }: Quotatio
     customerId: inquiry.customerId,
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     status: "draft",
+    currency: "USD",
+    priceType: "ex_warehouse",
     terms: `Payment Terms: 30 days net
 Delivery: Ex-works
 Validity: 30 days from quotation date
@@ -148,29 +150,69 @@ Packaging: Standard export packaging`,
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="validUntil">Valid Until</Label>
-              <Input
-                id="validUntil"
-                type="date"
-                value={formData.validUntil}
-                onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                required
-              />
+              <div>
+                <Label htmlFor="validUntil">Valid Until</Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  value={formData.validUntil}
+                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Send to Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="sent">Send to Customer</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                    <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                    <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="priceType">Price Type</Label>
+                <Select value={formData.priceType} onValueChange={(value) => setFormData({ ...formData, priceType: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ex_warehouse">Ex-Warehouse</SelectItem>
+                    <SelectItem value="ex_works">Ex-Works</SelectItem>
+                    <SelectItem value="fob">FOB (Free on Board)</SelectItem>
+                    <SelectItem value="cif">CIF (Cost, Insurance & Freight)</SelectItem>
+                    <SelectItem value="cfr">CFR (Cost & Freight)</SelectItem>
+                    <SelectItem value="dap">DAP (Delivered at Place)</SelectItem>
+                    <SelectItem value="ddp">DDP (Delivered Duty Paid)</SelectItem>
+                    <SelectItem value="cpt">CPT (Carriage Paid To)</SelectItem>
+                    <SelectItem value="cip">CIP (Carriage & Insurance Paid)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -243,7 +285,7 @@ Packaging: Standard export packaging`,
                   </Select>
                 </div>
                 <div>
-                  <Label>Unit Price ($)</Label>
+                  <Label>Unit Price ({formData.currency})</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -253,7 +295,7 @@ Packaging: Standard export packaging`,
                   />
                 </div>
                 <div>
-                  <Label>Total ($)</Label>
+                  <Label>Total ({formData.currency})</Label>
                   <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
                     <Calculator className="w-4 h-4 mr-2 text-gray-500" />
                     <span className="font-medium">{item.totalPrice.toFixed(2)}</span>
@@ -268,9 +310,9 @@ Packaging: Standard export packaging`,
           <div className="flex justify-end">
             <div className="text-right">
               <div className="text-lg font-semibold">
-                Total Amount: ${getTotalAmount().toFixed(2)}
+                Total Amount: {formData.currency} {getTotalAmount().toFixed(2)}
               </div>
-              <div className="text-sm text-gray-500">USD</div>
+              <div className="text-sm text-gray-500">{formData.priceType.toUpperCase().replace('_', '-')}</div>
             </div>
           </div>
         </CardContent>

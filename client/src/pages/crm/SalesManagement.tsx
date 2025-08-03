@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Search, Filter, Download, MessageSquare, TrendingUp, DollarSign, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
+import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 
 export default function SalesManagement() {
   const { user, isLoading: authLoading } = useAuth();
@@ -26,6 +27,8 @@ export default function SalesManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedAction, setSelectedAction] = useState("");
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [showInquiryDetails, setShowInquiryDetails] = useState(false);
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -243,7 +246,14 @@ export default function SalesManagement() {
                             </Badge>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedInquiry(inquiry);
+                                setShowInquiryDetails(true);
+                              }}
+                            >
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
@@ -414,6 +424,15 @@ export default function SalesManagement() {
           </Tabs>
         </div>
       </div>
+
+      {/* Inquiry Details Dialog */}
+      {selectedInquiry && (
+        <InquiryDetailsDialog
+          inquiry={selectedInquiry}
+          open={showInquiryDetails}
+          onOpenChange={setShowInquiryDetails}
+        />
+      )}
     </RoleBasedRoute>
   );
 }
