@@ -27,9 +27,10 @@ interface EnhancedInquiryFormProps {
   product: Product;
   isAuthenticated: boolean;
   customerData?: any;
+  isCustomerAuthenticated?: boolean;
 }
 
-export function EnhancedInquiryForm({ product, isAuthenticated, customerData }: EnhancedInquiryFormProps) {
+export function EnhancedInquiryForm({ product, isAuthenticated, customerData, isCustomerAuthenticated }: EnhancedInquiryFormProps) {
   const [inquiryType, setInquiryType] = useState<string>("bulk_order");
   const [formData, setFormData] = useState({
     // Contact Information - auto-filled if customer is logged in
@@ -54,7 +55,19 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData }: 
 
   const createInquiryMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", `/api/inquiries-enhanced`, data);
+      const response = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit inquiry');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({

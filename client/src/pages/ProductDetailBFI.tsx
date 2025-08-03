@@ -531,8 +531,9 @@ export default function ProductDetailBFI() {
                   </div>
                   <EnhancedInquiryForm 
                     product={product} 
-                    isAuthenticated={isAuthenticated || isCustomerAuthenticated}
+                    isAuthenticated={isAuthenticated}
                     customerData={customer}
+                    isCustomerAuthenticated={isCustomerAuthenticated}
                   />
                 </CardContent>
               </Card>

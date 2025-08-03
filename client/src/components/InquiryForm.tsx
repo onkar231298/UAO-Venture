@@ -30,7 +30,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
   const [formData, setFormData] = useState({
     productId: product?.id || "",
     quantity: "",
-    unit: product?.unit || "kg",
+    unit: "kg",
     message: "",
     urgency: "normal",
     // Contact Information - auto-filled if customer is logged in
@@ -42,23 +42,20 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
   });
 
   const inquiryMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      if (!isAuthenticated && !isCustomerAuthenticated) {
-        throw new Error("Authentication required");
-      }
-
-      return await apiRequest("POST", "/api/inquiries", {
-        productId: parseInt(data.productId.toString()),
-        quantity: parseFloat(data.quantity),
-        unit: data.unit,
-        message: data.message,
-        urgency: data.urgency,
-        contactName: data.contactName,
-        companyName: data.companyName,
-        phoneNumber: data.phoneNumber,
-        emailAddress: data.emailAddress,
-        notes: data.notes,
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit inquiry');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -70,7 +67,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
       setFormData({
         productId: product?.id || "",
         quantity: "",
-        unit: product?.unit || "kg",
+        unit: "kg",
         message: "",
         urgency: "normal",
         contactName: "",
