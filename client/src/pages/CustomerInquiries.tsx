@@ -72,7 +72,7 @@ export default function CustomerInquiries() {
                 </Card>
               ))}
             </div>
-          ) : !inquiries || (Array.isArray(inquiries) && inquiries.length === 0) ? (
+          ) : !inquiries || !inquiries.inquiries || (Array.isArray(inquiries.inquiries) && inquiries.inquiries.length === 0) ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -87,7 +87,7 @@ export default function CustomerInquiries() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {(Array.isArray(inquiries) ? inquiries : []).map((inquiry: any) => (
+              {(Array.isArray(inquiries.inquiries) ? inquiries.inquiries : []).map((inquiry: any) => (
                 <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">

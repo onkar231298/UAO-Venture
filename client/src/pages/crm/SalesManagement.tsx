@@ -41,6 +41,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   // Queries with enhanced filtering
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
     queryKey: ["/api/inquiries", { status: statusFilter, search: searchQuery, type: enquiryTypeFilter }],
+    staleTime: 0, // Always fetch fresh data
   });
 
   const { data: quotations, isLoading: quotationsLoading } = useQuery({
@@ -182,12 +183,16 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {activeSubSection === 'enquiry-sample' ? 'Enquiry and Sample Management' :
+              {activeSubSection === 'enquiry-sample' ? 'Customer Inquiries' :
+               activeSubSection === 'bidding-requests' ? 'Bidding Requests' :
+               activeSubSection === 'sample-requests' ? 'Sample Requests' :
                activeSubSection === 'sales-crm' ? 'Sales CRM' :
                (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' ? 'Sales Management Dashboard' : 'Sales Management'}
             </h1>
             <p className="text-gray-600">
-              {activeSubSection === 'enquiry-sample' ? 'Manage customer enquiries, bulk orders, high volume bids, and sample requests' :
+              {activeSubSection === 'enquiry-sample' ? 'Manage customer inquiries and product information requests' :
+               activeSubSection === 'bidding-requests' ? 'Manage high volume bidding requests and bulk orders' :
+               activeSubSection === 'sample-requests' ? 'Manage sample requests and product evaluations' :
                activeSubSection === 'sales-crm' ? 'CRM tools for quotations, sales orders, and customer relationship management' :
                (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' 
                 ? 'Complete overview of customer inquiries, sample requests, quotations, and sales orders' 
@@ -422,13 +427,17 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
               )}
             </TabsList>
 
-            {/* Inquiries Tab - Show for Enquiry & Sample or Full Sales Management */}
-            {(activeSubSection === 'enquiry-sample' || !activeSubSection) && (
+            {/* Inquiries Tab - Show for Customer Inquiries, Bidding Requests, Sample Requests or Full Sales Management */}
+            {(activeSubSection === 'enquiry-sample' || activeSubSection === 'bidding-requests' || activeSubSection === 'sample-requests' || !activeSubSection) && (
               <TabsContent value="inquiries" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>Customer Inquiries</span>
+                      <span>
+                        {activeSubSection === 'bidding-requests' ? 'High Volume Bidding Requests' :
+                         activeSubSection === 'sample-requests' ? 'Sample Requests' :
+                         'Customer Inquiries'}
+                      </span>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
                         Manual Inquiry

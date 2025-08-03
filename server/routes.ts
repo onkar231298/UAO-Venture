@@ -650,6 +650,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Role-based filtering
       if (user.role === 'customer') {
         filters.customerId = userId;
+      } else if (user.role === 'admin' || user.role === 'super_admin') {
+        // Admin users see all inquiries - no filtering
       } else if (user.role?.includes('sales')) {
         filters.assignedTo = userId;
       }

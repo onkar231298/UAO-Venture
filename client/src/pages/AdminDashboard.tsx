@@ -172,7 +172,7 @@ export default function AdminDashboard() {
                 </button>
                 
                 {/* Sales Management Sub-items */}
-                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm') && (
+                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm') && (
                   <div className="ml-6 mt-2 space-y-1">
                     <button
                       onClick={() => setActiveSection('enquiry-sample')}
@@ -183,7 +183,29 @@ export default function AdminDashboard() {
                       }`}
                     >
                       <Send className="mr-3 h-4 w-4" />
-                      Enquiry and Sample
+                      Customer Inquiries
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('bidding-requests')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'bidding-requests'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <TrendingUp className="mr-3 h-4 w-4" />
+                      Bidding Requests
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('sample-requests')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'sample-requests'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Package className="mr-3 h-4 w-4" />
+                      Sample Requests
                     </button>
                     <button
                       onClick={() => setActiveSection('sales-crm')}
@@ -479,7 +501,7 @@ export default function AdminDashboard() {
             <WebsiteManagement />
           )}
 
-          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm') && (
+          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm') && (
             <SalesManagement activeSubSection={activeSection} />
           )}
 
@@ -495,7 +517,7 @@ export default function AdminDashboard() {
             <UserManagement />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
             <Card>
               <CardHeader>
                 <CardTitle>
