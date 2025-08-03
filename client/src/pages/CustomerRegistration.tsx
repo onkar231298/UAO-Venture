@@ -52,11 +52,13 @@ export default function CustomerRegistration() {
       country: "",
       industryType: "",
       password: "",
-      captchaToken: "",
+      captchaToken: "no-captcha",
     },
   });
 
   const onSubmit = async (data: CustomerRegistration) => {
+    console.log("Form submitted with data:", data);
+    console.log("Form errors:", form.formState.errors);
     setIsSubmitting(true);
     
     try {
@@ -66,6 +68,7 @@ export default function CustomerRegistration() {
         captchaToken: "no-captcha", // Temporary bypass
       };
 
+      console.log("Sending registration data:", registrationData);
       const response = await apiRequest('/api/auth/register-customer', {
         method: 'POST',
         body: JSON.stringify(registrationData),
