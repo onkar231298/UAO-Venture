@@ -101,21 +101,13 @@ Packaging: Standard export packaging`,
     const quotationData = {
       inquiryId: formData.inquiryId,
       customerId: formData.customerId,
-      validUntil: formData.validUntil,
+      validUntil: new Date(formData.validUntil).toISOString(),
       totalAmount: getTotalAmount(),
       currency: formData.currency,
       priceType: formData.priceType,
       status: formData.status,
       terms: formData.terms,
-      notes: formData.notes,
-      items: items.map(item => ({
-        productId: item.productId,
-        quantity: parseFloat(item.quantity) || 0,
-        unit: item.unit,
-        unitPrice: parseFloat(item.unitPrice) || 0,
-        totalPrice: item.totalPrice,
-        specifications: item.specifications
-      }))
+      notes: formData.notes
     };
 
     onSubmit(quotationData);
