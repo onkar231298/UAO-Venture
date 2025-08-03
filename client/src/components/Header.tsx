@@ -298,6 +298,12 @@ export default function Header() {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
+                      <Link href="/customer/dashboard" className="flex items-center">
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        My Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/customer/profile" className="flex items-center">
                         <User className="w-4 h-4 mr-2" />
                         My Profile
