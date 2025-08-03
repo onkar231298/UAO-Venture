@@ -26,6 +26,9 @@ export default function SalesManagement() {
   // State management
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
@@ -83,6 +86,99 @@ export default function SalesManagement() {
       });
     }
   });
+
+  // Filter and sort inquiries
+  const filteredInquiries = React.useMemo(() => {
+    if (!(inquiries as any)?.inquiries) return [];
+    
+    let filtered = (inquiries as any).inquiries.filter((inquiry: Inquiry) => {
+      // Search filter
+      const searchMatch = searchTerm === "" || 
+        inquiry.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inquiry.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inquiry.inquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inquiry as any).productName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Status filter
+      const statusMatch = statusFilter === "all" || inquiry.status === statusFilter;
+
+      // Urgency filter
+      const urgencyMatch = urgencyFilter === "all" || inquiry.urgency === urgencyFilter;
+
+      // Date filter
+      let dateMatch = true;
+      if (dateFilter !== "all" && inquiry.createdAt) {
+        const inquiryDate = new Date(inquiry.createdAt);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        switch (dateFilter) {
+          case "today":
+            dateMatch = inquiryDate >= today;
+            break;
+          case "yesterday":
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            dateMatch = inquiryDate >= yesterday && inquiryDate < today;
+            break;
+          case "week":
+            const weekStart = new Date(today);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            dateMatch = inquiryDate >= weekStart;
+            break;
+          case "month":
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateMatch = inquiryDate >= monthStart;
+            break;
+          case "quarter":
+            const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+            dateMatch = inquiryDate >= quarterStart;
+            break;
+        }
+      }
+
+      return searchMatch && statusMatch && urgencyMatch && dateMatch;
+    });
+
+    // Sort inquiries
+    filtered.sort((a: Inquiry, b: Inquiry) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        case "high_value":
+          const aQty = parseFloat(a.quantity || "0");
+          const bQty = parseFloat(b.quantity || "0");
+          return bQty - aQty;
+        case "urgency":
+          const urgencyOrder = { urgent: 3, normal: 2, low: 1 };
+          return (urgencyOrder[b.urgency as keyof typeof urgencyOrder] || 0) - 
+                 (urgencyOrder[a.urgency as keyof typeof urgencyOrder] || 0);
+        case "company":
+          return (a.companyName || "").localeCompare(b.companyName || "");
+        case "newest":
+        default:
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
+
+    return filtered;
+  }, [inquiries, searchTerm, statusFilter, dateFilter, urgencyFilter, sortBy]);
+
+  // Status badge helper function
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'responded':
+        return <Badge className="bg-blue-100 text-blue-800">Responded</Badge>;
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'closed':
+        return <Badge className="bg-red-100 text-red-800">Closed</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>;
+    }
+  };
 
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -193,9 +289,51 @@ export default function SalesManagement() {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="quoted">Quoted</SelectItem>
-                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="responded">Responded</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Date Filter */}
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Date Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="yesterday">Yesterday</SelectItem>
+                      <SelectItem value="week">This Week</SelectItem>
+                      <SelectItem value="month">This Month</SelectItem>
+                      <SelectItem value="quarter">This Quarter</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Urgency Filter */}
+                  <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Urgency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Urgency</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Sort Filter */}
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Sort By" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="high_value">High Value</SelectItem>
+                      <SelectItem value="urgency">By Urgency</SelectItem>
+                      <SelectItem value="company">By Company</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -230,9 +368,31 @@ export default function SalesManagement() {
                       <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
                     ))}
                   </div>
-                ) : (inquiries as any)?.inquiries?.length ? (
+                ) : filteredInquiries?.length ? (
                   <div className="space-y-4">
-                    {(inquiries as any).inquiries.map((inquiry: Inquiry) => (
+                    <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-sm text-gray-600">
+                        Showing {filteredInquiries.length} of {(inquiries as any)?.inquiries?.length || 0} inquiries
+                      </div>
+                      <div className="flex gap-2">
+                        {statusFilter !== "all" && (
+                          <Badge variant="outline" className="text-xs">
+                            Status: {statusFilter}
+                          </Badge>
+                        )}
+                        {dateFilter !== "all" && (
+                          <Badge variant="outline" className="text-xs">
+                            Date: {dateFilter}
+                          </Badge>
+                        )}
+                        {urgencyFilter !== "all" && (
+                          <Badge variant="outline" className="text-xs">
+                            Urgency: {urgencyFilter}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {filteredInquiries.map((inquiry: Inquiry) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
