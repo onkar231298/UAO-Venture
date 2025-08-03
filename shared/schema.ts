@@ -449,6 +449,8 @@ export const quotations = pgTable("quotations", {
   customerId: varchar("customer_id").references(() => users.id),
   validUntil: timestamp("valid_until"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 5 }).default("USD"), // USD, EUR, GBP, INR, etc.
+  priceType: varchar("price_type", { length: 50 }).default("ex_warehouse"), // ex_warehouse, ex_works, fob, cif, etc.
   status: varchar("status", { length: 50 }).default("draft"), // draft, sent, accepted, rejected, expired
   terms: text("terms"),
   notes: text("notes"),

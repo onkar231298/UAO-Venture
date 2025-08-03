@@ -99,9 +99,15 @@ Packaging: Standard export packaging`,
     e.preventDefault();
     
     const quotationData = {
-      ...formData,
+      inquiryId: formData.inquiryId,
+      customerId: formData.customerId,
+      validUntil: formData.validUntil,
       totalAmount: getTotalAmount(),
-      quotationId: `QUO${Date.now()}`,
+      currency: formData.currency,
+      priceType: formData.priceType,
+      status: formData.status,
+      terms: formData.terms,
+      notes: formData.notes,
       items: items.map(item => ({
         productId: item.productId,
         quantity: parseFloat(item.quantity) || 0,
