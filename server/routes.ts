@@ -933,6 +933,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Parsed quotation data:", quotationData);
       
       const quotation = await storage.createQuotation(quotationData);
+      
+      // Update the inquiry status to "responded" when quotation is created
+      if (quotation.inquiryId) {
+        await storage.updateInquiry(quotation.inquiryId, { 
+          status: 'responded',
+          assignedTo: userId 
+        });
+      }
+      
       res.status(201).json(quotation);
     } catch (error) {
       if (error instanceof z.ZodError) {
