@@ -1286,7 +1286,7 @@ export class DatabaseStorage implements IStorage {
     status?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ quotations: Quotation[]; total: number }> {
+  }): Promise<{ quotations: any[]; total: number }> {
     const conditions = [];
     
     if (filters?.customerId) {
@@ -1301,8 +1301,36 @@ export class DatabaseStorage implements IStorage {
 
     const [quotationsResult, totalResult] = await Promise.all([
       db
-        .select()
+        .select({
+          // Quotation fields
+          id: quotations.id,
+          quotationId: quotations.quotationId,
+          inquiryId: quotations.inquiryId,
+          customerId: quotations.customerId,
+          validUntil: quotations.validUntil,
+          totalAmount: quotations.totalAmount,
+          currency: quotations.currency,
+          priceType: quotations.priceType,
+          status: quotations.status,
+          terms: quotations.terms,
+          notes: quotations.notes,
+          createdBy: quotations.createdBy,
+          createdAt: quotations.createdAt,
+          updatedAt: quotations.updatedAt,
+          // Product info from inquiry
+          productName: products.name,
+          productId: products.productId,
+          // Inquiry details for missing quotation items
+          quantity: inquiries.quantity,
+          unit: inquiries.unit,
+          unitPrice: sql<number>`CASE WHEN ${quotations.totalAmount} IS NOT NULL AND ${inquiries.quantity} IS NOT NULL AND ${inquiries.quantity} > 0 THEN ${quotations.totalAmount} / ${inquiries.quantity} ELSE 0 END`,
+          // Payment and delivery terms
+          paymentTerms: sql<string>`CASE WHEN ${quotations.terms} LIKE '%Payment%' THEN TRIM(SUBSTRING(${quotations.terms} FROM 'Payment[^:]*:([^\\n]+)')) ELSE '30 days net' END`,
+          deliveryTerms: sql<string>`CASE WHEN ${quotations.terms} LIKE '%Delivery%' THEN TRIM(SUBSTRING(${quotations.terms} FROM 'Delivery[^:]*:([^\\n]+)')) ELSE ${quotations.priceType} END`,
+        })
         .from(quotations)
+        .leftJoin(inquiries, eq(quotations.inquiryId, inquiries.id))
+        .leftJoin(products, eq(inquiries.productId, products.id))
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
