@@ -111,6 +111,7 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
 
     const sampleRequestData = {
       productId: product.id,
+      customerId: customerData?.id || null,
       ...formData,
     };
 

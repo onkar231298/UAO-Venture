@@ -29,6 +29,42 @@ export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
   const [, setLocation] = useLocation();
 
+  // Fetch customer's inquiries
+  const { data: inquiriesData } = useQuery({
+    queryKey: ["/api/customer/inquiries", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return { inquiries: [], total: 0 };
+      const response = await fetch(`/api/customer/inquiries/${customer.id}`);
+      if (!response.ok) throw new Error('Failed to fetch inquiries');
+      return response.json();
+    },
+    enabled: !!customer?.id,
+  });
+
+  // Fetch customer's sample requests
+  const { data: sampleRequestsData } = useQuery({
+    queryKey: ["/api/customer/sample-requests", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return { requests: [], total: 0 };
+      const response = await fetch(`/api/customer/sample-requests/${customer.id}`);
+      if (!response.ok) throw new Error('Failed to fetch sample requests');
+      return response.json();
+    },
+    enabled: !!customer?.id,
+  });
+
+  // Fetch customer's quotations
+  const { data: quotationsData } = useQuery({
+    queryKey: ["/api/customer/quotations", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return { quotations: [], total: 0 };
+      const response = await fetch(`/api/customer/quotations/${customer.id}`);
+      if (!response.ok) throw new Error('Failed to fetch quotations');
+      return response.json();
+    },
+    enabled: !!customer?.id,
+  });
+
   // Fetch popular products for recommendations
   const { data: productsData } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "popular"],
@@ -95,7 +131,7 @@ export default function CustomerDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Inquiries</p>
-                    <p className="text-2xl font-bold text-gray-900">0</p>
+                    <p className="text-2xl font-bold text-gray-900">{inquiriesData?.total || 0}</p>
                   </div>
                   <MessageSquare className="w-8 h-8 text-blue-500" />
                 </div>
@@ -106,8 +142,8 @@ export default function CustomerDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Saved Products</p>
-                    <p className="text-2xl font-bold text-gray-900">0</p>
+                    <p className="text-sm font-medium text-gray-600">Sample Requests</p>
+                    <p className="text-2xl font-bold text-gray-900">{sampleRequestsData?.total || 0}</p>
                   </div>
                   <Heart className="w-8 h-8 text-red-500" />
                 </div>
@@ -118,8 +154,8 @@ export default function CustomerDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Downloaded Catalogs</p>
-                    <p className="text-2xl font-bold text-gray-900">0</p>
+                    <p className="text-sm font-medium text-gray-600">Active Quotations</p>
+                    <p className="text-2xl font-bold text-gray-900">{quotationsData?.total || 0}</p>
                   </div>
                   <Download className="w-8 h-8 text-green-500" />
                 </div>

@@ -111,6 +111,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData }: 
     const inquiryData = {
       productId: product.id,
       inquiryType,
+      customerId: isCustomerAuthenticated ? customerData?.id : null,
       ...formData,
     };
 

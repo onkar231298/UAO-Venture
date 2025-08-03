@@ -139,7 +139,12 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
       return;
     }
 
-    inquiryMutation.mutate(formData);
+    const inquiryData = {
+      ...formData,
+      customerId: isCustomerAuthenticated ? customerData?.id : null,
+    };
+    
+    inquiryMutation.mutate(inquiryData);
   };
 
   const handleInputChange = (field: string, value: string) => {

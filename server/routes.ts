@@ -603,11 +603,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Protected API routes (authentication required)
 
-  // Create inquiry
-  app.post('/api/inquiries', isAuthenticated, async (req: any, res) => {
+  // Create inquiry (allow both admin and customer creation)
+  app.post('/api/inquiries', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const inquiryData = insertInquirySchema.parse({ ...req.body, customerId: userId });
+      let customerId = null;
+      
+      // Check if admin user is authenticated
+      if (req.user && req.user.claims && req.user.claims.sub) {
+        customerId = req.user.claims.sub;
+      }
+      // For customer users, customerId should be sent from frontend
+      else if (req.body.customerId) {
+        customerId = req.body.customerId;
+      }
+      
+      const inquiryData = insertInquirySchema.parse({ ...req.body, customerId });
       
       const inquiry = await storage.createInquiry(inquiryData);
       res.status(201).json(inquiry);
@@ -656,6 +666,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer-specific endpoints (no auth required, customer ID from request body)
+  app.get('/api/customer/inquiries/:customerId', async (req: any, res) => {
+    try {
+      const customerId = req.params.customerId;
+      const { status, limit = '50', offset = '0' } = req.query;
+      
+      const filters: any = {
+        customerId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      const result = await storage.getInquiries(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching customer inquiries:", error);
+      res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
+  app.get('/api/customer/sample-requests/:customerId', async (req: any, res) => {
+    try {
+      const customerId = req.params.customerId;
+      const { status, limit = '50', offset = '0' } = req.query;
+      
+      const filters: any = {
+        customerId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      const result = await storage.getSampleRequests(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching customer sample requests:", error);
+      res.status(500).json({ message: "Failed to fetch sample requests" });
+    }
+  });
+
+  app.get('/api/customer/quotations/:customerId', async (req: any, res) => {
+    try {
+      const customerId = req.params.customerId;
+      const { status, limit = '50', offset = '0' } = req.query;
+      
+      const filters: any = {
+        customerId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      const result = await storage.getQuotations(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching customer quotations:", error);
+      res.status(500).json({ message: "Failed to fetch quotations" });
+    }
+  });
+
   // Update inquiry (for sales team)
   app.put('/api/inquiries/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -684,9 +764,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let customerId = null;
       
-      // Check if user is authenticated
+      // Check if admin user is authenticated
       if (req.user && req.user.claims && req.user.claims.sub) {
         customerId = req.user.claims.sub;
+      }
+      // For customer users, customerId should be sent from frontend
+      else if (req.body.customerId) {
+        customerId = req.body.customerId;
       }
       
       const requestData = insertSampleRequestSchema.parse({ 
