@@ -2136,39 +2136,17 @@ Disallow: /api/
 Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
-  // Sitemap.xml route
+  // Sitemap.xml route - simplified for maximum reliability
   app.get('/sitemap.xml', async (req, res) => {
-    try {
-      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-      
-      // Get all products and categories for sitemap with error handling
-      let products = { products: [] };
-      let categories = [];
-      let blogPosts = { posts: [] };
-      
-      try {
-        products = await storage.getProducts({ limit: 10000, offset: 0 });
-      } catch (error) {
-        console.error('Error fetching products for sitemap:', error);
-      }
-      
-      try {
-        categories = await storage.getCategories();
-      } catch (error) {
-        console.error('Error fetching categories for sitemap:', error);
-      }
-      
-      try {
-        blogPosts = await storage.getBlogPosts({ limit: 1000, offset: 0, published: true });
-      } catch (error) {
-        console.error('Error fetching blog posts for sitemap:', error);
-      }
-      
-      const baseUrl = 'https://bright-organic.com';
-      const currentDate = new Date().toISOString().split('T')[0];
-      
-      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+    // Always set XML headers first
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    
+    const baseUrl = 'https://bright-organic.com';
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    // Start with core pages that always exist
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${baseUrl}/</loc>
@@ -2201,15 +2179,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     <priority>0.5</priority>
   </url>`;
 
-      // Add category pages
+    // Try to add dynamic content but don't fail if there's an error
+    try {
+      // Add categories if available
+      const categories = await storage.getCategories();
       if (categories && Array.isArray(categories)) {
         for (const category of categories) {
-          if (category && category.slug) {
-            // Escape special characters in URLs
-            const escapedSlug = category.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          if (category?.slug) {
             sitemap += `
   <url>
-    <loc>${baseUrl}/ingredients/${escapedSlug}</loc>
+    <loc>${baseUrl}/ingredients/${category.slug}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -2217,16 +2196,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           }
         }
       }
+    } catch (error) {
+      console.error('Failed to add categories to sitemap:', error);
+    }
 
-      // Add product pages
-      if (products && products.products && Array.isArray(products.products)) {
+    try {
+      // Add products if available
+      const products = await storage.getProducts({ limit: 5000, offset: 0 });
+      if (products?.products && Array.isArray(products.products)) {
         for (const product of products.products) {
-          if (product && product.slug && product.isActive !== false) {
-            // Escape special characters in URLs
-            const escapedSlug = product.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          if (product?.slug && product.isActive !== false) {
             sitemap += `
   <url>
-    <loc>${baseUrl}/products/${escapedSlug}</loc>
+    <loc>${baseUrl}/products/${product.slug}</loc>
     <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -2234,55 +2216,15 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           }
         }
       }
-
-      // Add blog posts if any
-      if (blogPosts && blogPosts.posts && Array.isArray(blogPosts.posts)) {
-        for (const post of blogPosts.posts) {
-          if (post && post.slug && post.published) {
-            // Escape special characters in URLs
-            const escapedSlug = post.slug.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            sitemap += `
-  <url>
-    <loc>${baseUrl}/blog/${escapedSlug}</loc>
-    <lastmod>${post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>`;
-          }
-        }
-      }
-
-      sitemap += `
-</urlset>`;
-
-      res.send(sitemap);
     } catch (error) {
-      console.error('Error generating sitemap:', error);
-      // Return a basic sitemap instead of 500 error
-      const basicSitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://bright-organic.com/</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://bright-organic.com/products</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://bright-organic.com/ingredients</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-</urlset>`;
-      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-      res.send(basicSitemap);
+      console.error('Failed to add products to sitemap:', error);
     }
+
+    // Close the sitemap
+    sitemap += `
+</urlset>`;
+
+    res.send(sitemap);
   });
 
   const httpServer = createServer(app);
