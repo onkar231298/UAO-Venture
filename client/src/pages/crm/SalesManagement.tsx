@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -462,7 +462,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                   </DialogHeader>
                                   <QuotationForm 
                                     inquiry={inquiry} 
-                                    onSubmit={(data) => createQuotationMutation.mutate(data)}
+                                    onSubmit={(data: any) => createQuotationMutation.mutate(data)}
                                     isLoading={createQuotationMutation.isPending}
                                   />
                                 </DialogContent>
@@ -690,5 +690,82 @@ const getStatusBadge = (status: string) => {
     </Badge>
   );
 };
+
+// Quotation Form Component
+function QuotationForm({ 
+  inquiry, 
+  onSubmit, 
+  isLoading 
+}: { 
+  inquiry: Inquiry; 
+  onSubmit: (data: any) => void; 
+  isLoading: boolean; 
+}) {
+  const [formData, setFormData] = useState({
+    inquiryId: inquiry.id,
+    customerId: inquiry.customerId,
+    validUntil: "",
+    totalAmount: "",
+    terms: "",
+    notes: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      ...formData,
+      totalAmount: parseFloat(formData.totalAmount),
+      validUntil: formData.validUntil ? new Date(formData.validUntil) : null,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Valid Until</Label>
+          <Input
+            type="date"
+            value={formData.validUntil}
+            onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label>Total Amount ($)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.totalAmount}
+            onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
+            required
+          />
+        </div>
+      </div>
+      
+      <div>
+        <Label>Terms & Conditions</Label>
+        <Textarea
+          value={formData.terms}
+          onChange={(e) => setFormData(prev => ({ ...prev, terms: e.target.value }))}
+          placeholder="Enter payment terms, delivery conditions, etc."
+        />
+      </div>
+      
+      <div>
+        <Label>Notes</Label>
+        <Textarea
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Additional notes or comments"
+        />
+      </div>
+      
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Creating..." : "Create Quotation"}
+      </Button>
+    </form>
+  );
+}
 
 
