@@ -17,30 +17,33 @@ import type { Product } from "@shared/schema";
 interface InquiryFormProps {
   product?: Product;
   onSuccess?: () => void;
+  customerData?: any;
+  isCustomerAuthenticated?: boolean;
 }
 
-export default function InquiryForm({ product, onSuccess }: InquiryFormProps) {
+export default function InquiryForm({ product, onSuccess, customerData, isCustomerAuthenticated }: InquiryFormProps) {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Auto-fill form data if customer is logged in
   const [formData, setFormData] = useState({
     productId: product?.id || "",
     quantity: "",
     unit: product?.unit || "kg",
     message: "",
     urgency: "normal",
-    // Contact Information (required for all users)
-    contactName: "",
-    companyName: "",
-    phoneNumber: "",
-    emailAddress: "",
+    // Contact Information - auto-filled if customer is logged in
+    contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
+    companyName: customerData?.companyName || "",
+    phoneNumber: customerData?.phoneNumber || "",
+    emailAddress: customerData?.email || "",
     notes: "",
   });
 
   const inquiryMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated && !isCustomerAuthenticated) {
         throw new Error("Authentication required");
       }
 

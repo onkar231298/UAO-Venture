@@ -26,16 +26,17 @@ interface Product {
 interface EnhancedInquiryFormProps {
   product: Product;
   isAuthenticated: boolean;
+  customerData?: any;
 }
 
-export function EnhancedInquiryForm({ product, isAuthenticated }: EnhancedInquiryFormProps) {
+export function EnhancedInquiryForm({ product, isAuthenticated, customerData }: EnhancedInquiryFormProps) {
   const [inquiryType, setInquiryType] = useState<string>("bulk_order");
   const [formData, setFormData] = useState({
-    // Contact Information (for non-logged users)
-    contactName: "",
-    companyName: "",
-    phoneNumber: "",
-    emailAddress: "",
+    // Contact Information - auto-filled if customer is logged in
+    contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
+    companyName: customerData?.companyName || "",
+    phoneNumber: customerData?.phoneNumber || "",
+    emailAddress: customerData?.email || "",
     
     // Inquiry Details
     quantity: "",

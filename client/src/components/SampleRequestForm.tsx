@@ -21,15 +21,16 @@ interface Product {
 interface SampleRequestFormProps {
   product: Product;
   isAuthenticated: boolean;
+  customerData?: any;
 }
 
-export function SampleRequestForm({ product, isAuthenticated }: SampleRequestFormProps) {
+export function SampleRequestForm({ product, isAuthenticated, customerData }: SampleRequestFormProps) {
   const [formData, setFormData] = useState({
-    // Contact Information (required for all users)
-    contactName: "",
-    companyName: "",
-    phoneNumber: "",
-    emailAddress: "",
+    // Contact Information - auto-filled if customer is logged in
+    contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
+    companyName: customerData?.companyName || "",
+    phoneNumber: customerData?.phoneNumber || "",
+    emailAddress: customerData?.email || "",
     
     // Sample Details
     sampleSize: "50g",

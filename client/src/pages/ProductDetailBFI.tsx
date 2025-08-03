@@ -4,6 +4,7 @@ import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
 import { useAuth } from "@/hooks/useAuth";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -48,6 +49,7 @@ import type { Product, ProductDocument } from "@shared/schema";
 export default function ProductDetailBFI() {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
+  const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   const [selectedQuantity, setSelectedQuantity] = useState(25);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -501,7 +503,11 @@ export default function ProductDetailBFI() {
                     <DialogHeader>
                       <DialogTitle>Request Quote for {product.name}</DialogTitle>
                     </DialogHeader>
-                    <InquiryForm product={product} />
+                    <InquiryForm 
+                      product={product} 
+                      customerData={customer}
+                      isCustomerAuthenticated={isCustomerAuthenticated}
+                    />
                   </DialogContent>
                 </Dialog>
 
@@ -525,7 +531,8 @@ export default function ProductDetailBFI() {
                   </div>
                   <EnhancedInquiryForm 
                     product={product} 
-                    isAuthenticated={isAuthenticated} 
+                    isAuthenticated={isAuthenticated || isCustomerAuthenticated}
+                    customerData={customer}
                   />
                 </CardContent>
               </Card>
@@ -565,7 +572,8 @@ export default function ProductDetailBFI() {
                     </div>
                     <SampleRequestForm 
                       product={product} 
-                      isAuthenticated={isAuthenticated} 
+                      isAuthenticated={isAuthenticated || isCustomerAuthenticated}
+                      customerData={customer}
                     />
                   </div>
                 </div>
@@ -700,7 +708,11 @@ export default function ProductDetailBFI() {
                 </p>
               </CardHeader>
               <CardContent>
-                <EnhancedInquiryForm product={product} isAuthenticated={isAuthenticated} />
+                <EnhancedInquiryForm 
+                  product={product} 
+                  isAuthenticated={isAuthenticated || isCustomerAuthenticated}
+                  customerData={customer}
+                />
               </CardContent>
             </Card>
 
