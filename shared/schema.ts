@@ -762,7 +762,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const customerRegistrationSchema = insertUserSchema.extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
-  captchaToken: z.string().optional(), // Temporarily make CAPTCHA optional
 }).pick({
   firstName: true,
   lastName: true,
@@ -772,7 +771,6 @@ export const customerRegistrationSchema = insertUserSchema.extend({
   country: true,
   industryType: true,
   password: true,
-  captchaToken: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

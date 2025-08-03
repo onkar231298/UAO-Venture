@@ -13,11 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { CheckCircle, UserPlus, Building, Globe, Phone, Mail, Lock } from "lucide-react";
 
-declare global {
-  interface Window {
-    grecaptcha: any;
-  }
-}
+// Customer registration form component
 
 const countries = [
   'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands',
@@ -52,7 +48,6 @@ export default function CustomerRegistration() {
       country: "",
       industryType: "",
       password: "",
-      captchaToken: "no-captcha",
     },
   });
 
@@ -62,16 +57,10 @@ export default function CustomerRegistration() {
     setIsSubmitting(true);
     
     try {
-      // For now, proceed without CAPTCHA
-      const registrationData = {
-        ...data,
-        captchaToken: "no-captcha", // Temporary bypass
-      };
-
-      console.log("Sending registration data:", registrationData);
+      console.log("Sending registration data:", data);
       const response = await apiRequest('/api/auth/register-customer', {
         method: 'POST',
-        body: JSON.stringify(registrationData),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {

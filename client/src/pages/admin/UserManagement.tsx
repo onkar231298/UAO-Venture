@@ -263,6 +263,7 @@ export default function UserManagement() {
                         <p className="text-sm text-gray-600">This Month</p>
                         <p className="text-2xl font-bold text-blue-600">
                           {customersData?.customers?.filter((c: User) => {
+                            if (!c.createdAt) return false;
                             const created = new Date(c.createdAt);
                             const now = new Date();
                             return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
