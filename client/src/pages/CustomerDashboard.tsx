@@ -322,6 +322,84 @@ export default function CustomerDashboard() {
   const renderQuotations = () => (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">My Quotations</h1>
+      
+      {/* Quotation Process Explanation */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <TrendingUp className="w-5 h-5" />
+            How the Quotation Process Works
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-blue-800">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <MessageSquare className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-sm">1. Submit Inquiry</h3>
+              <p className="text-xs mt-1">You submit a product inquiry with quantity and requirements</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <User className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-sm">2. Sales Review</h3>
+              <p className="text-xs mt-1">Our sales team reviews your inquiry and prepares a detailed quotation</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-sm">3. Quotation Sent</h3>
+              <p className="text-xs mt-1">You receive a formal quotation with pricing, terms, and validity period</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <Package className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-sm">4. Place Order</h3>
+              <p className="text-xs mt-1">Accept the quotation to proceed with your order</p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+            <p className="text-sm font-medium">💡 Pro Tip:</p>
+            <p className="text-xs mt-1">All quotations include multi-currency pricing (USD, EUR, GBP, INR, etc.) and international trade terms (Ex-Warehouse, FOB, CIF, DDP) for global compliance.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quotation Status Guide */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Badge className="w-5 h-5" />
+            Quotation Status Guide
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
+              <span className="text-sm">Being prepared by sales team</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-100 text-blue-800">Sent</Badge>
+              <span className="text-sm">Quotation sent to you for review</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-800">Accepted</Badge>
+              <span className="text-sm">You've accepted, ready for order</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-red-100 text-red-800">Expired</Badge>
+              <span className="text-sm">Validity period has ended</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Active Quotations */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -340,18 +418,65 @@ export default function CustomerDashboard() {
           ) : quotations && quotations.length ? (
             <div className="space-y-4">
               {quotations.map((quotation: any) => (
-                <div key={quotation.id} className="border rounded-lg p-4">
+                <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{quotation.quotationId}</h3>
-                      <p className="text-sm text-gray-500">{quotation.customerName}</p>
-                      <div className="mt-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-lg">{quotation.quotationId}</h3>
                         <Badge className={getStatusColor(quotation.status)}>
                           {quotation.status}
                         </Badge>
+                        {quotation.currency && (
+                          <Badge variant="outline" className="text-xs">
+                            {quotation.currency}
+                          </Badge>
+                        )}
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Total Amount:</span> 
+                          <span className="ml-1 text-lg font-bold text-green-600">
+                            {quotation.currency || 'USD'} {quotation.totalAmount}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Price Type:</span> 
+                          <span className="ml-1 capitalize">{quotation.priceType?.replace('_', ' ') || 'Ex-Warehouse'}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                          <span>
+                            Valid until: {quotation.validUntil ? 
+                              new Date(quotation.validUntil).toLocaleDateString() : 
+                              'Not specified'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                      {quotation.terms && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                          <span className="font-medium">Terms & Conditions:</span>
+                          <p className="mt-1 whitespace-pre-line">{quotation.terms}</p>
+                        </div>
+                      )}
+                      {quotation.notes && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                          <span className="font-medium">Notes:</span> {quotation.notes}
+                        </div>
+                      )}
                     </div>
-                    <Button variant="outline" size="sm">View Details</Button>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Details
+                      </Button>
+                      {quotation.status === 'sent' && (
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Package className="w-4 h-4 mr-1" />
+                          Accept Quote
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -359,7 +484,14 @@ export default function CustomerDashboard() {
           ) : (
             <div className="text-center py-8">
               <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">No quotations found</p>
+              <p className="text-gray-500 mb-2">No quotations found</p>
+              <p className="text-xs text-gray-400 mb-4">
+                Submit an inquiry to receive your first quotation
+              </p>
+              <Button onClick={() => setLocation('/customer/inquiries')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Submit New Inquiry
+              </Button>
             </div>
           )}
         </CardContent>
