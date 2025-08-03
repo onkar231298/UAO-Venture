@@ -12,11 +12,22 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Leaf, Search, Star, Shield, Truck, Users, BarChart3, Globe, Phone, Mail, MapPin, Package } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 import type { Product, Category } from "@shared/schema";
 
 export default function Landing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  // SEO optimization for the homepage
+  useSEO({
+    title: "Bright Fame Organic - Premium B2B Organic Ingredients",
+    description: "Bright Fame Organic Pvt. Ltd. - Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers. Premium quality, sustainable sourcing, global shipping.",
+    keywords: "Bright Fame Organic, organic ingredients, B2B organic, organic spices, organic herbs, organic extracts, organic supplements, certified organic, bulk organic ingredients, organic supplier",
+    canonicalUrl: `${window.location.origin}/`,
+    pageType: "website",
+    pageId: "homepage"
+  });
 
   const { data: productsData, isLoading: productsLoading } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", { limit: 8, isOrganic: true }],
