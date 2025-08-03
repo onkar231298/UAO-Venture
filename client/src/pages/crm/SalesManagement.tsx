@@ -199,21 +199,26 @@ export default function SalesManagement() {
             </CardContent>
           </Card>
 
-          {/* Three Column Layout - Side by Side */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Horizontal Tabs Layout */}
+          <Tabs defaultValue="quote-requests" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
+              <TabsTrigger value="high-volume-bid">High Volume Bid</TabsTrigger>
+              <TabsTrigger value="sample-request">Sample Request</TabsTrigger>
+            </TabsList>
 
-            {/* Column 1: Quote Requests */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Quote Requests</span>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Quote Request
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <TabsContent value="quote-requests" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quote Requests</span>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Quote Request
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                 {inquiriesLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -291,21 +296,22 @@ export default function SalesManagement() {
                     <p className="text-gray-600">New customer inquiries will appear here</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Column 2: High Volume Bids */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>High Volume Bids</span>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Bid Request
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <TabsContent value="high-volume-bid" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>High Volume Bids</span>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Bid Request
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                 {inquiriesLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -346,18 +352,19 @@ export default function SalesManagement() {
                     <p className="text-gray-600">Large quantity bid requests will appear here</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Column 3: Sample Requests */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Sample Requests</span>
-                  <span className="text-sm text-gray-500">Manage product sample requests</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <TabsContent value="sample-request" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Sample Requests</span>
+                    <span className="text-sm text-gray-500">Manage product sample requests</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                 {sampleRequestsLoading ? (
                   <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -398,9 +405,10 @@ export default function SalesManagement() {
                     <p className="text-gray-600">New sample requests will appear here</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </RoleBasedRoute>
