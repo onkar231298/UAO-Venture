@@ -41,8 +41,10 @@ export default function CustomerDashboard() {
     enabled: isCustomerAuthenticated && !!customer?.id
   });
 
-  // Filter high volume bids from inquiries
-  const highVolumeBids = inquiries?.inquiries?.filter((inq: any) => inq.inquiryType === 'bulk_order') || [];
+  // Extract inquiries data
+  const allInquiries = (inquiries as any)?.inquiries || [];
+  const highVolumeBids = allInquiries.filter((inq: any) => inq.inquiryType === 'bulk_order');
+  const regularInquiries = allInquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order');
 
   const queryClient = useQueryClient();
 
@@ -262,9 +264,9 @@ export default function CustomerDashboard() {
                     <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
                   ))}
                 </div>
-              ) : (inquiries as any)?.inquiries && (inquiries as any).inquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order').length > 0 ? (
+              ) : regularInquiries && regularInquiries.length > 0 ? (
                 <div className="space-y-4">
-                  {(inquiries as any).inquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order').map((inquiry: any) => (
+                  {regularInquiries.map((inquiry: any) => (
                     <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
