@@ -83,24 +83,21 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     }
   };
   
-  // Header with Logo and Company Info
-  let yPos = 40;
+  // Header with centered logo
+  let yPos = 20;
   
   try {
-    // Add company logo (left side)
-    doc.image('server/bfi-logo.png', 40, yPos, { width: 120, height: 60 });
+    // Add company logo (centered at top)
+    const logoWidth = 150;
+    const logoHeight = 75;
+    const pageWidth = 595; // A4 page width in points
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.image('server/bfi-logo.png', logoX, yPos, { width: logoWidth, height: logoHeight });
   } catch (error) {
     console.log('Logo not found, skipping logo insertion');
   }
   
-  // Company header info (right side)
-  doc.fontSize(16).fillColor(orangeColor).text('BRIGHT FAME ORGANIC', 180, yPos + 5);
-  doc.fontSize(10).fillColor('black')
-     .text('Your Trusted Ingredient Partner', 180, yPos + 25)
-     .text(`${companyDetails.phone} | ${companyDetails.email}`, 180, yPos + 40)
-     .text(companyDetails.website, 180, yPos + 55);
-  
-  yPos += 80;
+  yPos += 90;
   
   // Quotation Title
   doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
@@ -116,9 +113,9 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   
   yPos += 65;
   
-  // Company Info Box (Left)
-  doc.fillColor('#f8f9fa').rect(40, yPos, 250, 140).fill()
-     .strokeColor('#e9ecef').rect(40, yPos, 250, 140).stroke();
+  // Company Info Box (Left) - increased height for complete address
+  doc.fillColor('#f8f9fa').rect(40, yPos, 250, 170).fill()
+     .strokeColor('#e9ecef').rect(40, yPos, 250, 170).stroke();
   
   doc.fontSize(12).fillColor(orangeColor).text('Quotation by', 50, yPos + 10);
   doc.moveTo(50, yPos + 25).lineTo(280, yPos + 25).strokeColor(orangeColor).stroke();
@@ -127,18 +124,21 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
      .text(companyDetails.name, 50, yPos + 35, { width: 230 })
      .text(companyDetails.address, 50, yPos + 50, { width: 230 })
      .text(companyDetails.address2, 50, yPos + 65, { width: 230 })
-     .text(companyDetails.address3, 50, yPos + 80, { width: 230 });
+     .text(companyDetails.address3, 50, yPos + 80, { width: 230 })
+     .text(`Phone: ${companyDetails.phone}`, 50, yPos + 95, { width: 230 })
+     .text(`Email: ${companyDetails.email}`, 50, yPos + 110, { width: 230 })
+     .text(`Website: ${companyDetails.website}`, 50, yPos + 125, { width: 230 });
   
   if (quotation.sellerGstin) {
-    doc.text(`GSTIN: ${quotation.sellerGstin}`, 50, yPos + 100, { width: 230 });
+    doc.text(`GSTIN: ${quotation.sellerGstin}`, 50, yPos + 140, { width: 230 });
   }
   if (quotation.sellerPan) {
-    doc.text(`PAN: ${quotation.sellerPan}`, 50, yPos + 115, { width: 230 });
+    doc.text(`PAN: ${quotation.sellerPan}`, 50, yPos + 155, { width: 230 });
   }
   
-  // Customer Info Box (Right)
-  doc.fillColor('#f8f9fa').rect(300, yPos, 250, 140).fill()
-     .strokeColor('#e9ecef').rect(300, yPos, 250, 140).stroke();
+  // Customer Info Box (Right) - increased height to match left box
+  doc.fillColor('#f8f9fa').rect(300, yPos, 250, 170).fill()
+     .strokeColor('#e9ecef').rect(300, yPos, 250, 170).stroke();
   
   doc.fontSize(12).fillColor(orangeColor).text('Quotation to', 310, yPos + 10);
   doc.moveTo(310, yPos + 25).lineTo(540, yPos + 25).strokeColor(orangeColor).stroke();
@@ -181,17 +181,8 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   if (locationParts.length > 0) {
     doc.text(locationParts.join(', '), 310, customerYPos, { width: 230 });
   }
-  if (quotation.customerAddress) {
-    doc.text(quotation.customerAddress, 310, yPos + 65, { width: 230 });
-  }
-  if (quotation.customerCity && quotation.customerState) {
-    doc.text(`${quotation.customerCity}, ${quotation.customerState} - ${quotation.customerPostalCode || ''}`, 310, yPos + 80, { width: 230 });
-  }
-  if (quotation.customerCountry) {
-    doc.text(quotation.customerCountry, 310, yPos + 95, { width: 230 });
-  }
   
-  yPos += 160;
+  yPos += 190; // Increased from 160 to accommodate taller boxes
   
   // Items Table Header
   doc.fillColor(orangeColor).rect(40, yPos, 510, 25).fill();
@@ -277,8 +268,8 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   // Signature Section
   doc.moveTo(400, yPos).lineTo(540, yPos).strokeColor('black').stroke();
   doc.fontSize(10).fillColor('black')
-     .text('Authorized Signature', 400, yPos + 10)
-     .text(companyDetails.name, 400, yPos + 25);
+     .text('This is computer generated quotation,', 400, yPos + 10)
+     .text('no need of signature', 400, yPos + 25);
   
   return doc;
 }
