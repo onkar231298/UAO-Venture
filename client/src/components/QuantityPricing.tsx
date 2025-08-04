@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calculator, Package, TrendingDown } from 'lucide-react';
 import { detectUserCurrency, formatPrice, getProductPrice } from '@/lib/currencyUtils';
+import { generateDynamicPricingTiers } from '@/utils/pricingUtils';
 import type { Product } from '@shared/schema';
 
 interface QuantityPricingProps {
@@ -48,20 +49,13 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   
   // MOQ already defined above
   
-  // Default pricing tiers - quantity thresholds with discount percentages
-  // Price per unit is calculated dynamically based on baseRate and discount
-  const defaultTiers = [
-    { quantity: Math.max(minOrderQty, minOrderQty), price: baseRate, discount: 0 },
-    { quantity: Math.max(100, minOrderQty), price: baseRate, discount: 5 },
-    { quantity: Math.max(500, minOrderQty), price: baseRate, discount: 8 },
-    { quantity: Math.max(1000, minOrderQty), price: baseRate, discount: 12 },
-    { quantity: Math.max(5000, minOrderQty), price: baseRate, discount: 15 },
-  ].filter(tier => tier.quantity >= minOrderQty);
+  // Default pricing tiers - dynamically generated based on MOQ
+  const defaultTiers = generateDynamicPricingTiers(minOrderQty, baseRate);
   
-  // Filter tiers to only include quantities >= MOQ
+  // Use custom bulk pricing if available, otherwise use dynamic tiers
   const pricingTiers: PricingTier[] = bulkPricing.length > 0 
     ? bulkPricing.filter(tier => tier.quantity >= minOrderQty)
-    : defaultTiers.filter(tier => tier.quantity >= minOrderQty);
+    : defaultTiers;
 
   const calculatePrice = (quantity: number): { totalPrice: number; discount: number; pricePerUnit: number } => {
     // Find the appropriate pricing tier based on quantity
@@ -94,9 +88,17 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   const handleCustomQuantityChange = (value: string) => {
     setCustomQuantity(value);
     const quantity = parseInt(value) || 0;
-    const minOrderQty = parseFloat(product.moq as string || '25');
     
     if (quantity > 0 && quantity >= minOrderQty) {
+      setSelectedQuantity(quantity);
+      const pricing = calculatePrice(quantity);
+      onQuantityChange?.(quantity, pricing.totalPrice, pricing.discount);
+    }
+  };
+
+  const handleCustomQuantityCalculate = () => {
+    const quantity = parseInt(customQuantity) || 0;
+    if (quantity >= minOrderQty) {
       setSelectedQuantity(quantity);
       const pricing = calculatePrice(quantity);
       onQuantityChange?.(quantity, pricing.totalPrice, pricing.discount);
@@ -113,9 +115,12 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
           Quantity Pricing
         </CardTitle>
         {!isLoading && (
-          <p className="text-sm text-gray-600">
-            Current pricing in {userCurrency} • Prices shown in your regional currency
-          </p>
+          <div className="text-sm text-gray-600">
+            <p>Current pricing in {userCurrency} • Prices shown in your regional currency</p>
+            <p className="text-xs text-blue-600 mt-1">
+              MOQ: {minOrderQty.toLocaleString()} {product.stockUnit || 'kg'} • Volume discounts available
+            </p>
+          </div>
         )}
       </CardHeader>
       <CardContent className="space-y-3 p-3">
@@ -136,8 +141,13 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                   <div key={index} className={`p-3 rounded-lg border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <div className="font-semibold text-base text-gray-900">
+                        <div className="font-semibold text-base text-gray-900 flex items-center gap-2">
                           {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
+                          {index === 0 && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1.5 py-0">
+                              MOQ
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-gray-600">
                           {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
@@ -190,7 +200,14 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                       return (
                         <tr key={index} className={`${isSelected ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
                           <td className="px-2 py-1.5 text-xs font-medium text-gray-900">
-                            {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
+                            <div className="flex items-center gap-2">
+                              {tier.quantity.toLocaleString()} {product.stockUnit || 'kg'}
+                              {index === 0 && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1.5 py-0">
+                                  MOQ
+                                </Badge>
+                              )}
+                            </div>
                           </td>
                           <td className="px-2 py-1.5 text-xs text-gray-900">
                             {formatPrice(pricing.pricePerUnit, userCurrency)}/{product.priceUnit || 'kg'}
@@ -241,16 +258,21 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
                 />
                 <Button 
                   variant="outline" 
-                  onClick={() => handleCustomQuantityChange(customQuantity)}
+                  onClick={handleCustomQuantityCalculate}
                   disabled={!customQuantity || parseInt(customQuantity) < minOrderQty}
                   className="text-xs px-2 h-7"
                 >
                   Calculate
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                MOQ: {product.moq || 25} {product.stockUnit || 'kg'}
-              </p>
+              <div className="text-xs text-gray-500 mt-1">
+                <p>MOQ: {minOrderQty.toLocaleString()} {product.stockUnit || 'kg'}</p>
+                {customQuantity && parseInt(customQuantity) < minOrderQty && (
+                  <p className="text-red-500 mt-1">
+                    Minimum order quantity is {minOrderQty.toLocaleString()} {product.stockUnit || 'kg'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Summary */}
