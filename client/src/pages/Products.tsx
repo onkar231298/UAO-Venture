@@ -178,6 +178,7 @@ export default function Products() {
       origin: [],
       form: [],
       materials: [],
+      productType: [],
       priceRange: null,
       inStock: null,
     });

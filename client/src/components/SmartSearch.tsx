@@ -101,8 +101,10 @@ export default function SmartSearch({ onSearch, placeholder = "Search products..
   };
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
-    setQuery(suggestion.query);
-    handleSearch(suggestion.query);
+    setQuery("");
+    setShowSuggestions(false);
+    // Navigate to products page with search query
+    window.location.href = `/products?search=${encodeURIComponent(suggestion.query)}`;
   };
 
   const handleBlur = (e: React.FocusEvent) => {
