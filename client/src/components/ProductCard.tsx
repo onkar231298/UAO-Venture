@@ -13,10 +13,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  // Get the first image from mainImage field or images array
-  const mainImage = (product as any).mainImage;
-  const productImages = product.images as string[] | null;
-  const productImage = mainImage || (productImages && productImages.length > 0 ? productImages[0] : null);
+  // Get the product image from database fields - imageUrl (main) or galleryImages (array)
+  const productImage = product.imageUrl || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
   const hasImage = !!productImage;
 
   return (

@@ -84,21 +84,21 @@ export default function ProductDetailBFI() {
     setDiscount(discountPercent);
   };
 
-  // Create gallery images array with main image and gallery images
+  // Create gallery images array with database imageUrl and galleryImages
   const getAllImages = () => {
     if (!product) return [];
     
     const images = [];
     
-    // Add main image first if it exists
-    if ((product as any).mainImage) {
-      images.push((product as any).mainImage);
+    // Add main image from imageUrl field if it exists
+    if (product.imageUrl) {
+      images.push(product.imageUrl);
     }
     
     // Add gallery images if they exist and are not duplicates of main image
-    if ((product as any).galleryImages && Array.isArray((product as any).galleryImages)) {
-      const galleryImages = (product as any).galleryImages.filter((img: string) => 
-        img && img.trim() !== '' && img !== (product as any).mainImage
+    if (product.galleryImages && Array.isArray(product.galleryImages)) {
+      const galleryImages = product.galleryImages.filter((img: string) => 
+        img && img.trim() !== '' && img !== product.imageUrl
       );
       images.push(...galleryImages);
     }
