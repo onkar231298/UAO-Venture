@@ -55,7 +55,7 @@ export function OptimizedImageWebP({
     checkWebPSupport();
   }, []);
 
-  // Get WebP URL for S3 images
+  // Get WebP URL for S3 images and local assets
   const getWebPUrl = (originalUrl: string): string => {
     try {
       // Check if it's an S3 URL from any of our buckets
@@ -69,7 +69,14 @@ export function OptimizedImageWebP({
         return `https://webpimagesbfo.s3.eu-north-1.amazonaws.com/${webpFilename}`;
       }
       
-      // For non-S3 URLs, check if we can add WebP parameter
+      // Handle local assets - check if WebP version exists
+      if (originalUrl.includes('/attached_assets/') || originalUrl.startsWith('/@fs/')) {
+        // For local development assets, try WebP version first
+        const webpUrl = originalUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+        return webpUrl;
+      }
+      
+      // For external URLs like Unsplash
       if (originalUrl.includes('unsplash.com')) {
         return originalUrl.includes('?') 
           ? `${originalUrl}&fm=webp&q=${quality}`

@@ -146,7 +146,7 @@ export default function Header() {
             <Link href="/">
               <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
                 <img 
-                  src="/attached_assets/Final Logo_1753730040470.png" 
+                  src="/attached_assets/Final Logo_1753730040470.webp" 
                   alt="Bright Fame Organic" 
                   className="h-12 sm:h-16 w-auto object-contain"
                 />
