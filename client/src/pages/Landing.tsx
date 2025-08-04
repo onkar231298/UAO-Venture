@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import ProductCard from "@/components/ProductCard";
 import SmartProductCard from "@/components/SmartProductCard";
-import OptimizedImage from "@/components/OptimizedImage";
+import { OptimizedImageWebP } from "@/components/OptimizedImageWebP";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

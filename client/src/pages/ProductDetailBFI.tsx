@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
-import OptimizedImage from "@/components/OptimizedImage";
+import { OptimizedImageWebP } from "@/components/OptimizedImageWebP";
 import ImagePreloader from "@/components/ImagePreloader";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -234,20 +234,12 @@ export default function ProductDetailBFI() {
               <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden group">
                 {currentImage ? (
                   <div className="relative">
-                    <OptimizedImage
+                    <OptimizedImageWebP
                       src={currentImage}
                       alt={`${product.name} - Image ${currentImageIndex + 1}`}
                       className="w-full aspect-square object-cover"
-                      priority={currentImageIndex === 0} // Prioritize first image
-                      lazy={false} // Don't lazy load main product images
-                      placeholder={
-                        <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
-                          <div className="text-center">
-                            <div className="text-4xl mb-3">📷</div>
-                            <div className="text-lg font-medium">Loading Image...</div>
-                          </div>
-                        </div>
-                      }
+                      loading="eager"
+                      fallbackSrc="https://images.unsplash.com/photo-1597149641961-85d21ad6a6a5?w=400&h=400&fit=crop"
                     />
                     
                     {/* Navigation Arrows - Only show if multiple images */}
@@ -313,16 +305,12 @@ export default function ProductDetailBFI() {
                       }`}
                       onClick={() => goToImage(index)}
                     >
-                      <OptimizedImage
+                      <OptimizedImageWebP
                         src={image}
                         alt={`${product.name} - Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
-                        lazy={true}
-                        placeholder={
-                          <div className="w-full h-full bg-gray-100 animate-pulse flex items-center justify-center">
-                            <div className="text-xs text-gray-400">📷</div>
-                          </div>
-                        }
+                        loading="lazy"
+                        fallbackSrc="https://images.unsplash.com/photo-1597149641961-85d21ad6a6a5?w=64&h=64&fit=crop"
                       />
                     </button>
                   ))}

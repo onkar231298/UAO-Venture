@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
-import OptimizedImage from "./OptimizedImage";
+import { OptimizedImageWebP } from "./OptimizedImageWebP";
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
 import type { Product } from "@shared/schema";
 
@@ -25,21 +25,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="cursor-pointer">
           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
             {hasImage ? (
-              <OptimizedImage
+              <OptimizedImageWebP
                 src={productImage}
                 alt={product.name}
                 className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-200"
-                lazy={true} // Use smart lazy loading
-                priority={false} // Only prioritize hero and first few products
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                placeholder={
-                  <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 text-green-400 animate-pulse">
-                    <div className="text-center">
-                      <div className="text-2xl sm:text-3xl mb-2 animate-bounce">🌿</div>
-                      <div className="text-xs sm:text-sm font-medium">Loading...</div>
-                    </div>
-                  </div>
-                }
+                loading="lazy"
+                fallbackSrc="https://images.unsplash.com/photo-1597149641961-85d21ad6a6a5?w=400&h=400&fit=crop"
               />
             ) : (
               <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
