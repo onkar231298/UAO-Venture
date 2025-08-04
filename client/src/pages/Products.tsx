@@ -417,7 +417,7 @@ export default function Products() {
                 <CollapsibleContent className="mt-3">
                   <ScrollArea className="h-48">
                     <div className="space-y-3">
-                      {categories?.map((category) => (
+                      {categories && categories.length > 0 ? categories.map((category) => (
                         <div key={category.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`category-${category.id}`}
@@ -428,7 +428,11 @@ export default function Products() {
                             {category.name}
                           </Label>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="text-sm text-gray-500 text-center py-2">
+                          Loading categories...
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </CollapsibleContent>

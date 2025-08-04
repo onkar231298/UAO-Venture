@@ -165,13 +165,15 @@ export default function Header() {
                 Products
               </Link>
               <DropdownMenu>
-                <DropdownMenuTrigger className="text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1">
-                  Ingredients <ChevronDown className="ml-1 h-3 w-3" />
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                    Ingredients <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200">
+                <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
                   {/* All Ingredients Link */}
-                  <Link href="/ingredients">
-                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center">
+                  <Link href="/products">
+                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
                       All Ingredients
                     </DropdownMenuItem>
                   </Link>
@@ -180,19 +182,53 @@ export default function Header() {
                   
                   {/* Categories in Three Columns */}
                   <div className="grid grid-cols-3 gap-1">
-                    {categories.map((category) => (
+                    {categories && categories.length > 0 ? categories.map((category) => (
                       <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
                         <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                           {category.name}
                         </DropdownMenuItem>
                       </Link>
-                    ))}
+                    )) : (
+                      <>
+                        {/* Fallback categories for immediate display */}
+                        <Link href="/products?category=Herbal%20Powders">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Herbal Powders
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/products?category=Spices">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Spices
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/products?category=Essential%20Oils">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Essential Oils
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/products?category=Adaptogenic%20Herbs">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Adaptogenic Herbs
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/products?category=Ayurvedic%20Herbs">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Ayurvedic Herbs
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/products?category=Botanical%20Extracts">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Botanical Extracts
+                          </DropdownMenuItem>
+                        </Link>
+                      </>
+                    )}
                   </div>
                   
-                  {/* Show placeholder if no categories loaded */}
-                  {categories.length === 0 && (
+                  {/* Show loading only if categories array is empty and loading */}
+                  {(!categories || categories.length === 0) && (
                     <div className="text-sm text-gray-500 text-center py-2">
-                      Loading categories...
+                      {categories === undefined ? 'Loading categories...' : 'No categories available'}
                     </div>
                   )}
                 </DropdownMenuContent>
