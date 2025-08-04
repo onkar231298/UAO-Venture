@@ -92,35 +92,13 @@ export default function Header() {
     if (searchQuery.trim()) {
       setShowSuggestions(false);
       
-      // First try to find exact product match
-      const exactMatch = suggestions.find(product => 
-        product.name.toLowerCase() === searchQuery.trim().toLowerCase()
-      );
+      // Clean the search query
+      const cleanQuery = searchQuery.trim();
       
-      if (exactMatch) {
-        // Navigate directly to product page if exact match found
-        setSearchQuery("");
-        setLocation(`/product/${exactMatch.slug}`);
-      } else {
-        // Check for partial matches in suggestions
-        const partialMatch = suggestions.find(product => 
-          product.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
-        );
-        
-        if (partialMatch) {
-          // Navigate to best match product page
-          setSearchQuery("");
-          setLocation(`/product/${partialMatch.slug}`);
-        } else {
-          // Only use search parameters as last resort, and ensure clean encoding
-          const cleanQuery = searchQuery.trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ');
-          if (cleanQuery) {
-            setLocation(`/products?search=${encodeURIComponent(cleanQuery)}`);
-          } else {
-            setLocation('/products');
-          }
-        }
-      }
+      // Always go to search results page for comprehensive search
+      // This ensures all matching products are shown, not just exact matches
+      setSearchQuery("");
+      setLocation(`/search/${encodeURIComponent(cleanQuery)}`);
     }
   };
 
@@ -554,13 +532,8 @@ export default function Header() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowSuggestions(false);
-                          // Clean search query before using in URL
-                          const cleanQuery = searchQuery.trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ');
-                          if (cleanQuery) {
-                            setLocation(`/products?search=${encodeURIComponent(cleanQuery)}`);
-                          } else {
-                            setLocation('/products');
-                          }
+                          setSearchQuery("");
+                          setLocation(`/search/${encodeURIComponent(searchQuery.trim())}`);
                         }}
                         className="text-xs text-green-600 hover:text-green-700 font-medium w-full text-left"
                       >

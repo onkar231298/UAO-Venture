@@ -14,6 +14,7 @@ import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
+import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
       <Route path="/category/:slug" component={CategoryPage} />
+      <Route path="/search/:query" component={SearchResults} />
       <Route path="/login" component={UnifiedLogin} />
 
       <Route path="/register" component={CustomerRegistration} />
