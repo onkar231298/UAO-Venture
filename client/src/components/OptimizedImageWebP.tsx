@@ -58,9 +58,9 @@ export function OptimizedImageWebP({
   // Get WebP URL for S3 images
   const getWebPUrl = (originalUrl: string): string => {
     try {
-      // Check if it's an S3 URL from the original bucket
-      if (originalUrl.includes('bfi-original-images.s3')) {
-        // Extract the filename
+      // Check if it's an S3 URL from any of our buckets
+      if (originalUrl.includes('bfi-original-images.s3') || originalUrl.includes('brightfameimages.s3')) {
+        // Extract the filename (last part of the path)
         const urlParts = originalUrl.split('/');
         const filename = urlParts[urlParts.length - 1];
         const webpFilename = filename.replace(/\.[^/.]+$/, '.webp');
@@ -108,6 +108,7 @@ export function OptimizedImageWebP({
     if (!isInView || webpSupported === null) return;
 
     const webpUrl = webpSupported ? getWebPUrl(src) : src;
+    console.log(`Loading image - WebP supported: ${webpSupported}, Original: ${src}, WebP URL: ${webpUrl}`);
     setImageSrc(webpUrl);
   }, [isInView, webpSupported, src, quality]);
 
@@ -122,7 +123,7 @@ export function OptimizedImageWebP({
   const handleError = () => {
     if (webpSupported && imageSrc !== src) {
       // Try original image if WebP failed
-      console.log(`WebP failed for ${imageSrc}, falling back to original`);
+      console.log(`WebP failed for ${imageSrc}, falling back to original: ${src}`);
       setImageSrc(src);
       return;
     }
