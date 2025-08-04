@@ -53,7 +53,9 @@ export default function SmartSearch({ onSearch, placeholder = "Search products..
   const handleSearch = (searchQuery: string) => {
     if (searchQuery.trim()) {
       recordSearchMutation.mutate(searchQuery.trim());
-      onSearch(searchQuery.trim());
+      // Encode the search query for URL-safe navigation
+      const encodedQuery = encodeURIComponent(searchQuery.trim());
+      onSearch(encodedQuery);
       setShowSuggestions(false);
       setSelectedIndex(-1);
     }

@@ -28,7 +28,7 @@ export default function SearchResults() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
 
-  // Decode the search query
+  // Decode the search query (handles both encoded and non-encoded URLs)
   const searchQuery = query ? decodeURIComponent(query) : '';
 
   // Initialize SEO for search results page
@@ -36,19 +36,19 @@ export default function SearchResults() {
     title: `Search Results for "${searchQuery}" - BFI Organic`,
     description: `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.`,
     keywords: `${searchQuery}, organic ingredients, herbal extracts, natural products, search results`,
-    canonicalUrl: `${window.location.origin}/search/${query}`,
+    canonicalUrl: `${window.location.origin}/search/${encodeURIComponent(searchQuery)}`,
     pageType: "search",
-    pageId: `search-${query}`
+    pageId: `search-${encodeURIComponent(searchQuery)}`
   });
 
-  // Fetch search results
-  const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
+  // Fetch search results with improved error handling and cache settings
+  const { data: productsData, isLoading, refetch } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "search", searchQuery, currentPage, sortBy],
     queryFn: async () => {
       if (!searchQuery.trim()) return { products: [], total: 0 };
       
       const params = new URLSearchParams();
-      params.append('search', searchQuery);
+      params.append('search', searchQuery.trim());
       params.append('limit', itemsPerPage.toString());
       params.append('offset', ((currentPage - 1) * itemsPerPage).toString());
       
@@ -62,7 +62,32 @@ export default function SearchResults() {
       return response.json();
     },
     enabled: !!searchQuery.trim(),
+    staleTime: 30000,
+    gcTime: 300000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
+
+  // Handle browser navigation and focus events for back button support
+  useEffect(() => {
+    const handleFocus = () => {
+      if (searchQuery.trim()) refetch();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && searchQuery.trim()) {
+        refetch();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetch, searchQuery]);
 
   const products = productsData?.products || [];
   const totalPages = Math.ceil((productsData?.total || 0) / itemsPerPage);
