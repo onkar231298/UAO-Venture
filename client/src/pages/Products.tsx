@@ -63,6 +63,33 @@ export default function Products() {
 
   const [filters, setFilters] = useState<ProductFilters>(initializeFiltersFromURL);
 
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      // Reinitialize filters when user navigates back/forward
+      setFilters(initializeFiltersFromURL());
+      setCurrentPage(1);
+    };
+
+    // Listen for browser navigation events
+    window.addEventListener('popstate', handlePopState);
+    
+    // Also handle page visibility changes (when user comes back to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible, refresh filters from URL
+        setFilters(initializeFiltersFromURL());
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [openSections, setOpenSections] = useState({
     category: true,
@@ -120,15 +147,29 @@ export default function Products() {
   }, [debouncedFilters]);
 
   // Fetch products with debounced filters and pagination
-  const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
+  const { data: productsData, isLoading, refetch } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", buildQueryParams(debouncedFilters, currentPage)],
     queryFn: async () => {
       const queryParams = buildQueryParams(debouncedFilters, currentPage);
       const response = await fetch(`/api/products?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
-    }
+    },
+    staleTime: 30000, // Keep data fresh for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: true, // Refetch when window gets focus
+    refetchOnMount: true, // Always refetch on component mount
   });
+
+  // Force refetch when coming back from another page
+  useEffect(() => {
+    const handleFocus = () => {
+      refetch();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refetch]);
 
   // Fetch categories
   const { data: categories } = useQuery<Category[]>({

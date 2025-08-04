@@ -56,7 +56,7 @@ export default function CategoryPage() {
   );
 
   // Fetch products for this category
-  const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
+  const { data: productsData, isLoading, refetch } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "category", category?.name, currentPage, sortBy],
     queryFn: async () => {
       if (!category) return { products: [], total: 0 };
@@ -72,7 +72,32 @@ export default function CategoryPage() {
       return response.json();
     },
     enabled: !!category,
+    staleTime: 30000,
+    gcTime: 300000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
+
+  // Handle browser navigation and focus events
+  useEffect(() => {
+    const handleFocus = () => {
+      if (category) refetch();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && category) {
+        refetch();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetch, category]);
 
   const products = productsData?.products || [];
   const totalPages = Math.ceil((productsData?.total || 0) / itemsPerPage);
