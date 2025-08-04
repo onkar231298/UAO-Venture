@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Search, Filter, ChevronDown, ChevronUp, Leaf, Globe, Package2, Heart, Award, X } from "lucide-react";
 import SmartSearch from "@/components/SmartSearch";
+import ProductsPageStructuredData from "@/components/ProductsPageStructuredData";
 import type { Product, Category } from "@shared/schema";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -226,6 +227,7 @@ export default function Products() {
 
   return (
     <div className="min-h-screen bg-background">
+      <ProductsPageStructuredData products={filteredAndSortedProducts} />
       <Header />
       
       <div className="container mx-auto px-4 py-8">

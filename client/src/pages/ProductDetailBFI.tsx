@@ -44,6 +44,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
+import StructuredData from "@/components/StructuredData";
+import { testStructuredData } from "@/utils/seoTestUtil";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -62,6 +64,11 @@ export default function ProductDetailBFI() {
 
   const { data: documents } = useQuery<ProductDocument[]>({
     queryKey: ["/api/products", product?.id, "documents"],
+    enabled: !!product?.id,
+  });
+
+  const { data: faqs } = useQuery({
+    queryKey: ["/api/products", product?.id, "faqs"],
     enabled: !!product?.id,
   });
 
@@ -132,7 +139,7 @@ export default function ProductDetailBFI() {
     }
   };
 
-  // Update page meta tags for SEO (structured data is now handled server-side)
+  // Update page meta tags for SEO and test structured data
   useEffect(() => {
     if (product) {
       // Update page title if not already set by server
@@ -149,6 +156,14 @@ export default function ProductDetailBFI() {
           document.head.appendChild(metaDescription);
         }
         metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
+      }
+      
+      // Test structured data after component mounts (development only)
+      if (import.meta.env.DEV) {
+        setTimeout(() => {
+          console.log('Testing structured data for product:', product.name);
+          testStructuredData();
+        }, 1000);
       }
     }
   }, [product]);
@@ -192,6 +207,8 @@ export default function ProductDetailBFI() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Structured Data for SEO */}
+      <StructuredData product={product} faqs={faqs} />
       <Header />
       
       <div className="container mx-auto px-4 py-6">

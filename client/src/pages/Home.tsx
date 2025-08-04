@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ProductCatalog from "@/components/ProductCatalog";
+import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,6 +95,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
+        <HomeStructuredData />
         <Header />
         
         {/* Simple Hero Slider */}
