@@ -8,8 +8,9 @@
  * 4. Prepare the system for AWS S3
  */
 
-const { db } = require('../dist/server/db');
-const { products, categories, heroSlides } = require('../dist/shared/schema');
+import { db } from '../server/db.js';
+import { products, categories, heroSlides } from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 async function migrateToS3() {
   console.log('🚀 Starting migration from Replit Object Storage to AWS S3...\n');
@@ -105,17 +106,5 @@ async function migrateToS3() {
   }
 }
 
-// Import required functions
-async function importModules() {
-  const { eq } = await import('drizzle-orm');
-  global.eq = eq;
-}
-
 // Run migration
-async function run() {
-  await importModules();
-  await migrateToS3();
-  process.exit(0);
-}
-
-run();
+migrateToS3();
