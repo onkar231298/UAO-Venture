@@ -65,7 +65,7 @@ export function OptimizedImageWebP({
         const filename = urlParts[urlParts.length - 1];
         const webpFilename = filename.replace(/\.[^/.]+$/, '.webp');
         
-        // Return WebP bucket URL
+        // Return WebP bucket URL - use the working bucket
         return `https://webpimagesbfo.s3.eu-north-1.amazonaws.com/${webpFilename}`;
       }
       
