@@ -398,6 +398,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // IP-based currency detection endpoint
+  app.get('/api/detect-currency', async (req, res) => {
+    try {
+      // Get IP address from request (handle proxy headers)
+      const forwarded = req.headers['x-forwarded-for'] as string;
+      const clientIP = forwarded ? forwarded.split(',')[0].trim() : 
+                      req.headers['x-real-ip'] as string || 
+                      req.connection.remoteAddress || 
+                      req.socket.remoteAddress || 
+                      '127.0.0.1';
+
+      console.log(`Detecting currency for IP: ${clientIP}`);
+
+      // Skip localhost/development IPs
+      if (clientIP === '127.0.0.1' || clientIP === '::1' || clientIP?.startsWith('192.168.') || clientIP?.startsWith('10.')) {
+        return res.json({ currency: 'USD', source: 'localhost_default', ip: clientIP });
+      }
+
+      // Try multiple IP geolocation services
+      const services = [
+        // Service 1: ipapi.co
+        async () => {
+          const response = await fetch(`https://ipapi.co/${clientIP}/json/`);
+          const data = await response.json();
+          return { countryCode: data.country_code, service: 'ipapi.co' };
+        },
+        
+        // Service 2: ip-api.com (free, no key required)
+        async () => {
+          const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=countryCode`);
+          const data = await response.json();
+          return { countryCode: data.countryCode, service: 'ip-api.com' };
+        }
+      ];
+
+      // Country to currency mapping (server-side)
+      const COUNTRY_CURRENCY_MAP: Record<string, string> = {
+        US: 'USD', CA: 'USD', MX: 'USD', // North America
+        IN: 'INR', // India
+        DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', // Europe
+        PT: 'EUR', IE: 'EUR', FI: 'EUR', LU: 'EUR', MT: 'EUR', CY: 'EUR', SK: 'EUR',
+        SI: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR', GR: 'EUR',
+        GB: 'GBP', UK: 'GBP', // UK
+      };
+
+      // Try each service
+      for (const service of services) {
+        try {
+          const result = await service();
+          const currency = COUNTRY_CURRENCY_MAP[result.countryCode] || 'USD';
+          
+          if (result.countryCode) {
+            console.log(`Currency detected: ${result.countryCode} -> ${currency} via ${result.service}`);
+            return res.json({ 
+              currency, 
+              countryCode: result.countryCode, 
+              source: result.service,
+              ip: clientIP 
+            });
+          }
+        } catch (error) {
+          console.warn(`IP service failed:`, error);
+          continue;
+        }
+      }
+
+      // Fallback to USD
+      res.json({ currency: 'USD', source: 'fallback', ip: clientIP });
+    } catch (error) {
+      console.error('Currency detection error:', error);
+      res.json({ currency: 'USD', source: 'error_fallback' });
+    }
+  });
+
   // Public API routes (no authentication required)
   
   // Get products with advanced filtering

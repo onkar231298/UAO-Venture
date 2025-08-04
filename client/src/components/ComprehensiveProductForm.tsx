@@ -788,7 +788,7 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="priceUSD">Price (USD)</Label>
               <Input
@@ -808,6 +808,17 @@ export default function ComprehensiveProductForm({
                 step="0.01"
                 value={formData.priceINR}
                 onChange={(e) => setFormData(prev => ({ ...prev, priceINR: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="priceEUR">Price (EUR)</Label>
+              <Input
+                id="priceEUR"
+                type="number"
+                step="0.01"
+                value={formData.priceEUR}
+                onChange={(e) => setFormData(prev => ({ ...prev, priceEUR: e.target.value }))}
                 placeholder="0.00"
               />
             </div>
