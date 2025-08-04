@@ -60,6 +60,12 @@ export default function ProductDetailBFI() {
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/slug/${slug}`);
+      if (!response.ok) throw new Error('Product not found');
+      return response.json();
+    },
+    enabled: !!slug,
   });
 
   const { data: documents } = useQuery<ProductDocument[]>({
