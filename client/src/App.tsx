@@ -96,13 +96,17 @@ function Router() {
 function App() {
   // Initialize SEO service and Google Analytics on app load
   useEffect(() => {
-    seoService.initializeSettings();
-    
-    // Verify required environment variable is present
-    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
-      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
-    } else {
-      initGA();
+    try {
+      seoService.initializeSettings();
+      
+      // Verify required environment variable is present
+      if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+        console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+      } else {
+        initGA();
+      }
+    } catch (error) {
+      console.warn('App initialization error:', error);
     }
   }, []);
 
