@@ -76,8 +76,8 @@
 
 2. **Create Bucket**
    - Click "Create bucket"
-   - Bucket name: `bfi-organic-images` (must be globally unique)
-   - If taken, try: `bfi-organic-images-2025` or `bfi-organic-mumbai`
+   - Bucket name: `bfi-organic-products-2025` (must be globally unique)
+   - If taken, try: `bfi-organic-store-2025` or `brightfame-organic-images`
    - Region: Same as you selected earlier (ap-south-1 or us-east-1)
 
 3. **Configure Permissions**
@@ -101,7 +101,7 @@
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::bfi-organic-images/*"
+      "Resource": "arn:aws:s3:::bfi-organic-products-2025/*"
     }
   ]
 }
@@ -129,7 +129,7 @@ After completing the above steps, you should have:
 
 1. **AWS_ACCESS_KEY_ID**: Starts with "AKIA..." (from Step 3.4)
 2. **AWS_SECRET_ACCESS_KEY**: Long random string (from Step 3.4)
-3. **AWS_S3_BUCKET_NAME**: Your bucket name (e.g., "bfi-organic-images")
+3. **AWS_S3_BUCKET_NAME**: Your bucket name (e.g., "bfi-organic-products-2025")
 4. **AWS_REGION**: Your chosen region (e.g., "ap-south-1" or "us-east-1")
 
 ## Step 6: Test Your Setup
@@ -150,7 +150,7 @@ After completing the above steps, you should have:
 3. **Test URL**
    - Copy the "Object URL" from the file details
    - Open in browser - image should display
-   - URL format: `https://bfi-organic-images.s3.ap-south-1.amazonaws.com/your-image.jpg`
+   - URL format: `https://bfi-organic-products-2025.s3.ap-south-1.amazonaws.com/your-image.jpg`
 
 ## Security Tips
 

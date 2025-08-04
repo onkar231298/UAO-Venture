@@ -609,15 +609,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Object Storage Upload endpoints (Replit Object Storage only)
+  // Smart Upload endpoints - AWS S3 with Replit Object Storage fallback
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL, provider: 'replit-object-storage' });
+      // Try AWS S3 first, fallback to Replit object storage
+      if (process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID) {
+        const { AWSS3Service } = await import('./awsS3Service');
+        const s3Service = new AWSS3Service();
+        const uploadURL = await s3Service.getCategoryImageUploadURL();
+        return res.json({ uploadURL, provider: 'aws-s3' });
+      } else {
+        // Fallback to Replit object storage
+        const objectStorageService = new ObjectStorageService();
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        return res.json({ uploadURL, provider: 'replit-object-storage' });
+      }
     } catch (error) {
       console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
+      
+      // If AWS fails, try Replit object storage as backup
+      try {
+        const objectStorageService = new ObjectStorageService();
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        return res.json({ uploadURL, provider: 'replit-object-storage-fallback' });
+      } catch (fallbackError) {
+        console.error("Fallback upload URL generation failed:", fallbackError);
+        res.status(500).json({ error: "Failed to generate upload URL" });
+      }
     }
   });
 
@@ -629,19 +647,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req as any).user?.claims?.sub;
 
     try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.imageUrl,
-        {
-          owner: userId,
-          visibility: "public", // Category images should be public
-        },
-      );
+      // Check if using AWS S3
+      if (process.env.AWS_S3_BUCKET_NAME && req.body.imageUrl.includes('amazonaws.com')) {
+        // For AWS S3, we just return the URL as-is since S3 handles public access
+        const { AWSS3Service } = await import('./awsS3Service');
+        const s3Service = new AWSS3Service();
+        const objectKey = s3Service.extractObjectKey(req.body.imageUrl);
+        
+        if (objectKey) {
+          // Return the public S3 URL
+          const publicUrl = s3Service.getObjectURL(objectKey);
+          return res.status(200).json({
+            objectPath: publicUrl,
+            provider: 'aws-s3'
+          });
+        }
+      } else {
+        // Use Replit object storage
+        const objectStorageService = new ObjectStorageService();
+        const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+          req.body.imageUrl,
+          {
+            owner: userId,
+            visibility: "public", // Category images should be public
+          },
+        );
 
-      res.status(200).json({
-        objectPath: objectPath,
-        provider: 'replit-object-storage'
-      });
+        return res.status(200).json({
+          objectPath: objectPath,
+          provider: 'replit-object-storage'
+        });
+      }
     } catch (error) {
       console.error("Error setting category image:", error);
       res.status(500).json({ error: "Internal server error" });
