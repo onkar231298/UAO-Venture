@@ -91,7 +91,36 @@ export default function Header() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowSuggestions(false);
-      setLocation(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      
+      // First try to find exact product match
+      const exactMatch = suggestions.find(product => 
+        product.name.toLowerCase() === searchQuery.trim().toLowerCase()
+      );
+      
+      if (exactMatch) {
+        // Navigate directly to product page if exact match found
+        setSearchQuery("");
+        setLocation(`/product/${exactMatch.slug}`);
+      } else {
+        // Check for partial matches in suggestions
+        const partialMatch = suggestions.find(product => 
+          product.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+        );
+        
+        if (partialMatch) {
+          // Navigate to best match product page
+          setSearchQuery("");
+          setLocation(`/product/${partialMatch.slug}`);
+        } else {
+          // Only use search parameters as last resort, and ensure clean encoding
+          const cleanQuery = searchQuery.trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ');
+          if (cleanQuery) {
+            setLocation(`/products?search=${encodeURIComponent(cleanQuery)}`);
+          } else {
+            setLocation('/products');
+          }
+        }
+      }
     }
   };
 
@@ -489,7 +518,12 @@ export default function Header() {
                       <div
                         key={product.id}
                         className="flex items-center p-2 sm:p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                        onClick={() => handleSuggestionClick(product)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSuggestionClick(product);
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
                       >
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 text-sm truncate">
@@ -500,19 +534,25 @@ export default function Header() {
                           </div>
                         </div>
                         <div className="ml-2 flex-shrink-0">
-                          <div className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            product.stockStatus === 'in_stock' || product.availableStock > 0
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-red-100 text-red-700'
-                          }`}>
-                            {product.stockStatus === 'in_stock' || product.availableStock > 0 ? 'In Stock' : 'Out of Stock'}
+                          <div className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                            Available
                           </div>
                         </div>
                       </div>
                     ))}
                     <div className="p-2 border-t border-gray-100 bg-gray-50">
                       <button
-                        onClick={() => handleSearch({ preventDefault: () => {} } as React.FormEvent)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSuggestions(false);
+                          // Clean search query before using in URL
+                          const cleanQuery = searchQuery.trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ');
+                          if (cleanQuery) {
+                            setLocation(`/products?search=${encodeURIComponent(cleanQuery)}`);
+                          } else {
+                            setLocation('/products');
+                          }
+                        }}
                         className="text-xs text-green-600 hover:text-green-700 font-medium w-full text-left"
                       >
                         View all results for "{searchQuery}"

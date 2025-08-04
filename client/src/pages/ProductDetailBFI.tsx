@@ -67,7 +67,7 @@ export default function ProductDetailBFI() {
     enabled: !!product?.id,
   });
 
-  const { data: faqs } = useQuery({
+  const { data: faqs } = useQuery<{ question: string; answer: string; }[]>({
     queryKey: ["/api/products", product?.id, "faqs"],
     enabled: !!product?.id,
   });
