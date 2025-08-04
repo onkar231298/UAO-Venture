@@ -23,8 +23,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Search, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Tag, Upload } from "lucide-react";
 import type { Category } from "@shared/schema";
+import { ObjectUploader } from "./ObjectUploader";
 
 interface CategoryForm2Props {
   category?: Category;
@@ -37,6 +38,7 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
   const [formData, setFormData] = useState({
     name: category?.name || "",
     description: category?.description || "",
+    imageUrl: category?.imageUrl || "",
     isActive: category?.isActive ?? true
   });
 
@@ -46,10 +48,69 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
       setFormData({
         name: category.name || "",
         description: category.description || "",
+        imageUrl: category.imageUrl || "",
         isActive: category.isActive ?? true
       });
     }
   }, [category]);
+
+  const handleImageUpload = async () => {
+    try {
+      // Get upload URL from backend
+      const response = await fetch('/api/objects/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const { uploadURL } = await response.json();
+      return {
+        method: "PUT" as const,
+        url: uploadURL,
+      };
+    } catch (error) {
+      console.error('Error getting upload URL:', error);
+      throw error;
+    }
+  };
+
+  const handleUploadComplete = async (result: any) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadedFile = result.successful[0];
+      const imageUrl = uploadedFile.uploadURL;
+      
+      try {
+        // Set ACL policy for the uploaded image
+        const aclResponse = await fetch('/api/category-images', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageUrl }),
+        });
+        
+        if (aclResponse.ok) {
+          const { objectPath } = await aclResponse.json();
+          setFormData(prev => ({
+            ...prev,
+            imageUrl: objectPath
+          }));
+        }
+      } catch (error) {
+        console.error('Error setting ACL policy:', error);
+        // Still set the image URL even if ACL fails
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: imageUrl
+        }));
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +149,59 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
           placeholder="Brief description of this category"
           rows={3}
         />
+      </div>
+
+      <div>
+        <Label>Category Image</Label>
+        <div className="space-y-3">
+          <ObjectUploader
+            maxNumberOfFiles={1}
+            maxFileSize={5242880} // 5MB
+            onGetUploadParameters={handleImageUpload}
+            onComplete={handleUploadComplete}
+            buttonClassName="w-full"
+          >
+            <div className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              <span>Upload Category Image</span>
+            </div>
+          </ObjectUploader>
+          
+          <div className="text-sm text-gray-500">
+            Upload an image for this category. This will be displayed in the "Browse by Category" section.
+          </div>
+          
+          {/* Manual URL input as fallback */}
+          <div className="pt-2 border-t">
+            <Label htmlFor="imageUrl" className="text-sm">Or enter image URL manually:</Label>
+            <Input
+              id="imageUrl"
+              type="url"
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="https://example.com/image.jpg"
+              className="mt-1"
+            />
+          </div>
+        </div>
+        
+        {/* Image Preview */}
+        {formData.imageUrl && (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+            <img
+              src={formData.imageUrl.startsWith('/objects/') 
+                ? formData.imageUrl 
+                : formData.imageUrl
+              }
+              alt="Category preview"
+              className="w-32 h-20 object-cover rounded-lg border"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250';
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center space-x-2">
@@ -368,87 +482,3 @@ export default function CategoryManagement() {
   );
 }
 
-// Category Form Component with Image Upload
-function CategoryForm22({ category, onSubmit, isLoading, onClose }: CategoryForm2Props) {
-  const [formData, setFormData] = useState({
-    name: category?.name || "",
-    description: category?.description || "",
-    imageUrl: category?.imageUrl || "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      imageUrl: e.target.value
-    }));
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Category Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Enter category name"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Enter category description"
-          rows={3}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="imageUrl">Category Image URL</Label>
-        <Input
-          id="imageUrl"
-          type="url"
-          value={formData.imageUrl}
-          onChange={handleImageUrlChange}
-          placeholder="https://example.com/image.jpg"
-        />
-        <p className="text-sm text-gray-500 mt-1">
-          Enter a URL for the category image. This will be displayed in the "Browse by Category" section.
-        </p>
-        
-        {/* Image Preview */}
-        {formData.imageUrl && (
-          <div className="mt-3">
-            <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
-            <img
-              src={formData.imageUrl}
-              alt="Category preview"
-              className="w-32 h-20 object-cover rounded-lg border"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250';
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : category ? "Update Category" : "Create Category"}
-        </Button>
-      </div>
-    </form>
-  );
-}
