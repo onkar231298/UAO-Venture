@@ -26,7 +26,6 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { webpService } from "./webpService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -2253,73 +2252,6 @@ Disallow: /api/
 
 # Sitemap
 Sitemap: https://bright-organic.com/sitemap.xml`);
-  });
-
-  // WebP conversion and serving routes
-  
-  // Start batch conversion of existing images
-  app.post('/api/webp/batch-convert', isAuthenticated, async (req, res) => {
-    try {
-      console.log('Starting batch WebP conversion...');
-      webpService.batchConvertExistingImages();
-      res.json({ message: 'Batch conversion started successfully' });
-    } catch (error) {
-      console.error('Batch conversion error:', error);
-      res.status(500).json({ error: 'Failed to start batch conversion' });
-    }
-  });
-
-  // Get optimized image URL (WebP if available, original as fallback)
-  app.get('/api/webp/optimized-url', async (req, res) => {
-    try {
-      const { originalUrl } = req.query;
-      if (!originalUrl || typeof originalUrl !== 'string') {
-        return res.status(400).json({ error: 'Original URL is required' });
-      }
-      
-      const optimizedUrl = webpService.getOptimizedImageUrl(originalUrl);
-      res.json({ optimizedUrl });
-    } catch (error) {
-      console.error('URL optimization error:', error);
-      res.status(500).json({ error: 'Failed to get optimized URL' });
-    }
-  });
-
-  // Enhanced image upload with WebP conversion
-  const webpUpload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files allowed'));
-      }
-    }
-  });
-  
-  app.post('/api/upload/product-image-webp', isAuthenticated, webpUpload.single('image'), async (req: any, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No image file provided' });
-      }
-
-      const { originalUrl, webpUrl } = await webpService.processAndStoreImage(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype
-      );
-
-      res.json({
-        success: true,
-        originalUrl,
-        webpUrl,
-        optimizedUrl: webpUrl // Use WebP as primary
-      });
-    } catch (error) {
-      console.error('WebP upload error:', error);
-      res.status(500).json({ error: 'Failed to process and upload image' });
-    }
   });
 
   // Sitemap.xml route - simplified for maximum reliability

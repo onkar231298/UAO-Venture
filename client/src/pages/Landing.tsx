@@ -5,8 +5,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import ProductCard from "@/components/ProductCard";
-import SmartProductCard from "@/components/SmartProductCard";
-import { OptimizedImageWebP } from "@/components/OptimizedImageWebP";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -169,13 +167,8 @@ export default function Landing() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {popularProducts?.products?.length ? (
-              popularProducts.products.slice(0, 4).map((product: Product, index: number) => (
-                <SmartProductCard 
-                  key={product.id} 
-                  product={product} 
-                  priority={true}
-                  index={index}
-                />
+              popularProducts.products.slice(0, 4).map((product: Product) => (
+                <ProductCard key={product.id} product={product} />
               ))
             ) : (
               // Loading skeleton

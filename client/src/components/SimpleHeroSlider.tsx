@@ -67,20 +67,16 @@ export default function SimpleHeroSlider() {
 
   return (
     <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
-      {/* Background Image with Overlay - Optimized with preload */}
-      <div className="absolute inset-0">
-        <img
-          src={slide.backgroundImage}
-          alt={slide.title}
-          className="w-full h-full object-cover"
-          loading="eager"
-          decoding="sync"
-          style={{
-            objectPosition: 'center center',
-            contentVisibility: 'visible'
-          }}
-          onLoad={() => console.log('Hero image loaded')}
-        />
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:bg-fixed bg-scroll"
+        style={{ 
+          backgroundImage: `url('${slide.backgroundImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         {/* Gradient Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
         

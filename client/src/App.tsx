@@ -23,7 +23,6 @@ import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import VideoUploadTest from "@/pages/VideoUploadTest";
 import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
-import WebPDemo from "@/pages/WebPDemo";
 import CustomerRegistration from "@/pages/CustomerRegistration";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerProfile from "@/pages/CustomerProfile";
@@ -67,7 +66,6 @@ function Router() {
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
-      <Route path="/webp-demo" component={WebPDemo} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
