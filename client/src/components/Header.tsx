@@ -211,41 +211,50 @@ export default function Header() {
                   
                   {/* Categories in Three Columns */}
                   <div className="grid grid-cols-3 gap-1">
-                    {categories && categories.length > 0 ? categories.map((category) => (
-                      <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
-                        <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
-                          {category.name}
-                        </DropdownMenuItem>
-                      </Link>
-                    )) : (
+                    {categories && categories.length > 0 ? categories.map((category) => {
+                      const categorySlug = category.name
+                        .toLowerCase()
+                        .replace(/[^a-z0-9\s]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-')
+                        .trim();
+                      
+                      return (
+                        <Link key={category.id} href={`/category/${categorySlug}`}>
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            {category.name}
+                          </DropdownMenuItem>
+                        </Link>
+                      );
+                    }) : (
                       <>
                         {/* Fallback categories for immediate display */}
-                        <Link href="/products?category=Herbal%20Powders">
+                        <Link href="/category/herbal-powders">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Herbal Powders
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?category=Spices">
+                        <Link href="/category/spices">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Spices
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?category=Essential%20Oils">
+                        <Link href="/category/essential-oils">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Essential Oils
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?category=Adaptogenic%20Herbs">
+                        <Link href="/category/adaptogenic-herbs">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Adaptogenic Herbs
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?category=Ayurvedic%20Herbs">
+                        <Link href="/category/ayurvedic-herbs">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Ayurvedic Herbs
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?category=Botanical%20Extracts">
+                        <Link href="/category/botanical-extracts">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Botanical Extracts
                           </DropdownMenuItem>

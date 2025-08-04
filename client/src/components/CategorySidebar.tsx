@@ -19,6 +19,16 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
     onClose();
   };
 
+  // Create clean URL slug from category name
+  const createCategorySlug = (categoryName: string) => {
+    return categoryName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .trim();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -46,7 +56,7 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
         <div className="max-h-80 overflow-y-auto">
           <div className="py-1">
             {categories.map((category) => (
-              <Link key={category.id} href={`/products?category=${encodeURIComponent(category.name)}`}>
+              <Link key={category.id} href={`/category/${createCategorySlug(category.name)}`}>
                 <div 
                   className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-gray-700 hover:text-gray-900 text-sm transition-colors"
                   onClick={handleCategoryClick.bind(null, category.name)}

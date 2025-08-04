@@ -13,6 +13,7 @@ import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
+import CategoryPage from "@/pages/CategoryPage";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
+      <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/login" component={UnifiedLogin} />
 
       <Route path="/register" component={CustomerRegistration} />
