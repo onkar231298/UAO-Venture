@@ -1438,8 +1438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AWS S3 Image Upload Routes
 
-  // Upload hero slider media (images and videos)
-  app.post('/api/admin/hero-slides/upload', isAuthenticated, heroSliderUpload, async (req: any, res) => {
+  // Upload hero slider media (images with WebP processing and videos)
+  app.post('/api/admin/hero-slides/upload', isAuthenticated, webpUpload.any(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1448,41 +1448,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const files = req.files as { [fieldname: string]: any[] };
-      const uploadedFiles: { [key: string]: string | string[] } = {};
+      if (!process.env.AWS_S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID) {
+        return res.status(503).json({ 
+          error: "AWS S3 not configured for hero slider media",
+          message: "Please configure AWS credentials for hero slider uploads" 
+        });
+      }
 
-      console.log('Hero slider upload request received. Files:', Object.keys(files));
+      const files = req.files as Express.Multer.File[];
+      const uploadedFiles: { [key: string]: string } = {};
+      const slideId = req.body.slideId || `temp-${Date.now()}`;
+
+      console.log('Hero slider upload request received. Files:', files.length);
 
       // Process uploaded files
-      for (const [fieldName, fileArray] of Object.entries(files)) {
-        console.log(`Processing field: ${fieldName}, files:`, fileArray.length);
+      for (const file of files) {
+        const fieldName = file.fieldname;
+        console.log(`Processing field: ${fieldName}, file: ${file.originalname}`);
         
-        if (fileArray[0]) {
-          console.log(`File details for ${fieldName}:`, {
-            key: fileArray[0].key,
-            location: fileArray[0].location,
-            size: fileArray[0].size,
-            contentType: fileArray[0].contentType
+        if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
+          // Process images with WebP conversion
+          console.log(`📸 Processing hero slider image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+          
+          try {
+            // Process image into 3 WebP sizes
+            const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
+            
+            // Upload all 3 sizes to S3 under hero-slides folder
+            const uploadPromises = processedImages.map(async (image) => {
+              const objectKey = `hero-slides/${slideId}/${image.filename}`;
+              
+              const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+              const command = new PutObjectCommand({
+                Bucket: process.env.AWS_S3_BUCKET_NAME!,
+                Key: objectKey,
+                Body: image.buffer,
+                ContentType: 'image/webp',
+                CacheControl: 'public, max-age=31536000', // 1 year cache
+                ContentDisposition: 'inline',
+              });
+
+              const { s3Client } = await import('./awsS3Service');
+              await s3Client.send(command);
+              
+              return {
+                size: image.size,
+                url: s3Service.getObjectURL(objectKey)
+              };
+            });
+
+            const uploadedImages = await Promise.all(uploadPromises);
+            
+            // Use large size for hero slider
+            const largeUrl = uploadedImages.find(img => img.size === 'large')?.url || 
+                           uploadedImages.find(img => img.size === 'medium')?.url || 
+                           uploadedImages[0]?.url;
+            
+            uploadedFiles[fieldName] = largeUrl;
+            console.log(`✅ Successfully processed hero slider image ${file.originalname} -> ${largeUrl}`);
+            
+          } catch (error) {
+            console.error(`❌ Failed to process hero slider image ${file.originalname}:`, error);
+            // Fallback: upload original image without WebP processing
+            const objectKey = `hero-slides/${slideId}/${file.originalname}-${Date.now()}`;
+            const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+            const command = new PutObjectCommand({
+              Bucket: process.env.AWS_S3_BUCKET_NAME!,
+              Key: objectKey,
+              Body: file.buffer,
+              ContentType: file.mimetype,
+            });
+            
+            const { s3Client } = await import('./awsS3Service');
+            await s3Client.send(command);
+            uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+          }
+        } else if (file.mimetype.startsWith('video/')) {
+          // Process videos without conversion - upload as-is
+          console.log(`🎥 Processing hero slider video: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+          
+          const objectKey = `hero-slides/${slideId}/videos/${file.originalname}-${Date.now()}`;
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const command = new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET_NAME!,
+            Key: objectKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
           });
+          
+          const { s3Client } = await import('./awsS3Service');
+          await s3Client.send(command);
+          uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+          
+          console.log(`✅ Successfully uploaded hero slider video ${file.originalname}`);
+        } else {
+          // Other file types - upload as-is
+          console.log(`📄 Processing hero slider file: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+          
+          const objectKey = `hero-slides/${slideId}/${file.originalname}-${Date.now()}`;
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const command = new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET_NAME!,
+            Key: objectKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+          });
+          
+          const { s3Client } = await import('./awsS3Service');
+          await s3Client.send(command);
+          uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+          
+          console.log(`✅ Successfully uploaded hero slider file ${file.originalname}`);
         }
-        const url = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
-        uploadedFiles[fieldName] = url;
-        console.log(`Generated URL for ${fieldName}:`, url);
       }
 
       res.json({
         success: true,
         files: uploadedFiles,
-        message: 'Hero slider media uploaded successfully to AWS S3'
+        message: 'Hero slider media uploaded successfully with WebP processing for images'
       });
     } catch (error) {
-      console.error("Error uploading hero slider media to S3:", error);
-      res.status(500).json({ message: "Failed to upload media", error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error uploading hero slider media:", error);
+      res.status(500).json({ message: "Failed to upload hero slider media", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  // Upload product images and documents
-  app.post('/api/admin/products/upload', isAuthenticated, productImageUpload, async (req: any, res) => {
+  // Upload product images and documents with WebP processing for images
+  app.post('/api/admin/products/upload', isAuthenticated, webpUpload.any(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1491,51 +1583,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const files = req.files as { [fieldname: string]: any[] };
+      if (!process.env.AWS_S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID) {
+        return res.status(503).json({ 
+          error: "AWS S3 not configured for product images",
+          message: "Please configure AWS credentials for product image uploads" 
+        });
+      }
+
+      const files = req.files as Express.Multer.File[];
       const uploadedFiles: { [key: string]: string | string[] } = {};
+      const productId = req.body.productId || `temp-${Date.now()}`;
 
-      console.log('Upload request received. Files:', Object.keys(files));
+      console.log('Admin upload request received. Files:', files.length);
 
-      // Process uploaded files
-      for (const [fieldName, fileArray] of Object.entries(files)) {
+      // Group files by field name for proper handling
+      const filesByField: { [key: string]: Express.Multer.File[] } = {};
+      files.forEach(file => {
+        if (!filesByField[file.fieldname]) {
+          filesByField[file.fieldname] = [];
+        }
+        filesByField[file.fieldname].push(file);
+      });
+
+      // Process uploaded files by field
+      for (const [fieldName, fileArray] of Object.entries(filesByField)) {
         console.log(`Processing field: ${fieldName}, files:`, fileArray.length);
         
         if (fieldName === 'galleryImages' || fieldName === 'additionalDocs') {
           // Multiple files
-          uploadedFiles[fieldName] = fileArray.map(file => {
-            console.log(`File details for ${fieldName}:`, {
-              key: file.key,
-              location: file.location,
-              size: file.size,
-              contentType: file.contentType
-            });
-            const url = getImageUrl(file.key);
-            console.log(`Generated URL for ${fieldName}:`, url);
-            return url;
-          });
+          const processedUrls: string[] = [];
+          
+          for (const file of fileArray) {
+            if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
+              console.log(`📸 Processing image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+              
+              try {
+                // Process image into 3 WebP sizes
+                const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
+                
+                // Upload all 3 sizes to S3
+                const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
+                
+                // Use medium size for gallery
+                processedUrls.push(uploadedUrls.medium);
+                console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
+                
+              } catch (error) {
+                console.error(`❌ Failed to process image ${file.originalname}:`, error);
+                // Fallback: upload original image without WebP processing
+                const objectKey = `products/${productId}/${file.originalname}-${Date.now()}`;
+                const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+                const command = new PutObjectCommand({
+                  Bucket: process.env.AWS_S3_BUCKET_NAME!,
+                  Key: objectKey,
+                  Body: file.buffer,
+                  ContentType: file.mimetype,
+                });
+                
+                const { s3Client } = await import('./awsS3Service');
+                await s3Client.send(command);
+                processedUrls.push(s3Service.getObjectURL(objectKey));
+              }
+            } else {
+              // Non-image files (documents) - upload as-is
+              console.log(`📄 Processing document: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+              
+              const objectKey = `products/${productId}/documents/${file.originalname}-${Date.now()}`;
+              const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+              const command = new PutObjectCommand({
+                Bucket: process.env.AWS_S3_BUCKET_NAME!,
+                Key: objectKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+              });
+              
+              const { s3Client } = await import('./awsS3Service');
+              await s3Client.send(command);
+              processedUrls.push(s3Service.getObjectURL(objectKey));
+              
+              console.log(`✅ Successfully uploaded document ${file.originalname}`);
+            }
+          }
+          
+          uploadedFiles[fieldName] = processedUrls;
         } else {
           // Single file - includes secondImage, thirdImage, mainImage, documents
-          if (fileArray[0]) {
-            console.log(`File details for ${fieldName}:`, {
-              key: fileArray[0].key,
-              location: fileArray[0].location,
-              size: fileArray[0].size,
-              contentType: fileArray[0].contentType
+          const file = fileArray[0];
+          if (!file) continue;
+          
+          if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
+            console.log(`📸 Processing image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+            
+            try {
+              // Process image into 3 WebP sizes
+              const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
+              
+              // Upload all 3 sizes to S3
+              const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
+              
+              // Store the medium size URL as the main URL for this field
+              uploadedFiles[fieldName] = uploadedUrls.medium;
+              
+              console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
+              
+            } catch (error) {
+              console.error(`❌ Failed to process image ${file.originalname}:`, error);
+              // Fallback: upload original image without WebP processing
+              const objectKey = `products/${productId}/${file.originalname}-${Date.now()}`;
+              const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+              const command = new PutObjectCommand({
+                Bucket: process.env.AWS_S3_BUCKET_NAME!,
+                Key: objectKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+              });
+              
+              const { s3Client } = await import('./awsS3Service');
+              await s3Client.send(command);
+              uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+            }
+          } else {
+            // Non-image files (documents) - upload as-is
+            console.log(`📄 Processing document: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+            
+            const objectKey = `products/${productId}/documents/${file.originalname}-${Date.now()}`;
+            const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+            const command = new PutObjectCommand({
+              Bucket: process.env.AWS_S3_BUCKET_NAME!,
+              Key: objectKey,
+              Body: file.buffer,
+              ContentType: file.mimetype,
             });
+            
+            const { s3Client } = await import('./awsS3Service');
+            await s3Client.send(command);
+            uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+            
+            console.log(`✅ Successfully uploaded document ${file.originalname}`);
           }
-          const url = fileArray[0] ? getImageUrl(fileArray[0].key) : '';
-          uploadedFiles[fieldName] = url;
-          console.log(`Generated URL for ${fieldName}:`, url);
         }
       }
 
       res.json({
         success: true,
         files: uploadedFiles,
-        message: 'Files uploaded successfully to AWS S3'
+        message: 'Files uploaded successfully with WebP processing for images'
       });
     } catch (error) {
-      console.error("Error uploading files to S3:", error);
+      console.error("Error uploading files:", error);
       res.status(500).json({ message: "Failed to upload files", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
