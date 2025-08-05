@@ -45,6 +45,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import StructuredData from "@/components/StructuredData";
+import SimilarProducts from "@/components/SimilarProducts";
+import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
 import { testStructuredData } from "@/utils/seoTestUtil";
 import type { Product, ProductDocument } from "@shared/schema";
 
@@ -744,20 +746,11 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Related Products */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Bought Together</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  See what are often bought with this product!
-                </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full">
-                  View Related Products
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Frequently Bought Together */}
+            <FrequentlyBoughtTogether currentProduct={product} maxItems={3} />
+            
+            {/* Similar Products */}
+            <SimilarProducts currentProduct={product} maxItems={4} />
           </div>
         </div>
       </div>

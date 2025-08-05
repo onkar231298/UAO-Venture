@@ -157,7 +157,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
+              className="lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50 touch-manipulation active:scale-95 transition-transform duration-150"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <Menu className="h-5 w-5" />
@@ -275,12 +275,12 @@ export default function Header() {
             
             {/* User Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
+              <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50 touch-manipulation active:scale-95 transition-transform duration-150">
                 <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
               
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50 touch-manipulation active:scale-95 transition-transform duration-150">
                 <ShoppingCart className="w-5 h-5" />
                 <span className="bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
@@ -399,7 +399,11 @@ export default function Header() {
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" onClick={() => setLocation("/login")}>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setLocation("/login")}
+                    className="touch-manipulation active:scale-95 transition-transform duration-150"
+                  >
                     <User className="w-4 h-4 mr-2" />
                     <span className="hidden sm:inline">Login</span>
                   </Button>
@@ -407,7 +411,7 @@ export default function Header() {
                     variant="outline" 
                     size="sm"
                     onClick={() => setLocation("/register")}
-                    className="bg-green-600 text-white hover:bg-green-700 border-green-600"
+                    className="bg-green-600 text-white hover:bg-green-700 border-green-600 touch-manipulation active:scale-95 transition-transform duration-150"
                   >
                     <span className="hidden sm:inline">Register</span>
                     <span className="sm:hidden">Sign Up</span>
@@ -421,39 +425,44 @@ export default function Header() {
 
       {/* Mobile Navigation Menu */}
       {showMobileMenu && (
-        <div className="lg:hidden bg-white border-t border-gray-200">
-          <div className="container mx-auto px-4 py-4 space-y-2">
+        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="container mx-auto px-4 py-4 space-y-3">
             <Link 
               href="/" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 px-2 rounded-lg text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all duration-150 touch-manipulation active:scale-95 ${location === '/' ? 'text-green-600 font-medium bg-green-50' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
               Home
             </Link>
             <Link 
               href="/products" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 px-2 rounded-lg text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all duration-150 touch-manipulation active:scale-95 ${location === '/products' ? 'text-green-600 font-medium bg-green-50' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
               Products
             </Link>
             <Link 
               href="/ingredients" 
-              className="block py-2 text-gray-700 hover:text-green-600 transition-colors"
+              className="block py-3 px-2 rounded-lg text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all duration-150 touch-manipulation active:scale-95"
               onClick={() => setShowMobileMenu(false)}
             >
               All Ingredients
             </Link>
             <Link 
               href="/blog" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 px-2 rounded-lg text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all duration-150 touch-manipulation active:scale-95 ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium bg-green-50' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
               Blog
             </Link>
-            <div className="py-2 text-gray-700">Certifications</div>
-            <div className="py-2 text-gray-700">R&D Lab</div>
-            <div className="py-2 text-gray-700">Services</div>
+            <div className="py-3 px-2 text-gray-500 text-sm">
+              <div className="space-y-2">
+                <div className="font-medium text-gray-700 mb-2">Our Services</div>
+                <div className="text-gray-600 hover:text-green-600 transition-colors cursor-pointer">Certifications</div>
+                <div className="text-gray-600 hover:text-green-600 transition-colors cursor-pointer">R&D Lab</div>
+                <div className="text-gray-600 hover:text-green-600 transition-colors cursor-pointer">Quality Assurance</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -493,7 +502,7 @@ export default function Header() {
                 <Button
                   type="submit"
                   size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-green-700 p-1 h-auto"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-green-700 p-1 h-auto touch-manipulation active:scale-90 transition-transform duration-150"
                 >
                   <Search className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                 </Button>
@@ -504,7 +513,7 @@ export default function Header() {
                     {suggestions.map((product) => (
                       <div
                         key={product.id}
-                        className="flex items-center p-2 sm:p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="flex items-center p-2 sm:p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-all duration-150 touch-manipulation active:bg-green-50"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();

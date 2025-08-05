@@ -165,7 +165,33 @@ export default function Landing() {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Mobile: Horizontal scroll, Desktop: Grid */}
+          <div className="block sm:hidden">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory -mx-4 px-4">
+              {popularProducts?.products?.length ? (
+                popularProducts.products.slice(0, 6).map((product: Product) => (
+                  <div key={product.id} className="flex-none w-72 snap-start">
+                    <ProductCard product={product} />
+                  </div>
+                ))
+              ) : (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex-none w-72 snap-start animate-pulse">
+                    <Card>
+                      <div className="aspect-square bg-gray-200 rounded-t-lg"></div>
+                      <CardContent className="p-3">
+                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {popularProducts?.products?.length ? (
               popularProducts.products.slice(0, 4).map((product: Product) => (
                 <ProductCard key={product.id} product={product} />
