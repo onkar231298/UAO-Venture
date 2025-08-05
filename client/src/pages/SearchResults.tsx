@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductsPageStructuredData from "@/components/ProductsPageStructuredData";
@@ -203,9 +203,9 @@ export default function SearchResults() {
                 <CardContent className={`p-4 ${viewMode === 'list' ? 'flex items-center gap-4 w-full' : ''}`}>
                   {/* Product Image */}
                   <div className={`${viewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'aspect-square'} bg-gray-100 rounded-lg mb-4 relative overflow-hidden`}>
-                    {product.images && product.images.length > 0 ? (
+                    {product.mainImageThumbnail || product.mainImage ? (
                       <img 
-                        src={product.images[0]} 
+                        src={product.mainImageThumbnail || product.mainImage || ''} 
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
