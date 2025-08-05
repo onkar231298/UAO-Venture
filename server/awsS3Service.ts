@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, Head
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Response } from 'express';
 import { randomUUID } from 'crypto';
+import { imageProcessor, type ProcessedImage } from "./imageProcessor.js";
 
 // AWS S3 Configuration
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -60,9 +61,48 @@ export class AWSS3Service {
     return this.generateUploadURL('categories', 'jpg');
   }
 
-  // Generate presigned URL for product images
+  // Generate presigned URL for product images (legacy - kept for compatibility)
   async getProductImageUploadURL(): Promise<string> {
-    return this.generateUploadURL('products', 'jpg');
+    return this.generateUploadURL('products', 'webp');
+  }
+
+  // Upload processed product images (3 sizes) directly to S3
+  async uploadProductImages(images: ProcessedImage[], productId: string): Promise<{ 
+    thumbnail: string; 
+    medium: string; 
+    large: string; 
+  }> {
+    const uploadPromises = images.map(async (image) => {
+      const objectKey = `products/${productId}/${image.filename}`;
+      
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+        Body: image.buffer,
+        ContentType: 'image/webp',
+        CacheControl: 'public, max-age=31536000', // 1 year cache
+        ContentDisposition: 'inline',
+      });
+
+      await s3Client.send(command);
+      
+      return {
+        size: image.size,
+        url: this.getObjectURL(objectKey)
+      };
+    });
+
+    const uploadedImages = await Promise.all(uploadPromises);
+    
+    // Organize URLs by size
+    const urls = {
+      thumbnail: uploadedImages.find(img => img.size === 'thumbnail')?.url || '',
+      medium: uploadedImages.find(img => img.size === 'medium')?.url || '',
+      large: uploadedImages.find(img => img.size === 'large')?.url || ''
+    };
+
+    console.log(`✅ Uploaded ${uploadedImages.length} product images for ${productId}`);
+    return urls;
   }
 
   // Get object URL for public access

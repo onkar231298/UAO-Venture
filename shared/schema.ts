@@ -271,9 +271,12 @@ export const products = pgTable("products", {
   bulkPricing: jsonb("bulk_pricing").default("[]"), // Array of pricing slabs with quantity, price, discount%
   pricingVisibility: varchar("pricing_visibility", { length: 50 }).default("logged_in"), // public, logged_in, request_quote
   
-  // Media
-  mainImage: varchar("main_image", { length: 500 }),
-  galleryImages: jsonb("gallery_images").default("[]"), // Array of image URLs
+  // Media - WebP Image Support with Multiple Sizes
+  mainImage: varchar("main_image", { length: 500 }), // Primary image URL (medium size)
+  mainImageThumbnail: varchar("main_image_thumbnail", { length: 500 }), // 300px WebP
+  mainImageMedium: varchar("main_image_medium", { length: 500 }), // 800px WebP
+  mainImageLarge: varchar("main_image_large", { length: 500 }), // 1200px WebP
+  galleryImages: jsonb("gallery_images").default("[]"), // Array of image URL objects with sizes
 
   // Document URLs - Direct references for easy access
   coaDocument: varchar("coa_document", { length: 500 }), // Certificate of Analysis
@@ -663,7 +666,6 @@ export const insertQuotationSchema = createInsertSchema(quotations).omit({
 });
 
 // Types
-export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertInquiry = z.infer<typeof insertInquirySchema>;

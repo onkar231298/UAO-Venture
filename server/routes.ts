@@ -26,8 +26,31 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { AWSS3Service } from "./awsS3Service";
+import { imageProcessor, ImageProcessor } from "./imageProcessor";
+import mimeTypes from "mime-types";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize services
+  const s3Service = new AWSS3Service();
+  
+  // Multer configuration for WebP processing
+  const webpUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+      files: 10 // Max 10 files per upload
+    },
+    fileFilter: (req, file, cb) => {
+      const mimeType = file.mimetype;
+      if (ImageProcessor.isValidImageFormat(mimeType)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Unsupported image format: ${mimeType}. Supported: JPEG, PNG, GIF, TIFF, BMP, WebP`));
+      }
+    }
+  });
+
   // Auth middleware
   await setupAuth(app);
 
@@ -622,13 +645,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Product image upload endpoint - AWS S3 only
+  // NEW: Direct WebP processing and upload endpoint for product images
+  app.post("/api/products/upload-webp", isAuthenticated, webpUpload.array('images', 10), async (req: any, res) => {
+    try {
+      if (!process.env.AWS_S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID) {
+        return res.status(503).json({ 
+          error: "AWS S3 not configured for product images",
+          message: "Please configure AWS credentials for product image uploads" 
+        });
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+
+      const userId = req.user.claims.sub;
+      const productId = req.body.productId || `temp-${Date.now()}`;
+
+      console.log(`🚀 Processing ${files.length} images for product ${productId}...`);
+
+      const processedResults = [];
+
+      for (const file of files) {
+        try {
+          console.log(`📸 Processing: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+
+          // Process image into 3 WebP sizes
+          const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
+
+          // Upload all 3 sizes to S3
+          const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
+
+          processedResults.push({
+            originalName: file.originalname,
+            productId,
+            urls: uploadedUrls,
+            sizes: processedImages.map(img => ({
+              size: img.size,
+              width: img.width,
+              height: img.height,
+              fileSize: img.fileSize
+            }))
+          });
+
+          console.log(`✅ Successfully processed ${file.originalname}`);
+
+        } catch (error) {
+          console.error(`❌ Failed to process ${file.originalname}:`, error);
+          processedResults.push({
+            originalName: file.originalname,
+            error: error instanceof Error ? error.message : 'Processing failed'
+          });
+        }
+      }
+
+      const successCount = processedResults.filter(r => !r.error).length;
+      const failCount = processedResults.filter(r => r.error).length;
+
+      console.log(`🎉 WebP processing complete: ${successCount} successful, ${failCount} failed`);
+
+      res.json({
+        success: true,
+        message: `Processed ${successCount}/${files.length} images successfully`,
+        results: processedResults,
+        provider: 'aws-s3-webp'
+      });
+
+    } catch (error) {
+      console.error("WebP processing error:", error);
+      res.status(500).json({ 
+        error: "WebP processing failed",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Legacy: Product image upload endpoint - AWS S3 only (kept for compatibility)
   app.post("/api/products/upload", isAuthenticated, async (req, res) => {
     try {
       // Check if AWS S3 is configured for product images
       if (process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID) {
-        const { AWSS3Service } = await import('./awsS3Service');
-        const s3Service = new AWSS3Service();
         const uploadURL = await s3Service.getProductImageUploadURL();
         return res.json({ uploadURL, provider: 'aws-s3' });
       } else {
