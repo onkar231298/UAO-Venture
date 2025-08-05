@@ -1060,25 +1060,65 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                     />
                   </div>
                   
-                  {/* File Upload for Main Image */}
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      id="mainImageFile"
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          await handleImageUpload(file, 'mainImage');
-                        }
-                      }}
-                      className="flex-1"
-                      disabled={uploading}
-                    />
-                    <Button type="button" variant="outline" size="sm" disabled={uploading}>
-                      <Upload className="h-4 w-4 mr-1" />
-                      {uploading ? 'Uploading...' : 'S3 Ready'}
-                    </Button>
+                  {/* WebP Upload for Main Image */}
+                  <div className="border-2 border-dashed border-blue-300 rounded-lg p-3">
+                    <div className="text-center">
+                      <Upload className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                      <p className="text-sm text-blue-600 mb-2">WebP Auto-Conversion Upload</p>
+                      <Input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/tiff"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploading(true);
+                            try {
+                              const formDataUpload = new FormData();
+                              formDataUpload.append('images', file);
+                              formDataUpload.append('productId', formData.productId || formData.name.replace(/[^a-zA-Z0-9]/g, '') || `temp-${Date.now()}`);
+
+                              const response = await fetch('/api/products/upload-webp', {
+                                method: 'POST',
+                                body: formDataUpload,
+                              });
+
+                              if (response.ok) {
+                                const result = await response.json();
+                                if (result.success && result.results.length > 0) {
+                                  const firstResult = result.results[0];
+                                  // Set all WebP URLs from the conversion result
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    mainImage: firstResult.urls.medium, // Use medium for main display
+                                    mainImageThumbnail: firstResult.urls.thumbnail,
+                                    mainImageMedium: firstResult.urls.medium,
+                                    mainImageLarge: firstResult.urls.large
+                                  }));
+                                  
+                                  toast({
+                                    title: "WebP Conversion Complete",
+                                    description: `Generated 3 optimized sizes: Thumbnail (${firstResult.sizes.find(s => s.size === 'thumbnail')?.fileSize || 0}KB), Medium (${firstResult.sizes.find(s => s.size === 'medium')?.fileSize || 0}KB), Large (${firstResult.sizes.find(s => s.size === 'large')?.fileSize || 0}KB)`,
+                                  });
+                                }
+                              }
+                            } catch (error) {
+                              console.error('WebP upload error:', error);
+                              toast({
+                                title: "WebP Upload Failed",
+                                description: "Failed to process image. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setUploading(false);
+                            }
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Auto converts to WebP with 3 sizes (300px, 800px, 1200px)
+                      </p>
+                    </div>
                   </div>
                   
                   {formData.mainImage && (

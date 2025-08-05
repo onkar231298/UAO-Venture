@@ -1,17 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Image as ImageIcon, Check } from "lucide-react";
-
-interface WebPImageUploaderProps {
-  onUploadComplete: (result: WebPUploadResult) => void;
-  maxFiles?: number;
-  productId?: string;
-  accept?: string;
-  className?: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Upload, X, Check, AlertCircle, Image as ImageIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WebPUploadResult {
   success: boolean;
@@ -35,250 +28,368 @@ interface WebPUploadResult {
   provider: string;
 }
 
-export function WebPImageUploader({ 
-  onUploadComplete, 
-  maxFiles = 10, 
-  productId,
-  accept = "image/jpeg,image/png,image/gif,image/bmp,image/tiff,image/webp",
-  className = ""
+interface WebPImageUploaderProps {
+  onUploadComplete?: (result: WebPUploadResult) => void;
+  maxFiles?: number;
+  productId?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+interface FileWithPreview extends File {
+  preview?: string;
+  id: string;
+}
+
+export default function WebPImageUploader({
+  onUploadComplete,
+  maxFiles = 5,
+  productId = `temp-${Date.now()}`,
+  className,
+  disabled = false
 }: WebPImageUploaderProps) {
+  const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadResult, setUploadResult] = useState<WebPUploadResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
+    const selectedFiles = Array.from(event.target.files || []);
     
-    if (files.length > maxFiles) {
-      toast({
-        title: "Too many files",
-        description: `Please select no more than ${maxFiles} files`,
-        variant: "destructive"
-      });
-      return;
-    }
-
+    if (selectedFiles.length === 0) return;
+    
     // Validate file types
-    const validTypes = accept.split(',').map(type => type.trim());
-    const invalidFiles = files.filter(file => 
-      !validTypes.some(type => file.type === type || file.name.toLowerCase().endsWith(type.replace('image/', '.')))
-    );
-
-    if (invalidFiles.length > 0) {
-      toast({
-        title: "Invalid file type",
-        description: `Supported formats: JPEG, PNG, GIF, BMP, TIFF, WebP`,
-        variant: "destructive"
-      });
-      return;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff'];
+    const validFiles = selectedFiles.filter(file => validTypes.includes(file.type));
+    
+    if (validFiles.length !== selectedFiles.length) {
+      alert('Some files were skipped. Only JPEG, PNG, GIF, BMP, and TIFF files are supported.');
     }
-
-    // Check file sizes (10MB limit)
-    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-      toast({
-        title: "File too large",
-        description: `Maximum file size is 10MB`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSelectedFiles(files);
-  };
-
-  const handleUpload = async () => {
-    if (selectedFiles.length === 0) {
-      toast({
-        title: "No files selected",
-        description: "Please select images to upload",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploading(true);
-    setProgress(0);
-
-    try {
-      // Create FormData
-      const formData = new FormData();
-      
-      selectedFiles.forEach(file => {
-        formData.append('images', file);
-      });
-      
-      if (productId) {
-        formData.append('productId', productId);
-      }
-
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
-
-      // Upload with WebP processing
-      const response = await fetch('/api/products/upload-webp', {
-        method: 'POST',
-        body: formData,
-      });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        toast({
-          title: "Upload successful",
-          description: `${result.message}. Images converted to WebP format.`,
-        });
-        
-        onUploadComplete(result);
-        setSelectedFiles([]);
-        
-        // Reset file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        throw new Error(result.message || 'Upload failed');
-      }
-
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: "destructive"
-      });
-    } finally {
-      setUploading(false);
-      setProgress(0);
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleClearAll = () => {
-    setSelectedFiles([]);
+    
+    // Limit number of files
+    const filesToAdd = validFiles.slice(0, maxFiles - files.length);
+    
+    const filesWithPreview: FileWithPreview[] = filesToAdd.map((file, index) => {
+      const fileWithId = file as FileWithPreview;
+      fileWithId.id = `${Date.now()}-${index}`;
+      fileWithId.preview = URL.createObjectURL(file);
+      return fileWithId;
+    });
+    
+    setFiles(prev => [...prev, ...filesWithPreview]);
+    
+    // Clear the input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  return (
-    <div className={`space-y-4 ${className}`}>
-      {/* File Input */}
-      <div className="flex items-center gap-2">
-        <Input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={accept}
-          onChange={handleFileSelect}
-          disabled={uploading}
-          className="flex-1"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Browse
-        </Button>
-      </div>
+  const removeFile = (fileId: string) => {
+    setFiles(prev => {
+      const updated = prev.filter(f => f.id !== fileId);
+      // Clean up preview URLs
+      const removedFile = prev.find(f => f.id === fileId);
+      if (removedFile?.preview) {
+        URL.revokeObjectURL(removedFile.preview);
+      }
+      return updated;
+    });
+  };
 
-      {/* Selected Files Preview */}
-      {selectedFiles.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <h4 className="text-sm font-medium">
-              Selected Files ({selectedFiles.length}/{maxFiles})
-            </h4>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAll}
-              disabled={uploading}
-            >
-              Clear All
-            </Button>
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+    
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadResult(null);
+    
+    try {
+      const formData = new FormData();
+      
+      files.forEach(file => {
+        formData.append('images', file);
+      });
+      
+      formData.append('productId', productId);
+      
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+      
+      const response = await fetch('/api/products/upload-webp', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      const result: WebPUploadResult = await response.json();
+      
+      if (response.ok) {
+        setUploadResult(result);
+        onUploadComplete?.(result);
+        
+        // Clear files after successful upload
+        files.forEach(file => {
+          if (file.preview) {
+            URL.revokeObjectURL(file.preview);
+          }
+        });
+        setFiles([]);
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Upload failed',
+        results: [],
+        provider: 'error'
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {/* Upload Area */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            WebP Image Uploader
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div
+            className={cn(
+              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+              "hover:border-blue-400 hover:bg-blue-50",
+              disabled && "opacity-50 cursor-not-allowed",
+              files.length >= maxFiles && "border-gray-300"
+            )}
+            onClick={() => !disabled && files.length < maxFiles && fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/tiff"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={disabled || files.length >= maxFiles}
+            />
+            
+            <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-semibold mb-2">
+              {files.length >= maxFiles ? 'Maximum files reached' : 'Upload Product Images'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Drop images here or click to browse
+            </p>
+            <p className="text-sm text-gray-500">
+              Supported: JPEG, PNG, GIF, BMP, TIFF • Max {maxFiles} files • Auto WebP conversion
+            </p>
+            
+            {files.length < maxFiles && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                disabled={disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                Select Files
+              </Button>
+            )}
           </div>
-          
-          <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-            {selectedFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm truncate">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({(file.size / 1024 / 1024).toFixed(1)}MB)
-                  </span>
+        </CardContent>
+      </Card>
+
+      {/* File Preview */}
+      {files.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Selected Files ({files.length}/{maxFiles})</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  files.forEach(file => {
+                    if (file.preview) URL.revokeObjectURL(file.preview);
+                  });
+                  setFiles([]);
+                }}
+                disabled={uploading}
+              >
+                Clear All
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {files.map((file) => (
+                <div key={file.id} className="relative border rounded-lg p-3">
+                  <div className="aspect-square bg-gray-100 rounded-lg mb-2 overflow-hidden">
+                    {file.preview && (
+                      <img 
+                        src={file.preview} 
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium truncate" title={file.name}>
+                      {file.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)}
+                    </p>
+                    <Badge variant="secondary" className="text-xs">
+                      {file.type.split('/')[1].toUpperCase()}
+                    </Badge>
+                  </div>
+                  
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-1 right-1 w-6 h-6 p-0"
+                    onClick={() => removeFile(file.id)}
+                    disabled={uploading}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveFile(index)}
-                  disabled={uploading}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+              ))}
+            </div>
+            
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-gray-600">
+                Product ID: <code className="bg-gray-100 px-2 py-1 rounded">{productId}</code>
               </div>
-            ))}
-          </div>
-        </div>
+              
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || files.length === 0}
+                className="flex items-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Convert to WebP
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Upload Progress */}
       {uploading && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Processing images to WebP format...</span>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} className="w-full" />
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Converting to WebP...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="w-full" />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Upload Button */}
-      <div className="flex gap-2">
-        <Button
-          onClick={handleUpload}
-          disabled={uploading || selectedFiles.length === 0}
-          className="flex-1"
-        >
-          {uploading ? (
-            <>
-              <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-b-transparent" />
-              Converting to WebP...
-            </>
-          ) : (
-            <>
-              <Check className="w-4 h-4 mr-2" />
-              Upload & Convert to WebP
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Upload Results */}
+      {uploadResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {uploadResult.success ? (
+                <Check className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              )}
+              Upload Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              "p-4 rounded-lg mb-4",
+              uploadResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+            )}>
+              <p className={cn(
+                "font-medium",
+                uploadResult.success ? "text-green-800" : "text-red-800"
+              )}>
+                {uploadResult.message}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Provider: {uploadResult.provider}
+              </p>
+            </div>
 
-      {/* Info Text */}
-      <p className="text-xs text-muted-foreground">
-        • Supported formats: JPEG, PNG, GIF, BMP, TIFF, WebP
-        • Maximum file size: 10MB per image
-        • Images will be automatically converted to WebP format in 3 sizes (300px, 800px, 1200px)
-        • Original images are not stored (WebP-only for optimal performance)
-      </p>
+            {uploadResult.success && uploadResult.results.length > 0 && (
+              <div className="space-y-4">
+                {uploadResult.results.map((result, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">{result.originalName}</h4>
+                    
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {result.sizes.map((size, sizeIndex) => (
+                        <div key={sizeIndex} className="border rounded-lg p-3">
+                          <h5 className="font-medium capitalize mb-2">{size.size}</h5>
+                          <img 
+                            src={result.urls[size.size]} 
+                            alt={`${size.size} version`}
+                            className="w-full h-24 object-cover rounded mb-2"
+                          />
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <p>Size: {size.width}×{size.height}</p>
+                            <p>File: {formatFileSize(size.fileSize)}</p>
+                            <a 
+                              href={result.urls[size.size]} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline block"
+                            >
+                              View Full Size
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
-export default WebPImageUploader;

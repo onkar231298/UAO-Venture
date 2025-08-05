@@ -31,6 +31,7 @@ import CustomerSavedProducts from "@/pages/CustomerSavedProducts";
 import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
+import TestWebPUpload from "@/pages/TestWebPUpload";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
+      <Route path="/test-webp-upload" component={TestWebPUpload} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (

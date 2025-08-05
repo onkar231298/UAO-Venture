@@ -90,15 +90,17 @@ export default function ProductDetailBFI() {
     
     const images = [];
     
-    // Add main image from imageUrl field if it exists
-    if (product.imageUrl) {
-      images.push(product.imageUrl);
+    // Add main image - prioritize WebP fields over legacy fields
+    const mainImage = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+    if (mainImage) {
+      images.push(mainImage);
     }
     
     // Add gallery images if they exist and are not duplicates of main image
     if (product.galleryImages && Array.isArray(product.galleryImages)) {
+      const mainImg = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
       const galleryImages = product.galleryImages.filter((img: string) => 
-        img && img.trim() !== '' && img !== product.imageUrl
+        img && img.trim() !== '' && img !== mainImg
       );
       images.push(...galleryImages);
     }
