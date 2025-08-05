@@ -11,18 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, User, Clock, Search, BookOpen, TrendingUp } from "lucide-react";
 import { useSEO } from "@/hooks/useSEO";
 
-interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  category: string;
-  authorId: string;
-  publishedAt?: string;
-  readingTime?: number;
-  featuredImage?: string;
-  isPublished: boolean;
-}
+import type { BlogPost } from "@shared/blogTypes";
+import { BLOG_CATEGORIES } from "@shared/blogTypes";
 
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,8 +28,14 @@ export default function Blog() {
     pageId: "blog-listing"
   });
 
-  const { data: blogData, isLoading } = useQuery({
+  const { data: blogData, isLoading } = useQuery<{ posts: BlogPost[]; total: number }>({
     queryKey: ["/api/blog", { category: selectedCategory === "all" ? "" : selectedCategory, published: true }],
+    queryFn: async () => {
+      const categoryParam = selectedCategory === "all" ? "" : `&category=${selectedCategory}`;
+      const response = await fetch(`/api/blog?published=true${categoryParam}`);
+      if (!response.ok) throw new Error('Failed to fetch blog posts');
+      return response.json();
+    }
   });
 
   const filteredPosts = blogData?.posts?.filter((post: BlogPost) =>
@@ -47,13 +43,7 @@ export default function Blog() {
     post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "industry-trends", label: "Industry Trends" },
-    { value: "certifications", label: "Certifications" },
-    { value: "education", label: "Education" },
-    { value: "sustainability", label: "Sustainability" }
-  ];
+  const categories = BLOG_CATEGORIES;
 
   return (
     <div className="min-h-screen bg-gray-50">

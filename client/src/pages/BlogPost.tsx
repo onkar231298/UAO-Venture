@@ -11,21 +11,7 @@ import { Link } from "wouter";
 import { useSEO } from "@/hooks/useSEO";
 import NewsletterSubscription from "@/components/NewsletterSubscription";
 
-interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  category: string;
-  authorId: string;
-  publishedAt?: string;
-  readingTime?: number;
-  featuredImage?: string;
-  isPublished: boolean;
-}
+import type { BlogPost } from "@shared/blogTypes";
 
 export default function BlogPost() {
   const { slug } = useParams();

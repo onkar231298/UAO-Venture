@@ -2338,7 +2338,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/blog', isAuthenticated, async (req: any, res) => {
+  // Create blog post (admin)
+  app.post('/api/blog', isAuthenticated, async (req: any, res) => {
     try {
       const postData = insertBlogPostSchema.parse({
         ...req.body,
@@ -2352,7 +2353,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  // Update blog post (admin)
+  app.put('/api/blog/:id', isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -2367,7 +2369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  // Delete blog post (admin)
+  app.delete('/api/blog/:id', isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteBlogPost(id);
