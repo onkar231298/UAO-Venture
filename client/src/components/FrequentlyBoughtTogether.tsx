@@ -1,14 +1,11 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "./OptimizedImage";
-import InquiryForm from "./InquiryForm";
-import { ShoppingCart, Plus, Package, MessageSquare } from "lucide-react";
+import { Package, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 import type { Product } from "@shared/schema";
 
 interface FrequentlyBoughtTogetherProps {
@@ -17,8 +14,6 @@ interface FrequentlyBoughtTogetherProps {
 }
 
 export default function FrequentlyBoughtTogether({ currentProduct, maxItems = 3 }: FrequentlyBoughtTogetherProps) {
-  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set([currentProduct.id]));
-
   // Fetch frequently bought together products
   const { data: productsData, isLoading } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "frequently-bought", currentProduct.id],
@@ -58,20 +53,6 @@ export default function FrequentlyBoughtTogether({ currentProduct, maxItems = 3 
   });
 
   const complementaryProducts = productsData?.products || [];
-  const allProducts = [currentProduct, ...complementaryProducts];
-  const selectedProductsList = allProducts.filter(p => selectedProducts.has(p.id));
-
-  const toggleProductSelection = (productId: number) => {
-    const newSelected = new Set(selectedProducts);
-    if (productId === currentProduct.id) return; // Current product always selected
-    
-    if (newSelected.has(productId)) {
-      newSelected.delete(productId);
-    } else {
-      newSelected.add(productId);
-    }
-    setSelectedProducts(newSelected);
-  };
 
   if (isLoading) {
     return (
@@ -110,29 +91,55 @@ export default function FrequentlyBoughtTogether({ currentProduct, maxItems = 3 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Products Selection */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {allProducts.map((product, index) => (
-            <div key={product.id} className="flex flex-col">
-              {index > 0 && (
-                <div className="hidden sm:flex justify-center items-center mb-2">
-                  <Plus className="h-4 w-4 text-gray-400" />
-                </div>
-              )}
-              <div className="border rounded-lg p-3 relative">
-                <div className="absolute top-2 left-2 z-10">
-                  <Checkbox
-                    checked={selectedProducts.has(product.id)}
-                    onCheckedChange={() => toggleProductSelection(product.id)}
-                    disabled={product.id === currentProduct.id}
-                    className="bg-white"
-                  />
-                </div>
-                
+        {/* Mobile: Horizontal scroll */}
+        <div className="block sm:hidden">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+            {complementaryProducts.map((product) => (
+              <div key={product.id} className="flex-none w-48 snap-start">
+                <Link href={`/product/${product.slug}`}>
+                  <div className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer touch-manipulation active:scale-95 transition-transform duration-150">
+                    <div className="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
+                      {product.mainImageMedium || product.mainImageThumbnail || product.mainImage ? (
+                        <OptimizedImage
+                          src={product.mainImageMedium || product.mainImageThumbnail || product.mainImage || ''}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          lazy={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <div className="text-center">
+                            <div className="text-xl mb-1">📦</div>
+                            <div className="text-xs">No Image</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <h4 className="font-medium text-sm line-clamp-2 mb-1">{product.name}</h4>
+                    <p className="text-xs text-gray-500 mb-2">SKU: {product.productId}</p>
+                    
+                    {product.productType && (
+                      <Badge variant="outline" className="text-xs">
+                        {product.productType}
+                      </Badge>
+                    )}
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: Grid */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+          {complementaryProducts.map((product) => (
+            <Link key={product.id} href={`/product/${product.slug}`}>
+              <div className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
                 <div className="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
-                  {product.mainImageMedium || product.mainImageThumbnail || product.imageUrl ? (
+                  {product.mainImageMedium || product.mainImageThumbnail || product.mainImage ? (
                     <OptimizedImage
-                      src={product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || ''}
+                      src={product.mainImageMedium || product.mainImageThumbnail || product.mainImage || ''}
                       alt={product.name}
                       className="w-full h-full object-cover"
                       lazy={true}
@@ -156,61 +163,21 @@ export default function FrequentlyBoughtTogether({ currentProduct, maxItems = 3 
                   </Badge>
                 )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
-        <Separator className="my-4" />
-
-        {/* Bundle Summary */}
-        <div className="bg-green-50 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="font-semibold text-green-800">Bundle Summary</h4>
-              <p className="text-sm text-green-600">
-                {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''} selected
-              </p>
-            </div>
-            <Badge className="bg-green-600">
-              Save on bulk inquiry
-            </Badge>
-          </div>
-          
-          <div className="text-sm text-green-700 mb-3">
-            Selected products:
-            <ul className="list-disc list-inside mt-1">
-              {selectedProductsList.map(product => (
-                <li key={product.id} className="truncate">{product.name}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Get Bundle Quote
+        {/* Show more link */}
+        {complementaryProducts.length >= maxItems && currentProduct.categoryName && (
+          <div className="mt-6 pt-4 border-t text-center">
+            <Link href={`/products?category=${encodeURIComponent(currentProduct.categoryName)}`}>
+              <Button variant="outline" className="text-sm">
+                Explore More {currentProduct.categoryName} Products
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Request Quote for Bundle ({selectedProducts.size} items)</DialogTitle>
-              </DialogHeader>
-              <InquiryForm 
-                product={currentProduct} 
-                bundleProducts={selectedProductsList}
-              />
-            </DialogContent>
-          </Dialog>
-          
-          <Button variant="outline" size="sm" className="px-6">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add All Samples
-          </Button>
-        </div>
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
