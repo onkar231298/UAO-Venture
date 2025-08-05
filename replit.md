@@ -83,6 +83,8 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Vite Dev Server for frontend, TSX for backend, file watching.
 - **Production Build**: Vite for frontend bundle, ESBuild for backend, static asset serving.
 - **Database Management**: Drizzle Kit for migrations, environment variables for configuration, SSL for security.
+- **Environment Configuration**: PORT environment variable with fallback to 5000, critical environment validation on startup.
+- **Deployment Fixes Applied (Jan 5, 2025)**: Fixed duplicate updateQuotation method in storage.ts, enhanced PORT environment variable handling with validation, added critical environment variables validation on server startup.
 
 ## External Dependencies
 

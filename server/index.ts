@@ -2,6 +2,16 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Validate critical environment variables for deployment
+function validateEnvironment() {
+  const requiredVars = ['DATABASE_URL'];
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -40,6 +50,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Validate environment before starting
+  validateEnvironment();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -64,6 +77,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  if (!process.env.PORT) {
+    console.warn('Warning: PORT environment variable not set, using default port 5000');
+  }
+  
   server.listen({
     port,
     host: "0.0.0.0",

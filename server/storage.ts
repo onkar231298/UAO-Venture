@@ -1371,15 +1371,6 @@ export class DatabaseStorage implements IStorage {
     return updatedQuotation;
   }
 
-  async updateQuotation(id: number, quotation: Partial<InsertQuotation>): Promise<Quotation> {
-    const [updatedQuotation] = await db
-      .update(quotations)
-      .set({ ...quotation, updatedAt: new Date() })
-      .where(eq(quotations.id, id))
-      .returning();
-    return updatedQuotation;
-  }
-
   // Hero slider operations
   async getHeroSlides(): Promise<any[]> {
     const slides = await db
