@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
@@ -92,15 +93,15 @@ export default function ProductDetailBFI() {
     
     const images = [];
     
-    // Add main image - prioritize WebP fields over legacy fields
-    const mainImage = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+    // Add main image - prioritize available image fields
+    const mainImage = product.mainImageMedium || product.mainImageLarge || product.mainImage;
     if (mainImage) {
       images.push(mainImage);
     }
     
     // Add gallery images if they exist and are not duplicates of main image
     if (product.galleryImages && Array.isArray(product.galleryImages)) {
-      const mainImg = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+      const mainImg = product.mainImageMedium || product.mainImageLarge || product.mainImage;
       const galleryImages = product.galleryImages.filter((img: string) => 
         img && img.trim() !== '' && img !== mainImg
       );
@@ -221,29 +222,29 @@ export default function ProductDetailBFI() {
       <StructuredData product={product} faqs={faqs} />
       <Header />
       
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6">
         {/* Breadcrumb */}
-        <nav className="mb-6 text-sm text-gray-600">
+        <nav className="mb-4 lg:mb-6 text-sm text-gray-600">
           <span>Home</span> / <span>Products</span> / <span className="text-gray-900">{product.name}</span>
         </nav>
 
         {/* Preload product images for better performance */}
         <ImagePreloader imageUrls={allImages} priority={true} />
         
-        <div className="grid lg:grid-cols-12 gap-8 mb-8">
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 mb-8">
           {/* Left Column - Product Image & Documents */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 order-2 lg:order-1">
             {/* Product Image Carousel */}
             <div className="sticky top-4">
-              <div className="relative mb-6 bg-white rounded-lg shadow-sm overflow-hidden group">
+              <div className="relative mb-4 lg:mb-6 bg-white rounded-lg shadow-sm overflow-hidden group">
                 {currentImage ? (
                   <div className="relative">
                     <OptimizedImage
                       src={currentImage}
                       alt={`${product.name} - Image ${currentImageIndex + 1}`}
                       className="w-full aspect-square object-cover"
-                      priority={currentImageIndex === 0} // Prioritize first image
-                      lazy={false} // Don't lazy load main product images
+                      priority={currentImageIndex === 0}
+                      lazy={false}
                       placeholder={
                         <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
                           <div className="text-center">
@@ -260,7 +261,7 @@ export default function ProductDetailBFI() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
                           onClick={previousImage}
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -268,7 +269,7 @@ export default function ProductDetailBFI() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
                           onClick={nextImage}
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -282,10 +283,13 @@ export default function ProductDetailBFI() {
                     )}
                   </div>
                 ) : (
-                  <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
-                    <div className="text-center">
-                      <div className="text-4xl mb-3">📷</div>
-                      <div className="text-lg font-medium">No Preview Available</div>
+                  <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 text-orange-600">
+                    <div className="text-center p-4">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-orange-200 rounded-full flex items-center justify-center">
+                        <Package className="w-8 h-8 text-orange-600" />
+                      </div>
+                      <div className="text-lg font-semibold mb-2 line-clamp-2">{product.name}</div>
+                      <div className="text-sm text-orange-500">Premium Quality Product</div>
                     </div>
                   </div>
                 )}
@@ -473,10 +477,10 @@ export default function ProductDetailBFI() {
           </div>
 
           {/* Middle Column - Product Info */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 order-1 lg:order-2">
             {/* Product Title & Basic Info */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <div className="mb-4 lg:mb-6">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                 {product.name}
                 <Button variant="ghost" size="sm" onClick={copyProductName} className="p-1">
                   <Copy className="w-4 h-4" />
@@ -570,7 +574,7 @@ export default function ProductDetailBFI() {
           </div>
 
           {/* Right Column - Pricing & Order */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 order-3 lg:order-3">
             <div className="sticky top-4">
               <QuantityPricing 
                 product={product} 
@@ -580,10 +584,10 @@ export default function ProductDetailBFI() {
           </div>
 
           {/* Sample Request Section - Spans Middle and Right Columns */}
-          <div className="lg:col-span-8 lg:col-start-5 mb-6">
+          <div className="lg:col-span-8 lg:col-start-5 mb-6 order-4 lg:order-4 col-span-full lg:col-span-8">
             <Card className="w-full max-w-none bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                       <Beaker className="w-5 h-5 text-orange-600" />
@@ -595,8 +599,8 @@ export default function ProductDetailBFI() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
+                  <div className="flex items-center gap-3 justify-between lg:justify-end">
+                    <div className="text-left lg:text-right">
                       <div className="text-xs text-gray-500">Sample Size</div>
                       <div className="font-medium text-sm">25-100g</div>
                     </div>
@@ -612,7 +616,7 @@ export default function ProductDetailBFI() {
           </div>
 
           {/* Product Information Tabs Section - Spans Middle and Right Columns */}
-          <div className="lg:col-span-8 lg:col-start-5 -mt-4">
+          <div className="lg:col-span-8 lg:col-start-5 -mt-4 order-5 lg:order-5 col-span-full lg:col-span-8">
             <Card className="w-full max-w-none">
               <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-lg">
                 <CardTitle className="text-lg text-orange-900 flex items-center gap-2">
@@ -622,11 +626,11 @@ export default function ProductDetailBFI() {
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
-                    <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
-                    <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
-                    <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
-                    <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Other Vendors</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
+                    <TabsTrigger value="description" className="text-xs px-1 lg:px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
+                    <TabsTrigger value="spec" className="text-xs px-1 lg:px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Spec</TabsTrigger>
+                    <TabsTrigger value="faqs" className="text-xs px-1 lg:px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
+                    <TabsTrigger value="vendors" className="text-xs px-1 lg:px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Vendors</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="spec" className="m-0 p-4 space-y-4">
@@ -742,6 +746,7 @@ export default function ProductDetailBFI() {
                   product={product} 
                   isAuthenticated={isAuthenticated || isCustomerAuthenticated}
                   customerData={customer}
+                  isCustomerAuthenticated={isCustomerAuthenticated}
                 />
               </CardContent>
             </Card>
