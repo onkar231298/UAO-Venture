@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,6 @@ import {
   FileText,
   Download,
   Share2,
-  Bookmark,
-  Star,
   Globe,
   Leaf,
   Award,
@@ -24,8 +22,6 @@ import {
   Truck,
   Clock,
   MapPin,
-  Phone,
-  Mail,
   ExternalLink
 } from "lucide-react";
 import Header from "@/components/Header";
@@ -34,7 +30,7 @@ import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
-export default function ProductDetailBFI() {
+export default function ProductDetail() {
   const { slug } = useParams();
   const [location] = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -155,7 +151,7 @@ export default function ProductDetailBFI() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 lg:py-8">
+      <div className="container mx-auto px-4 py-4 lg:py-8 pb-20 lg:pb-8">
         {/* Desktop Breadcrumb - Desktop Only */}
         <nav className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 mb-6">
           <a href="/" className="hover:text-orange-600">Home</a>
@@ -278,14 +274,14 @@ export default function ProductDetailBFI() {
 
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert: string, index: number) => (
+                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert, index) => (
                   <Badge key={`cert-${index}`} variant="outline" className="text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {cert}
                   </Badge>
                 ))}
                 
-                {product.tags && product.tags.split(',').map((tag: string, index: number) => (
+                {product.tags && product.tags.split(',').map((tag, index) => (
                   <Badge key={`tag-${index}`} variant="secondary" className="text-xs">
                     {tag.trim()}
                   </Badge>
@@ -389,14 +385,23 @@ export default function ProductDetailBFI() {
         {/* Detailed Information Tabs */}
         <div className="mt-8 lg:mt-12">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 bg-white rounded-lg p-1 shadow-sm mb-6">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-white rounded-lg p-1 shadow-sm mb-6">
               <TabsTrigger value="overview" className="text-xs lg:text-sm">Overview</TabsTrigger>
-              <TabsTrigger value="specifications" className="text-xs lg:text-sm">Specifications</TabsTrigger>
-              <TabsTrigger value="documents" className="text-xs lg:text-sm">Documents</TabsTrigger>
-              <TabsTrigger value="applications" className="text-xs lg:text-sm">Applications</TabsTrigger>
-              <TabsTrigger value="packaging" className="text-xs lg:text-sm">Packaging</TabsTrigger>
-              <TabsTrigger value="faqs" className="text-xs lg:text-sm">FAQs</TabsTrigger>
+              <TabsTrigger value="specifications" className="text-xs lg:text-sm">Specs</TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs lg:text-sm">Docs</TabsTrigger>
+              <TabsTrigger value="applications" className="text-xs lg:text-sm hidden lg:block">Applications</TabsTrigger>
+              <TabsTrigger value="packaging" className="text-xs lg:text-sm hidden lg:block">Packaging</TabsTrigger>
+              <TabsTrigger value="faqs" className="text-xs lg:text-sm hidden lg:block">FAQs</TabsTrigger>
             </TabsList>
+
+            {/* Mobile: Additional Tabs Row */}
+            <div className="lg:hidden mb-6">
+              <TabsList className="grid w-full grid-cols-3 bg-white rounded-lg p-1 shadow-sm">
+                <TabsTrigger value="applications" className="text-xs">Uses</TabsTrigger>
+                <TabsTrigger value="packaging" className="text-xs">Package</TabsTrigger>
+                <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="overview" className="space-y-6">
               <Card>
@@ -481,7 +486,7 @@ export default function ProductDetailBFI() {
                     
                     {/* Additional Documents */}
                     {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 && (
-                      product.additionalDocs.map((docUrl: string, index: number) => (
+                      product.additionalDocs.map((docUrl, index) => (
                         <Button 
                           key={`additional-${index}`} 
                           variant="outline" 
@@ -576,7 +581,7 @@ export default function ProductDetailBFI() {
                 <CardContent>
                   {product.faqs ? (
                     <div className="space-y-4">
-                      {JSON.parse(product.faqs).map((faq: any, index: number) => (
+                      {JSON.parse(product.faqs).map((faq, index) => (
                         <div key={index} className="border-b border-gray-100 pb-4">
                           <h4 className="font-medium text-gray-900 mb-2">{faq.question}</h4>
                           <p className="text-gray-700">{faq.answer}</p>
@@ -629,9 +634,6 @@ export default function ProductDetailBFI() {
           </Button>
         </div>
       </div>
-
-      {/* Bottom Padding for Mobile CTA */}
-      <div className="lg:hidden h-20"></div>
     </div>
   );
 }

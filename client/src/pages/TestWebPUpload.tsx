@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import WebPImageUploader from "@/components/WebPImageUploader";
 
@@ -25,7 +25,7 @@ interface WebPUploadResult {
 }
 
 export default function TestWebPUpload() {
-  const [uploadResults, setUploadResults] = React.useState<WebPUploadResult | null>(null);
+  const [uploadResults, setUploadResults] = useState<WebPUploadResult | null>(null);
 
   const handleUploadComplete = (result: WebPUploadResult) => {
     console.log('WebP Upload Complete:', result);

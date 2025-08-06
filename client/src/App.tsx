@@ -1,6 +1,7 @@
-import React from "react";
+import { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
+import TestPage from "@/pages/TestPage";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,12 +9,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
-import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
-import ProductDetailMobile from "@/pages/ProductDetailMobile";
+import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
 import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
@@ -62,7 +62,8 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={ProductDetailMobile} />
+      <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/test-page" component={TestPage} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
