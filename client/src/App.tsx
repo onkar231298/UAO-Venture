@@ -13,7 +13,8 @@ import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
-import ProductDetail from "@/pages/ProductDetail";
+import ProductDetailSimple from "@/pages/ProductDetailSimple";
+import Test from "@/test";
 import CategoryPage from "@/pages/CategoryPage";
 import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
@@ -62,7 +63,8 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/product/:slug" component={ProductDetailSimple} />
+      <Route path="/test" component={Test} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
