@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
 interface CustomerUser {
   id: string;
@@ -23,7 +23,7 @@ interface CustomerAuthContextType {
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
 
-export function CustomerAuthProvider({ children }: { children: React.ReactNode }) {
+export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<CustomerUser | null>(null);
 
   useEffect(() => {
