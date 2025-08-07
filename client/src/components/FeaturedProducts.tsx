@@ -1,7 +1,8 @@
 import React from 'react';
 
 const FeaturedProducts: React.FC = () => {
-  console.log('FeaturedProducts component rendering...');
+  console.log('🚀 FeaturedProducts component rendering! 🚀');
+  console.log('🚀 Original component should appear! 🚀');
   
   return (
     <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">

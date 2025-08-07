@@ -157,6 +157,11 @@ export default function Home() {
         </section>
         
         {/* Featured Products Carousel */}
+        <div style={{ backgroundColor: 'red', padding: '20px', margin: '20px', border: '5px solid black' }}>
+          <h2 style={{ color: 'white', fontSize: '30px' }}>RED TEST SECTION - SHOULD BE VISIBLE</h2>
+          <p style={{ color: 'yellow' }}>If you can see this red section, React is working</p>
+        </div>
+        
         <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
