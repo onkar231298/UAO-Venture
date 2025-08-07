@@ -240,10 +240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Direct product page route for SEO and structured data (production only)
-  // In development, Vite handles this route
-  if (process.env.NODE_ENV === 'production') {
-    app.get('/product/:slug', async (req, res) => {
+  // Direct product page route for SEO and structured data
+  app.get('/product/:slug', async (req, res) => {
     try {
       const { slug } = req.params;
       const product = await storage.getProductBySlug(slug);
@@ -425,7 +423,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send('Internal Server Error');
     }
   });
-  }
 
   // IP-based currency detection endpoint
   app.get('/api/detect-currency', async (req, res) => {

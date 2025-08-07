@@ -55,15 +55,12 @@ app.use((req, res, next) => {
   // Validate environment before starting
   validateEnvironment();
   
-  // Configure server routes
-  const server = await registerRoutes(app);
-
   // SPA fallback for production - handle client-side routing
   if (app.get("env") !== "development") {
     // Add explicit SPA route handling before static serving
     app.get("*", (req, res, next) => {
-      // Skip API routes - let them be handled by registerRoutes
-      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
+      // Skip API routes AND product routes - let them be handled by registerRoutes
+      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/') || req.path.startsWith('/product/')) {
         return next();
       }
       
@@ -77,6 +74,9 @@ app.use((req, res, next) => {
       next();
     });
   }
+
+  // Configure server routes AFTER SPA fallback to ensure product routes aren't intercepted
+  const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
