@@ -67,7 +67,7 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={SimpleProductDetail} />
+      <Route path="/product/:slug" component={ProductDetailBFI} />
       <Route path="/product-full/:slug">
         {(params) => {
           console.log("ProductDetailBFI route matched with params:", params);

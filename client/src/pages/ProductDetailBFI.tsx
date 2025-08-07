@@ -101,6 +101,43 @@ export default function ProductDetailBFI() {
 
   console.log("Query state:", { isLoading, error: error?.message, hasProduct: !!product });
 
+  if (isLoading) {
+    console.log("Product is loading...");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Product fetch error:", error);
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Product</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the product: {(error as Error).message}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    console.log("Product not found - no data returned");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+          <p className="text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
+        </div>
+      </div>
+    );
+  }
+
   const { data: documents } = useQuery<ProductDocument[]>({
     queryKey: ["/api/products", product?.id, "documents"],
     enabled: !!product?.id,
@@ -508,18 +545,20 @@ export default function ProductDetailBFI() {
                         ))}
                         {/* Additional Documents */}
                         {product.additionalDocs && Array.isArray(product.additionalDocs) && (product.additionalDocs as string[]).length > 0 && 
-                          (product.additionalDocs as string[]).map((docUrl: string, index: number) => (
-                            <Button 
-                              key={`additional-${index}`} 
-                              variant="ghost" 
-                              size="sm" 
-                              className="w-full justify-start text-xs h-8"
-                              onClick={() => window.open(docUrl, '_blank')}
-                            >
-                              <FileText className="w-3 h-3 mr-2" />
-                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
-                            </Button>
-                          ))
+                          (product.additionalDocs as string[]).map((docUrl: string, index: number) => {
+                            return (
+                              <Button 
+                                key={`additional-${index}`} 
+                                variant="ghost" 
+                                size="sm" 
+                                className="w-full justify-start text-xs h-8"
+                                onClick={() => window.open(docUrl, '_blank')}
+                              >
+                                <FileText className="w-3 h-3 mr-2" />
+                                Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
+                              </Button>
+                            );
+                          })
                         }
                       </div>
                     </>
@@ -547,19 +586,23 @@ export default function ProductDetailBFI() {
               <div className="flex flex-wrap gap-2 mb-4">
                 {/* Display certifications */}
                 {product.certifications && Array.isArray(product.certifications) && 
-                  (product.certifications as string[]).map((cert: string, index: number) => (
-                    <Badge key={`cert-${index}`} variant="outline" className="text-xs">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      {cert}
-                    </Badge>
-                  ))}
+                  (product.certifications as string[]).map((cert: string, index: number) => {
+                    return (
+                      <Badge key={`cert-${index}`} variant="outline" className="text-xs">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {cert}
+                      </Badge>
+                    );
+                  })}
                 {/* Display tags */}
-                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => (
-                  <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
+                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => {
+                  return (
+                    <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {tag}
+                    </Badge>
+                  );
+                })}
               </div>
 
               {/* Multi-Currency Pricing Display */}
