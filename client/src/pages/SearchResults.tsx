@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import ProductsPageStructuredData from "@/components/ProductsPageStructuredData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,14 +16,29 @@ import {
   Search
 } from "lucide-react";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
-import type { Product } from "@shared/schema";
 import { useSEO } from "@/hooks/useSEO";
+
+interface Product {
+  id: number;
+  productId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  mainImage: string | null;
+  mainImageThumbnail: string | null;
+  mainImageMedium: string | null;
+  mainImageLarge: string | null;
+  tags: string[] | null;
+  category: string | null;
+  price: number | null;
+  currency: string | null;
+  inStock: boolean | null;
+}
 
 export default function SearchResults() {
   const { query } = useParams();
   const [, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('relevance');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
 
@@ -33,66 +47,66 @@ export default function SearchResults() {
 
   // Initialize SEO for search results page
   useSEO({
-    title: `Search Results for "${searchQuery}" - BFI Organic`,
-    description: `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.`,
-    keywords: `${searchQuery}, organic ingredients, herbal extracts, natural products, search results`,
-    canonicalUrl: `${window.location.origin}/search/${encodeURIComponent(searchQuery)}`,
+    title: searchQuery ? `Search Results for "${searchQuery}" - BFI Organic` : 'Search Results - BFI Organic',
+    description: searchQuery ? `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.` : 'Search for premium organic ingredients and natural products.',
+    keywords: searchQuery ? `${searchQuery}, organic ingredients, herbal extracts, natural products, search results` : 'organic ingredients, search, natural products',
+    canonicalUrl: `${window.location.origin}/search/${searchQuery ? encodeURIComponent(searchQuery) : ''}`,
     pageType: "search",
-    pageId: `search-${encodeURIComponent(searchQuery)}`
+    pageId: searchQuery ? `search-${encodeURIComponent(searchQuery)}` : 'search'
   });
 
-  // Fetch search results with improved error handling and cache settings
-  const { data: productsData, isLoading, refetch } = useQuery<{ products: Product[]; total: number }>({
-    queryKey: ["/api/products", "search", searchQuery, currentPage, sortBy],
+  // Fetch search results
+  const { data: productsData, isLoading, error } = useQuery<{ products: Product[]; total: number }>({
+    queryKey: ["/api/products", "search", searchQuery, currentPage],
     queryFn: async () => {
-      if (!searchQuery.trim()) return { products: [], total: 0 };
+      if (!searchQuery?.trim()) return { products: [], total: 0 };
       
       const params = new URLSearchParams();
       params.append('search', searchQuery.trim());
       params.append('limit', itemsPerPage.toString());
       params.append('offset', ((currentPage - 1) * itemsPerPage).toString());
       
-      // Add sorting
-      if (sortBy !== 'relevance') {
-        params.append('sortBy', sortBy);
-      }
-      
       const response = await fetch(`/api/products?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch search results');
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`);
+      }
       return response.json();
     },
-    enabled: !!searchQuery.trim(),
+    enabled: !!searchQuery?.trim(),
     staleTime: 30000,
-    gcTime: 300000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    retry: 1
   });
 
-  // Handle browser navigation and focus events for back button support
+  // Console log for debugging
   useEffect(() => {
-    const handleFocus = () => {
-      if (searchQuery.trim()) refetch();
-    };
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && searchQuery.trim()) {
-        refetch();
-      }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refetch, searchQuery]);
+    console.log('SearchResults mounted', { query, searchQuery, productsData });
+  }, [query, searchQuery, productsData]);
 
   const products = productsData?.products || [];
   const totalPages = Math.ceil((productsData?.total || 0) / itemsPerPage);
 
-  if (!searchQuery.trim()) {
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <Search className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Search Error</h1>
+            <p className="text-gray-500 mb-4">There was an error with your search. Please try again.</p>
+            <Button onClick={() => setLocation('/products')}>
+              Browse All Products
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show empty search state
+  if (!searchQuery?.trim()) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -113,7 +127,6 @@ export default function SearchResults() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ProductsPageStructuredData products={products} />
       <Header />
       
       <div className="container mx-auto px-4 py-8">
@@ -157,19 +170,10 @@ export default function SearchResults() {
                 </Button>
               </div>
               
-              {/* Sort Dropdown */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-              >
-                <option value="relevance">Sort by Relevance</option>
-                <option value="name">Sort by Name</option>
-                <option value="popularity">Sort by Popularity</option>
-                <option value="price_low">Price: Low to High</option>
-                <option value="price_high">Price: High to Low</option>
-                <option value="newest">Newest First</option>
-              </select>
+              {/* View toggle only - remove sorting for simplicity */}
+              <span className="text-sm text-gray-500">
+                Sorted by relevance
+              </span>
             </div>
           </div>
         </div>
@@ -239,9 +243,9 @@ export default function SearchResults() {
                       {/* Tags */}
                       {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {product.tags.slice(0, 2).map((tag: string, index: number) => (
+                          {product.tags.slice(0, 2).map((tag, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
+                              {String(tag)}
                             </Badge>
                           ))}
                         </div>
