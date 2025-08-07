@@ -101,6 +101,50 @@ export default function ProductDetailBFI() {
 
   console.log("Query state:", { isLoading, error: error?.message, hasProduct: !!product });
 
+  // Declare ALL hooks before any conditional rendering
+  const { data: documents } = useQuery<ProductDocument[]>({
+    queryKey: ["/api/products", product?.id, "documents"],
+    enabled: !!product?.id,
+  });
+
+  const { data: faqs } = useQuery<{ question: string; answer: string; }[]>({
+    queryKey: ["/api/products", product?.id, "faqs"],
+    enabled: !!product?.id,
+  });
+
+  // Related products queries
+  const { data: frequentlyBoughtTogether } = useQuery<Product[]>({
+    queryKey: ["/api/products", "related", product?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/products?limit=6`);
+      if (!response.ok) throw new Error('Failed to fetch related products');
+      const data = await response.json();
+      return data.products || [];
+    },
+    enabled: !!product?.id,
+  });
+
+  const { data: youMightAlsoLike } = useQuery<Product[]>({
+    queryKey: ["/api/products", "similar", product?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/products?limit=8`);
+      if (!response.ok) throw new Error('Failed to fetch similar products');
+      const data = await response.json();
+      return data.products || [];
+    },
+    enabled: !!product?.id,
+  });
+
+  // Currency detection
+  const { data: currencyData } = useQuery({
+    queryKey: ['/api/detect-currency'],
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  const currency = currencyData?.currency || 'INR';
+  const countryCode = currencyData?.countryCode || 'IN';
+
+  // ALL HOOKS DECLARED - Now handle conditional rendering
   if (isLoading) {
     console.log("Product is loading...");
     return (
@@ -137,16 +181,6 @@ export default function ProductDetailBFI() {
       </div>
     );
   }
-
-  const { data: documents } = useQuery<ProductDocument[]>({
-    queryKey: ["/api/products", product?.id, "documents"],
-    enabled: !!product?.id,
-  });
-
-  const { data: faqs } = useQuery<{ question: string; answer: string; }[]>({
-    queryKey: ["/api/products", product?.id, "faqs"],
-    enabled: !!product?.id,
-  });
 
   const handleQuantityChange = (quantity: number, price: number, discountPercent: number) => {
     setSelectedQuantity(quantity);
@@ -245,67 +279,6 @@ export default function ProductDetailBFI() {
       }
     }
   }, [product]);
-
-  console.log("ProductDetailBFI render state:", { isLoading, hasProduct: !!product, error, slug });
-
-  if (isLoading) {
-    console.log("Showing loading state for slug:", slug);
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
-            <div className="grid lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-200 rounded-xl"></div>
-              <div className="space-y-4">
-                <div className="h-6 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error("Error loading product:", error);
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Product</h1>
-            <p className="text-gray-600">Could not load product: {slug}</p>
-            <p className="text-sm text-gray-500 mt-2">Error: {error?.message}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-4 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    console.log("No product found for slug:", slug);
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
-            <p className="text-gray-600">The product you're looking for doesn't exist: {slug}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   console.log("Rendering product page for:", product.name);
 
