@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -15,18 +17,24 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-// Gracefully handle missing root element
+// Enhanced logging and debugging for page refresh issues
+console.log("Root element found:", !!document.getElementById("root"));
+console.log("Attempting to render React app...");
+
 const rootElement = document.getElementById("root");
 if (rootElement) {
   try {
-    createRoot(rootElement).render(<App />);
+    const root = createRoot(rootElement);
+    root.render(<App />);
+    console.log("React app rendered successfully");
   } catch (error) {
     console.error("Failed to render React app:", error);
     // Fallback: show a basic error message
     rootElement.innerHTML = `
       <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
-        <h1>Loading...</h1>
-        <p>Please wait while the application loads.</p>
+        <h1>Loading Error</h1>
+        <p>React app failed to load. Check console for details.</p>
+        <button onclick="window.location.reload()">Refresh Page</button>
       </div>
     `;
   }

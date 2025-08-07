@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+import React, { useEffect, Component, type ReactNode } from "react";
 import { Switch, Route } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
@@ -7,7 +9,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
-import { useEffect, Component, type ReactNode } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
@@ -35,6 +36,10 @@ import TestWebPUpload from "@/pages/TestWebPUpload";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  
+  console.log("Router rendering, auth state:", { isAuthenticated, isLoading, hasUser: !!user });
+  console.log("Current URL:", window.location.pathname);
+  console.log("Window location href:", window.location.href);
   
   // Track page views when routes change
   useAnalytics();
@@ -66,7 +71,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider" component={VideoHeroSliderManager} />
+      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
       
       {/* Protected dashboard routes - only for authenticated users */}
@@ -143,8 +148,11 @@ class ErrorBoundary extends Component<
 }
 
 function App() {
+  console.log("App component rendering...");
+  
   // Initialize SEO service and Google Analytics on app load
   useEffect(() => {
+    console.log("App useEffect running...");
     try {
       seoService.initializeSettings();
       
