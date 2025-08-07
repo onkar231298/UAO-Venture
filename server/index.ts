@@ -58,6 +58,26 @@ app.use((req, res, next) => {
   // Configure server routes
   const server = await registerRoutes(app);
 
+  // SPA fallback for production - handle client-side routing
+  if (app.get("env") !== "development") {
+    // Add explicit SPA route handling before static serving
+    app.get("*", (req, res, next) => {
+      // Skip API routes - let them be handled by registerRoutes
+      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
+        return next();
+      }
+      
+      // For HTML requests (page refreshes), serve index.html to let React handle routing
+      if (req.headers.accept && req.headers.accept.includes('text/html')) {
+        console.log(`[SPA Fallback] Serving React app for: ${req.path}`);
+        const distPath = path.resolve(import.meta.dirname, "public");
+        return res.sendFile(path.resolve(distPath, "index.html"));
+      }
+      
+      next();
+    });
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

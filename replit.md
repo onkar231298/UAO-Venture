@@ -8,6 +8,15 @@ This is a comprehensive B2B platform combining a customer-facing e-commerce webs
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (January 2025)
+
+### Production SPA Routing Fix
+- **Issue**: Page refreshes on deployed app resulted in blank pages for product and other routes
+- **Root Cause**: Production server wasn't properly handling SPA fallback routing  
+- **Solution**: Added explicit SPA fallback middleware in `server/index.ts` for production environment
+- **Implementation**: Routes excluding API endpoints now serve `index.html` for HTML requests, allowing React to handle client-side routing
+- **Date**: 2025-01-07
+
 ## System Architecture
 
 ### Frontend Architecture
