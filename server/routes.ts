@@ -240,30 +240,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Removed direct product page route to allow React router to handle it
-  /* app.get('/product/:slug', async (req, res) => {
+  // Server-side SEO endpoint for structured data (used by React component)
+  app.get('/api/products/:slug/seo', async (req, res) => {
     try {
       const { slug } = req.params;
       const product = await storage.getProductBySlug(slug);
       
       if (!product) {
-        return res.status(404).send(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Product Not Found - BFI Organic</title>
-              <meta name="description" content="The requested product was not found.">
-            </head>
-            <body>
-              <div id="root"></div>
-              <script type="module" src="/src/main.tsx"></script>
-            </body>
-          </html>
-        `);
+        return res.status(404).json({ error: 'Product not found' });
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const productUrl = `${baseUrl}/products/${product.slug}`;
+      const productUrl = `${baseUrl}/product/${product.slug}`;
       const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
 
       // Get product FAQs for schema
@@ -370,59 +358,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       };
 
-      // Generate complete HTML with structured data
-      const html = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>${product.seoTitle || `${product.name} - BFI Organic`}</title>
-            <meta name="description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
-            
-            <!-- Open Graph Meta Tags -->
-            <meta property="og:title" content="${product.seoTitle || `${product.name} - BFI Organic`}">
-            <meta property="og:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
-            <meta property="og:image" content="${imageUrl}">
-            <meta property="og:url" content="${productUrl}">
-            <meta property="og:type" content="product">
-            
-            <!-- Twitter Card Meta Tags -->
-            <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="${product.seoTitle || `${product.name} - BFI Organic`}">
-            <meta name="twitter:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
-            <meta name="twitter:image" content="${imageUrl}">
-            
-            <!-- Structured Data - Product Schema -->
-            <script type="application/ld+json">
-              ${JSON.stringify(structuredData, null, 2)}
-            </script>
-            
-            <!-- Structured Data - Breadcrumb Schema -->
-            <script type="application/ld+json">
-              ${JSON.stringify(breadcrumbData, null, 2)}
-            </script>
-            
-            ${faqSchema ? `<!-- Structured Data - FAQ Schema -->
-            <script type="application/ld+json">
-              ${JSON.stringify(faqSchema, null, 2)}
-            </script>` : ''}
-          </head>
-          <body>
-            <div id="root"></div>
-            <script type="module" src="/src/main.tsx"></script>
-          </body>
-        </html>
-      `;
+      const organizationSchema = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd.",
+        "url": baseUrl,
+        "logo": `${baseUrl}/logo.png`,
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "addressLocality": "Mehsana",
+          "addressRegion": "Gujarat",
+          "postalCode": "384001",
+          "addressCountry": "IN"
+        },
+        "telephone": "+91-7249847439"
+      };
 
-      res.setHeader('Content-Type', 'text/html');
-      res.send(html);
+      res.json({
+        productSchema: structuredData,
+        breadcrumbSchema: breadcrumbData,
+        organizationSchema: organizationSchema,
+        faqSchema: faqSchema,
+        seoData: {
+          title: product.seoTitle || `${product.name} - BFI Organic`,
+          description: product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`,
+          canonical: productUrl,
+          ogTitle: product.seoTitle || `${product.name} - BFI Organic`,
+          ogDescription: product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`,
+          ogImage: imageUrl,
+          ogUrl: productUrl
+        }
+      });
     } catch (error) {
-      console.error('Error rendering product page:', error);
-      res.status(500).send('Internal Server Error');
+      console.error('Error generating SEO data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-  }); */
+  });
 
   // IP-based currency detection endpoint
   app.get('/api/detect-currency', async (req, res) => {

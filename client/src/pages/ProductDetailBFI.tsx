@@ -85,6 +85,17 @@ export default function ProductDetailBFI() {
     enabled: !!product?.id,
   });
 
+  // Load SEO data for structured data
+  const { data: seoData } = useQuery({
+    queryKey: ["/api/products", slug, "seo"],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${slug}/seo`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!slug && !!product,
+  });
+
   const handleQuantityChange = (quantity: number, price: number, discountPercent: number) => {
     setSelectedQuantity(quantity);
     setTotalPrice(price);
