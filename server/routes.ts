@@ -240,7 +240,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Product page route completely removed to allow React router to handle all /product/:slug routes
+  // Removed direct product page route to allow React router to handle it
+  /* app.get('/product/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const product = await storage.getProductBySlug(slug);
+      
+      if (!product) {
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Product Not Found - BFI Organic</title>
+              <meta name="description" content="The requested product was not found.">
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/src/main.tsx"></script>
+            </body>
+          </html>
+        `);
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const productUrl = `${baseUrl}/products/${product.slug}`;
+      const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
+
+      // Get product FAQs for schema
+      const productFaqs = await storage.getProductFaqs(product.id);
+      
+      // Generate enhanced structured data with FAQ schema
+      const structuredData = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": product.name,
+        "description": product.description || `High-quality ${product.name} from BFI Organic`,
+        "sku": product.productId,
+        "mpn": product.productId,
+        "brand": {
+          "@type": "Brand",
+          "name": "BFI Organic",
+          "url": baseUrl
+        },
+        "manufacturer": {
+          "@type": "Organization",
+          "name": "Bright Fame Organic Pvt. Ltd.",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+            "addressLocality": "Mehsana",
+            "addressRegion": "Gujarat",
+            "postalCode": "384001",
+            "addressCountry": "IN"
+          },
+          "telephone": "+91-7249847439",
+          "url": baseUrl
+        },
+        "image": imageUrl,
+        "url": productUrl,
+        "category": product.healthSupport || "Organic Ingredients",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "USD",
+          "price": product.priceUSD || product.rate || 0,
+          "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "itemCondition": "https://schema.org/NewCondition",
+          "seller": {
+            "@type": "Organization",
+            "name": "BFI Organic",
+            "url": baseUrl
+          }
+        },
+        "additionalProperty": [
+          ...(product.botanicalName ? [{
+            "@type": "PropertyValue",
+            "name": "Botanical Name",
+            "value": product.botanicalName
+          }] : []),
+          ...(product.origin ? [{
+            "@type": "PropertyValue", 
+            "name": "Origin",
+            "value": product.origin
+          }] : []),
+          ...(product.form ? [{
+            "@type": "PropertyValue",
+            "name": "Form", 
+            "value": product.form
+          }] : [])
+        ]
+      };
+
+      // Add FAQ schema if FAQs exist
+      const faqSchema = productFaqs?.length > 0 ? {
+        "@context": "https://schema.org/",
+        "@type": "FAQPage",
+        "mainEntity": productFaqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      } : null;
+
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl
+          },
+          {
+            "@type": "ListItem", 
+            "position": 2,
+            "name": "Products",
+            "item": `${baseUrl}/products`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": product.name,
+            "item": productUrl
+          }
+        ]
+      };
+
+      // Generate complete HTML with structured data
+      const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>${product.seoTitle || `${product.name} - BFI Organic`}</title>
+            <meta name="description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
+            
+            <!-- Open Graph Meta Tags -->
+            <meta property="og:title" content="${product.seoTitle || `${product.name} - BFI Organic`}">
+            <meta property="og:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
+            <meta property="og:image" content="${imageUrl}">
+            <meta property="og:url" content="${productUrl}">
+            <meta property="og:type" content="product">
+            
+            <!-- Twitter Card Meta Tags -->
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="${product.seoTitle || `${product.name} - BFI Organic`}">
+            <meta name="twitter:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`}">
+            <meta name="twitter:image" content="${imageUrl}">
+            
+            <!-- Structured Data - Product Schema -->
+            <script type="application/ld+json">
+              ${JSON.stringify(structuredData, null, 2)}
+            </script>
+            
+            <!-- Structured Data - Breadcrumb Schema -->
+            <script type="application/ld+json">
+              ${JSON.stringify(breadcrumbData, null, 2)}
+            </script>
+            
+            ${faqSchema ? `<!-- Structured Data - FAQ Schema -->
+            <script type="application/ld+json">
+              ${JSON.stringify(faqSchema, null, 2)}
+            </script>` : ''}
+          </head>
+          <body>
+            <div id="root"></div>
+            <script type="module" src="/src/main.tsx"></script>
+          </body>
+        </html>
+      `;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      console.error('Error rendering product page:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  }); */
 
   // IP-based currency detection endpoint
   app.get('/api/detect-currency', async (req, res) => {
