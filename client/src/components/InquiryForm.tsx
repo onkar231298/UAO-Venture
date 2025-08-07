@@ -16,13 +16,12 @@ import type { Product } from "@shared/schema";
 
 interface InquiryFormProps {
   product?: Product;
-  bundleProducts?: Product[];
   onSuccess?: () => void;
   customerData?: any;
   isCustomerAuthenticated?: boolean;
 }
 
-export default function InquiryForm({ product, bundleProducts, onSuccess, customerData, isCustomerAuthenticated }: InquiryFormProps) {
+export default function InquiryForm({ product, onSuccess, customerData, isCustomerAuthenticated }: InquiryFormProps) {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -140,8 +139,6 @@ export default function InquiryForm({ product, bundleProducts, onSuccess, custom
     const inquiryData = {
       ...formData,
       customerId: isCustomerAuthenticated ? customerData?.id : null,
-      bundleProductIds: bundleProducts ? bundleProducts.map(p => p.id) : null,
-      isBundleInquiry: !!bundleProducts && bundleProducts.length > 1,
     };
     
     inquiryMutation.mutate(inquiryData);
@@ -173,29 +170,8 @@ export default function InquiryForm({ product, bundleProducts, onSuccess, custom
     <div className="p-2">
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Bundle Products Display */}
-          {bundleProducts && bundleProducts.length > 1 && (
-            <div className="space-y-2">
-              <Label>Bundle Products ({bundleProducts.length} items)</Label>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="space-y-2">
-                  {bundleProducts.map((bundleProduct, index) => (
-                    <div key={bundleProduct.id} className="flex items-center space-x-2 text-sm">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="font-medium">{bundleProduct.name}</span>
-                      <span className="text-gray-500">({bundleProduct.productId})</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-green-700 mt-2">
-                  This inquiry is for all {bundleProducts.length} products listed above
-                </p>
-              </div>
-            </div>
-          )}
-          
           {/* Product Selection (if not pre-selected) */}
-          {!product && !bundleProducts && (
+          {!product && (
             <div className="space-y-2">
               <Label htmlFor="productId">Product *</Label>
               <Input

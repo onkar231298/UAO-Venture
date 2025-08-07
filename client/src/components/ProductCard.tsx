@@ -18,9 +18,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const hasImage = !!productImage;
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 touch-manipulation">
+    <Card className="group hover:shadow-lg transition-all duration-200">
       <Link href={`/product/${product.slug}`}>
-        <div className="cursor-pointer active:scale-95 transition-transform duration-150">
+        <div className="cursor-pointer">
           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
             {hasImage ? (
               <OptimizedImage
@@ -69,16 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               </Badge>
             )}
             <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                className="h-7 w-7 sm:h-8 sm:w-8 p-0 touch-manipulation active:scale-90 transition-transform"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Handle wishlist functionality
-                }}
-              >
+              <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </div>
@@ -125,16 +116,16 @@ export default function ProductCard({ product }: ProductCardProps) {
       </Link>
       
       <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-        <div className="flex gap-2">
+        <div className="flex space-x-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-xs sm:text-sm py-2.5 touch-manipulation active:scale-95 transition-all duration-150">
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
                 <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 <span className="hidden sm:inline">Get Quote</span>
                 <span className="sm:hidden">Quote</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Request Quote for {product.name}</DialogTitle>
               </DialogHeader>
@@ -142,16 +133,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </DialogContent>
           </Dialog>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs sm:text-sm px-3 sm:px-4 touch-manipulation active:scale-95 transition-all duration-150"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Handle sample request
-            }}
-          >
+          <Button variant="outline" size="sm" className="text-sm">
             Sample
           </Button>
         </div>

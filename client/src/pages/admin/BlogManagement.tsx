@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -22,12 +22,40 @@ import {
   User, 
   Tag,
   Search,
-  Filter,
-  Loader2
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
-import type { BlogPost, BlogFormData, BlogListResponse } from "@shared/blogTypes";
-import { BLOG_CATEGORIES } from "@shared/blogTypes";
+
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  metaTitle: string;
+  metaDescription: string;
+  tags: string[];
+  category: string;
+  authorId: string;
+  publishedAt: string | null;
+  isPublished: boolean;
+  featuredImage: string | null;
+  readingTime: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BlogFormData {
+  title: string;
+  content: string;
+  excerpt: string;
+  metaTitle: string;
+  metaDescription: string;
+  tags: string;
+  category: string;
+  isPublished: boolean;
+  featuredImage: string;
+}
 
 export default function BlogManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -51,7 +79,7 @@ export default function BlogManagement() {
   });
 
   // Fetch blog posts
-  const { data: blogData, isLoading, error } = useQuery<BlogListResponse>({
+  const { data: blogData, isLoading, error } = useQuery({
     queryKey: ["/api/blog", { published: "all", limit: 100 }],
     queryFn: async () => {
       console.log('Making API call to fetch blog posts...');
@@ -107,7 +135,7 @@ export default function BlogManagement() {
         slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         readingTime: Math.ceil(data.content.split(' ').length / 200) // Estimate reading time
       };
-      return apiRequest('/api/blog', {
+      return apiRequest('/api/admin/blog', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -138,7 +166,7 @@ export default function BlogManagement() {
         tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : undefined,
         readingTime: data.content ? Math.ceil(data.content.split(' ').length / 200) : undefined
       };
-      return apiRequest(`/api/blog/${id}`, {
+      return apiRequest(`/api/admin/blog/${id}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
@@ -163,7 +191,7 @@ export default function BlogManagement() {
 
   // Delete blog post mutation
   const deletePostMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/blog/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => apiRequest(`/api/admin/blog/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
       toast({
@@ -218,7 +246,14 @@ export default function BlogManagement() {
     }
   };
 
-  const categories = BLOG_CATEGORIES.filter(cat => cat.value !== "all");
+  const categories = [
+    { value: "industry-trends", label: "Industry Trends" },
+    { value: "certifications", label: "Certifications" },
+    { value: "education", label: "Education" },
+    { value: "sustainability", label: "Sustainability" },
+    { value: "research", label: "Research" },
+    { value: "news", label: "Company News" }
+  ];
 
   return (
     <div className="space-y-6">
