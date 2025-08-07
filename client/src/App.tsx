@@ -43,6 +43,7 @@ function Router() {
   
   console.log("Router rendering, auth state:", { isAuthenticated, isLoading, hasUser: !!user });
   console.log("Current URL:", window.location.pathname);
+  console.log("Window location href:", window.location.href);
 
   return (
     <Switch>

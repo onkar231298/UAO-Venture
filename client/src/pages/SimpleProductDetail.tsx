@@ -4,6 +4,8 @@ export default function SimpleProductDetail() {
   const { slug } = useParams();
   
   console.log("SimpleProductDetail rendering with slug:", slug);
+  console.log("Window location on SimpleProductDetail:", window.location.href);
+  console.log("useParams result:", useParams());
   
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
