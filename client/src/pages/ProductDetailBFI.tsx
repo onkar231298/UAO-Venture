@@ -483,7 +483,7 @@ export default function ProductDetailBFI() {
                           </Button>
                         ))}
                         {/* Additional Documents */}
-                        {product.additionalDocs && Array.isArray(product.additionalDocs) && (product.additionalDocs as string[]).length > 0 && (
+                        {product.additionalDocs && Array.isArray(product.additionalDocs) && (product.additionalDocs as string[]).length > 0 && 
                           (product.additionalDocs as string[]).map((docUrl: string, index: number) => (
                             <Button 
                               key={`additional-${index}`} 
@@ -496,7 +496,7 @@ export default function ProductDetailBFI() {
                               Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
                             </Button>
                           ))
-                        )}
+                        }
                       </div>
                     </>
                   )}
@@ -522,12 +522,13 @@ export default function ProductDetailBFI() {
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {/* Display certifications */}
-                {product.certifications && Array.isArray(product.certifications) && (product.certifications as string[]).map((cert: string, index: number) => (
-                  <Badge key={`cert-${index}`} variant="outline" className="text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {cert}
-                  </Badge>
-                ))}
+                {product.certifications && Array.isArray(product.certifications) && 
+                  (product.certifications as string[]).map((cert: string, index: number) => (
+                    <Badge key={`cert-${index}`} variant="outline" className="text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {cert}
+                    </Badge>
+                  ))}
                 {/* Display tags */}
                 {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => (
                   <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
@@ -594,7 +595,7 @@ export default function ProductDetailBFI() {
                     <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
                   <EnhancedInquiryForm 
-                    product={product as Product} 
+                    product={{...product, moq: product.moq || ''} as Product} 
                     isAuthenticated={isAuthenticated}
                     customerData={customer}
                     isCustomerAuthenticated={isCustomerAuthenticated}
@@ -774,7 +775,7 @@ export default function ProductDetailBFI() {
               </CardHeader>
               <CardContent>
                 <EnhancedInquiryForm 
-                  product={product as Product} 
+                  product={{...product, moq: product.moq || ''} as Product} 
                   isAuthenticated={isAuthenticated || isCustomerAuthenticated}
                   customerData={customer}
                 />

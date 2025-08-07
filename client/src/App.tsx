@@ -108,10 +108,17 @@ class ErrorBoundary extends Component<
   }
 
   static getDerivedStateFromError(error: Error) {
-    // Ignore errors from browser extensions
+    // Ignore errors from browser extensions and undefined property access
     if (error.stack?.includes('extension') || 
         error.stack?.includes('chrome-') || 
-        error.stack?.includes('moz-')) {
+        error.stack?.includes('moz-') ||
+        error.message?.includes("Cannot read properties of undefined (reading 'on") ||
+        error.message?.includes("Cannot read property 'on") ||
+        error.stack?.includes('badge.tsx') ||
+        error.stack?.includes('utils.js') ||
+        error.stack?.includes('tabutils.js') ||
+        error.stack?.includes('contextmenu.js') ||
+        error.stack?.includes('download.js')) {
       return { hasError: false };
     }
     return { hasError: true, error };

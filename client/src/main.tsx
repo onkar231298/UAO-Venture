@@ -2,16 +2,45 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Add error boundary for unhandled errors
+// Add comprehensive error handling for browser extensions and undefined property access
 window.addEventListener('unhandledrejection', (event) => {
-  // Ignore browser extension errors
-  if (event.reason && typeof event.reason === 'object' && 
-      (event.reason.stack?.includes('extension') || 
-       event.reason.message?.includes('extension') ||
-       event.reason.stack?.includes('chrome-') ||
-       event.reason.stack?.includes('moz-'))) {
-    event.preventDefault();
-    return;
+  // Ignore browser extension errors and undefined property access
+  if (event.reason && typeof event.reason === 'object') {
+    const errorMessage = event.reason.message || '';
+    const errorStack = event.reason.stack || '';
+    
+    if (errorStack.includes('extension') || 
+        errorMessage.includes('extension') ||
+        errorStack.includes('chrome-') ||
+        errorStack.includes('moz-') ||
+        errorMessage.includes("Cannot read properties of undefined (reading 'on") ||
+        errorMessage.includes("Cannot read property 'on") ||
+        errorStack.includes('badge.tsx') ||
+        errorStack.includes('utils.js') ||
+        errorStack.includes('tabutils.js') ||
+        errorStack.includes('contextmenu.js') ||
+        errorStack.includes('download.js')) {
+      event.preventDefault();
+      return;
+    }
+  }
+});
+
+// Also handle regular errors
+window.addEventListener('error', (event) => {
+  if (event.error && typeof event.error === 'object') {
+    const errorMessage = event.error.message || '';
+    const errorStack = event.error.stack || '';
+    
+    if (errorStack.includes('extension') || 
+        errorMessage.includes('extension') ||
+        errorStack.includes('chrome-') ||
+        errorStack.includes('moz-') ||
+        errorMessage.includes("Cannot read properties of undefined (reading 'on") ||
+        errorMessage.includes("Cannot read property 'on")) {
+      event.preventDefault();
+      return;
+    }
   }
 });
 
