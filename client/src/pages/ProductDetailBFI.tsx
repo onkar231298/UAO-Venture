@@ -179,13 +179,7 @@ export default function ProductDetailBFI() {
         metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
       }
       
-      // Test structured data after component mounts (development only)
-      if (import.meta.env.DEV) {
-        setTimeout(() => {
-          console.log('Testing structured data for product:', product.name);
-          testStructuredData();
-        }, 1000);
-      }
+      // Structured data is now handled by the useEffect with injectProductStructuredData
     }
   }, [product]);
 
