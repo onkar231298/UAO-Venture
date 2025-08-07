@@ -6,8 +6,6 @@ import Footer from "@/components/Footer";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import ProductCard from "@/components/ProductCard";
 import InquiryForm from "@/components/InquiryForm";
-import FeaturedProductsSlider from "@/components/FeaturedProductsSlider";
-import PopularProducts from "@/components/PopularProducts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,11 +152,51 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Featured Products Slider */}
-      <FeaturedProductsSlider />
-
-      {/* Popular Products */}
-      <PopularProducts />
+      {/* Featured Products */}
+      <section className="py-8 sm:py-12 lg:py-16 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+            <div className="text-center sm:text-left mb-4 sm:mb-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
+              <p className="text-sm sm:text-base text-gray-600">Discover our premium organic ingredients</p>
+            </div>
+            <Button variant="outline" className="text-sm">
+              View All Products →
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {popularProducts?.products?.length ? (
+              popularProducts.products.slice(0, 4).map((product: Product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              // Loading skeleton
+              Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-36 sm:h-48 bg-gray-200 rounded-t-xl"></div>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="h-3 sm:h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-2 sm:h-3 bg-gray-200 rounded mb-3 sm:mb-4"></div>
+                    <div className="h-8 sm:h-10 bg-gray-200 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+          
+          {/* Show no products message if API returns empty */}
+          {popularProducts?.products?.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Package className="w-12 h-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No products available</h3>
+              <p className="text-gray-600">Products will appear here once they are added and made visible.</p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Features Section */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">

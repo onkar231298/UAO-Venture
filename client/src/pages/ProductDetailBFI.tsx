@@ -46,28 +46,10 @@ import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import StructuredData from "@/components/StructuredData";
 import { testStructuredData } from "@/utils/seoTestUtil";
-import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
-import RelatedProductsCarousel from "@/components/RelatedProductsCarousel";
-import PopularProducts from "@/components/PopularProducts";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
-  console.log("ProductDetailBFI component starting to render...");
   const { slug } = useParams();
-  console.log("Product slug from URL:", slug);
-
-  if (!slug) {
-    console.error("No slug provided in URL");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid URL</h1>
-          <p className="text-gray-600">No product identifier found in URL.</p>
-        </div>
-      </div>
-    );
-  }
-  
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
@@ -76,32 +58,16 @@ export default function ProductDetailBFI() {
   const [discount, setDiscount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { data: product, isLoading, error } = useQuery<Product>({
+  const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
     queryFn: async () => {
-      console.log("Fetching product for slug:", slug);
-      try {
-        const response = await fetch(`/api/products/slug/${slug}`);
-        console.log("Product API response status:", response.status);
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Product API error:", errorText);
-          throw new Error(`Product not found: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Product data received:", data);
-        return data;
-      } catch (fetchError) {
-        console.error("Failed to fetch product:", fetchError);
-        throw fetchError;
-      }
+      const response = await fetch(`/api/products/slug/${slug}`);
+      if (!response.ok) throw new Error('Product not found');
+      return response.json();
     },
     enabled: !!slug,
   });
 
-  console.log("Query state:", { isLoading, error: error?.message, hasProduct: !!product });
-
-  // Declare ALL hooks before any conditional rendering
   const { data: documents } = useQuery<ProductDocument[]>({
     queryKey: ["/api/products", product?.id, "documents"],
     enabled: !!product?.id,
@@ -111,76 +77,6 @@ export default function ProductDetailBFI() {
     queryKey: ["/api/products", product?.id, "faqs"],
     enabled: !!product?.id,
   });
-
-  // Related products queries
-  const { data: frequentlyBoughtTogether } = useQuery<Product[]>({
-    queryKey: ["/api/products", "related", product?.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/products?limit=6`);
-      if (!response.ok) throw new Error('Failed to fetch related products');
-      const data = await response.json();
-      return data.products || [];
-    },
-    enabled: !!product?.id,
-  });
-
-  const { data: youMightAlsoLike } = useQuery<Product[]>({
-    queryKey: ["/api/products", "similar", product?.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/products?limit=8`);
-      if (!response.ok) throw new Error('Failed to fetch similar products');
-      const data = await response.json();
-      return data.products || [];
-    },
-    enabled: !!product?.id,
-  });
-
-  // Currency detection
-  const { data: currencyData } = useQuery({
-    queryKey: ['/api/detect-currency'],
-    staleTime: 1000 * 60 * 30, // 30 minutes
-  });
-
-  const currency = currencyData?.currency || 'INR';
-  const countryCode = currencyData?.countryCode || 'IN';
-
-  // ALL HOOKS DECLARED - Now handle conditional rendering
-  if (isLoading) {
-    console.log("Product is loading...");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading product details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error("Product fetch error:", error);
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Product</h1>
-          <p className="text-gray-600 mb-4">There was an error loading the product: {(error as Error).message}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    console.log("Product not found - no data returned");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
-          <p className="text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleQuantityChange = (quantity: number, price: number, discountPercent: number) => {
     setSelectedQuantity(quantity);
@@ -195,14 +91,14 @@ export default function ProductDetailBFI() {
     const images = [];
     
     // Add main image - prioritize WebP fields over legacy fields
-    const mainImage = product.mainImageMedium || product.mainImageLarge || product.mainImage;
+    const mainImage = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
     if (mainImage) {
       images.push(mainImage);
     }
     
     // Add gallery images if they exist and are not duplicates of main image
     if (product.galleryImages && Array.isArray(product.galleryImages)) {
-      const mainImg = product.mainImageMedium || product.mainImageLarge || product.mainImage;
+      const mainImg = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
       const galleryImages = product.galleryImages.filter((img: string) => 
         img && img.trim() !== '' && img !== mainImg
       );
@@ -280,7 +176,40 @@ export default function ProductDetailBFI() {
     }
   }, [product]);
 
-  console.log("Rendering product page for:", product.name);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="grid lg:grid-cols-2 gap-8">
+              <div className="h-96 bg-gray-200 rounded-xl"></div>
+              <div className="space-y-4">
+                <div className="h-6 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+            <p className="text-gray-600">The product you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
 
@@ -517,22 +446,20 @@ export default function ProductDetailBFI() {
                           </Button>
                         ))}
                         {/* Additional Documents */}
-                        {product.additionalDocs && Array.isArray(product.additionalDocs) && (product.additionalDocs as string[]).length > 0 && 
-                          (product.additionalDocs as string[]).map((docUrl: string, index: number) => {
-                            return (
-                              <Button 
-                                key={`additional-${index}`} 
-                                variant="ghost" 
-                                size="sm" 
-                                className="w-full justify-start text-xs h-8"
-                                onClick={() => window.open(docUrl, '_blank')}
-                              >
-                                <FileText className="w-3 h-3 mr-2" />
-                                Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
-                              </Button>
-                            );
-                          })
-                        }
+                        {product.additionalDocs && (product.additionalDocs as string[]).length > 0 && (
+                          (product.additionalDocs as string[]).map((docUrl, index) => (
+                            <Button 
+                              key={`additional-${index}`} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start text-xs h-8"
+                              onClick={() => window.open(docUrl, '_blank')}
+                            >
+                              <FileText className="w-3 h-3 mr-2" />
+                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            </Button>
+                          ))
+                        )}
                       </div>
                     </>
                   )}
@@ -558,24 +485,19 @@ export default function ProductDetailBFI() {
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {/* Display certifications */}
-                {product.certifications && Array.isArray(product.certifications) && 
-                  (product.certifications as string[]).map((cert: string, index: number) => {
-                    return (
-                      <Badge key={`cert-${index}`} variant="outline" className="text-xs">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {cert}
-                      </Badge>
-                    );
-                  })}
+                {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
+                  <Badge key={`cert-${index}`} variant="outline" className="text-xs">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {cert}
+                  </Badge>
+                ))}
                 {/* Display tags */}
-                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => {
-                  return (
-                    <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      {tag}
-                    </Badge>
-                  );
-                })}
+                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => (
+                  <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
               </div>
 
               {/* Multi-Currency Pricing Display */}
@@ -635,7 +557,7 @@ export default function ProductDetailBFI() {
                     <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
                   <EnhancedInquiryForm 
-                    product={{...product, moq: product.moq || ''} as Product} 
+                    product={product} 
                     isAuthenticated={isAuthenticated}
                     customerData={customer}
                     isCustomerAuthenticated={isCustomerAuthenticated}
@@ -815,36 +737,29 @@ export default function ProductDetailBFI() {
               </CardHeader>
               <CardContent>
                 <EnhancedInquiryForm 
-                  product={{...product, moq: product.moq || ''} as Product} 
+                  product={product} 
                   isAuthenticated={isAuthenticated || isCustomerAuthenticated}
                   customerData={customer}
                 />
               </CardContent>
             </Card>
 
+            {/* Related Products */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Bought Together</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  See what are often bought with this product!
+                </p>
+                <Button variant="outline" size="sm" className="mt-3 w-full">
+                  View Related Products
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
-        
-        {/* Frequently Bought Together Section */}
-        <FrequentlyBoughtTogether 
-          productId={product.id} 
-          currentProduct={product}
-          className="mt-8"
-        />
-        
-        {/* Related Products Carousel */}
-        <RelatedProductsCarousel 
-          productId={product.id}
-          categoryId={product.categoryId}
-          title="You Might Also Like"
-          className="mt-8"
-        />
-        
-        {/* Popular Products */}
-        <PopularProducts 
-          title="Popular Products"
-          className="mt-8"
-        />
       </div>
       <Footer />
     </div>

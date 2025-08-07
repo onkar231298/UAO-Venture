@@ -12,15 +12,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
 
     const baseUrl = window.location.origin;
     const productUrl = `${baseUrl}/product/${product.slug}`;
-    
-    // Use same image priority logic as ProductDetailBFI.tsx
-    const getProductImageUrl = () => {
-      const mainImage = product.mainImageMedium || product.mainImageLarge || product.mainImage;
-      if (!mainImage) return `${baseUrl}/bfi-logo.png`; // Fallback to company logo only if no product image
-      return mainImage.startsWith('http') ? mainImage : `${baseUrl}${mainImage}`;
-    };
-    
-    const imageUrl = getProductImageUrl();
+    const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
 
     // Remove existing structured data scripts
     const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');

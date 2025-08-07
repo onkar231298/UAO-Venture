@@ -48,8 +48,6 @@ Preferred communication style: Simple, everyday language.
 - **Dynamic Ingredients Navigation Menu**: Three-column category layout in header, dynamic loading, direct category filtering.
 - **Category Image Management**: Image upload and display for categories, enhanced "Browse by Category" section.
 - **Enhanced Homepage Product Listings**: Continuous product listing, "Most Popular Products" section, improved homepage flow.
-- **Featured Products Slider**: Mobile-responsive carousel with touch swipe functionality, auto-advancing on desktop, mobile shows 1 product per slide.
-- **Product Page Enhancement Components**: "Frequently Bought Together" display section and "You Might Also Like" carousel for related products.
 
 ### Authentication System
 - **Replit Auth Integration**: OpenID Connect authentication.
