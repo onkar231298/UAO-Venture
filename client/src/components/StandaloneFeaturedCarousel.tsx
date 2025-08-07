@@ -1,8 +1,23 @@
+import React from 'react';
+
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  priceUSD: string;
+  mainImage?: string;
+  origin?: string;
+  form?: string;
+  moq?: number;
+  productId: string;
+}
+
 // Standalone Featured Products Carousel - No external dependencies
 function StandaloneFeaturedCarousel() {
   console.log('🚀 StandaloneFeaturedCarousel is loading!');
   
-  const [products, setProducts] = React.useState([]);
+  const [products, setProducts] = React.useState<Product[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   
@@ -171,11 +186,11 @@ function StandaloneFeaturedCarousel() {
                     cursor: 'pointer',
                     transition: 'transform 0.2s, box-shadow 0.2s'
                   },
-                  onMouseEnter: (e) => {
+                  onMouseEnter: (e: any) => {
                     e.target.style.transform = 'translateY(-4px)';
                     e.target.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
                   },
-                  onMouseLeave: (e) => {
+                  onMouseLeave: (e: any) => {
                     e.target.style.transform = 'translateY(0)';
                     e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                   },
