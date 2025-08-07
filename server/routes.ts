@@ -546,20 +546,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single product by ID
-  app.get('/api/products/:id', async (req, res) => {
+  // Get featured products (public endpoint) - MUST be before :id route
+  app.get('/api/products/featured', async (req, res) => {
     try {
-      const productId = parseInt(req.params.id);
-      const product = await storage.getProduct(productId);
-      
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      
-      res.json(product);
+      const { limit = '8' } = req.query;
+      const limitNum = parseInt(limit as string, 10) || 8;
+      console.log('Fetching featured products with limit:', limitNum);
+      const featuredProducts = await storage.getFeaturedProducts(limitNum);
+      console.log('Featured products fetched:', featuredProducts?.length || 0);
+      res.json(featuredProducts);
     } catch (error) {
-      console.error("Error fetching product:", error);
-      res.status(500).json({ message: "Failed to fetch product" });
+      console.error("Error fetching featured products:", error);
+      res.status(500).json({ message: "Failed to fetch featured products" });
     }
   });
 
@@ -579,15 +577,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get featured products (public endpoint)
-  app.get('/api/products/featured', async (req, res) => {
+  // Get single product by ID - MUST be after specific routes
+  app.get('/api/products/:id', async (req, res) => {
     try {
-      const { limit = '8' } = req.query;
-      const featuredProducts = await storage.getFeaturedProducts(parseInt(limit as string));
-      res.json(featuredProducts);
+      const productId = parseInt(req.params.id);
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      res.json(product);
     } catch (error) {
-      console.error("Error fetching featured products:", error);
-      res.status(500).json({ message: "Failed to fetch featured products" });
+      console.error("Error fetching product:", error);
+      res.status(500).json({ message: "Failed to fetch product" });
     }
   });
 

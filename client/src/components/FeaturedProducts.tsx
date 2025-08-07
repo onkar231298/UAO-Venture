@@ -17,7 +17,7 @@ interface Product {
   name: string;
   slug: string;
   description: string;
-  priceUSD: number;
+  priceUSD: string;
   mainImage?: string;
   origin?: string;
   form?: string;
