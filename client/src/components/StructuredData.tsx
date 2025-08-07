@@ -15,7 +15,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
     
     // Use same image priority logic as ProductDetailBFI.tsx
     const getProductImageUrl = () => {
-      const mainImage = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+      const mainImage = product.mainImageMedium || product.mainImageLarge || product.mainImage;
       if (!mainImage) return `${baseUrl}/bfi-logo.png`; // Fallback to company logo only if no product image
       return mainImage.startsWith('http') ? mainImage : `${baseUrl}${mainImage}`;
     };
