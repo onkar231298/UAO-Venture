@@ -107,6 +107,10 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  
+  // Featured Products operations
+  getFeaturedProducts(limit?: number): Promise<Product[]>;
+  updateProductFeaturedStatus(id: number, isFeatured: boolean, featuredOrder?: number): Promise<Product>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -941,6 +945,34 @@ export class DatabaseStorage implements IStorage {
   async deleteProduct(id: number): Promise<void> {
     // Hard delete - permanently remove from database
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  // Featured Products operations
+  async getFeaturedProducts(limit: number = 8): Promise<Product[]> {
+    return await db.select()
+      .from(products)
+      .where(
+        and(
+          eq(products.isFeatured, true),
+          eq(products.isActive, true),
+          eq(products.isVisible, true)
+        )
+      )
+      .orderBy(asc(products.featuredOrder), desc(products.createdAt))
+      .limit(limit);
+  }
+
+  async updateProductFeaturedStatus(id: number, isFeatured: boolean, featuredOrder: number = 0): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set({ 
+        isFeatured, 
+        featuredOrder,
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
   }
 
   // Category operations

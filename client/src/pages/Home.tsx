@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ProductCatalog from "@/components/ProductCatalog";
+import FeaturedProducts from "@/components/FeaturedProducts";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
@@ -85,6 +86,9 @@ export default function Home() {
             </Card>
           </div>
 
+          {/* Featured Products for Customers */}
+          <FeaturedProducts />
+          
           <ProductCatalog />
         </div>
       </div>
@@ -150,12 +154,15 @@ export default function Home() {
           </div>
         </section>
         
-        {/* Featured Products */}
+        {/* Featured Products Carousel */}
+        <FeaturedProducts />
+        
+        {/* Browse by Category */}
         <section className="py-20 bg-gray-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
-              <p className="text-lg text-gray-600">Discover our most popular organic ingredients</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
+              <p className="text-lg text-gray-600">Explore our complete range of organic ingredients</p>
             </div>
             <ProductCatalog />
           </div>

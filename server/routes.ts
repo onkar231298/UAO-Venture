@@ -579,6 +579,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get featured products (public endpoint)
+  app.get('/api/products/featured', async (req, res) => {
+    try {
+      const { limit = '8' } = req.query;
+      const featuredProducts = await storage.getFeaturedProducts(parseInt(limit as string));
+      res.json(featuredProducts);
+    } catch (error) {
+      console.error("Error fetching featured products:", error);
+      res.status(500).json({ message: "Failed to fetch featured products" });
+    }
+  });
+
   // Get categories
   app.get('/api/categories', async (req, res) => {
     try {

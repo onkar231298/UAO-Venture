@@ -306,6 +306,12 @@ export const products = pgTable("products", {
   isActive: boolean("is_active").default(true),
   isOrderable: boolean("is_orderable").default(true),
   
+  // Featured Products System
+  isFeatured: boolean("is_featured").default(false),
+  featuredOrder: integer("featured_order").default(0),
+  featuredStartDate: timestamp("featured_start_date"),
+  featuredEndDate: timestamp("featured_end_date"),
+  
   // Internal Management
   internalNotes: text("internal_notes"), // For internal use only
   createdBy: varchar("created_by").references(() => users.id),
