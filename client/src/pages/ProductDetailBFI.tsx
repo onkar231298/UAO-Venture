@@ -53,6 +53,13 @@ export default function ProductDetailBFI() {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
+  
+  // Handle direct page load/refresh scenario
+  useEffect(() => {
+    if (slug) {
+      console.log(`Loading product page for slug: ${slug}`);
+    }
+  }, [slug]);
   const [selectedQuantity, setSelectedQuantity] = useState(25);
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
