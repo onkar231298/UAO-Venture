@@ -41,6 +41,7 @@ function Router() {
   useAnalytics();
   
   console.log("Router rendering, auth state:", { isAuthenticated, isLoading, hasUser: !!user });
+  console.log("Current URL:", window.location.pathname);
 
   return (
     <Switch>
@@ -64,7 +65,10 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={ProductDetailBFI} />
+      <Route path="/product/:slug" component={() => {
+        console.log("ProductDetailBFI route matched!");
+        return <ProductDetailBFI />;
+      }} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
