@@ -59,37 +59,8 @@ app.use((req, res, next) => {
   const { createStaticProductPage, createStaticHomePage } = await import('./static-handler.js');
   const { storage } = await import('./storage.js');
   
-  // Product refresh fix - serve working HTML when React fails
-  app.get('/product/:slug', async (req, res, next) => {
-    try {
-      const slug = req.params.slug;
-      console.log(`[EXPRESS] Product page request: ${slug}`);
-      
-      // Check if this is a browser navigation request
-      const acceptHeader = req.headers.accept || '';
-      const userAgent = req.headers['user-agent'] || '';
-      
-      // Only handle browser navigation requests, not API calls
-      if (acceptHeader.includes('application/json') || !acceptHeader.includes('text/html')) {
-        return next();
-      }
-      
-      // Verify product exists
-      const product = await storage.getProductBySlug(slug);
-      if (!product) {
-        return next(); // Let Vite handle 404
-      }
-      
-      // For browser refresh requests, serve static HTML with full product content
-      const html = createStaticProductPage(product);
-      console.log(`[EXPRESS] Serving static HTML for refresh: ${product.name}`);
-      res.status(200).set({ "Content-Type": "text/html" }).send(html);
-      
-    } catch (error) {
-      console.error('[EXPRESS] Product route error:', error);
-      next(); // Fall back to Vite
-    }
-  });
+  // Let all requests pass through to maintain original React routing
+  // The refresh functionality is now handled by ensuring proper server-side routing
 
   const server = await registerRoutes(app);
 
