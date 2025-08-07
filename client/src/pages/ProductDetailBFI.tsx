@@ -453,22 +453,20 @@ export default function ProductDetailBFI() {
                           </Button>
                         ))}
                         {/* Additional Documents */}
-                        {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 && (
-                          <>
-                            {product.additionalDocs.map((docUrl: string, index: number) => (
-                              <Button 
-                                key={`additional-${index}`} 
-                                variant="ghost" 
-                                size="sm" 
-                                className="w-full justify-start text-xs h-8"
-                                onClick={() => window.open(docUrl, '_blank')}
-                              >
-                                <FileText className="w-3 h-3 mr-2" />
-                                Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
-                              </Button>
-                            ))}
-                          </>
-                        )}
+                        {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 ? (
+                          product.additionalDocs.map((docUrl: string, index: number) => (
+                            <Button 
+                              key={`additional-${index}`} 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start text-xs h-8"
+                              onClick={() => window.open(docUrl, '_blank')}
+                            >
+                              <FileText className="w-3 h-3 mr-2" />
+                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
+                            </Button>
+                          ))
+                        ) : null}
                       </div>
                     </>
                   )}
@@ -494,19 +492,21 @@ export default function ProductDetailBFI() {
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {/* Display certifications */}
-                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert: string, index: number) => (
-                  <Badge key={`cert-${index}`} variant="outline" className="text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {cert}
-                  </Badge>
-                ))}
+                {product.certifications && Array.isArray(product.certifications) ? 
+                  product.certifications.map((cert: string, index: number) => (
+                    <Badge key={`cert-${index}`} variant="outline" className="text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {cert}
+                    </Badge>
+                  )) : null}
                 {/* Display tags */}
-                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && product.tags.map((tag: string, index: number) => (
-                  <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
+                {product.tags && Array.isArray(product.tags) && product.tags.length > 0 ? 
+                  product.tags.map((tag: string, index: number) => (
+                    <Badge key={`tag-${index}`} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {tag}
+                    </Badge>
+                  )) : null}
               </div>
 
               {/* Multi-Currency Pricing Display */}
