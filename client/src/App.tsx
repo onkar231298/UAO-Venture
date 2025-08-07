@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import TestMultiCurrency from "@/pages/TestMultiCurrency";
+// import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,13 +15,13 @@ import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
 import SearchResults from "@/pages/SearchResults";
-import Blog from "@/pages/Blog";
-import BlogPost from "@/pages/BlogPost";
+// import Blog from "@/pages/Blog";
+// import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
-import VideoUploadTest from "@/pages/VideoUploadTest";
+// import VideoUploadTest from "@/pages/VideoUploadTest";
 // import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import CustomerRegistration from "@/pages/CustomerRegistration";
 import CustomerLogin from "@/pages/CustomerLogin";
@@ -31,7 +31,7 @@ import CustomerSavedProducts from "@/pages/CustomerSavedProducts";
 import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
-import TestWebPUpload from "@/pages/TestWebPUpload";
+// import TestWebPUpload from "@/pages/TestWebPUpload";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -62,12 +62,11 @@ function Router() {
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
       <Route path="/product/:slug" component={ProductDetail} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/blog/:slug" component={BlogPost} />
-      <Route path="/test-currency" component={TestMultiCurrency} />
-      <Route path="/video-test" component={VideoUploadTest} />
-      {/* <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} /> */}
-      <Route path="/test-webp-upload" component={TestWebPUpload} />
+      {/* <Route path="/blog" component={Blog} /> */}
+      {/* <Route path="/blog/:slug" component={BlogPost} /> */}
+      {/* <Route path="/test-currency" component={TestMultiCurrency} /> */}
+      {/* <Route path="/video-test" component={VideoUploadTest} /> */}
+      {/* <Route path="/test-webp-upload" component={TestWebPUpload} /> */}
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
