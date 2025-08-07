@@ -240,8 +240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Direct product page route for better SEO and structured data
-  app.get('/product/:slug', async (req, res) => {
+  // Removed direct product page route to allow React router to handle it
+  /* app.get('/product/:slug', async (req, res) => {
     try {
       const { slug } = req.params;
       const product = await storage.getProductBySlug(slug);
@@ -422,7 +422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error rendering product page:', error);
       res.status(500).send('Internal Server Error');
     }
-  });
+  }); */
 
   // IP-based currency detection endpoint
   app.get('/api/detect-currency', async (req, res) => {
