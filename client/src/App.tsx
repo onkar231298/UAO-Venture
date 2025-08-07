@@ -1,4 +1,4 @@
-import React, { useEffect, Component, type ReactNode } from "react";
+import { useEffect, Component, type ReactNode } from "react";
 import { Switch, Route } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
