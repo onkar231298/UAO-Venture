@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import ProductCard from "@/components/ProductCard";
+import ProductSlider from "@/components/ProductSlider";
 import InquiryForm from "@/components/InquiryForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -308,45 +309,41 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Featured Products - Most Popular/Searched */}
+      {/* Featured Products - Most Popular/Searched - Right to Left Slider */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
-            <div className="text-center sm:text-left mb-4 sm:mb-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Most Popular Products</h2>
-              <p className="text-sm sm:text-base text-gray-600">Our highest searched and most requested organic ingredients</p>
-            </div>
-            <Button variant="outline" className="text-sm">
-              View All Popular Products →
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {popularProducts?.products?.length ? (
-              popularProducts.products.slice(0, 4).map((product: Product) => (
-                <div key={product.id} className="relative">
-                  <div className="absolute -top-2 -right-2 z-10">
-                    <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                      Popular
-                    </div>
-                  </div>
-                  <ProductCard product={product} />
+          {popularProducts?.products?.length ? (
+            <ProductSlider 
+              products={popularProducts.products}
+              title="Most Popular Products"
+              autoSlide={true}
+              slideDirection="right"
+              className=""
+            />
+          ) : (
+            // Loading state
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Most Popular Products</h2>
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-              ))
-            ) : (
-              // Loading skeleton
-              Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="h-36 sm:h-48 bg-gray-200 rounded-t-xl"></div>
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <div className="h-36 sm:h-48 bg-gray-200 rounded-t-xl"></div>
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

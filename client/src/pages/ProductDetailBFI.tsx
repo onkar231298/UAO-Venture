@@ -12,6 +12,8 @@ import InquiryForm from "@/components/InquiryForm";
 import QuantityPricing from "@/components/QuantityPricing";
 import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
 import { SampleRequestForm } from "@/components/SampleRequestForm";
+import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
+import PeopleAlsoSearchFor from "@/components/PeopleAlsoSearchFor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +46,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
-import { injectProductStructuredData, cleanupStructuredData } from "@/utils/structuredData";
+import StructuredData from "@/components/StructuredData";
+import { testStructuredData } from "@/utils/seoTestUtil";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -53,18 +56,11 @@ export default function ProductDetailBFI() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   
-  // Handle structured data injection and cleanup
+  // Handle direct page load/refresh scenario
   useEffect(() => {
     if (slug) {
       console.log(`Loading product page for slug: ${slug}`);
-      // Inject structured data for SEO
-      injectProductStructuredData(slug);
     }
-    
-    // Cleanup structured data when component unmounts or slug changes
-    return () => {
-      cleanupStructuredData();
-    };
   }, [slug]);
   const [selectedQuantity, setSelectedQuantity] = useState(25);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -179,7 +175,13 @@ export default function ProductDetailBFI() {
         metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
       }
       
-      // Structured data is now handled by the useEffect with injectProductStructuredData
+      // Test structured data after component mounts (development only)
+      if (import.meta.env.DEV) {
+        setTimeout(() => {
+          console.log('Testing structured data for product:', product.name);
+          testStructuredData();
+        }, 1000);
+      }
     }
   }, [product]);
 
@@ -222,7 +224,8 @@ export default function ProductDetailBFI() {
 
   return (
     <div className="min-h-screen bg-background">
-
+      {/* Structured Data for SEO */}
+      <StructuredData product={product} faqs={faqs} />
       <Header />
       
       <div className="container mx-auto px-4 py-6">
@@ -752,20 +755,11 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Related Products */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Bought Together</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  See what are often bought with this product!
-                </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full">
-                  View Related Products
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Frequently Bought Together */}
+            <FrequentlyBoughtTogether currentProduct={product} />
+
+            {/* People Also Search For */}
+            <PeopleAlsoSearchFor currentProduct={product} />
           </div>
         </div>
       </div>
