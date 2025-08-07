@@ -88,6 +88,7 @@ export default function Home() {
           </div>
 
           {/* Featured Products for Customers */}
+          <FeaturedProductsTest />
           <FeaturedProducts />
           
           <ProductCatalog />
