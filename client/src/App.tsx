@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import React, { useEffect, Component, type ReactNode } from "react";
 import { Switch, Route } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
