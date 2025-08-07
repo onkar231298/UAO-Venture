@@ -450,7 +450,7 @@ export default function ProductDetailBFI() {
                         ))}
                         {/* Additional Documents */}
                         {product.additionalDocs && Array.isArray(product.additionalDocs) && (product.additionalDocs as string[]).length > 0 && (
-                          (product.additionalDocs as string[]).map((docUrl, index) => (
+                          (product.additionalDocs as string[]).map((docUrl: string, index: number) => (
                             <Button 
                               key={`additional-${index}`} 
                               variant="ghost" 
