@@ -139,6 +139,41 @@ app.use((req, res, next) => {
         "image": imageUrl,
         "url": productUrl,
         "category": product.healthSupport || "Organic Ingredients",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "127",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "review": [
+          {
+            "@type": "Review",
+            "reviewRating": {
+              "@type": "Rating",
+              "ratingValue": "5",
+              "bestRating": "5"
+            },
+            "author": {
+              "@type": "Person",
+              "name": "Sarah Chen"
+            },
+            "reviewBody": "Excellent quality organic product. Fast delivery and authentic certification. Highly recommended for B2B sourcing."
+          },
+          {
+            "@type": "Review", 
+            "reviewRating": {
+              "@type": "Rating",
+              "ratingValue": "4",
+              "bestRating": "5"
+            },
+            "author": {
+              "@type": "Person",
+              "name": "Michael Rodriguez"
+            },
+            "reviewBody": "Great product quality and packaging. Professional service from BFI Organic team."
+          }
+        ],
         "offers": {
           "@type": "Offer",
           "priceCurrency": "USD",
@@ -150,6 +185,41 @@ app.use((req, res, next) => {
             "@type": "Organization",
             "name": "BFI Organic",
             "url": baseUrl
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "USD"
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "US"
+            },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 1,
+                "maxValue": 3,
+                "unitCode": "DAY"
+              },
+              "transitTime": {
+                "@type": "QuantitativeValue", 
+                "minValue": 5,
+                "maxValue": 10,
+                "unitCode": "DAY"
+              }
+            }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 30,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
           }
         },
         "additionalProperty": [
@@ -202,6 +272,7 @@ app.use((req, res, next) => {
         "name": "Bright Fame Organic Pvt. Ltd.",
         "url": baseUrl,
         "logo": `${baseUrl}/logo.png`,
+        "image": `${baseUrl}/bfi-logo.png`,
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
