@@ -52,7 +52,10 @@ import PopularProducts from "@/components/PopularProducts";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
+  console.log("ProductDetailBFI component starting to render...");
   const { slug } = useParams();
+  console.log("Product slug from URL:", slug);
+  
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
@@ -61,12 +64,15 @@ export default function ProductDetailBFI() {
   const [discount, setDiscount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { data: product, isLoading } = useQuery<Product>({
+  const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
     queryFn: async () => {
+      console.log("Fetching product for slug:", slug);
       const response = await fetch(`/api/products/slug/${slug}`);
       if (!response.ok) throw new Error('Product not found');
-      return response.json();
+      const data = await response.json();
+      console.log("Product data received:", data);
+      return data;
     },
     enabled: !!slug,
   });
@@ -179,7 +185,10 @@ export default function ProductDetailBFI() {
     }
   }, [product]);
 
+  console.log("ProductDetailBFI render state:", { isLoading, hasProduct: !!product, error, slug });
+
   if (isLoading) {
+    console.log("Showing loading state for slug:", slug);
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -200,19 +209,44 @@ export default function ProductDetailBFI() {
     );
   }
 
+  if (error) {
+    console.error("Error loading product:", error);
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Product</h1>
+            <p className="text-gray-600">Could not load product: {slug}</p>
+            <p className="text-sm text-gray-500 mt-2">Error: {error?.message}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
+    console.log("No product found for slug:", slug);
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
-            <p className="text-gray-600">The product you're looking for doesn't exist.</p>
+            <p className="text-gray-600">The product you're looking for doesn't exist: {slug}</p>
           </div>
         </div>
       </div>
     );
   }
+
+  console.log("Rendering product page for:", product.name);
 
 
 
