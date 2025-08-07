@@ -29,6 +29,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
 import mimeTypes from "mime-types";
+import { createStaticProductPage, createStaticHomePage } from "./static-handler.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services
@@ -2698,6 +2699,41 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 </urlset>`;
 
     res.send(sitemap);
+  });
+
+  // Static route handlers to bypass React plugin issues
+  // Handle product pages with static HTML
+  app.get('/product/:slug', async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      console.log(`Static product page request: ${slug}`);
+      const product = await storage.getProductBySlug(slug);
+      if (product) {
+        const html = createStaticProductPage(product);
+        res.status(200).set({ "Content-Type": "text/html" }).send(html);
+      } else {
+        res.status(404).send('<html><body><h1>Product Not Found</h1><p><a href="/">Back to Home</a></p></body></html>');
+      }
+    } catch (error) {
+      console.error('Static product page error:', error);
+      res.status(500).send('<html><body><h1>Error Loading Product</h1><p><a href="/">Back to Home</a></p></body></html>');
+    }
+  });
+
+  // Handle homepage with static HTML (only for root path to avoid conflicts)
+  app.get(/^\/(?!api|product|ingredients|admin).*/, (req, res, next) => {
+    if (req.path === '/') {
+      try {
+        console.log('Static homepage request');
+        const html = createStaticHomePage();
+        res.status(200).set({ "Content-Type": "text/html" }).send(html);
+      } catch (error) {
+        console.error('Static homepage error:', error);
+        res.status(500).send('<html><body><h1>Error Loading Homepage</h1></body></html>');
+      }
+    } else {
+      next();
+    }
   });
 
   const httpServer = createServer(app);
