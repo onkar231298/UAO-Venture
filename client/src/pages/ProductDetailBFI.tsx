@@ -454,18 +454,20 @@ export default function ProductDetailBFI() {
                         ))}
                         {/* Additional Documents */}
                         {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 && (
-                          product.additionalDocs.map((docUrl: string, index: number) => (
-                            <Button 
-                              key={`additional-${index}`} 
-                              variant="ghost" 
-                              size="sm" 
-                              className="w-full justify-start text-xs h-8"
-                              onClick={() => window.open(docUrl, '_blank')}
-                            >
-                              <FileText className="w-3 h-3 mr-2" />
-                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
-                            </Button>
-                          ))
+                          <>
+                            {product.additionalDocs.map((docUrl: string, index: number) => (
+                              <Button 
+                                key={`additional-${index}`} 
+                                variant="ghost" 
+                                size="sm" 
+                                className="w-full justify-start text-xs h-8"
+                                onClick={() => window.open(docUrl, '_blank')}
+                              >
+                                <FileText className="w-3 h-3 mr-2" />
+                                Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
+                              </Button>
+                            ))}
+                          </>
                         )}
                       </div>
                     </>
@@ -492,7 +494,7 @@ export default function ProductDetailBFI() {
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {/* Display certifications */}
-                {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
+                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert: string, index: number) => (
                   <Badge key={`cert-${index}`} variant="outline" className="text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {cert}
