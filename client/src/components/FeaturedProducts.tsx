@@ -19,17 +19,21 @@ interface Product {
 }
 
 const FeaturedProducts: React.FC = () => {
+  console.log('FeaturedProducts component mounting...');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(4);
 
   const { data: featuredProducts, isLoading, error } = useQuery({
     queryKey: ['/api/products/featured'],
     queryFn: async (): Promise<Product[]> => {
+      console.log('Fetching featured products...');
       const response = await fetch('/api/products/featured?limit=8');
       if (!response.ok) {
         throw new Error('Failed to fetch featured products');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Featured products loaded:', data.length, 'items');
+      return data;
     },
   });
 
@@ -92,8 +96,11 @@ const FeaturedProducts: React.FC = () => {
   }
 
   if (error || !featuredProducts || featuredProducts.length === 0) {
+    console.log('Featured products error or empty:', { error, count: featuredProducts?.length });
     return null; // Don't render if no featured products
   }
+
+  console.log('Rendering featured products carousel with', featuredProducts.length, 'items');
 
   return (
     <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
