@@ -98,14 +98,14 @@ export default function ProductDetailBFI() {
     const images = [];
     
     // Add main image - prioritize WebP fields over legacy fields
-    const mainImage = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+    const mainImage = product.mainImageMedium || product.mainImageLarge || product.mainImage;
     if (mainImage) {
       images.push(mainImage);
     }
     
     // Add gallery images if they exist and are not duplicates of main image
     if (product.galleryImages && Array.isArray(product.galleryImages)) {
-      const mainImg = product.mainImageMedium || product.mainImageLarge || product.imageUrl || product.mainImage;
+      const mainImg = product.mainImageMedium || product.mainImageLarge || product.mainImage;
       const galleryImages = product.galleryImages.filter((img: string) => 
         img && img.trim() !== '' && img !== mainImg
       );
@@ -453,8 +453,8 @@ export default function ProductDetailBFI() {
                           </Button>
                         ))}
                         {/* Additional Documents */}
-                        {product.additionalDocs && (product.additionalDocs as string[]).length > 0 && (
-                          (product.additionalDocs as string[]).map((docUrl, index) => (
+                        {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 && (
+                          product.additionalDocs.map((docUrl: string, index: number) => (
                             <Button 
                               key={`additional-${index}`} 
                               variant="ghost" 
@@ -564,7 +564,7 @@ export default function ProductDetailBFI() {
                     <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
                   <EnhancedInquiryForm 
-                    product={product} 
+                    product={product as any} 
                     isAuthenticated={isAuthenticated}
                     customerData={customer}
                     isCustomerAuthenticated={isCustomerAuthenticated}
@@ -744,7 +744,7 @@ export default function ProductDetailBFI() {
               </CardHeader>
               <CardContent>
                 <EnhancedInquiryForm 
-                  product={product} 
+                  product={product as any} 
                   isAuthenticated={isAuthenticated || isCustomerAuthenticated}
                   customerData={customer}
                 />

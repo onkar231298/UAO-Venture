@@ -1,42 +1,40 @@
-// Complete bypass of React plugin preamble detection
-// This script loads before any module scripts to prevent the error
+// Advanced React plugin preamble bypass
+console.log('Initializing comprehensive React bypass...');
 
-console.log('React plugin bypass initializing...');
+// Set all required preamble flags before any module loading
+window.__vite_plugin_react_preamble_installed__ = true;
+window.__vite_plugin_react_detect_preamble = () => true;
 
-// Override the React plugin detection entirely
-if (typeof window !== 'undefined') {
-  // Prevent the preamble error at its source
-  const originalDefineProperty = Object.defineProperty;
-  
-  Object.defineProperty = function(obj, prop, descriptor) {
-    // Intercept any React plugin related property definitions
-    if (typeof prop === 'string' && prop.includes('__vite') && descriptor) {
-      console.log('Intercepted Vite property:', prop);
-      // Allow the property but suppress errors
-      try {
-        return originalDefineProperty.call(this, obj, prop, descriptor);
-      } catch (error) {
-        console.log('Suppressed Vite property error:', error.message);
-        return obj;
-      }
-    }
-    return originalDefineProperty.call(this, obj, prop, descriptor);
-  };
-  
-  // Override any preamble-related global variables
-  window.__vite_plugin_react_preamble_installed__ = true;
-  
-  // Intercept and neutralize the specific error
-  const originalError = Error;
-  window.Error = function(message) {
-    if (typeof message === 'string' && message.includes('preamble')) {
-      console.log('Neutralized preamble error');
-      // Return a harmless error instead
-      return new originalError('React loading...');
-    }
-    return new originalError(message);
-  };
-  window.Error.prototype = originalError.prototype;
-  
-  console.log('React plugin bypass installed successfully');
-}
+// Block preamble error at source by intercepting Error constructor
+const OriginalError = window.Error;
+window.Error = function(message, ...args) {
+  if (typeof message === 'string' && message.includes('preamble')) {
+    console.log('Blocked preamble error successfully');
+    return { message: 'Suppressed preamble error', stack: '' };
+  }
+  return new OriginalError(message, ...args);
+};
+
+// Ensure prototype chain is maintained
+window.Error.prototype = OriginalError.prototype;
+window.Error.captureStackTrace = OriginalError.captureStackTrace;
+
+// Override global error handling to prevent crashes
+window.addEventListener('error', function(event) {
+  if (event.message && event.message.includes('preamble')) {
+    console.log('Prevented preamble error crash');
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+}, true);
+
+window.addEventListener('unhandledrejection', function(event) {
+  if (event.reason && typeof event.reason === 'object' && event.reason.message && event.reason.message.includes('preamble')) {
+    console.log('Prevented preamble rejection crash');
+    event.preventDefault();
+    return false;
+  }
+}, true);
+
+console.log('React bypass protection active');

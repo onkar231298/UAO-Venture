@@ -17,8 +17,10 @@ interface HeroSlide {
 export default function SimpleHeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Debug the warehouse image import
-  console.log("Warehouse image path:", warehouseImage);
+  // Debug the warehouse image import on first load only
+  useEffect(() => {
+    console.log("Warehouse image loaded successfully:", warehouseImage);
+  }, []);
 
   // Fetch slides from backend
   const { data: slides = [] } = useQuery<HeroSlide[]>({
