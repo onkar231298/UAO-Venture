@@ -12,8 +12,6 @@ import InquiryForm from "@/components/InquiryForm";
 import QuantityPricing from "@/components/QuantityPricing";
 import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
 import { SampleRequestForm } from "@/components/SampleRequestForm";
-import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
-import PeopleAlsoSearchFor from "@/components/PeopleAlsoSearchFor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -755,11 +753,20 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Frequently Bought Together */}
-            <FrequentlyBoughtTogether currentProduct={product} />
-
-            {/* People Also Search For */}
-            <PeopleAlsoSearchFor currentProduct={product} />
+            {/* Related Products */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Bought Together</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  See what are often bought with this product!
+                </p>
+                <Button variant="outline" size="sm" className="mt-3 w-full">
+                  View Related Products
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
