@@ -61,20 +61,34 @@ app.use((req, res, next) => {
 
   // Structured data injection middleware for deployed URLs only
   const isDeployedURL = (host: string) => {
-    return host && (host.includes('.replit.app') || host.includes('bright-organic.com'));
+    return host && (
+      host.includes('.replit.app') || 
+      host.includes('bright-organic.com') ||
+      host.includes('.replit.dev') ||
+      !host.includes('localhost') && !host.includes('127.0.0.1')
+    );
   };
 
   // Product page structured data injection (deployed URLs only)
   app.get('/product/:slug', async (req, res, next) => {
+    const host = req.get('host') || '';
+    const isDeployed = isDeployedURL(host);
+    
+    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, Accept: ${req.headers.accept}`);
+    
     // Only apply to deployed URLs, skip development
-    if (!isDeployedURL(req.get('host') || '')) {
+    if (!isDeployed) {
+      console.log(`[SEO Skip] Not deployed URL, passing to React: ${host}`);
       return next();
     }
 
     // Only for HTML requests
     if (!req.headers.accept || !req.headers.accept.includes('text/html')) {
+      console.log(`[SEO Skip] Not HTML request: ${req.headers.accept}`);
       return next();
     }
+
+    console.log(`[SEO Processing] Injecting structured data for: /product/${req.params.slug}`);
 
     try {
       // Use storage instance directly
@@ -210,9 +224,29 @@ app.use((req, res, next) => {
       } : null;
 
       // Read the base HTML template
-      const distPath = path.resolve(import.meta.dirname, "public");
-      const htmlPath = path.resolve(distPath, "index.html");
-      let html = fs.readFileSync(htmlPath, 'utf-8');
+      let htmlTemplatePath;
+      let html;
+      
+      // Try multiple template locations
+      const possiblePaths = [
+        path.resolve(import.meta.dirname, "public/index.html"), // Production build
+        path.resolve(import.meta.dirname, "../client/index.html"), // Development
+        path.resolve(process.cwd(), "client/index.html"), // Alternative dev path
+      ];
+      
+      for (const templatePath of possiblePaths) {
+        if (fs.existsSync(templatePath)) {
+          htmlTemplatePath = templatePath;
+          html = fs.readFileSync(templatePath, 'utf-8');
+          console.log(`[SEO] Using template: ${templatePath}`);
+          break;
+        }
+      }
+      
+      if (!html) {
+        console.error(`[SEO Error] No HTML template found. Tried: ${possiblePaths.join(', ')}`);
+        throw new Error('HTML template not found');
+      }
 
       // Replace title and meta tags
       html = html.replace(
@@ -263,17 +297,22 @@ app.use((req, res, next) => {
       // Inject into HTML head
       html = html.replace('</head>', `${ogTags}\n${structuredDataScripts}\n  </head>`);
 
-      console.log(`[Structured Data] Injected for deployed URL: ${productUrl}`);
+      console.log(`[Structured Data] Successfully injected for deployed URL: ${productUrl}`);
+      console.log(`[Structured Data] HTML length: ${html.length}, Contains product schema: ${html.includes('@type":"Product"')}`);
+      
       res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-cache'); // Ensure fresh content for crawlers
       res.send(html);
     } catch (error) {
-      console.error('Error injecting structured data:', error);
+      console.error(`[SEO Error] Failed to inject structured data for ${req.params.slug}:`, error);
       next(); // Fall back to regular routing
     }
   });
 
-  // SPA fallback for production - handle client-side routing
-  if (app.get("env") !== "development") {
+  // SPA fallback for production - handle client-side routing  
+  const isProduction = app.get("env") !== "development";
+  
+  if (isProduction) {
     // Add explicit SPA route handling before static serving
     app.get("*", (req, res, next) => {
       // Skip API routes - let them be handled by registerRoutes
