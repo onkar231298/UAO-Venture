@@ -1,16 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { 
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart, Eye, Heart } from 'lucide-react';
+import { ShoppingCart, Eye, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -26,6 +19,9 @@ interface Product {
 }
 
 const FeaturedProducts: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(4);
+
   const { data: featuredProducts, isLoading, error } = useQuery({
     queryKey: ['/api/products/featured'],
     queryFn: async (): Promise<Product[]> => {
@@ -36,6 +32,35 @@ const FeaturedProducts: React.FC = () => {
       return response.json();
     },
   });
+
+  // Responsive items per view
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      if (window.innerWidth >= 1024) setItemsPerView(4); // lg
+      else if (window.innerWidth >= 768) setItemsPerView(3); // md
+      else if (window.innerWidth >= 640) setItemsPerView(2); // sm
+      else setItemsPerView(1); // mobile
+    };
+
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+
+  const nextSlide = () => {
+    if (featuredProducts && currentIndex < featuredProducts.length - itemsPerView) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const prevSlide = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const canScrollNext = featuredProducts && currentIndex < featuredProducts.length - itemsPerView;
+  const canScrollPrev = currentIndex > 0;
 
   if (isLoading) {
     return (
@@ -83,18 +108,44 @@ const FeaturedProducts: React.FC = () => {
           </p>
         </div>
 
-        <div className="relative">
-          <Carousel
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-            className="w-full max-w-7xl mx-auto"
-          >
-            <CarouselContent className="-ml-2 md:-ml-4">
+        <div className="relative max-w-7xl mx-auto">
+          {/* Navigation Buttons */}
+          {canScrollPrev && (
+            <Button
+              onClick={prevSlide}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 shadow-lg rounded-full w-10 h-10 p-0"
+              style={{ left: '-20px' }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {canScrollNext && (
+            <Button
+              onClick={nextSlide}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 shadow-lg rounded-full w-10 h-10 p-0"
+              style={{ right: '-20px' }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Carousel Container */}
+          <div className="overflow-hidden">
+            <div 
+              className="flex transition-transform duration-300 ease-in-out gap-4"
+              style={{
+                transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)`,
+                width: `${(featuredProducts.length / itemsPerView) * 100}%`
+              }}
+            >
               {featuredProducts.map((product) => (
-                <CarouselItem key={product.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-                  <Card className="h-full group hover:shadow-xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 overflow-hidden">
+                <div 
+                  key={product.id} 
+                  className="flex-shrink-0"
+                  style={{ width: `${100 / featuredProducts.length}%` }}
+                >
+                  <Card className="h-full group hover:shadow-xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 overflow-hidden mx-2">
                     <div className="relative aspect-square overflow-hidden">
                       {product.mainImage ? (
                         <img
@@ -177,13 +228,10 @@ const FeaturedProducts: React.FC = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </CarouselItem>
+                </div>
               ))}
-            </CarouselContent>
-            
-            <CarouselPrevious className="hidden md:flex -left-4 bg-white dark:bg-gray-800 border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20" />
-            <CarouselNext className="hidden md:flex -right-4 bg-white dark:bg-gray-800 border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20" />
-          </Carousel>
+            </div>
+          </div>
         </div>
 
         <div className="text-center mt-8">
