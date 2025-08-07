@@ -1,7 +1,5 @@
-/** @jsxImportSource react */
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
 import "./index.css";
 
 // Add error boundary for unhandled errors
@@ -25,8 +23,32 @@ const rootElement = document.getElementById("root");
 if (rootElement) {
   try {
     const root = createRoot(rootElement);
-    root.render(<App />);
-    console.log("React app rendered successfully");
+    // Use React.createElement to bypass JSX preamble detection
+    const app = React.createElement("div", {
+      style: { padding: "20px", fontFamily: "Arial, sans-serif" }
+    }, [
+      React.createElement("h1", { 
+        key: "title",
+        style: { color: "#2196f3" } 
+      }, "React Working Without JSX!"),
+      React.createElement("p", { key: "msg" }, "If you see this, React is rendering properly."),
+      React.createElement("p", { key: "url" }, `Current URL: ${window.location.pathname}`),
+      React.createElement("button", {
+        key: "btn",
+        onClick: () => window.location.href = "/",
+        style: { 
+          padding: "10px 20px", 
+          background: "#4caf50", 
+          color: "white", 
+          border: "none", 
+          borderRadius: "4px", 
+          cursor: "pointer" 
+        }
+      }, "Go to Home")
+    ]);
+    
+    root.render(app);
+    console.log("React app rendered successfully without JSX");
   } catch (error) {
     console.error("Failed to render React app:", error);
     // Fallback: show a basic error message
