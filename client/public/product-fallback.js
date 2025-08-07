@@ -7,22 +7,49 @@
     return;
   }
   
-  console.log('Product fallback script loaded');
+  console.log('Product fallback script loaded for:', window.location.pathname);
   
-  // Wait for React to mount, then check if it failed
-  setTimeout(function() {
+  let checkCount = 0;
+  const maxChecks = 8; // Check up to 8 times over 4 seconds
+  
+  function checkReactMount() {
+    checkCount++;
     const root = document.getElementById('root');
     const hasReactContent = root && root.children.length > 0;
     
+    console.log('Check', checkCount, '- React content present:', hasReactContent);
+    
+    if (!hasReactContent && checkCount < maxChecks) {
+      // Continue checking every 500ms
+      setTimeout(checkReactMount, 500);
+      return;
+    }
+    
     if (!hasReactContent) {
-      console.log('React failed to mount, activating product page fallback');
+      console.log('React failed to mount after', checkCount * 500, 'ms, redirecting to development route');
       
       // Extract slug from URL
       const pathSegments = window.location.pathname.split('/').filter(function(s) { return s; });
       const slug = pathSegments[1];
       
-      if (slug && root) {
-        // Fetch product data and render fallback
+      if (slug) {
+        // Redirect to development fallback route that bypasses React entirely
+        console.log('Redirecting to /dev-product/' + slug);
+        window.location.href = '/dev-product/' + slug;
+        return;
+      }
+      
+      if (root) {
+        // If no slug, show error
+        root.innerHTML = [
+          '<div style="text-align: center; padding: 40px;">',
+            '<h1>Product Not Found</h1>',
+            '<a href="/" style="color: #059669; text-decoration: none;">← Return to Homepage</a>',
+          '</div>'
+        ].join('');
+      }
+    } else if (false && root) {
+        // Fetch product data and render fallback (disabled - using redirect instead)
         fetch('/api/products/slug/' + slug)
           .then(function(response) {
             if (!response.ok) throw new Error('Product not found');
@@ -85,8 +112,13 @@
               '</div>'
             ].join('');
           });
+      } else {
+        console.log('React successfully mounted, fallback not needed');
       }
     }
-  }, 2500); // Wait 2.5 seconds for React to mount
+  }
+  
+  // Start checking after initial page load
+  setTimeout(checkReactMount, 1000);
   
 })();
