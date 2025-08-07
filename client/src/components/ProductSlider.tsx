@@ -19,6 +19,7 @@ export default function ProductSlider({
   slideDirection = "right",
   className = "" 
 }: ProductSliderProps) {
+  // Start from the end for right-to-left effect
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -41,22 +42,19 @@ export default function ProductSlider({
 
   const maxIndex = Math.max(0, products.length - itemsPerView);
 
-  // Auto slide functionality
+  // Auto slide functionality - right to left animation
   useEffect(() => {
     if (!autoSlide || isHovering || products.length <= itemsPerView) return;
 
     const interval = setInterval(() => {
       setCurrentIndex(prev => {
-        if (slideDirection === "right") {
-          return prev >= maxIndex ? 0 : prev + 1;
-        } else {
-          return prev <= 0 ? maxIndex : prev - 1;
-        }
+        // Always slide from right to left
+        return prev >= maxIndex ? 0 : prev + 1;
       });
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [autoSlide, isHovering, maxIndex, slideDirection, products.length, itemsPerView]);
+  }, [autoSlide, isHovering, maxIndex, products.length, itemsPerView]);
 
   const slideNext = () => {
     setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
