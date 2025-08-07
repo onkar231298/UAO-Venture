@@ -33,6 +33,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 import TestWebPUpload from "@/pages/TestWebPUpload";
 import TestPage from "@/pages/TestPage";
+import SimpleProductDetail from "@/pages/SimpleProductDetail";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -65,10 +66,13 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={() => {
-        console.log("ProductDetailBFI route matched!");
-        return <ProductDetailBFI />;
-      }} />
+      <Route path="/product/:slug" component={SimpleProductDetail} />
+      <Route path="/product-full/:slug">
+        {(params) => {
+          console.log("ProductDetailBFI route matched with params:", params);
+          return <ProductDetailBFI />;
+        }}
+      </Route>
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
