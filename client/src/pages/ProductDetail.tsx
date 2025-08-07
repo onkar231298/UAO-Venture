@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import type { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +26,6 @@ import {
   ExternalLink
 } from "lucide-react";
 import Header from "@/components/Header";
-import { LocationBasedPricing } from "@/components/LocationBasedPricing";
-import { EnhancedInquiryForm } from "@/components/EnhancedInquiryForm";
-import { useAuth } from "@/hooks/useAuth";
-import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -36,10 +33,11 @@ export default function ProductDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const { isAuthenticated } = useAuth();
-  const { isAuthenticated: isCustomerAuthenticated, customer } = useCustomerAuth();
+  // Simplified auth for now - can be re-enabled later
+  const isAuthenticated = false;
+  const isCustomerAuthenticated = false;
 
-  const { data: product, isLoading, error } = useQuery({
+  const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: [`/api/products/slug/${slug}`],
   });
 
@@ -288,14 +286,14 @@ export default function ProductDetail() {
                 ))}
               </div>
 
-              {/* Multi-Currency Pricing Display */}
+              {/* Simplified Pricing Display */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <LocationBasedPricing 
-                  product={{...product, moq: product.moq || 'Contact for MOQ'}} 
-                  showCurrencySelector={false}
-                  isAdminView={false}
-                  className="mb-2"
-                />
+                <div className="text-lg font-semibold text-green-800 mb-2">
+                  Pricing: Contact for Quote
+                </div>
+                <div className="text-sm text-green-700 mb-2">
+                  MOQ: {product.moq || 'Contact for MOQ'}
+                </div>
                 
                 <div className="flex items-center text-sm text-green-700 mt-2">
                   <Truck className="w-4 h-4 mr-2" />
@@ -610,12 +608,68 @@ export default function ProductDetail() {
               </p>
             </CardHeader>
             <CardContent>
-              <EnhancedInquiryForm 
-                product={{...product, moq: product.moq || 'Contact for MOQ'}} 
-                isAuthenticated={isAuthenticated || isCustomerAuthenticated}
-                customerData={customer}
-                isCustomerAuthenticated={isCustomerAuthenticated}
-              />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Your full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input 
+                      type="email" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Your company name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input 
+                      type="tel" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Required</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g., 100 kg, 1 ton"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                  <textarea 
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Please provide details about your requirements, intended use, delivery location, etc."
+                  />
+                </div>
+                
+                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
+                  <MessageSquarePlus className="w-4 h-4 mr-2" />
+                  Submit Inquiry
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
