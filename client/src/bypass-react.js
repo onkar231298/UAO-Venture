@@ -11,6 +11,16 @@ const pathSegments = currentPath.split('/').filter(segment => segment);
 function initializePage() {
   console.log('Initializing page for path:', currentPath);
   
+  // Check if React already loaded successfully
+  const reactLoaded = document.getElementById('root').children.length > 0;
+  if (reactLoaded) {
+    console.log('React loaded successfully, skipping bypass');
+    return;
+  }
+  
+  // Only initialize bypass if React failed or page is blank
+  console.log('React not loaded or page blank, initializing bypass...');
+  
   if (pathSegments[0] === 'product' && pathSegments[1]) {
     loadProductPage(pathSegments[1]);
   } else if (pathSegments[0] === 'admin') {
@@ -210,9 +220,39 @@ function addTailwindStyles() {
   }
 }
 
-// Initialize immediately
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializePage);
-} else {
-  initializePage();
+// Initialize with proper timing for React detection
+function checkAndInitialize() {
+  // Wait a bit for React to potentially load
+  setTimeout(() => {
+    const rootElement = document.getElementById('root');
+    const hasContent = rootElement && rootElement.children.length > 0;
+    
+    if (!hasContent) {
+      console.log('No content detected after React load attempt, initializing bypass...');
+      initializePage();
+    } else {
+      console.log('Content detected, React loaded successfully');
+    }
+  }, 2000); // Wait 2 seconds for React to load
 }
+
+// Handle different page states
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkAndInitialize);
+} else {
+  checkAndInitialize();
+}
+
+// Also handle page visibility changes (for refresh scenarios)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    // Page became visible, check if content is loaded
+    setTimeout(() => {
+      const rootElement = document.getElementById('root');
+      if (rootElement && rootElement.children.length === 0) {
+        console.log('Page visible but no content, initializing bypass...');
+        initializePage();
+      }
+    }, 1000);
+  }
+});
