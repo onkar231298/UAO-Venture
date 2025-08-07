@@ -173,7 +173,7 @@ export default function RelatedProductsCarousel({
                 return (
                   <div 
                     key={product.id}
-                    className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] md:flex-[0_0_33.333%] lg:flex-[0_0_25%] px-2 sm:px-3"
+                    className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_50%] md:flex-[0_0_33.333%] lg:flex-[0_0_25%] px-2 sm:px-3"
                   >
                     <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm h-full">
                       <Link href={`/product/${product.slug}`}>
@@ -250,6 +250,11 @@ export default function RelatedProductsCarousel({
               })}
             </div>
           </div>
+        </div>
+
+        {/* Mobile swipe hint */}
+        <div className="block lg:hidden text-center mt-4">
+          <p className="text-sm text-gray-500">← Swipe to explore more products →</p>
         </div>
 
         {/* View More Link */}
