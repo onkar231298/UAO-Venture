@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import ProductCatalog from "@/components/ProductCatalog";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import FeaturedProductsTest from "@/components/FeaturedProductsTest";
+import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
@@ -88,8 +89,7 @@ export default function Home() {
           </div>
 
           {/* Featured Products for Customers */}
-          <FeaturedProductsTest />
-          <FeaturedProducts />
+          <FeaturedProductsCarousel />
           
           <ProductCatalog />
         </div>
@@ -157,25 +157,7 @@ export default function Home() {
         </section>
         
         {/* Featured Products Carousel */}
-        <div style={{ backgroundColor: 'red', padding: '20px', margin: '20px', border: '5px solid black' }}>
-          <h2 style={{ color: 'white', fontSize: '30px' }}>RED TEST SECTION - SHOULD BE VISIBLE</h2>
-          <p style={{ color: 'yellow' }}>If you can see this red section, React is working</p>
-        </div>
-        
-        <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Featured Products - Test Section
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                This is a test to see if this section appears
-              </p>
-            </div>
-          </div>
-        </section>
-        <FeaturedProductsTest />
-        <FeaturedProducts />
+        <FeaturedProductsCarousel />
         
         {/* Browse by Category */}
         <section className="py-20 bg-gray-50">
