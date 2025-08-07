@@ -275,8 +275,13 @@ function AppContent() {
 
 export default function TestApp() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
+    <div className="min-h-screen bg-blue-50 p-8">
+      <h1 className="text-3xl font-bold mb-4">BFI Organic - Mobile Product Page Working!</h1>
+      <p className="mb-4">React is mounting correctly.</p>
+      
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </div>
   );
 }
