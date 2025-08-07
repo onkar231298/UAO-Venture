@@ -19,20 +19,31 @@ const FeaturedProductsCarouselNew = () => {
   const [itemsPerView, setItemsPerView] = useState(4);
 
   console.log('🎯 FeaturedProductsCarouselNew component mounting...');
+  console.log('🎯 Window location:', window.location.href);
+  console.log('🎯 Current time:', new Date().toISOString());
 
   const { data: featuredProducts, isLoading, error } = useQuery({
     queryKey: ['/api/products/featured'],
     queryFn: async (): Promise<Product[]> => {
-      console.log('🔄 Fetching featured products...');
-      const response = await fetch('/api/products/featured?limit=8');
-      if (!response.ok) {
-        throw new Error('Failed to fetch featured products');
+      console.log('🔄 Fetching featured products from API...');
+      try {
+        const response = await fetch('/api/products/featured?limit=8');
+        console.log('🔄 Response status:', response.status, response.statusText);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch featured products: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('✅ Featured products loaded successfully:', data.length, 'items');
+        console.log('✅ First product:', data[0]?.name);
+        return data;
+      } catch (err) {
+        console.error('❌ Error fetching featured products:', err);
+        throw err;
       }
-      const data = await response.json();
-      console.log('✅ Featured products loaded:', data.length);
-      return data;
     },
   });
+
+  console.log('🔍 Query state:', { isLoading, error: error?.message, dataLength: featuredProducts?.length });
 
   // Update items per view based on screen size
   useEffect(() => {
