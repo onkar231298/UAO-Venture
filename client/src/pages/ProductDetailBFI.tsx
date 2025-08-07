@@ -46,6 +46,9 @@ import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import StructuredData from "@/components/StructuredData";
 import { testStructuredData } from "@/utils/seoTestUtil";
+import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
+import RelatedProductsCarousel from "@/components/RelatedProductsCarousel";
+import PopularProducts from "@/components/PopularProducts";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -744,22 +747,29 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Related Products */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Bought Together</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  See what are often bought with this product!
-                </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full">
-                  View Related Products
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
+        
+        {/* Frequently Bought Together Section */}
+        <FrequentlyBoughtTogether 
+          productId={product.id} 
+          currentProduct={product}
+          className="mt-8"
+        />
+        
+        {/* Related Products Carousel */}
+        <RelatedProductsCarousel 
+          productId={product.id}
+          categoryId={product.categoryId}
+          title="You Might Also Like"
+          className="mt-8"
+        />
+        
+        {/* Popular Products */}
+        <PopularProducts 
+          title="Popular Products"
+          className="mt-8"
+        />
       </div>
       <Footer />
     </div>
