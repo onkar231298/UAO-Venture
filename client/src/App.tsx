@@ -22,7 +22,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import VideoUploadTest from "@/pages/VideoUploadTest";
-import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
+// import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import CustomerRegistration from "@/pages/CustomerRegistration";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerProfile from "@/pages/CustomerProfile";
@@ -66,7 +66,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider" component={VideoHeroSliderManager} />
+      {/* <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} /> */}
       <Route path="/test-webp-upload" component={TestWebPUpload} />
       
       {/* Protected dashboard routes - only for authenticated users */}
