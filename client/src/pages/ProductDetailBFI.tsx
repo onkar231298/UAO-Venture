@@ -55,6 +55,18 @@ export default function ProductDetailBFI() {
   console.log("ProductDetailBFI component starting to render...");
   const { slug } = useParams();
   console.log("Product slug from URL:", slug);
+
+  if (!slug) {
+    console.error("No slug provided in URL");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid URL</h1>
+          <p className="text-gray-600">No product identifier found in URL.</p>
+        </div>
+      </div>
+    );
+  }
   
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -68,14 +80,26 @@ export default function ProductDetailBFI() {
     queryKey: ["/api/products/slug", slug],
     queryFn: async () => {
       console.log("Fetching product for slug:", slug);
-      const response = await fetch(`/api/products/slug/${slug}`);
-      if (!response.ok) throw new Error('Product not found');
-      const data = await response.json();
-      console.log("Product data received:", data);
-      return data;
+      try {
+        const response = await fetch(`/api/products/slug/${slug}`);
+        console.log("Product API response status:", response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Product API error:", errorText);
+          throw new Error(`Product not found: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Product data received:", data);
+        return data;
+      } catch (fetchError) {
+        console.error("Failed to fetch product:", fetchError);
+        throw fetchError;
+      }
     },
     enabled: !!slug,
   });
+
+  console.log("Query state:", { isLoading, error: error?.message, hasProduct: !!product });
 
   const { data: documents } = useQuery<ProductDocument[]>({
     queryKey: ["/api/products", product?.id, "documents"],
