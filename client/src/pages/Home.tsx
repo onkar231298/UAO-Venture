@@ -7,6 +7,7 @@ import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
 import FeaturedProductsSimple from "@/components/FeaturedProductsSimple";
 import FeaturedProductsCarouselNew from "@/components/FeaturedProductsCarouselNew";
 import StandaloneFeaturedCarousel from "@/components/StandaloneFeaturedCarousel";
+import TestCarousel from "@/components/TestCarousel";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
@@ -92,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Featured Products for Customers */}
-          <StandaloneFeaturedCarousel />
+          <TestCarousel />
           
           <ProductCatalog />
         </div>
@@ -160,7 +161,7 @@ export default function Home() {
         </section>
         
         {/* Featured Products Carousel */}
-        <StandaloneFeaturedCarousel />
+        <TestCarousel />
         
         {/* Browse by Category */}
         <section className="py-20 bg-gray-50">

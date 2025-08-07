@@ -14,8 +14,9 @@ interface Product {
 }
 
 // Standalone Featured Products Carousel - No external dependencies
-function StandaloneFeaturedCarousel() {
+const StandaloneFeaturedCarousel: React.FC = () => {
   console.log('🚀 StandaloneFeaturedCarousel is loading!');
+  console.log('🚀 Component timestamp:', Date.now());
   
   const [products, setProducts] = React.useState<Product[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -350,6 +351,6 @@ function StandaloneFeaturedCarousel() {
       )
     )
   );
-}
+};
 
 export default StandaloneFeaturedCarousel;
