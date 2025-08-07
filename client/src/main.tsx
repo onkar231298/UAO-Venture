@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import MinimalApp from "./MinimalApp";
+import TestApp from "./TestApp";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<MinimalApp />);
+createRoot(document.getElementById("root")!).render(<TestApp />);

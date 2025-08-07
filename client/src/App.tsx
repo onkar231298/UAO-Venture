@@ -68,9 +68,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider">
-        <VideoHeroSliderManager canvaVideoUrl="" />
-      </Route>
+      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
       
       {/* Protected dashboard routes - only for authenticated users */}
