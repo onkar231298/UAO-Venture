@@ -59,8 +59,8 @@ app.use((req, res, next) => {
   if (app.get("env") !== "development") {
     // Add explicit SPA route handling before static serving
     app.get("*", (req, res, next) => {
-      // Skip API routes AND product routes - let them be handled by registerRoutes
-      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/') || req.path.startsWith('/product/')) {
+      // Skip API routes - let them be handled by registerRoutes
+      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
         return next();
       }
       

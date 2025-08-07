@@ -44,8 +44,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
-import StructuredData from "@/components/StructuredData";
-import { testStructuredData } from "@/utils/seoTestUtil";
+import { injectProductStructuredData, cleanupStructuredData } from "@/utils/structuredData";
 import type { Product, ProductDocument } from "@shared/schema";
 
 export default function ProductDetailBFI() {
@@ -54,11 +53,18 @@ export default function ProductDetailBFI() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   
-  // Handle direct page load/refresh scenario
+  // Handle structured data injection and cleanup
   useEffect(() => {
     if (slug) {
       console.log(`Loading product page for slug: ${slug}`);
+      // Inject structured data for SEO
+      injectProductStructuredData(slug);
     }
+    
+    // Cleanup structured data when component unmounts or slug changes
+    return () => {
+      cleanupStructuredData();
+    };
   }, [slug]);
   const [selectedQuantity, setSelectedQuantity] = useState(25);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -222,8 +228,7 @@ export default function ProductDetailBFI() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Structured Data for SEO */}
-      <StructuredData product={product} faqs={faqs} />
+
       <Header />
       
       <div className="container mx-auto px-4 py-6">
