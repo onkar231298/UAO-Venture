@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
-import { useEffect } from "react";
+import { useEffect, Component, type ReactNode } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
@@ -97,6 +97,51 @@ function Router() {
   );
 }
 
+// Error boundary to catch React rendering errors
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    // Ignore errors from browser extensions
+    if (error.stack?.includes('extension') || 
+        error.stack?.includes('chrome-') || 
+        error.stack?.includes('moz-')) {
+      return { hasError: false };
+    }
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    // Log the error but don't crash the app
+    console.error('React Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
+          <h1>Something went wrong</h1>
+          <p>Please refresh the page to continue.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '10px 20px', marginTop: '10px', cursor: 'pointer' }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   // Initialize SEO service and Google Analytics on app load
   useEffect(() => {
@@ -115,14 +160,16 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <CustomerAuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </CustomerAuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <CustomerAuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CustomerAuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
