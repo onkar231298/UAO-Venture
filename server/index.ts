@@ -82,9 +82,12 @@ app.use((req, res, next) => {
       return next();
     }
 
-    // Only for HTML requests
-    if (!req.headers.accept || !req.headers.accept.includes('text/html')) {
-      console.log(`[SEO Skip] Not HTML request: ${req.headers.accept}`);
+    // Accept HTML requests and crawler requests (which often send */* or other accept headers)
+    const accept = req.headers.accept || '';
+    const isBrowserOrCrawler = accept.includes('text/html') || accept.includes('*/*') || accept.includes('application/xhtml');
+    
+    if (!isBrowserOrCrawler) {
+      console.log(`[SEO Skip] Not browser/crawler request: ${accept}`);
       return next();
     }
 
