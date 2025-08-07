@@ -12,7 +12,7 @@ import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
-import ProductDetailBFI from "@/pages/ProductDetailBFI";
+import ProductDetailBFI from "@/pages/ProductDetailBFI_Fixed";
 import CategoryPage from "@/pages/CategoryPage";
 import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
