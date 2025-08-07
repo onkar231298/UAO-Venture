@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import ProductCatalog from "@/components/ProductCatalog";
 import FeaturedProducts from "@/components/FeaturedProducts";
+import FeaturedProductsTest from "@/components/FeaturedProductsTest";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
@@ -167,6 +168,7 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <FeaturedProductsTest />
         <FeaturedProducts />
         
         {/* Browse by Category */}
