@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -10,8 +10,9 @@ if (rootElement) {
   console.log("Mounting React app...");
   const root = createRoot(rootElement);
   
-  // Mount without StrictMode to avoid issues
-  root.render(<App />);
+  root.render(React.createElement(App));
   
   console.log("✅ React app mounted successfully!");
+} else {
+  console.error("Root element not found");
 }

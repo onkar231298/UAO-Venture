@@ -55,28 +55,8 @@ app.use((req, res, next) => {
   // Validate environment before starting
   validateEnvironment();
   
-  // Add direct static routes BEFORE registerRoutes to prioritize them
-  const { createStaticProductPage, createStaticHomePage } = await import('./static-handler.js');
-  const { storage } = await import('./storage.js');
-  
-  // Configure server to support React router for product pages
+  // Configure server routes
   const server = await registerRoutes(app);
-
-  // SPA fallback - serve React app for all React routes on refresh
-  const reactRoutes = ['/product/*', '/products', '/ingredients', '/category/*', '/customer/*', '/admin/*'];
-  
-  reactRoutes.forEach(route => {
-    app.get(route, (req, res, next) => {
-      // Only handle HTML requests (browser refreshes), not API calls
-      if (req.headers.accept?.includes('text/html')) {
-        console.log(`[SPA] Serving React app for route: ${req.path}`);
-        // Let Vite serve the index.html which will load React
-        next();
-      } else {
-        next();
-      }
-    });
-  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
