@@ -4,6 +4,8 @@ import ProductCatalog from "@/components/ProductCatalog";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import Dashboard from "@/pages/Dashboard";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
+import FeaturedProductsSlider from "@/components/FeaturedProductsSlider";
+import PopularProducts from "@/components/PopularProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +86,12 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Featured Products Slider */}
+          <FeaturedProductsSlider />
+
+          {/* Popular Products */}
+          <PopularProducts />
 
           <ProductCatalog />
         </div>
