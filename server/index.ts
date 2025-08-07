@@ -57,42 +57,8 @@ app.use((req, res, next) => {
   const { createStaticProductPage, createStaticHomePage } = await import('./static-handler.js');
   const { storage } = await import('./storage.js');
   
-  // Priority static routes (registered BEFORE Vite middleware)
-  app.get('/product/:slug', async (req, res) => {
-    try {
-      const slug = req.params.slug;
-      console.log(`[EXPRESS] Static product page request: ${slug}`);
-      const product = await storage.getProductBySlug(slug);
-      if (product) {
-        const html = createStaticProductPage(product);
-        console.log(`[EXPRESS] Serving static product page for: ${product.name}`);
-        res.status(200).set({ "Content-Type": "text/html" }).send(html);
-        return;
-      } else {
-        console.log(`[EXPRESS] Product not found: ${slug}`);
-        res.status(404).send('<html><body><h1>Product Not Found</h1><p><a href="/">Back to Home</a></p></body></html>');
-        return;
-      }
-    } catch (error) {
-      console.error('[EXPRESS] Static product page error:', error);
-      res.status(500).send('<html><body><h1>Error Loading Product</h1><p><a href="/">Back to Home</a></p></body></html>');
-      return;
-    }
-  });
-
-  app.get('/', (req, res) => {
-    try {
-      console.log('[EXPRESS] Static homepage request');
-      const html = createStaticHomePage();
-      console.log('[EXPRESS] Serving static homepage');
-      res.status(200).set({ "Content-Type": "text/html" }).send(html);
-      return;
-    } catch (error) {
-      console.error('[EXPRESS] Static homepage error:', error);
-      res.status(500).send('<html><body><h1>Error Loading Homepage</h1></body></html>');
-      return;
-    }
-  });
+  // Fallback static routes (only used if React fails to load)
+  // These routes are kept as backup but won't interfere with normal React routing
 
   const server = await registerRoutes(app);
 
