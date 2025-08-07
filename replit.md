@@ -86,6 +86,12 @@ Preferred communication style: Simple, everyday language.
 - **Environment Configuration**: PORT environment variable with fallback to 5000, critical environment validation on startup.
 - **Deployment Fixes Applied (Jan 5, 2025)**: Fixed duplicate updateQuotation method in storage.ts, enhanced PORT environment variable handling with validation, added critical environment variables validation on server startup.
 
+### Critical Issues Identified (Jan 8, 2025)
+- **React Preamble Detection Error**: @vitejs/plugin-react cannot detect JSX preamble, causing complete React app failure
+- **Product Page Refresh Issue**: Direct URL access to product pages results in blank pages due to React initialization failure
+- **JSX Transform Problem**: Current TSConfig and Vite configuration conflict prevents proper JSX compilation
+- **Workaround Attempted**: Used React.createElement to bypass JSX issues, but full routing functionality requires proper JSX support
+
 ## External Dependencies
 
 ### Database
