@@ -1,4 +1,3 @@
-import { useEffect, Component, type ReactNode } from "react";
 import { Switch, Route } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
@@ -8,11 +7,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { seoService } from "@/services/seoService";
+import { useEffect, Component, type ReactNode } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Products from "@/pages/Products";
-import ProductDetail from "@/pages/ProductDetail";
+import ProductDetailBFI from "@/pages/ProductDetailBFI_Fixed";
 import CategoryPage from "@/pages/CategoryPage";
 import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
@@ -32,16 +32,18 @@ import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 import TestWebPUpload from "@/pages/TestWebPUpload";
+import TestPage from "@/pages/TestPage";
+import SimpleProductDetail from "@/pages/SimpleProductDetail";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
   
+  // Track page views when routes change
+  useAnalytics();
+  
   console.log("Router rendering, auth state:", { isAuthenticated, isLoading, hasUser: !!user });
   console.log("Current URL:", window.location.pathname);
   console.log("Window location href:", window.location.href);
-  
-  // Track page views when routes change
-  useAnalytics();
 
   return (
     <Switch>
@@ -65,13 +67,20 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/product/:slug" component={ProductDetailBFI} />
+      <Route path="/product-full/:slug">
+        {(params) => {
+          console.log("ProductDetailBFI route matched with params:", params);
+          return <ProductDetailBFI />;
+        }}
+      </Route>
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
+      <Route path="/video-slider" component={VideoHeroSliderManager} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
+      <Route path="/test" component={TestPage} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
@@ -112,10 +121,17 @@ class ErrorBoundary extends Component<
   }
 
   static getDerivedStateFromError(error: Error) {
-    // Ignore errors from browser extensions
+    // Ignore errors from browser extensions and undefined property access
     if (error.stack?.includes('extension') || 
         error.stack?.includes('chrome-') || 
-        error.stack?.includes('moz-')) {
+        error.stack?.includes('moz-') ||
+        error.message?.includes("Cannot read properties of undefined (reading 'on") ||
+        error.message?.includes("Cannot read property 'on") ||
+        error.stack?.includes('badge.tsx') ||
+        error.stack?.includes('utils.js') ||
+        error.stack?.includes('tabutils.js') ||
+        error.stack?.includes('contextmenu.js') ||
+        error.stack?.includes('download.js')) {
       return { hasError: false };
     }
     return { hasError: true, error };
