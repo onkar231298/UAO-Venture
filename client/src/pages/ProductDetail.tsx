@@ -272,14 +272,14 @@ export default function ProductDetail() {
 
               {/* Certifications & Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert, index) => (
+                {product.certifications && Array.isArray(product.certifications) && product.certifications.map((cert: string, index: number) => (
                   <Badge key={`cert-${index}`} variant="outline" className="text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {cert}
                   </Badge>
                 ))}
                 
-                {product.tags && product.tags.split(',').map((tag, index) => (
+                {product.tags && typeof product.tags === 'string' && product.tags.split(',').map((tag: string, index: number) => (
                   <Badge key={`tag-${index}`} variant="secondary" className="text-xs">
                     {tag.trim()}
                   </Badge>
