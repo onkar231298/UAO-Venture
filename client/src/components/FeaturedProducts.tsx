@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ShoppingCart, Eye, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Product {
@@ -118,23 +116,23 @@ const FeaturedProducts: React.FC = () => {
         <div className="relative max-w-7xl mx-auto">
           {/* Navigation Buttons */}
           {canScrollPrev && (
-            <Button
+            <button
               onClick={prevSlide}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 shadow-lg rounded-full w-10 h-10 p-0"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-green-200 hover:bg-green-50 text-green-600 shadow-lg rounded-full w-10 h-10 flex items-center justify-center"
               style={{ left: '-20px' }}
             >
               <ChevronLeft className="h-4 w-4" />
-            </Button>
+            </button>
           )}
           
           {canScrollNext && (
-            <Button
+            <button
               onClick={nextSlide}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 shadow-lg rounded-full w-10 h-10 p-0"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-green-200 hover:bg-green-50 text-green-600 shadow-lg rounded-full w-10 h-10 flex items-center justify-center"
               style={{ right: '-20px' }}
             >
               <ChevronRight className="h-4 w-4" />
-            </Button>
+            </button>
           )}
 
           {/* Carousel Container */}
@@ -152,7 +150,7 @@ const FeaturedProducts: React.FC = () => {
                   className="flex-shrink-0"
                   style={{ width: `${100 / featuredProducts.length}%` }}
                 >
-                  <Card className="h-full group hover:shadow-xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 overflow-hidden mx-2">
+                  <div className="h-full group hover:shadow-xl transition-all duration-300 border-0 bg-white rounded-lg overflow-hidden mx-2 shadow-md">
                     <div className="relative aspect-square overflow-hidden">
                       {product.mainImage ? (
                         <img
@@ -171,17 +169,17 @@ const FeaturedProducts: React.FC = () => {
                       {/* Overlay with quick actions */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300">
                         <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 rounded-full">
+                          <button className="h-8 w-8 bg-white rounded-full flex items-center justify-center">
                             <Heart className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 rounded-full">
+                          </button>
+                          <button className="h-8 w-8 bg-white rounded-full flex items-center justify-center">
                             <Eye className="h-4 w-4" />
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    <CardContent className="p-4 flex-1 flex flex-col">
+                    <div className="p-4 flex-1 flex flex-col">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                           {product.name}
@@ -221,20 +219,16 @@ const FeaturedProducts: React.FC = () => {
 
                       <div className="flex gap-2 mt-auto">
                         <Link href={`/product/${product.slug}`} className="flex-1">
-                          <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="sm">
+                          <button className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm">
                             View Details
-                          </Button>
+                          </button>
                         </Link>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="px-3 border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                        >
+                        <button className="px-3 py-2 border border-green-600 text-green-600 hover:bg-green-50 rounded">
                           <ShoppingCart className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -243,12 +237,9 @@ const FeaturedProducts: React.FC = () => {
 
         <div className="text-center mt-8">
           <Link href="/products">
-            <Button 
-              variant="outline" 
-              className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-            >
+            <button className="border border-green-600 text-green-600 hover:bg-green-50 px-6 py-2 rounded">
               View All Products
-            </Button>
+            </button>
           </Link>
         </div>
       </div>
