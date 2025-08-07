@@ -32,12 +32,15 @@ import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 import TestWebPUpload from "@/pages/TestWebPUpload";
+import TestPage from "@/pages/TestPage";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
   
   // Track page views when routes change
   useAnalytics();
+  
+  console.log("Router rendering, auth state:", { isAuthenticated, isLoading, hasUser: !!user });
 
   return (
     <Switch>
@@ -68,6 +71,7 @@ function Router() {
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={VideoHeroSliderManager} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
+      <Route path="/test" component={TestPage} />
       
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user && (
