@@ -59,54 +59,7 @@ app.use((req, res, next) => {
   const { createStaticProductPage, createStaticHomePage } = await import('./static-handler.js');
   const { storage } = await import('./storage.js');
   
-  // Direct product page handling to prevent blank refresh
-  app.get('/product/:slug', async (req, res, next) => {
-    try {
-      const slug = req.params.slug;
-      
-      // Only handle browser navigation requests
-      const acceptsHtml = req.headers.accept?.includes('text/html');
-      if (!acceptsHtml) {
-        return next(); // Let API routes handle this
-      }
-      
-      console.log(`[EXPRESS] Product page refresh: ${slug}`);
-      
-      // Verify product exists before serving
-      const product = await storage.getProductBySlug(slug);
-      if (!product) {
-        return next(); // Let Vite handle 404
-      }
-      
-      // Get the base HTML template 
-      const clientTemplate = path.resolve(import.meta.dirname, "..", "client", "index.html");
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      
-      // Add product-specific meta tags
-      template = template.replace(
-        /<title>.*?<\/title>/,
-        `<title>${product.name} - BFI Organic</title>`
-      );
-      template = template.replace(
-        /<meta name="description" content=".*?">/,
-        `<meta name="description" content="${product.description || 'Premium organic product from BFI Organic'}">`
-      );
-      
-      // Add a flag to indicate this is a refresh scenario
-      template = template.replace(
-        '<div id="root"></div>',
-        `<div id="root"></div>
-         <script>window.__PRODUCT_REFRESH__ = true; window.__PRODUCT_SLUG__ = "${slug}";</script>`
-      );
-      
-      console.log(`[EXPRESS] Serving HTML for product refresh: ${product.name}`);
-      res.status(200).set({ "Content-Type": "text/html" }).send(template);
-      
-    } catch (error) {
-      console.error('[EXPRESS] Product refresh error:', error);
-      next(); // Fall back to Vite
-    }
-  });
+  // Remove server-side override to let React handle routing normally
 
   const server = await registerRoutes(app);
 
