@@ -66,32 +66,30 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
-      <Route path="/video-slider">
-        {() => <VideoHeroSliderManager canvaVideoUrl="" />}
-      </Route>
+      <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
       
       {/* Protected dashboard routes - only for authenticated users */}
-      {!isLoading && isAuthenticated && user && (
+      {!isLoading && isAuthenticated && user ? (
         <>
           {/* Admin dashboard - for admin and super_admin roles */}
-          {((user as any).role === 'admin' || (user as any).role === 'super_admin') && (
+          {((user as any).role === 'admin' || (user as any).role === 'super_admin') ? (
             <>
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/*" component={AdminDashboard} />
               <Route path="/dashboard" component={AdminDashboard} />
             </>
-          )}
+          ) : null}
           
           {/* Customer dashboard - accessible without admin auth */}
           <Route path="/customer/*" component={CustomerDashboard} />
           
           {/* Staff dashboard - for all other roles */}
-          {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') && (
+          {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') ? (
             <Route path="/staff/*" component={StaffDashboard} />
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
       
       {/* 404 for any unmatched routes */}
       <Route component={NotFound} />

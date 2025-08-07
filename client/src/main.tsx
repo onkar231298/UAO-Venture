@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import TestApp from "./TestApp";
 import "./index.css";
 
 console.log("React main.tsx loading...");
@@ -10,7 +10,7 @@ if (rootElement) {
   console.log("Mounting React app...");
   const root = createRoot(rootElement);
   
-  root.render(React.createElement(App));
+  root.render(<TestApp />);
   
   console.log("✅ React app mounted successfully!");
 } else {
