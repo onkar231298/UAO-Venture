@@ -11,6 +11,7 @@ import { seoService } from "@/services/seoService";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
+import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
@@ -42,7 +43,8 @@ function Router() {
   return (
     <Switch>
       {/* Public routes - always accessible for everyone */}
-      <Route path="/" component={Landing} />
+      <Route path="/" component={Home} />
+      <Route path="/landing" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
       <Route path="/category/:slug" component={CategoryPage} />
