@@ -765,15 +765,37 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Frequently Bought Together - Simple Slider */}
+            {/* Frequently Bought Together - Mobile One-Product Slider */}
             <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="text-base">Frequently Bought Together</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto scrollbar-hide">
+                {/* Mobile: Show one product per slide with full width */}
+                <div className="md:hidden overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-4 pb-2" style={{ width: `${6 * 100}%` }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="flex-shrink-0 w-full bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="w-full h-32 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400">
+                          <span className="text-sm">Product {i}</span>
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
+                          Related Product {i}
+                        </h4>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-green-600 font-semibold">$25.00/kg</p>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                            MOQ: 100kg
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Desktop: Show multiple products in a row */}
+                <div className="hidden md:block overflow-x-auto scrollbar-hide">
                   <div className="flex gap-3 pb-2" style={{ width: 'max-content' }}>
-                    {/* Sample products - in production, this would fetch related products */}
                     {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
                         <div className="w-full h-24 bg-gray-100 rounded mb-2 flex items-center justify-center text-gray-400">
