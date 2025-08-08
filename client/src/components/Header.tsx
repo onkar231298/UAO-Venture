@@ -198,7 +198,7 @@ export default function Header() {
                         .trim();
                       
                       return (
-                        <Link key={category.id} href={`/category/${categorySlug}`}>
+                        <Link key={category.id} href={`/ingredients/${categorySlug}`}>
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             {category.name}
                           </DropdownMenuItem>
@@ -207,32 +207,32 @@ export default function Header() {
                     }) : (
                       <>
                         {/* Fallback categories for immediate display */}
-                        <Link href="/category/herbal-powders">
+                        <Link href="/ingredients/herbal-powders">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Herbal Powders
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/category/spices">
+                        <Link href="/ingredients/spices">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Spices
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/category/essential-oils">
+                        <Link href="/ingredients/essential-oils">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Essential Oils
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/category/adaptogenic-herbs">
+                        <Link href="/ingredients/adaptogenic-herbs">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Adaptogenic Herbs
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/category/ayurvedic-herbs">
+                        <Link href="/ingredients/ayurvedic-herbs">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Ayurvedic Herbs
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/category/botanical-extracts">
+                        <Link href="/ingredients/botanical-extracts">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Botanical Extracts
                           </DropdownMenuItem>

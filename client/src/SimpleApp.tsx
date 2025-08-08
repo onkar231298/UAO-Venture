@@ -22,6 +22,7 @@ function SimpleApp() {
             <Route path="/" component={Landing} />
             <Route path="/products" component={Products} />
             <Route path="/ingredients" component={Products} />
+            <Route path="/ingredients/:slug" component={CategoryPage} />
             <Route path="/category/:slug" component={CategoryPage} />
             <Route path="/search/:query" component={SearchResults} />
             <Route path="/product/:slug" component={ProductDetailBFI} />

@@ -59,6 +59,12 @@ app.use((req, res, next) => {
   // Configure server routes
   const server = await registerRoutes(app);
 
+  // 301 Redirect for old category URLs to new ingredients URLs
+  app.get('/category/:slug', (req, res) => {
+    const { slug } = req.params;
+    res.redirect(301, `/ingredients/${slug}`);
+  });
+
   // Structured data injection middleware for deployed URLs only
   const isDeployedURL = (host: string) => {
     return host && (

@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### SEO URL Structure Optimization (Jan 8, 2025)
+- **Issue**: Google Search Console showing indexing problems with category URLs
+- **Root Cause**: Site using `/category/:slug` URLs while Google expects `/ingredients/:slug` structure
+- **Solution**: Implemented comprehensive URL structure change for better SEO indexing
+- **Implementation**: 
+  - Changed primary routing from `/category/:slug` to `/ingredients/:slug`
+  - Added 301 server-side redirects from old `/category/` URLs to new `/ingredients/` URLs
+  - Updated all internal navigation links (Header, CategorySidebar, App routing)
+  - Modified sitemap generation to use new URL structure
+  - Fixed TypeScript errors in CategoryPage component (mainImage vs images property)
+  - Maintained backward compatibility with client-side redirects
+- **Features**: Better Google indexing, consistent URL structure, proper 301 redirects, updated sitemap
+- **Date**: 2025-01-08
+
 ### Mobile-Responsive Featured Products Carousel (Jan 8, 2025)
 - **Issue**: Featured Products carousel not mobile-friendly, inconsistent design with standard ProductCard components
 - **Root Cause**: Fixed 4-column grid layout breaking on mobile, missing product type badges, extra description text

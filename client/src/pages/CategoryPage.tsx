@@ -24,11 +24,20 @@ import { useSEO } from "@/hooks/useSEO";
 
 export default function CategoryPage() {
   const { slug } = useParams();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
+
+  // Handle redirect from old /category/ URLs to new /ingredients/ URLs
+  useEffect(() => {
+    if (location.startsWith('/category/') && slug) {
+      const newPath = `/ingredients/${slug}`;
+      setLocation(newPath, { replace: true });
+      return;
+    }
+  }, [location, slug, setLocation]);
 
   // Convert slug back to category name
   const categoryName = slug 
@@ -40,7 +49,7 @@ export default function CategoryPage() {
     title: `${categoryName} - Premium Organic Ingredients | BFI Organic`,
     description: `Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy.`,
     keywords: `${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic`,
-    canonicalUrl: `${window.location.origin}/category/${slug}`,
+    canonicalUrl: `${window.location.origin}/ingredients/${slug}`,
     pageType: "category",
     pageId: `category-${slug}`
   });
@@ -202,9 +211,9 @@ export default function CategoryPage() {
                 <CardContent className={`p-4 ${viewMode === 'list' ? 'flex items-center gap-4 w-full' : ''}`}>
                   {/* Product Image */}
                   <div className={`${viewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'aspect-square'} bg-gray-100 rounded-lg mb-4 relative overflow-hidden`}>
-                    {product.images && product.images.length > 0 ? (
+                    {product.mainImage || (product.galleryImages && Array.isArray(product.galleryImages) && product.galleryImages.length > 0) ? (
                       <img 
-                        src={product.images[0]} 
+                        src={product.mainImage || (product.galleryImages as any[])[0]?.url || (product.galleryImages as any[])[0]} 
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
@@ -238,9 +247,9 @@ export default function CategoryPage() {
                       {/* Tags */}
                       {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {product.tags.slice(0, 2).map((tag: string, index: number) => (
+                          {product.tags.slice(0, 2).map((tag: unknown, index: number) => (
                             <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
+                              {String(tag)}
                             </Badge>
                           ))}
                         </div>

@@ -47,6 +47,7 @@ function Router() {
       <Route path="/landing" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients" component={Products} />
+      <Route path="/ingredients/:slug" component={CategoryPage} />
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/search/:query" component={SearchResults} />
       <Route path="/login" component={UnifiedLogin} />

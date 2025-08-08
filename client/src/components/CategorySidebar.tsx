@@ -56,7 +56,7 @@ export default function CategorySidebar({ isOpen, onClose }: CategorySidebarProp
         <div className="max-h-80 overflow-y-auto">
           <div className="py-1">
             {categories.map((category) => (
-              <Link key={category.id} href={`/category/${createCategorySlug(category.name)}`}>
+              <Link key={category.id} href={`/ingredients/${createCategorySlug(category.name)}`}>
                 <div 
                   className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-gray-700 hover:text-gray-900 text-sm transition-colors"
                   onClick={handleCategoryClick.bind(null, category.name)}
