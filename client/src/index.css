@@ -102,6 +102,17 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* Hide scrollbar for webkit browsers */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for firefox */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 :root {
   /* Green Jeeva Inspired Professional Color Scheme */
   --background: hsl(0, 0%, 100%);

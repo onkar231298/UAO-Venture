@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf } from "lucide-react";
+import { Leaf, ChevronLeft, ChevronRight } from "lucide-react";
 import OptimizedImage from "@/components/OptimizedImage";
 
 interface Product {
@@ -25,8 +25,8 @@ interface Product {
 export default function FeaturedCarouselSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [, navigate] = useLocation();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   console.log('🎠 FeaturedCarouselSection rendering...');
 
@@ -49,50 +49,84 @@ export default function FeaturedCarouselSection() {
       });
   }, []);
 
-  const getProductsPerSlide = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 768) return 1; // Mobile: 1 product
-      if (window.innerWidth < 1024) return 2; // Tablet: 2 products  
-      return 4; // Desktop: 4 products
+  // Scroll navigation functions
+  const scrollNext = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const cardWidth = container.children[0]?.getBoundingClientRect().width || 300;
+      const gap = 16; // 1rem gap in pixels
+      
+      // On mobile: scroll 1 card, on desktop: scroll 4 cards
+      const isMobile = window.innerWidth < 768;
+      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 4;
+      
+      container.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+      });
     }
-    return 4; // Default to desktop
   };
 
-  const [productsPerSlide, setProductsPerSlide] = useState(getProductsPerSlide);
+  const scrollPrev = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const cardWidth = container.children[0]?.getBoundingClientRect().width || 300;
+      const gap = 16; // 1rem gap in pixels
+      
+      // On mobile: scroll 1 card, on desktop: scroll 4 cards
+      const isMobile = window.innerWidth < 768;
+      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 4;
+      
+      container.scrollBy({
+        left: -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Check if scroll buttons should be visible
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      setCanScrollLeft(container.scrollLeft > 0);
+      setCanScrollRight(
+        container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+      );
+    }
+  };
 
   useEffect(() => {
-    const handleResize = () => {
-      setProductsPerSlide(getProductsPerSlide());
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const nextSlide = () => {
-    if (currentIndex < products.length - productsPerSlide) {
-      const newIndex = currentIndex + 1;
-      console.log('➡️ Next slide to index:', newIndex);
-      setCurrentIndex(newIndex);
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollButtons);
+      // Initial check
+      setTimeout(checkScrollButtons, 100);
+      
+      return () => container.removeEventListener('scroll', checkScrollButtons);
     }
-  };
-
-  const prevSlide = () => {
-    if (currentIndex > 0) {
-      const newIndex = currentIndex - 1;
-      console.log('⬅️ Previous slide to index:', newIndex);
-      setCurrentIndex(newIndex);
-    }
-  };
+  }, [products]);
 
   const handleProductClick = (slug: string) => {
     console.log('🔗 Navigating to product:', slug);
     navigate(`/product/${slug}`);
   };
 
-  const visibleProducts = products.slice(currentIndex, currentIndex + productsPerSlide);
-  const canGoNext = currentIndex < products.length - productsPerSlide;
-  const canGoPrev = currentIndex > 0;
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        scrollPrev();
+      } else if (event.key === 'ArrowRight') {
+        scrollNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (loading) {
     return (
@@ -122,30 +156,39 @@ export default function FeaturedCarouselSection() {
           </p>
         </div>
         
-        <div className="relative max-w-6xl mx-auto">
+        <div className="relative max-w-7xl mx-auto">
           {/* Navigation Arrows - Hidden on mobile */}
-          {canGoPrev && (
+          {canScrollLeft && (
             <button 
-              className="hidden md:flex absolute left-2 lg:left-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-10 h-10 lg:w-12 lg:h-12 items-center justify-center shadow-lg hover:bg-green-50 transition-colors z-10"
-              onClick={prevSlide}
+              className="hidden md:flex absolute left-2 lg:left-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-12 h-12 lg:w-14 lg:h-14 items-center justify-center shadow-lg hover:bg-green-50 transition-all duration-200 z-10"
+              onClick={scrollPrev}
+              aria-label="Previous products"
             >
-              ←
+              <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
             </button>
           )}
           
-          {canGoNext && (
+          {canScrollRight && (
             <button 
-              className="hidden md:flex absolute right-2 lg:right-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-10 h-10 lg:w-12 lg:h-12 items-center justify-center shadow-lg hover:bg-green-50 transition-colors z-10"
-              onClick={nextSlide}
+              className="hidden md:flex absolute right-2 lg:right-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-12 h-12 lg:w-14 lg:h-14 items-center justify-center shadow-lg hover:bg-green-50 transition-all duration-200 z-10"
+              onClick={scrollNext}
+              aria-label="Next products"
             >
-              →
+              <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
             </button>
           )}
           
-          {/* Carousel Container */}
-          <div className="overflow-hidden rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {visibleProducts.map((product) => {
+          {/* Scrollable Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="overflow-x-auto scrollbar-hide scroll-smooth"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              scrollSnapType: 'x mandatory'
+            }}
+          >
+            <div className="flex gap-4 sm:gap-6 pb-2" style={{ width: 'max-content' }}>
+              {products.map((product) => {
                 // Get product image using same logic as ProductCard
                 const productImage = product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || product.mainImage || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
                 const hasImage = !!productImage;
@@ -153,8 +196,9 @@ export default function FeaturedCarouselSection() {
                 return (
                   <Card 
                     key={product.id}
-                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer"
+                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer flex-none w-[280px] sm:w-[300px] lg:w-[280px]"
                     onClick={() => handleProductClick(product.slug)}
+                    style={{ scrollSnapAlign: 'start' }}
                   >
                     <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
                       {hasImage ? (
