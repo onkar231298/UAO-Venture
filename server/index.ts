@@ -383,27 +383,30 @@ app.use((req, res, next) => {
     }
   });
 
-  // SPA fallback for production - handle client-side routing  
-  const isProduction = app.get("env") !== "development";
-  
-  if (isProduction) {
-    // Add explicit SPA route handling before static serving
-    app.get("*", (req, res, next) => {
-      // Skip API routes - let them be handled by registerRoutes
-      if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
-        return next();
-      }
+  // SPA fallback for ALL environments - handle client-side routing  
+  // Add explicit SPA route handling for React routes
+  app.get("*", (req, res, next) => {
+    // Skip API routes and assets - let them be handled by registerRoutes  
+    if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
+      return next();
+    }
+    
+    // For HTML requests (page refreshes), serve index.html to let React handle routing
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      console.log(`[SPA Fallback] Serving React app for: ${req.path}`);
+      const isProduction = app.get("env") !== "development";
       
-      // For HTML requests (page refreshes), serve index.html to let React handle routing
-      if (req.headers.accept && req.headers.accept.includes('text/html')) {
-        console.log(`[SPA Fallback] Serving React app for: ${req.path}`);
+      if (isProduction) {
         const distPath = path.resolve(import.meta.dirname, "public");
         return res.sendFile(path.resolve(distPath, "index.html"));
+      } else {
+        // In development, let Vite handle SPA routing
+        return next();
       }
-      
-      next();
-    });
-  }
+    }
+    
+    next();
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
