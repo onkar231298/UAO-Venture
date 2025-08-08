@@ -74,20 +74,26 @@ app.use((req, res, next) => {
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
     
-    // Only inject structured data for deployed URLs and bot user agents
+    // Only inject structured data for deployed URLs and SEO tools/crawlers
     const userAgent = req.get('user-agent') || '';
-    const isBot = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot/i.test(userAgent);
     const accept = req.get('accept') || '';
     
-    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, Accept: ${accept}, Bot: ${isBot}`);
+    // Detect bots, crawlers, and SEO testing tools
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|google-structured-data-testing-tool|google\.com\/search|rich.*results.*test|structured.*data.*test/i.test(userAgent);
     
-    // Only process for deployed URLs AND bot user agents to avoid interfering with regular page loads
-    if (!isDeployed || !isBot) {
-      console.log(`[SEO Skip] Not deployed or not a bot, letting React handle: ${req.path}`);
+    // Also check for requests that look like they're testing structured data
+    const isStructuredDataTest = userAgent.includes('Mozilla') && accept.includes('text/html') && 
+      (userAgent.includes('Chrome') && req.get('referer')?.includes('google.com'));
+    
+    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}, Bot: ${isBotOrSEOTool}, StructuredTest: ${isStructuredDataTest}`);
+    
+    // Only process for deployed URLs AND (bots OR structured data testing tools)
+    if (!isDeployed || (!isBotOrSEOTool && !isStructuredDataTest)) {
+      console.log(`[SEO Skip] Not deployed or not a bot/SEO tool, letting React handle: ${req.path}`);
       return next();
     }
 
-    console.log(`[SEO Processing] Injecting structured data for: /product/${req.params.slug}`);
+    console.log(`[SEO Processing] Injecting structured data for: /product/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
 
     try {
       // Use storage instance directly
