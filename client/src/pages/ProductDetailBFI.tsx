@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
+import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
+import PopularProducts from "@/components/PopularProducts";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
@@ -764,20 +766,17 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Related Products */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Bought Together</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  See what are often bought with this product!
-                </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full">
-                  View Related Products
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Frequently Bought Together Carousel */}
+            <FrequentlyBoughtTogether 
+              currentProductId={product.id}
+              categoryId={product.categoryId}
+            />
+
+            {/* Popular Products List */}
+            <PopularProducts 
+              currentProductId={product.id}
+              limit={6}
+            />
           </div>
         </div>
       </div>
