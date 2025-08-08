@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
-import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
-import PopularProducts from "@/components/PopularProducts";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
@@ -766,17 +765,53 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Frequently Bought Together Carousel */}
-            <FrequentlyBoughtTogether 
-              currentProductId={product.id}
-              categoryId={product.categoryId}
-            />
+            {/* Frequently Bought Together - Simple Slider */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Frequently Bought Together</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-3 pb-2" style={{ width: 'max-content' }}>
+                    {/* Sample products - in production, this would fetch related products */}
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="w-full h-24 bg-gray-100 rounded mb-2 flex items-center justify-center text-gray-400">
+                          <span className="text-xs">Product {i}</span>
+                        </div>
+                        <h4 className="text-xs font-medium text-gray-900 line-clamp-2 mb-1">
+                          Related Product {i}
+                        </h4>
+                        <p className="text-xs text-green-600 font-semibold">$25.00/kg</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Popular Products List */}
-            <PopularProducts 
-              currentProductId={product.id}
-              limit={6}
-            />
+            {/* Popular Products - Simple List */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Popular Products</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                        <span className="text-xs">{i}</span>
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="text-sm font-medium text-gray-900">Popular Product {i}</h5>
+                        <p className="text-xs text-gray-600">Origin: India</p>
+                        <p className="text-xs text-green-600 font-semibold">$30.00/kg</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
