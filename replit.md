@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### Mobile-Responsive Featured Products Carousel (Jan 8, 2025)
+- **Issue**: Featured Products carousel not mobile-friendly, inconsistent design with standard ProductCard components
+- **Root Cause**: Fixed 4-column grid layout breaking on mobile, missing product type badges, extra description text
+- **Solution**: Implemented fully responsive FeaturedCarouselSection with ProductCard-inspired design
+- **Implementation**: 
+  - Mobile: 1 product per row, Tablet: 2 products, Desktop: 4 products
+  - Added OptimizedImage component with proper placeholders
+  - Product type badges (Organic, Natural, etc.) instead of product IDs
+  - Removed unnecessary description text for consistency
+  - Hidden navigation arrows on mobile (single column doesn't need them)
+  - Touch-friendly sizing and spacing
+- **Features**: Responsive grid layout, product type badges, OptimizedImage, mobile-optimized navigation
+- **Date**: 2025-01-08
+
 ### Featured Products Carousel Implementation (Jan 8, 2025)
 - **Issue**: Featured Products section appearing as static grid instead of interactive carousel
 - **Root Cause**: TypeScript errors in UI library components preventing React component mounting
