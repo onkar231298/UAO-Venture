@@ -122,9 +122,11 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
       
       if (aclResponse.ok) {
         const { objectPath } = await aclResponse.json();
+        // Ensure the URL is properly formatted
+        const finalUrl = objectPath.startsWith('/') ? objectPath : `/${objectPath}`;
         setFormData(prev => ({
           ...prev,
-          imageUrl: objectPath
+          imageUrl: finalUrl
         }));
         
         toast({
@@ -132,10 +134,15 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
           description: "Category image uploaded successfully",
         });
       } else {
-        // Still set the image URL even if ACL fails
+        // Still set the image URL even if ACL fails, but format it properly
+        const finalUrl = uploadURL.includes('/objects/') 
+          ? uploadURL.split('/objects/')[1] 
+          : uploadURL;
+        const formattedUrl = finalUrl.startsWith('/objects/') ? finalUrl : `/objects/${finalUrl}`;
+        
         setFormData(prev => ({
           ...prev,
-          imageUrl: uploadURL
+          imageUrl: formattedUrl
         }));
         
         toast({
@@ -160,16 +167,31 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate required fields
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Category name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Auto-generate slug from name
     const slug = formData.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
     
-    onSubmit({
+    // Prepare the submission data
+    const submissionData = {
       ...formData,
-      slug
-    });
+      slug,
+      // Ensure imageUrl is properly formatted or empty
+      imageUrl: formData.imageUrl.trim() || null
+    };
+    
+    onSubmit(submissionData);
   };
 
   return (
@@ -228,10 +250,10 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
             <Label htmlFor="imageUrl" className="text-sm">Or enter image URL manually:</Label>
             <Input
               id="imageUrl"
-              type="url"
+              type="text"
               value={formData.imageUrl}
               onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              placeholder="https://example.com/image.jpg"
+              placeholder="https://example.com/image.jpg or /objects/path/to/image.jpg"
               className="mt-1"
             />
           </div>
