@@ -773,9 +773,9 @@ export default function ProductDetailBFI() {
               <CardContent>
                 {/* Mobile: Show single product cards with horizontal scroll */}
                 <div className="md:hidden overflow-x-auto scrollbar-hide">
-                  <div className="flex gap-4 pb-4" style={{ width: 'max-content' }}>
+                  <div className="flex gap-4 pb-4 snap-x snap-mandatory" style={{ width: 'max-content' }}>
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 w-64 flex-shrink-0">
+                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 w-full max-w-xs flex-shrink-0 snap-center" style={{ minWidth: '300px' }}>
                         <div className="cursor-pointer">
                           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
                             <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
@@ -870,9 +870,9 @@ export default function ProductDetailBFI() {
               <CardContent>
                 {/* Mobile: Show single product cards with horizontal scroll */}
                 <div className="md:hidden overflow-x-auto scrollbar-hide">
-                  <div className="flex gap-4 pb-4" style={{ width: 'max-content' }}>
+                  <div className="flex gap-4 pb-4 snap-x snap-mandatory" style={{ width: 'max-content' }}>
                     {[1, 2, 3, 4, 5].map(i => (
-                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 w-64 flex-shrink-0">
+                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 w-full max-w-xs flex-shrink-0 snap-center" style={{ minWidth: '300px' }}>
                         <div className="cursor-pointer">
                           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
                             <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
