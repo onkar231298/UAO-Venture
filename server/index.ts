@@ -192,7 +192,7 @@ app.use((req, res, next) => {
           "priceCurrency": "USD",
           "price": product.priceUSD || product.rate || 0,
           "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "availability": product.currentStock && parseFloat(product.currentStock) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",
