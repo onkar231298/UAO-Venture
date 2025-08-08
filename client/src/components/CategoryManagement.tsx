@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Search, Tag, Upload } from "lucide-react";
 import type { Category } from "@shared/schema";
-import { ObjectUploader } from "./ObjectUploader";
+
 
 interface CategoryForm2Props {
   category?: Category;
@@ -35,6 +35,7 @@ interface CategoryForm2Props {
 }
 
 function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2Props) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: category?.name || "",
     description: category?.description || "",
@@ -54,61 +55,105 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
     }
   }, [category]);
 
-  const handleImageUpload = async () => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
     try {
       // Get upload URL from backend
-      const response = await fetch('/api/objects/upload', {
+      const uploadResponse = await fetch('/api/objects/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
-      if (!response.ok) {
+      if (!uploadResponse.ok) {
         throw new Error('Failed to get upload URL');
       }
       
-      const { uploadURL } = await response.json();
-      return {
-        method: "PUT" as const,
-        url: uploadURL,
-      };
-    } catch (error) {
-      console.error('Error getting upload URL:', error);
-      throw error;
-    }
-  };
+      const { uploadURL } = await uploadResponse.json();
 
-  const handleUploadComplete = async (result: any) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const imageUrl = uploadedFile.uploadURL;
+      // Upload the file directly
+      const uploadResult = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      // Set ACL policy for the uploaded image
+      const aclResponse = await fetch('/api/category-images', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl: uploadURL }),
+      });
       
-      try {
-        // Set ACL policy for the uploaded image
-        const aclResponse = await fetch('/api/category-images', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ imageUrl }),
-        });
+      if (aclResponse.ok) {
+        const { objectPath } = await aclResponse.json();
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: objectPath
+        }));
         
-        if (aclResponse.ok) {
-          const { objectPath } = await aclResponse.json();
-          setFormData(prev => ({
-            ...prev,
-            imageUrl: objectPath
-          }));
-        }
-      } catch (error) {
-        console.error('Error setting ACL policy:', error);
+        toast({
+          title: "Upload Successful",
+          description: "Category image uploaded successfully",
+        });
+      } else {
         // Still set the image URL even if ACL fails
         setFormData(prev => ({
           ...prev,
-          imageUrl: imageUrl
+          imageUrl: uploadURL
         }));
+        
+        toast({
+          title: "Upload Successful",
+          description: "Category image uploaded (with limited ACL)",
+        });
       }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the input
+      event.target.value = '';
     }
   };
 
@@ -154,21 +199,28 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
       <div>
         <Label>Category Image</Label>
         <div className="space-y-3">
-          <ObjectUploader
-            maxNumberOfFiles={1}
-            maxFileSize={5242880} // 5MB
-            onGetUploadParameters={handleImageUpload}
-            onComplete={handleUploadComplete}
-            buttonClassName="w-full"
-          >
-            <div className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              <span>Upload Category Image</span>
-            </div>
-          </ObjectUploader>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={isUploading}
+              onClick={() => document.getElementById('category-image-input')?.click()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {isUploading ? 'Uploading...' : 'Upload Category Image'}
+            </Button>
+            <input
+              id="category-image-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </div>
           
           <div className="text-sm text-gray-500">
-            Upload an image for this category. This will be displayed in the "Browse by Category" section.
+            Upload an image for this category (max 5MB). This will be displayed in the "Browse by Category" section.
           </div>
           
           {/* Manual URL input as fallback */}
