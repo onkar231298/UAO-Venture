@@ -10,18 +10,6 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-### Product Page Frequently Bought Together & Popular Products (Jan 8, 2025)
-- **Issue**: User requested carousel/slider for frequently bought together products and popular products list on product detail page
-- **Root Cause**: Product detail page lacked related product recommendations and cross-selling features
-- **Solution**: Added simple horizontal slider for frequently bought together and compact popular products list
-- **Implementation**: 
-  - Frequently Bought Together: Horizontal scrolling slider with touch support, compact product cards
-  - Popular Products: Simple list format with product thumbnails and basic info
-  - Maintained original product page layout and structure
-  - Used existing scrollbar-hide CSS for clean appearance
-- **Features**: Mobile-friendly horizontal scrolling, compact product display, preserved original page design
-- **Date**: 2025-01-08
-
 ### Mobile-Responsive Featured Products Carousel (Jan 8, 2025)
 - **Issue**: Featured Products carousel not mobile-friendly, inconsistent design with standard ProductCard components
 - **Root Cause**: Fixed 4-column grid layout breaking on mobile, missing product type badges, extra description text

@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/customers', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -223,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+      if (!user || !['super_admin', 'admin'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "priceCurrency": "USD",
           "price": product.priceUSD || product.rate || 0,
           "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          "availability": product.currentStock && parseFloat(product.currentStock) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",

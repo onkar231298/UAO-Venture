@@ -89,16 +89,9 @@ export interface IStorage {
 
   // Product operations
   getProducts(filters?: {
-    category?: string[];
+    category?: string;
     search?: string;
-    materials?: string[];
-    productType?: string[];
-    healthSupport?: string[];
-    origin?: string[];
-    form?: string[];
-    inStock?: boolean;
-    priceRange?: [number, number];
-    sortBy?: string;
+    isOrganic?: boolean;
     limit?: number;
     offset?: number;
   }): Promise<{ products: Product[]; total: number }>;
@@ -433,10 +426,8 @@ export class DatabaseStorage implements IStorage {
       
       if (categoryResults.length > 0) {
         const categoryIds = categoryResults.map(cat => cat.id);
-        if (categoryIds.length > 0) {
-          const categoryConditions = categoryIds.map(id => eq(products.categoryId, id));
-          conditions.push(or(...categoryConditions));
-        }
+        const categoryConditions = categoryIds.map(id => eq(products.categoryId, id));
+        conditions.push(or(...categoryConditions));
       }
     }
     
@@ -470,9 +461,7 @@ export class DatabaseStorage implements IStorage {
       const materialConditions = filters.materials.map(material => 
         eq(products.productType, material)
       );
-      if (materialConditions.length > 0) {
-        conditions.push(or(...materialConditions));
-      }
+      conditions.push(or(...materialConditions));
     }
 
     // Product Type filter (organic, natural, conventional, synthetic, nature_identical, other)
@@ -480,9 +469,7 @@ export class DatabaseStorage implements IStorage {
       const productTypeConditions = filters.productType.map(type => 
         eq(products.productType, type)
       );
-      if (productTypeConditions.length > 0) {
-        conditions.push(or(...productTypeConditions));
-      }
+      conditions.push(or(...productTypeConditions));
     }
 
     // Health Support filter
