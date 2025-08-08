@@ -26,14 +26,7 @@ export default function Home() {
   
   const { user } = useAuth() as { user: any };
 
-  // Redirect admin users to admin dashboard
-  useEffect(() => {
-    if (user && ((user as any).role === 'admin' || (user as any).role === 'super_admin')) {
-      console.log('Home: Redirecting admin user to admin dashboard');
-      window.location.replace('/#/admin/dashboard');
-      return;
-    }
-  }, [user]);
+  // Allow admin users to view homepage - removed automatic redirect
 
   const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
