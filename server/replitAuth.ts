@@ -234,7 +234,7 @@ export async function setupAuth(app: Express) {
 
   // Unified login endpoint for both admin and customers
   app.post("/admin/login", passport.authenticate('local', {
-    successRedirect: '/admin/dashboard',
+    successRedirect: '/',
     failureRedirect: '/login?error=admin_failed'
   }));
 
