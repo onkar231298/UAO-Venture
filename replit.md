@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### Category Image Upload Fix (Jan 8, 2025)
+- **Issue**: Category images uploaded but not displaying, object storage path mismatch
+- **Root Cause**: Files uploaded to private directory but served from public search paths 
+- **Solution**: Implemented dedicated public upload system for category images
+- **Implementation**:
+  - Added `getPublicObjectUploadURL()` method for public directory uploads
+  - Created `/api/categories/upload` endpoint using public object storage
+  - Updated `getObjectEntityFile()` to search public paths first, then private
+  - Modified `normalizeObjectEntityPath()` to handle both public and private paths
+  - Fixed frontend to use category-specific upload endpoint
+- **Features**: Category images now properly upload to public directory and display correctly
+- **Date**: 2025-01-08
+
 ### Multiple Categories Per Product Implementation (Jan 8, 2025)
 - **Feature**: Implemented comprehensive many-to-many relationship between products and categories
 - **Database**: Added `productCategoryRelations` junction table with primary category designation

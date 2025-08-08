@@ -192,6 +192,30 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+    
+    // Try public paths first (for category images uploaded via public endpoint)
+    const publicSearchPaths = this.getPublicObjectSearchPaths();
+    for (const publicPath of publicSearchPaths) {
+      let entityDir = publicPath;
+      if (!entityDir.endsWith("/")) {
+        entityDir = `${entityDir}/`;
+      }
+      const objectEntityPath = `${entityDir}${entityId}`;
+      try {
+        const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+        const bucket = objectStorageClient.bucket(bucketName);
+        const objectFile = bucket.file(objectName);
+        const [exists] = await objectFile.exists();
+        if (exists) {
+          return objectFile;
+        }
+      } catch (error) {
+        // Continue to next path
+        continue;
+      }
+    }
+    
+    // Fall back to private directory
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
