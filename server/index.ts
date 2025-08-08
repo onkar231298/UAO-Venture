@@ -74,20 +74,16 @@ app.use((req, res, next) => {
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
     
-    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, Accept: ${req.headers.accept}`);
+    // Only inject structured data for deployed URLs and bot user agents
+    const userAgent = req.get('user-agent') || '';
+    const isBot = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot/i.test(userAgent);
+    const accept = req.get('accept') || '';
     
-    // Only apply to deployed URLs, skip development
-    if (!isDeployed) {
-      console.log(`[SEO Skip] Not deployed URL, passing to React: ${host}`);
-      return next();
-    }
-
-    // Accept HTML requests and crawler requests (which often send */* or other accept headers)
-    const accept = req.headers.accept || '';
-    const isBrowserOrCrawler = accept.includes('text/html') || accept.includes('*/*') || accept.includes('application/xhtml');
+    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, Accept: ${accept}, Bot: ${isBot}`);
     
-    if (!isBrowserOrCrawler) {
-      console.log(`[SEO Skip] Not browser/crawler request: ${accept}`);
+    // Only process for deployed URLs AND bot user agents to avoid interfering with regular page loads
+    if (!isDeployed || !isBot) {
+      console.log(`[SEO Skip] Not deployed or not a bot, letting React handle: ${req.path}`);
       return next();
     }
 
