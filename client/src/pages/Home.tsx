@@ -21,6 +21,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 export default function Home() {
+  console.log('🏠 Home component is rendering');
+  
   const { user } = useAuth() as { user: any };
 
   // Redirect admin users to admin dashboard
@@ -168,7 +170,134 @@ export default function Home() {
         </section>
         
         {/* Featured Products Carousel */}
-        <SimpleCarouselTest />
+        <section className="py-16" style={{background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)"}}>
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Discover our premium selection of organic ingredients, carefully sourced and quality-tested for your business needs.
+              </p>
+            </div>
+            
+            <div className="relative max-w-6xl mx-auto">
+              {/* Navigation Arrows */}
+              <button 
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-12 h-12 flex items-center justify-center shadow-lg hover:bg-green-50 transition-colors z-10"
+                onClick={() => console.log('⬅️ Previous clicked')}
+              >
+                ←
+              </button>
+              <button 
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white border-2 border-green-600 rounded-full w-12 h-12 flex items-center justify-center shadow-lg hover:bg-green-50 transition-colors z-10"
+                onClick={() => console.log('➡️ Next clicked')}
+              >
+                →
+              </button>
+              
+              {/* Carousel Container */}
+              <div className="overflow-hidden rounded-lg">
+                <div className="flex transition-transform duration-300 ease-in-out gap-6">
+                  {/* Product Card 1 */}
+                  <div className="flex-none w-1/4 bg-white rounded-lg shadow-md overflow-hidden h-96 cursor-pointer hover:shadow-lg transition-shadow">
+                    <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center relative">
+                      <div className="text-4xl font-bold text-green-600">T</div>
+                      <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                        BFI001
+                      </div>
+                    </div>
+                    <div className="p-4 flex flex-col h-48">
+                      <h3 className="font-semibold text-gray-900 mb-2">Turmeric Powder</h3>
+                      <p className="text-sm text-gray-600 mb-2">Origin: India</p>
+                      <p className="text-sm text-gray-600 mb-4 flex-1">Premium quality turmeric powder with high curcumin content</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <div>
+                          <span className="text-lg font-bold text-green-600">$12.50</span>
+                          <span className="text-sm text-gray-500">/kg</span>
+                        </div>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">MOQ: 100kg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Card 2 */}
+                  <div className="flex-none w-1/4 bg-white rounded-lg shadow-md overflow-hidden h-96 cursor-pointer hover:shadow-lg transition-shadow">
+                    <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center relative">
+                      <div className="text-4xl font-bold text-green-600">G</div>
+                      <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                        BFI002
+                      </div>
+                    </div>
+                    <div className="p-4 flex flex-col h-48">
+                      <h3 className="font-semibold text-gray-900 mb-2">Ginger Powder</h3>
+                      <p className="text-sm text-gray-600 mb-2">Origin: India</p>
+                      <p className="text-sm text-gray-600 mb-4 flex-1">Premium quality organic ginger powder</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <div>
+                          <span className="text-lg font-bold text-green-600">$15.00</span>
+                          <span className="text-sm text-gray-500">/kg</span>
+                        </div>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">MOQ: 50kg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Card 3 */}
+                  <div className="flex-none w-1/4 bg-white rounded-lg shadow-md overflow-hidden h-96 cursor-pointer hover:shadow-lg transition-shadow">
+                    <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center relative">
+                      <div className="text-4xl font-bold text-green-600">C</div>
+                      <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                        BFI003
+                      </div>
+                    </div>
+                    <div className="p-4 flex flex-col h-48">
+                      <h3 className="font-semibold text-gray-900 mb-2">Cinnamon Bark</h3>
+                      <p className="text-sm text-gray-600 mb-2">Origin: Sri Lanka</p>
+                      <p className="text-sm text-gray-600 mb-4 flex-1">Premium Ceylon cinnamon bark powder</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <div>
+                          <span className="text-lg font-bold text-green-600">$28.50</span>
+                          <span className="text-sm text-gray-500">/kg</span>
+                        </div>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">MOQ: 25kg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Card 4 */}
+                  <div className="flex-none w-1/4 bg-white rounded-lg shadow-md overflow-hidden h-96 cursor-pointer hover:shadow-lg transition-shadow">
+                    <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center relative">
+                      <div className="text-4xl font-bold text-green-600">A</div>
+                      <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                        BFI004
+                      </div>
+                    </div>
+                    <div className="p-4 flex flex-col h-48">
+                      <h3 className="font-semibold text-gray-900 mb-2">Ashwagandha Extract</h3>
+                      <p className="text-sm text-gray-600 mb-2">Origin: India</p>
+                      <p className="text-sm text-gray-600 mb-4 flex-1">Premium adaptogenic herb extract</p>
+                      <div className="flex justify-between items-center mt-auto">
+                        <div>
+                          <span className="text-lg font-bold text-green-600">$45.00</span>
+                          <span className="text-sm text-gray-500">/kg</span>
+                        </div>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">MOQ: 10kg</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mt-12">
+              <button 
+                className="border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 px-6 py-3 rounded-lg font-medium transition-colors"
+                onClick={() => window.location.href = '/products'}
+              >
+                View All Products →
+              </button>
+            </div>
+          </div>
+        </section>
         
         {/* Browse by Category */}
         <section className="py-20 bg-gray-50">
