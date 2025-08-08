@@ -78,32 +78,31 @@ app.use((req, res, next) => {
     const userAgent = req.get('user-agent') || '';
     const accept = req.get('accept') || '';
     
-    // Detect bots, crawlers, and SEO testing tools (including Google's Rich Results Test)
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|google-structured-data-testing-tool|google\.com\/search|rich.*results.*test|structured.*data.*test/i.test(userAgent);
+    // Detect bots, crawlers, and SEO testing tools
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
     
-    // Special detection for Google Rich Results Test tool which uses standard browser user agents
+    // Google Rich Results Test detection - based on observed patterns
     const referer = req.get('referer') || '';
-    const isGoogleSEOTool = referer.includes('search.google.com/test/rich-results') || 
-                           referer.includes('developers.google.com') ||
-                           referer.includes('search.google.com/structured-data');
+    const isGoogleRichResultsTest = 
+      // Direct referer from Google's testing tools
+      referer.includes('search.google.com/test/rich-results') || 
+      referer.includes('developers.google.com') ||
+      referer.includes('search.google.com/structured-data') ||
+      // Chrome/Android user agents from Google domains 
+      (userAgent.includes('Chrome') && referer.includes('google.com')) ||
+      // Specific patterns observed from Google's mobile testing (Nexus 5X pattern)
+      (userAgent.includes('Nexus 5X') && userAgent.includes('Chrome')) ||
+      // Standard Chrome testing patterns from Google
+      (userAgent.includes('AppleWebKit/537.36') && userAgent.includes('Chrome') && 
+       (referer.includes('.google.') || referer.includes('googleapis')));
     
-    // Also check for Chrome requests from Google domains (Rich Results Test)
-    const isStructuredDataTest = userAgent.includes('Chrome') && 
-      (referer.includes('google.com') || referer.includes('googleapis.com') || isGoogleSEOTool);
+    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}, Bot: ${isBotOrSEOTool}, GoogleTest: ${isGoogleRichResultsTest}, Referer: ${referer.substring(0, 50)}`);
     
-    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}, Bot: ${isBotOrSEOTool}, StructuredTest: ${isStructuredDataTest}, GoogleTool: ${isGoogleSEOTool}, Referer: ${referer.substring(0, 50)}`);
-    
-    // TEMPORARY: Force structured data injection for ALL deployed URLs to debug Google Rich Results Test
-    // This will be reverted once we confirm detection is working
-    if (!isDeployed) {
-      console.log(`[SEO Skip] Not deployed URL, letting React handle: ${req.path}`);
+    // Process for deployed URLs AND (search engine bots OR Google Rich Results testing tools)
+    if (!isDeployed || (!isBotOrSEOTool && !isGoogleRichResultsTest)) {
+      console.log(`[SEO Skip] Not deployed or not a bot/Google testing tool, letting React handle: ${req.path}`);
       return next();
     }
-    
-    // Log all details for debugging
-    console.log(`[SEO FORCE] Processing ALL requests for debugging - Bot: ${isBotOrSEOTool}, StructuredTest: ${isStructuredDataTest}, GoogleTool: ${isGoogleSEOTool}`);
-    
-    // REMOVE THIS BLOCK AFTER TESTING - Currently allowing ALL deployed requests to get structured data
 
     console.log(`[SEO Processing] Injecting structured data for: /product/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
 

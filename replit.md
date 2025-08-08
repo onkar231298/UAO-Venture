@@ -34,7 +34,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-### Production SPA Routing Fix
+### Google Rich Results Test Integration (Jan 8, 2025)
+- **Issue**: Google Rich Results Test showing "No items detected" despite structured data injection
+- **Root Cause**: Bot detection logic not recognizing Google's Rich Results testing tool user agents
+- **Solution**: Enhanced bot detection with specific patterns for Google's testing tools
+- **Implementation**: Added detection for Nexus 5X mobile testing, Chrome from Google domains, and referer-based detection
+- **Features**: Selective structured data injection that serves SEO tools without interfering with regular user navigation
+- **Date**: 2025-01-08
+
+### Production SPA Routing Fix  
 - **Issue**: Page refreshes on deployed app resulted in blank pages for product and other routes
 - **Root Cause**: Production server wasn't properly handling SPA fallback routing  
 - **Solution**: Added explicit SPA fallback middleware in `server/index.ts` for production environment
