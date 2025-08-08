@@ -771,20 +771,20 @@ export default function ProductDetailBFI() {
                 <CardTitle className="text-base">Frequently Bought Together</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Mobile: Show individual product cards in horizontal scroll */}
-                <div className="md:hidden overflow-x-auto scrollbar-hide">
-                  <div className="flex gap-3 pb-2 px-1">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <div key={i} className="flex-shrink-0 w-48 bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400">
+                {/* Mobile: Show single product cards vertically */}
+                <div className="md:hidden space-y-3">
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="flex gap-3 p-3">
+                        <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center text-gray-400 flex-shrink-0">
                           <div className="text-center">
-                            <div className="text-2xl mb-1">📷</div>
-                            <span className="text-xs">Product {i}</span>
+                            <div className="text-lg mb-1">📷</div>
+                            <span className="text-xs">#{i}</span>
                           </div>
                         </div>
-                        <div className="p-3">
+                        <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
-                            Related Product {i}
+                            Related Product {i} - Organic Quality Ingredient
                           </h4>
                           <div className="space-y-1">
                             <p className="text-xs text-gray-600">Origin: India</p>
@@ -797,8 +797,8 @@ export default function ProductDetailBFI() {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Desktop: Show multiple products in a row */}
@@ -826,16 +826,28 @@ export default function ProductDetailBFI() {
                 <CardTitle className="text-base">Popular Products</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                        <span className="text-xs">{i}</span>
-                      </div>
-                      <div className="flex-1">
-                        <h5 className="text-sm font-medium text-gray-900">Popular Product {i}</h5>
-                        <p className="text-xs text-gray-600">Origin: India</p>
-                        <p className="text-xs text-green-600 font-semibold">$30.00/kg</p>
+                    <div key={i} className="w-full bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-gray-400 flex-shrink-0">
+                          <div className="text-center">
+                            <div className="text-lg mb-1">🌿</div>
+                            <span className="text-xs">#{i}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
+                            Popular Product {i} - Premium Quality
+                          </h5>
+                          <p className="text-xs text-gray-600 mb-1">Origin: India</p>
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm text-green-600 font-semibold">$30.00/kg</p>
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              Popular
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
