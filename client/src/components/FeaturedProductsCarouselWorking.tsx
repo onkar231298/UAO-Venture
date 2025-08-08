@@ -18,7 +18,8 @@ export default function FeaturedProductsCarouselWorking() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  console.log('🎯 FeaturedProductsCarouselWorking component rendering...');
+  console.log('🎯 FeaturedProductsCarouselWorking component rendering at:', new Date().toISOString());
+  console.log('🔍 Current state - products:', products.length, 'loading:', loading, 'currentIndex:', currentIndex);
 
   useEffect(() => {
     console.log('🔄 useEffect triggered, fetching featured products...');
