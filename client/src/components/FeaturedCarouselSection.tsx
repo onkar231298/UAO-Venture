@@ -142,9 +142,108 @@ export default function FeaturedCarouselSection() {
             </button>
           )}
           
-          {/* Carousel Container */}
-          <div className="overflow-hidden rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Mobile Carousel Container */}
+          <div className="md:hidden overflow-x-auto scrollbar-hide">
+            <div className="flex gap-4 pb-2" style={{ width: `${products.length * 280}px` }}>
+              {products.map((product) => {
+                // Get product image using same logic as ProductCard
+                const productImage = product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || product.mainImage || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
+                const hasImage = !!productImage;
+
+                return (
+                  <Card 
+                    key={product.id}
+                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0 w-64"
+                    onClick={() => handleProductClick(product.slug)}
+                  >
+                    <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
+                      {hasImage ? (
+                        <OptimizedImage
+                          src={productImage}
+                          alt={product.name}
+                          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-200"
+                          lazy={true}
+                          placeholder={
+                            <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                              <div className="text-center">
+                                <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                                <div className="text-xs sm:text-sm font-medium">Loading...</div>
+                              </div>
+                            </div>
+                          }
+                        />
+                      ) : (
+                        <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
+                          <div className="text-center">
+                            <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                            <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Product Type Badge */}
+                      {product.productType && (
+                        <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
+                          <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                          <span className="hidden sm:inline">
+                            {product.productType === 'organic' ? 'Organic' :
+                             product.productType === 'natural' ? 'Natural' :
+                             product.productType === 'conventional' ? 'Conventional' :
+                             product.productType === 'synthetic' ? 'Synthetic' :
+                             product.productType === 'nature_identical' ? 'Nature Identical' :
+                             product.productType === 'other' ? 'Other' : 
+                             'Organic'}
+                          </span>
+                          <span className="sm:hidden">
+                            {product.productType === 'organic' ? 'O' :
+                             product.productType === 'natural' ? 'N' :
+                             product.productType === 'conventional' ? 'C' :
+                             product.productType === 'synthetic' ? 'S' :
+                             product.productType === 'nature_identical' ? 'NI' :
+                             product.productType === 'other' ? 'O' : 
+                             'O'}
+                          </span>
+                        </Badge>
+                      )}
+                    </div>
+
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
+                          {product.name}
+                        </h3>
+
+                        {product.origin && (
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Origin: {product.origin}
+                          </p>
+                        )}
+
+                        {/* Price and MOQ */}
+                        <div className="flex justify-between items-center pt-2">
+                          <div>
+                            <span className="text-base sm:text-lg font-bold text-green-600">
+                              ${product.priceUSD}
+                            </span>
+                            <span className="text-xs sm:text-sm text-gray-500">/kg</span>
+                          </div>
+                          {product.moq && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              MOQ: {product.moq}kg
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop/Tablet Carousel Container */}
+          <div className="hidden md:block overflow-hidden rounded-lg">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {visibleProducts.map((product) => {
                 // Get product image using same logic as ProductCard
                 const productImage = product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || product.mainImage || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
