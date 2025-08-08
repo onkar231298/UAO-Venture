@@ -154,6 +154,32 @@ export class ObjectStorageService {
     });
   }
 
+  // Gets the upload URL for a public object (like category images).
+  async getPublicObjectUploadURL(): Promise<string> {
+    const publicSearchPaths = this.getPublicObjectSearchPaths();
+    if (publicSearchPaths.length === 0) {
+      throw new Error(
+        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
+          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var."
+      );
+    }
+
+    // Use the first public search path for uploads
+    const publicObjectDir = publicSearchPaths[0];
+    const objectId = randomUUID();
+    const fullPath = `${publicObjectDir}/uploads/${objectId}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Sign URL for PUT method with TTL
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
@@ -192,6 +218,21 @@ export class ObjectStorageService {
     const url = new URL(rawPath);
     const rawObjectPath = url.pathname;
   
+    // Try public paths first (for category images)
+    const publicSearchPaths = this.getPublicObjectSearchPaths();
+    for (const publicPath of publicSearchPaths) {
+      let publicDir = publicPath;
+      if (!publicDir.endsWith("/")) {
+        publicDir = `${publicDir}/`;
+      }
+      
+      if (rawObjectPath.startsWith(publicDir)) {
+        const entityId = rawObjectPath.slice(publicDir.length);
+        return `/objects/${entityId}`;
+      }
+    }
+  
+    // Fall back to private paths
     let objectEntityDir = this.getPrivateObjectDir();
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;

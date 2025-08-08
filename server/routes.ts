@@ -621,6 +621,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Object storage endpoints - handle /objects/ path for uploaded files
+  app.get("/objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Upload endpoints - AWS S3 for products, Replit for categories/hero slides
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
@@ -726,6 +742,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating product upload URL:", error);
       res.status(500).json({ error: "Failed to generate product upload URL" });
+    }
+  });
+
+  // Category image upload endpoint - uses public object storage
+  app.post("/api/categories/upload", isAuthenticated, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getPublicObjectUploadURL();
+      return res.json({ uploadURL, provider: 'replit-object-storage-public' });
+    } catch (error) {
+      console.error("Error generating category upload URL:", error);
+      res.status(500).json({ error: "Failed to generate category upload URL" });
     }
   });
 

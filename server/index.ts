@@ -405,8 +405,8 @@ app.use((req, res, next) => {
   // SPA fallback for ALL environments - handle client-side routing  
   // Add explicit SPA route handling for React routes
   app.get("*", (req, res, next) => {
-    // Skip API routes and assets - let them be handled by registerRoutes  
-    if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/')) {
+    // Skip API routes, object storage, and assets - let them be handled by registerRoutes  
+    if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/') || req.path.startsWith('/objects/') || req.path.startsWith('/public-objects/')) {
       return next();
     }
     

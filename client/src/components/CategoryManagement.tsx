@@ -84,8 +84,8 @@ function CategoryForm2({ category, onSubmit, isLoading, onClose }: CategoryForm2
     setIsUploading(true);
 
     try {
-      // Get upload URL from backend
-      const uploadResponse = await fetch('/api/objects/upload', {
+      // Get upload URL from backend (use category-specific public endpoint)
+      const uploadResponse = await fetch('/api/categories/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
