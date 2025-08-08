@@ -11,6 +11,7 @@ import TestCarousel from "@/components/TestCarousel";
 import FeaturedProductsCarouselWorking from "@/components/FeaturedProductsCarouselWorking";
 import SimpleCarouselTest from "@/components/SimpleCarouselTest";
 import FeaturedCarouselSection from "@/components/FeaturedCarouselSection";
+import CategoriesSection from "@/components/CategoriesSection";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,9 +68,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Featured Categories */}
+          {/* Categories Section */}
           <div className="mb-16">
             <h3 className="text-3xl font-bold text-center mb-8">Explore Our Categories</h3>
+            <CategoriesSection />
+          </div>
+
+          {/* Featured Products Section */}
+          <div className="mb-16">
             <FeaturedCarouselSection />
           </div>
           
