@@ -873,6 +873,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get frequently bought together products
+  app.get('/api/products/:id/frequently-bought-together', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 8;
+      const relatedProducts = await storage.getFrequentlyBoughtTogether(productId, limit);
+      res.json(relatedProducts);
+    } catch (error) {
+      console.error("Error fetching frequently bought together products:", error);
+      res.status(500).json({ message: "Failed to fetch related products" });
+    }
+  });
+
+  // Get similar/related products
+  app.get('/api/products/:id/similar', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 8;
+      const similarProducts = await storage.getSimilarProducts(productId, limit);
+      res.json(similarProducts);
+    } catch (error) {
+      console.error("Error fetching similar products:", error);
+      res.status(500).json({ message: "Failed to fetch similar products" });
+    }
+  });
+
   // Protected API routes (authentication required)
 
   // Create inquiry (allow both admin and customer creation)

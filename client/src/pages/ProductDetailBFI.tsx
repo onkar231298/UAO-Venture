@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
+import ScrollableProductSection from "@/components/ScrollableProductSection";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
@@ -82,6 +83,27 @@ export default function ProductDetailBFI() {
 
   const { data: faqs } = useQuery<{ question: string; answer: string; }[]>({
     queryKey: ["/api/products", product?.id, "faqs"],
+    enabled: !!product?.id,
+  });
+
+  // Related products queries
+  const { data: frequentlyBoughtTogether, isLoading: isLoadingFBT } = useQuery<Product[]>({
+    queryKey: ["/api/products", product?.id, "frequently-bought-together"],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${product?.id}/frequently-bought-together?limit=8`);
+      if (!response.ok) throw new Error('Related products not found');
+      return response.json();
+    },
+    enabled: !!product?.id,
+  });
+
+  const { data: similarProducts, isLoading: isLoadingSimilar } = useQuery<Product[]>({
+    queryKey: ["/api/products", product?.id, "similar"],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${product?.id}/similar?limit=8`);
+      if (!response.ok) throw new Error('Similar products not found');
+      return response.json();
+    },
     enabled: !!product?.id,
   });
 
@@ -764,23 +786,23 @@ export default function ProductDetailBFI() {
               </CardContent>
             </Card>
 
-            {/* Related Products */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-base">Bought Together</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  See what are often bought with this product!
-                </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full">
-                  View Related Products
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
+
+      {/* Scrollable Related Products Sections */}
+      <ScrollableProductSection
+        title="Frequently Bought Together"
+        products={frequentlyBoughtTogether || []}
+        loading={isLoadingFBT}
+      />
+
+      <ScrollableProductSection
+        title="You May Also Like"
+        products={similarProducts || []}
+        loading={isLoadingSimilar}
+      />
+
       <Footer />
     </div>
   );

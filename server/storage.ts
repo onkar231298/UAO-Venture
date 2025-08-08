@@ -111,6 +111,10 @@ export interface IStorage {
   // Featured Products operations
   getFeaturedProducts(limit?: number): Promise<Product[]>;
   updateProductFeaturedStatus(id: number, isFeatured: boolean, featuredOrder?: number): Promise<Product>;
+  
+  // Related Products operations
+  getFrequentlyBoughtTogether(productId: number, limit?: number): Promise<Product[]>;
+  getSimilarProducts(productId: number, limit?: number): Promise<Product[]>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -973,6 +977,99 @@ export class DatabaseStorage implements IStorage {
       .where(eq(products.id, id))
       .returning();
     return updatedProduct;
+  }
+
+  // Related Products operations
+  async getFrequentlyBoughtTogether(productId: number, limit: number = 8): Promise<Product[]> {
+    // Get the current product details
+    const currentProduct = await this.getProduct(productId);
+    if (!currentProduct) return [];
+
+    // Strategy: Get products from the same category, excluding the current product
+    const relatedProducts = await db.select()
+      .from(products)
+      .where(
+        and(
+          eq(products.categoryId, currentProduct.categoryId),
+          eq(products.isActive, true),
+          eq(products.isVisible, true),
+          sql`${products.id} != ${productId}` // Exclude current product
+        )
+      )
+      .orderBy(desc(products.createdAt)) // Most recent products first
+      .limit(limit);
+
+    return relatedProducts;
+  }
+
+  async getSimilarProducts(productId: number, limit: number = 8): Promise<Product[]> {
+    // Get the current product details
+    const currentProduct = await this.getProduct(productId);
+    if (!currentProduct) return [];
+
+    // Strategy: Get products with similar properties (origin, productType, form, etc.)
+    // Priority order: same origin > same productType > same form > same category
+    const conditions = [
+      eq(products.isActive, true),
+      eq(products.isVisible, true),
+      sql`${products.id} != ${productId}` // Exclude current product
+    ];
+
+    // Build similarity conditions
+    let similarityConditions = [];
+    
+    if (currentProduct.origin) {
+      similarityConditions.push(eq(products.origin, currentProduct.origin));
+    }
+    
+    if (currentProduct.productType) {
+      similarityConditions.push(eq(products.productType, currentProduct.productType));
+    }
+    
+    if (currentProduct.form) {
+      similarityConditions.push(eq(products.form, currentProduct.form));
+    }
+
+    // If we have similarity conditions, use OR to match any of them
+    // Otherwise, fall back to same category
+    if (similarityConditions.length > 0) {
+      conditions.push(or(...similarityConditions));
+    } else if (currentProduct.categoryId) {
+      conditions.push(eq(products.categoryId, currentProduct.categoryId));
+    }
+
+    const similarProducts = await db.select()
+      .from(products)
+      .where(and(...conditions))
+      .orderBy(
+        // Prefer products with same origin first, then same type, then newest
+        currentProduct.origin ? sql`CASE WHEN ${products.origin} = ${currentProduct.origin} THEN 0 ELSE 1 END` : sql`1`,
+        currentProduct.productType ? sql`CASE WHEN ${products.productType} = ${currentProduct.productType} THEN 0 ELSE 1 END` : sql`1`,
+        desc(products.createdAt)
+      )
+      .limit(limit);
+
+    // If we don't have enough similar products, fill with products from same category
+    if (similarProducts.length < limit && currentProduct.categoryId) {
+      const existingIds = similarProducts.map(p => p.id);
+      const additionalProducts = await db.select()
+        .from(products)
+        .where(
+          and(
+            eq(products.categoryId, currentProduct.categoryId),
+            eq(products.isActive, true),
+            eq(products.isVisible, true),
+            sql`${products.id} != ${productId}`,
+            existingIds.length > 0 ? sql`${products.id} NOT IN (${existingIds.join(',')})` : sql`1=1`
+          )
+        )
+        .orderBy(desc(products.createdAt))
+        .limit(limit - similarProducts.length);
+
+      return [...similarProducts, ...additionalProducts];
+    }
+
+    return similarProducts;
   }
 
   // Category operations
