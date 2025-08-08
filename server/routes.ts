@@ -2065,6 +2065,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Product-Category relationship endpoints
+  
+  // Get product with all its categories
+  app.get('/api/products/:id/categories', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const productWithCategories = await storage.getProductWithCategories(productId);
+      
+      if (!productWithCategories) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      res.json(productWithCategories);
+    } catch (error) {
+      console.error("Error fetching product categories:", error);
+      res.status(500).json({ message: "Failed to fetch product categories" });
+    }
+  });
+
+  // Get products by category (using junction table)
+  app.get('/api/categories/:id/products', async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const result = await storage.getProductsByCategory(categoryId, limit, offset);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching products by category:", error);
+      res.status(500).json({ message: "Failed to fetch products by category" });
+    }
+  });
+
+  // Add product to category
+  app.post('/api/admin/products/:productId/categories/:categoryId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const categoryId = parseInt(req.params.categoryId);
+      const { isPrimary } = req.body;
+      
+      const relation = await storage.addProductToCategory(productId, categoryId, isPrimary);
+      res.status(201).json(relation);
+    } catch (error) {
+      console.error("Error adding product to category:", error);
+      res.status(500).json({ message: "Failed to add product to category" });
+    }
+  });
+
+  // Remove product from category
+  app.delete('/api/admin/products/:productId/categories/:categoryId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const categoryId = parseInt(req.params.categoryId);
+      
+      await storage.removeProductFromCategory(productId, categoryId);
+      res.json({ message: "Product removed from category successfully" });
+    } catch (error) {
+      console.error("Error removing product from category:", error);
+      res.status(500).json({ message: "Failed to remove product from category" });
+    }
+  });
+
+  // Update product-category relationship (change primary status)
+  app.put('/api/admin/products/:productId/categories/:categoryId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const categoryId = parseInt(req.params.categoryId);
+      const { isPrimary } = req.body;
+      
+      const relation = await storage.updateProductCategoryRelation(productId, categoryId, isPrimary);
+      res.json(relation);
+    } catch (error) {
+      console.error("Error updating product-category relationship:", error);
+      res.status(500).json({ message: "Failed to update product-category relationship" });
+    }
+  });
+
+  // Get all categories for a specific product
+  app.get('/api/admin/products/:id/categories', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const categories = await storage.getProductCategories(productId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching product categories:", error);
+      res.status(500).json({ message: "Failed to fetch product categories" });
+    }
+  });
+
   // Bulk product upload via CSV/Excel
   app.post('/api/admin/products/bulk-upload', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {

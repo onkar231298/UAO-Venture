@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### Multiple Categories Per Product Implementation (Jan 8, 2025)
+- **Feature**: Implemented comprehensive many-to-many relationship between products and categories
+- **Database**: Added `productCategoryRelations` junction table with primary category designation
+- **Backend**: Complete API endpoints for managing product-category relationships
+- **Implementation**: 
+  - Junction table with unique constraint and performance indexes
+  - Primary category designation (`isPrimary` boolean field)
+  - Migration script populated 1456 existing product-category relationships
+  - New storage methods: `getProductWithCategories`, `getProductsByCategory`, `addProductToCategory`, etc.
+  - RESTful API endpoints for category relationship management
+- **Features**: Products can belong to multiple categories while maintaining clean URL structure and preventing duplication
+- **Data Integrity**: Migrated all existing single-category assignments as primary categories
+- **Date**: 2025-01-08
+
 ### SEO URL Structure Optimization (Jan 8, 2025)
 - **Issue**: Google Search Console showing indexing problems with category URLs
 - **Root Cause**: Site using `/category/:slug` URLs while Google expects `/ingredients/:slug` structure

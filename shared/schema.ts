@@ -356,6 +356,21 @@ export const productTagRelations = pgTable("product_tag_relations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Product-Category relationship (many-to-many)
+export const productCategoryRelations = pgTable("product_category_relations", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  categoryId: integer("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull(),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  // Unique constraint to prevent duplicate assignments
+  index("unique_product_category").on(table.productId, table.categoryId),
+  // Index for performance
+  index("idx_product_categories").on(table.productId),
+  index("idx_category_products").on(table.categoryId),
+]);
+
 // Hero slider management for homepage - Enhanced with video support
 export const heroSliders = pgTable("hero_sliders", {
   id: serial("id").primaryKey(),
@@ -555,12 +570,14 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
   products: many(products),
+  productRelations: many(productCategoryRelations),
   parent: one(categories, { fields: [categories.parentId], references: [categories.id] }),
   children: many(categories),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
+  categoryRelations: many(productCategoryRelations),
   documents: many(productDocuments),
   inventory: many(inventory),
   inquiries: many(inquiries),
@@ -577,6 +594,11 @@ export const productTagsRelations = relations(productTags, ({ many }) => ({
 export const productTagRelationsRelations = relations(productTagRelations, ({ one }) => ({
   product: one(products, { fields: [productTagRelations.productId], references: [products.id] }),
   tag: one(productTags, { fields: [productTagRelations.tagId], references: [productTags.id] }),
+}));
+
+export const productCategoryRelationsRelations = relations(productCategoryRelations, ({ one }) => ({
+  product: one(products, { fields: [productCategoryRelations.productId], references: [products.id] }),
+  category: one(categories, { fields: [productCategoryRelations.categoryId], references: [categories.id] }),
 }));
 
 export const heroSlidersRelations = relations(heroSliders, ({ one }) => ({
@@ -638,6 +660,11 @@ export const insertProductTagSchema = createInsertSchema(productTags).omit({
   slug: z.string().optional(), // Auto-generated from name if not provided
 });
 
+export const insertProductCategoryRelationSchema = createInsertSchema(productCategoryRelations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({
   id: true,
   createdAt: true,
@@ -684,6 +711,14 @@ export type ProductDocument = typeof productDocuments.$inferSelect;
 export type InsertProductDocument = z.infer<typeof insertProductDocumentSchema>;
 export type ProductTag = typeof productTags.$inferSelect;
 export type InsertProductTag = z.infer<typeof insertProductTagSchema>;
+export type ProductCategoryRelation = typeof productCategoryRelations.$inferSelect;
+export type InsertProductCategoryRelation = z.infer<typeof insertProductCategoryRelationSchema>;
+
+// Extended product type with categories
+export type ProductWithCategories = Product & {
+  categories: (Category & { isPrimary: boolean })[];
+  primaryCategory?: Category;
+};
 export type HeroSlider = typeof heroSliders.$inferSelect;
 export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
 export type SampleRequest = typeof sampleRequests.$inferSelect;

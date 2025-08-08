@@ -11,14 +11,18 @@ import {
   productDocuments,
   productTags,
   productTagRelations,
+  productCategoryRelations,
   heroSlides,
   sampleRequests,
   type User,
   type InsertUser,
   type Product,
   type InsertProduct,
+  type ProductWithCategories,
   type Category,
   type InsertCategory,
+  type ProductCategoryRelation,
+  type InsertProductCategoryRelation,
   type Inquiry,
   type InsertInquiry,
   type Quotation,
@@ -121,6 +125,14 @@ export interface IStorage {
   getCategory(id: number): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category>;
+  
+  // Product-Category relationship operations  
+  getProductWithCategories(productId: number): Promise<ProductWithCategories | undefined>;
+  getProductsByCategory(categoryId: number, limit?: number, offset?: number): Promise<{ products: Product[]; total: number }>;
+  addProductToCategory(productId: number, categoryId: number, isPrimary?: boolean): Promise<ProductCategoryRelation>;
+  removeProductFromCategory(productId: number, categoryId: number): Promise<void>;
+  updateProductCategoryRelation(productId: number, categoryId: number, isPrimary: boolean): Promise<ProductCategoryRelation>;
+  getProductCategories(productId: number): Promise<(Category & { isPrimary: boolean })[]>;
 
   // Product tags operations
   getAllProductTags(): Promise<ProductTag[]>;
@@ -1098,6 +1110,145 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCategory(id: number): Promise<void> {
     await db.update(categories).set({ isActive: false }).where(eq(categories.id, id));
+  }
+
+  // Product-Category relationship operations
+  async getProductWithCategories(productId: number): Promise<ProductWithCategories | undefined> {
+    // Get the product first
+    const [product] = await db.select().from(products).where(eq(products.id, productId));
+    if (!product) return undefined;
+
+    // Get all categories for this product
+    const categoryRelations = await db
+      .select({
+        category: categories,
+        isPrimary: productCategoryRelations.isPrimary,
+      })
+      .from(productCategoryRelations)
+      .innerJoin(categories, eq(productCategoryRelations.categoryId, categories.id))
+      .where(eq(productCategoryRelations.productId, productId));
+
+    const categoriesWithPrimary = categoryRelations.map(rel => ({
+      ...rel.category,
+      isPrimary: rel.isPrimary
+    }));
+
+    const primaryCategory = categoriesWithPrimary.find(cat => cat.isPrimary);
+
+    return {
+      ...product,
+      categories: categoriesWithPrimary,
+      primaryCategory: primaryCategory || undefined
+    };
+  }
+
+  async getProductsByCategory(categoryId: number, limit = 50, offset = 0): Promise<{ products: Product[]; total: number }> {
+    // Get products in this category through the junction table
+    const productQuery = db
+      .select({ product: products })
+      .from(productCategoryRelations)
+      .innerJoin(products, eq(productCategoryRelations.productId, products.id))
+      .where(
+        and(
+          eq(productCategoryRelations.categoryId, categoryId),
+          eq(products.isActive, true)
+        )
+      )
+      .limit(limit)
+      .offset(offset);
+
+    const countQuery = db
+      .select({ count: count() })
+      .from(productCategoryRelations)
+      .innerJoin(products, eq(productCategoryRelations.productId, products.id))
+      .where(
+        and(
+          eq(productCategoryRelations.categoryId, categoryId),
+          eq(products.isActive, true)
+        )
+      );
+
+    const [productResults, countResults] = await Promise.all([
+      productQuery,
+      countQuery
+    ]);
+
+    return {
+      products: productResults.map(r => r.product),
+      total: countResults[0]?.count || 0
+    };
+  }
+
+  async addProductToCategory(productId: number, categoryId: number, isPrimary = false): Promise<ProductCategoryRelation> {
+    // If setting as primary, first unset any existing primary category for this product
+    if (isPrimary) {
+      await db
+        .update(productCategoryRelations)
+        .set({ isPrimary: false })
+        .where(eq(productCategoryRelations.productId, productId));
+    }
+
+    // Insert or update the relationship
+    const [relation] = await db
+      .insert(productCategoryRelations)
+      .values({ productId, categoryId, isPrimary })
+      .onConflictDoUpdate({
+        target: [productCategoryRelations.productId, productCategoryRelations.categoryId],
+        set: { isPrimary }
+      })
+      .returning();
+
+    return relation;
+  }
+
+  async removeProductFromCategory(productId: number, categoryId: number): Promise<void> {
+    await db
+      .delete(productCategoryRelations)
+      .where(
+        and(
+          eq(productCategoryRelations.productId, productId),
+          eq(productCategoryRelations.categoryId, categoryId)
+        )
+      );
+  }
+
+  async updateProductCategoryRelation(productId: number, categoryId: number, isPrimary: boolean): Promise<ProductCategoryRelation> {
+    // If setting as primary, first unset any existing primary category for this product
+    if (isPrimary) {
+      await db
+        .update(productCategoryRelations)
+        .set({ isPrimary: false })
+        .where(eq(productCategoryRelations.productId, productId));
+    }
+
+    const [relation] = await db
+      .update(productCategoryRelations)
+      .set({ isPrimary })
+      .where(
+        and(
+          eq(productCategoryRelations.productId, productId),
+          eq(productCategoryRelations.categoryId, categoryId)
+        )
+      )
+      .returning();
+
+    return relation;
+  }
+
+  async getProductCategories(productId: number): Promise<(Category & { isPrimary: boolean })[]> {
+    const categoryRelations = await db
+      .select({
+        category: categories,
+        isPrimary: productCategoryRelations.isPrimary,
+      })
+      .from(productCategoryRelations)
+      .innerJoin(categories, eq(productCategoryRelations.categoryId, categories.id))
+      .where(eq(productCategoryRelations.productId, productId));
+
+    return categoryRelations.map(rel => ({
+      ...rel.category,
+      isPrimary: rel.isPrimary
+    }));
   }
 
   // Product Tag operations
