@@ -427,9 +427,10 @@ export class DatabaseStorage implements IStorage {
       eq(products.isVisible, true)
     ];
     
-    // Category filter (support multiple categories by name)
+    // Category filter (support multiple categories by name using junction table)
     if (filters?.category && filters.category.length > 0) {
       const categoryNames = filters.category;
+      
       // First get category IDs from names
       const categoryResults = await db
         .select({ id: categories.id })
@@ -442,8 +443,25 @@ export class DatabaseStorage implements IStorage {
       
       if (categoryResults.length > 0) {
         const categoryIds = categoryResults.map(cat => cat.id);
-        const categoryConditions = categoryIds.map(id => eq(products.categoryId, id));
-        conditions.push(or(...categoryConditions));
+        
+        // Use junction table to find products in any of these categories
+        const productsInCategories = await db
+          .select({ productId: productCategoryRelations.productId })
+          .from(productCategoryRelations)
+          .where(
+            or(...categoryIds.map(id => eq(productCategoryRelations.categoryId, id)))
+          );
+        
+        if (productsInCategories.length > 0) {
+          const productIds = productsInCategories.map(p => p.productId);
+          conditions.push(or(...productIds.map(id => eq(products.id, id))));
+        } else {
+          // Add a condition that will return no results
+          conditions.push(eq(products.id, -1));
+        }
+      } else {
+        // Add a condition that will return no results
+        conditions.push(eq(products.id, -1));
       }
     }
     
