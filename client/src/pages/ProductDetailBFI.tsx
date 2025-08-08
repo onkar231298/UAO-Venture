@@ -780,23 +780,23 @@ export default function ProductDetailBFI() {
                           <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                             {/* Mobile-optimized product image */}
                             <div className="relative">
-                              <div className="w-full h-48 bg-gray-100 rounded-t-lg flex items-center justify-center text-gray-400">
+                              <div className="w-full h-40 bg-gray-100 rounded-t-lg flex items-center justify-center text-gray-400">
                                 <div className="text-center">
-                                  <div className="text-3xl mb-2">📷</div>
-                                  <div className="text-sm font-medium">Related Product {i}</div>
+                                  <div className="text-2xl mb-1">📷</div>
+                                  <div className="text-xs font-medium">Related Product {i}</div>
                                 </div>
                               </div>
-                              <Badge className="absolute top-2 left-2 bg-green-600 text-xs px-2 py-1">
-                                <Leaf className="w-3 h-3 mr-1" />
+                              <Badge className="absolute top-2 left-2 bg-green-600 text-xs px-1.5 py-0.5">
+                                <Leaf className="w-3 h-3 mr-0.5" />
                                 Organic
                               </Badge>
-                              <Button size="sm" variant="secondary" className="absolute top-2 right-2 h-8 w-8 p-0">
-                                <Heart className="w-4 h-4" />
+                              <Button size="sm" variant="secondary" className="absolute top-2 right-2 h-7 w-7 p-0">
+                                <Heart className="w-3 h-3" />
                               </Button>
                             </div>
                             
                             {/* Mobile-optimized product info */}
-                            <div className="p-4">
+                            <div className="p-3">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xs text-green-600 font-medium">✓ In Stock</span>
                                 <div className="flex gap-1">
@@ -805,26 +805,26 @@ export default function ProductDetailBFI() {
                                 </div>
                               </div>
                               
-                              <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
+                              <h3 className="font-medium text-gray-900 mb-1 text-sm leading-tight">
                                 Organic Related Product {i}
                               </h3>
                               <p className="text-xs text-gray-600 mb-2">SKU: BFI{14000 + i}</p>
                               
                               <div className="flex flex-wrap gap-1 mb-3">
-                                <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700">
+                                <Badge variant="outline" className="text-xs px-1 py-0.5 bg-green-50 text-green-700">
                                   Organic
                                 </Badge>
-                                <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700">
-                                  Export Quality
+                                <Badge variant="outline" className="text-xs px-1 py-0.5 bg-blue-50 text-blue-700">
+                                  Export
                                 </Badge>
                               </div>
                               
                               <div className="flex gap-2">
-                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-sm py-2">
-                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs py-2">
+                                  <MessageSquare className="w-3 h-3 mr-1" />
                                   Quote
                                 </Button>
-                                <Button variant="outline" className="px-3 text-sm">
+                                <Button variant="outline" className="px-2 text-xs py-2">
                                   Sample
                                 </Button>
                               </div>
@@ -870,23 +870,23 @@ export default function ProductDetailBFI() {
                           <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                             {/* Mobile-optimized product image */}
                             <div className="relative">
-                              <div className="w-full h-48 bg-gray-100 rounded-t-lg flex items-center justify-center text-gray-400">
+                              <div className="w-full h-40 bg-gray-100 rounded-t-lg flex items-center justify-center text-gray-400">
                                 <div className="text-center">
-                                  <div className="text-3xl mb-2">🌿</div>
-                                  <div className="text-sm font-medium">Popular Product {i}</div>
+                                  <div className="text-2xl mb-1">🌿</div>
+                                  <div className="text-xs font-medium">Popular Product {i}</div>
                                 </div>
                               </div>
-                              <Badge className="absolute top-2 left-2 bg-orange-600 text-xs px-2 py-1">
-                                <Star className="w-3 h-3 mr-1" />
+                              <Badge className="absolute top-2 left-2 bg-orange-600 text-xs px-1.5 py-0.5">
+                                <Star className="w-3 h-3 mr-0.5" />
                                 Popular
                               </Badge>
-                              <Button size="sm" variant="secondary" className="absolute top-2 right-2 h-8 w-8 p-0">
-                                <Heart className="w-4 h-4" />
+                              <Button size="sm" variant="secondary" className="absolute top-2 right-2 h-7 w-7 p-0">
+                                <Heart className="w-3 h-3" />
                               </Button>
                             </div>
                             
                             {/* Mobile-optimized product info */}
-                            <div className="p-4">
+                            <div className="p-3">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xs text-green-600 font-medium">✓ In Stock</span>
                                 <div className="flex gap-1">
@@ -895,26 +895,26 @@ export default function ProductDetailBFI() {
                                 </div>
                               </div>
                               
-                              <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
+                              <h3 className="font-medium text-gray-900 mb-1 text-sm leading-tight">
                                 Popular Product {i} - Premium Quality
                               </h3>
                               <p className="text-xs text-gray-600 mb-2">SKU: BFI{15000 + i}</p>
                               
                               <div className="flex flex-wrap gap-1 mb-3">
-                                <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-orange-50 text-orange-700">
+                                <Badge variant="outline" className="text-xs px-1 py-0.5 bg-orange-50 text-orange-700">
                                   Bestseller
                                 </Badge>
-                                <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700">
+                                <Badge variant="outline" className="text-xs px-1 py-0.5 bg-blue-50 text-blue-700">
                                   Premium
                                 </Badge>
                               </div>
                               
                               <div className="flex gap-2">
-                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-sm py-2">
-                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs py-2">
+                                  <MessageSquare className="w-3 h-3 mr-1" />
                                   Quote
                                 </Button>
-                                <Button variant="outline" className="px-3 text-sm">
+                                <Button variant="outline" className="px-2 text-xs py-2">
                                   Sample
                                 </Button>
                               </div>
