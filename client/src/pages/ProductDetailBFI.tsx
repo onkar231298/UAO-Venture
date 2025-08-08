@@ -770,76 +770,77 @@ export default function ProductDetailBFI() {
               <CardHeader>
                 <CardTitle className="text-base">Frequently Bought Together</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {/* Mobile: Show single product cards with horizontal scroll */}
-                <div className="md:hidden overflow-x-auto scrollbar-hide">
-                  <div className="flex gap-4 pb-4 snap-x snap-mandatory">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 flex-shrink-0 snap-center" style={{ width: 'calc(100vw - 3rem)' }}>
-                        <div className="cursor-pointer">
-                          <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
-                            <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
-                              <div className="text-center">
-                                <div className="text-2xl sm:text-3xl mb-2">📷</div>
-                                <div className="text-xs sm:text-sm font-medium">Related Product {i}</div>
+                <div className="md:hidden">
+                  <div className="overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="w-full flex-shrink-0 snap-center p-4" style={{ minWidth: '100%' }}>
+                          <Card className="group hover:shadow-lg transition-all duration-200">
+                            <div className="cursor-pointer">
+                              <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
+                                <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
+                                  <div className="text-center">
+                                    <div className="text-2xl mb-2">📷</div>
+                                    <div className="text-sm font-medium">Related Product {i}</div>
+                                  </div>
+                                </div>
+                                <Badge className="absolute top-2 left-2 bg-green-600 text-xs">
+                                  <Leaf className="w-3 h-3 mr-1" />
+                                  Organic
+                                </Badge>
+                                <div className="absolute top-2 right-2">
+                                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                                    <Heart className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
+                              
+                              <CardContent className="p-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <span className="text-xs text-gray-500">In Stock</span>
+                                  <div className="flex space-x-1">
+                                    <Shield className="w-4 h-4 text-green-500" />
+                                    <Leaf className="w-4 h-4 text-green-500" />
+                                  </div>
+                                </div>
+                                
+                                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                                  Organic Related Product {i}
+                                </h3>
+                                <p className="text-sm text-gray-600 mb-2">SKU: BFI{14000 + i}</p>
+                                
+                                <p className="text-xs text-gray-500 mb-3 italic line-clamp-1">
+                                  Premium Quality Ingredient
+                                </p>
+                                
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                  <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200">
+                                    Organic
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200">
+                                    Export Quality
+                                  </Badge>
+                                </div>
+                              </CardContent>
                             </div>
-                            <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
-                              <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                              <span className="sm:hidden">Org</span>
-                              <span className="hidden sm:inline">Organic</span>
-                            </Badge>
-                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
-                              <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
-                                <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <CardContent className="p-3 sm:p-4">
-                            <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
-                              <span className="text-xs text-gray-500">In Stock</span>
-                              <div className="flex space-x-1">
-                                <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                                <Leaf className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                            
+                            <CardContent className="px-4 pb-4 pt-0">
+                              <div className="flex space-x-2">
+                                <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  Get Quote
+                                </Button>
+                                <Button variant="outline">
+                                  Sample
+                                </Button>
                               </div>
-                            </div>
-                            
-                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm sm:text-base">
-                              Organic Related Product {i}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 mb-2">SKU: BFI{14000 + i}</p>
-                            
-                            <p className="text-xs text-gray-500 mb-2 sm:mb-3 italic line-clamp-1">
-                              Premium Quality Ingredient
-                            </p>
-                            
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                                Organic
-                              </Badge>
-                              <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                                Export Quality
-                              </Badge>
-                            </div>
-                          </CardContent>
+                            </CardContent>
+                          </Card>
                         </div>
-                        
-                        <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-                          <div className="flex space-x-2">
-                            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
-                              <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                              <span className="hidden sm:inline">Get Quote</span>
-                              <span className="sm:hidden">Quote</span>
-                            </Button>
-                            
-                            <Button variant="outline" size="sm" className="text-sm">
-                              Sample
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -867,70 +868,133 @@ export default function ProductDetailBFI() {
               <CardHeader>
                 <CardTitle className="text-base">Popular Products</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {/* Mobile: Show single product cards with horizontal scroll */}
-                <div className="md:hidden overflow-x-auto scrollbar-hide">
-                  <div className="flex gap-4 pb-4 snap-x snap-mandatory">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <Card key={i} className="group hover:shadow-lg transition-all duration-200 flex-shrink-0 snap-center" style={{ width: 'calc(100vw - 3rem)' }}>
+                <div className="md:hidden">
+                  <div className="overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="w-full flex-shrink-0 snap-center p-4" style={{ minWidth: '100%' }}>
+                          <Card className="group hover:shadow-lg transition-all duration-200">
+                            <div className="cursor-pointer">
+                              <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
+                                <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
+                                  <div className="text-center">
+                                    <div className="text-2xl mb-2">🌿</div>
+                                    <div className="text-sm font-medium">Popular Product {i}</div>
+                                  </div>
+                                </div>
+                                <Badge className="absolute top-2 left-2 bg-orange-600 text-xs">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  Popular
+                                </Badge>
+                                <div className="absolute top-2 right-2">
+                                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                                    <Heart className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              <CardContent className="p-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <span className="text-xs text-gray-500">In Stock</span>
+                                  <div className="flex space-x-1">
+                                    <Shield className="w-4 h-4 text-green-500" />
+                                    <Award className="w-4 h-4 text-blue-500" />
+                                  </div>
+                                </div>
+                                
+                                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                                  Popular Product {i} - Premium Quality
+                                </h3>
+                                <p className="text-sm text-gray-600 mb-2">SKU: BFI{15000 + i}</p>
+                                
+                                <p className="text-xs text-gray-500 mb-3 italic line-clamp-1">
+                                  Best-selling ingredient
+                                </p>
+                                
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                  <Badge variant="outline" className="text-xs px-2 py-1 bg-orange-50 text-orange-700 border-orange-200">
+                                    Bestseller
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200">
+                                    Premium
+                                  </Badge>
+                                </div>
+                              </CardContent>
+                            </div>
+                            
+                            <CardContent className="px-4 pb-4 pt-0">
+                              <div className="flex space-x-2">
+                                <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  Get Quote
+                                </Button>
+                                <Button variant="outline">
+                                  Sample
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop: Show in grid layout */}
+                <div className="hidden md:block p-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <Card key={i} className="group hover:shadow-lg transition-all duration-200">
                         <div className="cursor-pointer">
                           <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
                             <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
                               <div className="text-center">
-                                <div className="text-2xl sm:text-3xl mb-2">🌿</div>
-                                <div className="text-xs sm:text-sm font-medium">Popular Product {i}</div>
+                                <div className="text-2xl mb-2">🌿</div>
+                                <div className="text-sm font-medium">Popular Product {i}</div>
                               </div>
                             </div>
-                            <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-orange-600 text-xs">
-                              <Star className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                              <span className="sm:hidden">Pop</span>
-                              <span className="hidden sm:inline">Popular</span>
+                            <Badge className="absolute top-2 left-2 bg-orange-600 text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Popular
                             </Badge>
-                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
-                              <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
-                                <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <div className="absolute top-2 right-2">
+                              <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                                <Heart className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
                           
-                          <CardContent className="p-3 sm:p-4">
-                            <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
+                          <CardContent className="p-4">
+                            <div className="flex items-center space-x-2 mb-2">
                               <span className="text-xs text-gray-500">In Stock</span>
                               <div className="flex space-x-1">
-                                <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                                <Award className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+                                <Shield className="w-4 h-4 text-green-500" />
+                                <Award className="w-4 h-4 text-blue-500" />
                               </div>
                             </div>
                             
-                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm sm:text-base">
-                              Popular Product {i} - Premium Quality
+                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                              Popular Product {i}
                             </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 mb-2">SKU: BFI{15000 + i}</p>
+                            <p className="text-sm text-gray-600 mb-2">SKU: BFI{15000 + i}</p>
                             
-                            <p className="text-xs text-gray-500 mb-2 sm:mb-3 italic line-clamp-1">
-                              Best-selling ingredient
-                            </p>
-                            
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              <Badge variant="outline" className="text-xs px-1 py-0 bg-orange-50 text-orange-700 border-orange-200">
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              <Badge variant="outline" className="text-xs px-2 py-1 bg-orange-50 text-orange-700 border-orange-200">
                                 Bestseller
-                              </Badge>
-                              <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                                Premium
                               </Badge>
                             </div>
                           </CardContent>
                         </div>
                         
-                        <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                        <CardContent className="px-4 pb-4 pt-0">
                           <div className="flex space-x-2">
-                            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
-                              <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                              <span className="hidden sm:inline">Get Quote</span>
-                              <span className="sm:hidden">Quote</span>
+                            <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Quote
                             </Button>
-                            
-                            <Button variant="outline" size="sm" className="text-sm">
+                            <Button variant="outline">
                               Sample
                             </Button>
                           </div>
@@ -938,67 +1002,6 @@ export default function ProductDetailBFI() {
                       </Card>
                     ))}
                   </div>
-                </div>
-
-                {/* Desktop: Show in grid layout */}
-                <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <Card key={i} className="group hover:shadow-lg transition-all duration-200">
-                      <div className="cursor-pointer">
-                        <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
-                          <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
-                            <div className="text-center">
-                              <div className="text-2xl sm:text-3xl mb-2">🌿</div>
-                              <div className="text-xs sm:text-sm font-medium">Popular Product {i}</div>
-                            </div>
-                          </div>
-                          <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-orange-600 text-xs">
-                            <Star className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                            <span className="hidden sm:inline">Popular</span>
-                          </Badge>
-                          <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
-                            <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
-                              <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <CardContent className="p-3 sm:p-4">
-                          <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
-                            <span className="text-xs text-gray-500">In Stock</span>
-                            <div className="flex space-x-1">
-                              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                              <Award className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
-                            </div>
-                          </div>
-                          
-                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm sm:text-base">
-                            Popular Product {i}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-gray-600 mb-2">SKU: BFI{15000 + i}</p>
-                          
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            <Badge variant="outline" className="text-xs px-1 py-0 bg-orange-50 text-orange-700 border-orange-200">
-                              Bestseller
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </div>
-                      
-                      <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-                        <div className="flex space-x-2">
-                          <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
-                            <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            Quote
-                          </Button>
-                          
-                          <Button variant="outline" size="sm" className="text-sm">
-                            Sample
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
                 </div>
               </CardContent>
             </Card>
