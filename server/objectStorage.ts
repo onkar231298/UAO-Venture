@@ -245,7 +245,9 @@ export class ObjectStorageService {
     // Try public paths first (for category images)
     const publicSearchPaths = this.getPublicObjectSearchPaths();
     for (const publicPath of publicSearchPaths) {
-      let publicDir = publicPath;
+      // Remove leading slash from publicPath for comparison
+      const publicPathNormalized = publicPath.startsWith('/') ? publicPath.slice(1) : publicPath;
+      let publicDir = `/${publicPathNormalized}`;
       if (!publicDir.endsWith("/")) {
         publicDir = `${publicDir}/`;
       }
@@ -257,7 +259,9 @@ export class ObjectStorageService {
     }
   
     // Fall back to private paths
-    let objectEntityDir = this.getPrivateObjectDir();
+    const privateObjectDir = this.getPrivateObjectDir();
+    const privatePathNormalized = privateObjectDir.startsWith('/') ? privateObjectDir.slice(1) : privateObjectDir;
+    let objectEntityDir = `/${privatePathNormalized}`;
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;
     }

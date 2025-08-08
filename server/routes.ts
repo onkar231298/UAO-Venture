@@ -775,13 +775,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
+      // Ensure the returned path is clean and doesn't contain full URLs
+      const cleanPath = objectPath.startsWith('/objects/') 
+        ? objectPath 
+        : `/objects/${objectPath}`;
+
       res.status(200).json({
-        objectPath: objectPath,
+        objectPath: cleanPath,
         provider: 'replit-object-storage'
       });
     } catch (error) {
       console.error("Error setting category image:", error);
-      res.status(500).json({ error: "Internal server error" });
+      
+      // If ACL setting fails, still try to provide a clean path
+      try {
+        const objectStorageService = new ObjectStorageService();
+        const fallbackPath = objectStorageService.normalizeObjectEntityPath(req.body.imageUrl);
+        const cleanPath = fallbackPath.startsWith('/objects/') 
+          ? fallbackPath 
+          : `/objects/${fallbackPath}`;
+          
+        res.status(200).json({
+          objectPath: cleanPath,
+          provider: 'replit-object-storage',
+          warning: 'ACL policy not set, but image should still be accessible'
+        });
+      } catch (fallbackError) {
+        res.status(500).json({ error: "Internal server error" });
+      }
     }
   });
 
