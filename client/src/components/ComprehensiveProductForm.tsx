@@ -108,6 +108,8 @@ export default function ComprehensiveProductForm({
 
   const [selectedTags, setSelectedTags] = useState<string[]>(product?.tags || []);
   const [availableTags, setAvailableTags] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<{id: number, isPrimary: boolean}[]>([]);
+  const [primaryCategoryId, setPrimaryCategoryId] = useState<number | null>(null);
 
   // Fetch available tags
   useEffect(() => {
@@ -128,6 +130,37 @@ export default function ComprehensiveProductForm({
     };
     fetchTags();
   }, []);
+
+  // Load existing categories for editing
+  useEffect(() => {
+    if (product && product.id) {
+      const loadProductCategories = async () => {
+        try {
+          const response = await fetch(`/api/products/${product.id}/categories`);
+          if (response.ok) {
+            const productWithCategories = await response.json();
+            if (productWithCategories.categories) {
+              setSelectedCategories(productWithCategories.categories.map((cat: any) => ({
+                id: cat.id,
+                isPrimary: cat.isPrimary
+              })));
+              const primary = productWithCategories.categories.find((cat: any) => cat.isPrimary);
+              if (primary) {
+                setPrimaryCategoryId(primary.id);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load product categories:', error);
+        }
+      };
+      loadProductCategories();
+    } else if (product?.categoryId) {
+      // For legacy products with single categoryId, set as primary
+      setSelectedCategories([{ id: parseInt(product.categoryId.toString()), isPrimary: true }]);
+      setPrimaryCategoryId(parseInt(product.categoryId.toString()));
+    }
+  }, [product]);
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -203,11 +236,30 @@ export default function ComprehensiveProductForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate categories
+    if (selectedCategories.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one category",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!primaryCategoryId) {
+      toast({
+        title: "Error", 
+        description: "Please select a primary category",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Clean and convert form data to proper types
     const cleanedData = {
       ...formData,
       // Convert integer fields, omit if empty string
-      categoryId: formData.categoryId && formData.categoryId !== "" ? parseInt(formData.categoryId as string) : undefined,
+      categoryId: primaryCategoryId, // Keep for backward compatibility
       currentStock: formData.currentStock && formData.currentStock !== "" ? parseFloat(formData.currentStock as string) : undefined,
       moq: formData.moq && formData.moq !== "" ? parseFloat(formData.moq as string) : undefined,
       rate: formData.rate && formData.rate !== "" ? parseFloat(formData.rate as string) : undefined,
@@ -232,6 +284,13 @@ export default function ComprehensiveProductForm({
       galleryImages: Array.isArray(formData.galleryImages) ? formData.galleryImages.filter(img => img && img.trim() !== '') : [],
       faqs: Array.isArray(formData.faqs) ? (formData.faqs as any[]).filter(faq => faq.question.trim() !== '' && faq.answer.trim() !== '') : [],
       tags: selectedTags, // Include the selected tags
+      
+      // Include multiple categories information
+      selectedCategories: selectedCategories.map(cat => ({
+        categoryId: cat.id,
+        isPrimary: cat.id === primaryCategoryId
+      })),
+      primaryCategoryId,
     };
     
     // Remove undefined values to avoid sending empty data
@@ -578,21 +637,68 @@ export default function ComprehensiveProductForm({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="categoryId">Category *</Label>
-              <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2">
+              <Label htmlFor="categories">Categories *</Label>
+              <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
+                <div className="text-sm text-gray-600 mb-2">Select one or more categories. Check the "Primary" box for the main category.</div>
+                {categories.map(category => {
+                  const isSelected = selectedCategories.some(sc => sc.id === category.id);
+                  const isPrimary = primaryCategoryId === category.id;
+                  
+                  return (
+                    <div key={category.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`category-${category.id}`}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Add category
+                              const newCategories = [...selectedCategories, { id: category.id, isPrimary: false }];
+                              setSelectedCategories(newCategories);
+                              // If this is the first category, make it primary
+                              if (newCategories.length === 1) {
+                                setPrimaryCategoryId(category.id);
+                              }
+                            } else {
+                              // Remove category
+                              setSelectedCategories(prev => prev.filter(sc => sc.id !== category.id));
+                              // If this was the primary category, clear primary
+                              if (isPrimary) {
+                                setPrimaryCategoryId(null);
+                              }
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label htmlFor={`category-${category.id}`} className="text-sm font-medium">
+                          {category.name}
+                        </label>
+                      </div>
+                      {isSelected && (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="primaryCategory"
+                            checked={isPrimary}
+                            onChange={() => setPrimaryCategoryId(category.id)}
+                            className="text-green-600"
+                          />
+                          <label className="text-xs text-gray-500">Primary</label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {selectedCategories.length === 0 && (
+                  <div className="text-sm text-red-500 mt-2">Please select at least one category</div>
+                )}
+              </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="form">Form</Label>
               <Select value={formData.form} onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}>
