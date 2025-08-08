@@ -29,7 +29,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
 import mimeTypes from "mime-types";
-import { createStaticProductPage, createStaticHomePage } from "./static-handler.js";
+import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services
@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/customers', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -223,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/customers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role)) {
+      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "priceCurrency": "USD",
           "price": product.priceUSD || product.rate || 0,
           "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          "availability": product.currentStock && product.currentStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "availability": product.currentStock && Number(product.currentStock) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",
@@ -1256,8 +1256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const quotationId = parseInt(req.params.id);
       const quotation = await storage.updateQuotation(quotationId, { 
-        status: 'accepted',
-        updatedAt: new Date()
+        status: 'accepted'
       });
       res.json(quotation);
     } catch (error) {
@@ -1329,15 +1328,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const customerData = {
-        name: customer.firstName && customer.lastName ? `${customer.firstName} ${customer.lastName}` : customer.email,
-        email: customer.email,
-        companyName: customer.companyName,
-        phone: customer.phoneNumber,
-        address: customer.address,
-        city: customer.city,
-        state: customer.state,
-        country: customer.country,
-        postalCode: customer.postalCode,
+        name: customer.firstName && customer.lastName ? `${customer.firstName} ${customer.lastName}` : customer.email || '',
+        email: customer.email || '',
+        companyName: customer.companyName || '',
+        phone: customer.phoneNumber || '',
+        address: customer.address || '',
+        city: '',
+        state: '',
+        country: customer.country || '',
+        postalCode: '',
       };
 
       // Generate PDF
@@ -1352,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(pdfBuffer);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF", error: error.message });
+      res.status(500).json({ message: "Failed to generate PDF", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -2103,7 +2102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download product template
   app.get('/api/admin/products/template', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
-      const categoryId = req.query.category ? parseInt(req.query.category) : null;
+      const categoryId = req.query.category ? parseInt(req.query.category as string) : undefined;
       const template = await storage.generateProductTemplate(categoryId);
       
       res.setHeader('Content-Type', 'text/csv');
