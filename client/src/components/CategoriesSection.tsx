@@ -36,7 +36,7 @@ export default function CategoriesSection() {
   }, []);
 
   const handleCategoryClick = (slug: string) => {
-    navigate(`/products?category=${slug}`);
+    navigate(`/ingredients/${slug}`);
   };
 
   // Scroll navigation functions
