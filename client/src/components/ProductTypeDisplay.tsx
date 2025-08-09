@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Grain, TreePine } from "lucide-react";
+import { Leaf, Circle, TreePine } from "lucide-react";
 import type { ProductType } from "@shared/schema";
 
 interface ProductTypeDisplayProps {
@@ -11,7 +11,7 @@ interface ProductTypeDisplayProps {
 
 const typeIcons: Record<string, any> = {
   leaf: Leaf,
-  grain: Grain,
+  circle: Circle,
   "tree-pine": TreePine,
 };
 

@@ -6,15 +6,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import InquiryForm from "./InquiryForm";
 import OptimizedImage from "./OptimizedImage";
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
-import type { Product } from "@shared/schema";
+import type { Product, ProductType } from "@shared/schema";
+import { PrimaryProductType } from "./ProductTypeDisplay";
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { 
+    primaryType?: ProductType | null;
+    tags?: Array<{id: number; name: string; slug: string; color?: string; description?: string;}>;
+  };
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
   // Get the product image - prioritize WebP fields over legacy fields
-  const productImage = product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || product.mainImage || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
+  const galleryImages = product.galleryImages as string[] | null;
+  const productImage = product.mainImageMedium || product.mainImageThumbnail || product.mainImage || (galleryImages && galleryImages.length > 0 ? galleryImages[0] : null);
   const hasImage = !!productImage;
 
   return (
@@ -45,28 +50,14 @@ export default function ProductCard({ product }: ProductCardProps) {
                 </div>
               </div>
             )}
-            {product.productType && (
-              <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
-                <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                <span className="hidden sm:inline">
-                  {product.productType === 'organic' ? 'Organic' :
-                   product.productType === 'natural' ? 'Natural' :
-                   product.productType === 'conventional' ? 'Conventional' :
-                   product.productType === 'synthetic' ? 'Synthetic' :
-                   product.productType === 'nature_identical' ? 'Nature Identical' :
-                   product.productType === 'other' ? 'Other' : 
-                   'Organic'}
-                </span>
-                <span className="sm:hidden">
-                  {product.productType === 'organic' ? 'Org' :
-                   product.productType === 'natural' ? 'Nat' :
-                   product.productType === 'conventional' ? 'Conv' :
-                   product.productType === 'synthetic' ? 'Syn' :
-                   product.productType === 'nature_identical' ? 'N.I.' :
-                   product.productType === 'other' ? 'Other' : 
-                   'Org'}
-                </span>
-              </Badge>
+            {product.primaryType && (
+              <div className="absolute top-1 sm:top-2 left-1 sm:left-2">
+                <PrimaryProductType 
+                  types={[{...product.primaryType, isPrimary: true}]} 
+                  size="sm"
+                  className="shadow-sm"
+                />
+              </div>
             )}
             <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
               <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
@@ -79,13 +70,15 @@ export default function ProductCard({ product }: ProductCardProps) {
             <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
               <span className="text-xs text-gray-500">In Stock</span>
               <div className="flex space-x-1">
-                {product.certifications && (product.certifications as string[]).slice(0, 3).map((cert, index) => {
-                  if (cert.includes('USDA')) return <Shield key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
-                  if (cert.includes('Organic')) return <Leaf key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
-                  if (cert.includes('ISO')) return <Award key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />;
-                  if (cert.includes('Kosher')) return <Star key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />;
+                {product.certifications && Array.isArray(product.certifications) && (product.certifications as string[]).slice(0, 3).map((cert, index) => {
+                  if (typeof cert === 'string') {
+                    if (cert.includes('USDA')) return <Shield key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
+                    if (cert.includes('Organic')) return <Leaf key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
+                    if (cert.includes('ISO')) return <Award key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />;
+                    if (cert.includes('Kosher')) return <Star key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />;
+                  }
                   return null;
-                })}
+                }).filter(Boolean)}
               </div>
             </div>
             

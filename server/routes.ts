@@ -720,6 +720,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk assign primary product types to products that don't have any
+  app.post('/api/product-types/bulk-assign', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      // Get all product types
+      const productTypes = await storage.getAllProductTypes();
+      const organicType = productTypes.find(t => t.slug === 'organic');
+      
+      if (!organicType) {
+        return res.status(400).json({ message: "Organic product type not found" });
+      }
+
+      // Get products without any type relationships
+      const { products } = await storage.getProducts({ limit: 1000 });
+      let assignedCount = 0;
+
+      for (const product of products) {
+        const existingTypes = await storage.getProductTypesForProduct(product.id);
+        if (existingTypes.length === 0) {
+          // Assign organic as default primary type
+          await storage.addProductToType(product.id, organicType.id, true);
+          assignedCount++;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Assigned primary types to ${assignedCount} products`,
+        assignedCount
+      });
+    } catch (error) {
+      console.error("Error bulk assigning product types:", error);
+      res.status(500).json({ message: "Failed to bulk assign product types" });
+    }
+  });
+
   // Object storage endpoints for category images
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;

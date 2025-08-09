@@ -671,9 +671,10 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause),
     ]);
 
-    // Load tags for each product
-    const productsWithTags = await Promise.all(
+    // Load tags and primary type for each product
+    const productsWithTagsAndTypes = await Promise.all(
       productsResult.map(async (product) => {
+        // Load tags
         const productTagsForProduct = await db
           .select({
             id: productTags.id,
@@ -691,15 +692,36 @@ export class DatabaseStorage implements IStorage {
             )
           );
         
+        // Load primary type
+        const primaryTypeResult = await db
+          .select({
+            id: productTypes.id,
+            name: productTypes.name,
+            slug: productTypes.slug,
+            color: productTypes.color,
+            icon: productTypes.icon,
+          })
+          .from(productTypeRelations)
+          .innerJoin(productTypes, eq(productTypeRelations.typeId, productTypes.id))
+          .where(
+            and(
+              eq(productTypeRelations.productId, product.id),
+              eq(productTypeRelations.isPrimary, true),
+              eq(productTypes.isActive, true)
+            )
+          )
+          .limit(1);
+        
         return {
           ...product,
           tags: productTagsForProduct,
+          primaryType: primaryTypeResult[0] || null,
         };
       })
     );
 
     return {
-      products: productsWithTags,
+      products: productsWithTagsAndTypes,
       total: totalResult[0].count,
     };
   }
@@ -1364,8 +1386,15 @@ export class DatabaseStorage implements IStorage {
     const [relation] = await db
       .insert(productTypeRelations)
       .values({ productId, typeId, isPrimary })
+      .onConflictDoUpdate({
+        target: [productTypeRelations.productId, productTypeRelations.typeId],
+        set: { isPrimary },
+      })
       .returning();
 
+    // Ensure this product has exactly one primary type
+    await this.ensureProductHasPrimaryType(productId);
+    
     return relation;
   }
 
@@ -1376,6 +1405,45 @@ export class DatabaseStorage implements IStorage {
         eq(productTypeRelations.productId, productId),
         eq(productTypeRelations.typeId, typeId)
       ));
+      
+    // Ensure this product still has a primary type after removal
+    await this.ensureProductHasPrimaryType(productId);
+  }
+
+  // Ensure every product has exactly one primary type
+  async ensureProductHasPrimaryType(productId: number): Promise<void> {
+    // Check if product has a primary type
+    const primaryTypeResult = await db
+      .select()
+      .from(productTypeRelations)
+      .where(
+        and(
+          eq(productTypeRelations.productId, productId),
+          eq(productTypeRelations.isPrimary, true)
+        )
+      )
+      .limit(1);
+
+    // If no primary type exists, make the first available type primary
+    if (primaryTypeResult.length === 0) {
+      const firstTypeResult = await db
+        .select()
+        .from(productTypeRelations)
+        .where(eq(productTypeRelations.productId, productId))
+        .limit(1);
+
+      if (firstTypeResult.length > 0) {
+        await db
+          .update(productTypeRelations)
+          .set({ isPrimary: true })
+          .where(
+            and(
+              eq(productTypeRelations.productId, productId),
+              eq(productTypeRelations.typeId, firstTypeResult[0].typeId)
+            )
+          );
+      }
+    }
   }
 
   async updateProductTypeRelation(productId: number, typeId: number, isPrimary: boolean): Promise<ProductTypeRelation> {
