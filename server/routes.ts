@@ -2241,7 +2241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new product
   app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
-      const { selectedCategories, selectedProductTypes, ...productData } = req.body;
+      const { selectedCategories, selectedProductTypes, selectedHealthSupports, ...productData } = req.body;
       const parsedProductData = insertProductSchema.parse(productData);
       parsedProductData.createdBy = (req.user as any)?.claims?.sub;
       parsedProductData.updatedBy = (req.user as any)?.claims?.sub;
@@ -2259,6 +2259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (selectedProductTypes && Array.isArray(selectedProductTypes) && selectedProductTypes.length > 0) {
         for (const typeData of selectedProductTypes) {
           await storage.addProductToType(product.id, typeData.typeId, typeData.isPrimary);
+        }
+      }
+      
+      // Handle multiple health supports if provided
+      if (selectedHealthSupports && Array.isArray(selectedHealthSupports) && selectedHealthSupports.length > 0) {
+        for (const healthSupportData of selectedHealthSupports) {
+          await storage.addHealthSupportToProduct(product.id, healthSupportData.healthSupportId, healthSupportData.isPrimary);
         }
       }
       
@@ -2290,7 +2297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      const { selectedCategories, selectedProductTypes, ...productData } = req.body;
+      const { selectedCategories, selectedProductTypes, selectedHealthSupports, ...productData } = req.body;
       const parsedProductData = insertProductSchema.partial().parse(productData);
       parsedProductData.updatedBy = (req.user as any)?.claims?.sub;
       
@@ -2344,6 +2351,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             // Add new relation
             await storage.addProductToType(productId, typeData.typeId, typeData.isPrimary);
+          }
+        }
+      }
+      
+      // Handle multiple health supports update if provided
+      if (selectedHealthSupports && Array.isArray(selectedHealthSupports)) {
+        // Get current health supports for this product
+        const currentHealthSupports = await storage.getHealthSupportsForProduct(productId);
+        const currentHealthSupportIds = currentHealthSupports.map((hs: any) => hs.id);
+        const newHealthSupportIds = selectedHealthSupports.map(hs => hs.healthSupportId);
+        
+        // Remove health supports that are no longer selected
+        for (const currentHsId of currentHealthSupportIds) {
+          if (!newHealthSupportIds.includes(currentHsId)) {
+            await storage.removeHealthSupportFromProduct(productId, currentHsId);
+          }
+        }
+        
+        // Add or update health supports
+        for (const healthSupportData of selectedHealthSupports) {
+          if (currentHealthSupportIds.includes(healthSupportData.healthSupportId)) {
+            // Update existing relation - use bulk update to handle primary setting
+            await storage.addHealthSupportToProduct(productId, healthSupportData.healthSupportId, healthSupportData.isPrimary);
+          } else {
+            // Add new relation
+            await storage.addHealthSupportToProduct(productId, healthSupportData.healthSupportId, healthSupportData.isPrimary);
           }
         }
       }

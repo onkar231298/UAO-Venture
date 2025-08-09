@@ -115,6 +115,11 @@ export default function ComprehensiveProductForm({
   const [selectedProductTypes, setSelectedProductTypes] = useState<{id: number, isPrimary: boolean}[]>([]);
   const [primaryProductTypeId, setPrimaryProductTypeId] = useState<number | null>(null);
   const [availableProductTypes, setAvailableProductTypes] = useState<ProductType[]>([]);
+  
+  // Health Support state
+  const [selectedHealthSupports, setSelectedHealthSupports] = useState<{id: number, isPrimary: boolean}[]>([]);
+  const [primaryHealthSupportId, setPrimaryHealthSupportId] = useState<number | null>(null);
+  const [availableHealthSupports, setAvailableHealthSupports] = useState<any[]>([]);
 
   // Fetch available tags and product types
   useEffect(() => {
@@ -150,8 +155,25 @@ export default function ComprehensiveProductForm({
       }
     };
 
+    const fetchHealthSupports = async () => {
+      try {
+        console.log('Fetching health supports from API...');
+        const response = await fetch('/api/health-supports');
+        if (response.ok) {
+          const healthSupports = await response.json();
+          console.log('Health supports fetched:', healthSupports);
+          setAvailableHealthSupports(healthSupports);
+        } else {
+          console.error('Failed to fetch health supports, status:', response.status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch health supports:', error);
+      }
+    };
+
     fetchTags();
     fetchProductTypes();
+    fetchHealthSupports();
   }, []);
 
   // Load existing categories for editing
@@ -209,6 +231,33 @@ export default function ComprehensiveProductForm({
         }
       };
       loadProductTypes();
+    }
+  }, [product]);
+
+  // Load existing health supports for editing
+  useEffect(() => {
+    if (product && product.id) {
+      const loadProductHealthSupports = async () => {
+        try {
+          const response = await fetch(`/api/products/${product.id}/health-supports`);
+          if (response.ok) {
+            const healthSupports = await response.json();
+            if (healthSupports && healthSupports.length > 0) {
+              setSelectedHealthSupports(healthSupports.map((hs: any) => ({
+                id: hs.id,
+                isPrimary: hs.isPrimary
+              })));
+              const primary = healthSupports.find((hs: any) => hs.isPrimary);
+              if (primary) {
+                setPrimaryHealthSupportId(primary.id);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load product health supports:', error);
+        }
+      };
+      loadProductHealthSupports();
     }
   }, [product]);
 
@@ -367,6 +416,13 @@ export default function ComprehensiveProductForm({
         isPrimary: type.id === primaryProductTypeId
       })),
       primaryProductTypeId,
+      
+      // Include selected health supports
+      selectedHealthSupports: selectedHealthSupports.map(hs => ({
+        healthSupportId: hs.id,
+        isPrimary: hs.id === primaryHealthSupportId
+      })),
+      primaryHealthSupportId,
     };
     
     // Remove undefined values to avoid sending empty data
@@ -966,6 +1022,147 @@ export default function ComprehensiveProductForm({
               {selectedProductTypes.length > 0 && !primaryProductTypeId && (
                 <div className="text-orange-600 text-sm bg-orange-50 p-2 rounded border border-orange-200">
                   ⚠️ Please select a primary product type that will appear on product cards.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Multiple Health Support Selection */}
+          <div className="border-t pt-4 mt-4">
+            <Label className="text-base font-semibold">Health Support Benefits</Label>
+            <p className="text-sm text-gray-600 mb-3">Select health benefits this product supports. All benefits are equal in value - no premium options.</p>
+            
+            {/* Selected Health Supports Display */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md bg-gray-50">
+                {selectedHealthSupports.length > 0 ? (
+                  selectedHealthSupports.map((hsSelection) => {
+                    const healthSupport = availableHealthSupports.find(hs => hs.id === hsSelection.id);
+                    if (!healthSupport) return null;
+                    return (
+                      <Badge 
+                        key={healthSupport.id} 
+                        variant="secondary" 
+                        className={`flex items-center gap-1 ${
+                          hsSelection.isPrimary 
+                            ? 'bg-green-100 text-green-800 border-green-200 ring-2 ring-green-300' 
+                            : 'bg-purple-100 text-purple-800 border-purple-200'
+                        }`}
+                      >
+                        {hsSelection.isPrimary && <span className="text-xs">❤️</span>}
+                        {healthSupport.name}
+                        <X 
+                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
+                          onClick={() => {
+                            const newHealthSupports = selectedHealthSupports.filter(hs => hs.id !== healthSupport.id);
+                            setSelectedHealthSupports(newHealthSupports);
+                            if (hsSelection.isPrimary && newHealthSupports.length > 0) {
+                              // Auto-assign new primary if we removed the primary health support
+                              const newPrimary = newHealthSupports[0];
+                              newPrimary.isPrimary = true;
+                              setPrimaryHealthSupportId(newPrimary.id);
+                              setSelectedHealthSupports([...newHealthSupports]);
+                            } else if (hsSelection.isPrimary) {
+                              setPrimaryHealthSupportId(null);
+                            }
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })
+                ) : (
+                  <span className="text-gray-500 text-sm">No health support benefits selected</span>
+                )}
+              </div>
+              
+              {/* Health Support Selection Checkboxes */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Available Health Support Benefits:</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-white">
+                  {availableHealthSupports.length > 0 ? (
+                    availableHealthSupports.map(healthSupport => {
+                      const isSelected = selectedHealthSupports.some(hs => hs.id === healthSupport.id);
+                      const isPrimary = selectedHealthSupports.find(hs => hs.id === healthSupport.id)?.isPrimary || false;
+                      
+                      return (
+                        <div key={healthSupport.id} className="space-y-1">
+                          <div className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded">
+                            <input
+                              type="checkbox"
+                              id={`healthsupport-${healthSupport.id}`}
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                
+                                if (isChecked) {
+                                  // Add health support
+                                  const newSelection = { id: healthSupport.id, isPrimary: selectedHealthSupports.length === 0 };
+                                  const newHealthSupports = [...selectedHealthSupports, newSelection];
+                                  setSelectedHealthSupports(newHealthSupports);
+                                  
+                                  if (newSelection.isPrimary) {
+                                    setPrimaryHealthSupportId(healthSupport.id);
+                                  }
+                                } else {
+                                  // Remove health support
+                                  const newHealthSupports = selectedHealthSupports.filter(hs => hs.id !== healthSupport.id);
+                                  setSelectedHealthSupports(newHealthSupports);
+                                  
+                                  if (isPrimary && newHealthSupports.length > 0) {
+                                    // Auto-assign new primary
+                                    const newPrimary = newHealthSupports[0];
+                                    newPrimary.isPrimary = true;
+                                    setPrimaryHealthSupportId(newPrimary.id);
+                                    setSelectedHealthSupports([...newHealthSupports]);
+                                  } else if (isPrimary) {
+                                    setPrimaryHealthSupportId(null);
+                                  }
+                                }
+                              }}
+                              className="w-4 h-4 text-purple-600"
+                            />
+                            <Label htmlFor={`healthsupport-${healthSupport.id}`} className="text-sm cursor-pointer flex-1">
+                              <span className="text-purple-700">{healthSupport.name}</span>
+                              {isPrimary && <span className="ml-1 text-xs text-purple-600">❤️ Primary</span>}
+                            </Label>
+                          </div>
+                          
+                          {/* Primary Health Support Selection Radio */}
+                          {isSelected && (
+                            <div className="ml-6 flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="primaryHealthSupport"
+                                id={`primary-hs-${healthSupport.id}`}
+                                checked={isPrimary}
+                                onChange={() => {
+                                  // Update primary health support
+                                  const newHealthSupports = selectedHealthSupports.map(hs => ({
+                                    ...hs,
+                                    isPrimary: hs.id === healthSupport.id
+                                  }));
+                                  setSelectedHealthSupports(newHealthSupports);
+                                  setPrimaryHealthSupportId(healthSupport.id);
+                                }}
+                                className="w-3 h-3 text-purple-600"
+                              />
+                              <Label htmlFor={`primary-hs-${healthSupport.id}`} className="text-xs text-gray-600 cursor-pointer">
+                                Set as primary (appears on product cards)
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-gray-500 text-sm col-span-2">Loading health support benefits...</span>
+                  )}
+                </div>
+              </div>
+              
+              {selectedHealthSupports.length > 0 && !primaryHealthSupportId && (
+                <div className="text-orange-600 text-sm bg-orange-50 p-2 rounded border border-orange-200">
+                  ⚠️ Please select a primary health support benefit that will appear on product cards.
                 </div>
               )}
             </div>
