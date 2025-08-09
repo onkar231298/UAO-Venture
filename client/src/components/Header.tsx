@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Leaf, 
   Search, 
@@ -25,6 +26,7 @@ import {
   Menu,
   Globe,
   ChevronDown,
+  ChevronRight,
   Phone,
   LogOut,
   Settings,
@@ -40,6 +42,8 @@ export default function Header() {
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showCategorySidebar, setShowCategorySidebar] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [mobileIngredientsOpen, setMobileIngredientsOpen] = useState(false);
+  const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Fetch categories for ingredients dropdown
@@ -498,45 +502,112 @@ export default function Header() {
       {/* Mobile Navigation Menu */}
       {showMobileMenu && (
         <div className="lg:hidden bg-white border-t border-gray-200">
-          <div className="container mx-auto px-4 py-4 space-y-2">
+          <div className="container mx-auto px-4 py-4 space-y-1">
             <Link 
               href="/" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
-              Home
+              🏠 Home
             </Link>
+            
             <Link 
               href="/products" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
-              Products
+              📦 All Products
             </Link>
-            <Link 
-              href="/ingredients" 
-              className="block py-2 text-gray-700 hover:text-green-600 transition-colors"
-              onClick={() => setShowMobileMenu(false)}
-            >
-              All Ingredients
-            </Link>
-            <Link 
-              href="/products" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location.startsWith('/health-support') ? 'text-green-600 font-medium' : ''}`}
-              onClick={() => setShowMobileMenu(false)}
-            >
-              Health Support
-            </Link>
+
+            {/* Ingredients Accordion */}
+            <Collapsible open={mobileIngredientsOpen} onOpenChange={setMobileIngredientsOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-gray-700 hover:text-green-600 transition-colors">
+                <span className="flex items-center">
+                  <Leaf className="w-4 h-4 mr-2 text-green-600" />
+                  Ingredients
+                </span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${mobileIngredientsOpen ? 'rotate-90' : ''}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 space-y-1">
+                <Link 
+                  href="/ingredients" 
+                  className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  → View All Ingredients
+                </Link>
+                {categories && categories.slice(0, 6).map((category: any) => (
+                  <Link 
+                    key={category.id}
+                    href={`/ingredients/${category.slug}`}
+                    className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    • {category.name}
+                  </Link>
+                ))}
+                {categories && categories.length > 6 && (
+                  <Link 
+                    href="/ingredients" 
+                    className="block py-2 text-sm text-green-600 font-medium"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    + View {categories.length - 6} more categories
+                  </Link>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Health Support Accordion */}
+            <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-gray-700 hover:text-green-600 transition-colors">
+                <span className="flex items-center">
+                  <Heart className="w-4 h-4 mr-2 text-green-600" />
+                  Health Support
+                </span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${mobileHealthSupportOpen ? 'rotate-90' : ''}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 space-y-1">
+                <Link 
+                  href="/products" 
+                  className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  → View All Health Support
+                </Link>
+                {healthSupports && healthSupports.slice(0, 6).map((healthSupport: any) => (
+                  <Link 
+                    key={healthSupport.id}
+                    href={`/health-support/${healthSupport.slug}`}
+                    className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    • {healthSupport.name}
+                  </Link>
+                ))}
+                {healthSupports && healthSupports.length > 6 && (
+                  <Link 
+                    href="/products" 
+                    className="block py-2 text-sm text-green-600 font-medium"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    + View {healthSupports.length - 6} more options
+                  </Link>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+            
             <Link 
               href="/blog" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium' : ''}`}
+              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
-              Blog
+              📰 Blog
             </Link>
-            <div className="py-2 text-gray-700">Certifications</div>
-            <div className="py-2 text-gray-700">R&D Lab</div>
-            <div className="py-2 text-gray-700">Services</div>
+            
+            <div className="py-3 text-gray-700">🎓 Certifications</div>
+            <div className="py-3 text-gray-700">🔬 R&D Lab</div>
+            <div className="py-3 text-gray-700">🔧 Services</div>
           </div>
         </div>
       )}
