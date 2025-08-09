@@ -480,6 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search, 
         materials, 
         productType,
+        isOrganic,
         healthSupport, 
         origin, 
         form, 
@@ -536,6 +537,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (sortBy) {
         filters.sortBy = sortBy as string;
+      }
+      
+      // Handle isOrganic filter
+      if (isOrganic !== undefined) {
+        filters.isOrganic = isOrganic === 'true';
       }
 
       const result = await storage.getProducts(filters);

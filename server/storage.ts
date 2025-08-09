@@ -412,6 +412,7 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     materials?: string[];
     productType?: string[];
+    isOrganic?: boolean;
     healthSupport?: string[];
     origin?: string[];
     form?: string[];
@@ -427,29 +428,45 @@ export class DatabaseStorage implements IStorage {
       eq(products.isVisible, true)
     ];
     
-    // Category filter (support multiple categories by name using junction table)
+    // Category filter (support multiple categories by name or ID using junction table)
     if (filters?.category && filters.category.length > 0) {
-      const categoryNames = filters.category;
+      const categoryFilters = filters.category;
       
-      // First get category IDs from names
-      const categoryResults = await db
-        .select({ id: categories.id })
-        .from(categories)
-        .where(
-          or(...categoryNames.map(name => 
-            sql`${categories.name} ILIKE ${`%${name}%`}`
-          ))
-        );
+      // Determine if we have IDs or names
+      const categoryIds: number[] = [];
+      const categoryNames: string[] = [];
       
-      if (categoryResults.length > 0) {
-        const categoryIds = categoryResults.map(cat => cat.id);
-        
+      for (const filter of categoryFilters) {
+        const isNumeric = !isNaN(Number(filter));
+        if (isNumeric) {
+          categoryIds.push(Number(filter));
+        } else {
+          categoryNames.push(filter);
+        }
+      }
+      
+      let finalCategoryIds: number[] = [...categoryIds];
+      
+      // If we have category names, convert them to IDs
+      if (categoryNames.length > 0) {
+        const categoryResults = await db
+          .select({ id: categories.id })
+          .from(categories)
+          .where(
+            or(...categoryNames.map(name => 
+              sql`${categories.name} ILIKE ${`%${name}%`}`
+            ))
+          );
+        finalCategoryIds.push(...categoryResults.map(cat => cat.id));
+      }
+      
+      if (finalCategoryIds.length > 0) {
         // Use junction table to find products in any of these categories
         const productsInCategories = await db
           .select({ productId: productCategoryRelations.productId })
           .from(productCategoryRelations)
           .where(
-            or(...categoryIds.map(id => eq(productCategoryRelations.categoryId, id)))
+            or(...finalCategoryIds.map(id => eq(productCategoryRelations.categoryId, id)))
           );
         
         if (productsInCategories.length > 0) {
@@ -504,6 +521,15 @@ export class DatabaseStorage implements IStorage {
         eq(products.productType, type)
       );
       conditions.push(or(...productTypeConditions));
+    }
+    
+    // Organic filter - based on productType containing 'organic'
+    if (filters?.isOrganic !== undefined) {
+      if (filters.isOrganic) {
+        conditions.push(sql`${products.productType} ILIKE '%organic%'`);
+      } else {
+        conditions.push(sql`${products.productType} NOT ILIKE '%organic%'`);
+      }
     }
 
     // Health Support filter
