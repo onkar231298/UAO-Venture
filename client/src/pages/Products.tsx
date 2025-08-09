@@ -353,39 +353,34 @@ export default function Products() {
 
               {/* Product Types */}
               <Collapsible open={openSections.productType} onOpenChange={() => toggleSection('productType')}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-green-50 border border-green-200 rounded-lg hover:bg-green-100">
-                  <span className="font-medium flex items-center gap-2 text-green-800">
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100">
+                  <span className="font-medium flex items-center gap-2">
                     <Award className="h-4 w-4" />
                     Product Types
                   </span>
-                  {openSections.productType ? <ChevronUp className="h-4 w-4 text-green-600" /> : <ChevronDown className="h-4 w-4 text-green-600" />}
+                  {openSections.productType ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-3 p-3 bg-green-50 rounded-lg">
-                  <div className="text-xs text-green-700 mb-2 p-2 bg-green-100 rounded text-center">
-                    🌿 Select product types to filter results
-                  </div>
-                  {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
-                    <div key={type.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`type-${type.slug}`}
-                        checked={filters.productType.includes(type.slug)}
-                        onCheckedChange={() => toggleArrayFilter('productType', type.slug)}
-                        className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                      />
-                      <Label htmlFor={`type-${type.slug}`} className="text-sm font-medium flex items-center gap-2">
-                        {type.name}
-                        {filters.productType.includes(type.slug) && (
-                          <Badge variant="secondary" className="text-xs bg-green-200 text-green-800">
-                            Selected
-                          </Badge>
-                        )}
-                      </Label>
+                <CollapsibleContent className="mt-3">
+                  <ScrollArea className="h-48">
+                    <div className="space-y-3">
+                      {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
+                        <div key={type.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`productType-${type.id}`}
+                            checked={filters.productType.includes(type.slug)}
+                            onCheckedChange={() => toggleArrayFilter('productType', type.slug)}
+                          />
+                          <Label htmlFor={`productType-${type.id}`} className="text-sm">
+                            {type.name}
+                          </Label>
+                        </div>
+                      )) : (
+                        <div className="text-sm text-gray-500 text-center py-2">
+                          Loading product types...
+                        </div>
+                      )}
                     </div>
-                  )) : (
-                    <div className="text-sm text-gray-500 text-center py-2">
-                      Loading product types...
-                    </div>
-                  )}
+                  </ScrollArea>
                 </CollapsibleContent>
               </Collapsible>
 
