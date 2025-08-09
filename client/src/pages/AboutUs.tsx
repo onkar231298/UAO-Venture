@@ -87,7 +87,7 @@ export default function AboutUs() {
                 Our operations are powered by state-of-the-art facilities:
               </p>
               
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <Card className="p-6">
                   <CardContent className="p-0">
                     <div className="flex items-start space-x-4">
@@ -99,9 +99,32 @@ export default function AboutUs() {
                         <p className="text-gray-600 mb-2">
                           <strong>Location:</strong> Mehsana, Gujarat
                         </p>
+                        <p className="text-gray-700 mb-3">
+                          This organic dedicated unit is equipped with two pulverizer lines, each with a capacity of 800 kg/hour, 
+                          enabling us to produce finely milled herbal and spice powders at scale.
+                        </p>
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          Organic Certified
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="p-6">
+                  <CardContent className="p-0">
+                    <div className="flex items-start space-x-4">
+                      <Leaf className="w-8 h-8 text-green-600 mt-1" />
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                          Cumin Sorting Unit
+                        </h3>
+                        <p className="text-gray-600 mb-2">
+                          <strong>Location:</strong> Mehsana, Gujarat
+                        </p>
                         <p className="text-gray-700">
-                          Equipped with two pulverizer lines, each with a capacity of 800 kg/hour, enabling us to produce 
-                          finely milled herbal and spice powders at scale.
+                          Specialized facility for cumin, coriander, and other whole spices sorting and grading, 
+                          ensuring premium quality and purity standards for our spice products.
                         </p>
                       </div>
                     </div>
