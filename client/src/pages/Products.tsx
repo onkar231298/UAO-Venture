@@ -152,6 +152,7 @@ export default function Products() {
     queryFn: async () => {
       const queryParams = buildQueryParams(debouncedFilters, currentPage);
       console.log('🔍 Frontend Query:', queryParams);
+      console.log('🎯 Current filters:', debouncedFilters);
       const response = await fetch(`/api/products?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
@@ -539,6 +540,42 @@ export default function Products() {
                       ))}
                     </div>
                   </ScrollArea>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Product Types */}
+              <Collapsible open={openSections.productType} onOpenChange={() => toggleSection('productType')}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100">
+                  <span className="font-medium flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    Available Product Types
+                  </span>
+                  {openSections.productType ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  <div className="space-y-3">
+                    {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
+                      <div key={type.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`productType-${type.id}`}
+                          checked={filters.productType.includes(type.slug)}
+                          onCheckedChange={() => toggleArrayFilter('productType', type.slug)}
+                        />
+                        <Label htmlFor={`productType-${type.id}`} className="text-sm flex items-center gap-2">
+                          {type.name}
+                          {filters.productType.includes(type.slug) && (
+                            <Badge variant="secondary" className="text-xs">
+                              ★ Primary
+                            </Badge>
+                          )}
+                        </Label>
+                      </div>
+                    )) : (
+                      <div className="text-sm text-gray-500 text-center py-2">
+                        Loading product types...
+                      </div>
+                    )}
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
 
