@@ -39,92 +39,92 @@ export default function OurTeam() {
               </p>
             </div>
 
-            {/* Team Grid */}
-            <div className="grid lg:grid-cols-3 gap-8 mb-16">
+            {/* Team Members - Alternating Layout */}
+            <div className="space-y-16 mb-16">
               
-              {/* Dr. Niraj Patel */}
-              <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Users className="w-16 h-16 text-gray-400" />
+              {/* Dr. Niraj Patel - Left aligned */}
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="order-1 md:order-1">
+                  <div className="w-48 h-48 bg-gray-200 rounded-2xl mx-auto md:mx-0 flex items-center justify-center shadow-lg">
+                    <Users className="w-24 h-24 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Dr. Niraj Patel</h3>
-                  <Badge variant="outline" className="mb-4 bg-green-50 text-green-700 border-green-200">
+                </div>
+                <div className="order-2 md:order-2">
+                  <Badge variant="outline" className="mb-4 bg-green-50 text-green-700 border-green-200 px-4 py-2">
                     Managing Director
                   </Badge>
-                  <p className="text-gray-700 leading-relaxed mb-4">
+                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Dr. Niraj Patel</h3>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Target className="w-5 h-5 text-green-600" />
+                    <span className="text-green-600 font-medium">Strategic Vision & Leadership</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     A young, dynamic, and self-made entrepreneur, Dr. Niraj Patel has built Bright Fame Organic from the ground up 
                     without any family business background. With an MS in Orthopedics, he made an inspiring transition into the food 
                     and spice industry in 1998, eventually becoming one of the most recognized figures in the sector.
                   </p>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed text-lg">
                     Known for his calm demeanor and strategic mindset, Dr. Niraj is often called "the man with future eyes" at 
                     Bright Fame Organic, guiding the company with innovative vision and leadership.
                   </p>
-                  <div className="flex justify-center mt-4">
-                    <div className="flex items-center space-x-2">
-                      <Target className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-gray-600">Strategic Vision</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Ujjwal Dadhich */}
-              <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Users className="w-16 h-16 text-gray-400" />
+              {/* Ujjwal Dadhich - Right aligned */}
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="order-1 md:order-2">
+                  <div className="w-48 h-48 bg-gray-200 rounded-2xl mx-auto md:mx-0 flex items-center justify-center shadow-lg">
+                    <Users className="w-24 h-24 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Ujjwal Dadhich</h3>
-                  <Badge variant="outline" className="mb-4 bg-blue-50 text-blue-700 border-blue-200">
+                </div>
+                <div className="order-2 md:order-1">
+                  <Badge variant="outline" className="mb-4 bg-blue-50 text-blue-700 border-blue-200 px-4 py-2">
                     Director of Purchase
                   </Badge>
-                  <p className="text-gray-700 leading-relaxed mb-4">
+                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Ujjwal Dadhich</h3>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Award className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-600 font-medium">Supply Chain Excellence</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     With an extensive career in the Indian food and ingredients industry, Ujjwal Dadhich has worked with some of 
                     the country's most renowned companies before joining Bright Fame Organic. As Director of Purchase, he brings 
                     unmatched sourcing expertise and strong relationships across APMC markets and organic farming groups nationwide.
                   </p>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed text-lg">
                     Respected for his quiet leadership style and innovative ideas, Ujjwal plays a pivotal role in ensuring our 
                     supply chain remains strong, ethical, and efficient.
                   </p>
-                  <div className="flex justify-center mt-4">
-                    <div className="flex items-center space-x-2">
-                      <Award className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm text-gray-600">Supply Chain Excellence</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Onkar Suryawanshi */}
-              <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Users className="w-16 h-16 text-gray-400" />
+              {/* Onkar Suryawanshi - Left aligned */}
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="order-1 md:order-1">
+                  <div className="w-48 h-48 bg-gray-200 rounded-2xl mx-auto md:mx-0 flex items-center justify-center shadow-lg">
+                    <Users className="w-24 h-24 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Onkar Suryawanshi</h3>
-                  <Badge variant="outline" className="mb-4 bg-purple-50 text-purple-700 border-purple-200">
+                </div>
+                <div className="order-2 md:order-2">
+                  <Badge variant="outline" className="mb-4 bg-purple-50 text-purple-700 border-purple-200 px-4 py-2">
                     Director of Operations
                   </Badge>
-                  <p className="text-gray-700 leading-relaxed mb-4">
+                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Onkar Suryawanshi</h3>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Lightbulb className="w-5 h-5 text-purple-600" />
+                    <span className="text-purple-600 font-medium">Technology Innovation</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     A qualified Food Technologist and technology enthusiast, Onkar Suryawanshi began his career at a young age, 
                     driven by a deep passion for food safety, certifications, and advanced processing technologies. As President 
                     of the NGO GSRL Foundation, he works to bridge the gap between industry and education.
                   </p>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed text-lg">
                     He mentors students in Food Technology and Dairy Technology and is actively involved in training farmers in 
                     organic agriculture practices. Onkar has published multiple research papers in his field.
                   </p>
-                  <div className="flex justify-center mt-4">
-                    <div className="flex items-center space-x-2">
-                      <Lightbulb className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm text-gray-600">Technology Innovation</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
             </div>
 
