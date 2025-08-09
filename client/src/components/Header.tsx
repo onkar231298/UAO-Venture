@@ -285,17 +285,17 @@ export default function Header() {
                     }) : (
                       <>
                         {/* Fallback health supports for immediate display */}
-                        <Link href="/products?healthSupport=digestive-support">
+                        <Link href="/products?healthSupport=digestive-health">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Digestive Support
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?healthSupport=immune-support">
+                        <Link href="/products?healthSupport=immune-health">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Immune Support
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?healthSupport=cognitive-support">
+                        <Link href="/products?healthSupport=cognitive-health">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Cognitive Support
                           </DropdownMenuItem>
@@ -310,7 +310,7 @@ export default function Header() {
                             Energy & Vitality
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/products?healthSupport=cardiovascular-support">
+                        <Link href="/products?healthSupport=cardiovascular-health">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Cardiovascular Support
                           </DropdownMenuItem>
