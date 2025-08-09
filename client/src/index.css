@@ -113,8 +113,62 @@
   -ms-overflow-style: none;
 }
 
+/* Light Green Theme Utility Classes */
+.bg-green-theme-primary {
+  background-color: hsl(var(--green-bg-primary));
+}
+
+.bg-green-theme-secondary {
+  background-color: hsl(var(--green-bg-secondary));
+}
+
+.bg-green-theme-accent {
+  background-color: hsl(var(--green-accent));
+}
+
+/* Alternating section backgrounds for visual hierarchy */
+.section-primary {
+  background-color: hsl(var(--background));
+}
+
+.section-secondary {
+  background-color: hsl(0, 0%, 100%);
+}
+
+/* Enhanced card styling for light green theme */
+.card-enhanced {
+  background-color: hsl(0, 0%, 100%);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid hsl(var(--border));
+}
+
 :root {
-  /* Green Jeeva Inspired Professional Color Scheme */
+  /* LIGHT GREEN THEME - Active Theme */
+  /* To revert to original: comment out this block and uncomment "ORIGINAL THEME BACKUP" below */
+  
+  --background: hsl(140, 25%, 98%);           /* Very light sage green background */
+  --foreground: hsl(210, 10%, 23%);
+  --muted: hsl(140, 15%, 96%);               /* Slightly greener muted */
+  --muted-foreground: hsl(210, 6%, 56%);
+  --popover: hsl(0, 0%, 100%);               /* Keep popovers white */
+  --popover-foreground: hsl(210, 10%, 23%);
+  --card: hsl(0, 0%, 100%);                  /* Keep cards white for contrast */
+  --card-foreground: hsl(210, 10%, 23%);
+  --border: hsl(140, 15%, 92%);
+  --input: hsl(140, 15%, 92%);
+  --primary: hsl(140, 70%, 35%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(140, 20%, 95%);
+  --secondary-foreground: hsl(210, 10%, 23%);
+  --accent: hsl(140, 25%, 94%);
+  --accent-foreground: hsl(210, 10%, 23%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(140, 70%, 35%);
+  --radius: 0.5rem;
+  
+  /* ORIGINAL THEME BACKUP - To revert, uncomment this block and comment out above */
+  /*
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(210, 10%, 23%);
   --muted: hsl(140, 12%, 97%);
@@ -135,13 +189,16 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --ring: hsl(140, 70%, 35%);
   --radius: 0.5rem;
+  */
   
-  /* Professional B2B Green Theme - Green Jeeva Inspired */
+  /* Professional B2B Green Theme - Enhanced for Light Green Background */
   --green-primary: hsl(140, 70%, 35%);     /* Deep professional green */
   --green-secondary: hsl(140, 60%, 45%);   /* Medium green for hovers */
   --green-light: hsl(140, 40%, 85%);       /* Light green for backgrounds */
   --green-accent: hsl(140, 25%, 94%);      /* Very light green accent */
   --green-dark: hsl(140, 80%, 25%);        /* Dark green for emphasis */
+  --green-bg-primary: hsl(140, 25%, 98%);  /* Main background green */
+  --green-bg-secondary: hsl(140, 15%, 96%); /* Secondary background green */
   
   /* Neutral Professional Colors */
   --gray-50: hsl(140, 12%, 98%);
