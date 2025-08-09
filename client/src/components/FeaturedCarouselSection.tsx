@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Leaf, ChevronLeft, ChevronRight } from "lucide-react";
 import OptimizedImage from "@/components/OptimizedImage";
+import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 
 interface Product {
   id: number;
@@ -266,10 +267,7 @@ export default function FeaturedCarouselSection() {
                         {/* Price and MOQ */}
                         <div className="flex justify-between items-center pt-2">
                           <div>
-                            <span className="text-base sm:text-lg font-bold text-green-600">
-                              ${product.priceUSD}
-                            </span>
-                            <span className="text-xs sm:text-sm text-gray-500">/kg</span>
+                            <LocationBasedPricing product={product} />
                           </div>
                           {product.moq && (
                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
