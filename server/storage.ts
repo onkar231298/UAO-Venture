@@ -540,6 +540,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Product Type filter using junction table (organic, conventional, wild-crafted, etc.)
+    // Products appear in filter if they have ANY relationship to the selected types (primary OR secondary)
     if (filters?.productType && filters.productType.length > 0) {
       const typeFilters = filters.productType;
       
@@ -557,7 +558,7 @@ export class DatabaseStorage implements IStorage {
       if (typeResults.length > 0) {
         const typeIds = typeResults.map(t => t.id);
         
-        // Use junction table to find products with any of these types
+        // Use junction table to find products with ANY of these types (primary OR secondary)
         const productsWithTypes = await db
           .select({ productId: productTypeRelations.productId })
           .from(productTypeRelations)
