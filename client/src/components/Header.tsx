@@ -151,17 +151,17 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
-      {/* Top Line - Logo and Search */}
-      <div className="bg-green-50 border-b border-green-100">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
+      {/* Main Header */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between">
+          {/* Left Side - Logo */}
+          <div className="flex items-center">
             <Link href="/">
               <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
                 <img 
                   src="/attached_assets/Final Logo_1753730040470.png" 
                   alt="Bright Fame Organic" 
-                  className="h-8 sm:h-10 w-auto object-contain"
+                  className="h-10 sm:h-12 w-auto object-contain"
                 />
               </div>
             </Link>
@@ -170,94 +170,15 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-100"
+              className="ml-4 lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <Menu className="h-5 w-5" />
             </Button>
-
-            {/* Search and Actions */}
-            <div className="hidden lg:flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative">
-                <form onSubmit={handleSearch} className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search ingredients..."
-                    value={searchQuery}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    className="w-80 px-4 py-2 pl-10 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                </form>
-
-                {/* Search Suggestions */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
-                    {suggestions.map((product) => (
-                      <div
-                        key={product.id}
-                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        onClick={() => handleSuggestionClick(product)}
-                      >
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {product.categories?.slice(0, 2).map(cat => cat.name).join(', ')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Auth/Actions */}
-              <div className="flex items-center space-x-3">
-                {user ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-sm">
-                        <User className="w-4 h-4 mr-2" />
-                        {user.email}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {user.role === 'admin' && (
-                        <Link href="/admin">
-                          <DropdownMenuItem>Admin Dashboard</DropdownMenuItem>
-                        </Link>
-                      )}
-                      {user.role === 'customer' && (
-                        <Link href="/customer/dashboard">
-                          <DropdownMenuItem>My Dashboard</DropdownMenuItem>
-                        </Link>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout}>
-                        Logout
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Link href="/login">
-                    <Button variant="outline" size="sm">
-                      Login
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Bottom Line - Navigation */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-center">
-          {/* Main Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
+          {/* Center - Navigation */}
+          <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
             <Link href="/" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600' : ''}`}>
               Home
             </Link>
@@ -450,6 +371,51 @@ export default function Header() {
               Certifications
             </Link>
           </nav>
+
+          {/* Right Side - Search and Actions */}
+          <div className="hidden lg:flex items-center space-x-4">
+            {/* Search */}
+            <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
+                <input
+                  type="text"
+                  placeholder="Search ingredients..."
+                  value={searchQuery}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="w-64 px-4 py-2 pl-10 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              </form>
+
+              {/* Search Suggestions */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
+                  {suggestions.map((product) => (
+                    <div
+                      key={product.id}
+                      className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      onClick={() => handleSuggestionClick(product)}
+                    >
+                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {product.categories?.slice(0, 2).map(cat => cat.name).join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Login Button */}
+            <Link href="/login">
+              <Button variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50">
+                Login
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
