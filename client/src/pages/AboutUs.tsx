@@ -106,22 +106,22 @@ export default function AboutUs() {
               </p>
               
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <Card className="p-6">
-                  <CardContent className="p-0">
-                    <div className="flex items-start space-x-4">
-                      <Factory className="w-8 h-8 text-green-600 mt-1" />
-                      <div>
+                <Card className="p-6 h-full">
+                  <CardContent className="p-0 h-full flex flex-col">
+                    <div className="flex items-start space-x-4 flex-grow">
+                      <Factory className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
+                      <div className="flex-grow">
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">
                           High-End Processing Unit
                         </h3>
                         <p className="text-gray-600 mb-2">
                           <strong>Location:</strong> Mehsana, Gujarat
                         </p>
-                        <p className="text-gray-700 mb-3">
+                        <p className="text-gray-700 mb-3 flex-grow">
                           This organic dedicated unit is equipped with two pulverizer lines, each with a capacity of 800 kg/hour, 
                           enabling us to produce finely milled herbal and spice powders at scale.
                         </p>
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 mt-auto">
                           Organic Certified
                         </Badge>
                       </div>
@@ -129,18 +129,18 @@ export default function AboutUs() {
                   </CardContent>
                 </Card>
 
-                <Card className="p-6">
-                  <CardContent className="p-0">
-                    <div className="flex items-start space-x-4">
-                      <Leaf className="w-8 h-8 text-green-600 mt-1" />
-                      <div>
+                <Card className="p-6 h-full">
+                  <CardContent className="p-0 h-full flex flex-col">
+                    <div className="flex items-start space-x-4 flex-grow">
+                      <Leaf className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
+                      <div className="flex-grow">
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">
                           Cumin Sorting Unit
                         </h3>
                         <p className="text-gray-600 mb-2">
                           <strong>Location:</strong> Mehsana, Gujarat
                         </p>
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 flex-grow">
                           Specialized facility for cumin, coriander, and other whole spices sorting and grading, 
                           ensuring premium quality and purity standards for our spice products.
                         </p>
@@ -149,18 +149,18 @@ export default function AboutUs() {
                   </CardContent>
                 </Card>
 
-                <Card className="p-6">
-                  <CardContent className="p-0">
-                    <div className="flex items-start space-x-4">
-                      <Leaf className="w-8 h-8 text-green-600 mt-1" />
-                      <div>
+                <Card className="p-6 h-full">
+                  <CardContent className="p-0 h-full flex flex-col">
+                    <div className="flex items-start space-x-4 flex-grow">
+                      <Leaf className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
+                      <div className="flex-grow">
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">
                           Solvent Extraction Plant
                         </h3>
                         <p className="text-gray-600 mb-2">
                           <strong>Location:</strong> Bithreddy Village, Denkanikottai Taluk, Krishnagiri District, Tamil Nadu
                         </p>
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 flex-grow">
                           Specializing in the production of herbal extracts, natural caffeine, and plant-derived vitamins 
                           such as iron from guava leaves, beta-carotene from carrots, and more.
                         </p>
@@ -178,25 +178,111 @@ export default function AboutUs() {
                 We offer a complete range of products, including:
               </p>
               
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700">Whole herbs</span>
+                    <span className="text-gray-700">Adaptogenic Herbs</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700">TBC (Tea Bag Cut) herbs</span>
+                    <span className="text-gray-700">Amino Acids</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Bioactives & Nutrients</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Culinary Herbs</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Custom Blends</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Essential Oils</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Extraction Grade Raw Materials</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Extracts & Powders</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700">Herbal powders</span>
+                    <span className="text-gray-700">Herbal Powders</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700">Standardized herbal extracts</span>
+                    <span className="text-gray-700">Liquid Extracts</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Mushroom Powders</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Nutraceuticals & Dietary Supplements</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Oleoresins</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Phytoactive Compounds</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Plant-Based Proteins</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Probiotics</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Probiotics & Enzymes</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Seeds & Grains</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Spice Powders</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Spray Dried Fruits and Vegetables</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Superfoods & Super Greens</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Teas & Infusions</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Vitamins & Minerals</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Whole Herbs</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">Whole Spices</span>
                   </div>
                 </div>
               </div>
