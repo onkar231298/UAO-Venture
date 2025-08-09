@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Award, Factory, Leaf, Shield, Globe2, CheckCircle } from "lucide-react";
+import { Award, Factory, Leaf, Shield, Globe2, CheckCircle, Zap, Truck, Settings } from "lucide-react";
 
 export default function AboutUs() {
   return (
@@ -101,73 +101,64 @@ export default function AboutUs() {
             {/* Facilities */}
             <div className="mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">State-of-the-Art Facilities</h2>
-              <p className="text-lg text-gray-700 mb-6">
+              <p className="text-lg text-gray-700 mb-8">
                 Our operations are powered by state-of-the-art facilities:
               </p>
               
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <Card className="p-6 h-full">
-                  <CardContent className="p-0 h-full flex flex-col">
-                    <div className="flex items-start space-x-4 flex-grow">
-                      <Factory className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
-                      <div className="flex-grow">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                          High-End Processing Unit
-                        </h3>
-                        <p className="text-gray-600 mb-2">
-                          <strong>Location:</strong> Mehsana, Gujarat
-                        </p>
-                        <p className="text-gray-700 mb-3 flex-grow">
-                          This organic dedicated unit is equipped with two pulverizer lines, each with a capacity of 800 kg/hour, 
-                          enabling us to produce finely milled herbal and spice powders at scale.
-                        </p>
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 mt-auto">
-                          Organic Certified
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* High-End Processing Unit */}
+                <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow group">
+                  <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-xl mb-6 group-hover:bg-green-200 transition-colors">
+                    <Settings className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    High-End Processing Unit
+                  </h3>
+                  <p className="text-sm text-green-600 font-medium mb-4">
+                    Location: Mehsana, Gujarat
+                  </p>
+                  <p className="text-gray-700 leading-relaxed mb-6">
+                    This organic dedicated unit is equipped with two pulverizer lines, each with a capacity of 800 kg/hour, 
+                    enabling us to produce finely milled herbal and spice powders at scale.
+                  </p>
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                    Organic Certified
+                  </div>
+                </div>
 
-                <Card className="p-6 h-full">
-                  <CardContent className="p-0 h-full flex flex-col">
-                    <div className="flex items-start space-x-4 flex-grow">
-                      <Leaf className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
-                      <div className="flex-grow">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                          Cumin Sorting Unit
-                        </h3>
-                        <p className="text-gray-600 mb-2">
-                          <strong>Location:</strong> Mehsana, Gujarat
-                        </p>
-                        <p className="text-gray-700 flex-grow">
-                          Specialized facility for cumin, coriander, and other whole spices sorting and grading, 
-                          ensuring premium quality and purity standards for our spice products.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Cumin Sorting Unit */}
+                <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow group">
+                  <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6 group-hover:bg-blue-200 transition-colors">
+                    <Zap className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    Cumin Sorting Unit
+                  </h3>
+                  <p className="text-sm text-blue-600 font-medium mb-4">
+                    Location: Mehsana, Gujarat
+                  </p>
+                  <p className="text-gray-700 leading-relaxed">
+                    Specialized facility for cumin, coriander, and other whole spices sorting and grading, 
+                    ensuring premium quality and purity standards for our spice products.
+                  </p>
+                </div>
 
-                <Card className="p-6 h-full">
-                  <CardContent className="p-0 h-full flex flex-col">
-                    <div className="flex items-start space-x-4 flex-grow">
-                      <Leaf className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
-                      <div className="flex-grow">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                          Solvent Extraction Plant
-                        </h3>
-                        <p className="text-gray-600 mb-2">
-                          <strong>Location:</strong> Bithreddy Village, Denkanikottai Taluk, Krishnagiri District, Tamil Nadu
-                        </p>
-                        <p className="text-gray-700 flex-grow">
-                          Specializing in the production of herbal extracts, natural caffeine, and plant-derived vitamins 
-                          such as iron from guava leaves, beta-carotene from carrots, and more.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Solvent Extraction Plant */}
+                <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow group">
+                  <div className="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6 group-hover:bg-purple-200 transition-colors">
+                    <Factory className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    Solvent Extraction Plant
+                  </h3>
+                  <p className="text-sm text-purple-600 font-medium mb-4">
+                    Location: Bithreddy Village, Denkanikottai Taluk, Krishnagiri District, Tamil Nadu
+                  </p>
+                  <p className="text-gray-700 leading-relaxed">
+                    Specializing in the production of herbal extracts, natural caffeine, and plant-derived vitamins 
+                    such as iron from guava leaves, beta-carotene from carrots, and more.
+                  </p>
+                </div>
               </div>
             </div>
 
