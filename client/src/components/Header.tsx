@@ -390,17 +390,86 @@ export default function Header() {
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
 
-              <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
-                  <User className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Login</span>
-                </Button>
-              </Link>
-              
-              <Button variant="outline" size="sm" className="bg-green-600 text-white hover:bg-green-700 border-green-600">
-                <span className="hidden sm:inline">AU</span>
-                <span className="sm:hidden">Admin</span>
-              </Button>
+              {/* Show different UI based on authentication status */}
+              {isAuthenticated || isCustomerAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="bg-green-600 text-white hover:bg-green-700 border-green-600">
+                      <Avatar className="w-4 h-4 sm:w-6 sm:h-6 mr-1 sm:mr-2">
+                        <AvatarImage src={user?.avatar} />
+                        <AvatarFallback className="bg-green-500 text-white text-xs">
+                          {isAuthenticated ? user?.name?.charAt(0) || 'A' : customer?.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden sm:inline">
+                        {isAuthenticated ? user?.name || 'Admin' : customer?.email || 'User'}
+                      </span>
+                      <span className="sm:hidden">
+                        {isAuthenticated ? 'Admin' : 'User'}
+                      </span>
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {isAuthenticated && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/dashboard" className="flex items-center cursor-pointer">
+                            <LayoutDashboard className="w-4 h-4 mr-2" />
+                            Admin Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/products" className="flex items-center cursor-pointer">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Manage Products
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    {isCustomerAuthenticated && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/customer/profile" className="flex items-center cursor-pointer">
+                            <User className="w-4 h-4 mr-2" />
+                            My Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/customer/orders" className="flex items-center cursor-pointer">
+                            <FileText className="w-4 h-4 mr-2" />
+                            My Orders
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (isAuthenticated) {
+                          // Admin logout - redirect to login page
+                          window.location.href = '/login';
+                        } else if (isCustomerAuthenticated) {
+                          // Customer logout
+                          logoutCustomer();
+                        }
+                      }}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
+                    <User className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
