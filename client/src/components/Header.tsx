@@ -30,7 +30,8 @@ import {
   Phone,
   LogOut,
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  FileText
 } from "lucide-react";
 
 export default function Header() {
@@ -501,34 +502,51 @@ export default function Header() {
 
       {/* Mobile Navigation Menu */}
       {showMobileMenu && (
-        <div className="lg:hidden bg-white border-t border-gray-200">
-          <div className="container mx-auto px-4 py-4 space-y-1">
-            <Link 
-              href="/" 
-              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/' ? 'text-green-600 font-medium' : ''}`}
-              onClick={() => setShowMobileMenu(false)}
-            >
-              🏠 Home
-            </Link>
-            
-            <Link 
-              href="/products" 
-              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' ? 'text-green-600 font-medium' : ''}`}
-              onClick={() => setShowMobileMenu(false)}
-            >
-              📦 All Products
-            </Link>
+        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="container mx-auto px-4 py-2">
+            <nav className="space-y-1">
+              <Link 
+                href="/" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/' 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                  <Leaf className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="font-medium">Home</span>
+              </Link>
+              
+              <Link 
+                href="/products" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/products' 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100">
+                  <ShoppingCart className="w-4 h-4 text-blue-600" />
+                </div>
+                <span className="font-medium">All Products</span>
+              </Link>
 
-            {/* Ingredients Accordion */}
-            <Collapsible open={mobileIngredientsOpen} onOpenChange={setMobileIngredientsOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-gray-700 hover:text-green-600 transition-colors">
-                <span className="flex items-center">
-                  <Leaf className="w-4 h-4 mr-2 text-green-600" />
-                  Ingredients
-                </span>
-                <ChevronRight className={`w-4 h-4 transition-transform ${mobileIngredientsOpen ? 'rotate-90' : ''}`} />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1">
+              {/* Ingredients Accordion */}
+              <Collapsible open={mobileIngredientsOpen} onOpenChange={setMobileIngredientsOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100">
+                      <Leaf className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <span className="font-medium">Ingredients</span>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileIngredientsOpen ? 'rotate-90' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-3 space-y-1 mt-2">
                 <Link 
                   href="/ingredients" 
                   className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
@@ -558,16 +576,18 @@ export default function Header() {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Health Support Accordion */}
-            <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-gray-700 hover:text-green-600 transition-colors">
-                <span className="flex items-center">
-                  <Heart className="w-4 h-4 mr-2 text-green-600" />
-                  Health Support
-                </span>
-                <ChevronRight className={`w-4 h-4 transition-transform ${mobileHealthSupportOpen ? 'rotate-90' : ''}`} />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1">
+              {/* Health Support Accordion */}
+              <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100">
+                      <Heart className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <span className="font-medium">Health Support</span>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileHealthSupportOpen ? 'rotate-90' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-3 space-y-1 mt-2">
                 <Link 
                   href="/products" 
                   className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
@@ -596,18 +616,43 @@ export default function Header() {
                 )}
               </CollapsibleContent>
             </Collapsible>
-            
-            <Link 
-              href="/blog" 
-              className={`block py-3 text-gray-700 hover:text-green-600 transition-colors ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 font-medium' : ''}`}
-              onClick={() => setShowMobileMenu(false)}
-            >
-              📰 Blog
-            </Link>
-            
-            <div className="py-3 text-gray-700">🎓 Certifications</div>
-            <div className="py-3 text-gray-700">🔬 R&D Lab</div>
-            <div className="py-3 text-gray-700">🔧 Services</div>
+              
+              <Link 
+                href="/blog" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/blog' || location.startsWith('/blog/') 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100">
+                  <FileText className="w-4 h-4 text-orange-600" />
+                </div>
+                <span className="font-medium">Blog</span>
+              </Link>
+              
+              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
+                  <Globe className="w-4 h-4 text-gray-500" />
+                </div>
+                <span className="font-medium">Certifications</span>
+              </div>
+              
+              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
+                  <Settings className="w-4 h-4 text-gray-500" />
+                </div>
+                <span className="font-medium">R&D Lab</span>
+              </div>
+              
+              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
+                  <Phone className="w-4 h-4 text-gray-500" />
+                </div>
+                <span className="font-medium">Services</span>
+              </div>
+            </nav>
           </div>
         </div>
       )}
