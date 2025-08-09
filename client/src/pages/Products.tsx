@@ -151,9 +151,12 @@ export default function Products() {
     queryKey: ["/api/products", buildQueryParams(debouncedFilters, currentPage)],
     queryFn: async () => {
       const queryParams = buildQueryParams(debouncedFilters, currentPage);
+      console.log('🔍 Frontend Query:', queryParams);
       const response = await fetch(`/api/products?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch products');
-      return response.json();
+      const data = await response.json();
+      console.log('📊 Frontend Response:', { total: data.total, productCount: data.products?.length });
+      return data;
     },
     staleTime: 0, // Always fresh data for product type testing
     gcTime: 60000, // Keep in cache for 1 minute only
