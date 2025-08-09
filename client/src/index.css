@@ -142,13 +142,22 @@
   border: 1px solid hsl(var(--border));
 }
 
+/* Force light green background on body and root elements */
+body {
+  background-color: hsl(140, 30%, 96%) !important;
+}
+
+.bg-background {
+  background-color: hsl(140, 30%, 96%) !important;
+}
+
 :root {
   /* LIGHT GREEN THEME - Active Theme */
   /* To revert to original: comment out this block and uncomment "ORIGINAL THEME BACKUP" below */
   
-  --background: hsl(140, 25%, 98%);           /* Very light sage green background */
+  --background: hsl(140, 30%, 96%);           /* More visible light sage green background */
   --foreground: hsl(210, 10%, 23%);
-  --muted: hsl(140, 15%, 96%);               /* Slightly greener muted */
+  --muted: hsl(140, 20%, 94%);               /* Slightly greener muted */
   --muted-foreground: hsl(210, 6%, 56%);
   --popover: hsl(0, 0%, 100%);               /* Keep popovers white */
   --popover-foreground: hsl(210, 10%, 23%);
@@ -197,8 +206,8 @@
   --green-light: hsl(140, 40%, 85%);       /* Light green for backgrounds */
   --green-accent: hsl(140, 25%, 94%);      /* Very light green accent */
   --green-dark: hsl(140, 80%, 25%);        /* Dark green for emphasis */
-  --green-bg-primary: hsl(140, 25%, 98%);  /* Main background green */
-  --green-bg-secondary: hsl(140, 15%, 96%); /* Secondary background green */
+  --green-bg-primary: hsl(140, 30%, 96%);  /* Main background green */
+  --green-bg-secondary: hsl(140, 20%, 94%); /* Secondary background green */
   
   /* Neutral Professional Colors */
   --gray-50: hsl(140, 12%, 98%);
