@@ -31,7 +31,9 @@ import {
   LogOut,
   Settings,
   LayoutDashboard,
-  FileText
+  FileText,
+  Info,
+  Award
 } from "lucide-react";
 
 export default function Header() {
@@ -343,6 +345,9 @@ export default function Header() {
             <Link href="/contact" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600' : ''}`}>
               Contact
             </Link>
+            <Link href="/certifications" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-600 border-green-600' : ''}`}>
+              Certifications
+            </Link>
           </nav>
 
           {/* Right Side - Actions */}
@@ -361,11 +366,6 @@ export default function Header() {
               <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
                 <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
-              </Button>
-              
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
 
               {isAuthenticated && user ? (
@@ -635,40 +635,49 @@ export default function Header() {
             </Collapsible>
               
               <Link 
-                href="/blog" 
+                href="/about" 
                 className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
-                  location === '/blog' || location.startsWith('/blog/') 
+                  location === '/about' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100">
-                  <FileText className="w-4 h-4 text-orange-600" />
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
+                  <Info className="w-4 h-4 text-indigo-600" />
                 </div>
-                <span className="font-medium">Blog</span>
+                <span className="font-medium">About</span>
               </Link>
               
-              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
-                  <Globe className="w-4 h-4 text-gray-500" />
+              <Link 
+                href="/contact" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/contact' 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100">
+                  <Phone className="w-4 h-4 text-pink-600" />
+                </div>
+                <span className="font-medium">Contact</span>
+              </Link>
+              
+              <Link 
+                href="/certifications" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/certifications' 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100">
+                  <Award className="w-4 h-4 text-yellow-600" />
                 </div>
                 <span className="font-medium">Certifications</span>
-              </div>
-              
-              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
-                  <Settings className="w-4 h-4 text-gray-500" />
-                </div>
-                <span className="font-medium">R&D Lab</span>
-              </div>
-              
-              <div className="flex items-center space-x-3 py-3 px-3 text-gray-500">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                </div>
-                <span className="font-medium">Services</span>
-              </div>
+              </Link>
             </nav>
           </div>
         </div>
