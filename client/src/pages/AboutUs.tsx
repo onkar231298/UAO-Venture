@@ -36,6 +36,24 @@ export default function AboutUs() {
                 always GMO-free and sourced with care. Our mission is to bridge the gap between traditional agriculture and modern food, 
                 nutraceutical, and herbal industries — delivering products that are safe, pure, and sustainably produced.
               </p>
+              
+              {/* Organic Farmland Highlight */}
+              <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                      <Leaf className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">950 Hectares Under Organic Certification</h3>
+                    <p className="text-gray-700">
+                      We manage extensive organic farmland across multiple regions, ensuring sustainable cultivation practices 
+                      and maintaining the highest standards of organic agriculture for our premium ingredient sourcing.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Certifications */}
