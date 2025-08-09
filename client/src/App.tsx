@@ -14,6 +14,7 @@ import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
 import AboutUs from "@/pages/AboutUs";
+import OurTeam from "@/pages/OurTeam";
 import Contact from "@/pages/Contact";
 import Ingredients from "@/pages/Ingredients";
 import Products from "@/pages/Products";
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/about" component={About} />
       <Route path="/about-us" component={AboutUs} />
+      <Route path="/our-team" component={OurTeam} />
       <Route path="/contact" component={Contact} />
       <Route path="/ingredients" component={Ingredients} />
       <Route path="/landing" component={Landing} />
