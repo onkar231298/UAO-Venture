@@ -13,6 +13,7 @@ import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
+import AboutUs from "@/pages/AboutUs";
 import Contact from "@/pages/Contact";
 import Ingredients from "@/pages/Ingredients";
 import Products from "@/pages/Products";
@@ -49,6 +50,7 @@ function Router() {
       {/* Public routes - always accessible for everyone */}
       <Route path="/" component={Home} />
       <Route path="/about" component={About} />
+      <Route path="/about-us" component={AboutUs} />
       <Route path="/contact" component={Contact} />
       <Route path="/ingredients" component={Ingredients} />
       <Route path="/landing" component={Landing} />
