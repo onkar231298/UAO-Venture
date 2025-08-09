@@ -33,7 +33,8 @@ import {
   LayoutDashboard,
   FileText,
   Info,
-  Award
+  Award,
+  MessageCircle
 } from "lucide-react";
 
 export default function Header() {
@@ -372,22 +373,73 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* Right Side - Search and Actions */}
-          <div className="hidden lg:flex items-center space-x-4">
-            {/* Search */}
+          {/* Right Side - User Actions */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Country Selector */}
+            <div className="hidden md:flex items-center space-x-2">
+              <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <Globe className="w-4 h-4" />
+                <span>India</span>
+              </div>
+            </div>
+            
+            {/* User Actions */}
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
+                <Heart className="w-5 h-5" />
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
+              </Button>
+
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
+                  <User className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Login</span>
+                </Button>
+              </Link>
+              
+              <Button variant="outline" size="sm" className="bg-green-600 text-white hover:bg-green-700 border-green-600">
+                <span className="hidden sm:inline">AU</span>
+                <span className="sm:hidden">Admin</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-green-600 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="relative">
+              <button 
+                className="flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
+                onClick={() => setShowCategorySidebar(!showCategorySidebar)}
+              >
+                <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">ALL CATEGORIES</span>
+                <span className="sm:hidden">Categories</span>
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="flex-1 relative max-w-2xl">
               <form onSubmit={handleSearch} className="relative">
                 <input
                   type="text"
-                  placeholder="Search ingredients..."
+                  placeholder="Search for organic ingredients..."
                   value={searchQuery}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-64 px-4 py-2 pl-10 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-2 pl-4 pr-12 text-sm text-gray-900 bg-white border border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-700"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
               </form>
 
               {/* Search Suggestions */}
@@ -409,12 +461,20 @@ export default function Header() {
               )}
             </div>
 
-            {/* Login Button */}
-            <Link href="/login">
-              <Button variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50">
-                Login
-              </Button>
-            </Link>
+            {/* Contact Info */}
+            <div className="hidden lg:flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <div>
+                  <div className="text-green-200 text-xs">Customer Support</div>
+                  <div className="font-medium">+91-7748947433</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
