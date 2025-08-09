@@ -109,15 +109,15 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
 
   return (
     <Card className="w-full max-w-full overflow-hidden" style={{ width: 'calc(100% + 1rem)' }}>
-      <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
-        <CardTitle className="flex items-center gap-2 text-lg font-bold text-green-800">
-          <Calculator className="w-5 h-5 text-green-600" />
+      <CardHeader className="pb-3 bg-green-700 rounded-t-lg">
+        <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+          <Calculator className="w-5 h-5 text-white" />
           Quantity Pricing
         </CardTitle>
         {!isLoading && (
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-white">
             <p className="font-medium">Current pricing in {userCurrency} • Prices shown in your regional currency</p>
-            <p className="text-xs text-blue-700 mt-1 font-medium">
+            <p className="text-xs text-green-100 mt-1 font-medium">
               MOQ: {minOrderQty.toLocaleString()} {product.stockUnit || 'kg'} • Volume discounts available
             </p>
           </div>
