@@ -470,10 +470,15 @@ export default function Header() {
                   <div className="font-medium">+91-7249847439</div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <a 
+                href="https://wa.me/917249847439" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 hover:text-green-200 transition-colors cursor-pointer"
+              >
                 <MessageCircle className="w-4 h-4" />
                 <span>WhatsApp</span>
-              </div>
+              </a>
             </div>
           </div>
         </div>
