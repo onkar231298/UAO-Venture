@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -34,6 +34,10 @@ interface ProductFilters {
 
 export default function Products() {
   const [location] = useLocation();
+  const [, healthSupportParams] = useRoute("/health-support/:slug");
+  
+  // Determine if we're on a health support route
+  const healthSupportSlug = healthSupportParams?.slug;
   
   // Initialize SEO for products page
   useSEO({
@@ -48,10 +52,15 @@ export default function Products() {
   // Initialize filters from URL parameters
   const initializeFiltersFromURL = () => {
     const params = new URLSearchParams(window.location.search);
+    
+    // If we're on a health support route, include that slug in the filters
+    const healthSupportFilters = healthSupportSlug ? [healthSupportSlug] : 
+      (params.get('healthSupport') ? params.get('healthSupport')!.split(',') : []);
+    
     return {
       search: params.get('search') || "",
       category: params.get('category') ? params.get('category')!.split(',') : [],
-      healthSupport: params.get('healthSupport') ? params.get('healthSupport')!.split(',') : [],
+      healthSupport: healthSupportFilters,
       origin: params.get('origin') ? params.get('origin')!.split(',') : [],
       form: params.get('form') ? params.get('form')!.split(',') : [],
       materials: params.get('materials') ? params.get('materials')!.split(',') : [],
@@ -63,7 +72,7 @@ export default function Products() {
 
   const [filters, setFilters] = useState<ProductFilters>(initializeFiltersFromURL);
 
-  // Handle browser back/forward navigation
+  // Handle browser back/forward navigation and health support route changes
   useEffect(() => {
     const handlePopState = () => {
       // Reinitialize filters when user navigates back/forward
@@ -88,7 +97,18 @@ export default function Products() {
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [healthSupportSlug]);
+
+  // Update filters when health support slug changes
+  useEffect(() => {
+    if (healthSupportSlug) {
+      setFilters(prev => ({
+        ...prev,
+        healthSupport: [healthSupportSlug]
+      }));
+      setCurrentPage(1);
+    }
+  }, [healthSupportSlug]);
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [openSections, setOpenSections] = useState({
@@ -188,6 +208,24 @@ export default function Products() {
   const { data: healthSupports = [] } = useQuery({
     queryKey: ["/api/health-supports"],
   });
+
+  // Get current health support name for SEO
+  const currentHealthSupport = healthSupports?.find((hs: any) => hs.slug === healthSupportSlug);
+  
+  // Update SEO when on health support route
+  useEffect(() => {
+    if (healthSupportSlug && currentHealthSupport) {
+      document.title = `${currentHealthSupport.name} - Organic Ingredients | BFI Organic`;
+      
+      let metaDescription = document.querySelector('meta[name="description"]');
+      if (!metaDescription) {
+        metaDescription = document.createElement('meta');
+        metaDescription.setAttribute('name', 'description');
+        document.head.appendChild(metaDescription);
+      }
+      metaDescription.setAttribute('content', `Discover organic ingredients specifically designed for ${currentHealthSupport.name.toLowerCase()}. Browse our premium collection of natural products for optimal health and wellness.`);
+    }
+  }, [healthSupportSlug, currentHealthSupport]);
 
   // Convert health supports to options format
   const healthSupportOptions = healthSupports.map((hs: any) => hs.name);
