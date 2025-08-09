@@ -47,6 +47,7 @@ export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [mobileIngredientsOpen, setMobileIngredientsOpen] = useState(false);
   const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
+  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Fetch categories for ingredients dropdown
@@ -339,9 +340,30 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-            <Link href="/about" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/about' ? 'text-green-600 border-green-600' : ''}`}>
-              About
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                  About <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48 p-2 shadow-xl border border-gray-200" align="start">
+                <Link href="/about-us">
+                  <DropdownMenuItem className="text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    About Us
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/our-team">
+                  <DropdownMenuItem className="text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    Our Team
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/our-farmers">
+                  <DropdownMenuItem className="text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    Our Farmers
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link href="/contact" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600' : ''}`}>
               Contact
             </Link>
@@ -634,20 +656,41 @@ export default function Header() {
               </CollapsibleContent>
             </Collapsible>
               
-              <Link 
-                href="/about" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
-                  location === '/about' 
-                    ? 'text-green-600 bg-green-50 font-medium' 
-                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
-                }`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
-                  <Info className="w-4 h-4 text-indigo-600" />
-                </div>
-                <span className="font-medium">About</span>
-              </Link>
+              {/* About Accordion */}
+              <Collapsible open={mobileAboutOpen} onOpenChange={setMobileAboutOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
+                      <Info className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <span className="font-medium">About</span>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileAboutOpen ? 'rotate-90' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-3 space-y-1 mt-2">
+                  <Link 
+                    href="/about-us" 
+                    className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    → About Us
+                  </Link>
+                  <Link 
+                    href="/our-team" 
+                    className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    → Our Team
+                  </Link>
+                  <Link 
+                    href="/our-farmers" 
+                    className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    → Our Farmers
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
               
               <Link 
                 href="/contact" 
