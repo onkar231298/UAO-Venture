@@ -741,31 +741,7 @@ export default function ComprehensiveProductForm({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="healthSupport">Health Support</Label>
-              <Select value={formData.healthSupport} onValueChange={(value) => setFormData(prev => ({ ...prev, healthSupport: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select health support" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Antioxidant">Antioxidant</SelectItem>
-                  <SelectItem value="Digestive Support">Digestive Support</SelectItem>
-                  <SelectItem value="Immune Support">Immune Support</SelectItem>
-                  <SelectItem value="Anti-inflammatory">Anti-inflammatory</SelectItem>
-                  <SelectItem value="Cardiovascular Support">Cardiovascular Support</SelectItem>
-                  <SelectItem value="Cognitive Support">Cognitive Support</SelectItem>
-                  <SelectItem value="Energy & Vitality">Energy & Vitality</SelectItem>
-                  <SelectItem value="Respiratory Support">Respiratory Support</SelectItem>
-                  <SelectItem value="Joint & Bone Health">Joint & Bone Health</SelectItem>
-                  <SelectItem value="Skin Health">Skin Health</SelectItem>
-                  <SelectItem value="Weight Management">Weight Management</SelectItem>
-                  <SelectItem value="Detoxification">Detoxification</SelectItem>
-                  <SelectItem value="Hormonal Balance">Hormonal Balance</SelectItem>
-                  <SelectItem value="Sleep Support">Sleep Support</SelectItem>
-                  <SelectItem value="Stress & Mood Support">Stress & Mood Support</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
           </div>
 
           <div className="grid grid-cols-2 gap-4">
