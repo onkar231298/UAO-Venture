@@ -467,7 +467,7 @@ export default function Header() {
                 <Phone className="w-4 h-4" />
                 <div>
                   <div className="text-green-200 text-xs">Customer Support</div>
-                  <div className="font-medium">+91-7748947433</div>
+                  <div className="font-medium">+91-7249847439</div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
