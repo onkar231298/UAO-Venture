@@ -9,6 +9,9 @@ interface OptimizedImageProps {
   onError?: () => void;
   priority?: boolean; // For above-the-fold images
   lazy?: boolean; // Enable lazy loading
+  width?: number; // Target width for optimization
+  height?: number; // Target height for optimization
+  quality?: number; // Image quality (1-100)
 }
 
 export default function OptimizedImage({
@@ -19,13 +22,40 @@ export default function OptimizedImage({
   onLoad,
   onError,
   priority = false,
-  lazy = true
+  lazy = true,
+  width,
+  height,
+  quality = 75
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isInView, setIsInView] = useState(!lazy || priority);
+  const [optimizedSrc, setOptimizedSrc] = useState(src);
   const imgRef = useRef<HTMLImageElement>(null);
   const observerRef = useRef<IntersectionObserver>();
+
+  // Generate optimized image URL for better performance
+  useEffect(() => {
+    if (!src) return;
+    
+    // For external URLs (AWS S3, etc.), use query parameters for optimization
+    if (src.startsWith('http')) {
+      const url = new URL(src);
+      
+      // Add compression parameters if width/height specified
+      if (width) url.searchParams.set('w', width.toString());
+      if (height) url.searchParams.set('h', height.toString());
+      if (quality !== 75) url.searchParams.set('q', quality.toString());
+      
+      // Request WebP format for better compression
+      url.searchParams.set('f', 'webp');
+      
+      setOptimizedSrc(url.toString());
+    } else {
+      // For local images, use as-is (Vite handles optimization)
+      setOptimizedSrc(src);
+    }
+  }, [src, width, height, quality]);
 
   // Set up intersection observer for lazy loading
   useEffect(() => {
