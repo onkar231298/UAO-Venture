@@ -26,7 +26,7 @@ import {
   AlertCircle,
   MessageSquare
 } from "lucide-react";
-import type { Product, Category } from "@shared/schema";
+import type { Product, Category, ProductType } from "@shared/schema";
 
 interface ComprehensiveProductFormProps {
   product?: Product;
@@ -110,8 +110,13 @@ export default function ComprehensiveProductForm({
   const [availableTags, setAvailableTags] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<{id: number, isPrimary: boolean}[]>([]);
   const [primaryCategoryId, setPrimaryCategoryId] = useState<number | null>(null);
+  
+  // Product Types state
+  const [selectedProductTypes, setSelectedProductTypes] = useState<{id: number, isPrimary: boolean}[]>([]);
+  const [primaryProductTypeId, setPrimaryProductTypeId] = useState<number | null>(null);
+  const [availableProductTypes, setAvailableProductTypes] = useState<ProductType[]>([]);
 
-  // Fetch available tags
+  // Fetch available tags and product types
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -128,7 +133,25 @@ export default function ComprehensiveProductForm({
         console.error('Failed to fetch tags:', error);
       }
     };
+
+    const fetchProductTypes = async () => {
+      try {
+        console.log('Fetching product types from API...');
+        const response = await fetch('/api/product-types');
+        if (response.ok) {
+          const productTypes = await response.json();
+          console.log('Product types fetched:', productTypes);
+          setAvailableProductTypes(productTypes);
+        } else {
+          console.error('Failed to fetch product types, status:', response.status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch product types:', error);
+      }
+    };
+
     fetchTags();
+    fetchProductTypes();
   }, []);
 
   // Load existing categories for editing
@@ -159,6 +182,33 @@ export default function ComprehensiveProductForm({
       // For legacy products with single categoryId, set as primary
       setSelectedCategories([{ id: parseInt(product.categoryId.toString()), isPrimary: true }]);
       setPrimaryCategoryId(parseInt(product.categoryId.toString()));
+    }
+  }, [product]);
+
+  // Load existing product types for editing
+  useEffect(() => {
+    if (product && product.id) {
+      const loadProductTypes = async () => {
+        try {
+          const response = await fetch(`/api/products/${product.id}/types`);
+          if (response.ok) {
+            const productTypes = await response.json();
+            if (productTypes && productTypes.length > 0) {
+              setSelectedProductTypes(productTypes.map((type: any) => ({
+                id: type.id,
+                isPrimary: type.isPrimary
+              })));
+              const primary = productTypes.find((type: any) => type.isPrimary);
+              if (primary) {
+                setPrimaryProductTypeId(primary.id);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load product types:', error);
+        }
+      };
+      loadProductTypes();
     }
   }, [product]);
 
@@ -254,6 +304,25 @@ export default function ComprehensiveProductForm({
       });
       return;
     }
+
+    // Validate product types
+    if (selectedProductTypes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one product type",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!primaryProductTypeId) {
+      toast({
+        title: "Error", 
+        description: "Please select a primary product type",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Clean and convert form data to proper types
     const cleanedData = {
@@ -291,6 +360,13 @@ export default function ComprehensiveProductForm({
         isPrimary: cat.id === primaryCategoryId
       })),
       primaryCategoryId,
+      
+      // Include selected product types
+      selectedProductTypes: selectedProductTypes.map(type => ({
+        typeId: type.id,
+        isPrimary: type.id === primaryProductTypeId
+      })),
+      primaryProductTypeId,
     };
     
     // Remove undefined values to avoid sending empty data
@@ -753,27 +829,145 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
 
-          {/* Product Type Selection */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="productType">Product Type *</Label>
-              <Select value={formData.productType} onValueChange={(value) => setFormData(prev => ({ ...prev, productType: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="organic">Organic</SelectItem>
-                  <SelectItem value="natural">Natural</SelectItem>
-                  <SelectItem value="conventional">Conventional</SelectItem>
-                  <SelectItem value="synthetic">Synthetic</SelectItem>
-                  <SelectItem value="nature_identical">Nature Identical</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">This will appear as a green badge on product cards</p>
-            </div>
-            <div>
-              {/* Empty space for visual balance */}
+          {/* Multiple Product Type Selection */}
+          <div className="border-t pt-4 mt-4">
+            <Label className="text-base font-semibold">Product Types *</Label>
+            <p className="text-sm text-gray-600 mb-3">Select one or more product types. One type must be marked as primary and will appear on product cards.</p>
+            
+            {/* Selected Product Types Display */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md bg-gray-50">
+                {selectedProductTypes.length > 0 ? (
+                  selectedProductTypes.map((typeSelection) => {
+                    const type = availableProductTypes.find(t => t.id === typeSelection.id);
+                    if (!type) return null;
+                    return (
+                      <Badge 
+                        key={type.id} 
+                        variant="secondary" 
+                        className={`flex items-center gap-1 ${
+                          typeSelection.isPrimary 
+                            ? 'bg-green-100 text-green-800 border-green-200 ring-2 ring-green-300' 
+                            : 'bg-blue-100 text-blue-800 border-blue-200'
+                        }`}
+                        style={{ backgroundColor: typeSelection.isPrimary ? type.color + '20' : type.color + '10' }}
+                      >
+                        {typeSelection.isPrimary && <span className="text-xs">★</span>}
+                        {type.name}
+                        <X 
+                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
+                          onClick={() => {
+                            const newTypes = selectedProductTypes.filter(t => t.id !== type.id);
+                            setSelectedProductTypes(newTypes);
+                            if (typeSelection.isPrimary && newTypes.length > 0) {
+                              // Auto-assign new primary if we removed the primary type
+                              const newPrimary = newTypes[0];
+                              newPrimary.isPrimary = true;
+                              setPrimaryProductTypeId(newPrimary.id);
+                              setSelectedProductTypes([...newTypes]);
+                            } else if (typeSelection.isPrimary) {
+                              setPrimaryProductTypeId(null);
+                            }
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })
+                ) : (
+                  <span className="text-gray-500 text-sm">No product types selected</span>
+                )}
+              </div>
+              
+              {/* Product Type Selection Checkboxes */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Available Product Types:</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-white">
+                  {availableProductTypes.length > 0 ? (
+                    availableProductTypes.map(type => {
+                      const isSelected = selectedProductTypes.some(t => t.id === type.id);
+                      const isPrimary = selectedProductTypes.find(t => t.id === type.id)?.isPrimary || false;
+                      
+                      return (
+                        <div key={type.id} className="space-y-1">
+                          <div className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded">
+                            <input
+                              type="checkbox"
+                              id={`producttype-${type.id}`}
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                
+                                if (isChecked) {
+                                  // Add product type
+                                  const newSelection = { id: type.id, isPrimary: selectedProductTypes.length === 0 };
+                                  const newTypes = [...selectedProductTypes, newSelection];
+                                  setSelectedProductTypes(newTypes);
+                                  
+                                  if (newSelection.isPrimary) {
+                                    setPrimaryProductTypeId(type.id);
+                                  }
+                                } else {
+                                  // Remove product type
+                                  const newTypes = selectedProductTypes.filter(t => t.id !== type.id);
+                                  setSelectedProductTypes(newTypes);
+                                  
+                                  if (isPrimary && newTypes.length > 0) {
+                                    // Auto-assign new primary
+                                    const newPrimary = newTypes[0];
+                                    newPrimary.isPrimary = true;
+                                    setPrimaryProductTypeId(newPrimary.id);
+                                    setSelectedProductTypes([...newTypes]);
+                                  } else if (isPrimary) {
+                                    setPrimaryProductTypeId(null);
+                                  }
+                                }
+                              }}
+                              className="w-4 h-4 text-green-600"
+                            />
+                            <Label htmlFor={`producttype-${type.id}`} className="text-sm cursor-pointer flex-1">
+                              <span style={{ color: type.color }}>{type.name}</span>
+                              {isPrimary && <span className="ml-1 text-xs text-green-600">★ Primary</span>}
+                            </Label>
+                          </div>
+                          
+                          {/* Primary Type Selection Radio */}
+                          {isSelected && (
+                            <div className="ml-6 flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="primaryProductType"
+                                id={`primary-${type.id}`}
+                                checked={isPrimary}
+                                onChange={() => {
+                                  // Update primary type
+                                  const newTypes = selectedProductTypes.map(t => ({
+                                    ...t,
+                                    isPrimary: t.id === type.id
+                                  }));
+                                  setSelectedProductTypes(newTypes);
+                                  setPrimaryProductTypeId(type.id);
+                                }}
+                                className="w-3 h-3 text-green-600"
+                              />
+                              <Label htmlFor={`primary-${type.id}`} className="text-xs text-gray-600 cursor-pointer">
+                                Set as primary (appears on product cards)
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-gray-500 text-sm col-span-2">Loading product types...</span>
+                  )}
+                </div>
+              </div>
+              
+              {selectedProductTypes.length > 0 && !primaryProductTypeId && (
+                <div className="text-orange-600 text-sm bg-orange-50 p-2 rounded border border-orange-200">
+                  ⚠️ Please select a primary product type that will appear on product cards.
+                </div>
+              )}
             </div>
           </div>
 

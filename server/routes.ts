@@ -2146,7 +2146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new product
   app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
-      const { selectedCategories, ...productData } = req.body;
+      const { selectedCategories, selectedProductTypes, ...productData } = req.body;
       const parsedProductData = insertProductSchema.parse(productData);
       parsedProductData.createdBy = (req.user as any)?.claims?.sub;
       parsedProductData.updatedBy = (req.user as any)?.claims?.sub;
@@ -2157,6 +2157,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (selectedCategories && Array.isArray(selectedCategories) && selectedCategories.length > 0) {
         for (const categoryData of selectedCategories) {
           await storage.addProductToCategory(product.id, categoryData.categoryId, categoryData.isPrimary);
+        }
+      }
+      
+      // Handle multiple product types if provided
+      if (selectedProductTypes && Array.isArray(selectedProductTypes) && selectedProductTypes.length > 0) {
+        for (const typeData of selectedProductTypes) {
+          await storage.addProductToType(product.id, typeData.typeId, typeData.isPrimary);
         }
       }
       
@@ -2188,7 +2195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      const { selectedCategories, ...productData } = req.body;
+      const { selectedCategories, selectedProductTypes, ...productData } = req.body;
       const parsedProductData = insertProductSchema.partial().parse(productData);
       parsedProductData.updatedBy = (req.user as any)?.claims?.sub;
       
@@ -2216,6 +2223,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             // Add new relation
             await storage.addProductToCategory(productId, categoryData.categoryId, categoryData.isPrimary);
+          }
+        }
+      }
+      
+      // Handle multiple product types update if provided
+      if (selectedProductTypes && Array.isArray(selectedProductTypes)) {
+        // Get current product types for this product
+        const currentTypes = await storage.getProductTypesForProduct(productId);
+        const currentTypeIds = currentTypes.map((t: any) => t.id);
+        const newTypeIds = selectedProductTypes.map(t => t.typeId);
+        
+        // Remove types that are no longer selected
+        for (const currentTypeId of currentTypeIds) {
+          if (!newTypeIds.includes(currentTypeId)) {
+            await storage.removeProductFromType(productId, currentTypeId);
+          }
+        }
+        
+        // Add or update product types
+        for (const typeData of selectedProductTypes) {
+          if (currentTypeIds.includes(typeData.typeId)) {
+            // Update existing relation
+            await storage.updateProductTypeRelation(productId, typeData.typeId, typeData.isPrimary);
+          } else {
+            // Add new relation
+            await storage.addProductToType(productId, typeData.typeId, typeData.isPrimary);
           }
         }
       }
