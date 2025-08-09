@@ -9,6 +9,8 @@ import {
   insertCategorySchema,
   insertProductTypeSchema,
   insertProductTypeRelationSchema,
+  insertHealthSupportSchema,
+  insertHealthSupportRelationSchema,
   insertProductTagSchema,
   insertHeroSliderSchema,
   insertProductDocumentSchema,
@@ -759,6 +761,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error bulk assigning product types:", error);
       res.status(500).json({ message: "Failed to bulk assign product types" });
+    }
+  });
+
+  // Health Support routes
+  app.get('/api/health-supports', async (req, res) => {
+    try {
+      const healthSupports = await storage.getHealthSupports();
+      res.json(healthSupports);
+    } catch (error) {
+      console.error("Error fetching health supports:", error);
+      res.status(500).json({ message: "Failed to fetch health supports" });
+    }
+  });
+
+  app.post('/api/health-supports', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertHealthSupportSchema.parse(req.body);
+      const newHealthSupport = await storage.createHealthSupport(validatedData);
+      res.status(201).json(newHealthSupport);
+    } catch (error) {
+      console.error("Error creating health support:", error);
+      res.status(500).json({ message: "Failed to create health support" });
+    }
+  });
+
+  app.put('/api/health-supports/:id', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertHealthSupportSchema.partial().parse(req.body);
+      const updatedHealthSupport = await storage.updateHealthSupport(id, validatedData);
+      res.json(updatedHealthSupport);
+    } catch (error) {
+      console.error("Error updating health support:", error);
+      res.status(500).json({ message: "Failed to update health support" });
+    }
+  });
+
+  app.delete('/api/health-supports/:id', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteHealthSupport(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting health support:", error);
+      res.status(500).json({ message: "Failed to delete health support" });
+    }
+  });
+
+  // Health Support-Product relationship routes
+  app.get('/api/products/:productId/health-supports', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const healthSupports = await storage.getHealthSupportsForProduct(productId);
+      res.json(healthSupports);
+    } catch (error) {
+      console.error("Error fetching product health supports:", error);
+      res.status(500).json({ message: "Failed to fetch product health supports" });
+    }
+  });
+
+  app.post('/api/products/:productId/health-supports', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { healthSupportId, isPrimary } = req.body;
+      await storage.addHealthSupportToProduct(productId, healthSupportId, isPrimary);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding health support to product:", error);
+      res.status(500).json({ message: "Failed to add health support to product" });
+    }
+  });
+
+  app.delete('/api/products/:productId/health-supports/:healthSupportId', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const healthSupportId = parseInt(req.params.healthSupportId);
+      await storage.removeHealthSupportFromProduct(productId, healthSupportId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing health support from product:", error);
+      res.status(500).json({ message: "Failed to remove health support from product" });
+    }
+  });
+
+  app.post('/api/products/:productId/health-supports/bulk', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { healthSupportAssignments } = req.body;
+      await storage.setProductHealthSupports(productId, healthSupportAssignments);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error bulk updating product health supports:", error);
+      res.status(500).json({ message: "Failed to bulk update product health supports" });
     }
   });
 

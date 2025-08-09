@@ -14,6 +14,8 @@ import {
   productCategoryRelations,
   productTypes,
   productTypeRelations,
+  healthSupports,
+  healthSupportRelations,
   heroSlides,
   sampleRequests,
   type User,
@@ -31,6 +33,12 @@ import {
   type InsertProductType,
   type ProductTypeRelation,
   type InsertProductTypeRelation,
+  type HealthSupport,
+  type InsertHealthSupport,
+  type HealthSupportRelation,
+  type InsertHealthSupportRelation,
+  type ProductWithHealthSupports,
+  type ProductWithAll,
   type Inquiry,
   type InsertInquiry,
   type Quotation,
@@ -157,6 +165,16 @@ export interface IStorage {
   removeProductFromType(productId: number, typeId: number): Promise<void>;
   updateProductTypeRelation(productId: number, typeId: number, isPrimary: boolean): Promise<ProductTypeRelation>;
   getProductTypesForProduct(productId: number): Promise<(ProductType & { isPrimary: boolean })[]>;
+
+  // Health Support operations
+  getHealthSupports(): Promise<HealthSupport[]>;
+  createHealthSupport(data: InsertHealthSupport): Promise<HealthSupport>;
+  updateHealthSupport(id: number, data: Partial<InsertHealthSupport>): Promise<HealthSupport>;
+  deleteHealthSupport(id: number): Promise<void>;
+  getHealthSupportsForProduct(productId: number): Promise<(HealthSupport & { isPrimary: boolean })[]>;
+  addHealthSupportToProduct(productId: number, healthSupportId: number, isPrimary?: boolean): Promise<void>;
+  removeHealthSupportFromProduct(productId: number, healthSupportId: number): Promise<void>;
+  setProductHealthSupports(productId: number, healthSupportAssignments: { healthSupportId: number; isPrimary: boolean }[]): Promise<void>;
 
   // Product tags operations
   getAllProductTags(): Promise<ProductTag[]>;
@@ -578,6 +596,51 @@ export class DatabaseStorage implements IStorage {
         conditions.push(eq(products.id, -1));
       }
     }
+
+    // Health Support filter using junction table (digestive-support, immune-support, etc.)
+    // Products appear in filter if they have ANY relationship to the selected health supports (primary OR secondary)
+    if (filters?.healthSupport && filters.healthSupport.length > 0) {
+      const healthSupportFilters = filters.healthSupport;
+      
+      // Get health support IDs by slug or name
+      const healthSupportResults = await db
+        .select({ id: healthSupports.id })
+        .from(healthSupports)
+        .where(
+          and(
+            or(...healthSupportFilters.map(filter => 
+              or(
+                eq(healthSupports.slug, filter),
+                sql`LOWER(${healthSupports.name}) = LOWER(${filter})`
+              )
+            )),
+            eq(healthSupports.isActive, true)
+          )
+        );
+      
+      if (healthSupportResults.length > 0) {
+        const healthSupportIds = healthSupportResults.map(hs => hs.id);
+        
+        // Use junction table to find products with ANY of these health supports (primary OR secondary)
+        const productsWithHealthSupports = await db
+          .select({ productId: healthSupportRelations.productId })
+          .from(healthSupportRelations)
+          .where(
+            or(...healthSupportIds.map(id => eq(healthSupportRelations.healthSupportId, id)))
+          );
+        
+        if (productsWithHealthSupports.length > 0) {
+          const productIds = productsWithHealthSupports.map(p => p.productId);
+          conditions.push(or(...productIds.map(id => eq(products.id, id))));
+        } else {
+          // Add a condition that will return no results
+          conditions.push(eq(products.id, -1));
+        }
+      } else {
+        // Add a condition that will return no results
+        conditions.push(eq(products.id, -1));
+      }
+    }
     
     // Organic filter - based on productType containing 'organic'
     if (filters?.isOrganic !== undefined) {
@@ -586,14 +649,6 @@ export class DatabaseStorage implements IStorage {
       } else {
         conditions.push(sql`${products.productType} NOT ILIKE '%organic%'`);
       }
-    }
-
-    // Health Support filter
-    if (filters?.healthSupport && filters.healthSupport.length > 0) {
-      const healthConditions = filters.healthSupport.map(health => 
-        sql`${products.healthSupport} ILIKE ${`%${health}%`}`
-      );
-      conditions.push(or(...healthConditions));
     }
 
     // Origin filter
@@ -1483,6 +1538,124 @@ export class DatabaseStorage implements IStorage {
       ...rel.type,
       isPrimary: rel.isPrimary,
     }));
+  }
+
+  // Health Support operations
+  async getHealthSupports(): Promise<HealthSupport[]> {
+    return await db
+      .select()
+      .from(healthSupports)
+      .where(eq(healthSupports.isActive, true))
+      .orderBy(asc(healthSupports.name));
+  }
+
+  async createHealthSupport(data: InsertHealthSupport): Promise<HealthSupport> {
+    // Auto-generate slug if not provided
+    const healthSupportData = {
+      ...data,
+      slug: data.slug || this.generateSlug(data.name)
+    };
+
+    const [newHealthSupport] = await db
+      .insert(healthSupports)
+      .values([healthSupportData])
+      .returning();
+
+    return newHealthSupport;
+  }
+
+  async updateHealthSupport(id: number, data: Partial<InsertHealthSupport>): Promise<HealthSupport> {
+    // Auto-generate slug if name is being updated
+    const updateData = {
+      ...data,
+      ...(data.name && !data.slug ? { slug: this.generateSlug(data.name) } : {})
+    };
+
+    const [updatedHealthSupport] = await db
+      .update(healthSupports)
+      .set(updateData)
+      .where(eq(healthSupports.id, id))
+      .returning();
+
+    return updatedHealthSupport;
+  }
+
+  async deleteHealthSupport(id: number): Promise<void> {
+    // Soft delete - mark as inactive
+    await db
+      .update(healthSupports)
+      .set({ isActive: false })
+      .where(eq(healthSupports.id, id));
+  }
+
+  async getHealthSupportsForProduct(productId: number): Promise<(HealthSupport & { isPrimary: boolean })[]> {
+    const healthSupportsWithPrimary = await db
+      .select({
+        healthSupport: healthSupports,
+        isPrimary: healthSupportRelations.isPrimary
+      })
+      .from(healthSupportRelations)
+      .innerJoin(healthSupports, eq(healthSupportRelations.healthSupportId, healthSupports.id))
+      .where(eq(healthSupportRelations.productId, productId))
+      .orderBy(desc(healthSupportRelations.isPrimary), asc(healthSupports.name));
+
+    return healthSupportsWithPrimary.map(({ healthSupport, isPrimary }) => ({
+      ...healthSupport,
+      isPrimary
+    }));
+  }
+
+  async addHealthSupportToProduct(productId: number, healthSupportId: number, isPrimary: boolean = false): Promise<void> {
+    // If this is set as primary, remove primary flag from other health supports for this product
+    if (isPrimary) {
+      await db
+        .update(healthSupportRelations)
+        .set({ isPrimary: false })
+        .where(eq(healthSupportRelations.productId, productId));
+    }
+
+    await db
+      .insert(healthSupportRelations)
+      .values([{
+        productId,
+        healthSupportId,
+        isPrimary
+      }])
+      .onConflictDoUpdate({
+        target: [healthSupportRelations.productId, healthSupportRelations.healthSupportId],
+        set: { isPrimary }
+      });
+  }
+
+  async removeHealthSupportFromProduct(productId: number, healthSupportId: number): Promise<void> {
+    await db
+      .delete(healthSupportRelations)
+      .where(
+        and(
+          eq(healthSupportRelations.productId, productId),
+          eq(healthSupportRelations.healthSupportId, healthSupportId)
+        )
+      );
+  }
+
+  async setProductHealthSupports(productId: number, healthSupportAssignments: { healthSupportId: number; isPrimary: boolean }[]): Promise<void> {
+    // Remove existing health support assignments
+    await db
+      .delete(healthSupportRelations)
+      .where(eq(healthSupportRelations.productId, productId));
+
+    // Add new assignments
+    if (healthSupportAssignments.length > 0) {
+      await db
+        .insert(healthSupportRelations)
+        .values(
+          healthSupportAssignments.map(assignment => ({
+            productId,
+            healthSupportId: assignment.healthSupportId,
+            isPrimary: assignment.isPrimary
+          }))
+        );
+    }
   }
 
   // Product-Category relationship operations

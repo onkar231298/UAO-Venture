@@ -184,15 +184,13 @@ export default function Products() {
     queryKey: ["/api/product-types"],
   });
 
-  // Extract unique filter options from products
-  const healthSupportOptions = [
-    "Stress Relief", "Cognitive Function", "Stress & Mood Support", 
-    "Cardiovascular Support", "Cognitive Support", "Anti-inflammatory",
-    "Antioxidant", "Digestive Support", "Hormonal Balance", 
-    "Immune Support", "Skin Health", "Energy & Vitality",
-    "Respiratory Support", "Joint & Bone Health", "Weight Management", 
-    "Detoxification", "Sleep Support"
-  ];
+  // Fetch health supports
+  const { data: healthSupports = [] } = useQuery({
+    queryKey: ["/api/health-supports"],
+  });
+
+  // Convert health supports to options format
+  const healthSupportOptions = healthSupports.map((hs: any) => hs.name);
 
   const originOptions = [
     "India", "China", "United States", "Germany", "Brazil", "Mexico",

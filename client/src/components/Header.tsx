@@ -47,6 +47,11 @@ export default function Header() {
     queryKey: ["/api/categories"],
   });
 
+  // Fetch health supports for health support dropdown
+  const { data: healthSupports = [] } = useQuery({
+    queryKey: ["/api/health-supports"],
+  });
+
   // Fetch search suggestions when user types
   const { data: suggestionsData } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", searchQuery],
@@ -249,6 +254,80 @@ export default function Header() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              {/* Health Support Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                    Health Support <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
+                  {/* All Health Support Link */}
+                  <Link href="/products?healthSupport=all">
+                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
+                      All Health Support
+                    </DropdownMenuItem>
+                  </Link>
+                  
+                  <DropdownMenuSeparator className="mb-2" />
+                  
+                  {/* Health Supports in Three Columns */}
+                  <div className="grid grid-cols-3 gap-1">
+                    {healthSupports && healthSupports.length > 0 ? healthSupports.map((healthSupport: any) => {
+                      return (
+                        <Link key={healthSupport.id} href={`/health-support/${healthSupport.slug}`}>
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            {healthSupport.name}
+                          </DropdownMenuItem>
+                        </Link>
+                      );
+                    }) : (
+                      <>
+                        {/* Fallback health supports for immediate display */}
+                        <Link href="/health-support/digestive-support">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Digestive Support
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/health-support/immune-support">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Immune Support
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/health-support/cognitive-support">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Cognitive Support
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/health-support/stress-relief">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Stress Relief
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/health-support/energy-vitality">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Energy & Vitality
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/health-support/cardiovascular-support">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                            Cardiovascular Support
+                          </DropdownMenuItem>
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Show loading only if health supports array is empty and loading */}
+                  {(!healthSupports || healthSupports.length === 0) && (
+                    <div className="text-sm text-gray-500 text-center py-2">
+                      {healthSupports === undefined ? 'Loading health supports...' : 'No health supports available'}
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Link href="/about" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/about' ? 'text-green-600 border-green-600' : ''}`}>
                 About
               </Link>
@@ -440,6 +519,13 @@ export default function Header() {
               onClick={() => setShowMobileMenu(false)}
             >
               All Ingredients
+            </Link>
+            <Link 
+              href="/products?healthSupport=all" 
+              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location.startsWith('/health-support') ? 'text-green-600 font-medium' : ''}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Health Support
             </Link>
             <Link 
               href="/blog" 
