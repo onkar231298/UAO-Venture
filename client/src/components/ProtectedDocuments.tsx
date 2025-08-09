@@ -18,6 +18,14 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
 
   const isLoggedIn = isAuthenticated || isCustomerAuthenticated;
 
+  console.log('ProtectedDocuments Debug:', {
+    isAuthenticated,
+    isCustomerAuthenticated,
+    isLoggedIn,
+    user: isAuthenticated ? 'admin user' : null,
+    customer: isCustomerAuthenticated ? 'customer user' : null
+  });
+
   const companyDocs = [
     { name: 'Business License', url: product.businessLicense },
     { name: 'Certificate of Registration', url: product.registrationCert },
