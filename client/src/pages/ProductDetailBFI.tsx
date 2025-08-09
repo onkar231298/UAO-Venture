@@ -4,6 +4,7 @@ import ProductFAQs from "@/components/ProductFAQs";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
 import ScrollableProductSection from "@/components/ScrollableProductSection";
+import ProtectedDocuments from "@/components/ProtectedDocuments";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
@@ -372,139 +373,7 @@ export default function ProductDetailBFI() {
               )}
 
               {/* Document Downloads */}
-              <Card className="mb-6">
-                <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
-                  <CardTitle className="text-base font-semibold text-blue-900 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    All Product Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {!isAuthenticated && !isCustomerAuthenticated ? (
-                    <div className="text-center py-4 bg-gray-50 rounded">
-                      <p className="text-sm text-gray-600 mb-3">You must log in to view documents</p>
-                      <Button size="sm" onClick={() => window.location.href = '/login'}>
-                        Log in
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          const allDocs = [
-                            product.businessLicense,
-                            product.registrationCert,
-                            product.kosherCert,
-                            product.organicNopCert,
-                            product.coaDocument,
-                            product.specDocument,
-                            product.msdsDocument,
-                            product.nonGmoDocument,
-                            ...(product.additionalDocs && Array.isArray(product.additionalDocs) ? product.additionalDocs : [])
-                          ].filter(Boolean);
-                          
-                          if (allDocs.length === 0) {
-                            toast({
-                              title: "No Documents",
-                              description: "No documents are available for this product",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          
-                          allDocs.forEach(url => window.open(url, '_blank'));
-                        }}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download All ({[
-                          product.businessLicense,
-                          product.registrationCert,
-                          product.kosherCert,
-                          product.organicNopCert,
-                          product.coaDocument,
-                          product.specDocument,
-                          product.msdsDocument,
-                          product.nonGmoDocument,
-                          ...(product.additionalDocs && Array.isArray(product.additionalDocs) ? product.additionalDocs : [])
-                        ].filter(Boolean).length})
-                      </Button>
-                      <Separator />
-                      
-                      {/* Company Documents */}
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-gray-700 mb-2">Company Specific Documents</p>
-                        {[
-                          { name: 'Business License', url: product.businessLicense },
-                          { name: 'Certificate of Registration', url: product.registrationCert },
-                          { name: 'KOSHER-OK', url: product.kosherCert },
-                          { name: 'Organic-NOP(USDA)', url: product.organicNopCert }
-                        ].map((doc) => (
-                          <Button 
-                            key={doc.name} 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={() => doc.url ? window.open(doc.url, '_blank') : null}
-                            disabled={!doc.url}
-                          >
-                            <FileText className="w-3 h-3 mr-2" />
-                            {doc.name} 
-                            <span className={`ml-auto ${doc.url ? 'text-blue-600' : 'text-gray-400'}`}>
-                              {doc.url ? 'Download PDF' : 'Not Available'}
-                            </span>
-                          </Button>
-                        ))}
-                      </div>
-
-                      <Separator />
-                      
-                      {/* Product Documents */}
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-gray-700 mb-2">Product Specific Documents</p>
-                        {[
-                          { name: 'COA Document', url: product.coaDocument },
-                          { name: 'Specification Sheet', url: product.specDocument },
-                          { name: 'MSDS Documents', url: product.msdsDocument },
-                          { name: 'Non GMO Statement', url: product.nonGmoDocument }
-                        ].map((doc) => (
-                          <Button 
-                            key={doc.name} 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={() => doc.url ? window.open(doc.url, '_blank') : null}
-                            disabled={!doc.url}
-                          >
-                            <FileText className="w-3 h-3 mr-2" />
-                            {doc.name} 
-                            <span className={`ml-auto ${doc.url ? 'text-blue-600' : 'text-gray-400'}`}>
-                              {doc.url ? 'Download PDF' : 'Not Available'}
-                            </span>
-                          </Button>
-                        ))}
-                        {/* Additional Documents */}
-                        {product.additionalDocs && Array.isArray(product.additionalDocs) && product.additionalDocs.length > 0 ? (
-                          product.additionalDocs.map((docUrl: string, index: number) => (
-                            <Button 
-                              key={`additional-${index}`} 
-                              variant="ghost" 
-                              size="sm" 
-                              className="w-full justify-start text-xs h-8"
-                              onClick={() => window.open(docUrl, '_blank')}
-                            >
-                              <FileText className="w-3 h-3 mr-2" />
-                              Additional Document {index + 1} <span className="text-blue-600 ml-auto">Download PDF</span>
-                            </Button>
-                          ))
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <ProtectedDocuments product={product} />
 
 
             </div>
