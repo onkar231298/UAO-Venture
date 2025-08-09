@@ -436,51 +436,55 @@ export default function ComprehensiveProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 max-h-[85vh] overflow-y-auto p-2 sm:p-0">
       {/* Basic Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
+      <Card className="shadow-sm border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl text-gray-800">Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Product Name *</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Product Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 required
+                className="h-10 text-base"
               />
             </div>
-            <div>
-              <Label htmlFor="productId">Product ID</Label>
+            <div className="space-y-2">
+              <Label htmlFor="productId" className="text-sm font-medium text-gray-700">Product ID</Label>
               <Input
                 id="productId"
                 value={formData.productId}
                 onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
                 placeholder="Auto-generated if left empty"
+                className="h-10 text-base"
               />
             </div>
           </div>
           
-          <div>
-            <Label htmlFor="slug">URL Slug *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="slug" className="text-sm font-medium text-gray-700">URL Slug *</Label>
             <Input
               id="slug"
               value={formData.slug}
               onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
               required
+              className="h-10 text-base"
             />
           </div>
           
-          <div>
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
+              className="text-base resize-none"
             />
           </div>
 
@@ -694,123 +698,124 @@ export default function ComprehensiveProductForm({
       </Card>
 
       {/* Product Classification */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Classification</CardTitle>
+      <Card className="shadow-sm border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl text-gray-800">Product Classification</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="botanicalName">Botanical Name</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="botanicalName" className="text-sm font-medium text-gray-700">Botanical Name</Label>
               <Input
                 id="botanicalName"
                 value={formData.botanicalName}
                 onChange={(e) => setFormData(prev => ({ ...prev, botanicalName: e.target.value }))}
+                className="h-10 text-base"
               />
             </div>
-            <div>
-              <Label htmlFor="plantPart">Plant Part</Label>
+            <div className="space-y-2">
+              <Label htmlFor="plantPart" className="text-sm font-medium text-gray-700">Plant Part</Label>
               <Input
                 id="plantPart"
                 value={formData.plantPart}
                 onChange={(e) => setFormData(prev => ({ ...prev, plantPart: e.target.value }))}
+                className="h-10 text-base"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="origin">Origin</Label>
-              <Select value={formData.origin} onValueChange={(value) => setFormData(prev => ({ ...prev, origin: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select origin country" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="India">India</SelectItem>
-                  <SelectItem value="China">China</SelectItem>
-                  <SelectItem value="United States">United States</SelectItem>
-                  <SelectItem value="Germany">Germany</SelectItem>
-                  <SelectItem value="Brazil">Brazil</SelectItem>
-                  <SelectItem value="Mexico">Mexico</SelectItem>
-                  <SelectItem value="Turkey">Turkey</SelectItem>
-                  <SelectItem value="Egypt">Egypt</SelectItem>
-                  <SelectItem value="Madagascar">Madagascar</SelectItem>
-                  <SelectItem value="Sri Lanka">Sri Lanka</SelectItem>
-                  <SelectItem value="Indonesia">Indonesia</SelectItem>
-                  <SelectItem value="Peru">Peru</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="space-y-2">
+            <Label htmlFor="origin" className="text-sm font-medium text-gray-700">Origin</Label>
+            <Select value={formData.origin} onValueChange={(value) => setFormData(prev => ({ ...prev, origin: value }))}>
+              <SelectTrigger className="h-10 text-base">
+                <SelectValue placeholder="Select origin country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="India">India</SelectItem>
+                <SelectItem value="China">China</SelectItem>
+                <SelectItem value="United States">United States</SelectItem>
+                <SelectItem value="Germany">Germany</SelectItem>
+                <SelectItem value="Brazil">Brazil</SelectItem>
+                <SelectItem value="Mexico">Mexico</SelectItem>
+                <SelectItem value="Turkey">Turkey</SelectItem>
+                <SelectItem value="Egypt">Egypt</SelectItem>
+                <SelectItem value="Madagascar">Madagascar</SelectItem>
+                <SelectItem value="Sri Lanka">Sri Lanka</SelectItem>
+                <SelectItem value="Indonesia">Indonesia</SelectItem>
+                <SelectItem value="Peru">Peru</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="categories">Categories *</Label>
-              <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
-                <div className="text-sm text-gray-600 mb-2">Select one or more categories. Check the "Primary" box for the main category.</div>
-                {categories.map(category => {
-                  const isSelected = selectedCategories.some(sc => sc.id === category.id);
-                  const isPrimary = primaryCategoryId === category.id;
-                  
-                  return (
-                    <div key={category.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`category-${category.id}`}
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              // Add category
-                              const newCategories = [...selectedCategories, { id: category.id, isPrimary: false }];
-                              setSelectedCategories(newCategories);
-                              // If this is the first category, make it primary
-                              if (newCategories.length === 1) {
-                                setPrimaryCategoryId(category.id);
-                              }
-                            } else {
-                              // Remove category
-                              setSelectedCategories(prev => prev.filter(sc => sc.id !== category.id));
-                              // If this was the primary category, clear primary
-                              if (isPrimary) {
-                                setPrimaryCategoryId(null);
-                              }
+          <div className="space-y-2">
+            <Label htmlFor="categories" className="text-sm font-medium text-gray-700">Categories *</Label>
+            <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-gray-50">
+              <div className="text-sm text-gray-600 mb-3">Select one or more categories. Check the "Primary" box for the main category.</div>
+              {categories.map(category => {
+                const isSelected = selectedCategories.some(sc => sc.id === category.id);
+                const isPrimary = primaryCategoryId === category.id;
+                
+                return (
+                  <div key={category.id} className="flex items-center justify-between py-3 sm:py-2 border-b last:border-b-0">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id={`category-${category.id}`}
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const newCategories = [...selectedCategories, { id: category.id, isPrimary: false }];
+                            setSelectedCategories(newCategories);
+                            if (newCategories.length === 1) {
+                              setPrimaryCategoryId(category.id);
                             }
-                          }}
-                          className="rounded border-gray-300"
-                        />
-                        <label htmlFor={`category-${category.id}`} className="text-sm font-medium">
-                          {category.name}
-                        </label>
-                      </div>
-                      {isSelected && (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            name="primaryCategory"
-                            checked={isPrimary}
-                            onChange={() => setPrimaryCategoryId(category.id)}
-                            className="text-green-600"
-                          />
-                          <label className="text-xs text-gray-500">Primary</label>
-                        </div>
-                      )}
+                          } else {
+                            setSelectedCategories(prev => prev.filter(sc => sc.id !== category.id));
+                            if (isPrimary) {
+                              setPrimaryCategoryId(null);
+                            }
+                          }
+                        }}
+                        className="rounded border-gray-300 w-4 h-4"
+                      />
+                      <label htmlFor={`category-${category.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        {category.name}
+                      </label>
                     </div>
-                  );
-                })}
-                {selectedCategories.length === 0 && (
-                  <div className="text-sm text-red-500 mt-2">Please select at least one category</div>
-                )}
-              </div>
+                    {isSelected && (
+                      <div className="flex items-center space-x-2 ml-2">
+                        <input
+                          type="radio"
+                          name="primaryCategory"
+                          checked={isPrimary}
+                          onChange={() => setPrimaryCategoryId(category.id)}
+                          className="text-green-600 w-3 h-3"
+                        />
+                        <label className="text-xs text-gray-500 whitespace-nowrap">Primary</label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {selectedCategories.length === 0 && (
+                <div className="text-sm text-red-500 mt-2">Please select at least one category</div>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="form">Form</Label>
+      {/* Form and Grade Section */}
+      <Card className="shadow-sm border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl text-gray-800">Form & Grade</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="form" className="text-sm font-medium text-gray-700">Form</Label>
               <Select value={formData.form} onValueChange={(value) => setFormData(prev => ({ ...prev, form: value }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 text-base">
                   <SelectValue placeholder="Select form" />
                 </SelectTrigger>
                 <SelectContent>
@@ -828,21 +833,10 @@ export default function ComprehensiveProductForm({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="hsCode">HS Code</Label>
-              <Input
-                id="hsCode"
-                value={formData.hsCode}
-                onChange={(e) => setFormData(prev => ({ ...prev, hsCode: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="productGrade">Product Grade</Label>
+            <div className="space-y-2">
+              <Label htmlFor="productGrade" className="text-sm font-medium text-gray-700">Product Grade</Label>
               <Select value={formData.productGrade} onValueChange={(value) => setFormData(prev => ({ ...prev, productGrade: value }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 text-base">
                   <SelectValue placeholder="Select product grade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -861,10 +855,28 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
 
-          {/* Multiple Product Type Selection */}
-          <div className="border-t pt-4 mt-4">
-            <Label className="text-base font-semibold">Product Types *</Label>
-            <p className="text-sm text-gray-600 mb-3">Select one or more product types. One type must be marked as primary and will appear on product cards.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hsCode" className="text-sm font-medium text-gray-700">HS Code</Label>
+              <Input
+                id="hsCode"
+                value={formData.hsCode}
+                onChange={(e) => setFormData(prev => ({ ...prev, hsCode: e.target.value }))}
+                className="h-10 text-base"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Multiple Product Type Selection */}
+      <Card className="shadow-sm border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl text-gray-800">Product Types *</CardTitle>
+          <p className="text-sm text-gray-600">Select one or more product types. One type must be marked as primary and will appear on product cards.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
             
             {/* Selected Product Types Display */}
             <div className="space-y-3">
