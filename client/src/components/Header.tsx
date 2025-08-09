@@ -448,8 +448,8 @@ export default function Header() {
                     <DropdownMenuItem 
                       onClick={() => {
                         if (isAuthenticated) {
-                          // Admin logout - redirect to login page
-                          window.location.href = '/login';
+                          // Admin logout - use the API endpoint
+                          window.location.href = '/api/logout';
                         } else if (isCustomerAuthenticated) {
                           // Customer logout
                           logoutCustomer();
