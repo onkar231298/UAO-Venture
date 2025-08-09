@@ -96,7 +96,6 @@ export default function Products() {
     healthSupport: true,
     origin: true,
     form: true,
-    materials: true,
     productType: true,
   });
 
@@ -267,6 +266,7 @@ export default function Products() {
     filters.origin.forEach(origin => active.push(`Origin: ${origin}`));
     filters.form.forEach(form => active.push(`Form: ${form}`));
     filters.materials.forEach(material => active.push(`Material: ${material}`));
+    filters.productType.forEach(type => active.push(`Product Type: ${type}`));
     if (filters.inStock !== null) active.push(`In Stock: ${filters.inStock ? 'Yes' : 'No'}`);
     setActiveFilters(active);
   }, [filters]);
@@ -349,70 +349,36 @@ export default function Products() {
                 </div>
               </div>
 
-              {/* Materials (Organic/Conventional) */}
-              <Collapsible open={openSections.materials} onOpenChange={() => toggleSection('materials')}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100">
-                  <span className="font-medium flex items-center gap-2">
-                    <Leaf className="h-4 w-4" />
-                    Materials
-                  </span>
-                  {openSections.materials ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="organic"
-                      checked={filters.materials.includes('organic')}
-                      onCheckedChange={() => toggleArrayFilter('materials', 'organic')}
-                    />
-                    <Label htmlFor="organic" className="text-sm">Organic (Premium)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="natural"
-                      checked={filters.materials.includes('natural')}
-                      onCheckedChange={() => toggleArrayFilter('materials', 'natural')}
-                    />
-                    <Label htmlFor="natural" className="text-sm">Natural</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="conventional"
-                      checked={filters.materials.includes('conventional')}
-                      onCheckedChange={() => toggleArrayFilter('materials', 'conventional')}
-                    />
-                    <Label htmlFor="conventional" className="text-sm">Conventional</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="wildcrafted"
-                      checked={filters.materials.includes('wildcrafted')}
-                      onCheckedChange={() => toggleArrayFilter('materials', 'wildcrafted')}
-                    />
-                    <Label htmlFor="wildcrafted" className="text-sm">Wildcrafted</Label>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
 
-              {/* Product Type */}
+
+              {/* Product Types */}
               <Collapsible open={openSections.productType} onOpenChange={() => toggleSection('productType')}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100">
-                  <span className="font-medium flex items-center gap-2">
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-green-50 border border-green-200 rounded-lg hover:bg-green-100">
+                  <span className="font-medium flex items-center gap-2 text-green-800">
                     <Award className="h-4 w-4" />
-                    Product Type
+                    Product Types
                   </span>
-                  {openSections.productType ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {openSections.productType ? <ChevronUp className="h-4 w-4 text-green-600" /> : <ChevronDown className="h-4 w-4 text-green-600" />}
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-3">
+                <CollapsibleContent className="mt-3 space-y-3 p-3 bg-green-50 rounded-lg">
+                  <div className="text-xs text-green-700 mb-2 p-2 bg-green-100 rounded text-center">
+                    🌿 Select product types to filter results
+                  </div>
                   {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
                     <div key={type.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`type-${type.slug}`}
                         checked={filters.productType.includes(type.slug)}
                         onCheckedChange={() => toggleArrayFilter('productType', type.slug)}
+                        className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                       />
-                      <Label htmlFor={`type-${type.slug}`} className="text-sm">
+                      <Label htmlFor={`type-${type.slug}`} className="text-sm font-medium flex items-center gap-2">
                         {type.name}
+                        {filters.productType.includes(type.slug) && (
+                          <Badge variant="secondary" className="text-xs bg-green-200 text-green-800">
+                            Selected
+                          </Badge>
+                        )}
                       </Label>
                     </div>
                   )) : (
