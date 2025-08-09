@@ -3148,6 +3148,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>${baseUrl}/health-support</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>${baseUrl}/about</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>monthly</changefreq>
@@ -3179,6 +3185,26 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
     } catch (error) {
       console.error('Failed to add categories to sitemap:', error);
+    }
+
+    try {
+      // Add health supports if available
+      const healthSupports = await storage.getHealthSupports();
+      if (healthSupports && Array.isArray(healthSupports)) {
+        for (const healthSupport of healthSupports) {
+          if (healthSupport?.slug) {
+            sitemap += `
+  <url>
+    <loc>${baseUrl}/health-support/${healthSupport.slug}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to add health supports to sitemap:', error);
     }
 
     try {
