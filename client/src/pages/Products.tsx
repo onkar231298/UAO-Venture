@@ -155,8 +155,8 @@ export default function Products() {
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
     },
-    staleTime: 30000, // Keep data fresh for 30 seconds
-    gcTime: 300000, // Keep in cache for 5 minutes
+    staleTime: 0, // Always fresh data for product type testing
+    gcTime: 60000, // Keep in cache for 1 minute only
     refetchOnWindowFocus: true, // Refetch when window gets focus
     refetchOnMount: true, // Always refetch on component mount
   });
