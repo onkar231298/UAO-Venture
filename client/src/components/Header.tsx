@@ -249,17 +249,14 @@ export default function Header() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link href="/blog" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/blog' || location.startsWith('/blog/') ? 'text-green-600 border-green-600' : ''}`}>
-                Blog
+              <Link href="/about" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/about' ? 'text-green-600 border-green-600' : ''}`}>
+                About
+              </Link>
+              <Link href="/contact" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600' : ''}`}>
+                Contact
               </Link>
               <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
                 Certifications
-              </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
-                R&D Lab
-              </a>
-              <a href="#" className="text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1">
-                Services
               </a>
             </nav>
           </div>

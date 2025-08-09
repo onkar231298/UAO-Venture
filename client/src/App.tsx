@@ -12,6 +12,9 @@ import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import Ingredients from "@/pages/Ingredients";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
@@ -44,9 +47,11 @@ function Router() {
     <Switch>
       {/* Public routes - always accessible for everyone */}
       <Route path="/" component={Home} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/ingredients" component={Ingredients} />
       <Route path="/landing" component={Landing} />
       <Route path="/products" component={Products} />
-      <Route path="/ingredients" component={Products} />
       <Route path="/ingredients/:slug" component={CategoryPage} />
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/search/:query" component={SearchResults} />

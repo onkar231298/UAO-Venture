@@ -2877,7 +2877,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           if (product?.slug && product.isActive !== false) {
             sitemap += `
   <url>
-    <loc>${baseUrl}/products/${product.slug}</loc>
+    <loc>${baseUrl}/product/${product.slug}</loc>
     <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
