@@ -17,7 +17,7 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "BFI Organic",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "logo": `${baseUrl}/bfi-logo.png`,
       "image": `${baseUrl}/bfi-logo.png`,

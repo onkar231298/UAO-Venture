@@ -138,7 +138,7 @@ class SEOService {
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "BFI Organic",
+      "name": "Bright Fame Organic",
       "alternateName": "Bright Fame International",
       "url": window.location.origin,
       "logo": `${window.location.origin}/logo.png`,
@@ -173,7 +173,7 @@ class SEOService {
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
-      "name": "BFI Organic",
+      "name": "Bright Fame Organic",
       "image": `${window.location.origin}/logo.png`,
       "description": this.settings.siteDescription,
       "address": {
