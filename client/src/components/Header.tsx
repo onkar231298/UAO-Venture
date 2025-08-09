@@ -264,7 +264,7 @@ export default function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
                   {/* All Health Support Link */}
-                  <Link href="/products?healthSupport=all">
+                  <Link href="/products">
                     <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
                       All Health Support
                     </DropdownMenuItem>
@@ -276,7 +276,7 @@ export default function Header() {
                   <div className="grid grid-cols-3 gap-1">
                     {healthSupports && healthSupports.length > 0 ? healthSupports.map((healthSupport: any) => {
                       return (
-                        <Link key={healthSupport.id} href={`/health-support/${healthSupport.slug}`}>
+                        <Link key={healthSupport.id} href={`/products?healthSupport=${healthSupport.slug}`}>
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             {healthSupport.name}
                           </DropdownMenuItem>
@@ -285,32 +285,32 @@ export default function Header() {
                     }) : (
                       <>
                         {/* Fallback health supports for immediate display */}
-                        <Link href="/health-support/digestive-support">
+                        <Link href="/products?healthSupport=digestive-support">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Digestive Support
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/health-support/immune-support">
+                        <Link href="/products?healthSupport=immune-support">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Immune Support
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/health-support/cognitive-support">
+                        <Link href="/products?healthSupport=cognitive-support">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Cognitive Support
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/health-support/stress-relief">
+                        <Link href="/products?healthSupport=stress-relief">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Stress Relief
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/health-support/energy-vitality">
+                        <Link href="/products?healthSupport=energy-vitality">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Energy & Vitality
                           </DropdownMenuItem>
                         </Link>
-                        <Link href="/health-support/cardiovascular-support">
+                        <Link href="/products?healthSupport=cardiovascular-support">
                           <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
                             Cardiovascular Support
                           </DropdownMenuItem>
@@ -521,8 +521,8 @@ export default function Header() {
               All Ingredients
             </Link>
             <Link 
-              href="/products?healthSupport=all" 
-              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location.startsWith('/health-support') ? 'text-green-600 font-medium' : ''}`}
+              href="/products" 
+              className={`block py-2 text-gray-700 hover:text-green-600 transition-colors ${location === '/products' && location.includes('healthSupport') ? 'text-green-600 font-medium' : ''}`}
               onClick={() => setShowMobileMenu(false)}
             >
               Health Support
