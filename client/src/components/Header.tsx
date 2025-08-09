@@ -181,6 +181,9 @@ export default function Header() {
               <Link href="/products" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600' : ''}`}>
                 Products
               </Link>
+              <Link href="/blog" className={`text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/blog' ? 'text-green-600 border-green-600' : ''}`}>
+                Blog
+              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
@@ -533,6 +536,21 @@ export default function Header() {
                   <ShoppingCart className="w-4 h-4 text-blue-600" />
                 </div>
                 <span className="font-medium">All Products</span>
+              </Link>
+
+              <Link 
+                href="/blog" 
+                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                  location === '/blog' 
+                    ? 'text-green-600 bg-green-50 font-medium' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100">
+                  <FileText className="w-4 h-4 text-orange-600" />
+                </div>
+                <span className="font-medium">Blog</span>
               </Link>
 
               {/* Ingredients Accordion */}

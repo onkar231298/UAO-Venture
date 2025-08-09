@@ -3154,6 +3154,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>${baseUrl}/blog</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>${baseUrl}/about</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>monthly</changefreq>
