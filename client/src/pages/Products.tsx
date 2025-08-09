@@ -176,6 +176,11 @@ export default function Products() {
     queryKey: ["/api/categories"],
   });
 
+  // Fetch product types
+  const { data: productTypes = [] } = useQuery({
+    queryKey: ["/api/product-types"],
+  });
+
   // Extract unique filter options from products
   const healthSupportOptions = [
     "Stress Relief", "Cognitive Function", "Stress & Mood Support", 
@@ -395,54 +400,22 @@ export default function Products() {
                   {openSections.productType ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-3 space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-organic"
-                      checked={filters.productType.includes('organic')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'organic')}
-                    />
-                    <Label htmlFor="type-organic" className="text-sm">Organic</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-natural"
-                      checked={filters.productType.includes('natural')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'natural')}
-                    />
-                    <Label htmlFor="type-natural" className="text-sm">Natural</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-conventional"
-                      checked={filters.productType.includes('conventional')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'conventional')}
-                    />
-                    <Label htmlFor="type-conventional" className="text-sm">Conventional</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-synthetic"
-                      checked={filters.productType.includes('synthetic')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'synthetic')}
-                    />
-                    <Label htmlFor="type-synthetic" className="text-sm">Synthetic</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-nature-identical"
-                      checked={filters.productType.includes('nature_identical')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'nature_identical')}
-                    />
-                    <Label htmlFor="type-nature-identical" className="text-sm">Nature Identical</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="type-other"
-                      checked={filters.productType.includes('other')}
-                      onCheckedChange={() => toggleArrayFilter('productType', 'other')}
-                    />
-                    <Label htmlFor="type-other" className="text-sm">Other</Label>
-                  </div>
+                  {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
+                    <div key={type.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`type-${type.slug}`}
+                        checked={filters.productType.includes(type.slug)}
+                        onCheckedChange={() => toggleArrayFilter('productType', type.slug)}
+                      />
+                      <Label htmlFor={`type-${type.slug}`} className="text-sm">
+                        {type.name}
+                      </Label>
+                    </div>
+                  )) : (
+                    <div className="text-sm text-gray-500 text-center py-2">
+                      Loading product types...
+                    </div>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
 

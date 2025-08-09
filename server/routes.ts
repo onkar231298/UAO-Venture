@@ -7,6 +7,8 @@ import {
   insertQuotationSchema, 
   insertProductSchema, 
   insertCategorySchema,
+  insertProductTypeSchema,
+  insertProductTypeRelationSchema,
   insertProductTagSchema,
   insertHeroSliderSchema,
   insertProductDocumentSchema,
@@ -608,6 +610,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Product Types API Routes
+  app.get('/api/product-types', async (req, res) => {
+    try {
+      const types = await storage.getAllProductTypes();
+      res.json(types);
+    } catch (error) {
+      console.error("Error fetching product types:", error);
+      res.status(500).json({ message: "Failed to fetch product types" });
+    }
+  });
+
+  app.post('/api/product-types', isAuthenticated, async (req, res) => {
+    try {
+      const typeData = insertProductTypeSchema.parse(req.body);
+      const newType = await storage.createProductType(typeData);
+      res.status(201).json(newType);
+    } catch (error) {
+      console.error("Error creating product type:", error);
+      res.status(500).json({ message: "Failed to create product type" });
+    }
+  });
+
+  app.put('/api/product-types/:id', isAuthenticated, async (req, res) => {
+    try {
+      const typeId = parseInt(req.params.id);
+      const typeData = insertProductTypeSchema.partial().parse(req.body);
+      const updatedType = await storage.updateProductType(typeId, typeData);
+      res.json(updatedType);
+    } catch (error) {
+      console.error("Error updating product type:", error);
+      res.status(500).json({ message: "Failed to update product type" });
+    }
+  });
+
+  app.delete('/api/product-types/:id', isAuthenticated, async (req, res) => {
+    try {
+      const typeId = parseInt(req.params.id);
+      await storage.deleteProductType(typeId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting product type:", error);
+      res.status(500).json({ message: "Failed to delete product type" });
+    }
+  });
+
+  // Product-Type relationship routes
+  app.post('/api/products/:productId/types', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { typeId, isPrimary } = insertProductTypeRelationSchema.parse(req.body);
+      const relation = await storage.addProductToType(productId, typeId, isPrimary);
+      res.status(201).json(relation);
+    } catch (error) {
+      console.error("Error adding product to type:", error);
+      res.status(500).json({ message: "Failed to add product to type" });
+    }
+  });
+
+  app.delete('/api/products/:productId/types/:typeId', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const typeId = parseInt(req.params.typeId);
+      await storage.removeProductFromType(productId, typeId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing product from type:", error);
+      res.status(500).json({ message: "Failed to remove product from type" });
+    }
+  });
+
+  app.put('/api/products/:productId/types/:typeId', isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const typeId = parseInt(req.params.typeId);
+      const { isPrimary } = req.body;
+      const relation = await storage.updateProductTypeRelation(productId, typeId, isPrimary);
+      res.json(relation);
+    } catch (error) {
+      console.error("Error updating product type relation:", error);
+      res.status(500).json({ message: "Failed to update product type relation" });
+    }
+  });
+
+  app.get('/api/products/:productId/types', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const types = await storage.getProductTypesForProduct(productId);
+      res.json(types);
+    } catch (error) {
+      console.error("Error fetching product types:", error);
+      res.status(500).json({ message: "Failed to fetch product types" });
+    }
+  });
+
+  app.get('/api/product-types/:typeId/products', async (req, res) => {
+    try {
+      const typeId = parseInt(req.params.typeId);
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await storage.getProductsByType(typeId, limit, offset);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching products by type:", error);
+      res.status(500).json({ message: "Failed to fetch products by type" });
     }
   });
 

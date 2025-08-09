@@ -371,6 +371,35 @@ export const productCategoryRelations = pgTable("product_category_relations", {
   index("idx_category_products").on(table.categoryId),
 ]);
 
+// Product types (organic, conventional, wild crafted)
+export const productTypes = pgTable("product_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  color: varchar("color", { length: 7 }).default("#10B981"), // Hex color for UI badges
+  icon: varchar("icon", { length: 50 }), // Icon name for display
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Product-Type relationship (many-to-many)
+export const productTypeRelations = pgTable("product_type_relations", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  typeId: integer("type_id").references(() => productTypes.id, { onDelete: "cascade" }).notNull(),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  // Unique constraint to prevent duplicate assignments
+  index("unique_product_type").on(table.productId, table.typeId),
+  // Index for performance
+  index("idx_product_types").on(table.productId),
+  index("idx_type_products").on(table.typeId),
+]);
+
 // Hero slider management for homepage - Enhanced with video support
 export const heroSliders = pgTable("hero_sliders", {
   id: serial("id").primaryKey(),
@@ -578,6 +607,7 @@ export const categoriesRelations = relations(categories, ({ many, one }) => ({
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
   categoryRelations: many(productCategoryRelations),
+  typeRelations: many(productTypeRelations),
   documents: many(productDocuments),
   inventory: many(inventory),
   inquiries: many(inquiries),
@@ -599,6 +629,15 @@ export const productTagRelationsRelations = relations(productTagRelations, ({ on
 export const productCategoryRelationsRelations = relations(productCategoryRelations, ({ one }) => ({
   product: one(products, { fields: [productCategoryRelations.productId], references: [products.id] }),
   category: one(categories, { fields: [productCategoryRelations.categoryId], references: [categories.id] }),
+}));
+
+export const productTypesRelations = relations(productTypes, ({ many }) => ({
+  productRelations: many(productTypeRelations),
+}));
+
+export const productTypeRelationsRelations = relations(productTypeRelations, ({ one }) => ({
+  product: one(products, { fields: [productTypeRelations.productId], references: [products.id] }),
+  type: one(productTypes, { fields: [productTypeRelations.typeId], references: [productTypes.id] }),
 }));
 
 export const heroSlidersRelations = relations(heroSliders, ({ one }) => ({
@@ -665,6 +704,19 @@ export const insertProductCategoryRelationSchema = createInsertSchema(productCat
   createdAt: true,
 });
 
+export const insertProductTypeSchema = createInsertSchema(productTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  slug: z.string().optional(), // Auto-generated from name if not provided
+});
+
+export const insertProductTypeRelationSchema = createInsertSchema(productTypeRelations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({
   id: true,
   createdAt: true,
@@ -713,11 +765,27 @@ export type ProductTag = typeof productTags.$inferSelect;
 export type InsertProductTag = z.infer<typeof insertProductTagSchema>;
 export type ProductCategoryRelation = typeof productCategoryRelations.$inferSelect;
 export type InsertProductCategoryRelation = z.infer<typeof insertProductCategoryRelationSchema>;
+export type ProductType = typeof productTypes.$inferSelect;
+export type InsertProductType = z.infer<typeof insertProductTypeSchema>;
+export type ProductTypeRelation = typeof productTypeRelations.$inferSelect;
+export type InsertProductTypeRelation = z.infer<typeof insertProductTypeRelationSchema>;
 
-// Extended product type with categories
+// Extended product type with categories and types
 export type ProductWithCategories = Product & {
   categories: (Category & { isPrimary: boolean })[];
   primaryCategory?: Category;
+};
+
+export type ProductWithTypes = Product & {
+  types: (ProductType & { isPrimary: boolean })[];
+  primaryType?: ProductType;
+};
+
+export type ProductWithCategoriesAndTypes = Product & {
+  categories: (Category & { isPrimary: boolean })[];
+  primaryCategory?: Category;
+  types: (ProductType & { isPrimary: boolean })[];
+  primaryType?: ProductType;
 };
 export type HeroSlider = typeof heroSliders.$inferSelect;
 export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;

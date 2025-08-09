@@ -12,6 +12,8 @@ import {
   productTags,
   productTagRelations,
   productCategoryRelations,
+  productTypes,
+  productTypeRelations,
   heroSlides,
   sampleRequests,
   type User,
@@ -19,10 +21,16 @@ import {
   type Product,
   type InsertProduct,
   type ProductWithCategories,
+  type ProductWithTypes,
+  type ProductWithCategoriesAndTypes,
   type Category,
   type InsertCategory,
   type ProductCategoryRelation,
   type InsertProductCategoryRelation,
+  type ProductType,
+  type InsertProductType,
+  type ProductTypeRelation,
+  type InsertProductTypeRelation,
   type Inquiry,
   type InsertInquiry,
   type Quotation,
@@ -133,6 +141,22 @@ export interface IStorage {
   removeProductFromCategory(productId: number, categoryId: number): Promise<void>;
   updateProductCategoryRelation(productId: number, categoryId: number, isPrimary: boolean): Promise<ProductCategoryRelation>;
   getProductCategories(productId: number): Promise<(Category & { isPrimary: boolean })[]>;
+
+  // Product Type operations
+  getAllProductTypes(): Promise<ProductType[]>;
+  getProductType(id: number): Promise<ProductType | undefined>;
+  createProductType(type: InsertProductType): Promise<ProductType>;
+  updateProductType(id: number, type: Partial<InsertProductType>): Promise<ProductType>;
+  deleteProductType(id: number): Promise<void>;
+  
+  // Product-Type relationship operations  
+  getProductWithTypes(productId: number): Promise<ProductWithTypes | undefined>;
+  getProductWithCategoriesAndTypes(productId: number): Promise<ProductWithCategoriesAndTypes | undefined>;
+  getProductsByType(typeId: number, limit?: number, offset?: number): Promise<{ products: Product[]; total: number }>;
+  addProductToType(productId: number, typeId: number, isPrimary?: boolean): Promise<ProductTypeRelation>;
+  removeProductFromType(productId: number, typeId: number): Promise<void>;
+  updateProductTypeRelation(productId: number, typeId: number, isPrimary: boolean): Promise<ProductTypeRelation>;
+  getProductTypesForProduct(productId: number): Promise<(ProductType & { isPrimary: boolean })[]>;
 
   // Product tags operations
   getAllProductTags(): Promise<ProductTag[]>;
@@ -515,12 +539,43 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(...materialConditions));
     }
 
-    // Product Type filter (organic, natural, conventional, synthetic, nature_identical, other)
+    // Product Type filter using junction table (organic, conventional, wild-crafted, etc.)
     if (filters?.productType && filters.productType.length > 0) {
-      const productTypeConditions = filters.productType.map(type => 
-        eq(products.productType, type)
-      );
-      conditions.push(or(...productTypeConditions));
+      const typeFilters = filters.productType;
+      
+      // Get product type IDs by slug
+      const typeResults = await db
+        .select({ id: productTypes.id })
+        .from(productTypes)
+        .where(
+          and(
+            or(...typeFilters.map(slug => eq(productTypes.slug, slug))),
+            eq(productTypes.isActive, true)
+          )
+        );
+      
+      if (typeResults.length > 0) {
+        const typeIds = typeResults.map(t => t.id);
+        
+        // Use junction table to find products with any of these types
+        const productsWithTypes = await db
+          .select({ productId: productTypeRelations.productId })
+          .from(productTypeRelations)
+          .where(
+            or(...typeIds.map(id => eq(productTypeRelations.typeId, id)))
+          );
+        
+        if (productsWithTypes.length > 0) {
+          const productIds = productsWithTypes.map(p => p.productId);
+          conditions.push(or(...productIds.map(id => eq(products.id, id))));
+        } else {
+          // Add a condition that will return no results
+          conditions.push(eq(products.id, -1));
+        }
+      } else {
+        // Add a condition that will return no results
+        conditions.push(eq(products.id, -1));
+      }
     }
     
     // Organic filter - based on productType containing 'organic'
@@ -1154,6 +1209,211 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCategory(id: number): Promise<void> {
     await db.update(categories).set({ isActive: false }).where(eq(categories.id, id));
+  }
+
+  // Product Type operations
+  async getAllProductTypes(): Promise<ProductType[]> {
+    return await db.select().from(productTypes).where(eq(productTypes.isActive, true)).orderBy(asc(productTypes.displayOrder), asc(productTypes.name));
+  }
+
+  async getProductType(id: number): Promise<ProductType | undefined> {
+    const [type] = await db.select().from(productTypes).where(eq(productTypes.id, id));
+    return type;
+  }
+
+  async createProductType(type: InsertProductType): Promise<ProductType> {
+    // Auto-generate slug if not provided
+    if (!type.slug && type.name) {
+      type.slug = type.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+    
+    const [newType] = await db.insert(productTypes).values(type).returning();
+    return newType;
+  }
+
+  async updateProductType(id: number, type: Partial<InsertProductType>): Promise<ProductType> {
+    const [updatedType] = await db
+      .update(productTypes)
+      .set(type)
+      .where(eq(productTypes.id, id))
+      .returning();
+    return updatedType;
+  }
+
+  async deleteProductType(id: number): Promise<void> {
+    await db.update(productTypes).set({ isActive: false }).where(eq(productTypes.id, id));
+  }
+
+  // Product-Type relationship operations
+  async getProductWithTypes(productId: number): Promise<ProductWithTypes | undefined> {
+    const product = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+    if (!product[0]) return undefined;
+
+    const typeRelations = await db
+      .select({
+        type: productTypes,
+        isPrimary: productTypeRelations.isPrimary,
+      })
+      .from(productTypeRelations)
+      .innerJoin(productTypes, eq(productTypeRelations.typeId, productTypes.id))
+      .where(and(eq(productTypeRelations.productId, productId), eq(productTypes.isActive, true)))
+      .orderBy(desc(productTypeRelations.isPrimary), asc(productTypes.displayOrder));
+
+    const types = typeRelations.map(rel => ({
+      ...rel.type,
+      isPrimary: rel.isPrimary,
+    }));
+
+    const primaryType = types.find(type => type.isPrimary);
+
+    return {
+      ...product[0],
+      types,
+      primaryType: primaryType || undefined,
+    };
+  }
+
+  async getProductWithCategoriesAndTypes(productId: number): Promise<ProductWithCategoriesAndTypes | undefined> {
+    const product = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+    if (!product[0]) return undefined;
+
+    // Get categories
+    const categoryRelations = await db
+      .select({
+        category: categories,
+        isPrimary: productCategoryRelations.isPrimary,
+      })
+      .from(productCategoryRelations)
+      .innerJoin(categories, eq(productCategoryRelations.categoryId, categories.id))
+      .where(and(eq(productCategoryRelations.productId, productId), eq(categories.isActive, true)))
+      .orderBy(desc(productCategoryRelations.isPrimary), asc(categories.name));
+
+    const categoriesWithPrimary = categoryRelations.map(rel => ({
+      ...rel.category,
+      isPrimary: rel.isPrimary,
+    }));
+
+    const primaryCategory = categoriesWithPrimary.find(cat => cat.isPrimary);
+
+    // Get types
+    const typeRelations = await db
+      .select({
+        type: productTypes,
+        isPrimary: productTypeRelations.isPrimary,
+      })
+      .from(productTypeRelations)
+      .innerJoin(productTypes, eq(productTypeRelations.typeId, productTypes.id))
+      .where(and(eq(productTypeRelations.productId, productId), eq(productTypes.isActive, true)))
+      .orderBy(desc(productTypeRelations.isPrimary), asc(productTypes.displayOrder));
+
+    const types = typeRelations.map(rel => ({
+      ...rel.type,
+      isPrimary: rel.isPrimary,
+    }));
+
+    const primaryType = types.find(type => type.isPrimary);
+
+    return {
+      ...product[0],
+      categories: categoriesWithPrimary,
+      primaryCategory: primaryCategory || undefined,
+      types,
+      primaryType: primaryType || undefined,
+    };
+  }
+
+  async getProductsByType(typeId: number, limit: number = 20, offset: number = 0): Promise<{ products: Product[]; total: number }> {
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(productTypeRelations)
+      .innerJoin(products, eq(productTypeRelations.productId, products.id))
+      .where(and(
+        eq(productTypeRelations.typeId, typeId),
+        eq(products.isActive, true),
+        eq(products.isVisible, true)
+      ));
+
+    const productsList = await db
+      .select({ products })
+      .from(productTypeRelations)
+      .innerJoin(products, eq(productTypeRelations.productId, products.id))
+      .where(and(
+        eq(productTypeRelations.typeId, typeId),
+        eq(products.isActive, true),
+        eq(products.isVisible, true)
+      ))
+      .orderBy(desc(productTypeRelations.isPrimary), desc(products.isFeatured), asc(products.name))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      products: productsList.map(p => p.products),
+      total: totalResult.count,
+    };
+  }
+
+  async addProductToType(productId: number, typeId: number, isPrimary: boolean = false): Promise<ProductTypeRelation> {
+    // If setting as primary, unset other primary types for this product
+    if (isPrimary) {
+      await db
+        .update(productTypeRelations)
+        .set({ isPrimary: false })
+        .where(eq(productTypeRelations.productId, productId));
+    }
+
+    const [relation] = await db
+      .insert(productTypeRelations)
+      .values({ productId, typeId, isPrimary })
+      .returning();
+
+    return relation;
+  }
+
+  async removeProductFromType(productId: number, typeId: number): Promise<void> {
+    await db
+      .delete(productTypeRelations)
+      .where(and(
+        eq(productTypeRelations.productId, productId),
+        eq(productTypeRelations.typeId, typeId)
+      ));
+  }
+
+  async updateProductTypeRelation(productId: number, typeId: number, isPrimary: boolean): Promise<ProductTypeRelation> {
+    // If setting as primary, unset other primary types for this product
+    if (isPrimary) {
+      await db
+        .update(productTypeRelations)
+        .set({ isPrimary: false })
+        .where(eq(productTypeRelations.productId, productId));
+    }
+
+    const [relation] = await db
+      .update(productTypeRelations)
+      .set({ isPrimary })
+      .where(and(
+        eq(productTypeRelations.productId, productId),
+        eq(productTypeRelations.typeId, typeId)
+      ))
+      .returning();
+
+    return relation;
+  }
+
+  async getProductTypesForProduct(productId: number): Promise<(ProductType & { isPrimary: boolean })[]> {
+    const typeRelations = await db
+      .select({
+        type: productTypes,
+        isPrimary: productTypeRelations.isPrimary,
+      })
+      .from(productTypeRelations)
+      .innerJoin(productTypes, eq(productTypeRelations.typeId, productTypes.id))
+      .where(and(eq(productTypeRelations.productId, productId), eq(productTypes.isActive, true)))
+      .orderBy(desc(productTypeRelations.isPrimary), asc(productTypes.displayOrder));
+
+    return typeRelations.map(rel => ({
+      ...rel.type,
+      isPrimary: rel.isPrimary,
+    }));
   }
 
   // Product-Category relationship operations
