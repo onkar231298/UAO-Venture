@@ -91,8 +91,8 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
       
       <CardContent className="space-y-2 relative">
         {!isLoggedIn && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-b-lg">
-            <div className="text-center p-6 bg-white rounded-lg shadow-lg border">
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-b-lg">
+            <div className="text-center p-6 bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200">
               <Lock className="w-8 h-8 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-4">You must log in to view documents</p>
               <Button 
