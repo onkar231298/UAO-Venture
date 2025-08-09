@@ -46,9 +46,9 @@ export default function CategoriesSection() {
       const cardWidth = container.children[0]?.getBoundingClientRect().width || 280;
       const gap = 16; // 1rem gap in pixels
       
-      // On mobile: scroll 1 card, on desktop: scroll 3 cards
+      // On mobile: scroll 1 card, on desktop: scroll 4 cards (slower, more controlled)
       const isMobile = window.innerWidth < 768;
-      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 3;
+      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 4;
       
       container.scrollBy({
         left: scrollAmount,
@@ -63,9 +63,9 @@ export default function CategoriesSection() {
       const cardWidth = container.children[0]?.getBoundingClientRect().width || 280;
       const gap = 16; // 1rem gap in pixels
       
-      // On mobile: scroll 1 card, on desktop: scroll 3 cards
+      // On mobile: scroll 1 card, on desktop: scroll 4 cards (slower, more controlled)
       const isMobile = window.innerWidth < 768;
-      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 3;
+      const scrollAmount = isMobile ? (cardWidth + gap) : (cardWidth + gap) * 4;
       
       container.scrollBy({
         left: -scrollAmount,
