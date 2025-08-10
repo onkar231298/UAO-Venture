@@ -152,7 +152,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer registration endpoint with reCAPTCHA
   app.post('/api/auth/register-customer', async (req, res) => {
     try {
-      const validatedData = customerRegistrationSchema.parse(req.body);
+      const { recaptchaToken, ...registrationData } = req.body;
+      
+      // Verify reCAPTCHA first if token is provided
+      if (recaptchaToken) {
+        const captchaValid = await verifyCaptcha(recaptchaToken);
+        if (!captchaValid) {
+          return res.status(400).json({ 
+            message: 'reCAPTCHA verification failed. Please try again.' 
+          });
+        }
+      }
+      
+      const validatedData = customerRegistrationSchema.parse(registrationData);
       const { password, confirmPassword, ...userData } = validatedData;
       
       const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;

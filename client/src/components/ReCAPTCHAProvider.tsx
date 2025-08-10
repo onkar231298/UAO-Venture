@@ -12,8 +12,16 @@ export default function ReCAPTCHAProvider({ children }: ReCAPTCHAProviderProps) 
   useEffect(() => {
     // Fetch the site key from the server
     fetch('/api/recaptcha-site-key')
-      .then(res => res.json())
-      .then(data => setSiteKey(data.siteKey))
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch site key: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('reCAPTCHA site key loaded:', data.siteKey ? 'Success' : 'Failed');
+        setSiteKey(data.siteKey);
+      })
       .catch(err => console.error('Failed to fetch reCAPTCHA site key:', err));
   }, []);
   
@@ -28,10 +36,9 @@ export default function ReCAPTCHAProvider({ children }: ReCAPTCHAProviderProps) 
       useRecaptchaNet={false}
       useEnterprise={false}
       scriptProps={{
-        async: false,
-        defer: false,
+        async: true,
+        defer: true,
         appendTo: "head",
-        nonce: undefined,
       }}
     >
       {children}

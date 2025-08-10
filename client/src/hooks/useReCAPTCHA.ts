@@ -1,69 +1,27 @@
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { useCallback } from "react";
-import { apiRequest } from "@/lib/queryClient";
-
-export interface ReCAPTCHAResult {
-  success: boolean;
-  score?: number;
-  message: string;
-  errors?: string[];
-}
 
 export function useReCAPTCHA() {
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const verifyRecaptcha = useCallback(async (action = "registration"): Promise<ReCAPTCHAResult> => {
+  const executeReCaptcha = useCallback(async (action = "registration"): Promise<string | null> => {
     if (!executeRecaptcha) {
-      return {
-        success: false,
-        message: "reCAPTCHA not initialized"
-      };
+      console.log("reCAPTCHA not ready");
+      return null;
     }
 
     try {
-      // Execute reCAPTCHA and get token
       const token = await executeRecaptcha(action);
-      
-      if (!token) {
-        return {
-          success: false,
-          message: "Failed to generate reCAPTCHA token"
-        };
-      }
-
-      // Verify token with backend
-      const response = await apiRequest('/api/verify-recaptcha', {
-        method: 'POST',
-        body: JSON.stringify({ token }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          score: data.score,
-          message: data.message
-        };
-      } else {
-        const errorData = await response.json();
-        return {
-          success: false,
-          score: errorData.score,
-          message: errorData.message,
-          errors: errorData.errors
-        };
-      }
+      console.log("reCAPTCHA token generated successfully");
+      return token;
     } catch (error) {
-      console.error("reCAPTCHA verification error:", error);
-      return {
-        success: false,
-        message: "Network error during reCAPTCHA verification"
-      };
+      console.error("reCAPTCHA execution error:", error);
+      return null;
     }
   }, [executeRecaptcha]);
 
   return {
-    verifyRecaptcha,
+    executeReCaptcha,
     isReady: !!executeRecaptcha
   };
 }

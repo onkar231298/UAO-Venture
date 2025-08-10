@@ -37,7 +37,7 @@ export default function CustomerRegistration() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { verifyRecaptcha, isReady } = useReCAPTCHA();
+  const { executeReCaptcha, isReady } = useReCAPTCHA();
 
   const form = useForm<CustomerRegistration>({
     resolver: zodResolver(customerRegistrationSchema),
@@ -60,21 +60,23 @@ export default function CustomerRegistration() {
     setIsSubmitting(true);
     
     try {
-      // Verify reCAPTCHA first
+      // Get reCAPTCHA token
+      let recaptchaToken = null;
       if (isReady) {
-        const recaptchaResult = await verifyRecaptcha("registration");
-        
-        if (!recaptchaResult.success) {
-          throw new Error(`Security verification failed: ${recaptchaResult.message}`);
+        recaptchaToken = await executeReCaptcha("registration");
+        if (!recaptchaToken) {
+          throw new Error("Failed to complete security verification. Please try again.");
         }
-        
-        console.log("reCAPTCHA verification successful, score:", recaptchaResult.score);
+        console.log("reCAPTCHA token obtained successfully");
       }
 
       console.log("Sending registration data:", data);
       const response = await apiRequest('/api/auth/register-customer', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          recaptchaToken
+        }),
       });
 
       if (response.ok) {
