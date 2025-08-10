@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Award, Target, Lightbulb } from "lucide-react";
@@ -172,6 +173,8 @@ export default function OurTeam() {
           </div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   );
 }

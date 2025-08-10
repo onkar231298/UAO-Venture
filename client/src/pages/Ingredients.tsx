@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import CategoriesSection from "@/components/CategoriesSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -208,6 +209,8 @@ export default function Ingredients() {
           </div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   );
 }

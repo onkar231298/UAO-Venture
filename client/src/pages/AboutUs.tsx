@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Factory, Leaf, Shield, Globe2, CheckCircle, Zap, Truck, Settings } from "lucide-react";
@@ -298,6 +299,8 @@ export default function AboutUs() {
           </div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   );
 }
