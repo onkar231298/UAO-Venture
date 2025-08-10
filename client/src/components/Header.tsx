@@ -480,14 +480,15 @@ export default function Header() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="relative">
-              <button 
-                className="flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
-                onClick={() => setShowCategorySidebar(!showCategorySidebar)}
-              >
-                <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">ALL CATEGORIES</span>
-                <span className="sm:hidden">Categories</span>
-              </button>
+              <Link href="/products">
+                <button 
+                  className="flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
+                >
+                  <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">ALL CATEGORIES</span>
+                  <span className="sm:hidden">Categories</span>
+                </button>
+              </Link>
             </div>
             
             {/* Search Bar */}

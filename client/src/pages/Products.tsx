@@ -357,7 +357,18 @@ export default function Products() {
                           className="h-3 w-3 cursor-pointer" 
                           onClick={() => {
                             const [type, value] = filter.split(': ');
-                            const filterKey = type.toLowerCase().replace(' ', '');
+                            // Map display names to actual filter keys
+                            const keyMap: Record<string, string> = {
+                              'Search': 'search',
+                              'Category': 'category', 
+                              'Health': 'healthSupport',
+                              'Origin': 'origin',
+                              'Form': 'form',
+                              'Material': 'materials',
+                              'Product Type': 'productType',
+                              'In Stock': 'inStock'
+                            };
+                            const filterKey = keyMap[type] || type.toLowerCase().replace(' ', '');
                             removeFilter(filterKey, value);
                           }}
                         />
