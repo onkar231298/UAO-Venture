@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Linkedin, MapPin, Phone, Mail } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Footer() {
   return (
@@ -86,9 +87,9 @@ export default function Footer() {
         <div className="border-t border-green-500 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-green-100">
           <p>&copy; 2024 Bright Fame Organic Pvt. Ltd. All rights reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/cookie-policy" className="hover:text-white transition-colors">Cookie Policy</Link>
           </div>
         </div>
       </div>

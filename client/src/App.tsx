@@ -42,6 +42,9 @@ import CustomerQuotes from "@/pages/CustomerQuotes";
 import UserManagement from "@/pages/admin/UserManagement";
 import NotFound from "@/pages/not-found";
 import TestWebPUpload from "@/pages/TestWebPUpload";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import CookiePolicy from "@/pages/CookiePolicy";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -83,6 +86,9 @@ function Router() {
       <Route path="/product/:slug" component={ProductDetail} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/cookie-policy" component={CookiePolicy} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
