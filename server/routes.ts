@@ -171,7 +171,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const captchaResult = await verifyCaptcha(recaptchaToken);
         if (!captchaResult.success) {
           console.log(`reCAPTCHA verification failed: ${captchaResult.message}`);
-          // For now, let's allow registration to continue even if reCAPTCHA fails (development mode)
+          // In production, you may want to enforce this more strictly
+          // For development/localhost, we allow registration to continue
+          if (process.env.NODE_ENV === 'production') {
+            return res.status(400).json({ 
+              message: `Security verification failed. ${captchaResult.message || 'Please try again.'}` 
+            });
+          }
           console.log('Continuing with registration despite reCAPTCHA failure (development mode)');
         } else {
           console.log(`reCAPTCHA verification successful with score: ${captchaResult.score}`);

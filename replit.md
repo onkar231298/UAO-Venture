@@ -39,6 +39,7 @@ Preferred communication style: Simple, everyday language.
 - **Product Information Display**: Dynamic display of comprehensive product details (specifications, physical properties, storage, processing, FAQs).
 - **Website Navigation & Filtering**: Advanced multi-faceted product filtering (category, materials, health support, origin, form, stock, price range, search) with URL parameter support. Dynamic ingredients navigation menu.
 - **Homepage Elements**: Dynamic hero slider, enhanced product listings including "Most Popular Products", mobile-responsive featured products carousel.
+- **Security & Verification**: Google reCAPTCHA v3 integration for customer registration with invisible verification, score-based protection, and graceful fallback for development environments.
 
 ### Business Logic
 - **B2B Platform**: Designed for comprehensive B2B operations with integrated modules.
