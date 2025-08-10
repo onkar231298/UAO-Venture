@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function CookiePolicy() {
   useEffect(() => {
-    document.title = "Cookie Policy - BFI Organic";
+    document.title = "Cookie Policy - Bright Fame Organic";
   }, []);
 
   return (
@@ -182,7 +182,7 @@ export default function CookiePolicy() {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
                   <strong>Bright Fame International</strong><br />
-                  Email: privacy@bfiorganic.com<br />
+                  Email: privacy@brightfameorganic.com<br />
                   Address: [Your Business Address]<br />
                   Phone: [Your Contact Number]
                 </p>

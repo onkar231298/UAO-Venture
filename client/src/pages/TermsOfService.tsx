@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function TermsOfService() {
   useEffect(() => {
-    document.title = "Terms of Service - BFI Organic";
+    document.title = "Terms of Service - Bright Fame Organic";
   }, []);
 
   return (
@@ -19,14 +19,14 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Agreement to Terms</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                By accessing and using the BFI Organic website and platform ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
+                By accessing and using the Bright Fame Organic website and platform ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Description of Service</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                BFI Organic provides a B2B platform for organic ingredients, facilitating product discovery, inquiries, quotations, and business transactions between suppliers and buyers in the organic ingredients industry.
+                Bright Fame Organic provides a B2B platform for organic ingredients, facilitating product discovery, inquiries, quotations, and business transactions between suppliers and buyers in the organic ingredients industry.
               </p>
             </section>
 
@@ -97,7 +97,7 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Intellectual Property</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                The Service and its original content, features, and functionality are owned by BFI Organic and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                The Service and its original content, features, and functionality are owned by Bright Fame Organic and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
               </p>
               
               <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-3">User Content</h3>
@@ -130,7 +130,7 @@ export default function TermsOfService() {
 
               <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-3">Limitation of Liability</h3>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                In no event shall BFI Organic be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service.
+                In no event shall Bright Fame Organic be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service.
               </p>
             </section>
 
@@ -163,7 +163,7 @@ export default function TermsOfService() {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
                   <strong>Bright Fame International</strong><br />
-                  Email: legal@bfiorganic.com<br />
+                  Email: legal@brightfameorganic.com<br />
                   Address: [Your Business Address]<br />
                   Phone: [Your Contact Number]
                 </p>
