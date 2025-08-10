@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import ProductCatalog from "@/components/ProductCatalog";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import FeaturedProductsTest from "@/components/FeaturedProductsTest";
@@ -111,6 +112,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   );
 }
