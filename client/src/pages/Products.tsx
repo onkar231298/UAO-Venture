@@ -271,20 +271,14 @@ export default function Products() {
   };
 
   const removeFilter = (filterType: string, value?: string) => {
-    console.log('🚀 removeFilter called with:', { filterType, value });
     if (value) {
       // Handle array filters
       const key = filterType as keyof ProductFilters;
-      console.log('🚀 Processing array filter for key:', key);
       if (key === 'category' || key === 'healthSupport' || key === 'origin' || key === 'form' || key === 'materials' || key === 'productType') {
-        console.log('🚀 Calling toggleArrayFilter for:', { key, value });
         toggleArrayFilter(key, value);
-      } else {
-        console.log('❌ Key not found in array filters:', key);
       }
     } else {
       // Handle non-array filters
-      console.log('🚀 Processing non-array filter:', filterType);
       if (filterType === 'search') {
         updateFilter('search', '');
       } else if (filterType === 'inStock') {
@@ -362,10 +356,7 @@ export default function Products() {
                         <X 
                           className="h-3 w-3 cursor-pointer" 
                           onClick={() => {
-                            console.log('🔄 Removing filter:', filter);
                             const [type, value] = filter.split(': ');
-                            console.log('🔄 Parsed:', { type, value });
-                            
                             // Map display names to actual filter keys
                             const keyMap: Record<string, string> = {
                               'Search': 'search',
@@ -378,8 +369,6 @@ export default function Products() {
                               'In Stock': 'inStock'
                             };
                             const filterKey = keyMap[type] || type.toLowerCase().replace(' ', '');
-                            console.log('🔄 Filter key mapped to:', filterKey);
-                            console.log('🔄 Current filters before removal:', filters);
                             removeFilter(filterKey, value);
                           }}
                         />
