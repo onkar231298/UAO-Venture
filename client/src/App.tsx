@@ -21,6 +21,7 @@ import Ingredients from "@/pages/Ingredients";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import CategoryPage from "@/pages/CategoryPage";
+import HealthSupport from "@/pages/HealthSupport";
 import HealthSupportPage from "@/pages/HealthSupportPage";
 import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
@@ -60,7 +61,8 @@ function Router() {
       <Route path="/landing" component={Landing} />
       <Route path="/products" component={Products} />
       <Route path="/ingredients/:slug" component={CategoryPage} />
-      <Route path="/health-support/:slug" component={Products} />
+      <Route path="/health-support" component={HealthSupport} />
+      <Route path="/health-support/:slug" component={HealthSupportPage} />
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/search/:query" component={SearchResults} />
       <Route path="/login" component={UnifiedLogin} />
