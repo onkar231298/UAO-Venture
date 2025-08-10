@@ -166,25 +166,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { recaptchaToken, ...registrationData } = req.body;
       
-      // Verify reCAPTCHA first if token is provided
-      if (recaptchaToken) {
-        const captchaResult = await verifyCaptcha(recaptchaToken);
-        if (!captchaResult.success) {
-          console.log(`reCAPTCHA verification failed: ${captchaResult.message}`);
-          // In production, you may want to enforce this more strictly
-          // For development/localhost, we allow registration to continue
-          if (process.env.NODE_ENV === 'production') {
-            return res.status(400).json({ 
-              message: `Security verification failed. ${captchaResult.message || 'Please try again.'}` 
-            });
-          }
-          console.log('Continuing with registration despite reCAPTCHA failure (development mode)');
-        } else {
-          console.log(`reCAPTCHA verification successful with score: ${captchaResult.score}`);
-        }
-      } else {
-        console.log('No reCAPTCHA token provided');
+      // Verify reCAPTCHA - now required for all registrations
+      if (!recaptchaToken) {
+        return res.status(400).json({ 
+          message: 'Security verification is required. Please enable JavaScript and try again.' 
+        });
       }
+
+      const captchaResult = await verifyCaptcha(recaptchaToken);
+      if (!captchaResult.success) {
+        console.log(`reCAPTCHA verification failed: ${captchaResult.message}`);
+        return res.status(400).json({ 
+          message: `Security verification failed. ${captchaResult.message || 'Please try again.'}` 
+        });
+      }
+      
+      console.log(`reCAPTCHA verification successful with score: ${captchaResult.score}`);
       
       const validatedData = customerRegistrationSchema.parse(registrationData);
       const { password, confirmPassword, ...userData } = validatedData;
