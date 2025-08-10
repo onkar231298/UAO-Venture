@@ -63,11 +63,19 @@ export default function CustomerRegistration() {
       // Get reCAPTCHA token
       let recaptchaToken = null;
       if (isReady) {
-        recaptchaToken = await executeReCaptcha("registration");
-        if (!recaptchaToken) {
-          throw new Error("Failed to complete security verification. Please try again.");
+        try {
+          recaptchaToken = await executeReCaptcha("registration");
+          if (recaptchaToken) {
+            console.log("reCAPTCHA token obtained successfully");
+          } else {
+            console.log("No reCAPTCHA token received, continuing anyway");
+          }
+        } catch (error) {
+          console.error("reCAPTCHA error:", error);
+          console.log("Continuing registration without reCAPTCHA token");
         }
-        console.log("reCAPTCHA token obtained successfully");
+      } else {
+        console.log("reCAPTCHA not ready, continuing without token");
       }
 
       console.log("Sending registration data:", data);
