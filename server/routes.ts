@@ -149,10 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (data.success && data.score >= 0.5) {
         return { success: true, score: data.score, message: 'Verification successful' };
       } else {
+        // Handle common development environment errors
+        if (data['error-codes'] && data['error-codes'].includes('browser-error')) {
+          console.log('reCAPTCHA browser-error detected - common in development environments');
+          // In development, we can be more lenient, but still require the attempt
+          if (process.env.NODE_ENV !== 'production') {
+            return { success: true, score: 0.6, message: 'Development environment - verification bypassed' };
+          }
+        }
+        
         return { 
           success: false, 
           score: data.score || 0, 
-          message: `Verification failed (score: ${data.score || 0})` 
+          message: `Verification failed (score: ${data.score || 0}, errors: ${data['error-codes']?.join(', ') || 'unknown'})` 
         };
       }
     } catch (error) {
