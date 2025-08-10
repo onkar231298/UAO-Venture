@@ -11,7 +11,8 @@ import { customerRegistrationSchema, type CustomerRegistration } from "@shared/s
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
-import { CheckCircle, UserPlus, Building, Globe, Phone, Mail, Lock } from "lucide-react";
+import { CheckCircle, UserPlus, Building, Globe, Phone, Mail, Lock, Shield } from "lucide-react";
+import { useReCAPTCHA } from "@/hooks/useReCAPTCHA";
 
 // Customer registration form component
 
@@ -36,6 +37,7 @@ export default function CustomerRegistration() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { verifyRecaptcha, isReady } = useReCAPTCHA();
 
   const form = useForm<CustomerRegistration>({
     resolver: zodResolver(customerRegistrationSchema),
@@ -58,6 +60,17 @@ export default function CustomerRegistration() {
     setIsSubmitting(true);
     
     try {
+      // Verify reCAPTCHA first
+      if (isReady) {
+        const recaptchaResult = await verifyRecaptcha("registration");
+        
+        if (!recaptchaResult.success) {
+          throw new Error(`Security verification failed: ${recaptchaResult.message}`);
+        }
+        
+        console.log("reCAPTCHA verification successful, score:", recaptchaResult.score);
+      }
+
       console.log("Sending registration data:", data);
       const response = await apiRequest('/api/auth/register-customer', {
         method: 'POST',
@@ -263,7 +276,7 @@ export default function CustomerRegistration() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Industry Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select industry" />
@@ -320,13 +333,39 @@ export default function CustomerRegistration() {
                   </div>
                 </div>
 
+                {/* Security Verification */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Security Verification
+                  </h3>
+                  <div className="p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      {isReady ? (
+                        <>
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span>Security verification is active and ready</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                          <span>Loading security verification...</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This registration is protected by reCAPTCHA v3 and Google's Privacy Policy and Terms of Service apply.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="pt-4">
                   <Button 
                     type="submit" 
                     className="w-full bg-green-600 hover:bg-green-700" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isReady}
                   >
-                    {isSubmitting ? "Creating Account..." : "Create Account"}
+                    {isSubmitting ? "Creating Account..." : !isReady ? "Loading Security..." : "Create Account"}
                   </Button>
                 </div>
 

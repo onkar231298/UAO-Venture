@@ -59,6 +59,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // reCAPTCHA site key endpoint for frontend
+  app.get('/api/recaptcha-site-key', (req, res) => {
+    res.json({ siteKey: process.env.RECAPTCHA_SITE_KEY });
+  });
+
+  // reCAPTCHA verification endpoint
+  app.post('/api/verify-recaptcha', async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'reCAPTCHA token is required' 
+        });
+      }
+
+      // Verify token with Google
+      const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`,
+      });
+
+      const data = await response.json();
+      
+      // For reCAPTCHA v3, check both success and score
+      if (data.success && data.score >= 0.5) {
+        res.json({ 
+          success: true, 
+          score: data.score,
+          message: 'reCAPTCHA verification successful'
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          score: data.score || 0,
+          message: 'reCAPTCHA verification failed',
+          errors: data['error-codes'] || []
+        });
+      }
+    } catch (error) {
+      console.error('reCAPTCHA verification error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error during reCAPTCHA verification' 
+      });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -97,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Customer registration endpoint
+  // Customer registration endpoint with reCAPTCHA
   app.post('/api/auth/register-customer', async (req, res) => {
     try {
       const validatedData = customerRegistrationSchema.parse(req.body);

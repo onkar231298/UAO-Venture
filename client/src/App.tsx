@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
+import ReCAPTCHAProvider from "@/components/ReCAPTCHAProvider";
 import { seoService } from "@/services/seoService";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -134,12 +135,14 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CustomerAuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </CustomerAuthProvider>
+      <ReCAPTCHAProvider>
+        <CustomerAuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CustomerAuthProvider>
+      </ReCAPTCHAProvider>
     </QueryClientProvider>
   );
 }
