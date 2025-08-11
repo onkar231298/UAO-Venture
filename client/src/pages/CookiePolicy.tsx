@@ -182,7 +182,7 @@ export default function CookiePolicy() {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
                   <strong>Bright Fame International</strong><br />
-                  Email: privacy@brightfameorganic.com<br />
+                  Email: admin@bright-organic.com<br />
                   Address: [Your Business Address]<br />
                   Phone: [Your Contact Number]
                 </p>

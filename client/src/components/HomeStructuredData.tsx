@@ -34,7 +34,7 @@ export default function HomeStructuredData() {
         "@type": "ContactPoint",
         "telephone": "+91-7249847439",
         "contactType": "customer service",
-        "email": "admin@bfiorganic.com",
+        "email": "admin@bright-organic.com",
         "availableLanguage": ["English", "Hindi"],
         "areaServed": ["US", "EU", "IN", "GB", "CA", "AU"]
       },

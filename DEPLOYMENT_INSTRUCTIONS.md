@@ -29,7 +29,7 @@ After deployment:
 3. Verify login page shows "Welcome to BFI Organic Login Portal"
 
 ## Current Secure Credentials
-- Email: admin@bfiorganic.com
+- Email: admin@bright-organic.com
 - Password: onkar231298
 
 ## Technical Details

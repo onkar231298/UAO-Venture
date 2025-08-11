@@ -611,7 +611,7 @@ export default function CustomerDashboard() {
                                     <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                     <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                     <p className="text-sm mt-2">Phone: +91-7249847439</p>
-                                    <p className="text-sm">Email: admin@bfiorganic.com</p>
+                                    <p className="text-sm">Email: admin@bright-organic.com</p>
                                   </div>
                                 </div>
 
@@ -996,7 +996,7 @@ export default function CustomerDashboard() {
                                 <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                 <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                 <p className="text-sm mt-2">Phone: +91-7249847439</p>
-                                <p className="text-sm">Email: admin@bfiorganic.com</p>
+                                <p className="text-sm">Email: admin@bright-organic.com</p>
                               </div>
                             </div>
 

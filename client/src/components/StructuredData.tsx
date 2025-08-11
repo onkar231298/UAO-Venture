@@ -49,7 +49,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         },
         "telephone": "+91-7249847439",
         "url": baseUrl,
-        "email": "admin@bfiorganic.com"
+        "email": "admin@bright-organic.com"
       },
       "image": imageUrl,
       "url": productUrl,
@@ -171,7 +171,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         "@type": "ContactPoint",
         "telephone": "+91-7249847439",
         "contactType": "customer service",
-        "email": "admin@bfiorganic.com",
+        "email": "admin@bright-organic.com",
         "availableLanguage": ["English", "Hindi"]
       },
       "sameAs": [

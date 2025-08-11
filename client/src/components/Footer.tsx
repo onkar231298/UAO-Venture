@@ -77,7 +77,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <span>info@bfiorganic.com</span>
+                <span>admin@bright-organic.com</span>
               </div>
             </div>
           </div>

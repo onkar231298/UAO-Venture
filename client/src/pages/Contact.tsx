@@ -215,7 +215,7 @@ export default function Contact() {
                       <Mail className="w-5 h-5 text-green-600" />
                       <div>
                         <h4 className="font-semibold">Email</h4>
-                        <p className="text-gray-600">info@bfiorganic.com</p>
+                        <p className="text-gray-600">admin@bright-organic.com</p>
                       </div>
                     </div>
                     

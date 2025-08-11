@@ -56,7 +56,7 @@ const companyDetails = {
   address2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road",
   address3: "Kansarakui, Mehsana, Gujarat 384001",
   phone: "+91-7249847439",
-  email: "admin@bfiorganic.com",
+  email: "admin@bright-organic.com",
   website: "www.bfiorganic.com"
 };
 

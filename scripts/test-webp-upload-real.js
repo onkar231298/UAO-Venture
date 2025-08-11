@@ -18,7 +18,7 @@ async function testRealWebPUpload() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: 'admin@bfiorganic.com',
+        email: 'admin@bright-organic.com',
         password: 'onkar231298'
       })
     });
