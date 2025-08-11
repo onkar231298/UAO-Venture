@@ -37,11 +37,11 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-lg mb-4">Products</h4>
             <ul className="space-y-2 text-sm text-green-100">
-              <li><a href="#" className="hover:text-white transition-colors">Herbal Powders</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Liquid Extracts</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Essential Oils</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Raw Materials</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Custom Blends</a></li>
+              <li><Link href="/ingredients/herbal-powders" className="hover:text-white transition-colors">Herbal Powders</Link></li>
+              <li><Link href="/ingredients/liquid-extracts" className="hover:text-white transition-colors">Liquid Extracts</Link></li>
+              <li><Link href="/ingredients/essential-oils" className="hover:text-white transition-colors">Essential Oils</Link></li>
+              <li><Link href="/ingredients/raw-materials" className="hover:text-white transition-colors">Raw Materials</Link></li>
+              <li><Link href="/ingredients/custom-blends" className="hover:text-white transition-colors">Custom Blends</Link></li>
             </ul>
           </div>
 
@@ -49,11 +49,11 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-lg mb-4">Services</h4>
             <ul className="space-y-2 text-sm text-green-100">
-              <li><a href="#" className="hover:text-white transition-colors">Quality Testing</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">R&D Support</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Regulatory Compliance</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Custom Packaging</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Logistics Solutions</a></li>
+              <li><Link href="/services/quality-testing" className="hover:text-white transition-colors">Quality Testing</Link></li>
+              <li><Link href="/services/rd-support" className="hover:text-white transition-colors">R&D Support</Link></li>
+              <li><Link href="/services/regulatory-compliance" className="hover:text-white transition-colors">Regulatory Compliance</Link></li>
+              <li><Link href="/services/custom-packaging" className="hover:text-white transition-colors">Custom Packaging</Link></li>
+              <li><Link href="/services/logistics-solutions" className="hover:text-white transition-colors">Logistics Solutions</Link></li>
             </ul>
           </div>
 

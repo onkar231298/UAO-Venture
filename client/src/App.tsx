@@ -45,6 +45,11 @@ import TestWebPUpload from "@/pages/TestWebPUpload";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import CookiePolicy from "@/pages/CookiePolicy";
+import QualityTesting from "@/pages/services/QualityTesting";
+import RDSupport from "@/pages/services/RDSupport";
+import RegulatoryCompliance from "@/pages/services/RegulatoryCompliance";
+import CustomPackaging from "@/pages/services/CustomPackaging";
+import LogisticsSolutions from "@/pages/services/LogisticsSolutions";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -89,6 +94,13 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/cookie-policy" component={CookiePolicy} />
+      
+      {/* Service pages */}
+      <Route path="/services/quality-testing" component={QualityTesting} />
+      <Route path="/services/rd-support" component={RDSupport} />
+      <Route path="/services/regulatory-compliance" component={RegulatoryCompliance} />
+      <Route path="/services/custom-packaging" component={CustomPackaging} />
+      <Route path="/services/logistics-solutions" component={LogisticsSolutions} />
       <Route path="/test-currency" component={TestMultiCurrency} />
       <Route path="/video-test" component={VideoUploadTest} />
       <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
