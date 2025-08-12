@@ -11,11 +11,56 @@ export default function Certifications() {
     document.title = 'Our Certifications | BFI Organic - Quality Assurance & Compliance';
   }, []);
 
+  const USDALogo = () => (
+    <div className="w-12 h-12 bg-green-700 rounded-full flex items-center justify-center border-2 border-green-800">
+      <div className="text-center">
+        <div className="text-white font-bold text-xs">USDA</div>
+        <div className="text-white text-xs">ORGANIC</div>
+      </div>
+    </div>
+  );
+
+  const EULogo = () => (
+    <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+      <div className="text-white text-lg">🍃</div>
+    </div>
+  );
+
+  const IndiaOrganicLogo = () => (
+    <div className="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center">
+      <div className="text-white font-bold text-xs">INDIA</div>
+    </div>
+  );
+
+  const ISOLogo = () => (
+    <div className="w-12 h-12 bg-blue-700 rounded-full flex items-center justify-center border-2 border-blue-800">
+      <div className="text-center">
+        <div className="text-white font-bold text-xs">ISO</div>
+        <div className="text-white text-xs">22000</div>
+      </div>
+    </div>
+  );
+
+  const BRCLogo = () => (
+    <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-white font-bold text-xs">BRC</div>
+        <div className="text-white text-xs">GS</div>
+      </div>
+    </div>
+  );
+
+  const GMPLogo = () => (
+    <div className="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center">
+      <div className="text-white font-bold text-xs">GMP</div>
+    </div>
+  );
+
   const certifications = [
     {
       title: "USDA Organic",
       description: "Certified organic by the United States Department of Agriculture, ensuring our products meet strict organic standards.",
-      icon: <Leaf className="w-8 h-8 text-green-600" />,
+      icon: <USDALogo />,
       status: "Certified",
       authority: "USDA",
       scope: "Global Recognition"
@@ -23,7 +68,7 @@ export default function Certifications() {
     {
       title: "EU Organic Certification",
       description: "European Union organic certification for distribution across European markets.",
-      icon: <Globe className="w-8 h-8 text-blue-600" />,
+      icon: <EULogo />,
       status: "Certified",
       authority: "EU Commission",
       scope: "European Union"
@@ -31,7 +76,7 @@ export default function Certifications() {
     {
       title: "India Organic (NPOP)",
       description: "National Programme for Organic Production certification for domestic and export markets.",
-      icon: <Award className="w-8 h-8 text-orange-600" />,
+      icon: <IndiaOrganicLogo />,
       status: "Certified",
       authority: "APEDA, India",
       scope: "India & Export"
@@ -39,7 +84,7 @@ export default function Certifications() {
     {
       title: "ISO 22000:2018",
       description: "Food Safety Management System certification ensuring safe food production and quality control throughout the supply chain.",
-      icon: <Shield className="w-8 h-8 text-red-600" />,
+      icon: <ISOLogo />,
       status: "Certified",
       authority: "ISO",
       scope: "International"
@@ -47,7 +92,7 @@ export default function Certifications() {
     {
       title: "BRC-GS Food Safety",
       description: "British Retail Consortium Global Standard for Food Safety, ensuring highest standards in food safety management.",
-      icon: <CheckCircle className="w-8 h-8 text-purple-600" />,
+      icon: <BRCLogo />,
       status: "Certified",
       authority: "BRC Global Standards",
       scope: "Global Retail"
@@ -55,7 +100,7 @@ export default function Certifications() {
     {
       title: "ISO 22000:2005",
       description: "International standard for food safety management systems combining HACCP principles with management system approach.",
-      icon: <FileCheck className="w-8 h-8 text-blue-700" />,
+      icon: <ISOLogo />,
       status: "Certified",
       authority: "ISO",
       scope: "International"
@@ -63,7 +108,7 @@ export default function Certifications() {
     {
       title: "GMP (Good Manufacturing Practices)",
       description: "Quality assurance that products are consistently produced and controlled according to quality standards.",
-      icon: <Award className="w-8 h-8 text-teal-600" />,
+      icon: <GMPLogo />,
       status: "Certified",
       authority: "FDA Guidelines",
       scope: "International"
