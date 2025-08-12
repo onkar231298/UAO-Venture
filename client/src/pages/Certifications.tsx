@@ -38,24 +38,32 @@ export default function Certifications() {
     },
     {
       title: "ISO 22000:2018",
-      description: "Food Safety Management System certification ensuring safe food production.",
+      description: "Food Safety Management System certification ensuring safe food production and quality control throughout the supply chain.",
       icon: <Shield className="w-8 h-8 text-red-600" />,
       status: "Certified",
       authority: "ISO",
       scope: "International"
     },
     {
-      title: "HACCP",
-      description: "Hazard Analysis and Critical Control Points system for food safety.",
+      title: "BRC-GS Food Safety",
+      description: "British Retail Consortium Global Standard for Food Safety, ensuring highest standards in food safety management.",
       icon: <CheckCircle className="w-8 h-8 text-purple-600" />,
       status: "Certified",
-      authority: "HACCP International",
-      scope: "Global"
+      authority: "BRC Global Standards",
+      scope: "Global Retail"
+    },
+    {
+      title: "ISO 22000:2005",
+      description: "International standard for food safety management systems combining HACCP principles with management system approach.",
+      icon: <FileCheck className="w-8 h-8 text-blue-700" />,
+      status: "Certified",
+      authority: "ISO",
+      scope: "International"
     },
     {
       title: "GMP (Good Manufacturing Practices)",
-      description: "Quality assurance that products are consistently produced and controlled.",
-      icon: <FileCheck className="w-8 h-8 text-teal-600" />,
+      description: "Quality assurance that products are consistently produced and controlled according to quality standards.",
+      icon: <Award className="w-8 h-8 text-teal-600" />,
       status: "Certified",
       authority: "FDA Guidelines",
       scope: "International"
@@ -76,7 +84,7 @@ export default function Certifications() {
     <div className="min-h-screen flex flex-col">
       <EnhancedSEOHead 
         title="Our Certifications | BFI Organic - Quality Assurance & Compliance"
-        description="BFI Organic holds international certifications including USDA Organic, EU Organic, ISO 22000, HACCP, and GMP. Ensuring highest quality standards for organic ingredients worldwide."
+        description="BFI Organic holds international certifications including USDA Organic, EU Organic, ISO 22000, BRC-GS Food Safety, and GMP. Ensuring highest quality standards for organic ingredients worldwide."
         canonicalUrl="/certifications"
       />
       
@@ -94,10 +102,10 @@ export default function Certifications() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Badge variant="secondary" className="text-lg py-2 px-4">
-                6+ International Certifications
+                7+ International Certifications
               </Badge>
               <Badge variant="secondary" className="text-lg py-2 px-4">
-                ISO 22000:2018 Certified
+                BRC-GS Food Safety Certified
               </Badge>
               <Badge variant="secondary" className="text-lg py-2 px-4">
                 USDA & EU Organic
