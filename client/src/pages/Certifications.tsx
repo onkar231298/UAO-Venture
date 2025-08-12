@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Award, Globe, Shield, Leaf, FileCheck } from "lucide-react";
 import EnhancedSEOHead from "@/components/EnhancedSEOHead";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export default function Certifications() {
   useEffect(() => {
@@ -71,30 +73,16 @@ export default function Certifications() {
   ];
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <EnhancedSEOHead 
         title="Our Certifications | BFI Organic - Quality Assurance & Compliance"
         description="BFI Organic holds international certifications including USDA Organic, EU Organic, ISO 22000, HACCP, and GMP. Ensuring highest quality standards for organic ingredients worldwide."
         canonicalUrl="/certifications"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "BFI Organic",
-          "url": "https://bright-organic.com",
-          "hasCredential": certifications.map(cert => ({
-            "@type": "EducationalOccupationalCredential",
-            "name": cert.title,
-            "description": cert.description,
-            "credentialCategory": "Certification",
-            "recognizedBy": {
-              "@type": "Organization",
-              "name": cert.authority
-            }
-          }))
-        }}
       />
       
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      <Header />
+      
+      <main className="flex-grow bg-gradient-to-br from-green-50 via-white to-blue-50">
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-16">
           <div className="container mx-auto px-4 text-center">
@@ -231,7 +219,9 @@ export default function Certifications() {
             </a>
           </div>
         </div>
-      </div>
-    </>
+      </main>
+      
+      <Footer />
+    </div>
   );
 }
