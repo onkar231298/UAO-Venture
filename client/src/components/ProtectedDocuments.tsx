@@ -91,8 +91,8 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
       
       <CardContent className="space-y-2 relative">
         {!isLoggedIn && (
-          <div className="absolute inset-0 bg-white/25 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-b-lg">
-            <div className="text-center p-6 bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-gray-300">
+          <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] z-10 flex items-center justify-center rounded-b-lg">
+            <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-300">
               <Lock className="w-8 h-8 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-4">You must log in to view documents</p>
               <Button 
@@ -106,7 +106,7 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
         )}
         
         {/* Always show content but blur it when not logged in */}
-        <div className={!isLoggedIn ? 'blur-sm' : ''}>
+        <div className={!isLoggedIn ? 'blur-[0.5px]' : ''}>
           <Button 
             variant="outline" 
             size="sm" 

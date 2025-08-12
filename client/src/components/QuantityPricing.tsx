@@ -112,7 +112,7 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
       <CardHeader className="pb-3 bg-green-700 rounded-t-lg">
         <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
           <Calculator className="w-5 h-5 text-white" />
-          Quantity Pricing
+          Quantity Pricing Discount
         </CardTitle>
         {!isLoading && (
           <div className="text-sm text-white">
