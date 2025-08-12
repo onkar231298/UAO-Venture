@@ -14,6 +14,8 @@ import SimpleCarouselTest from "@/components/SimpleCarouselTest";
 import FeaturedCarouselSection from "@/components/FeaturedCarouselSection";
 import CategoriesSection from "@/components/CategoriesSection";
 import HomeStructuredData from "@/components/HomeStructuredData";
+import WebsiteSchema from "@/components/WebsiteSchema";
+import SitemapGenerator from "@/components/SitemapGenerator";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <HomeStructuredData />
+      <WebsiteSchema />
+      <SitemapGenerator />
       <Header />
       
       {/* Simple Hero Slider */}

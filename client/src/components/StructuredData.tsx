@@ -106,7 +106,29 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         "reviewCount": "127",
         "bestRating": "5",
         "worstRating": "1"
-      }
+      },
+      "keywords": [
+        product.name.toLowerCase(),
+        product.botanicalName?.toLowerCase(),
+        product.category?.name?.toLowerCase(),
+        "organic ingredients",
+        "bulk supplier",
+        "pharmaceutical grade",
+        "wholesale",
+        product.origin?.toLowerCase(),
+        ...(product.healthSupport ? [product.healthSupport.toLowerCase()] : [])
+      ].filter(Boolean).join(", "),
+      "applicationCategory": [
+        "Pharmaceutical",
+        "Nutraceutical", 
+        "Food & Beverage",
+        "Cosmetic",
+        "Supplement Manufacturing"
+      ],
+      "targetMarket": [
+        "Europe", "United States", "Canada", "India", "United Kingdom", 
+        "China", "Japan", "Korea", "Global B2B"
+      ]
     };
 
     // Breadcrumb Schema
@@ -167,17 +189,55 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         "postalCode": "384001",
         "addressCountry": "IN"
       },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+91-7249847439",
-        "contactType": "customer service",
-        "email": "admin@bright-organic.com",
-        "availableLanguage": ["English", "Hindi"]
-      },
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+91-7249847439",
+          "contactType": "customer service",
+          "email": "admin@bright-organic.com",
+          "availableLanguage": ["English", "Hindi"],
+          "areaServed": ["IN", "US", "CA", "GB", "EU", "CN", "JP", "KR"]
+        },
+        {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "email": "admin@bright-organic.com",
+          "availableLanguage": ["English"],
+          "areaServed": "Worldwide"
+        }
+      ],
       "sameAs": [
-        `${baseUrl}`,
-        "https://www.linkedin.com/company/bright-fame-organic"
-      ]
+        "https://www.linkedin.com/company/bright-fame-organic",
+        "https://www.facebook.com/brightfameorganic",
+        "https://twitter.com/brightfameorg"
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Organic Ingredients Catalog",
+        "itemListElement": [
+          {
+            "@type": "OfferCatalog",
+            "name": "Adaptogenic Herbs"
+          },
+          {
+            "@type": "OfferCatalog", 
+            "name": "Culinary Spices"
+          },
+          {
+            "@type": "OfferCatalog",
+            "name": "Herbal Extracts"
+          }
+        ]
+      },
+      "makesOffer": {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Bulk Organic Ingredients Supply",
+          "description": "Global B2B supply of certified organic ingredients"
+        },
+        "areaServed": ["US", "CA", "GB", "EU", "IN", "CN", "JP", "KR"]
+      }
     };
 
     // Inject schemas into page head

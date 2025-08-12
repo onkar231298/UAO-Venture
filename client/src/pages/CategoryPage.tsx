@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductsPageStructuredData from "@/components/ProductsPageStructuredData";
+import CategoryStructuredData from "@/components/CategoryStructuredData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,8 @@ import {
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, Category } from "@shared/schema";
 import { useSEO } from "@/hooks/useSEO";
+import EnhancedSEOHead from "@/components/EnhancedSEOHead";
+import { useInternationalSEO } from "@/hooks/useInternationalSEO";
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -53,6 +56,9 @@ export default function CategoryPage() {
     pageType: "category",
     pageId: `category-${slug}`
   });
+
+  // International SEO setup
+  useInternationalSEO();
 
   // Fetch all categories for validation
   const { data: categories = [] } = useQuery<Category[]>({
@@ -125,6 +131,22 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen bg-background">
       <ProductsPageStructuredData products={products} />
+      {category && (
+        <CategoryStructuredData 
+          category={category} 
+          products={products} 
+          totalProducts={productsData?.total || 0} 
+        />
+      )}
+      <EnhancedSEOHead
+        title={`${categoryName} - Premium Organic Ingredients | BFI Organic`}
+        description={`Explore our comprehensive collection of organic ${categoryName.toLowerCase()}. Certified organic, sustainably sourced, and available for bulk purchase worldwide. Perfect for pharmaceutical, nutraceutical, and food applications.`}
+        keywords={`${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, bulk ${categoryName.toLowerCase()}, wholesale ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic, B2B ingredients`}
+        canonicalUrl={`${window.location.origin}/ingredients/${slug}`}
+        pageType="category"
+        category={categoryName}
+        geoTargeting={['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']}
+      />
       <Header />
       
       <div className="container mx-auto px-4 py-8">

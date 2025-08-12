@@ -47,6 +47,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import StructuredData from "@/components/StructuredData";
+import EnhancedSEOHead from "@/components/EnhancedSEOHead";
+import { useInternationalSEO } from "@/hooks/useInternationalSEO";
 import { testStructuredData } from "@/utils/seoTestUtil";
 import type { Product, ProductDocument } from "@shared/schema";
 
@@ -55,6 +57,9 @@ export default function ProductDetailBFI() {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
+  
+  // International SEO setup
+  useInternationalSEO();
   
   // Handle direct page load/refresh scenario
   useEffect(() => {
@@ -331,6 +336,20 @@ export default function ProductDetailBFI() {
     <div className="min-h-screen bg-background">
       {/* Structured Data for SEO */}
       <StructuredData product={product} faqs={faqs} />
+      <EnhancedSEOHead
+        title={generateOptimizedTitle(product)}
+        description={generateOptimizedDescription(product)}
+        keywords={`${product.name}, organic ${product.name}, bulk ${product.name}, ${product.botanicalName || ''}, ${product.origin || 'indian'} ${product.name}, pharmaceutical grade, wholesale supplier, B2B organic ingredients`}
+        canonicalUrl={`${window.location.origin}/products/${product.slug}`}
+        ogImage={product.mainImage?.startsWith('http') ? product.mainImage : `${window.location.origin}${product.mainImage}`}
+        pageType="product"
+        productPrice={product.priceUSD || product.rate}
+        currency="USD"
+        availability={product.currentStock && parseFloat(product.currentStock.toString()) > 0 ? 'InStock' : 'OutOfStock'}
+        brand="BFI Organic"
+        category={product.category?.name || product.healthSupport}
+        geoTargeting={['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']}
+      />
       <Header />
       
       <div className="container mx-auto px-4 py-6">
