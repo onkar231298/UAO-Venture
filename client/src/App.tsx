@@ -50,6 +50,7 @@ import RDSupport from "@/pages/services/RDSupport";
 import RegulatoryCompliance from "@/pages/services/RegulatoryCompliance";
 import CustomPackaging from "@/pages/services/CustomPackaging";
 import LogisticsSolutions from "@/pages/services/LogisticsSolutions";
+import Certifications from "@/pages/Certifications";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/about-us" component={AboutUs} />
       <Route path="/our-team" component={OurTeam} />
       <Route path="/our-farmers" component={OurFarmers} />
+      <Route path="/certifications" component={Certifications} />
       <Route path="/contact" component={Contact} />
       <Route path="/ingredients" component={Ingredients} />
       <Route path="/landing" component={Landing} />
