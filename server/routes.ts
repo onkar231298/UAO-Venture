@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const productUrl = `${baseUrl}/product/${product.slug}`;
+      const productUrl = `${baseUrl}/products/${product.slug}`;
       const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
 
       // Get product FAQs for schema
@@ -3313,7 +3313,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           if (product?.slug && product.isActive !== false) {
             sitemap += `
   <url>
-    <loc>${baseUrl}/product/${product.slug}</loc>
+    <loc>${baseUrl}/products/${product.slug}</loc>
     <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

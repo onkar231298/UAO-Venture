@@ -65,6 +65,12 @@ app.use((req, res, next) => {
     res.redirect(301, `/ingredients/${slug}`);
   });
 
+  // 301 Redirect for old product URLs to new products URLs
+  app.get('/product/:slug', (req, res) => {
+    const { slug } = req.params;
+    res.redirect(301, `/products/${slug}`);
+  });
+
   // Structured data injection middleware for deployed URLs only
   const isDeployedURL = (host: string) => {
     return host && (
@@ -76,7 +82,7 @@ app.use((req, res, next) => {
   };
 
   // Product page structured data injection (deployed URLs only)
-  app.get('/product/:slug', async (req, res, next) => {
+  app.get('/products/:slug', async (req, res, next) => {
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
     
@@ -110,7 +116,7 @@ app.use((req, res, next) => {
       return next();
     }
 
-    console.log(`[SEO Processing] Injecting structured data for: /product/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
+    console.log(`[SEO Processing] Injecting structured data for: /products/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
 
     try {
       // Use storage instance directly
@@ -122,7 +128,7 @@ app.use((req, res, next) => {
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const productUrl = `${baseUrl}/product/${product.slug}`;
+      const productUrl = `${baseUrl}/products/${product.slug}`;
       const imageUrl = product.mainImage?.startsWith('http') ? product.mainImage : `${baseUrl}${product.mainImage}`;
 
       // Get product FAQs for schema

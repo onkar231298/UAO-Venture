@@ -88,7 +88,16 @@ function Router() {
       <Route path="/customer/catalogs" component={CustomerDashboard} />
       <Route path="/customer/products" component={Products} />
       <Route path="/customer/search" component={Products} />
-      <Route path="/product/:slug" component={ProductDetail} />
+      <Route path="/products/:slug" component={ProductDetail} />
+      
+      {/* Redirect old product URLs to new format */}
+      <Route path="/product/:slug">
+        {(params: { slug: string }) => {
+          const [, setLocation] = useLocation();
+          setLocation(`/products/${params.slug}`, { replace: true });
+          return null;
+        }}
+      </Route>
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />

@@ -591,7 +591,7 @@ export default function WebsiteManagement() {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
-                                      onClick={() => window.open(`/product/${product.slug}`, '_blank')}
+                                      onClick={() => window.open(`/products/${product.slug}`, '_blank')}
                                       title="View Product"
                                     >
                                       <Eye className="w-4 h-4" />

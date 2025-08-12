@@ -105,7 +105,7 @@ export default function CustomerSavedProducts() {
                       <Button 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => setLocation(`/product/${product.slug}`)}
+                        onClick={() => setLocation(`/products/${product.slug}`)}
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View

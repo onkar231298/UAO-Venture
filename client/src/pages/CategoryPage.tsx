@@ -206,7 +206,7 @@ export default function CategoryPage() {
                 className={`group hover:shadow-lg transition-all duration-200 cursor-pointer ${
                   viewMode === 'list' ? 'flex' : ''
                 }`}
-                onClick={() => setLocation(`/product/${product.slug}`)}
+                onClick={() => setLocation(`/products/${product.slug}`)}
               >
                 <CardContent className={`p-4 ${viewMode === 'list' ? 'flex items-center gap-4 w-full' : ''}`}>
                   {/* Product Image */}
@@ -272,7 +272,7 @@ export default function CategoryPage() {
                       className="w-full bg-green-600 hover:bg-green-700"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setLocation(`/product/${product.slug}`);
+                        setLocation(`/products/${product.slug}`);
                       }}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
