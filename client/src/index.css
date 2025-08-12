@@ -376,6 +376,49 @@ body {
   }
 }
 
+@layer base {
+  /* Fix blinking cursor issue - prevent text selection on non-interactive elements */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent text cursor on non-text elements */
+  body, div, span, p, h1, h2, h3, h4, h5, h6, 
+  nav, header, footer, section, article, aside,
+  button, a, img, svg, canvas {
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection on text content elements */
+  input, textarea, [contenteditable="true"], 
+  .selectable-text, .text-content {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    cursor: text;
+  }
+  
+  /* Buttons and links should show pointer cursor */
+  button, a, [role="button"], .cursor-pointer {
+    cursor: pointer !important;
+  }
+  
+  /* Remove focus outline on non-keyboard elements */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+  
+  /* Remove browser default outline on all elements except form inputs */
+  *:not(input):not(textarea):not(select):not([contenteditable="true"]) {
+    outline: none !important;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
