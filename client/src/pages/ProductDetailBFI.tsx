@@ -475,7 +475,7 @@ export default function ProductDetailBFI() {
           <div className="lg:col-span-4">
             {/* Product Title & Basic Info */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                 {product.name}
                 <Button variant="ghost" size="sm" onClick={copyProductName} className="p-1">
                   <Copy className="w-4 h-4" />
@@ -656,6 +656,7 @@ export default function ProductDetailBFI() {
                     <div className="prose prose-sm max-w-none w-full">
                       {product.description ? (
                         <div className="space-y-4">
+                          <h2 className="text-lg font-semibold text-gray-900 mb-3">Product Overview</h2>
                           <div 
                             className="text-gray-700 text-sm leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br />') }}
@@ -666,10 +667,10 @@ export default function ProductDetailBFI() {
                           {/* Certifications & Tags Display */}
                           {((product.certifications && (product.certifications as string[]).length > 0) || ((product as any).tags && ((product as any).tags as string[]).length > 0)) && (
                             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                                 <Shield className="w-4 h-4" />
                                 Certifications & Quality Standards
-                              </h4>
+                              </h3>
                               <div className="flex flex-wrap gap-2">
                                 {/* Display certifications */}
                                 {product.certifications && (product.certifications as string[]).map((cert: string, index: number) => (
@@ -751,18 +752,43 @@ export default function ProductDetailBFI() {
         </div>
       </div>
 
-      {/* Scrollable Related Products Sections */}
-      <ScrollableProductSection
-        title="Frequently Bought Together"
-        products={frequentlyBoughtTogether || []}
-        loading={isLoadingFBT}
-      />
+      {/* Related Products with Internal Linking */}
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+            Related Organic Ingredients
+          </h2>
+          
+          <ScrollableProductSection
+            title="Frequently Bought Together"
+            products={frequentlyBoughtTogether || []}
+            loading={isLoadingFBT}
+          />
 
-      <ScrollableProductSection
-        title="You May Also Like"
-        products={similarProducts || []}
-        loading={isLoadingSimilar}
-      />
+          <ScrollableProductSection
+            title="You May Also Like"
+            products={similarProducts || []}
+            loading={isLoadingSimilar}
+          />
+          
+          {/* Category Link for SEO */}
+          {product.category && (
+            <div className="text-center mt-8">
+              <p className="text-gray-600 mb-4">
+                Explore more products in the <strong>{product.category.name}</strong> category
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = `/ingredients/${product.category?.slug}`}
+                className="inline-flex items-center gap-2"
+              >
+                <Package className="w-4 h-4" />
+                View All {product.category.name}
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
 
       <Footer />
     </div>

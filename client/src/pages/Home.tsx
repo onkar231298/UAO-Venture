@@ -37,8 +37,20 @@ export default function Home() {
       <SitemapGenerator />
       <Header />
       
-      {/* Simple Hero Slider */}
+      {/* Simple Hero Slider with H1 */}
       <SimpleHeroSlider />
+      
+      {/* Main Heading - Critical for SEO */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Premium Organic Ingredients Supplier - BFI Organic
+          </h1>
+          <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-8">
+            Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.
+          </p>
+        </div>
+      </section>
       
       {/* About Section - White background for contrast */}
       <section className="py-20 section-secondary">
@@ -73,14 +85,22 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Categories Section */}
+          {/* Categories Section with Internal Links */}
           <div className="mb-16">
-            <h3 className="text-3xl font-bold text-center mb-8">Explore Our Categories</h3>
+            <h2 className="text-3xl font-bold text-center mb-4">Explore Our Categories</h2>
+            <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
+              Browse our comprehensive range of <strong>organic ingredients</strong> across multiple categories. 
+              Each category features premium quality products sourced globally.
+            </p>
             <CategoriesSection />
           </div>
 
           {/* Featured Products Section */}
           <div className="mb-16">
+            <h2 className="text-3xl font-bold text-center mb-4">Featured Products</h2>
+            <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
+              Discover our most popular <strong>organic ingredients</strong> trusted by manufacturers worldwide.
+            </p>
             <FeaturedCarouselSection />
           </div>
           
