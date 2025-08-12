@@ -55,7 +55,7 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
       return;
     }
     
-    allDocs.forEach(doc => window.open(doc.url, '_blank'));
+    allDocs.forEach(doc => doc.url && window.open(doc.url, '_blank'));
   };
 
   const DocumentList = ({ docs, title }: { docs: any[], title: string }) => (
@@ -66,7 +66,7 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
           key={doc.name} 
           variant="ghost" 
           size="sm" 
-          className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''} ${!isLoggedIn ? 'blur-sm pointer-events-none' : ''}`}
+          className={`w-full justify-start text-xs h-8 ${!doc.url ? 'opacity-50 cursor-not-allowed' : ''} ${!isLoggedIn ? 'pointer-events-none' : ''}`}
           onClick={() => isLoggedIn && doc.url ? window.open(doc.url, '_blank') : null}
           disabled={!doc.url || !isLoggedIn}
         >
@@ -91,8 +91,8 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
       
       <CardContent className="space-y-2 relative">
         {!isLoggedIn && (
-          <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] z-10 flex items-center justify-center rounded-b-lg">
-            <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-300">
+          <div className="absolute inset-0 bg-transparent z-10 flex items-center justify-center rounded-b-lg">
+            <div className="text-center p-6 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-300">
               <Lock className="w-8 h-8 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-4">You must log in to view documents</p>
               <Button 
@@ -105,8 +105,8 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
           </div>
         )}
         
-        {/* Always show content but blur it when not logged in */}
-        <div className={!isLoggedIn ? 'blur-[0.5px]' : ''}>
+        {/* Always show content clearly readable when not logged in */}
+        <div>
           <Button 
             variant="outline" 
             size="sm" 
