@@ -188,23 +188,96 @@ export default function ProductDetailBFI() {
     }
   };
 
+  // Enhanced SEO optimization function
+  const generateOptimizedTitle = (product: Product) => {
+    const productName = product.name.toLowerCase();
+    let optimizedTitle = product.seoTitle;
+    
+    if (!optimizedTitle) {
+      // Generate keyword-optimized title based on product type
+      if (productName.includes('amla')) {
+        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | BFI Organic`;
+      } else if (productName.includes('haritaki')) {
+        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | BFI Organic`;
+      } else if (productName.includes('turmeric')) {
+        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | BFI Organic`;
+      } else if (productName.includes('ashwagandha')) {
+        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | BFI Organic`;
+      } else {
+        // Generic optimization
+        const category = product.category?.name || 'Organic Ingredients';
+        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | BFI Organic`;
+      }
+    }
+    
+    return optimizedTitle;
+  };
+
+  const generateOptimizedDescription = (product: Product) => {
+    const productName = product.name.toLowerCase();
+    let optimizedDesc = product.seoDescription;
+    
+    if (!optimizedDesc) {
+      const botanicalName = product.botanicalName ? ` (${product.botanicalName})` : '';
+      
+      if (productName.includes('amla')) {
+        optimizedDesc = `Premium organic amla powder supplier${botanicalName}. Rich in vitamin C & antioxidants. USDA & EU organic certified. Bulk quantities available for Europe, US, Canada & Asia. Get competitive wholesale quotes today.`;
+      } else if (productName.includes('haritaki')) {
+        optimizedDesc = `Organic haritaki powder wholesale supplier${botanicalName}. Essential triphala ingredient. Ayurvedic detox & digestive support. Bulk quantities for supplement manufacturers worldwide. USDA organic certified.`;
+      } else if (productName.includes('turmeric')) {
+        optimizedDesc = `Organic turmeric powder supplier${botanicalName}. High curcumin content. Pharmaceutical & food grade. Bulk wholesale for Europe, US, Canada. Anti-inflammatory supplement ingredient. Get quotes now.`;
+      } else {
+        // Generic optimization with geographic targeting
+        optimizedDesc = `Premium ${product.name} supplier${botanicalName}. Organic certified bulk ingredients for supplements, pharmaceuticals & food industry. Wholesale pricing for Europe, US, Canada, Asia. Get competitive quotes today.`;
+      }
+    }
+    
+    return optimizedDesc;
+  };
+
   // Update page meta tags for SEO and test structured data
   useEffect(() => {
     if (product) {
-      // Update page title if not already set by server
-      if (document.title === 'Vite + React + TS') {
-        document.title = product.seoTitle || `${product.name} - BFI Organic`;
+      // Update page title with optimized SEO title
+      const optimizedTitle = generateOptimizedTitle(product);
+      if (document.title === 'Vite + React + TS' || !document.title.includes('BFI Organic')) {
+        document.title = optimizedTitle;
       }
       
-      // Update meta description if not already set by server
+      // Update meta description with optimized SEO description
       let metaDescription = document.querySelector('meta[name="description"]');
-      if (!metaDescription || metaDescription.getAttribute('content') === '') {
+      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('BFI Organic')) {
         if (!metaDescription) {
           metaDescription = document.createElement('meta');
           metaDescription.setAttribute('name', 'description');
           document.head.appendChild(metaDescription);
         }
-        metaDescription.setAttribute('content', product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`);
+        const optimizedDesc = generateOptimizedDescription(product);
+        metaDescription.setAttribute('content', optimizedDesc);
+      }
+
+      // Add geographic and industry-specific meta keywords
+      let metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (!metaKeywords) {
+        metaKeywords = document.createElement('meta');
+        metaKeywords.setAttribute('name', 'keywords');
+        document.head.appendChild(metaKeywords);
+        
+        const productName = product.name.toLowerCase();
+        let keywords = [];
+        
+        if (productName.includes('amla')) {
+          keywords = ['organic amla powder', 'Indian gooseberry extract', 'vitamin C ingredients', 'amla supplier Europe', 'amla supplier USA', 'ayurvedic ingredients', 'natural antioxidants'];
+        } else if (productName.includes('haritaki')) {
+          keywords = ['haritaki powder', 'Terminalia chebula', 'triphala ingredients', 'organic detox herbs', 'ayurvedic medicines', 'digestive health ingredients'];
+        } else {
+          keywords = ['organic ingredients', 'bulk supplier', 'wholesale spices', 'natural extracts', product.name.toLowerCase()];
+        }
+        
+        // Add geographic targeting
+        keywords.push('organic supplier Europe', 'bulk ingredients USA', 'wholesale Canada', 'supplement ingredients Asia');
+        
+        metaKeywords.setAttribute('content', keywords.join(', '));
       }
       
       // Test structured data after component mounts (development only)
@@ -612,7 +685,7 @@ export default function ProductDetailBFI() {
                   </TabsContent>
 
                   <TabsContent value="faqs" className="m-0 p-4 space-y-4">
-                    <ProductFAQs productId={product.id} />
+                    <ProductFAQs productId={product.id} product={product} />
                   </TabsContent>
 
                   <TabsContent value="vendors" className="m-0 p-4 space-y-4">
