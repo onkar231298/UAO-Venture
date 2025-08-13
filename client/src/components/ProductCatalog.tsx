@@ -50,16 +50,17 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
 
   const totalPages = productsData ? Math.ceil(productsData.total / productsPerPage) : 0;
 
-  // Group products by botanicalName + form + origin for organic/conventional variants
+  // Group products by botanicalName + form + origin but keep organic and conventional separate
   const groupProducts = (products: Product[]) => {
     if (!groupMode) return products.map(p => [p]);
     
     const groups = new Map<string, Product[]>();
     
     products.forEach(product => {
-      // Create a group key based on botanical name, form, and origin
+      // Create a group key that includes organic/conventional type to keep them separate
+      const organicType = product.isOrganic ? 'organic' : 'conventional';
       const groupKey = product.productGroupId || 
-                      `${product.botanicalName}-${product.form}-${product.origin}`.toLowerCase().replace(/\s+/g, '-');
+                      `${product.botanicalName}-${product.form}-${product.origin}-${organicType}`.toLowerCase().replace(/\s+/g, '-');
       
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
@@ -67,13 +68,9 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
       groups.get(groupKey)!.push(product);
     });
     
-    // Sort products within each group (organic first)
+    // Sort products within each group by name
     groups.forEach(group => {
-      group.sort((a, b) => {
-        if (a.isOrganic && !b.isOrganic) return -1;
-        if (!a.isOrganic && b.isOrganic) return 1;
-        return 0;
-      });
+      group.sort((a, b) => a.name.localeCompare(b.name));
     });
     
     return Array.from(groups.values());
@@ -148,7 +145,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
                 className="text-xs sm:text-sm"
               >
                 {groupMode ? <ToggleRight className="w-3 h-3 sm:w-4 sm:h-4" /> : <ToggleLeft className="w-3 h-3 sm:w-4 sm:h-4" />}
-                <span className="hidden sm:inline ml-1">Group Variants</span>
+                <span className="hidden sm:inline ml-1">Group Similar</span>
               </Button>
             </div>
           </div>
@@ -198,8 +195,8 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
               </Badge>
             )}
             {groupMode && (
-              <Badge variant="default" className="text-xs sm:text-sm bg-green-100 text-green-800">
-                Variants Grouped
+              <Badge variant="default" className="text-xs sm:text-sm bg-blue-100 text-blue-800">
+                Similar Products Grouped
               </Badge>
             )}
           </div>

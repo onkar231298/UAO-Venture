@@ -17,9 +17,8 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
   
   if (!products.length) return null;
 
-  // Separate organic and conventional variants
-  const organicProducts = products.filter(p => p.isOrganic || p.productType === 'organic');
-  const conventionalProducts = products.filter(p => !p.isOrganic && p.productType === 'conventional');
+  // Group products by similar characteristics (same form, grade, etc.)
+  const productVariants = products.filter(p => p.form === primaryProduct.form && p.productGrade === primaryProduct.productGrade);
   
   // Get the primary product (first product) for main display
   const primaryProduct = products[selectedVariant] || products[0];
@@ -74,30 +73,20 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
             {primaryProduct.name}
           </h3>
 
-          {/* Variant Selector */}
+          {/* Variant Selector - For different package sizes, grades, etc. */}
           {products.length > 1 && (
-            <div className="flex gap-1">
-              {organicProducts.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {products.map((product, index) => (
                 <Button
+                  key={product.id}
                   size="sm"
-                  variant={selectedVariant === products.findIndex(p => p.isOrganic || p.productType === 'organic') ? 'default' : 'outline'}
-                  onClick={() => handleVariantChange(products.findIndex(p => p.isOrganic || p.productType === 'organic'))}
-                  className="flex-1 text-xs h-8"
+                  variant={selectedVariant === index ? 'default' : 'outline'}
+                  onClick={() => handleVariantChange(index)}
+                  className="text-xs h-8 flex-1 min-w-0"
                 >
-                  <Leaf className="w-3 h-3 mr-1" />
-                  Organic
+                  {product.packingSize || product.productGrade || `Variant ${index + 1}`}
                 </Button>
-              )}
-              {conventionalProducts.length > 0 && (
-                <Button
-                  size="sm"
-                  variant={selectedVariant === products.findIndex(p => !p.isOrganic && p.productType === 'conventional') ? 'default' : 'outline'}
-                  onClick={() => handleVariantChange(products.findIndex(p => !p.isOrganic && p.productType === 'conventional'))}
-                  className="flex-1 text-xs h-8"
-                >
-                  Conventional
-                </Button>
-              )}
+              ))}
             </div>
           )}
 
