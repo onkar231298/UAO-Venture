@@ -34,42 +34,13 @@ export default function OptimizedImage({
   const imgRef = useRef<HTMLImageElement>(null);
   const observerRef = useRef<IntersectionObserver>();
 
-  // Generate optimized image URL for better performance
+  // Simple and fast optimization
   useEffect(() => {
     if (!src) return;
     
-    // For external URLs (AWS S3, etc.), use query parameters for optimization
-    if (src.startsWith('http')) {
-      const url = new URL(src);
-      
-      // Add compression parameters if width/height specified
-      if (width) url.searchParams.set('w', width.toString());
-      if (height) url.searchParams.set('h', height.toString());
-      if (quality !== 75) url.searchParams.set('q', quality.toString());
-      
-      // Request WebP format for better compression
-      url.searchParams.set('f', 'webp');
-      
-      setOptimizedSrc(url.toString());
-    } else {
-      // For local images, add optimization parameters using srcset approach
-      let optimized = src;
-      
-      // Add format optimization parameters for local images
-      if (src.includes('.')) {
-        const parts = src.split('.');
-        const extension = parts.pop();
-        const baseName = parts.join('.');
-        
-        // Prefer WebP for better compression
-        if (extension === 'jpg' || extension === 'jpeg' || extension === 'png') {
-          optimized = `${baseName}.webp`;
-        }
-      }
-      
-      setOptimizedSrc(optimized);
-    }
-  }, [src, width, height, quality]);
+    // For performance, just use the original src for now
+    setOptimizedSrc(src);
+  }, [src]);
 
   // Set up intersection observer for lazy loading
   useEffect(() => {

@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import OptimizedImage from "@/components/OptimizedImage";
-import ImagePreloader from "@/components/ImagePreloader";
 import warehouseImage from "@assets/unnamed (1)_1754134468984.webp";
 
 interface HeroSlide {
@@ -68,26 +66,18 @@ export default function SimpleHeroSlider() {
   if (activeSlides.length === 0) return null;
 
   const slide = activeSlides[currentSlide];
-  
-  // Preload all slide images for smooth transitions
-  const slideImages = activeSlides.map(s => s.backgroundImage);
 
   return (
-    <>
-      {/* Preload all slide images */}
-      <ImagePreloader images={slideImages} priority={true} />
-      
-      <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
-      {/* Optimized Background Image */}
-      <OptimizedImage
-        src={slide.backgroundImage}
-        alt={slide.title}
-        className="absolute inset-0 w-full h-full object-cover"
-        priority={true}
-        lazy={false}
-        quality={85}
-        width={1920}
-        height={1080}
+    <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
+      {/* Fast Background Image - Direct CSS for immediate loading */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: `url('${slide.backgroundImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat'
+        }}
       />
       
       {/* Gradient Overlay for better text readability */}
@@ -191,7 +181,6 @@ export default function SimpleHeroSlider() {
           </div>
         </>
       )}
-      </div>
-    </>
+    </div>
   );
 }
