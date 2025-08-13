@@ -52,8 +52,22 @@ export default function OptimizedImage({
       
       setOptimizedSrc(url.toString());
     } else {
-      // For local images, use as-is (Vite handles optimization)
-      setOptimizedSrc(src);
+      // For local images, add optimization parameters using srcset approach
+      let optimized = src;
+      
+      // Add format optimization parameters for local images
+      if (src.includes('.')) {
+        const parts = src.split('.');
+        const extension = parts.pop();
+        const baseName = parts.join('.');
+        
+        // Prefer WebP for better compression
+        if (extension === 'jpg' || extension === 'jpeg' || extension === 'png') {
+          optimized = `${baseName}.webp`;
+        }
+      }
+      
+      setOptimizedSrc(optimized);
     }
   }, [src, width, height, quality]);
 
@@ -69,7 +83,7 @@ export default function OptimizedImage({
         }
       },
       {
-        rootMargin: '50px' // Start loading 50px before the image comes into view
+        rootMargin: '100px' // Start loading 100px before the image comes into view
       }
     );
 
@@ -88,6 +102,12 @@ export default function OptimizedImage({
   };
 
   const handleImageError = () => {
+    // If WebP failed, fallback to original format
+    if (optimizedSrc !== src && optimizedSrc.includes('.webp')) {
+      setOptimizedSrc(src);
+      return;
+    }
+    
     setIsLoading(false);
     setHasError(true);
     onError?.();
@@ -119,7 +139,7 @@ export default function OptimizedImage({
       
       <img
         ref={imgRef}
-        src={src}
+        src={optimizedSrc}
         alt={alt}
         className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         onLoad={handleImageLoad}

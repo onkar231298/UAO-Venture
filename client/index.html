@@ -12,6 +12,24 @@
     <meta property="og:description" content="Leading supplier of certified organic ingredients for B2B customers worldwide." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bright-organic.com" />
+    
+    <!-- Performance optimization hints -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    <link rel="dns-prefetch" href="https://images.unsplash.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
+    <!-- Image format support detection -->
+    <script>
+      // Detect WebP support for better image optimization
+      (function() {
+        var webP = new Image();
+        webP.onload = webP.onerror = function() {
+          sessionStorage.setItem('webp-support', webP.height === 2 ? 'true' : 'false');
+        };
+        webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

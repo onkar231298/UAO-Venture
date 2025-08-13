@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import OptimizedImage from "@/components/OptimizedImage";
+import ImagePreloader from "@/components/ImagePreloader";
 import warehouseImage from "@assets/unnamed (1)_1754134468984.webp";
 
 interface HeroSlide {
@@ -66,25 +68,33 @@ export default function SimpleHeroSlider() {
   if (activeSlides.length === 0) return null;
 
   const slide = activeSlides[currentSlide];
+  
+  // Preload all slide images for smooth transitions
+  const slideImages = activeSlides.map(s => s.backgroundImage);
 
   return (
-    <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:bg-fixed bg-scroll"
-        style={{ 
-          backgroundImage: `url('${slide.backgroundImage}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      >
-        {/* Gradient Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-        
-        {/* Bottom Fade Effect */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
-      </div>
+    <>
+      {/* Preload all slide images */}
+      <ImagePreloader images={slideImages} priority={true} />
+      
+      <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
+      {/* Optimized Background Image */}
+      <OptimizedImage
+        src={slide.backgroundImage}
+        alt={slide.title}
+        className="absolute inset-0 w-full h-full object-cover"
+        priority={true}
+        lazy={false}
+        quality={85}
+        width={1920}
+        height={1080}
+      />
+      
+      {/* Gradient Overlay for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+      
+      {/* Bottom Fade Effect */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center py-8 sm:py-16">
@@ -181,6 +191,7 @@ export default function SimpleHeroSlider() {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }
