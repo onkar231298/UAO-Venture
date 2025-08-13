@@ -41,22 +41,22 @@ export default function Home() {
       <SimpleHeroSlider />
       
       {/* Main Heading - Critical for SEO */}
-      <section className="py-12 bg-white">
+      <section className="py-8 bg-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">
             Premium Organic Ingredients Supplier - BFI Organic
           </h1>
-          <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-8">
+          <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6">
             Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.
           </p>
         </div>
       </section>
 
       {/* Featured Products Section - Positioned between header and about */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">Featured Products</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Discover our most popular <strong>organic ingredients</strong> trusted by manufacturers worldwide.
             </p>
@@ -66,9 +66,9 @@ export default function Home() {
       </section>
       
       {/* About Section - White background for contrast */}
-      <section className="py-20 section-secondary">
+      <section className="py-16 section-secondary">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Leading the Future of Organic Ingredients
             </h2>
@@ -79,7 +79,7 @@ export default function Home() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid md:grid-cols-4 gap-8 mb-16">
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div className="text-center">
               <div className="text-4xl font-bold text-green-600 mb-2">1000+</div>
               <div className="text-gray-600">Premium Products</div>
@@ -99,9 +99,9 @@ export default function Home() {
           </div>
 
           {/* Categories Section with Internal Links */}
-          <div className="mb-16">
+          <div className="mb-12">
             <h2 className="text-3xl font-bold text-center mb-4">Explore Our Categories</h2>
-            <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-center text-gray-600 mb-6 max-w-2xl mx-auto">
               Browse our comprehensive range of <strong>organic ingredients</strong> across multiple categories. 
               Each category features premium quality products sourced globally.
             </p>
