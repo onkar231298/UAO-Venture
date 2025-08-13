@@ -53,17 +53,7 @@ export default function Home() {
       </section>
 
       {/* Featured Products Section - Positioned between header and about */}
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Featured Products</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover our most popular <strong>organic ingredients</strong> trusted by manufacturers worldwide.
-            </p>
-          </div>
-          <FeaturedCarouselSection />
-        </div>
-      </section>
+      <FeaturedCarouselSection />
       
       {/* About Section - White background for contrast */}
       <section className="py-16 section-secondary">
