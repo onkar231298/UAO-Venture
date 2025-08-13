@@ -68,7 +68,7 @@ export default function SimpleHeroSlider() {
   const slide = activeSlides[currentSlide];
 
   return (
-    <div className="relative h-screen overflow-hidden md:h-screen sm:h-[70vh] xs:h-[60vh]">
+    <div className="relative h-[60vh] overflow-hidden md:h-[65vh] sm:h-[50vh] xs:h-[45vh]">
       {/* Fast Background Image - Direct CSS for immediate loading */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -83,18 +83,18 @@ export default function SimpleHeroSlider() {
       {/* Gradient Overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
       
-      {/* Bottom Fade Effect */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+      {/* Bottom Fade Effect - Reduced height */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center py-8 sm:py-16">
+      <div className="relative z-10 h-full flex items-center py-4 sm:py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl">
-            {/* Animated Text Coming from Left and Right */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Title - Animate from Left */}
+            {/* Compact Text Layout */}
+            <div className="space-y-3 sm:space-y-4">
+              {/* Title - More compact sizing */}
               <h1 
-                className={`text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold
+                className={`text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold
                           ${slide.textColor === 'white' ? 'text-white' : 'text-gray-900'} 
                           transform transition-all duration-1000 ease-out
                           animate-[slideInLeft_1s_ease-out_0.2s_both] leading-tight`}
@@ -102,9 +102,9 @@ export default function SimpleHeroSlider() {
                 {slide.title}
               </h1>
 
-              {/* Subtitle - Animate from Right */}
+              {/* Subtitle - More compact */}
               <h2 
-                className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold
+                className={`text-base sm:text-lg md:text-xl lg:text-2xl font-semibold
                           ${slide.textColor === 'white' ? 'text-blue-200' : 'text-blue-600'} 
                           transform transition-all duration-1000 ease-out
                           animate-[slideInRight_1s_ease-out_0.4s_both]`}
@@ -112,23 +112,23 @@ export default function SimpleHeroSlider() {
                 {slide.subtitle}
               </h2>
 
-              {/* Description - Animate from Left with delay */}
+              {/* Description - More compact */}
               <p 
-                className={`text-sm sm:text-base md:text-lg lg:text-xl
+                className={`text-xs sm:text-sm md:text-base lg:text-lg
                           ${slide.textColor === 'white' ? 'text-gray-200' : 'text-gray-700'} 
-                          max-w-3xl leading-relaxed
+                          max-w-2xl leading-relaxed
                           transform transition-all duration-1000 ease-out
                           animate-[slideInLeft_1s_ease-out_0.6s_both]`}
               >
                 {slide.description}
               </p>
 
-              {/* CTA Button - Fade in with delay */}
-              <div className="animate-[fadeIn_1s_ease-out_0.8s_both]">
+              {/* CTA Button - More compact */}
+              <div className="animate-[fadeIn_1s_ease-out_0.8s_both] pt-2">
                 <Button 
-                  size="lg"
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 sm:px-8 py-3 
-                           text-sm sm:text-base md:text-lg font-semibold
+                  size="default"
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-6 py-2 
+                           text-xs sm:text-sm md:text-base font-semibold
                            transform transition-all duration-300 hover:scale-105 shadow-lg"
                 >
                   Explore Products
