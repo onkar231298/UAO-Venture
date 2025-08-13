@@ -226,6 +226,7 @@ export const products = pgTable("products", {
   productType: varchar("product_type", { length: 50 }).default("organic"), // organic, natural, conventional, synthetic, nature_identical, other
   productGrade: varchar("product_grade", { length: 100 }), // Food Grade, Pharma Grade, etc.
   healthSupport: varchar("health_support", { length: 100 }), // Functional Category - Antioxidant, Digestive Support, etc.
+  productGroupId: varchar("product_group_id", { length: 100 }), // Groups related products like organic/conventional variants
   
   // Product Properties
   form: varchar("form", { length: 100 }), // powder, extract, oil, whole, etc.

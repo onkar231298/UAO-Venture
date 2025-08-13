@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ProductCard from "./ProductCard";
+import ProductGroupCard from "./ProductGroupCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Filter, Grid, List } from "lucide-react";
+import { Search, Filter, Grid, List, ToggleLeft, ToggleRight } from "lucide-react";
 import type { Product, Category } from "@shared/schema";
 
 interface ProductCatalogProps {
@@ -20,6 +21,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [organicFilter, setOrganicFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [groupMode, setGroupMode] = useState<boolean>(true); // New: Group organic/conventional variants
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = limit || 12;
 
@@ -47,6 +49,37 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
   };
 
   const totalPages = productsData ? Math.ceil(productsData.total / productsPerPage) : 0;
+
+  // Group products by botanicalName + form + origin for organic/conventional variants
+  const groupProducts = (products: Product[]) => {
+    if (!groupMode) return products.map(p => [p]);
+    
+    const groups = new Map<string, Product[]>();
+    
+    products.forEach(product => {
+      // Create a group key based on botanical name, form, and origin
+      const groupKey = product.productGroupId || 
+                      `${product.botanicalName}-${product.form}-${product.origin}`.toLowerCase().replace(/\s+/g, '-');
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(product);
+    });
+    
+    // Sort products within each group (organic first)
+    groups.forEach(group => {
+      group.sort((a, b) => {
+        if (a.isOrganic && !b.isOrganic) return -1;
+        if (!a.isOrganic && b.isOrganic) return 1;
+        return 0;
+      });
+    });
+    
+    return Array.from(groups.values());
+  };
+
+  const productGroups = productsData ? groupProducts(productsData.products) : [];
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -106,7 +139,22 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
               </SelectContent>
             </Select>
 
-            {/* View Mode */}
+            {/* Group Mode Toggle */}
+            <div className="flex items-center justify-center sm:justify-start space-x-2">
+              <Button
+                variant={groupMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGroupMode(!groupMode)}
+                className="text-xs sm:text-sm"
+              >
+                {groupMode ? <ToggleRight className="w-3 h-3 sm:w-4 sm:h-4" /> : <ToggleLeft className="w-3 h-3 sm:w-4 sm:h-4" />}
+                <span className="hidden sm:inline ml-1">Group Variants</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Second Row - View Mode */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -149,6 +197,11 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
                 <button onClick={() => setOrganicFilter("all")} className="ml-1 hover:text-destructive">×</button>
               </Badge>
             )}
+            {groupMode && (
+              <Badge variant="default" className="text-xs sm:text-sm bg-green-100 text-green-800">
+                Variants Grouped
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -178,51 +231,91 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
         </div>
       ) : productsData?.products?.length ? (
         <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6" : "space-y-3 sm:space-y-4"}>
-          {productsData.products.map((product: Product) => (
-            viewMode === 'grid' ? (
-              <ProductCard key={product.id} product={product} />
-            ) : (
-              <Card key={product.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center space-x-3 sm:space-x-4">
-                    {(() => {
-                      const mainImage = (product as any).mainImage;
-                      const arrayImage = (product.images as string[] | null)?.[0];
-                      const productImage = mainImage || arrayImage;
-                      
-                      return productImage ? (
+          {groupMode ? (
+            // Show grouped products
+            productGroups.map((group, index) => (
+              group.length > 1 ? (
+                <ProductGroupCard 
+                  key={`group-${index}`}
+                  products={group}
+                  groupId={`group-${index}`}
+                />
+              ) : (
+                viewMode === 'grid' ? (
+                  <ProductCard key={group[0].id} product={group[0]} />
+                ) : (
+                  <Card key={group[0].id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4">
+                        {group[0].imageUrl ? (
+                          <img
+                            src={group[0].imageUrl}
+                            alt={group[0].name}
+                            className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">📷</span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">{group[0].name}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600">SKU: {group[0].productId}</p>
+                          {group[0].botanicalName && (
+                            <p className="text-xs text-gray-500 italic line-clamp-1">{group[0].botanicalName}</p>
+                          )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                          {group[0].isOrganic && (
+                            <Badge className="bg-green-100 text-green-800 text-xs">Organic</Badge>
+                          )}
+                          <Button size="sm" className="text-xs">Get Quote</Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              )
+            ))
+          ) : (
+            // Show individual products
+            productsData.products.map((product: Product) => (
+              viewMode === 'grid' ? (
+                <ProductCard key={product.id} product={product} />
+              ) : (
+                <Card key={product.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      {product.imageUrl ? (
                         <img
-                          src={productImage}
+                          src={product.imageUrl}
                           alt={product.name}
                           className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling!.classList.remove('hidden');
-                          }}
                         />
-                      ) : null;
-                    })()}
-                    <div className={`${((product as any).mainImage || (product.images as string[] | null)?.[0]) ? 'hidden' : 'flex'} w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg items-center justify-center`}>
-                      <span className="text-gray-400 text-xs">📷</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">{product.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">SKU: {product.productId}</p>
-                      {product.botanicalName && (
-                        <p className="text-xs text-gray-500 italic line-clamp-1">{product.botanicalName}</p>
+                      ) : (
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400 text-xs">📷</span>
+                        </div>
                       )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">{product.name}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600">SKU: {product.productId}</p>
+                        {product.botanicalName && (
+                          <p className="text-xs text-gray-500 italic line-clamp-1">{product.botanicalName}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                        {product.isOrganic && (
+                          <Badge className="bg-green-100 text-green-800 text-xs">Organic</Badge>
+                        )}
+                        <Button size="sm" className="text-xs">Get Quote</Button>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                      {product.isOrganic && (
-                        <Badge className="bg-green-100 text-green-800 text-xs">Organic</Badge>
-                      )}
-                      <Button size="sm" className="text-xs">Get Quote</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          ))}
+                  </CardContent>
+                </Card>
+              )
+            ))
+          )}
         </div>
       ) : (
         <Card>
