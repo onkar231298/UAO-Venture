@@ -112,7 +112,7 @@ export default function FeaturedCarouselSection() {
 
   const handleProductClick = (slug: string) => {
     console.log('🔗 Navigating to product:', slug);
-    navigate(`/product/${slug}`);
+    navigate(`/products/${slug}`);
   };
 
   // Handle keyboard navigation
