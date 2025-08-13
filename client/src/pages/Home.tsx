@@ -107,8 +107,6 @@ export default function Home() {
             </p>
             <CategoriesSection />
           </div>
-
-
           
           <div className="mb-8">
             <ProductCatalog />
