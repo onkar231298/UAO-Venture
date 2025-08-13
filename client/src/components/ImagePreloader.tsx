@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 
 interface ImagePreloaderProps {
-  images: string[];
+  images?: string[];
   priority?: boolean;
 }
 
 export default function ImagePreloader({ images, priority = false }: ImagePreloaderProps) {
   useEffect(() => {
-    if (!images.length) return;
+    if (!images || !images.length) return;
 
     // Preload critical images immediately
     const preloadImages = async () => {
