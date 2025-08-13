@@ -51,6 +51,19 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* Featured Products Section - Positioned between header and about */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Discover our most popular <strong>organic ingredients</strong> trusted by manufacturers worldwide.
+            </p>
+          </div>
+          <FeaturedCarouselSection />
+        </div>
+      </section>
       
       {/* About Section - White background for contrast */}
       <section className="py-20 section-secondary">
@@ -95,14 +108,7 @@ export default function Home() {
             <CategoriesSection />
           </div>
 
-          {/* Featured Products Section */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-center mb-4">Featured Products</h2>
-            <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
-              Discover our most popular <strong>organic ingredients</strong> trusted by manufacturers worldwide.
-            </p>
-            <FeaturedCarouselSection />
-          </div>
+
           
           <div className="mb-8">
             <ProductCatalog />
