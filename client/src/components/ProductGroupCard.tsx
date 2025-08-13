@@ -17,11 +17,11 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
   
   if (!products.length) return null;
 
-  // Group products by similar characteristics (same form, grade, etc.)
-  const productVariants = products.filter(p => p.form === primaryProduct.form && p.productGrade === primaryProduct.productGrade);
-  
   // Get the primary product (first product) for main display
   const primaryProduct = products[selectedVariant] || products[0];
+  
+  // Group products by similar characteristics (same form, grade, etc.)
+  const productVariants = products.filter(p => p.form === primaryProduct.form && p.productGrade === primaryProduct.productGrade);
   
   const { data: currency = 'USD' } = useQuery<string>({
     queryKey: ['/api/detect-currency'],
@@ -45,18 +45,24 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
       <CardContent className="p-4">
         {/* Product Image */}
         <div className="relative mb-4 overflow-hidden rounded-lg bg-gray-100 aspect-square">
-          {primaryProduct.imageUrl ? (
-            <img
-              src={primaryProduct.imageUrl}
-              alt={primaryProduct.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-              <Package className="w-16 h-16 text-gray-400" />
-            </div>
-          )}
+          {(() => {
+            const mainImage = (primaryProduct as any).mainImage;
+            const arrayImage = (primaryProduct.images as string[] | null)?.[0];
+            const productImage = mainImage || arrayImage;
+            
+            return productImage ? (
+              <img
+                src={productImage}
+                alt={primaryProduct.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                <Package className="w-16 h-16 text-gray-400" />
+              </div>
+            );
+          })()}
           
           {/* Variant Count Badge */}
           <div className="absolute top-2 right-2">
