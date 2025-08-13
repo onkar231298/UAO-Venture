@@ -26,11 +26,20 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
   const [userCurrency, setUserCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Detect user currency on component mount
+  // Detect user currency on component mount with timeout
   useEffect(() => {
     const detectCurrency = async () => {
       try {
-        const detectedCurrency = await detectUserCurrency();
+        // Set a short timeout for currency detection to prevent long loading
+        const timeout = new Promise<string>((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 2000)
+        );
+        
+        const detectedCurrency = await Promise.race([
+          detectUserCurrency(),
+          timeout
+        ]);
+        
         setUserCurrency(detectedCurrency);
       } catch (error) {
         console.warn('Currency detection failed, defaulting to USD:', error);
@@ -39,7 +48,20 @@ export default function QuantityPricing({ product, onQuantityChange }: QuantityP
         setIsLoading(false);
       }
     };
+    
+    // Start currency detection but also set a fallback timer
     detectCurrency();
+    
+    // Fallback timer - if still loading after 3 seconds, force show USD pricing
+    const fallbackTimer = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Currency detection taking too long, showing USD pricing');
+        setUserCurrency('USD');
+        setIsLoading(false);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // Parse bulk pricing from product data
