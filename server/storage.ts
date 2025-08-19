@@ -1271,6 +1271,16 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
+  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(
+      and(
+        eq(categories.slug, slug),
+        eq(categories.isActive, true)
+      )
+    );
+    return category;
+  }
+
   async createCategory(category: InsertCategory): Promise<Category> {
     const [newCategory] = await db.insert(categories).values(category).returning();
     return newCategory;
@@ -1547,6 +1557,16 @@ export class DatabaseStorage implements IStorage {
       .from(healthSupports)
       .where(eq(healthSupports.isActive, true))
       .orderBy(asc(healthSupports.name));
+  }
+
+  async getHealthSupportBySlug(slug: string): Promise<HealthSupport | undefined> {
+    const [healthSupport] = await db.select().from(healthSupports).where(
+      and(
+        eq(healthSupports.slug, slug),
+        eq(healthSupports.isActive, true)
+      )
+    );
+    return healthSupport;
   }
 
   async createHealthSupport(data: InsertHealthSupport): Promise<HealthSupport> {

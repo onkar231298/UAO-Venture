@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Optimize crawl budget - allow important pages
+Allow: /products/
+Allow: /ingredients/
+Allow: /health-support/
+Allow: /about
+Allow: /contact
+
+# Block admin and CRM areas  
+Disallow: /crm/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /_error
+Disallow: /404
+Disallow: /500
+
+# Allow sitemap
+Sitemap: https://bright-organic.com/sitemap.xml
