@@ -228,7 +228,7 @@ export default function FeaturedCarouselSection() {
                       
                       {/* Product Type Badge */}
                       {product.productType && (
-                        <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-xs">
+                        <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-white text-xs">
                           <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                           <span className="hidden sm:inline">
                             {product.productType === 'organic' ? 'Organic' :
@@ -270,8 +270,8 @@ export default function FeaturedCarouselSection() {
                             <LocationBasedPricing product={product} />
                           </div>
                           {product.moq && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              MOQ: {product.moq}kg
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">
+                              MOQ: {product.moq} kg
                             </span>
                           )}
                         </div>
