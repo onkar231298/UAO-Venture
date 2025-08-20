@@ -205,12 +205,12 @@ export default function Products() {
   });
 
   // Fetch health supports
-  const { data: healthSupports = [] } = useQuery({
+  const { data: healthSupports = [] } = useQuery<any[]>({
     queryKey: ["/api/health-supports"],
   });
 
   // Get current health support name for SEO
-  const currentHealthSupport = healthSupports?.find((hs: any) => hs.slug === healthSupportSlug);
+  const currentHealthSupport = Array.isArray(healthSupports) ? healthSupports.find((hs: any) => hs.slug === healthSupportSlug) : null;
   
   // Update SEO when on health support route
   useEffect(() => {
@@ -410,7 +410,7 @@ export default function Products() {
                 <CollapsibleContent className="mt-3">
                   <ScrollArea className="h-48">
                     <div className="space-y-3">
-                      {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
+                      {Array.isArray(productTypes) && productTypes.length > 0 ? productTypes.map((type: any) => (
                         <div key={type.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`productType-${type.id}`}
@@ -443,7 +443,7 @@ export default function Products() {
                 <CollapsibleContent className="mt-3">
                   <ScrollArea className="h-48">
                     <div className="space-y-3">
-                      {categories && categories.length > 0 ? categories.map((category) => (
+                      {Array.isArray(categories) && categories.length > 0 ? categories.map((category: any) => (
                         <div key={category.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`category-${category.id}`}
@@ -476,7 +476,7 @@ export default function Products() {
                 <CollapsibleContent className="mt-3">
                   <ScrollArea className="h-48">
                     <div className="space-y-3">
-                      {healthSupportOptions.map((option) => (
+                      {healthSupportOptions.map((option: string) => (
                         <div key={option} className="flex items-center space-x-2">
                           <Checkbox
                             id={`health-${option}`}
@@ -562,7 +562,7 @@ export default function Products() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-3">
                   <div className="space-y-3">
-                    {productTypes && productTypes.length > 0 ? productTypes.map((type: any) => (
+                    {Array.isArray(productTypes) && productTypes.length > 0 ? productTypes.map((type: any) => (
                       <div key={type.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={`productType-${type.id}`}

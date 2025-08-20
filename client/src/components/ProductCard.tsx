@@ -67,43 +67,44 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
-              <span className="text-xs text-gray-500">In Stock</span>
-              <div className="flex space-x-1">
-                {product.certifications && Array.isArray(product.certifications) && (product.certifications as string[]).slice(0, 3).map((cert, index) => {
-                  if (typeof cert === 'string') {
-                    if (cert.includes('USDA')) return <Shield key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
-                    if (cert.includes('Organic')) return <Leaf key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
-                    if (cert.includes('ISO')) return <Award key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />;
-                    if (cert.includes('Kosher')) return <Star key={index} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />;
-                  }
-                  return null;
-                }).filter(Boolean)}
-              </div>
-            </div>
-            
-            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm sm:text-base">{product.name}</h3>
-            <p className="text-xs sm:text-sm text-gray-600 mb-2">SKU: {product.productId}</p>
-            
-            {product.botanicalName && (
-              <p className="text-xs text-gray-500 mb-2 sm:mb-3 italic line-clamp-1">{product.botanicalName}</p>
-            )}
-            
-            {/* Product Tags */}
-            {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {product.tags.slice(0, 3).map((tag, index) => (
-                  <Badge key={index} variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                    {typeof tag === 'string' ? tag : tag.name}
-                  </Badge>
-                ))}
-                {product.tags.length > 3 && (
-                  <Badge variant="outline" className="text-xs px-1 py-0 bg-gray-50 text-gray-600">
-                    +{product.tags.length - 3}
-                  </Badge>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
+                {product.name}
+              </h3>
+
+              <p className="text-xs sm:text-sm text-gray-600">
+                SKU: {product.productId}
+              </p>
+
+              {product.botanicalName && (
+                <p className="text-xs text-gray-500 italic line-clamp-1">
+                  {product.botanicalName}
+                </p>
+              )}
+
+              {product.origin && (
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Origin: {product.origin}
+                </p>
+              )}
+
+              {/* Price and MOQ */}
+              <div className="flex justify-between items-center pt-2">
+                <div>
+                  <div className="text-lg font-bold text-green-600">
+                    ${product.priceUSD || 'Contact'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    per {product.priceUnit || 'kg'}
+                  </div>
+                </div>
+                {product.moq && (
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">
+                    MOQ: {product.moq} kg
+                  </span>
                 )}
               </div>
-            )}
+            </div>
           </CardContent>
         </div>
       </Link>
