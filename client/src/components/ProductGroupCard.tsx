@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,15 +13,10 @@ interface ProductGroupCardProps {
 }
 
 export default function ProductGroupCard({ products, groupId }: ProductGroupCardProps) {
-  const [selectedVariant, setSelectedVariant] = useState(0);
-  
   if (!products.length) return null;
 
   // Get the primary product (first product) for main display
-  const primaryProduct = products[selectedVariant] || products[0];
-  
-  // Group products by similar characteristics (same form, grade, etc.)
-  const productVariants = products.filter(p => p.form === primaryProduct.form && p.productGrade === primaryProduct.productGrade);
+  const primaryProduct = products[0];
   
   const { data: currency = 'USD' } = useQuery<string>({
     queryKey: ['/api/detect-currency'],
@@ -34,10 +29,6 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
       return `₹${price.toLocaleString('en-IN')}`;
     }
     return `$${price.toFixed(2)}`;
-  };
-
-  const handleVariantChange = (index: number) => {
-    setSelectedVariant(index);
   };
 
   return (
@@ -78,37 +69,6 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
           <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 group-hover:text-green-600 transition-colors">
             {primaryProduct.name}
           </h3>
-
-          {/* Variant Selector - For different package sizes, grades, etc. */}
-          {products.length > 1 && (
-            <div className="flex flex-wrap gap-1">
-              {products.map((product, index) => {
-                // Create proper label for variant button
-                let variantLabel = '';
-                if (product.packingSize) {
-                  variantLabel = product.packingSize;
-                } else if (product.productGrade) {
-                  variantLabel = product.productGrade;
-                } else if (product.moq) {
-                  variantLabel = `${product.moq}kg MOQ`;
-                } else {
-                  variantLabel = `Variant ${index + 1}`;
-                }
-                
-                return (
-                  <Button
-                    key={product.id}
-                    size="sm"
-                    variant={selectedVariant === index ? 'default' : 'outline'}
-                    onClick={() => handleVariantChange(index)}
-                    className="text-xs h-8 flex-1 min-w-0"
-                  >
-                    {variantLabel}
-                  </Button>
-                );
-              })}
-            </div>
-          )}
 
           {/* Product Details */}
           <div className="space-y-2">
