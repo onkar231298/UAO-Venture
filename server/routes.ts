@@ -3005,10 +3005,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/search/suggestions', async (req, res) => {
     try {
       const { q } = req.query;
-      if (!q) {
+      if (!q || typeof q !== 'string') {
         return res.json([]);
       }
-      const suggestions = await storage.getSearchSuggestions(q as string);
+      const query = q.toLowerCase().trim();
+      
+      if (query.length < 2) {
+        return res.json([]);
+      }
+
+      // Simple search query with good relevance for short queries like "tur"
+      const searchResults = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          slug: products.slug
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.isActive, true),
+            eq(products.isVisible, true),
+            sql`(
+              LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) OR
+              LOWER(${products.productId}) LIKE LOWER(${query + '%'}) OR
+              LOWER(${products.botanicalName}) LIKE LOWER(${'%' + query + '%'})
+            )`
+          )
+        )
+        .orderBy(
+          // Simple relevance: name starts with query has highest priority
+          sql`(
+            CASE WHEN LOWER(${products.name}) LIKE LOWER(${query + '%'}) THEN 1 ELSE 2 END
+          )`,
+          products.name
+        )
+        .limit(8);
+
+      // Format results as suggestions
+      const suggestions = searchResults.map(product => ({
+        id: product.id,
+        query: product.name,
+        popularity: 0,
+        type: 'product' as const,
+        slug: product.slug
+      }));
+      
       res.json(suggestions);
     } catch (error) {
       console.error('Error fetching search suggestions:', error);

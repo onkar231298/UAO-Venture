@@ -3,11 +3,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface SearchSuggestion {
   id: number;
   query: string;
   popularity: number;
+  type: 'product' | 'suggestion';
+  slug?: string;
 }
 
 interface SmartSearchProps {
@@ -22,13 +25,14 @@ export default function SmartSearch({ onSearch, placeholder = "Search products..
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [, setLocation] = useLocation();
 
-  // Get search suggestions
+  // Get search suggestions (now includes products)
   const { data: suggestions = [] } = useQuery({
     queryKey: ["/api/search/suggestions", query],
     queryFn: () => fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`).then(res => res.json()),
     enabled: query.length >= 2,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 2 * 60 * 1000 // 2 minutes
   });
 
   // Record search analytics
@@ -105,8 +109,14 @@ export default function SmartSearch({ onSearch, placeholder = "Search products..
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     setQuery("");
     setShowSuggestions(false);
-    // Navigate to products page with search query
-    window.location.href = `/products?search=${encodeURIComponent(suggestion.query)}`;
+    
+    if (suggestion.type === 'product' && suggestion.slug) {
+      // Navigate directly to product page
+      setLocation(`/products/${suggestion.slug}`);
+    } else {
+      // Navigate to products page with search query
+      setLocation(`/products?search=${encodeURIComponent(suggestion.query)}`);
+    }
   };
 
   const handleBlur = (e: React.FocusEvent) => {
@@ -151,9 +161,14 @@ export default function SmartSearch({ onSearch, placeholder = "Search products..
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-900">{suggestion.query}</span>
+                  <div className="flex items-center space-x-2">
+                    {suggestion.type === 'product' && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    )}
+                    <span className="text-gray-900">{suggestion.query}</span>
+                  </div>
                   <span className="text-xs text-gray-500">
-                    {suggestion.popularity > 1 && `${suggestion.popularity} searches`}
+                    {suggestion.type === 'product' ? 'Product' : suggestion.popularity > 1 && `${suggestion.popularity} searches`}
                   </span>
                 </div>
               </button>
