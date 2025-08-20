@@ -6,6 +6,10 @@ This platform is a comprehensive B2B solution for organic products, integrating 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Critical Fixes (January 2025)
+- **Product Card Consistency Issue Resolved**: Fixed mobile layout inconsistency where ProductGroupCard (for products with variants) showed different styling than ProductCard (single products). Both components now use identical structures with the same Link wrapper, CardContent sections, button layouts, and responsive classes. This ensures all products display uniformly regardless of whether they have variants.
+- **Architecture Decision**: ProductGroupCard completely rebuilt to match ProductCard structure instead of maintaining separate layouts. This prevents future inconsistencies when new products are uploaded, as both single products and product groups now use the same rendering logic.
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -13,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS for utility-first styling, shadcn/ui for pre-built components leveraging Radix UI primitives.
 - **Responsiveness**: Mobile-first approach with full responsiveness across devices.
 - **UI/UX Decisions**: Custom color scheme, accessible UI components, OptimizedImage for performance, dynamic hero slider, three-column category navigation, consistent product card design.
+- **Product Card Architecture**: Unified component structure where ProductCard and ProductGroupCard use identical layouts, styling, and responsive behavior. Both components share the same Link wrapper, CardContent sections, button layouts, and mobile breakpoints to ensure consistent user experience across all product types.
 
 ### Backend Architecture
 - **Technology Stack**: Express.js with TypeScript.
@@ -40,6 +45,7 @@ Preferred communication style: Simple, everyday language.
 - **Website Navigation & Filtering**: Advanced multi-faceted product filtering (category, materials, health support, origin, form, stock, price range, search) with URL parameter support. Dynamic ingredients navigation menu.
 - **Homepage Elements**: Dynamic hero slider, enhanced product listings including "Most Popular Products", mobile-responsive featured products carousel.
 - **Security & Verification**: Google reCAPTCHA v3 integration for customer registration with invisible verification, score-based protection, and graceful fallback for development environments.
+- **Unified Product Cards**: Consistent product card rendering across all product types (single products and product groups with variants) using identical layout structures, ensuring uniform appearance in all views including mobile responsiveness.
 
 ### Business Logic
 - **B2B Platform**: Designed for comprehensive B2B operations with integrated modules.
