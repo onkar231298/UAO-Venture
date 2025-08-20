@@ -220,13 +220,13 @@ const FeaturedProductsCarousel: React.FC = () => {
                       </div>
 
                       <div className="flex gap-2 mt-auto">
-                        <Link href={`/product/${product.slug}`} className="flex-1">
+                        <Link href={`/products/${product.slug}`} className="flex-1">
                           <button className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors">
-                            View Details
+                            🛒 Get Quote
                           </button>
                         </Link>
                         <button className="px-3 py-2 border border-green-600 text-green-600 hover:bg-green-50 rounded transition-colors">
-                          <ShoppingCart className="h-4 w-4" />
+                          📦 Sample
                         </button>
                       </div>
                     </div>

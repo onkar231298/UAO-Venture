@@ -125,7 +125,7 @@ const FeaturedProductsSimple = () => {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '#16a34a';
                   }}>
-                    View Details
+                    🛒 Get Quote
                   </button>
                 </div>
               </div>

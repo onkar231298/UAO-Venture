@@ -382,29 +382,61 @@ const FeaturedProductsCarouselNew = () => {
                         )}
                       </div>
 
-                      {/* Action Button */}
-                      <button
-                        style={{
-                          width: '100%',
-                          backgroundColor: '#16a34a',
-                          color: 'white',
-                          padding: '10px 16px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#15803d';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#16a34a';
-                        }}
-                      >
-                        View Details
-                      </button>
+                      {/* Action Buttons - Updated to match ProductCard */}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          style={{
+                            backgroundColor: '#16a34a',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                            flex: 1
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/products/${product.slug}`;
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#15803d';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#16a34a';
+                          }}
+                        >
+                          🛒 Get Quote
+                        </button>
+                        <button
+                          style={{
+                            backgroundColor: 'transparent',
+                            color: '#16a34a',
+                            border: '1px solid #16a34a',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            flex: 1
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Request sample for:', product.productId);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f0fdf4';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          📦 Sample
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
