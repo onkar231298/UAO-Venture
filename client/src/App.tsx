@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import ReCAPTCHAProvider from "@/components/ReCAPTCHAProvider";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { seoService } from "@/services/seoService";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -166,10 +167,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ReCAPTCHAProvider>
         <CustomerAuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CurrencyProvider>
         </CustomerAuthProvider>
       </ReCAPTCHAProvider>
     </QueryClientProvider>

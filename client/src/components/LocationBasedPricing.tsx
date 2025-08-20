@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { detectUserCurrency, formatPrice, getProductPrice, formatPriceWithTerms, CURRENCIES } from '@/lib/currencyUtils';
+import { useState } from 'react';
+import { formatPrice, getProductPrice, formatPriceWithTerms, CURRENCIES } from '@/lib/currencyUtils';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface LocationBasedPricingProps {
   product: any;
@@ -17,26 +18,8 @@ export function LocationBasedPricing({
   showCurrencySelector = false,
   isAdminView = false
 }: LocationBasedPricingProps) {
-  const [userCurrency, setUserCurrency] = useState<string>('USD');
-  const [isLoading, setIsLoading] = useState(true);
+  const { currency: userCurrency, isLoading } = useCurrency();
   const [manualOverride, setManualOverride] = useState<string | null>(null);
-
-  // Detect user's location-based currency on component mount
-  useEffect(() => {
-    const detectCurrency = async () => {
-      try {
-        const detectedCurrency = await detectUserCurrency();
-        setUserCurrency(detectedCurrency);
-      } catch (error) {
-        console.warn('Currency detection failed, defaulting to USD:', error);
-        setUserCurrency('USD');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    detectCurrency();
-  }, []);
 
   // Use manual override if set, otherwise use detected currency
   const displayCurrency = manualOverride || userCurrency;
@@ -143,12 +126,7 @@ export function LocationBasedPricing({
 
 // Simplified version for product cards
 export function CompactPricing({ product, className = "" }: { product: any; className?: string }) {
-  const [userCurrency, setUserCurrency] = useState<string>('USD');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    detectUserCurrency().then(setUserCurrency).finally(() => setIsLoading(false));
-  }, []);
+  const { currency: userCurrency, isLoading } = useCurrency();
 
   if (isLoading) {
     return <div className={`h-5 bg-gray-200 rounded w-16 animate-pulse ${className}`}></div>;
