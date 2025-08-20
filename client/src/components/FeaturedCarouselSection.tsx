@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Leaf, ChevronLeft, ChevronRight } from "lucide-react";
-import OptimizedImage from "@/components/OptimizedImage";
-import { LocationBasedPricing } from "@/components/LocationBasedPricing";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import ProductCard from "@/components/ProductCard";
 
 interface Product {
   id: number;
@@ -26,7 +22,6 @@ interface Product {
 export default function FeaturedCarouselSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, navigate] = useLocation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   console.log('🎠 FeaturedCarouselSection rendering...');
@@ -190,94 +185,37 @@ export default function FeaturedCarouselSection() {
           >
             <div className="flex gap-4 sm:gap-6 pb-2" style={{ width: 'max-content' }}>
               {products.map((product) => {
-                // Get product image using same logic as ProductCard
-                const productImage = product.mainImageMedium || product.mainImageThumbnail || product.imageUrl || product.mainImage || (product.galleryImages && product.galleryImages.length > 0 ? product.galleryImages[0] : null);
-                const hasImage = !!productImage;
+                // Transform product to match ProductCard interface
+                const transformedProduct = {
+                  ...product,
+                  primaryType: product.productType ? {
+                    id: 1,
+                    name: product.productType === 'organic' ? 'Organic' :
+                          product.productType === 'natural' ? 'Natural' :
+                          product.productType === 'conventional' ? 'Conventional' :
+                          product.productType === 'synthetic' ? 'Synthetic' :
+                          product.productType === 'nature_identical' ? 'Nature Identical' :
+                          product.productType === 'other' ? 'Other' : 'Organic',
+                    slug: product.productType,
+                    isActive: true,
+                    createdAt: null,
+                    updatedAt: null,
+                    icon: null,
+                    color: null,
+                    displayOrder: null,
+                    description: null
+                  } : null,
+                  tags: []
+                };
 
                 return (
-                  <Card 
+                  <div 
                     key={product.id}
-                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer flex-none w-[280px] sm:w-[300px] lg:w-[280px]"
-                    onClick={() => handleProductClick(product.slug)}
+                    className="flex-none w-[280px] sm:w-[300px] lg:w-[280px]"
                     style={{ scrollSnapAlign: 'start' }}
                   >
-                    <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
-                      {hasImage ? (
-                        <OptimizedImage
-                          src={productImage}
-                          alt={product.name}
-                          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-200"
-                          lazy={true}
-                          placeholder={
-                            <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
-                              <div className="text-center">
-                                <div className="text-2xl sm:text-3xl mb-2">📷</div>
-                                <div className="text-xs sm:text-sm font-medium">Loading...</div>
-                              </div>
-                            </div>
-                          }
-                        />
-                      ) : (
-                        <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
-                          <div className="text-center">
-                            <div className="text-2xl sm:text-3xl mb-2">📷</div>
-                            <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Product Type Badge */}
-                      {product.productType && (
-                        <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-600 text-white text-xs">
-                          <Leaf className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                          <span className="hidden sm:inline">
-                            {product.productType === 'organic' ? 'Organic' :
-                             product.productType === 'natural' ? 'Natural' :
-                             product.productType === 'conventional' ? 'Conventional' :
-                             product.productType === 'synthetic' ? 'Synthetic' :
-                             product.productType === 'nature_identical' ? 'Nature Identical' :
-                             product.productType === 'other' ? 'Other' : 
-                             'Organic'}
-                          </span>
-                          <span className="sm:hidden">
-                            {product.productType === 'organic' ? 'O' :
-                             product.productType === 'natural' ? 'N' :
-                             product.productType === 'conventional' ? 'C' :
-                             product.productType === 'synthetic' ? 'S' :
-                             product.productType === 'nature_identical' ? 'NI' :
-                             product.productType === 'other' ? 'O' : 
-                             'O'}
-                          </span>
-                        </Badge>
-                      )}
-                    </div>
-
-                    <CardContent className="p-3 sm:p-4">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
-                          {product.name}
-                        </h3>
-
-                        {product.origin && (
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            Origin: {product.origin}
-                          </p>
-                        )}
-
-                        {/* Price and MOQ */}
-                        <div className="flex justify-between items-center pt-2">
-                          <div>
-                            <LocationBasedPricing product={product} />
-                          </div>
-                          {product.moq && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">
-                              MOQ: {product.moq} kg
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <ProductCard product={transformedProduct} />
+                  </div>
                 );
               })}
             </div>
@@ -287,7 +225,7 @@ export default function FeaturedCarouselSection() {
         <div className="text-center mt-8 sm:mt-12">
           <button 
             className="border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            onClick={() => navigate('/products')}
+            onClick={() => window.location.href = '/products'}
           >
             View All Products →
           </button>
