@@ -82,17 +82,31 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
           {/* Variant Selector - For different package sizes, grades, etc. */}
           {products.length > 1 && (
             <div className="flex flex-wrap gap-1">
-              {products.map((product, index) => (
-                <Button
-                  key={product.id}
-                  size="sm"
-                  variant={selectedVariant === index ? 'default' : 'outline'}
-                  onClick={() => handleVariantChange(index)}
-                  className="text-xs h-8 flex-1 min-w-0"
-                >
-                  {product.packingSize || product.productGrade || `Variant ${index + 1}`}
-                </Button>
-              ))}
+              {products.map((product, index) => {
+                // Create proper label for variant button
+                let variantLabel = '';
+                if (product.packingSize) {
+                  variantLabel = product.packingSize;
+                } else if (product.productGrade) {
+                  variantLabel = product.productGrade;
+                } else if (product.moq) {
+                  variantLabel = `${product.moq}kg MOQ`;
+                } else {
+                  variantLabel = `Variant ${index + 1}`;
+                }
+                
+                return (
+                  <Button
+                    key={product.id}
+                    size="sm"
+                    variant={selectedVariant === index ? 'default' : 'outline'}
+                    onClick={() => handleVariantChange(index)}
+                    className="text-xs h-8 flex-1 min-w-0"
+                  >
+                    {variantLabel}
+                  </Button>
+                );
+              })}
             </div>
           )}
 
