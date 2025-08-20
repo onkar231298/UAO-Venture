@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
 import OptimizedImage from "./OptimizedImage";
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
 import type { Product, ProductType } from "@shared/schema";
 import { PrimaryProductType } from "./ProductTypeDisplay";
@@ -17,6 +19,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { currency } = useCurrency();
+  
   // Get the product image - prioritize WebP fields over legacy fields
   const galleryImages = product.galleryImages as string[] | null;
   const productImage = product.mainImageMedium || product.mainImageThumbnail || product.mainImage || (galleryImages && galleryImages.length > 0 ? galleryImages[0] : null);
@@ -92,7 +96,10 @@ export default function ProductCard({ product }: ProductCardProps) {
               <div className="flex justify-between items-center pt-2">
                 <div>
                   <div className="text-lg font-bold text-green-600">
-                    ${product.priceUSD || 'Contact'}
+                    {(() => {
+                      const price = getProductPrice(product, currency);
+                      return price ? formatPrice(price, currency) : 'Contact for Price';
+                    })()}
                   </div>
                   <div className="text-xs text-gray-500">
                     per {product.priceUnit || 'kg'}

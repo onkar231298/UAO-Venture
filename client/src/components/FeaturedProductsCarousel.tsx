@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
 
 interface Product {
   id: number;
@@ -17,6 +19,7 @@ interface Product {
 }
 
 const FeaturedProductsCarousel: React.FC = () => {
+  const { currency } = useCurrency();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(4);
 
@@ -205,7 +208,10 @@ const FeaturedProductsCarousel: React.FC = () => {
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <span className="text-lg font-bold text-green-600">
-                              ${product.priceUSD}
+                              {(() => {
+                                const price = getProductPrice(product, currency);
+                                return price ? formatPrice(price, currency) : 'Contact';
+                              })()}
                             </span>
                             <span className="text-sm text-gray-500 ml-1">
                               /kg

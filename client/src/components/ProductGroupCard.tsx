@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
 import OptimizedImage from "./OptimizedImage";
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
 import type { Product, ProductType } from "@shared/schema";
 import { PrimaryProductType } from "./ProductTypeDisplay";
@@ -15,6 +17,8 @@ interface ProductGroupCardProps {
 }
 
 export default function ProductGroupCard({ products, groupId }: ProductGroupCardProps) {
+  const { currency } = useCurrency();
+  
   if (!products.length) return null;
 
   // Get the primary product (first product) for main display
@@ -93,7 +97,10 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
               <div className="flex justify-between items-center pt-2">
                 <div>
                   <div className="text-lg font-bold text-green-600">
-                    ${primaryProduct.priceUSD || 'Contact'}
+                    {(() => {
+                      const price = getProductPrice(primaryProduct, currency);
+                      return price ? formatPrice(price, currency) : 'Contact for Price';
+                    })()}
                   </div>
                   <div className="text-xs text-gray-500">
                     per {primaryProduct.priceUnit || 'kg'}

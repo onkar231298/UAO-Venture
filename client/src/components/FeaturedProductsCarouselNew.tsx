@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
 
 interface Product {
   id: number;
@@ -15,6 +17,7 @@ interface Product {
 }
 
 const FeaturedProductsCarouselNew = () => {
+  const { currency } = useCurrency();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(4);
 
@@ -365,7 +368,10 @@ const FeaturedProductsCarouselNew = () => {
                             fontWeight: 'bold',
                             color: '#16a34a'
                           }}>
-                            ${product.priceUSD}
+                            {(() => {
+                              const price = getProductPrice(product, currency);
+                              return price ? formatPrice(price, currency) : 'Contact';
+                            })()}
                           </span>
                           <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>/kg</span>
                         </div>
