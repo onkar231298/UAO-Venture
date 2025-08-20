@@ -2,15 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCatalog from "@/components/ProductCatalog";
-import FeaturedProducts from "@/components/FeaturedProducts";
-import FeaturedProductsTest from "@/components/FeaturedProductsTest";
-import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
-import FeaturedProductsSimple from "@/components/FeaturedProductsSimple";
-import FeaturedProductsCarouselNew from "@/components/FeaturedProductsCarouselNew";
-import StandaloneFeaturedCarousel from "@/components/StandaloneFeaturedCarousel";
-import TestCarousel from "@/components/TestCarousel";
-import FeaturedProductsCarouselWorking from "@/components/FeaturedProductsCarouselWorking";
-import SimpleCarouselTest from "@/components/SimpleCarouselTest";
+// Removed unused carousel imports to avoid confusion
 import FeaturedCarouselSection from "@/components/FeaturedCarouselSection";
 import CategoriesSection from "@/components/CategoriesSection";
 import HomeStructuredData from "@/components/HomeStructuredData";

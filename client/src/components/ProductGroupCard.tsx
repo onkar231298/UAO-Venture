@@ -140,35 +140,35 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
               </div>
             )}
 
-            {/* MOQ */}
+            {/* MOQ - Updated to match ProductCard style */}
             {primaryProduct.moq && (
-              <div className="text-xs text-gray-600">
-                MOQ: {primaryProduct.moq} {primaryProduct.stockUnit}
-              </div>
+              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 w-fit">
+                MOQ: {primaryProduct.moq} {primaryProduct.stockUnit || 'kg'}
+              </Badge>
             )}
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Updated to match ProductCard */}
           <div className="flex gap-2 pt-2">
             <Button 
               size="sm" 
               className="flex-1 text-xs bg-green-600 hover:bg-green-700"
-              onClick={() => window.location.href = `/ingredients/${primaryProduct.slug}`}
+              onClick={() => window.location.href = `/products/${primaryProduct.slug}`}
             >
-              <Eye className="w-3 h-3 mr-1" />
-              View Details
+              <ShoppingCart className="w-3 h-3 mr-1" />
+              Get Quote
             </Button>
             <Button 
               size="sm" 
               variant="outline" 
-              className="flex-1 text-xs"
+              className="flex-1 text-xs border-green-600 text-green-600 hover:bg-green-50"
               onClick={() => {
-                // Add to cart or inquiry logic here
-                console.log('Add to inquiry:', primaryProduct.productId);
+                // Sample request logic
+                console.log('Request sample for:', primaryProduct.productId);
               }}
             >
-              <ShoppingCart className="w-3 h-3 mr-1" />
-              Inquiry
+              <Package className="w-3 h-3 mr-1" />
+              Sample
             </Button>
           </div>
 

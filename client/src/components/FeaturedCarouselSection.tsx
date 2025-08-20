@@ -107,7 +107,7 @@ export default function FeaturedCarouselSection() {
 
   const handleProductClick = (slug: string) => {
     console.log('🔗 Navigating to product:', slug);
-    navigate(`/products/${slug}`);
+    window.location.href = `/products/${slug}`;
   };
 
   // Handle keyboard navigation
@@ -185,9 +185,22 @@ export default function FeaturedCarouselSection() {
           >
             <div className="flex gap-4 sm:gap-6 pb-2" style={{ width: 'max-content' }}>
               {products.map((product) => {
-                // Transform product to match ProductCard interface
+                // Transform product to match ProductCard interface - add required fields
                 const transformedProduct = {
                   ...product,
+                  form: product.form || null,
+                  specificationSheet: null,
+                  botanicalName: product.botanicalName || null,
+                  plantPart: null,
+                  extractRatio: null,
+                  certifications: [],
+                  documents: [],
+                  isActive: true,
+                  visibility: 'public' as const,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  createdBy: null,
+                  updatedBy: null,
                   primaryType: product.productType ? {
                     id: 1,
                     name: product.productType === 'organic' ? 'Organic' :
@@ -206,7 +219,7 @@ export default function FeaturedCarouselSection() {
                     description: null
                   } : null,
                   tags: []
-                };
+                } as any;
 
                 return (
                   <div 
