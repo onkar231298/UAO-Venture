@@ -53,6 +53,17 @@ import CustomPackaging from "@/pages/services/CustomPackaging";
 import LogisticsSolutions from "@/pages/services/LogisticsSolutions";
 import Certifications from "@/pages/Certifications";
 
+// Helper component for product URL redirect
+function ProductRedirect({ params }: { params: { slug: string } }) {
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    setLocation(`/products/${params.slug}`, { replace: true });
+  }, [params.slug, setLocation]);
+  
+  return null;
+}
+
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
   
@@ -94,13 +105,7 @@ function Router() {
       <Route path="/products/:slug" component={ProductDetail} />
       
       {/* Redirect old product URLs to new format */}
-      <Route path="/product/:slug">
-        {(params: { slug: string }) => {
-          const [, setLocation] = useLocation();
-          setLocation(`/products/${params.slug}`, { replace: true });
-          return null;
-        }}
-      </Route>
+      <Route path="/product/:slug" component={ProductRedirect} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
