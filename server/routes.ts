@@ -3014,7 +3014,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      // Simple search query with good relevance for short queries like "tur"
+      // Enhanced search with intelligent partial matching for 3+ character queries
+      let whereConditions;
+      
+      if (query.length >= 3) {
+        // For 3+ character searches, use enhanced partial matching
+        whereConditions = and(
+          eq(products.isActive, true),
+          eq(products.isVisible, true),
+          sql`(
+            LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) OR
+            LOWER(${products.name}) LIKE LOWER(${query + '%'}) OR
+            LOWER(${products.productId}) LIKE LOWER(${query + '%'}) OR
+            LOWER(${products.botanicalName}) LIKE LOWER(${'%' + query + '%'}) OR
+            LOWER(${products.botanicalName}) LIKE LOWER(${query + '%'}) OR
+            LOWER(${products.name}) LIKE LOWER(${'% ' + query + '%'}) OR
+            LOWER(${products.botanicalName}) LIKE LOWER(${'% ' + query + '%'})
+          )`
+        );
+      } else {
+        // For shorter queries, use standard matching
+        whereConditions = and(
+          eq(products.isActive, true),
+          eq(products.isVisible, true),
+          sql`(
+            LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) OR
+            LOWER(${products.productId}) LIKE LOWER(${query + '%'}) OR
+            LOWER(${products.botanicalName}) LIKE LOWER(${'%' + query + '%'})
+          )`
+        );
+      }
+
       const searchResults = await db
         .select({
           id: products.id,
@@ -3022,21 +3052,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           slug: products.slug
         })
         .from(products)
-        .where(
-          and(
-            eq(products.isActive, true),
-            eq(products.isVisible, true),
-            sql`(
-              LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) OR
-              LOWER(${products.productId}) LIKE LOWER(${query + '%'}) OR
-              LOWER(${products.botanicalName}) LIKE LOWER(${'%' + query + '%'})
-            )`
-          )
-        )
+        .where(whereConditions)
         .orderBy(
-          // Simple relevance: name starts with query has highest priority
+          // Enhanced relevance scoring
           sql`(
-            CASE WHEN LOWER(${products.name}) LIKE LOWER(${query + '%'}) THEN 1 ELSE 2 END
+            CASE 
+              WHEN LOWER(${products.name}) LIKE LOWER(${query + '%'}) THEN 1
+              WHEN LOWER(${products.name}) LIKE LOWER(${'% ' + query + '%'}) THEN 2
+              WHEN LOWER(${products.botanicalName}) LIKE LOWER(${query + '%'}) THEN 3
+              ELSE 4
+            END
           )`,
           products.name
         )

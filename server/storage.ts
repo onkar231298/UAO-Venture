@@ -524,29 +524,64 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // Search filter with better relevance
+    // Enhanced search filter with intelligent partial matching
     if (filters?.search) {
       const searchTerm = filters.search.toLowerCase().trim();
+      
+      // Build comprehensive search conditions
+      const searchConditions = [];
+      
+      // Standard matching patterns
       const exactWordPattern = `% ${searchTerm} %`;
       const startsWithPattern = `${searchTerm}%`;
       const containsPattern = `%${searchTerm}%`;
       
-      // Prioritize exact word matches, then starts with, then contains
-      conditions.push(
-        or(
-          // Exact word match in name (highest priority)
-          sql`LOWER(${products.name}) LIKE ${exactWordPattern}`,
-          sql`LOWER(${products.name}) LIKE ${startsWithPattern}`,
-          // Exact word match in other fields
-          sql`LOWER(${products.botanicalName}) LIKE ${exactWordPattern}`,
-          sql`LOWER(${products.botanicalName}) LIKE ${startsWithPattern}`,
-          sql`LOWER(${products.productId}) LIKE ${startsWithPattern}`,
-          // Contains match (lower priority)
-          sql`LOWER(${products.name}) LIKE ${containsPattern}`,
-          sql`LOWER(${products.description}) LIKE ${containsPattern}`,
-          sql`LOWER(${products.botanicalName}) LIKE ${containsPattern}`
-        )
+      // Basic search conditions (always included)
+      searchConditions.push(
+        // Exact word match in name (highest priority)
+        sql`LOWER(${products.name}) LIKE ${exactWordPattern}`,
+        sql`LOWER(${products.name}) LIKE ${startsWithPattern}`,
+        // Exact word match in other fields
+        sql`LOWER(${products.botanicalName}) LIKE ${exactWordPattern}`,
+        sql`LOWER(${products.botanicalName}) LIKE ${startsWithPattern}`,
+        sql`LOWER(${products.productId}) LIKE ${startsWithPattern}`,
+        // Contains match (lower priority)
+        sql`LOWER(${products.name}) LIKE ${containsPattern}`,
+        sql`LOWER(${products.description}) LIKE ${containsPattern}`,
+        sql`LOWER(${products.botanicalName}) LIKE ${containsPattern}`
       );
+      
+      // Enhanced partial matching for 3+ character searches
+      if (searchTerm.length >= 3) {
+        // Split search term into individual words
+        const words = searchTerm.split(/\s+/).filter(word => word.length >= 3);
+        
+        for (const word of words) {
+          // Add word-start matching patterns for each word
+          searchConditions.push(
+            // Match at start of any word in product name
+            sql`LOWER(${products.name}) LIKE ${` ${word}%`}`, // space + word start
+            sql`LOWER(${products.name}) LIKE ${`${word}%`}`,   // word at beginning
+            // Match at start of any word in botanical name
+            sql`LOWER(${products.botanicalName}) LIKE ${` ${word}%`}`,
+            sql`LOWER(${products.botanicalName}) LIKE ${`${word}%`}`
+          );
+        }
+        
+        // If single word of 3+ chars, also add it as a separate contains search
+        if (words.length === 1 && searchTerm.length >= 3) {
+          const word = searchTerm;
+          searchConditions.push(
+            sql`LOWER(${products.name}) LIKE ${`%${word}%`}`,
+            sql`LOWER(${products.description}) LIKE ${`%${word}%`}`,
+            sql`LOWER(${products.botanicalName}) LIKE ${`%${word}%`}`,
+            sql`LOWER(${products.origin}) LIKE ${`%${word}%`}`,
+            sql`LOWER(${products.form}) LIKE ${`%${word}%`}`
+          );
+        }
+      }
+      
+      conditions.push(or(...searchConditions));
     }
     
     // Materials filter - maps to productType field (organic, natural, conventional, wildcrafted)
@@ -808,32 +843,49 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (filters?.search) {
-      const searchTerm = filters.search.trim();
+      const searchTerm = filters.search.trim().toLowerCase();
       
-      // Use full-text search for better performance on larger datasets
-      if (searchTerm.length > 2) {
-        // Full-text search with fallback to LIKE
-        conditions.push(
-          sql`(
-            to_tsvector('english', ${products.name}) @@ plainto_tsquery('english', ${searchTerm}) OR
-            to_tsvector('english', ${products.description}) @@ plainto_tsquery('english', ${searchTerm}) OR
-            to_tsvector('english', coalesce(${products.botanicalName}, '')) @@ plainto_tsquery('english', ${searchTerm}) OR
-            LOWER(${products.name}) LIKE ${`%${searchTerm.toLowerCase()}%`} OR
-            LOWER(${products.origin}) LIKE ${`%${searchTerm.toLowerCase()}%`} OR
-            LOWER(${products.form}) LIKE ${`%${searchTerm.toLowerCase()}%`}
-          )`
-        );
-      } else {
-        // For short search terms, use optimized LIKE
-        const searchTermLower = searchTerm.toLowerCase();
-        conditions.push(
-          sql`(
-            LOWER(${products.name}) LIKE ${`%${searchTermLower}%`} OR 
-            LOWER(${products.origin}) LIKE ${`%${searchTermLower}%`} OR
-            LOWER(${products.form}) LIKE ${`%${searchTermLower}%`}
-          )`
-        );
+      // Enhanced search with intelligent partial matching
+      const searchConditions = [
+        // Full-text search for longer terms
+        ...(searchTerm.length > 2 ? [
+          sql`to_tsvector('english', ${products.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+          sql`to_tsvector('english', ${products.description}) @@ plainto_tsquery('english', ${searchTerm})`,
+          sql`to_tsvector('english', coalesce(${products.botanicalName}, '')) @@ plainto_tsquery('english', ${searchTerm})`
+        ] : []),
+        
+        // Standard LIKE matching
+        sql`LOWER(${products.name}) LIKE ${`%${searchTerm}%`}`,
+        sql`LOWER(${products.origin}) LIKE ${`%${searchTerm}%`}`,
+        sql`LOWER(${products.form}) LIKE ${`%${searchTerm}%`}`,
+        sql`LOWER(${products.botanicalName}) LIKE ${`%${searchTerm}%`}`,
+        sql`LOWER(${products.productId}) LIKE ${`%${searchTerm}%`}`
+      ];
+      
+      // Enhanced partial matching for 3+ character searches
+      if (searchTerm.length >= 3) {
+        const words = searchTerm.split(/\s+/).filter(word => word.length > 0);
+        
+        for (const word of words) {
+          if (word.length >= 3) {
+            // Match beginning of words (e.g., "tur" matches "turmeric")
+            searchConditions.push(
+              sql`LOWER(${products.name}) ~ ${`\\m${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`}`,
+              sql`LOWER(${products.botanicalName}) ~ ${`\\m${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`}`
+            );
+            
+            // Word boundary matching with LIKE
+            searchConditions.push(
+              sql`LOWER(${products.name}) LIKE ${`% ${word}%`}`,
+              sql`LOWER(${products.name}) LIKE ${`${word}%`}`,
+              sql`LOWER(${products.botanicalName}) LIKE ${`% ${word}%`}`,
+              sql`LOWER(${products.botanicalName}) LIKE ${`${word}%`}`
+            );
+          }
+        }
       }
+      
+      conditions.push(or(...searchConditions));
     }
 
     // Optimized date filtering using native PostgreSQL date functions
