@@ -1,11 +1,13 @@
-
-import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Eye, Package, Leaf } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import InquiryForm from "./InquiryForm";
+import OptimizedImage from "./OptimizedImage";
+import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
+import type { Product, ProductType } from "@shared/schema";
+import { PrimaryProductType } from "./ProductTypeDisplay";
 
 interface ProductGroupCardProps {
   products: Product[];
@@ -18,146 +20,117 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
   // Get the primary product (first product) for main display
   const primaryProduct = products[0];
   
-  const { data: currency = 'USD' } = useQuery<string>({
-    queryKey: ['/api/detect-currency'],
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Format price based on currency
-  const formatPrice = (price: number) => {
-    if (currency === 'INR') {
-      return `₹${price.toLocaleString('en-IN')}`;
-    }
-    return `$${price.toFixed(2)}`;
-  };
+  // Get the product image - prioritize WebP fields over legacy fields
+  const galleryImages = primaryProduct.galleryImages as string[] | null;
+  const productImage = primaryProduct.mainImageMedium || primaryProduct.mainImageThumbnail || primaryProduct.mainImage || (galleryImages && galleryImages.length > 0 ? galleryImages[0] : null);
+  const hasImage = !!productImage;
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 h-full border border-gray-200">
-      <CardContent className="p-4">
-        {/* Product Image */}
-        <div className="relative mb-4 overflow-hidden rounded-lg bg-gray-100 aspect-square">
-          {(() => {
-            const mainImage = (primaryProduct as any).mainImage;
-            const arrayImage = (primaryProduct.images as string[] | null)?.[0];
-            const productImage = mainImage || arrayImage;
-            
-            return productImage ? (
-              <img
+    <Card className="group hover:shadow-lg transition-all duration-200">
+      <Link href={`/products/${primaryProduct.slug}`}>
+        <div className="cursor-pointer">
+          <div className="relative overflow-hidden rounded-t-xl bg-gray-100">
+            {hasImage ? (
+              <OptimizedImage
                 src={productImage}
                 alt={primaryProduct.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
+                className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-200"
+                lazy={true}
+                placeholder={
+                  <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 animate-pulse">
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                      <div className="text-xs sm:text-sm font-medium">Loading...</div>
+                    </div>
+                  </div>
+                }
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                <Package className="w-16 h-16 text-gray-400" />
+              <div className="w-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400">
+                <div className="text-center">
+                  <div className="text-2xl sm:text-3xl mb-2">📷</div>
+                  <div className="text-xs sm:text-sm font-medium">No Preview Available</div>
+                </div>
               </div>
-            );
-          })()}
-          
-          {/* Variant Count Badge */}
-          <div className="absolute top-2 right-2">
-            <Badge variant="secondary" className="text-xs">
-              {products.length} Variants
-            </Badge>
-          </div>
-        </div>
-
-        {/* Product Info */}
-        <div className="space-y-3">
-          {/* Product Name */}
-          <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 group-hover:text-green-600 transition-colors">
-            {primaryProduct.name}
-          </h3>
-
-          {/* Product Details */}
-          <div className="space-y-2">
-            {/* Product Type & Grade */}
-            <div className="flex flex-wrap gap-1">
-              <Badge 
-                variant={primaryProduct.isOrganic ? "default" : "secondary"}
-                className={`text-xs ${primaryProduct.isOrganic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-              >
-                {primaryProduct.isOrganic ? 'Organic' : 'Conventional'}
-              </Badge>
-              {primaryProduct.productGrade && (
-                <Badge variant="outline" className="text-xs">
-                  {primaryProduct.productGrade}
-                </Badge>
-              )}
-            </div>
-
-            {/* Botanical Name */}
-            {primaryProduct.botanicalName && (
-              <p className="text-sm text-gray-600 italic">
-                {primaryProduct.botanicalName}
-              </p>
             )}
-
-            {/* Form & Origin */}
-            <div className="text-xs text-gray-500 space-y-1">
-              {primaryProduct.form && (
-                <div>Form: <span className="font-medium">{primaryProduct.form}</span></div>
-              )}
-              {primaryProduct.origin && (
-                <div>Origin: <span className="font-medium">{primaryProduct.origin}</span></div>
-              )}
+            {products.length > 1 && (
+              <div className="absolute top-1 sm:top-2 left-1 sm:left-2">
+                <Badge variant="secondary" className="text-xs shadow-sm">
+                  {products.length} Variants
+                </Badge>
+              </div>
+            )}
+            <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
+              <Button size="sm" variant="secondary" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+                <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
+              </Button>
             </div>
+          </div>
+          
+          <CardContent className="p-3 sm:p-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
+                {primaryProduct.name}
+              </h3>
 
-            {/* Price */}
-            {primaryProduct.basePrice && (
-              <div className="text-lg font-bold text-green-600">
-                {formatPrice(Number(primaryProduct.basePrice))}
-                {primaryProduct.stockUnit && (
-                  <span className="text-sm text-gray-500 font-normal">/{primaryProduct.stockUnit}</span>
+              <p className="text-xs sm:text-sm text-gray-600">
+                SKU: {primaryProduct.productId}
+              </p>
+
+              {primaryProduct.botanicalName && (
+                <p className="text-xs text-gray-500 italic line-clamp-1">
+                  {primaryProduct.botanicalName}
+                </p>
+              )}
+
+              {primaryProduct.origin && (
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Origin: {primaryProduct.origin}
+                </p>
+              )}
+
+              {/* Price and MOQ */}
+              <div className="flex justify-between items-center pt-2">
+                <div>
+                  <div className="text-lg font-bold text-green-600">
+                    ${primaryProduct.priceUSD || 'Contact'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    per {primaryProduct.priceUnit || 'kg'}
+                  </div>
+                </div>
+                {primaryProduct.moq && (
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">
+                    MOQ: {primaryProduct.moq} kg
+                  </span>
                 )}
               </div>
-            )}
-
-            {/* MOQ - Updated to match ProductCard style */}
-            {primaryProduct.moq && (
-              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 w-fit">
-                MOQ: {primaryProduct.moq} {primaryProduct.stockUnit || 'kg'}
-              </Badge>
-            )}
-          </div>
-
-          {/* Action Buttons - Updated to match ProductCard */}
-          <div className="flex gap-2 pt-2">
-            <Button 
-              size="sm" 
-              className="flex-1 text-xs bg-green-600 hover:bg-green-700"
-              onClick={() => window.location.href = `/products/${primaryProduct.slug}`}
-            >
-              <ShoppingCart className="w-3 h-3 mr-1" />
-              Get Quote
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex-1 text-xs border-green-600 text-green-600 hover:bg-green-50"
-              onClick={() => {
-                // Sample request logic
-                console.log('Request sample for:', primaryProduct.productId);
-              }}
-            >
-              <Package className="w-3 h-3 mr-1" />
-              Sample
-            </Button>
-          </div>
-
-          {/* Availability Status */}
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${
-                Number(primaryProduct.currentStock) > 0 ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              {Number(primaryProduct.currentStock) > 0 ? 'In Stock' : 'Out of Stock'}
             </div>
-            {primaryProduct.leadTime && (
-              <div>Lead Time: {primaryProduct.leadTime}</div>
-            )}
-          </div>
+          </CardContent>
+        </div>
+      </Link>
+      
+      <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+        <div className="flex space-x-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-2">
+                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden sm:inline">Get Quote</span>
+                <span className="sm:hidden">Quote</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Request Quote for {primaryProduct.name}</DialogTitle>
+              </DialogHeader>
+              <InquiryForm product={primaryProduct} />
+            </DialogContent>
+          </Dialog>
+          
+          <Button variant="outline" size="sm" className="text-sm">
+            Sample
+          </Button>
         </div>
       </CardContent>
     </Card>
