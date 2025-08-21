@@ -7,6 +7,7 @@ import FeaturedCarouselSection from "@/components/FeaturedCarouselSection";
 import CategoriesSection from "@/components/CategoriesSection";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import WebsiteSchema from "@/components/WebsiteSchema";
+import CompanyStructuredData from "@/components/CompanyStructuredData";
 import SitemapGenerator from "@/components/SitemapGenerator";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <HomeStructuredData />
       <WebsiteSchema />
+      <CompanyStructuredData />
       <SitemapGenerator />
       <Header />
       
