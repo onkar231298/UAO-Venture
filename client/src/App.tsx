@@ -52,6 +52,9 @@ import RegulatoryCompliance from "@/pages/services/RegulatoryCompliance";
 import CustomPackaging from "@/pages/services/CustomPackaging";
 import LogisticsSolutions from "@/pages/services/LogisticsSolutions";
 import Certifications from "@/pages/Certifications";
+import FoodIngredients from "@/pages/FoodIngredients";
+import OrganicHerbs from "@/pages/OrganicHerbs";
+import EUOrganicSpices from "@/pages/EUOrganicSpices";
 
 // Helper component for product URL redirect
 function ProductRedirect({ params }: { params: { slug: string } }) {
@@ -111,6 +114,11 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/cookie-policy" component={CookiePolicy} />
+      
+      {/* Industry-specific landing pages for SEO */}
+      <Route path="/food-ingredients" component={FoodIngredients} />
+      <Route path="/organic-herbs" component={OrganicHerbs} />
+      <Route path="/eu-organic-spices" component={EUOrganicSpices} />
       
       {/* Service pages */}
       <Route path="/services/quality-testing" component={QualityTesting} />
