@@ -2,8 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, ChevronRight, ChevronLeft } from "lucide-react";
-import OptimizedImage from "@/components/OptimizedImage";
+import { 
+  Package, 
+  ChevronRight, 
+  ChevronLeft,
+  Leaf,
+  FlaskConical,
+  Droplets,
+  Flower2,
+  TreePine,
+  Zap,
+  Heart,
+  Sparkles,
+  Brain,
+  Shield,
+  Sun,
+  Coffee
+} from "lucide-react";
 
 interface Category {
   id: number;
@@ -13,6 +28,27 @@ interface Category {
   imageUrl?: string | null;
   isActive: boolean;
 }
+
+// Function to get relevant icon for each category
+const getCategoryIcon = (categoryName: string) => {
+  const name = categoryName.toLowerCase();
+  
+  if (name.includes('adaptogenic') || name.includes('adaptogen')) return Brain;
+  if (name.includes('amino') || name.includes('acid')) return FlaskConical;
+  if (name.includes('bioactive') || name.includes('nutrient')) return Zap;
+  if (name.includes('culinary') || name.includes('spices')) return Coffee;
+  if (name.includes('essential') || name.includes('oil')) return Droplets;
+  if (name.includes('herbal') || name.includes('powder')) return Leaf;
+  if (name.includes('botanical') || name.includes('extract')) return TreePine;
+  if (name.includes('ayurvedic') || name.includes('traditional')) return Flower2;
+  if (name.includes('wellness') || name.includes('health')) return Heart;
+  if (name.includes('antioxidant') || name.includes('anti')) return Shield;
+  if (name.includes('vitamin') || name.includes('supplement')) return Sun;
+  if (name.includes('organic') || name.includes('natural')) return Sparkles;
+  
+  // Default icon
+  return Package;
+};
 
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -153,29 +189,17 @@ export default function CategoriesSection() {
                 style={{ scrollSnapAlign: 'start' }}
               >
                 <div className="relative overflow-hidden rounded-t-xl bg-gradient-to-br from-green-50 to-emerald-50">
-                  {category.imageUrl ? (
-                    <OptimizedImage
-                      src={category.imageUrl}
-                      alt={category.name}
-                      className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
-                      lazy={true}
-                      placeholder={
-                        <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 text-green-400 animate-pulse">
-                          <div className="text-center">
-                            <Package className="w-8 h-8 mx-auto mb-2" />
-                            <div className="text-xs font-medium">Loading...</div>
-                          </div>
+                  {(() => {
+                    const IconComponent = getCategoryIcon(category.name);
+                    return (
+                      <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 text-green-500 group-hover:scale-110 transition-transform duration-300">
+                        <div className="text-center">
+                          <IconComponent className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 text-green-600" />
+                          <div className="text-xs sm:text-sm font-medium text-green-600">{category.name}</div>
                         </div>
-                      }
-                    />
-                  ) : (
-                    <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 text-green-500">
-                      <div className="text-center">
-                        <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2" />
-                        <div className="text-xs sm:text-sm font-medium text-green-600">Category</div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
