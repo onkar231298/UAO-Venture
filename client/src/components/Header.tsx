@@ -268,6 +268,45 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
+              {/* Industries Dropdown - NEW for SEO */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                    Industries <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 p-3 shadow-xl border border-gray-200" align="start">
+                  <div className="space-y-2">
+                    <Link href="/food-ingredients">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                        <div>
+                          <div className="font-medium text-gray-900">Food Ingredients</div>
+                          <div className="text-xs text-gray-600">EU certified organic ingredients for food manufacturers</div>
+                        </div>
+                      </DropdownMenuItem>
+                    </Link>
+                    
+                    <Link href="/organic-herbs">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                        <div>
+                          <div className="font-medium text-gray-900">Organic Herbs</div>
+                          <div className="text-xs text-gray-600">Premium medicinal & Ayurvedic herbs for pharma industry</div>
+                        </div>
+                      </DropdownMenuItem>
+                    </Link>
+                    
+                    <Link href="/eu-organic-spices">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                        <div>
+                          <div className="font-medium text-gray-900">EU Organic Spices</div>
+                          <div className="text-xs text-gray-600">European market certified organic spices & seasonings</div>
+                        </div>
+                      </DropdownMenuItem>
+                    </Link>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {/* Health Support Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
