@@ -39,10 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone } from "lucide-react";
 
 const companySchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
+  primaryPhone: z.string().optional(),
   gstNumber: z.string().optional(),
   industryType: z.string().optional(),
   companySize: z.string().optional(),
@@ -68,6 +69,12 @@ const companySchema = z.object({
   factoryAddressState: z.string().optional(),
   factoryAddressCountry: z.string().optional(),
   factoryAddressZip: z.string().optional(),
+  
+  // Department contact phones
+  departmentPhones: z.array(z.object({
+    department: z.string(),
+    phone: z.string(),
+  })).optional(),
 });
 
 interface Company {
@@ -100,6 +107,7 @@ export default function CompanyManagement() {
     resolver: zodResolver(companySchema),
     defaultValues: {
       companyName: "",
+      primaryPhone: "",
       gstNumber: "",
       industryType: "",
       companySize: "",
@@ -119,6 +127,7 @@ export default function CompanyManagement() {
       factoryAddressState: "",
       factoryAddressCountry: "",
       factoryAddressZip: "",
+      departmentPhones: [],
     },
   });
 
@@ -374,19 +383,35 @@ export default function CompanyManagement() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => createCompanyMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="primaryPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1-xxx-xxx-xxxx" {...field} data-testid="input-primary-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -470,8 +495,73 @@ export default function CompanyManagement() {
                 />
               </div>
 
+              {/* Department Phone Numbers */}
+              <div className="space-y-4 pt-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Department Phone Numbers (Optional)
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const currentPhones = form.getValues("departmentPhones") || [];
+                      form.setValue("departmentPhones", [...currentPhones, { department: "", phone: "" }]);
+                    }}
+                    data-testid="button-add-department-phone"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Department Phone
+                  </Button>
+                </div>
+                {(form.watch("departmentPhones") || []).map((_, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <FormField
+                        control={form.control}
+                        name={`departmentPhones.${index}.department`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Department (e.g., Sales, Support)" {...field} data-testid={`input-dept-name-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`departmentPhones.${index}.phone`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Phone number" {...field} data-testid={`input-dept-phone-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const currentPhones = form.getValues("departmentPhones") || [];
+                        form.setValue("departmentPhones", currentPhones.filter((_, i) => i !== index));
+                      }}
+                      data-testid={`button-remove-dept-phone-${index}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
               {/* Registered/Head Office Address */}
-              <div className="space-y-4 pt-4">
+              <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-semibold text-sm">Registered/Head Office Address</h3>
                 <FormField
                   control={form.control}

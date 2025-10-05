@@ -3276,11 +3276,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/companies', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { departmentPhones, ...companyFields } = req.body;
+      
       const companyData = insertCompanySchema.parse({
-        ...req.body,
+        ...companyFields,
         createdBy: userId
       });
       const company = await storage.createCompany(companyData);
+      
+      // Create company contacts for department phones if provided
+      if (departmentPhones && Array.isArray(departmentPhones) && departmentPhones.length > 0) {
+        for (const dept of departmentPhones) {
+          if (dept.department && dept.phone) {
+            try {
+              await storage.createCompanyContact({
+                companyId: company.id,
+                contactName: dept.department,
+                designation: dept.department,
+                phone: dept.phone,
+                isPrimary: false,
+              });
+            } catch (contactError) {
+              console.error('Error creating department contact:', contactError);
+              // Continue creating other contacts even if one fails
+            }
+          }
+        }
+      }
+      
       res.json(company);
     } catch (error: any) {
       console.error('Error creating company:', error);
