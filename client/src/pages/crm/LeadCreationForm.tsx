@@ -45,7 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Plus, Building2, User, Package, DollarSign } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Building2, User, Package, DollarSign, X, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Form schemas - simplified and tailored for the form fields
@@ -72,6 +72,12 @@ const leadSchema = z.object({
   specialRequirements: z.string().optional(),
   currentSupplier: z.string().optional(),
   reasonForChange: z.string().optional(),
+  additionalContacts: z.array(z.object({
+    contactName: z.string(),
+    email: z.string().email().optional().or(z.literal("")),
+    phone: z.string().optional(),
+    designation: z.string().optional(),
+  })).optional(),
 });
 
 interface LeadCreationFormProps {
@@ -137,6 +143,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
       specialRequirements: "",
       currentSupplier: "",
       reasonForChange: "",
+      additionalContacts: [],
     },
   });
 
@@ -558,6 +565,105 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     </FormItem>
                   )}
                 />
+
+                {/* Additional Contacts */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Additional Contacts (Optional)
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const currentContacts = leadForm.getValues("additionalContacts") || [];
+                        leadForm.setValue("additionalContacts", [...currentContacts, { contactName: "", email: "", phone: "", designation: "" }]);
+                      }}
+                      data-testid="button-add-contact"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Contact
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Add emails or phone numbers found during lead creation</p>
+                  {(leadForm.watch("additionalContacts") || []).map((_, index) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h5 className="text-sm font-medium">Contact {index + 1}</h5>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const currentContacts = leadForm.getValues("additionalContacts") || [];
+                            leadForm.setValue("additionalContacts", currentContacts.filter((_, i) => i !== index));
+                          }}
+                          data-testid={`button-remove-contact-${index}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={leadForm.control}
+                          name={`additionalContacts.${index}.contactName`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Contact name" {...field} data-testid={`input-contact-name-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={leadForm.control}
+                          name={`additionalContacts.${index}.designation`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Position/Designation</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Purchasing Manager" {...field} data-testid={`input-contact-designation-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={leadForm.control}
+                          name={`additionalContacts.${index}.email`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="email@example.com" {...field} data-testid={`input-contact-email-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={leadForm.control}
+                          name={`additionalContacts.${index}.phone`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Phone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="+1-xxx-xxx-xxxx" {...field} data-testid={`input-contact-phone-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Lead Source & Business Details */}

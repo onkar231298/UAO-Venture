@@ -3469,9 +3469,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/leads', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { additionalContacts, ...leadFields } = req.body;
       
       const leadData = insertLeadSchema.parse({
-        ...req.body,
+        ...leadFields,
         createdBy: userId,
         assignedSalesRep: req.body.assignedSalesRep || userId,
         assignmentMode: req.body.assignedSalesRep ? 'manual' : 'auto'
@@ -3485,6 +3486,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const lead = await storage.createLead(leadData);
+      
+      // Create company contacts for additional contacts if provided
+      if (additionalContacts && Array.isArray(additionalContacts) && additionalContacts.length > 0 && leadData.companyId) {
+        for (const contact of additionalContacts) {
+          if (contact.contactName && (contact.email || contact.phone)) {
+            try {
+              await storage.createCompanyContact({
+                companyId: leadData.companyId,
+                contactName: contact.contactName,
+                designation: contact.designation || null,
+                email: contact.email || null,
+                phone: contact.phone || null,
+                isPrimary: false,
+              });
+            } catch (contactError) {
+              console.error('Error creating additional contact:', contactError);
+              // Continue creating other contacts even if one fails
+            }
+          }
+        }
+      }
+      
       res.json(lead);
     } catch (error: any) {
       console.error('Error creating lead:', error);
