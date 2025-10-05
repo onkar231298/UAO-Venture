@@ -398,9 +398,9 @@ app.use((req, res, next) => {
 Allow: /
 
 # Optimize crawl budget - allow important pages
-Allow: /products/
-Allow: /ingredients/
-Allow: /health-support/
+Allow: /products/$
+Allow: /ingredients/$
+Allow: /health-support/$
 Allow: /about
 Allow: /contact
 
@@ -412,6 +412,36 @@ Disallow: /_next/
 Disallow: /_error
 Disallow: /404
 Disallow: /500
+
+# Block authentication pages (no SEO value)
+Disallow: /login
+Disallow: /register
+Disallow: /customer/
+Disallow: /staff/
+Disallow: /dashboard
+
+# Block low-value search and filter URLs to prevent "Crawled - not indexed" issues
+Disallow: /search?*
+Disallow: /products?*
+Disallow: /ingredients?*
+Disallow: /health-support?*
+
+# Block test pages
+Disallow: /test
+Disallow: /*test*
+
+# Block URLs with common filter parameters
+Disallow: /*?category=*
+Disallow: /*?material=*
+Disallow: /*?origin=*
+Disallow: /*?form=*
+Disallow: /*?health=*
+Disallow: /*?price=*
+Disallow: /*?page=*
+Disallow: /*?sort=*
+Disallow: /*?filter=*
+Disallow: /*?hl=*
+Disallow: /*?gl=*
 
 # Allow sitemap
 Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
