@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [adminUser, setAdminUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
+  const [location, setLocation] = useLocation();
 
   // Check admin authentication using useAuth hook
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -66,6 +68,29 @@ export default function AdminDashboard() {
       setAuthLoading(false);
     }
   }, [isAuthenticated, isLoading, user, toast]);
+
+  // Set active section based on URL path
+  useEffect(() => {
+    if (location.includes('/dashboard/crm/leads')) {
+      setActiveSection('sales-crm');
+    } else if (location.includes('/dashboard/crm/companies')) {
+      setActiveSection('company-management');
+    } else if (location.includes('/dashboard/sales')) {
+      setActiveSection('sales');
+    } else if (location.includes('/dashboard/enquiry-sample')) {
+      setActiveSection('enquiry-sample');
+    } else if (location.includes('/dashboard/website')) {
+      setActiveSection('website');
+    } else if (location.includes('/dashboard/users')) {
+      setActiveSection('users');
+    } else if (location.includes('/dashboard/newsletter')) {
+      setActiveSection('newsletter');
+    } else if (location.includes('/dashboard/blog')) {
+      setActiveSection('blog');
+    } else if (location.includes('/dashboard')) {
+      setActiveSection('overview');
+    }
+  }, [location]);
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -129,7 +154,7 @@ export default function AdminDashboard() {
               </h3>
               <div className="space-y-1">
                 <button
-                  onClick={() => setActiveSection('overview')}
+                  onClick={() => setLocation('/admin/dashboard')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
                     activeSection === 'overview'
                       ? 'bg-blue-100 text-blue-900 border border-blue-200'
@@ -208,7 +233,7 @@ export default function AdminDashboard() {
                       Sample Requests
                     </button>
                     <button
-                      onClick={() => setActiveSection('sales-crm')}
+                      onClick={() => setLocation('/admin/dashboard/crm/leads')}
                       className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                         activeSection === 'sales-crm'
                           ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -219,7 +244,7 @@ export default function AdminDashboard() {
                       Lead Management
                     </button>
                     <button
-                      onClick={() => setActiveSection('company-management')}
+                      onClick={() => setLocation('/admin/dashboard/crm/companies')}
                       className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                         activeSection === 'company-management'
                           ? 'bg-blue-50 text-blue-700 border border-blue-200'
