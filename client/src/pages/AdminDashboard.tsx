@@ -162,7 +162,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => setActiveSection('sales')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm'
+                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm' || activeSection === 'company-management'
                       ? 'bg-gray-100 text-gray-900'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
                 </button>
                 
                 {/* Sales Management Sub-items */}
-                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm') && (
+                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
                   <div className="ml-6 mt-2 space-y-1">
                     <button
                       onClick={() => setActiveSection('enquiry-sample')}
@@ -216,7 +216,19 @@ export default function AdminDashboard() {
                       }`}
                     >
                       <Users className="mr-3 h-4 w-4" />
-                      Sales CRM
+                      Lead Management
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('company-management')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'company-management'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                      data-testid="nav-company-management"
+                    >
+                      <Warehouse className="mr-3 h-4 w-4" />
+                      Company Management
                     </button>
                   </div>
                 )}
@@ -501,7 +513,7 @@ export default function AdminDashboard() {
             <WebsiteManagement />
           )}
 
-          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm') && (
+          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sample-requests' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
             <SalesManagement activeSubSection={activeSection} />
           )}
 
@@ -517,7 +529,7 @@ export default function AdminDashboard() {
             <UserManagement />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
             <Card>
               <CardHeader>
                 <CardTitle>
