@@ -18,6 +18,12 @@ import {
   healthSupportRelations,
   heroSlides,
   sampleRequests,
+  companies,
+  companyContacts,
+  leads,
+  leadActivities,
+  leadTasks,
+  assignmentRules,
   type User,
   type InsertUser,
   type Product,
@@ -81,6 +87,19 @@ import {
   type InsertGlobalSeoSettings,
   type NewsletterSubscription,
   type InsertNewsletterSubscription,
+  type Company,
+  type InsertCompany,
+  type CompanyContact,
+  type InsertCompanyContact,
+  type Lead,
+  type InsertLead,
+  type LeadActivity,
+  type InsertLeadActivity,
+  type LeadTask,
+  type InsertLeadTask,
+  type AssignmentRule,
+  type InsertAssignmentRule,
+  type LeadWithDetails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
@@ -321,6 +340,81 @@ export interface IStorage {
   getNewsletterSubscription(email: string): Promise<NewsletterSubscription | undefined>;
   unsubscribeFromNewsletter(email: string): Promise<void>;
   getNewsletterSubscriptions(filters?: { isActive?: boolean; limit?: number; offset?: number }): Promise<{ subscriptions: NewsletterSubscription[]; total: number }>;
+
+  // CRM - Company methods
+  getCompanies(filters?: { search?: string; industryType?: string; needsEnrichment?: boolean; limit?: number; offset?: number }): Promise<{ companies: Company[]; total: number }>;
+  getCompany(id: number): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company>;
+  deleteCompany(id: number): Promise<void>;
+  getCompanyByGST(gstNumber: string): Promise<Company | undefined>;
+
+  // CRM - Company contact methods
+  getCompanyContacts(companyId: number): Promise<CompanyContact[]>;
+  getCompanyContact(id: number): Promise<CompanyContact | undefined>;
+  createCompanyContact(contact: InsertCompanyContact): Promise<CompanyContact>;
+  updateCompanyContact(id: number, contact: Partial<InsertCompanyContact>): Promise<CompanyContact>;
+  deleteCompanyContact(id: number): Promise<void>;
+  setPrimaryContact(companyId: number, contactId: number): Promise<void>;
+
+  // CRM - Lead methods
+  getLeads(filters?: {
+    assignedTo?: string;
+    stage?: string;
+    priority?: string;
+    status?: string;
+    companyId?: number;
+    search?: string;
+    createdFrom?: Date;
+    createdTo?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ leads: LeadWithDetails[]; total: number }>;
+  getLead(id: number): Promise<LeadWithDetails | undefined>;
+  getLeadByLeadId(leadId: string): Promise<LeadWithDetails | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead>;
+  deleteLead(id: number): Promise<void>;
+  transferLead(leadId: number, toUserId: string, transferredBy: string, reason?: string): Promise<Lead>;
+  updateLeadStage(leadId: number, newStage: string, userId: string): Promise<Lead>;
+  
+  // CRM - Lead activity methods
+  getLeadActivities(leadId: number): Promise<LeadActivity[]>;
+  createLeadActivity(activity: InsertLeadActivity): Promise<LeadActivity>;
+  updateLeadActivity(id: number, activity: Partial<InsertLeadActivity>): Promise<LeadActivity>;
+  deleteLeadActivity(id: number): Promise<void>;
+
+  // CRM - Lead task methods
+  getLeadTasks(filters?: { leadId?: number; assignedTo?: string; status?: string }): Promise<LeadTask[]>;
+  getLeadTask(id: number): Promise<LeadTask | undefined>;
+  createLeadTask(task: InsertLeadTask): Promise<LeadTask>;
+  updateLeadTask(id: number, task: Partial<InsertLeadTask>): Promise<LeadTask>;
+  deleteLeadTask(id: number): Promise<void>;
+  completeLeadTask(id: number, completedBy: string): Promise<LeadTask>;
+
+  // CRM - Assignment rule methods
+  getAssignmentRules(filters?: { ruleType?: string; isActive?: boolean }): Promise<AssignmentRule[]>;
+  getAssignmentRule(id: number): Promise<AssignmentRule | undefined>;
+  createAssignmentRule(rule: InsertAssignmentRule): Promise<AssignmentRule>;
+  updateAssignmentRule(id: number, rule: Partial<InsertAssignmentRule>): Promise<AssignmentRule>;
+  deleteAssignmentRule(id: number): Promise<void>;
+  applyAssignmentRules(lead: InsertLead): Promise<string | undefined>;
+
+  // CRM - Analytics & reporting
+  getLeadStats(userId?: string): Promise<{
+    totalLeads: number;
+    leadsByStage: { stage: string; count: number }[];
+    leadsByPriority: { priority: string; count: number }[];
+    conversionRate: number;
+    averageLeadAge: number;
+  }>;
+  getSalesRepPerformance(userId: string, dateFrom?: Date, dateTo?: Date): Promise<{
+    leadsCreated: number;
+    leadsWon: number;
+    leadsLost: number;
+    totalRevenue: number;
+    activitiesLogged: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3689,6 +3783,648 @@ export class DatabaseStorage implements IStorage {
     return {
       subscriptions: subscriptionsData,
       total: totalData[0]?.count || 0
+    };
+  }
+
+  // ========================================
+  // CRM - COMPANY METHODS
+  // ========================================
+
+  async getCompanies(filters?: {
+    search?: string;
+    industryType?: string;
+    needsEnrichment?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ companies: Company[]; total: number }> {
+    const conditions = [];
+
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(companies.companyName, `%${filters.search}%`),
+          like(companies.gstNumber, `%${filters.search}%`),
+          like(companies.website, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters?.industryType) {
+      conditions.push(eq(companies.industryType, filters.industryType));
+    }
+
+    if (filters?.needsEnrichment !== undefined) {
+      conditions.push(eq(companies.needsEnrichment, filters.needsEnrichment));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [companiesData, totalData] = await Promise.all([
+      db.select().from(companies)
+        .where(whereCondition)
+        .orderBy(desc(companies.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: count() }).from(companies).where(whereCondition)
+    ]);
+
+    return {
+      companies: companiesData,
+      total: totalData[0]?.count || 0
+    };
+  }
+
+  async getCompany(id: number): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+
+  async createCompany(companyData: InsertCompany): Promise<Company> {
+    const [company] = await db.insert(companies).values(companyData).returning();
+    return company;
+  }
+
+  async updateCompany(id: number, companyData: Partial<InsertCompany>): Promise<Company> {
+    const [company] = await db.update(companies)
+      .set({ ...companyData, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return company;
+  }
+
+  async deleteCompany(id: number): Promise<void> {
+    await db.delete(companies).where(eq(companies.id, id));
+  }
+
+  async getCompanyByGST(gstNumber: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.gstNumber, gstNumber));
+    return company;
+  }
+
+  // ========================================
+  // CRM - COMPANY CONTACT METHODS
+  // ========================================
+
+  async getCompanyContacts(companyId: number): Promise<CompanyContact[]> {
+    return await db.select().from(companyContacts)
+      .where(eq(companyContacts.companyId, companyId))
+      .orderBy(desc(companyContacts.isPrimary), desc(companyContacts.createdAt));
+  }
+
+  async getCompanyContact(id: number): Promise<CompanyContact | undefined> {
+    const [contact] = await db.select().from(companyContacts).where(eq(companyContacts.id, id));
+    return contact;
+  }
+
+  async createCompanyContact(contactData: InsertCompanyContact): Promise<CompanyContact> {
+    const [contact] = await db.insert(companyContacts).values(contactData).returning();
+    return contact;
+  }
+
+  async updateCompanyContact(id: number, contactData: Partial<InsertCompanyContact>): Promise<CompanyContact> {
+    const [contact] = await db.update(companyContacts)
+      .set({ ...contactData, updatedAt: new Date() })
+      .where(eq(companyContacts.id, id))
+      .returning();
+    return contact;
+  }
+
+  async deleteCompanyContact(id: number): Promise<void> {
+    await db.delete(companyContacts).where(eq(companyContacts.id, id));
+  }
+
+  async setPrimaryContact(companyId: number, contactId: number): Promise<void> {
+    await db.update(companyContacts)
+      .set({ isPrimary: false })
+      .where(eq(companyContacts.companyId, companyId));
+    
+    await db.update(companyContacts)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(companyContacts.id, contactId));
+  }
+
+  // ========================================
+  // CRM - LEAD METHODS
+  // ========================================
+
+  private async generateLeadId(): Promise<string> {
+    const year = new Date().getFullYear();
+    const result = await db.select({ 
+      maxNum: sql<number>`COALESCE(MAX(CAST(SUBSTRING(lead_id FROM 9) AS INTEGER)), 0)`
+    }).from(leads).where(sql`lead_id ~ '^LD-${year}-[0-9]+$'`);
+    
+    const nextNum = (result[0]?.maxNum || 0) + 1;
+    return `LD-${year}-${nextNum.toString().padStart(4, '0')}`;
+  }
+
+  async getLeads(filters?: {
+    assignedTo?: string;
+    stage?: string;
+    priority?: string;
+    status?: string;
+    companyId?: number;
+    search?: string;
+    createdFrom?: Date;
+    createdTo?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ leads: LeadWithDetails[]; total: number }> {
+    const conditions = [];
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(leads.assignedSalesRep, filters.assignedTo));
+    }
+
+    if (filters?.stage) {
+      conditions.push(eq(leads.currentStage, filters.stage));
+    }
+
+    if (filters?.priority) {
+      conditions.push(eq(leads.priority, filters.priority));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(leads.status, filters.status));
+    }
+
+    if (filters?.companyId) {
+      conditions.push(eq(leads.companyId, filters.companyId));
+    }
+
+    if (filters?.search) {
+      const searchConditions = or(
+        like(leads.leadId, `%${filters.search}%`),
+        sql`EXISTS (SELECT 1 FROM companies WHERE companies.id = leads.company_id AND companies.company_name ILIKE ${'%' + filters.search + '%'})`
+      );
+      conditions.push(searchConditions);
+    }
+
+    if (filters?.createdFrom) {
+      conditions.push(sql`${leads.createdAt} >= ${filters.createdFrom}`);
+    }
+
+    if (filters?.createdTo) {
+      conditions.push(sql`${leads.createdAt} <= ${filters.createdTo}`);
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalData] = await db.select({ count: count() }).from(leads).where(whereCondition);
+
+    const leadsData = await db
+      .select({
+        lead: leads,
+        company: companies,
+        contactPerson: companyContacts,
+        salesRep: users,
+      })
+      .from(leads)
+      .leftJoin(companies, eq(leads.companyId, companies.id))
+      .leftJoin(companyContacts, eq(leads.contactPersonId, companyContacts.id))
+      .leftJoin(users, eq(leads.assignedSalesRep, users.id))
+      .where(whereCondition)
+      .orderBy(desc(leads.createdAt))
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
+
+    const leadsWithDetails: LeadWithDetails[] = leadsData.map(row => ({
+      ...row.lead,
+      company: row.company!,
+      contactPerson: row.contactPerson || undefined,
+      salesRep: row.salesRep || undefined,
+    }));
+
+    return {
+      leads: leadsWithDetails,
+      total: totalData?.count || 0
+    };
+  }
+
+  async getLead(id: number): Promise<LeadWithDetails | undefined> {
+    const [result] = await db
+      .select({
+        lead: leads,
+        company: companies,
+        contactPerson: companyContacts,
+        salesRep: users,
+      })
+      .from(leads)
+      .leftJoin(companies, eq(leads.companyId, companies.id))
+      .leftJoin(companyContacts, eq(leads.contactPersonId, companyContacts.id))
+      .leftJoin(users, eq(leads.assignedSalesRep, users.id))
+      .where(eq(leads.id, id));
+
+    if (!result) return undefined;
+
+    const activities = await this.getLeadActivities(id);
+    const tasks = await this.getLeadTasks({ leadId: id });
+
+    return {
+      ...result.lead,
+      company: result.company!,
+      contactPerson: result.contactPerson || undefined,
+      salesRep: result.salesRep || undefined,
+      activities,
+      tasks,
+    };
+  }
+
+  async getLeadByLeadId(leadId: string): Promise<LeadWithDetails | undefined> {
+    const [result] = await db
+      .select({
+        lead: leads,
+        company: companies,
+        contactPerson: companyContacts,
+        salesRep: users,
+      })
+      .from(leads)
+      .leftJoin(companies, eq(leads.companyId, companies.id))
+      .leftJoin(companyContacts, eq(leads.contactPersonId, companyContacts.id))
+      .leftJoin(users, eq(leads.assignedSalesRep, users.id))
+      .where(eq(leads.leadId, leadId));
+
+    if (!result) return undefined;
+
+    const activities = await this.getLeadActivities(result.lead.id);
+    const tasks = await this.getLeadTasks({ leadId: result.lead.id });
+
+    return {
+      ...result.lead,
+      company: result.company!,
+      contactPerson: result.contactPerson || undefined,
+      salesRep: result.salesRep || undefined,
+      activities,
+      tasks,
+    };
+  }
+
+  async createLead(leadData: InsertLead): Promise<Lead> {
+    const generatedLeadId = await this.generateLeadId();
+    const [lead] = await db.insert(leads)
+      .values({ ...leadData, leadId: generatedLeadId })
+      .returning();
+    
+    await this.createLeadActivity({
+      leadId: lead.id,
+      activityType: 'note',
+      subject: 'Lead Created',
+      description: 'New lead has been created in the system',
+      createdBy: leadData.createdBy,
+    });
+
+    return lead;
+  }
+
+  async updateLead(id: number, leadData: Partial<InsertLead>): Promise<Lead> {
+    const [lead] = await db.update(leads)
+      .set({ ...leadData, updatedAt: new Date() })
+      .where(eq(leads.id, id))
+      .returning();
+    return lead;
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    await db.delete(leads).where(eq(leads.id, id));
+  }
+
+  async transferLead(leadId: number, toUserId: string, transferredBy: string, reason?: string): Promise<Lead> {
+    const existingLead = await this.getLead(leadId);
+    if (!existingLead) throw new Error('Lead not found');
+
+    const transferRecord = {
+      from: existingLead.assignedSalesRep,
+      to: toUserId,
+      transferredBy,
+      transferredAt: new Date().toISOString(),
+      reason: reason || 'Manual transfer',
+    };
+
+    const currentHistory = Array.isArray(existingLead.transferHistory) 
+      ? existingLead.transferHistory 
+      : [];
+
+    const [lead] = await db.update(leads)
+      .set({
+        assignedSalesRep: toUserId,
+        transferHistory: [...currentHistory, transferRecord] as any,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+
+    await this.createLeadActivity({
+      leadId,
+      activityType: 'note',
+      subject: 'Lead Transferred',
+      description: `Lead transferred from ${existingLead.salesRep?.firstName || 'Unknown'} to ${toUserId}. Reason: ${reason || 'Manual transfer'}`,
+      createdBy: transferredBy,
+    });
+
+    return lead;
+  }
+
+  async updateLeadStage(leadId: number, newStage: string, userId: string): Promise<Lead> {
+    const existingLead = await this.getLead(leadId);
+    if (!existingLead) throw new Error('Lead not found');
+
+    const [lead] = await db.update(leads)
+      .set({
+        currentStage: newStage,
+        previousStage: existingLead.currentStage,
+        daysInCurrentStage: 0,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+
+    await this.createLeadActivity({
+      leadId,
+      activityType: 'stage_change',
+      subject: 'Stage Updated',
+      description: `Stage changed from ${existingLead.currentStage} to ${newStage}`,
+      fromStage: existingLead.currentStage,
+      toStage: newStage,
+      createdBy: userId,
+    });
+
+    return lead;
+  }
+
+  // ========================================
+  // CRM - LEAD ACTIVITY METHODS
+  // ========================================
+
+  async getLeadActivities(leadId: number): Promise<LeadActivity[]> {
+    return await db.select().from(leadActivities)
+      .where(eq(leadActivities.leadId, leadId))
+      .orderBy(desc(leadActivities.activityDate));
+  }
+
+  async createLeadActivity(activityData: InsertLeadActivity): Promise<LeadActivity> {
+    const [activity] = await db.insert(leadActivities).values(activityData).returning();
+    
+    await db.update(leads)
+      .set({ lastContactDate: new Date() })
+      .where(eq(leads.id, activityData.leadId));
+
+    return activity;
+  }
+
+  async updateLeadActivity(id: number, activityData: Partial<InsertLeadActivity>): Promise<LeadActivity> {
+    const [activity] = await db.update(leadActivities)
+      .set(activityData)
+      .where(eq(leadActivities.id, id))
+      .returning();
+    return activity;
+  }
+
+  async deleteLeadActivity(id: number): Promise<void> {
+    await db.delete(leadActivities).where(eq(leadActivities.id, id));
+  }
+
+  // ========================================
+  // CRM - LEAD TASK METHODS
+  // ========================================
+
+  async getLeadTasks(filters?: {
+    leadId?: number;
+    assignedTo?: string;
+    status?: string;
+  }): Promise<LeadTask[]> {
+    const conditions = [];
+
+    if (filters?.leadId) {
+      conditions.push(eq(leadTasks.leadId, filters.leadId));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(leadTasks.assignedTo, filters.assignedTo));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(leadTasks.status, filters.status));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db.select().from(leadTasks)
+      .where(whereCondition)
+      .orderBy(desc(leadTasks.dueDate));
+  }
+
+  async getLeadTask(id: number): Promise<LeadTask | undefined> {
+    const [task] = await db.select().from(leadTasks).where(eq(leadTasks.id, id));
+    return task;
+  }
+
+  async createLeadTask(taskData: InsertLeadTask): Promise<LeadTask> {
+    const [task] = await db.insert(leadTasks).values(taskData).returning();
+    return task;
+  }
+
+  async updateLeadTask(id: number, taskData: Partial<InsertLeadTask>): Promise<LeadTask> {
+    const [task] = await db.update(leadTasks)
+      .set({ ...taskData, updatedAt: new Date() })
+      .where(eq(leadTasks.id, id))
+      .returning();
+    return task;
+  }
+
+  async deleteLeadTask(id: number): Promise<void> {
+    await db.delete(leadTasks).where(eq(leadTasks.id, id));
+  }
+
+  async completeLeadTask(id: number, completedBy: string): Promise<LeadTask> {
+    const [task] = await db.update(leadTasks)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        completedBy,
+        updatedAt: new Date(),
+      })
+      .where(eq(leadTasks.id, id))
+      .returning();
+    return task;
+  }
+
+  // ========================================
+  // CRM - ASSIGNMENT RULE METHODS
+  // ========================================
+
+  async getAssignmentRules(filters?: {
+    ruleType?: string;
+    isActive?: boolean;
+  }): Promise<AssignmentRule[]> {
+    const conditions = [];
+
+    if (filters?.ruleType) {
+      conditions.push(eq(assignmentRules.ruleType, filters.ruleType));
+    }
+
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(assignmentRules.isActive, filters.isActive));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db.select().from(assignmentRules)
+      .where(whereCondition)
+      .orderBy(desc(assignmentRules.priority), desc(assignmentRules.createdAt));
+  }
+
+  async getAssignmentRule(id: number): Promise<AssignmentRule | undefined> {
+    const [rule] = await db.select().from(assignmentRules).where(eq(assignmentRules.id, id));
+    return rule;
+  }
+
+  async createAssignmentRule(ruleData: InsertAssignmentRule): Promise<AssignmentRule> {
+    const [rule] = await db.insert(assignmentRules).values(ruleData).returning();
+    return rule;
+  }
+
+  async updateAssignmentRule(id: number, ruleData: Partial<InsertAssignmentRule>): Promise<AssignmentRule> {
+    const [rule] = await db.update(assignmentRules)
+      .set({ ...ruleData, updatedAt: new Date() })
+      .where(eq(assignmentRules.id, id))
+      .returning();
+    return rule;
+  }
+
+  async deleteAssignmentRule(id: number): Promise<void> {
+    await db.delete(assignmentRules).where(eq(assignmentRules.id, id));
+  }
+
+  async applyAssignmentRules(leadData: InsertLead): Promise<string | undefined> {
+    const activeRules = await this.getAssignmentRules({ isActive: true });
+    
+    for (const rule of activeRules) {
+      const conditions = rule.conditions as any;
+      
+      if (rule.ruleType === 'territory' && conditions.territory && leadData.regionTerritory === conditions.territory) {
+        return rule.assignedUserId || undefined;
+      }
+      
+      if (rule.ruleType === 'industry_type' && conditions.industryType) {
+        const company = await this.getCompany(leadData.companyId);
+        if (company && company.industryType === conditions.industryType) {
+          return rule.assignedUserId || undefined;
+        }
+      }
+      
+      if (rule.ruleType === 'lead_value' && conditions.minValue && leadData.expectedOrderValue) {
+        const orderValue = parseFloat(leadData.expectedOrderValue.toString());
+        if (orderValue >= conditions.minValue) {
+          return rule.assignedUserId || undefined;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  // ========================================
+  // CRM - ANALYTICS & REPORTING
+  // ========================================
+
+  async getLeadStats(userId?: string): Promise<{
+    totalLeads: number;
+    leadsByStage: { stage: string; count: number }[];
+    leadsByPriority: { priority: string; count: number }[];
+    conversionRate: number;
+    averageLeadAge: number;
+  }> {
+    const conditions = userId ? [eq(leads.assignedSalesRep, userId)] : [];
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalResult] = await db.select({ count: count() }).from(leads).where(whereCondition);
+    const totalLeads = totalResult?.count || 0;
+
+    const leadsByStageData = await db
+      .select({
+        stage: leads.currentStage,
+        count: count(),
+      })
+      .from(leads)
+      .where(whereCondition)
+      .groupBy(leads.currentStage);
+
+    const leadsByPriorityData = await db
+      .select({
+        priority: leads.priority,
+        count: count(),
+      })
+      .from(leads)
+      .where(whereCondition)
+      .groupBy(leads.priority);
+
+    const [wonResult] = await db
+      .select({ count: count() })
+      .from(leads)
+      .where(and(eq(leads.status, 'won'), ...(conditions || [])));
+    
+    const wonLeads = wonResult?.count || 0;
+    const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
+
+    const [avgAgeResult] = await db
+      .select({ avgAge: sql<number>`AVG(total_age)` })
+      .from(leads)
+      .where(whereCondition);
+
+    return {
+      totalLeads,
+      leadsByStage: leadsByStageData.map(row => ({ stage: row.stage || 'unknown', count: row.count })),
+      leadsByPriority: leadsByPriorityData.map(row => ({ priority: row.priority || 'unknown', count: row.count })),
+      conversionRate,
+      averageLeadAge: avgAgeResult?.avgAge || 0,
+    };
+  }
+
+  async getSalesRepPerformance(userId: string, dateFrom?: Date, dateTo?: Date): Promise<{
+    leadsCreated: number;
+    leadsWon: number;
+    leadsLost: number;
+    totalRevenue: number;
+    activitiesLogged: number;
+  }> {
+    const conditions = [eq(leads.assignedSalesRep, userId)];
+
+    if (dateFrom) {
+      conditions.push(sql`${leads.createdAt} >= ${dateFrom}`);
+    }
+
+    if (dateTo) {
+      conditions.push(sql`${leads.createdAt} <= ${dateTo}`);
+    }
+
+    const whereCondition = and(...conditions);
+
+    const [createdResult] = await db.select({ count: count() }).from(leads).where(whereCondition);
+    const [wonResult] = await db.select({ count: count() }).from(leads).where(and(eq(leads.status, 'won'), whereCondition));
+    const [lostResult] = await db.select({ count: count() }).from(leads).where(and(eq(leads.status, 'lost'), whereCondition));
+    
+    const [revenueResult] = await db
+      .select({ total: sql<number>`COALESCE(SUM(expected_revenue), 0)` })
+      .from(leads)
+      .where(and(eq(leads.status, 'won'), whereCondition));
+
+    const leadsInPeriod = await db.select({ id: leads.id }).from(leads).where(whereCondition);
+    const leadIds = leadsInPeriod.map(l => l.id);
+
+    let activitiesCount = 0;
+    if (leadIds.length > 0) {
+      const [activitiesResult] = await db
+        .select({ count: count() })
+        .from(leadActivities)
+        .where(or(...leadIds.map(id => eq(leadActivities.leadId, id))));
+      activitiesCount = activitiesResult?.count || 0;
+    }
+
+    return {
+      leadsCreated: createdResult?.count || 0,
+      leadsWon: wonResult?.count || 0,
+      leadsLost: lostResult?.count || 0,
+      totalRevenue: revenueResult?.total || 0,
+      activitiesLogged: activitiesCount,
     };
   }
 }
