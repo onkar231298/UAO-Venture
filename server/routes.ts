@@ -23,7 +23,13 @@ import {
   insertHreflangConfigSchema,
   insertGlobalSeoSettingsSchema,
   insertNewsletterSubscriptionSchema,
-  customerRegistrationSchema
+  customerRegistrationSchema,
+  insertCompanySchema,
+  insertCompanyContactSchema,
+  insertLeadSchema,
+  insertLeadActivitySchema,
+  insertLeadTaskSchema,
+  insertAssignmentRuleSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -3209,6 +3215,489 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error performing SEO audit:', error);
       res.status(500).json({ message: "Failed to perform SEO audit" });
+    }
+  });
+
+  // ========================================
+  // CRM - COMPANY ROUTES
+  // ========================================
+
+  app.get('/api/crm/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const { search, industryType, needsEnrichment, limit = '50', offset = '0' } = req.query;
+      const filters = {
+        search,
+        industryType,
+        needsEnrichment: needsEnrichment === 'true',
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      };
+      const result = await storage.getCompanies(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  app.get('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const company = await storage.getCompany(parseInt(req.params.id));
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error('Error fetching company:', error);
+      res.status(500).json({ message: "Failed to fetch company" });
+    }
+  });
+
+  app.post('/api/crm/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companyData = insertCompanySchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
+      const company = await storage.createCompany(companyData);
+      res.json(company);
+    } catch (error: any) {
+      console.error('Error creating company:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid company data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+
+  app.patch('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const company = await storage.updateCompany(parseInt(req.params.id), req.body);
+      res.json(company);
+    } catch (error) {
+      console.error('Error updating company:', error);
+      res.status(500).json({ message: "Failed to update company" });
+    }
+  });
+
+  app.delete('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteCompany(parseInt(req.params.id));
+      res.json({ message: "Company deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      res.status(500).json({ message: "Failed to delete company" });
+    }
+  });
+
+  // ========================================
+  // CRM - COMPANY CONTACT ROUTES
+  // ========================================
+
+  app.get('/api/crm/companies/:companyId/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const contacts = await storage.getCompanyContacts(parseInt(req.params.companyId));
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching company contacts:', error);
+      res.status(500).json({ message: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post('/api/crm/companies/:companyId/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const contactData = insertCompanyContactSchema.parse({
+        ...req.body,
+        companyId: parseInt(req.params.companyId)
+      });
+      const contact = await storage.createCompanyContact(contactData);
+      res.json(contact);
+    } catch (error: any) {
+      console.error('Error creating contact:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid contact data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create contact" });
+    }
+  });
+
+  app.patch('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const contact = await storage.updateCompanyContact(parseInt(req.params.id), req.body);
+      res.json(contact);
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      res.status(500).json({ message: "Failed to update contact" });
+    }
+  });
+
+  app.delete('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteCompanyContact(parseInt(req.params.id));
+      res.json({ message: "Contact deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      res.status(500).json({ message: "Failed to delete contact" });
+    }
+  });
+
+  app.post('/api/crm/companies/:companyId/contacts/:contactId/set-primary', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.setPrimaryContact(parseInt(req.params.companyId), parseInt(req.params.contactId));
+      res.json({ message: "Primary contact updated successfully" });
+    } catch (error) {
+      console.error('Error setting primary contact:', error);
+      res.status(500).json({ message: "Failed to set primary contact" });
+    }
+  });
+
+  // ========================================
+  // CRM - LEAD ROUTES
+  // ========================================
+
+  app.get('/api/crm/leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const { 
+        assignedTo, 
+        stage, 
+        priority, 
+        status, 
+        companyId, 
+        search, 
+        createdFrom, 
+        createdTo, 
+        limit = '50', 
+        offset = '0' 
+      } = req.query;
+      
+      const filters = {
+        assignedTo,
+        stage,
+        priority,
+        status,
+        companyId: companyId ? parseInt(companyId) : undefined,
+        search,
+        createdFrom: createdFrom ? new Date(createdFrom) : undefined,
+        createdTo: createdTo ? new Date(createdTo) : undefined,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      };
+      
+      const result = await storage.getLeads(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      res.status(500).json({ message: "Failed to fetch leads" });
+    }
+  });
+
+  app.get('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const lead = await storage.getLead(parseInt(req.params.id));
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error) {
+      console.error('Error fetching lead:', error);
+      res.status(500).json({ message: "Failed to fetch lead" });
+    }
+  });
+
+  app.get('/api/crm/leads/by-lead-id/:leadId', isAuthenticated, async (req: any, res) => {
+    try {
+      const lead = await storage.getLeadByLeadId(req.params.leadId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error) {
+      console.error('Error fetching lead:', error);
+      res.status(500).json({ message: "Failed to fetch lead" });
+    }
+  });
+
+  app.post('/api/crm/leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const leadData = insertLeadSchema.parse({
+        ...req.body,
+        createdBy: userId,
+        assignedSalesRep: req.body.assignedSalesRep || userId,
+        assignmentMode: req.body.assignedSalesRep ? 'manual' : 'auto'
+      });
+
+      if (!req.body.assignedSalesRep) {
+        const autoAssignedUserId = await storage.applyAssignmentRules(leadData);
+        if (autoAssignedUserId) {
+          leadData.assignedSalesRep = autoAssignedUserId;
+        }
+      }
+
+      const lead = await storage.createLead(leadData);
+      res.json(lead);
+    } catch (error: any) {
+      console.error('Error creating lead:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid lead data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create lead" });
+    }
+  });
+
+  app.patch('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const lead = await storage.updateLead(parseInt(req.params.id), req.body);
+      res.json(lead);
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      res.status(500).json({ message: "Failed to update lead" });
+    }
+  });
+
+  app.delete('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteLead(parseInt(req.params.id));
+      res.json({ message: "Lead deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      res.status(500).json({ message: "Failed to delete lead" });
+    }
+  });
+
+  app.post('/api/crm/leads/:id/transfer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { toUserId, reason } = req.body;
+      const lead = await storage.transferLead(parseInt(req.params.id), toUserId, userId, reason);
+      res.json(lead);
+    } catch (error) {
+      console.error('Error transferring lead:', error);
+      res.status(500).json({ message: "Failed to transfer lead" });
+    }
+  });
+
+  app.post('/api/crm/leads/:id/update-stage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { stage } = req.body;
+      const lead = await storage.updateLeadStage(parseInt(req.params.id), stage, userId);
+      res.json(lead);
+    } catch (error) {
+      console.error('Error updating lead stage:', error);
+      res.status(500).json({ message: "Failed to update lead stage" });
+    }
+  });
+
+  // ========================================
+  // CRM - LEAD ACTIVITY ROUTES
+  // ========================================
+
+  app.get('/api/crm/leads/:leadId/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const activities = await storage.getLeadActivities(parseInt(req.params.leadId));
+      res.json(activities);
+    } catch (error) {
+      console.error('Error fetching lead activities:', error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.post('/api/crm/leads/:leadId/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activityData = insertLeadActivitySchema.parse({
+        ...req.body,
+        leadId: parseInt(req.params.leadId),
+        createdBy: userId
+      });
+      const activity = await storage.createLeadActivity(activityData);
+      res.json(activity);
+    } catch (error: any) {
+      console.error('Error creating activity:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid activity data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create activity" });
+    }
+  });
+
+  app.patch('/api/crm/activities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const activity = await storage.updateLeadActivity(parseInt(req.params.id), req.body);
+      res.json(activity);
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      res.status(500).json({ message: "Failed to update activity" });
+    }
+  });
+
+  app.delete('/api/crm/activities/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteLeadActivity(parseInt(req.params.id));
+      res.json({ message: "Activity deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      res.status(500).json({ message: "Failed to delete activity" });
+    }
+  });
+
+  // ========================================
+  // CRM - LEAD TASK ROUTES
+  // ========================================
+
+  app.get('/api/crm/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const { leadId, assignedTo, status } = req.query;
+      const filters = {
+        leadId: leadId ? parseInt(leadId) : undefined,
+        assignedTo,
+        status
+      };
+      const tasks = await storage.getLeadTasks(filters);
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post('/api/crm/leads/:leadId/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const taskData = insertLeadTaskSchema.parse({
+        ...req.body,
+        leadId: parseInt(req.params.leadId),
+        createdBy: userId
+      });
+      const task = await storage.createLeadTask(taskData);
+      res.json(task);
+    } catch (error: any) {
+      console.error('Error creating task:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid task data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch('/api/crm/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const task = await storage.updateLeadTask(parseInt(req.params.id), req.body);
+      res.json(task);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.post('/api/crm/tasks/:id/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.completeLeadTask(parseInt(req.params.id), userId);
+      res.json(task);
+    } catch (error) {
+      console.error('Error completing task:', error);
+      res.status(500).json({ message: "Failed to complete task" });
+    }
+  });
+
+  app.delete('/api/crm/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteLeadTask(parseInt(req.params.id));
+      res.json({ message: "Task deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // ========================================
+  // CRM - ASSIGNMENT RULE ROUTES
+  // ========================================
+
+  app.get('/api/crm/assignment-rules', isAuthenticated, async (req: any, res) => {
+    try {
+      const { ruleType, isActive } = req.query;
+      const filters = {
+        ruleType,
+        isActive: isActive === 'true'
+      };
+      const rules = await storage.getAssignmentRules(filters);
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching assignment rules:', error);
+      res.status(500).json({ message: "Failed to fetch assignment rules" });
+    }
+  });
+
+  app.post('/api/crm/assignment-rules', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const ruleData = insertAssignmentRuleSchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
+      const rule = await storage.createAssignmentRule(ruleData);
+      res.json(rule);
+    } catch (error: any) {
+      console.error('Error creating assignment rule:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid rule data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create assignment rule" });
+    }
+  });
+
+  app.patch('/api/crm/assignment-rules/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const rule = await storage.updateAssignmentRule(parseInt(req.params.id), req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error('Error updating assignment rule:', error);
+      res.status(500).json({ message: "Failed to update assignment rule" });
+    }
+  });
+
+  app.delete('/api/crm/assignment-rules/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteAssignmentRule(parseInt(req.params.id));
+      res.json({ message: "Assignment rule deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting assignment rule:', error);
+      res.status(500).json({ message: "Failed to delete assignment rule" });
+    }
+  });
+
+  // ========================================
+  // CRM - ANALYTICS & REPORTING ROUTES
+  // ========================================
+
+  app.get('/api/crm/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.query.userId || req.user.claims.sub;
+      const stats = await storage.getLeadStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching lead stats:', error);
+      res.status(500).json({ message: "Failed to fetch lead stats" });
+    }
+  });
+
+  app.get('/api/crm/performance/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { dateFrom, dateTo } = req.query;
+      const performance = await storage.getSalesRepPerformance(
+        req.params.userId,
+        dateFrom ? new Date(dateFrom as string) : undefined,
+        dateTo ? new Date(dateTo as string) : undefined
+      );
+      res.json(performance);
+    } catch (error) {
+      console.error('Error fetching sales rep performance:', error);
+      res.status(500).json({ message: "Failed to fetch performance data" });
     }
   });
 
