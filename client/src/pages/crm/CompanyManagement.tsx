@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +62,7 @@ export default function CompanyManagement() {
   const total = companiesData?.total || 0;
 
   const adminRoles = ['admin', 'super_admin', 'sales_manager'];
-  const isAdmin = user ? adminRoles.includes(user.role) : false;
+  const isAdmin = user && user.role ? adminRoles.includes(user.role) : false;
 
   return (
     <div className="container mx-auto py-6 space-y-6">

@@ -10,16 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ### CRM Lead Management System (October 2025)
 - **New Feature**: Comprehensive B2B Lead Management System with company-centric structure integrated into the platform
-- **Database Schema**: Created 6 new tables (companies, company_contacts, leads, lead_activities, lead_tasks, assignment_rules) to support full CRM functionality
+- **Database Schema**: Created 6 new tables (companies, company_contacts, leads, lead_activities, lead_tasks, assignment_rules) to support full CRM functionality. Added `assignedTo` column to companies table for sales rep assignment.
 - **15-Stage Sales Pipeline**: Implemented industry-specific pipeline stages (New Lead → First Contact → Discussion → Meeting Scheduled → Sample Submitted → Quotation Sent → Negotiation → Closed Won/Lost/On Hold) tailored for B2B organic ingredients business
 - **Kanban Board Interface**: Built interactive Lead Management Kanban board with drag-and-drop, filtering (search, priority, status), and real-time stats cards
+- **Company Management Interface**: Built table-based Company Management page with search, industry filters, assignment tracking, and role-based display (Company Management for admins, My Companies for sales reps)
+- **Role-Based Access Control (RBAC)**: Implemented comprehensive server-side RBAC filtering:
+  - **Admin Roles** (admin, super_admin, sales_manager): Full access to all leads and companies
+  - **Sales Roles** (sales_executive, sales_rep): Limited access to only assigned leads and companies (or companies they created)
+  - **Backend Filtering**: Created RBAC helper functions in `server/rbac.ts` for server-side role-based filtering
+  - **Storage Layer**: Updated `getLeads()` and `getCompanies()` methods to accept user context and apply RBAC filters
+  - **API Layer**: Modified `/api/crm/leads` and `/api/crm/companies` routes to pass user information for automatic filtering
 - **Security Implementation**: Properly secured with RoleBasedRoute authorization for roles: admin, super_admin, sales_manager, sales_executive
 - **Technical Solution**: Custom queryFn implementation for filter parameters to ensure backend properly receives search/priority/status filters
-- **Architecture Decision**: Company-centric design where companies are master records and leads are child deals, matching B2B sales methodology
+- **Architecture Decision**: Company-centric design where companies are master records and leads are child deals, matching B2B sales methodology. Sales reps can only see and work with leads/companies assigned to them or created by them.
 - **Critical Fixes Applied**: 
   - Added default empty object `= {}` to SalesManagement component props to prevent runtime crashes
   - Wrapped LeadManagement with RoleBasedRoute to prevent unauthorized access
   - Implemented buildLeadsUrl() with custom queryFn to properly send filter parameters to backend
+  - Fixed import error in CompanyManagement by using `useAuth` instead of non-existent `useUser` hook
 
 ## SEO & Indexing Fixes (January 2025)
 - **Product Card Consistency Issue Resolved**: Fixed mobile layout inconsistency where ProductGroupCard (for products with variants) showed different styling than ProductCard (single products). Both components now use identical structures with the same Link wrapper, CardContent sections, button layouts, and responsive classes. This ensures all products display uniformly regardless of whether they have variants.
