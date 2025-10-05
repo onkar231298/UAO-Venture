@@ -952,6 +952,293 @@ export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterS
 export type InsertNewsletterSubscription = z.infer<typeof insertNewsletterSubscriptionSchema>;
 export type NewsletterSubscription = typeof newsletterSubscriptions.$inferSelect;
 
+// ========================================
+// CRM LEAD MANAGEMENT SYSTEM
+// ========================================
+
+// Companies table - Master records
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  gstNumber: varchar("gst_number", { length: 50 }).unique(),
+  industryType: varchar("industry_type", { length: 100 }),
+  companySize: varchar("company_size", { length: 50 }),
+  annualTurnover: decimal("annual_turnover", { precision: 15, scale: 2 }),
+  website: varchar("website", { length: 500 }),
+  
+  // Address
+  addressStreet: text("address_street"),
+  addressCity: varchar("address_city", { length: 100 }),
+  addressState: varchar("address_state", { length: 100 }),
+  addressCountry: varchar("address_country", { length: 100 }),
+  addressZip: varchar("address_zip", { length: 20 }),
+  
+  // Data completeness tracking
+  dataCompleteness: varchar("data_completeness", { length: 20 }).default("complete"), // complete, partial
+  needsEnrichment: boolean("needs_enrichment").default(false),
+  
+  // Metadata
+  createdBy: varchar("created_by").references(() => users.id),
+  createdFrom: varchar("created_from", { length: 50 }).default("manual"), // manual, bulk_upload, inquiry_conversion
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Company contacts table - Multiple contacts per company
+export const companyContacts = pgTable("company_contacts", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  
+  contactName: varchar("contact_name", { length: 255 }).notNull(),
+  designation: varchar("designation", { length: 100 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  whatsapp: varchar("whatsapp", { length: 50 }),
+  
+  // Contact classification
+  isPrimary: boolean("is_primary").default(false),
+  role: varchar("role", { length: 50 }).default("user"), // decision_maker, influencer, user
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leads/Deals table - Deal-specific information
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  leadId: varchar("lead_id", { length: 50 }).notNull().unique(), // LD-2025-0001
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  contactPersonId: integer("contact_person_id").references(() => companyContacts.id),
+  
+  // Product requirements
+  productsInterested: jsonb("products_interested").default("[]"), // Array of product IDs
+  requiredQuantity: decimal("required_quantity", { precision: 10, scale: 2 }),
+  unit: varchar("unit", { length: 50 }),
+  frequency: varchar("frequency", { length: 50 }), // one_time, monthly, quarterly, annual
+  qualityGrade: varchar("quality_grade", { length: 100 }), // pharmaceutical, food, cosmetic
+  certificationsNeeded: jsonb("certifications_needed").default("[]"),
+  packagingPreference: varchar("packaging_preference", { length: 255 }),
+  specialRequirements: text("special_requirements"),
+  
+  // Business details
+  leadSource: varchar("lead_source", { length: 100 }), // website, trade_show, referral, cold_call, linkedin
+  expectedOrderValue: decimal("expected_order_value", { precision: 15, scale: 2 }),
+  currency: varchar("currency", { length: 5 }).default("USD"),
+  buyingTimeline: varchar("buying_timeline", { length: 50 }), // immediate, 1_month, 3_months, 6_months_plus
+  currentSupplier: varchar("current_supplier", { length: 255 }),
+  reasonForChange: text("reason_for_change"),
+  decisionMakerContact: varchar("decision_maker_contact", { length: 255 }),
+  
+  // Classification
+  priority: varchar("priority", { length: 20 }).default("warm"), // hot, warm, cold
+  leadScore: integer("lead_score").default(50), // 1-100
+  expectedRevenue: decimal("expected_revenue", { precision: 15, scale: 2 }),
+  competitionLevel: varchar("competition_level", { length: 50 }), // sole_vendor, competing
+  winProbability: integer("win_probability").default(50), // Percentage 0-100
+  
+  // Pipeline stage (15 stages)
+  currentStage: varchar("current_stage", { length: 50 }).default("new_lead"), 
+  // Stages: new_lead, first_contact, discussion, meeting_scheduled, meeting_completed,
+  // sample_requested, sample_submitted, sample_feedback, quotation_sent, negotiation,
+  // certificates_shared, order_pending, won, lost, on_hold
+  previousStage: varchar("previous_stage", { length: 50 }),
+  
+  // Assignment
+  assignedSalesRep: varchar("assigned_sales_rep").references(() => users.id),
+  salesManager: varchar("sales_manager").references(() => users.id),
+  regionTerritory: varchar("region_territory", { length: 100 }),
+  assignmentMode: varchar("assignment_mode", { length: 50 }).default("manual"), // manual, auto
+  
+  // Transfer history
+  transferHistory: jsonb("transfer_history").default("[]"), // Array of transfer records
+  
+  // Tracking
+  lastContactDate: timestamp("last_contact_date"),
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  daysInCurrentStage: integer("days_in_current_stage").default(0),
+  totalAge: integer("total_age").default(0), // Days since creation
+  
+  // Status
+  status: varchar("status", { length: 50 }).default("active"), // active, won, lost, on_hold
+  lostReason: text("lost_reason"),
+  onHoldReason: text("on_hold_reason"),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Lead activities table - Timeline tracking
+export const leadActivities = pgTable("lead_activities", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  
+  // Activity details
+  activityType: varchar("activity_type", { length: 50 }).notNull(),
+  // Types: call, email, whatsapp, meeting, sample_request, sample_sent, quotation, document,
+  // note, task, stage_change, negotiation, approval
+  
+  activityDate: timestamp("activity_date").defaultNow(),
+  subject: varchar("subject", { length: 255 }),
+  description: text("description"),
+  outcome: text("outcome"),
+  
+  // Type-specific fields
+  duration: integer("duration"), // For calls/meetings in minutes
+  direction: varchar("direction", { length: 20 }), // incoming, outgoing (for calls/emails)
+  attendees: jsonb("attendees").default("[]"), // For meetings
+  attachments: jsonb("attachments").default("[]"), // File URLs
+  
+  // Stage change specific
+  fromStage: varchar("from_stage", { length: 50 }),
+  toStage: varchar("to_stage", { length: 50 }),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Lead tasks and reminders table
+export const leadTasks = pgTable("lead_tasks", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  
+  taskType: varchar("task_type", { length: 50 }).notNull(), // follow_up, reminder, meeting, call, email
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  assignedTo: varchar("assigned_to").references(() => users.id).notNull(),
+  dueDate: timestamp("due_date"),
+  reminderTime: timestamp("reminder_time"),
+  
+  status: varchar("status", { length: 50 }).default("pending"), // pending, completed, overdue, cancelled
+  priority: varchar("priority", { length: 20 }).default("normal"), // high, normal, low
+  
+  completedAt: timestamp("completed_at"),
+  completedBy: varchar("completed_by").references(() => users.id),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Assignment rules table - Auto-assignment configuration
+export const assignmentRules = pgTable("assignment_rules", {
+  id: serial("id").primaryKey(),
+  ruleName: varchar("rule_name", { length: 255 }).notNull(),
+  ruleType: varchar("rule_type", { length: 50 }).notNull(),
+  // Types: round_robin, territory, product_expertise, lead_value, industry_type, workload_balancing
+  
+  // Rule conditions (JSON)
+  conditions: jsonb("conditions").default("{}"), // { territory: "north", product: "herbal_powders", etc. }
+  
+  assignedUserId: varchar("assigned_user_id").references(() => users.id),
+  priority: integer("priority").default(0), // Higher priority rules execute first
+  
+  isActive: boolean("is_active").default(true),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CRM Relations
+export const companiesRelations = relations(companies, ({ many, one }) => ({
+  contacts: many(companyContacts),
+  leads: many(leads),
+  creator: one(users, { fields: [companies.createdBy], references: [users.id] }),
+}));
+
+export const companyContactsRelations = relations(companyContacts, ({ one }) => ({
+  company: one(companies, { fields: [companyContacts.companyId], references: [companies.id] }),
+}));
+
+export const leadsRelations = relations(leads, ({ one, many }) => ({
+  company: one(companies, { fields: [leads.companyId], references: [companies.id] }),
+  contactPerson: one(companyContacts, { fields: [leads.contactPersonId], references: [companyContacts.id] }),
+  salesRep: one(users, { fields: [leads.assignedSalesRep], references: [users.id] }),
+  manager: one(users, { fields: [leads.salesManager], references: [users.id] }),
+  activities: many(leadActivities),
+  tasks: many(leadTasks),
+  creator: one(users, { fields: [leads.createdBy], references: [users.id] }),
+}));
+
+export const leadActivitiesRelations = relations(leadActivities, ({ one }) => ({
+  lead: one(leads, { fields: [leadActivities.leadId], references: [leads.id] }),
+  creator: one(users, { fields: [leadActivities.createdBy], references: [users.id] }),
+}));
+
+export const leadTasksRelations = relations(leadTasks, ({ one }) => ({
+  lead: one(leads, { fields: [leadTasks.leadId], references: [leads.id] }),
+  assignee: one(users, { fields: [leadTasks.assignedTo], references: [users.id] }),
+  creator: one(users, { fields: [leadTasks.createdBy], references: [users.id] }),
+}));
+
+// CRM Insert Schemas
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCompanyContactSchema = createInsertSchema(companyContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  leadId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLeadActivitySchema = createInsertSchema(leadActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLeadTaskSchema = createInsertSchema(leadTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAssignmentRuleSchema = createInsertSchema(assignmentRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// CRM Types
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type CompanyContact = typeof companyContacts.$inferSelect;
+export type InsertCompanyContact = z.infer<typeof insertCompanyContactSchema>;
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type LeadActivity = typeof leadActivities.$inferSelect;
+export type InsertLeadActivity = z.infer<typeof insertLeadActivitySchema>;
+export type LeadTask = typeof leadTasks.$inferSelect;
+export type InsertLeadTask = z.infer<typeof insertLeadTaskSchema>;
+export type AssignmentRule = typeof assignmentRules.$inferSelect;
+export type InsertAssignmentRule = z.infer<typeof insertAssignmentRuleSchema>;
+
+// Extended CRM types with relations
+export type LeadWithDetails = Lead & {
+  company: Company;
+  contactPerson?: CompanyContact;
+  salesRep?: User;
+  activities?: LeadActivity[];
+  tasks?: LeadTask[];
+};
+
+export type CompanyWithContacts = Company & {
+  contacts: CompanyContact[];
+  leads?: Lead[];
+};
+
 // User types and schemas
 export type User = typeof users.$inferSelect;
 export const insertUserSchema = createInsertSchema(users).omit({
