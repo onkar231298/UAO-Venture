@@ -50,21 +50,14 @@ const companySchema = z.object({
   companySize: z.string().optional(),
   website: z.string().url("Invalid URL").optional().or(z.literal("")),
   
-  // Registered/Head Office Address
+  // Primary Address
   addressStreet: z.string().optional(),
   addressCity: z.string().optional(),
   addressState: z.string().optional(),
   addressCountry: z.string().optional(),
   addressZip: z.string().optional(),
   
-  // Billing Address
-  billingAddressStreet: z.string().optional(),
-  billingAddressCity: z.string().optional(),
-  billingAddressState: z.string().optional(),
-  billingAddressCountry: z.string().optional(),
-  billingAddressZip: z.string().optional(),
-  
-  // Factory Address
+  // Factory/Warehouse Address
   factoryAddressStreet: z.string().optional(),
   factoryAddressCity: z.string().optional(),
   factoryAddressState: z.string().optional(),
@@ -125,11 +118,6 @@ export default function CompanyManagement() {
       addressState: "",
       addressCountry: "",
       addressZip: "",
-      billingAddressStreet: "",
-      billingAddressCity: "",
-      billingAddressState: "",
-      billingAddressCountry: "",
-      billingAddressZip: "",
       factoryAddressStreet: "",
       factoryAddressCity: "",
       factoryAddressState: "",
@@ -648,9 +636,9 @@ export default function CompanyManagement() {
                 ))}
               </div>
 
-              {/* Registered/Head Office Address */}
+              {/* Primary Address */}
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold text-sm">Registered/Head Office Address</h3>
+                <h3 className="font-semibold text-sm">Primary Address</h3>
                 <FormField
                   control={form.control}
                   name="addressStreet"
@@ -722,83 +710,9 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              {/* Billing Address */}
+              {/* Factory/Warehouse Address */}
               <div className="space-y-4 pt-4">
-                <h3 className="font-semibold text-sm">Billing Address</h3>
-                <FormField
-                  control={form.control}
-                  name="billingAddressStreet"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Street address" {...field} data-testid="input-billing-street" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="billingAddressCity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="City" {...field} data-testid="input-billing-city" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingAddressState"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input placeholder="State" {...field} data-testid="input-billing-state" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="billingAddressCountry"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Country" {...field} data-testid="input-billing-country" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingAddressZip"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postal/ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="ZIP code" {...field} data-testid="input-billing-zip" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Factory Address */}
-              <div className="space-y-4 pt-4">
-                <h3 className="font-semibold text-sm">Factory/Production Address</h3>
+                <h3 className="font-semibold text-sm">Factory/Warehouse Address</h3>
                 <FormField
                   control={form.control}
                   name="factoryAddressStreet"
@@ -937,9 +851,9 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              {/* Registered/Head Office Address */}
+              {/* Primary Address */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Registered/Head Office Address</h3>
+                <h3 className="font-semibold text-lg border-b pb-2">Primary Address</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <p className="text-sm text-muted-foreground">Street Address</p>
@@ -964,36 +878,9 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              {/* Billing Address */}
+              {/* Factory/Warehouse Address */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Billing Address</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Street Address</p>
-                    <p className="font-medium">{(selectedCompany as any).billingAddressStreet || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">City</p>
-                    <p className="font-medium">{(selectedCompany as any).billingAddressCity || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">State</p>
-                    <p className="font-medium">{(selectedCompany as any).billingAddressState || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Country</p>
-                    <p className="font-medium">{(selectedCompany as any).billingAddressCountry || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">ZIP Code</p>
-                    <p className="font-medium">{(selectedCompany as any).billingAddressZip || "-"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Factory Address */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Factory/Production Address</h3>
+                <h3 className="font-semibold text-lg border-b pb-2">Factory/Warehouse Address</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <p className="text-sm text-muted-foreground">Street Address</p>
