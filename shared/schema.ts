@@ -977,6 +977,9 @@ export const companies = pgTable("companies", {
   dataCompleteness: varchar("data_completeness", { length: 20 }).default("complete"), // complete, partial
   needsEnrichment: boolean("needs_enrichment").default(false),
   
+  // Assignment and ownership
+  assignedTo: varchar("assigned_to").references(() => users.id), // Sales rep assigned to this company
+  
   // Metadata
   createdBy: varchar("created_by").references(() => users.id),
   createdFrom: varchar("created_from", { length: 50 }).default("manual"), // manual, bulk_upload, inquiry_conversion
