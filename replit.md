@@ -6,7 +6,22 @@ This platform is a comprehensive B2B solution for organic products, integrating 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Critical Fixes (January 2025)
+## Recent Major Updates (January 2025)
+
+### CRM Lead Management System (October 2025)
+- **New Feature**: Comprehensive B2B Lead Management System with company-centric structure integrated into the platform
+- **Database Schema**: Created 6 new tables (companies, company_contacts, leads, lead_activities, lead_tasks, assignment_rules) to support full CRM functionality
+- **15-Stage Sales Pipeline**: Implemented industry-specific pipeline stages (New Lead → First Contact → Discussion → Meeting Scheduled → Sample Submitted → Quotation Sent → Negotiation → Closed Won/Lost/On Hold) tailored for B2B organic ingredients business
+- **Kanban Board Interface**: Built interactive Lead Management Kanban board with drag-and-drop, filtering (search, priority, status), and real-time stats cards
+- **Security Implementation**: Properly secured with RoleBasedRoute authorization for roles: admin, super_admin, sales_manager, sales_executive
+- **Technical Solution**: Custom queryFn implementation for filter parameters to ensure backend properly receives search/priority/status filters
+- **Architecture Decision**: Company-centric design where companies are master records and leads are child deals, matching B2B sales methodology
+- **Critical Fixes Applied**: 
+  - Added default empty object `= {}` to SalesManagement component props to prevent runtime crashes
+  - Wrapped LeadManagement with RoleBasedRoute to prevent unauthorized access
+  - Implemented buildLeadsUrl() with custom queryFn to properly send filter parameters to backend
+
+## SEO & Indexing Fixes (January 2025)
 - **Product Card Consistency Issue Resolved**: Fixed mobile layout inconsistency where ProductGroupCard (for products with variants) showed different styling than ProductCard (single products). Both components now use identical structures with the same Link wrapper, CardContent sections, button layouts, and responsive classes. This ensures all products display uniformly regardless of whether they have variants.
 - **Architecture Decision**: ProductGroupCard completely rebuilt to match ProductCard structure instead of maintaining separate layouts. This prevents future inconsistencies when new products are uploaded, as both single products and product groups now use the same rendering logic.
 - **Google Indexing Solution (January 21, 2025)**: Diagnosed and fixed "164 discovered pages not indexed" issue by implementing comprehensive internal linking strategy, adding Industries navigation menu, homepage industry cards, and enhanced sitemap optimization to accelerate Google's indexing process for B2B industry-specific pages.

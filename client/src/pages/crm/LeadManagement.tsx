@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign } from "lucide-react";
 import { type Lead, type LeadWithDetails } from "@shared/schema";
+import LeadCreationForm from "./LeadCreationForm";
 
 const PIPELINE_STAGES = [
   { id: "new_lead", label: "New Lead", color: "bg-gray-100 text-gray-800" },
@@ -32,6 +33,7 @@ export default function LeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [showLeadCreationForm, setShowLeadCreationForm] = useState(false);
 
   const buildLeadsUrl = () => {
     const params = new URLSearchParams();
@@ -88,7 +90,7 @@ export default function LeadManagement() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">Manage your B2B sales pipeline</p>
           </div>
-          <Button data-testid="button-create-lead">
+          <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Lead
           </Button>
@@ -253,6 +255,12 @@ export default function LeadManagement() {
           })}
         </div>
       </div>
+
+      {/* Lead Creation Dialog */}
+      <LeadCreationForm
+        open={showLeadCreationForm}
+        onOpenChange={setShowLeadCreationForm}
+      />
     </div>
   );
 }

@@ -115,6 +115,7 @@ export interface IStorage {
   
   // Customer operations
   getUserByEmail(email: string): Promise<User | undefined>;
+  getSalesReps(): Promise<User[]>;
   createCustomer(data: InsertUser & { password: string }): Promise<User>;
   getCustomers(filters?: {
     search?: string;
@@ -458,6 +459,18 @@ export class DatabaseStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
+  }
+
+  async getSalesReps(): Promise<User[]> {
+    const salesReps = await db.select().from(users).where(
+      or(
+        eq(users.role, 'sales_executive'),
+        eq(users.role, 'sales_manager'),
+        eq(users.role, 'admin'),
+        eq(users.role, 'super_admin')
+      )
+    );
+    return salesReps;
   }
 
   async createCustomer(data: InsertUser & { password: string }): Promise<User> {

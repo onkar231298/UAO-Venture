@@ -3219,6 +3219,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================================
+  // USER ENDPOINTS FOR CRM
+  // ========================================
+
+  app.get('/api/users/sales-reps', isAuthenticated, async (req: any, res) => {
+    try {
+      const salesReps = await storage.getSalesReps();
+      res.json(salesReps);
+    } catch (error) {
+      console.error('Error fetching sales reps:', error);
+      res.status(500).json({ message: "Failed to fetch sales representatives" });
+    }
+  });
+
+  // ========================================
   // CRM - COMPANY ROUTES
   // ========================================
 
