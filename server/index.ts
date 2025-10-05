@@ -71,13 +71,8 @@ app.use((req, res, next) => {
     res.redirect(301, `/products/${slug}`);
   });
 
-  // Server-side SEO for category/ingredient pages
+  // Universal 404 validation for ALL category/ingredient requests
   app.get('/ingredients/:slug', async (req, res, next) => {
-    const host = req.get('host') || '';
-    const isDeployed = isDeployedURL(host);
-    const userAgent = req.get('user-agent') || '';
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
-    
     try {
       const { slug } = req.params;
       const category = await storage.getCategoryBySlug(slug);
@@ -100,6 +95,30 @@ app.use((req, res, next) => {
           </body>
           </html>
         `);
+      }
+      
+      // Category exists, attach it to request
+      (req as any).category = category;
+      next();
+    } catch (error) {
+      console.error(`[404 Check Error] /ingredients/${req.params.slug}:`, error);
+      next();
+    }
+  });
+
+  // Server-side SEO for category/ingredient pages (runs after 404 check)
+  app.get('/ingredients/:slug', async (req, res, next) => {
+    const host = req.get('host') || '';
+    const isDeployed = isDeployedURL(host);
+    const userAgent = req.get('user-agent') || '';
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+    
+    try {
+      // Get category from request (attached by previous middleware)
+      const category = (req as any).category;
+      
+      if (!category) {
+        return next();
       }
       
       // Only serve SEO HTML for bots on deployed URLs
@@ -176,13 +195,8 @@ app.use((req, res, next) => {
     }
   });
 
-  // Server-side SEO for health support pages
+  // Universal 404 validation for ALL health-support requests
   app.get('/health-support/:slug', async (req, res, next) => {
-    const host = req.get('host') || '';
-    const isDeployed = isDeployedURL(host);
-    const userAgent = req.get('user-agent') || '';
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
-    
     try {
       const { slug } = req.params;
       const healthSupport = await storage.getHealthSupportBySlug(slug);
@@ -205,6 +219,30 @@ app.use((req, res, next) => {
           </body>
           </html>
         `);
+      }
+      
+      // Health support page exists, attach it to request
+      (req as any).healthSupport = healthSupport;
+      next();
+    } catch (error) {
+      console.error(`[404 Check Error] /health-support/${req.params.slug}:`, error);
+      next();
+    }
+  });
+
+  // Server-side SEO for health support pages (runs after 404 check)
+  app.get('/health-support/:slug', async (req, res, next) => {
+    const host = req.get('host') || '';
+    const isDeployed = isDeployedURL(host);
+    const userAgent = req.get('user-agent') || '';
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+    
+    try {
+      // Get health support from request (attached by previous middleware)
+      const healthSupport = (req as any).healthSupport;
+      
+      if (!healthSupport) {
+        return next();
       }
       
       // Only serve SEO HTML for bots on deployed URLs
@@ -684,7 +722,43 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     );
   };
 
-  // Product page structured data injection (deployed URLs only)
+  // Universal 404 validation for ALL product requests (runs first)
+  app.get('/products/:slug', async (req, res, next) => {
+    try {
+      const { slug } = req.params;
+      
+      // Check if product exists in database
+      const product = await storage.getProductBySlug(slug);
+      
+      if (!product) {
+        console.log(`[404] Product not found: /products/${slug}`);
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Product Not Found - BFI Organic</title>
+            <meta name="robots" content="noindex, follow">
+          </head>
+          <body>
+            <h1>Product Not Found</h1>
+            <p>The product "${slug}" does not exist.</p>
+          </body>
+          </html>
+        `);
+      }
+      
+      // Product exists, attach it to request for use by next middleware
+      (req as any).product = product;
+      next();
+    } catch (error) {
+      console.error(`[404 Check Error] /products/${req.params.slug}:`, error);
+      next();
+    }
+  });
+
+  // Product page structured data injection (deployed URLs only, runs after 404 check)
   app.get('/products/:slug', async (req, res, next) => {
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
@@ -722,27 +796,12 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     console.log(`[SEO Processing] Injecting structured data for: /products/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
 
     try {
-      // Use storage instance directly
-      const { slug } = req.params;
-      const product = await storage.getProductBySlug(slug);
+      // Get product from request (attached by previous middleware)
+      const product = (req as any).product;
       
       if (!product) {
-        console.log(`[404] Product not found: /products/${slug}`);
-        return res.status(404).send(`
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Product Not Found - BFI Organic</title>
-            <meta name="robots" content="noindex, follow">
-          </head>
-          <body>
-            <h1>Product Not Found</h1>
-            <p>The product "${slug}" does not exist.</p>
-          </body>
-          </html>
-        `);
+        // This shouldn't happen since 404 check runs first, but just in case
+        return next();
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
