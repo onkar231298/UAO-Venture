@@ -3578,7 +3578,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const { stage } = req.body;
-      const lead = await storage.updateLeadStage(parseInt(req.params.id), stage, userId);
+      const leadId = parseInt(req.params.id);
+      
+      // Get user info for RBAC
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Get lead to check permissions
+      const existingLead = await storage.getLead(leadId);
+      if (!existingLead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      // RBAC: Check if user has permission to update this lead
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      const isAssignedSalesRep = existingLead.assignedSalesRep === userId;
+      const isCreator = existingLead.createdBy === userId;
+      
+      if (!isAdmin && !isAssignedSalesRep && !isCreator) {
+        return res.status(403).json({ message: "You don't have permission to update this lead" });
+      }
+      
+      const lead = await storage.updateLeadStage(leadId, stage, userId);
       res.json(lead);
     } catch (error) {
       console.error('Error updating lead stage:', error);
