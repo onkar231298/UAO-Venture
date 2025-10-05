@@ -55,7 +55,7 @@ export default function HomeStructuredData() {
       }
     };
 
-    // Website Schema
+    // Website Schema with enhanced navigation
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -75,6 +75,72 @@ export default function HomeStructuredData() {
         },
         "query-input": "required name=search_term_string"
       }
+    };
+
+    // Site Navigation Element Schema - Helps Google understand site structure
+    const siteNavigationSchema = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Main Site Navigation",
+      "description": "Primary navigation pages for BFI Organic website",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "position": 1,
+          "name": "Products",
+          "description": "Browse our comprehensive catalog of premium organic ingredients and natural products",
+          "url": `${baseUrl}/products`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 2,
+          "name": "Ingredients",
+          "description": "Explore organic ingredients by category - herbs, spices, extracts and more",
+          "url": `${baseUrl}/ingredients`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 3,
+          "name": "About Us",
+          "description": "Learn about BFI Organic - 25+ years of organic ingredient expertise",
+          "url": `${baseUrl}/about`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 4,
+          "name": "Certifications",
+          "description": "View our USDA, EU Organic, ISO 22000, and quality certifications",
+          "url": `${baseUrl}/certifications`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 5,
+          "name": "Contact Us",
+          "description": "Get in touch with our organic ingredient experts for quotes and inquiries",
+          "url": `${baseUrl}/contact`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 6,
+          "name": "Health Support",
+          "description": "Find ingredients by health benefits - immune support, digestive health, and more",
+          "url": `${baseUrl}/health-support`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 7,
+          "name": "Blog & Resources",
+          "description": "Industry insights, certification guides, and organic ingredient education",
+          "url": `${baseUrl}/blog`
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 8,
+          "name": "Food Ingredients",
+          "description": "Food-grade organic ingredients for manufacturers - EU certified and HACCP compliant",
+          "url": `${baseUrl}/food-ingredients`
+        }
+      ]
     };
 
     // Breadcrumb Schema for Homepage
@@ -127,6 +193,7 @@ export default function HomeStructuredData() {
     const schemas = [
       { id: 'organization-schema', data: organizationSchema },
       { id: 'website-schema', data: websiteSchema },
+      { id: 'site-navigation-schema', data: siteNavigationSchema },
       { id: 'breadcrumb-schema', data: breadcrumbSchema },
       { id: 'local-business-schema', data: localBusinessSchema }
     ];
