@@ -154,7 +154,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
       contactPersonPhone: "",
       productsInterested: [],
       buyingTimeline: "",
-      expectedOrderValue: "",
+      expectedOrderValue: undefined,
       priority: "medium",
       currentStage: "new_lead",
       assignedTo: (user as any)?.id || "",
@@ -240,7 +240,12 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
   };
 
   const handleLeadSubmit = (data: z.infer<typeof leadSchema>) => {
-    createLeadMutation.mutate(data);
+    // Clean up empty string values for numeric fields
+    const cleanedData = {
+      ...data,
+      expectedOrderValue: data.expectedOrderValue || undefined,
+    };
+    createLeadMutation.mutate(cleanedData);
   };
 
   const handleSelectExistingCompany = (companyId: number) => {
@@ -886,11 +891,18 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                       if (result.successful && result.successful.length > 0) {
                         const currentAttachments = leadForm.getValues("attachments") || [];
-                        const newAttachments = result.successful.map((file: any) => ({
-                          name: file.name,
-                          url: file.uploadURL,
-                          size: file.size,
-                        }));
+                        const newAttachments = result.successful.map((file: any) => {
+                          // Extract object ID from upload URL to construct access URL
+                          const uploadURL = file.uploadURL || '';
+                          const objectId = uploadURL.split('/').pop()?.split('?')[0] || '';
+                          const accessURL = objectId ? `/objects/.private/uploads/${objectId}` : uploadURL;
+                          
+                          return {
+                            name: file.name,
+                            url: accessURL,
+                            size: file.size,
+                          };
+                        });
                         leadForm.setValue("attachments", [...currentAttachments, ...newAttachments]);
                         toast({
                           title: "Files uploaded",
