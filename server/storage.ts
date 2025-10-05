@@ -3939,9 +3939,10 @@ export class DatabaseStorage implements IStorage {
 
   private async generateLeadId(): Promise<string> {
     const year = new Date().getFullYear();
+    const pattern = `LD-${year}-%`;
     const result = await db.select({ 
       maxNum: sql<number>`COALESCE(MAX(CAST(SUBSTRING(lead_id FROM 9) AS INTEGER)), 0)`
-    }).from(leads).where(sql`lead_id ~ '^LD-${year}-[0-9]+$'`);
+    }).from(leads).where(sql`lead_id LIKE ${pattern}`);
     
     const nextNum = (result[0]?.maxNum || 0) + 1;
     return `LD-${year}-${nextNum.toString().padStart(4, '0')}`;
