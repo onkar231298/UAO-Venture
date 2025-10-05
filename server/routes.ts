@@ -3276,7 +3276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/companies', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { departmentPhones, ...companyFields } = req.body;
+      const { departmentPhones, additionalEmails, ...companyFields } = req.body;
       
       const companyData = insertCompanySchema.parse({
         ...companyFields,
@@ -3298,6 +3298,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             } catch (contactError) {
               console.error('Error creating department contact:', contactError);
+              // Continue creating other contacts even if one fails
+            }
+          }
+        }
+      }
+      
+      // Create company contacts for additional emails if provided
+      if (additionalEmails && Array.isArray(additionalEmails) && additionalEmails.length > 0) {
+        for (const emailContact of additionalEmails) {
+          if (emailContact.position && emailContact.email) {
+            try {
+              await storage.createCompanyContact({
+                companyId: company.id,
+                contactName: emailContact.position,
+                designation: emailContact.position,
+                email: emailContact.email,
+                isPrimary: false,
+              });
+            } catch (contactError) {
+              console.error('Error creating email contact:', contactError);
               // Continue creating other contacts even if one fails
             }
           }

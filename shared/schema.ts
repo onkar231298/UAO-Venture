@@ -960,6 +960,7 @@ export type NewsletterSubscription = typeof newsletterSubscriptions.$inferSelect
 export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
   companyName: varchar("company_name", { length: 255 }).notNull(),
+  primaryEmail: varchar("primary_email", { length: 255 }),
   primaryPhone: varchar("primary_phone", { length: 50 }),
   gstNumber: varchar("gst_number", { length: 50 }).unique(),
   industryType: varchar("industry_type", { length: 100 }),

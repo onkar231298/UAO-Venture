@@ -39,10 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail } from "lucide-react";
 
 const companySchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
+  primaryEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   primaryPhone: z.string().optional(),
   gstNumber: z.string().optional(),
   industryType: z.string().optional(),
@@ -74,6 +75,12 @@ const companySchema = z.object({
   departmentPhones: z.array(z.object({
     department: z.string(),
     phone: z.string(),
+  })).optional(),
+  
+  // Additional emails with positions
+  additionalEmails: z.array(z.object({
+    position: z.string(),
+    email: z.string().email("Invalid email"),
   })).optional(),
 });
 
@@ -107,6 +114,7 @@ export default function CompanyManagement() {
     resolver: zodResolver(companySchema),
     defaultValues: {
       companyName: "",
+      primaryEmail: "",
       primaryPhone: "",
       gstNumber: "",
       industryType: "",
@@ -128,6 +136,7 @@ export default function CompanyManagement() {
       factoryAddressCountry: "",
       factoryAddressZip: "",
       departmentPhones: [],
+      additionalEmails: [],
     },
   });
 
@@ -383,15 +392,29 @@ export default function CompanyManagement() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => createCompanyMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="companyName"
+                  name="primaryEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name *</FormLabel>
+                      <FormLabel>Primary Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
+                        <Input type="email" placeholder="email@company.com" {...field} data-testid="input-primary-email" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -553,6 +576,71 @@ export default function CompanyManagement() {
                         form.setValue("departmentPhones", currentPhones.filter((_, i) => i !== index));
                       }}
                       data-testid={`button-remove-dept-phone-${index}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Additional Emails with Positions */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Additional Emails with Positions (Optional)
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const currentEmails = form.getValues("additionalEmails") || [];
+                      form.setValue("additionalEmails", [...currentEmails, { position: "", email: "" }]);
+                    }}
+                    data-testid="button-add-additional-email"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Email
+                  </Button>
+                </div>
+                {(form.watch("additionalEmails") || []).map((_, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <FormField
+                        control={form.control}
+                        name={`additionalEmails.${index}.position`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Position (e.g., Purchasing Manager)" {...field} data-testid={`input-email-position-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`additionalEmails.${index}.email`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input type="email" placeholder="email@company.com" {...field} data-testid={`input-additional-email-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const currentEmails = form.getValues("additionalEmails") || [];
+                        form.setValue("additionalEmails", currentEmails.filter((_, i) => i !== index));
+                      }}
+                      data-testid={`button-remove-additional-email-${index}`}
                     >
                       <X className="h-4 w-4" />
                     </Button>
