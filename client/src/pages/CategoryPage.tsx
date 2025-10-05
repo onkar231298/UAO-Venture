@@ -47,16 +47,6 @@ export default function CategoryPage() {
     ? slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
     : '';
 
-  // Initialize SEO for category page
-  useSEO({
-    title: `${categoryName} - Premium Organic Ingredients | BFI Organic`,
-    description: `Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy.`,
-    keywords: `${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic`,
-    canonicalUrl: `${window.location.origin}/ingredients/${slug}`,
-    pageType: "category",
-    pageId: `category-${slug}`
-  });
-
   // International SEO setup
   useInternationalSEO();
 
@@ -116,6 +106,18 @@ export default function CategoryPage() {
 
   const products = productsData?.products || [];
   const totalPages = Math.ceil((productsData?.total || 0) / itemsPerPage);
+
+  // Initialize SEO for category page
+  // Add noindex when category has no products to prevent empty pages from being indexed
+  useSEO({
+    title: `${categoryName} - Premium Organic Ingredients | BFI Organic`,
+    description: `Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy.`,
+    keywords: `${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic`,
+    canonicalUrl: `${window.location.origin}/ingredients/${slug}`,
+    pageType: "category",
+    pageId: `category-${slug}`,
+    robots: productsData && productsData.products.length === 0 ? 'noindex, follow' : undefined
+  });
 
   // Redirect to 404 if category not found
   useEffect(() => {

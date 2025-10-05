@@ -39,16 +39,6 @@ export default function Products() {
   // Determine if we're on a health support route
   const healthSupportSlug = healthSupportParams?.slug;
   
-  // Initialize SEO for products page
-  useSEO({
-    title: "Premium Organic Ingredients & Natural Products",
-    description: "Discover our comprehensive range of organic ingredients, herbal extracts, and natural products. Certified organic, pharmaceutical grade, and sustainably sourced from global suppliers.",
-    keywords: "organic ingredients, herbal extracts, natural products, pharmaceutical ingredients, nutraceutical ingredients, organic herbs, botanical extracts",
-    canonicalUrl: `${window.location.origin}/products`,
-    pageType: "products",
-    pageId: "products-listing"
-  });
-  
   // Initialize filters from URL parameters
   const initializeFiltersFromURL = () => {
     const params = new URLSearchParams(window.location.search);
@@ -226,6 +216,22 @@ export default function Products() {
       metaDescription.setAttribute('content', `Discover organic ingredients specifically designed for ${currentHealthSupport.name.toLowerCase()}. Browse our premium collection of natural products for optimal health and wellness.`);
     }
   }, [healthSupportSlug, currentHealthSupport]);
+
+  // Initialize SEO for products page
+  // Add noindex when there are no products to prevent empty filter pages from being indexed
+  const hasActiveFilters = filters.search || filters.category.length > 0 || filters.healthSupport.length > 0 || 
+                           filters.origin.length > 0 || filters.form.length > 0 || filters.materials.length > 0 ||
+                           filters.productType.length > 0 || filters.inStock !== null || filters.priceRange !== null;
+  
+  useSEO({
+    title: "Premium Organic Ingredients & Natural Products",
+    description: "Discover our comprehensive range of organic ingredients, herbal extracts, and natural products. Certified organic, pharmaceutical grade, and sustainably sourced from global suppliers.",
+    keywords: "organic ingredients, herbal extracts, natural products, pharmaceutical ingredients, nutraceutical ingredients, organic herbs, botanical extracts",
+    canonicalUrl: `${window.location.origin}/products`,
+    pageType: "products",
+    pageId: "products-listing",
+    robots: productsData && productsData.products.length === 0 && hasActiveFilters ? 'noindex, follow' : undefined
+  });
 
   // Convert health supports to options format
   const healthSupportOptions = healthSupports.map((hs: any) => hs.name);
