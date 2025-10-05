@@ -37,7 +37,7 @@ interface Company {
 }
 
 export default function CompanyManagement() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [industryFilter, setIndustryFilter] = useState<string>("");
 
@@ -62,7 +62,7 @@ export default function CompanyManagement() {
   const total = companiesData?.total || 0;
 
   const adminRoles = ['admin', 'super_admin', 'sales_manager'];
-  const isAdmin = user && user.role ? adminRoles.includes(user.role) : false;
+  const isAdmin = user && (user as any).role ? adminRoles.includes((user as any).role) : false;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
