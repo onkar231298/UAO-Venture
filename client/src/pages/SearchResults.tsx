@@ -68,7 +68,10 @@ export default function SearchResults() {
   });
 
   // Initialize SEO for search results page
-  // Add noindex when there are no results to prevent empty pages from being indexed
+  // Add noindex for all search pages and paginated results to prevent "Crawled - not indexed" issues
+  // Search pages are low-value for SEO since they're dynamic and don't provide unique content
+  const shouldNoindex = !searchQuery || currentPage > 1 || (productsData && productsData.products.length === 0);
+  
   useSEO({
     title: searchQuery ? `Search Results for "${searchQuery}" - BFI Organic` : 'Search Results - BFI Organic',
     description: searchQuery ? `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.` : 'Search for premium organic ingredients and natural products.',
@@ -76,7 +79,7 @@ export default function SearchResults() {
     canonicalUrl: `${window.location.origin}/search/${searchQuery ? encodeURIComponent(searchQuery) : ''}`,
     pageType: "search",
     pageId: searchQuery ? `search-${encodeURIComponent(searchQuery)}` : 'search',
-    robots: productsData && productsData.products.length === 0 ? 'noindex, follow' : undefined
+    robots: shouldNoindex ? 'noindex, follow' : undefined
   });
 
   // Console log for debugging

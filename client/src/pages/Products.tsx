@@ -218,10 +218,14 @@ export default function Products() {
   }, [healthSupportSlug, currentHealthSupport]);
 
   // Initialize SEO for products page
-  // Add noindex when there are no products to prevent empty filter pages from being indexed
+  // Add noindex for filtered/paginated pages to prevent "Crawled - not indexed" issues
   const hasActiveFilters = filters.search || filters.category.length > 0 || filters.healthSupport.length > 0 || 
                            filters.origin.length > 0 || filters.form.length > 0 || filters.materials.length > 0 ||
                            filters.productType.length > 0 || filters.inStock !== null || filters.priceRange !== null;
+  const hasPagination = currentPage > 1;
+  
+  // Noindex if: has filters, has pagination, OR has no results
+  const shouldNoindex = hasActiveFilters || hasPagination || (productsData && productsData.products.length === 0);
   
   useSEO({
     title: "Premium Organic Ingredients & Natural Products",
@@ -230,7 +234,7 @@ export default function Products() {
     canonicalUrl: `${window.location.origin}/products`,
     pageType: "products",
     pageId: "products-listing",
-    robots: productsData && productsData.products.length === 0 && hasActiveFilters ? 'noindex, follow' : undefined
+    robots: shouldNoindex ? 'noindex, follow' : undefined
   });
 
   // Convert health supports to options format
