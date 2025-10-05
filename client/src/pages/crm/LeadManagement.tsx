@@ -1,0 +1,258 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign } from "lucide-react";
+import { type Lead, type LeadWithDetails } from "@shared/schema";
+
+const PIPELINE_STAGES = [
+  { id: "new_lead", label: "New Lead", color: "bg-gray-100 text-gray-800" },
+  { id: "first_contact", label: "First Contact", color: "bg-blue-100 text-blue-800" },
+  { id: "discussion", label: "Discussion", color: "bg-cyan-100 text-cyan-800" },
+  { id: "meeting_scheduled", label: "Meeting Scheduled", color: "bg-indigo-100 text-indigo-800" },
+  { id: "meeting_completed", label: "Meeting Completed", color: "bg-purple-100 text-purple-800" },
+  { id: "sample_requested", label: "Sample Requested", color: "bg-pink-100 text-pink-800" },
+  { id: "sample_submitted", label: "Sample Submitted", color: "bg-rose-100 text-rose-800" },
+  { id: "sample_feedback", label: "Sample Feedback", color: "bg-orange-100 text-orange-800" },
+  { id: "quotation_sent", label: "Quotation Sent", color: "bg-amber-100 text-amber-800" },
+  { id: "negotiation", label: "Negotiation", color: "bg-yellow-100 text-yellow-800" },
+  { id: "certificates_shared", label: "Certificates Shared", color: "bg-lime-100 text-lime-800" },
+  { id: "order_pending", label: "Order Pending", color: "bg-emerald-100 text-emerald-800" },
+  { id: "won", label: "Won", color: "bg-green-100 text-green-800" },
+  { id: "lost", label: "Lost", color: "bg-red-100 text-red-800" },
+  { id: "on_hold", label: "On Hold", color: "bg-slate-100 text-slate-800" },
+];
+
+export default function LeadManagement() {
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
+
+  const buildLeadsUrl = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    if (priorityFilter !== "all") params.append("priority", priorityFilter);
+    if (statusFilter !== "all") params.append("status", statusFilter);
+    const queryString = params.toString();
+    return `/api/crm/leads${queryString ? `?${queryString}` : ""}`;
+  };
+
+  const { data: leadsData, isLoading } = useQuery({
+    queryKey: ["/api/crm/leads", searchTerm, priorityFilter, statusFilter],
+    queryFn: async () => {
+      const response = await fetch(buildLeadsUrl());
+      if (!response.ok) throw new Error("Failed to fetch leads");
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ["/api/crm/stats"],
+    enabled: !!user,
+  });
+
+  const leads = (leadsData as any)?.leads || [];
+
+  const groupedLeads = PIPELINE_STAGES.reduce((acc, stage) => {
+    acc[stage.id] = leads.filter((lead: LeadWithDetails) => lead.currentStage === stage.id);
+    return acc;
+  }, {} as Record<string, LeadWithDetails[]>);
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "hot": return "bg-red-500 text-white";
+      case "warm": return "bg-orange-500 text-white";
+      case "cold": return "bg-blue-500 text-white";
+      default: return "bg-gray-500 text-white";
+    }
+  };
+
+  const formatCurrency = (amount: number | string | null) => {
+    if (!amount) return "$0";
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(num);
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Manage your B2B sales pipeline</p>
+          </div>
+          <Button data-testid="button-create-lead">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Lead
+          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Leads</p>
+                  <p className="text-2xl font-bold">{(stats as any)?.totalLeads || 0}</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Conversion Rate</p>
+                  <p className="text-2xl font-bold">{(stats as any)?.conversionRate?.toFixed(1) || 0}%</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Avg Lead Age</p>
+                  <p className="text-2xl font-bold">{Math.round((stats as any)?.averageLeadAge || 0)} days</p>
+                </div>
+                <Users className="h-8 w-8 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Active Leads</p>
+                  <p className="text-2xl font-bold">{leads.filter((l: Lead) => l.status === "active").length}</p>
+                </div>
+                <Building className="h-8 w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search leads, companies..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-leads"
+            />
+          </div>
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-[150px]" data-testid="select-priority-filter">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="hot">Hot</SelectItem>
+              <SelectItem value="warm">Warm</SelectItem>
+              <SelectItem value="cold">Cold</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="won">Won</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
+              <SelectItem value="on_hold">On Hold</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" data-testid="button-more-filters">
+            <Filter className="h-4 w-4 mr-2" />
+            More Filters
+          </Button>
+        </div>
+      </div>
+
+      {/* Kanban Board */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="flex gap-4 h-full min-w-max">
+          {PIPELINE_STAGES.map((stage) => {
+            const stageLeads = groupedLeads[stage.id] || [];
+            return (
+              <div key={stage.id} className="flex flex-col w-80 shrink-0" data-testid={`column-${stage.id}`}>
+                <div className="mb-3">
+                  <div className={`rounded-lg px-3 py-2 ${stage.color} flex items-center justify-between`}>
+                    <span className="font-semibold text-sm">{stage.label}</span>
+                    <Badge variant="secondary" className="bg-white/50">
+                      {stageLeads.length}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-3 overflow-y-auto pr-2">
+                  {stageLeads.map((lead) => (
+                    <Card key={lead.id} className="cursor-pointer hover:shadow-lg transition-shadow" data-testid={`card-lead-${lead.id}`}>
+                      <CardHeader className="p-4 pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-sm font-semibold">
+                              {lead.company?.companyName || "Unknown Company"}
+                            </CardTitle>
+                            <p className="text-xs text-gray-500 mt-1">{lead.leadId}</p>
+                          </div>
+                          <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
+                            {lead.priority || "warm"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0 space-y-2">
+                        <div className="flex items-center text-xs text-gray-600">
+                          <Users className="h-3 w-3 mr-1" />
+                          {lead.contactPerson?.contactName || "No contact"}
+                        </div>
+                        <div className="flex items-center text-xs text-gray-600">
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          {formatCurrency(lead.expectedOrderValue)}
+                        </div>
+                        {lead.salesRep && (
+                          <div className="flex items-center text-xs text-gray-600">
+                            <Users className="h-3 w-3 mr-1" />
+                            {lead.salesRep.firstName} {lead.salesRep.lastName}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-3">
+                          <Button variant="ghost" size="sm" className="text-xs h-7 flex-1">
+                            View
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-xs h-7 flex-1">
+                            Activity
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {stageLeads.length === 0 && (
+                    <div className="text-center text-sm text-gray-400 mt-8">
+                      No leads in this stage
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

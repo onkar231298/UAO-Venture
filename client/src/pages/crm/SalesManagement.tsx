@@ -18,10 +18,20 @@ import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 
-export default function SalesManagement() {
+import LeadManagement from "./LeadManagement";
+
+export default function SalesManagement({ activeSubSection }: { activeSubSection?: string } = {}) {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  if (activeSubSection === 'sales-crm') {
+    return (
+      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+        <LeadManagement />
+      </RoleBasedRoute>
+    );
+  }
 
   // State management
   const [searchTerm, setSearchTerm] = useState("");
