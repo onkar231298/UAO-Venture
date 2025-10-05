@@ -187,9 +187,17 @@ export default function LeadManagement() {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-4">
-        <div className="flex gap-4 h-full min-w-max">
-          {PIPELINE_STAGES.map((stage) => {
+      <div className="flex-1 relative">
+        <div className="absolute top-4 right-8 flex items-center gap-2 text-sm text-gray-500 z-10 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-md shadow-sm">
+          <span>Scroll to see all 15 stages</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent pointer-events-none z-[5]"></div>
+        <div className="h-full overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-4 scroll-smooth">
+          <div className="flex gap-4 h-full min-w-max pb-4">
+            {PIPELINE_STAGES.map((stage) => {
             const stageLeads = groupedLeads[stage.id] || [];
             return (
               <div key={stage.id} className="flex flex-col w-80 shrink-0" data-testid={`column-${stage.id}`}>
@@ -253,6 +261,7 @@ export default function LeadManagement() {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
