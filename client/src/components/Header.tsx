@@ -179,15 +179,12 @@ export default function Header() {
           </div>
 
           {/* Center - Navigation */}
-          <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+          <nav className="hidden lg:flex items-center space-x-3 xl:space-x-5">
             <Link href="/" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600' : ''}`}>
               Home
             </Link>
             <Link href="/products" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600' : ''}`}>
               Products
-            </Link>
-            <Link href="/blog" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/blog' ? 'text-green-600 border-green-600' : ''}`}>
-              Blog
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
