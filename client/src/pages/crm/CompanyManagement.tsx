@@ -47,9 +47,27 @@ const companySchema = z.object({
   industryType: z.string().optional(),
   companySize: z.string().optional(),
   website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  
+  // Registered/Head Office Address
+  addressStreet: z.string().optional(),
   addressCity: z.string().optional(),
   addressState: z.string().optional(),
   addressCountry: z.string().optional(),
+  addressZip: z.string().optional(),
+  
+  // Billing Address
+  billingAddressStreet: z.string().optional(),
+  billingAddressCity: z.string().optional(),
+  billingAddressState: z.string().optional(),
+  billingAddressCountry: z.string().optional(),
+  billingAddressZip: z.string().optional(),
+  
+  // Factory Address
+  factoryAddressStreet: z.string().optional(),
+  factoryAddressCity: z.string().optional(),
+  factoryAddressState: z.string().optional(),
+  factoryAddressCountry: z.string().optional(),
+  factoryAddressZip: z.string().optional(),
 });
 
 interface Company {
@@ -74,6 +92,8 @@ export default function CompanyManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [industryFilter, setIndustryFilter] = useState<string>("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -84,9 +104,21 @@ export default function CompanyManagement() {
       industryType: "",
       companySize: "",
       website: "",
+      addressStreet: "",
       addressCity: "",
       addressState: "",
       addressCountry: "",
+      addressZip: "",
+      billingAddressStreet: "",
+      billingAddressCity: "",
+      billingAddressState: "",
+      billingAddressCountry: "",
+      billingAddressZip: "",
+      factoryAddressStreet: "",
+      factoryAddressCity: "",
+      factoryAddressState: "",
+      factoryAddressCountry: "",
+      factoryAddressZip: "",
     },
   });
 
@@ -313,6 +345,10 @@ export default function CompanyManagement() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => {
+                          setSelectedCompany(company);
+                          setViewDetailsOpen(true);
+                        }}
                         data-testid={`button-view-company-${company.id}`}
                       >
                         View Details
@@ -434,49 +470,227 @@ export default function CompanyManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Registered/Head Office Address */}
+              <div className="space-y-4 pt-4">
+                <h3 className="font-semibold text-sm">Registered/Head Office Address</h3>
                 <FormField
                   control={form.control}
-                  name="addressCity"
+                  name="addressStreet"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel>Street Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="City" {...field} data-testid="input-city" />
+                        <Input placeholder="Street address" {...field} data-testid="input-address-street" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="addressState"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                        <Input placeholder="State" {...field} data-testid="input-state" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="addressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} data-testid="input-address-city" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="addressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="State" {...field} data-testid="input-address-state" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="addressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Country" {...field} data-testid="input-address-country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="addressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal/ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="ZIP code" {...field} data-testid="input-address-zip" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="addressCountry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Country" {...field} data-testid="input-country" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Billing Address */}
+              <div className="space-y-4 pt-4">
+                <h3 className="font-semibold text-sm">Billing Address</h3>
+                <FormField
+                  control={form.control}
+                  name="billingAddressStreet"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Street Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Street address" {...field} data-testid="input-billing-street" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="billingAddressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} data-testid="input-billing-city" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="billingAddressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="State" {...field} data-testid="input-billing-state" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="billingAddressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Country" {...field} data-testid="input-billing-country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="billingAddressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal/ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="ZIP code" {...field} data-testid="input-billing-zip" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Factory Address */}
+              <div className="space-y-4 pt-4">
+                <h3 className="font-semibold text-sm">Factory/Production Address</h3>
+                <FormField
+                  control={form.control}
+                  name="factoryAddressStreet"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Street Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Street address" {...field} data-testid="input-factory-street" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="factoryAddressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} data-testid="input-factory-city" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="factoryAddressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="State" {...field} data-testid="input-factory-state" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="factoryAddressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Country" {...field} data-testid="input-factory-country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="factoryAddressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal/ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="ZIP code" {...field} data-testid="input-factory-zip" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
               <div className="flex gap-2 justify-end pt-4">
                 <Button
@@ -497,6 +711,161 @@ export default function CompanyManagement() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Company Details Dialog */}
+      <Dialog open={viewDetailsOpen} onOpenChange={setViewDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Company Details</DialogTitle>
+            <DialogDescription>
+              View complete company information
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCompany && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company Name</p>
+                    <p className="font-medium">{selectedCompany.companyName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">GST Number</p>
+                    <p className="font-medium">{selectedCompany.gstNumber || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Industry Type</p>
+                    <p className="font-medium">{selectedCompany.industryType || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company Size</p>
+                    <p className="font-medium">{selectedCompany.companySize || "-"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Website</p>
+                    {selectedCompany.website ? (
+                      <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {selectedCompany.website}
+                      </a>
+                    ) : (
+                      <p className="font-medium">-</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Registered/Head Office Address */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Registered/Head Office Address</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Street Address</p>
+                    <p className="font-medium">{(selectedCompany as any).addressStreet || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">City</p>
+                    <p className="font-medium">{selectedCompany.addressCity || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">State</p>
+                    <p className="font-medium">{selectedCompany.addressState || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Country</p>
+                    <p className="font-medium">{selectedCompany.addressCountry || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ZIP Code</p>
+                    <p className="font-medium">{(selectedCompany as any).addressZip || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Billing Address */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Billing Address</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Street Address</p>
+                    <p className="font-medium">{(selectedCompany as any).billingAddressStreet || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">City</p>
+                    <p className="font-medium">{(selectedCompany as any).billingAddressCity || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">State</p>
+                    <p className="font-medium">{(selectedCompany as any).billingAddressState || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Country</p>
+                    <p className="font-medium">{(selectedCompany as any).billingAddressCountry || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ZIP Code</p>
+                    <p className="font-medium">{(selectedCompany as any).billingAddressZip || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Factory Address */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Factory/Production Address</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Street Address</p>
+                    <p className="font-medium">{(selectedCompany as any).factoryAddressStreet || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">City</p>
+                    <p className="font-medium">{(selectedCompany as any).factoryAddressCity || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">State</p>
+                    <p className="font-medium">{(selectedCompany as any).factoryAddressState || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Country</p>
+                    <p className="font-medium">{(selectedCompany as any).factoryAddressCountry || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ZIP Code</p>
+                    <p className="font-medium">{(selectedCompany as any).factoryAddressZip || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignment & Metadata */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Assignment & Metadata</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Assigned To</p>
+                    <p className="font-medium">{selectedCompany.assignedTo || <span className="text-amber-600">Unassigned</span>}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Created By</p>
+                    <p className="font-medium">{selectedCompany.createdBy || "-"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Created At</p>
+                    <p className="font-medium">{new Date(selectedCompany.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setViewDetailsOpen(false)} data-testid="button-close-details">
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

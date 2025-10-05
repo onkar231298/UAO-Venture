@@ -966,12 +966,26 @@ export const companies = pgTable("companies", {
   annualTurnover: decimal("annual_turnover", { precision: 15, scale: 2 }),
   website: varchar("website", { length: 500 }),
   
-  // Address
+  // Registered/Head Office Address
   addressStreet: text("address_street"),
   addressCity: varchar("address_city", { length: 100 }),
   addressState: varchar("address_state", { length: 100 }),
   addressCountry: varchar("address_country", { length: 100 }),
   addressZip: varchar("address_zip", { length: 20 }),
+  
+  // Billing Address
+  billingAddressStreet: text("billing_address_street"),
+  billingAddressCity: varchar("billing_address_city", { length: 100 }),
+  billingAddressState: varchar("billing_address_state", { length: 100 }),
+  billingAddressCountry: varchar("billing_address_country", { length: 100 }),
+  billingAddressZip: varchar("billing_address_zip", { length: 20 }),
+  
+  // Factory/Production Address
+  factoryAddressStreet: text("factory_address_street"),
+  factoryAddressCity: varchar("factory_address_city", { length: 100 }),
+  factoryAddressState: varchar("factory_address_state", { length: 100 }),
+  factoryAddressCountry: varchar("factory_address_country", { length: 100 }),
+  factoryAddressZip: varchar("factory_address_zip", { length: 20 }),
   
   // Data completeness tracking
   dataCompleteness: varchar("data_completeness", { length: 20 }).default("complete"), // complete, partial
