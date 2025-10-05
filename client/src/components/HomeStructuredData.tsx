@@ -12,7 +12,7 @@ export default function HomeStructuredData() {
       }
     });
 
-    // Organization Schema for Homepage
+    // Organization Schema for Homepage with enhanced navigation signals
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
@@ -52,7 +52,51 @@ export default function HomeStructuredData() {
       "areaServed": {
         "@type": "Country",
         "name": ["United States", "India", "United Kingdom", "Germany", "France", "Canada", "Australia"]
-      }
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Organic Ingredients Catalog",
+        "itemListElement": [
+          {
+            "@type": "OfferCatalog",
+            "name": "Organic Herbs & Spices",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Product",
+                  "name": "Premium Organic Herbs"
+                }
+              }
+            ]
+          },
+          {
+            "@type": "OfferCatalog",
+            "name": "Botanical Extracts",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Product",
+                  "name": "High-Quality Botanical Extracts"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "subOrganization": [
+        {
+          "@type": "Organization",
+          "name": "BFI Organic - Food Ingredients Division",
+          "url": `${baseUrl}/food-ingredients`
+        },
+        {
+          "@type": "Organization",
+          "name": "BFI Organic - Organic Herbs Division",
+          "url": `${baseUrl}/organic-herbs`
+        }
+      ]
     };
 
     // Website Schema with enhanced navigation
