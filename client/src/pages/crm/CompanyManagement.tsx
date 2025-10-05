@@ -39,7 +39,7 @@ interface Company {
 export default function CompanyManagement() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [industryFilter, setIndustryFilter] = useState<string>("");
+  const [industryFilter, setIndustryFilter] = useState<string>("all");
 
   // Fetch companies with RBAC filtering
   const { data: companiesData, isLoading } = useQuery<{ companies: Company[]; total: number }>({
@@ -47,7 +47,7 @@ export default function CompanyManagement() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
-      if (industryFilter) params.append("industryType", industryFilter);
+      if (industryFilter && industryFilter !== "all") params.append("industryType", industryFilter);
       
       const response = await fetch(`/api/crm/companies?${params.toString()}`, {
         credentials: "include"
@@ -103,7 +103,7 @@ export default function CompanyManagement() {
                 <SelectValue placeholder="All Industries" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Industries</SelectItem>
+                <SelectItem value="all">All Industries</SelectItem>
                 <SelectItem value="food">Food & Beverage</SelectItem>
                 <SelectItem value="pharma">Pharmaceuticals</SelectItem>
                 <SelectItem value="cosmetics">Cosmetics & Personal Care</SelectItem>
