@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -120,6 +120,13 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
     enabled: open && step === 2,
   });
 
+  // Fetch products for selection
+  const { data: productsData } = useQuery<{ products: any[]; total: number }>({
+    queryKey: ["/api/products"],
+    enabled: open && step === 2,
+  });
+  const products = productsData?.products || [];
+
   // Company form
   const companyForm = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
@@ -156,6 +163,18 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
       additionalContacts: [],
     },
   });
+
+  // Auto-select primary contact when contacts are loaded
+  useEffect(() => {
+    if (contacts && contacts.length > 0) {
+      const primaryContact = contacts.find((c: any) => c.isPrimary);
+      if (primaryContact) {
+        leadForm.setValue("contactPersonId", primaryContact.id);
+        leadForm.setValue("contactPersonName", primaryContact.contactName || "");
+        leadForm.setValue("contactPersonPhone", primaryContact.phone || "");
+      }
+    }
+  }, [contacts, leadForm]);
 
   // Create company mutation
   const createCompanyMutation = useMutation<any, Error, z.infer<typeof companySchema>>({
@@ -223,8 +242,18 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
   };
 
   const handleSelectExistingCompany = (companyId: number) => {
+    const selectedCompany = companies.find((c: any) => c.id === companyId);
     setSelectedCompanyId(companyId);
     leadForm.setValue("companyId", companyId);
+    
+    // Auto-populate contact person from company's primary email and phone if available
+    if (selectedCompany) {
+      if (selectedCompany.primaryEmail || selectedCompany.primaryPhone) {
+        leadForm.setValue("contactPersonName", selectedCompany.companyName || "");
+        leadForm.setValue("contactPersonPhone", selectedCompany.primaryPhone || "");
+      }
+    }
+    
     setStep(2);
   };
 
@@ -543,38 +572,84 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                   <h3 className="font-semibold">Contact Person</h3>
                 </div>
 
-                <FormField
-                  control={leadForm.control}
-                  name="contactPersonId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Primary Contact</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                      >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={leadForm.control}
+                    name="contactPersonName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Person Name</FormLabel>
                         <FormControl>
-                          <SelectTrigger data-testid="select-contact-person">
-                            <SelectValue placeholder="Select contact person" />
-                          </SelectTrigger>
+                          <Input 
+                            placeholder="Enter contact person name" 
+                            {...field} 
+                            data-testid="input-contact-person-name"
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {contacts?.map((contact: any) => (
-                            <SelectItem key={contact.id} value={contact.id.toString()}>
-                              {contact.contactName} {contact.designation ? `- ${contact.designation}` : ""}
-                            </SelectItem>
-                          ))}
-                          {(!contacts || contacts.length === 0) && (
-                            <SelectItem value="none" disabled>
-                              No contacts available
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={leadForm.control}
+                    name="contactPersonPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Phone Number</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="+1-xxx-xxx-xxxx" 
+                            {...field} 
+                            data-testid="input-contact-person-phone"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Show primary contact dropdown if contacts exist */}
+                {contacts && contacts.length > 0 && (
+                  <FormField
+                    control={leadForm.control}
+                    name="contactPersonId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select from Company Contacts (Optional)</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(parseInt(value));
+                            const selected = contacts.find((c: any) => c.id === parseInt(value));
+                            if (selected) {
+                              leadForm.setValue("contactPersonName", selected.contactName || "");
+                              leadForm.setValue("contactPersonPhone", selected.phone || "");
+                            }
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="select-contact-person">
+                              <SelectValue placeholder="Select from existing contacts" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {contacts?.map((contact: any) => (
+                              <SelectItem key={contact.id} value={contact.id.toString()}>
+                                {contact.contactName} {contact.designation ? `- ${contact.designation}` : ""} {contact.phone ? `(${contact.phone})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Primary contact is auto-selected. You can choose a different contact or enter manually.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Additional Contacts */}
                 <div className="space-y-4 pt-4 border-t">
@@ -676,10 +751,119 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                 </div>
               </div>
 
-              {/* Business Details */}
+              {/* Products Interested */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gray-500" />
+                  <h3 className="font-semibold">Products Interested</h3>
+                </div>
+
+                <FormField
+                  control={leadForm.control}
+                  name="productsInterested"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Products</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
+                            data-testid="button-select-products"
+                          >
+                            {field.value && field.value.length > 0
+                              ? `${field.value.length} product(s) selected`
+                              : "Select products..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search products..." data-testid="input-search-products" />
+                            <CommandList>
+                              <CommandEmpty>No products found.</CommandEmpty>
+                              <CommandGroup>
+                                {products?.map((product: any) => {
+                                  const isSelected = field.value?.includes(product.id);
+                                  return (
+                                    <CommandItem
+                                      key={product.id}
+                                      value={product.name}
+                                      onSelect={() => {
+                                        const currentProducts = field.value || [];
+                                        if (isSelected) {
+                                          field.onChange(currentProducts.filter((id: number) => id !== product.id));
+                                        } else {
+                                          field.onChange([...currentProducts, product.id]);
+                                        }
+                                      }}
+                                      data-testid={`option-product-${product.id}`}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          isSelected ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div>
+                                        <div className="font-medium">{product.name}</div>
+                                        <div className="text-xs text-gray-500">
+                                          {product.productId} - {product.form || "N/A"}
+                                        </div>
+                                      </div>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>
+                        Select one or more products for this lead
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Display selected products */}
+                {leadForm.watch("productsInterested") && leadForm.watch("productsInterested")!.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Selected Products:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {leadForm.watch("productsInterested")!.map((productId: number) => {
+                        const product = products.find((p: any) => p.id === productId);
+                        return product ? (
+                          <div
+                            key={productId}
+                            className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3 py-1 rounded-md"
+                            data-testid={`selected-product-${productId}`}
+                          >
+                            <span className="text-sm">{product.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentProducts = leadForm.getValues("productsInterested") || [];
+                                leadForm.setValue("productsInterested", currentProducts.filter((id: number) => id !== productId));
+                              }}
+                              className="hover:bg-destructive/20 rounded-full p-0.5"
+                              data-testid={`remove-product-${productId}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Business Details */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-gray-500" />
                   <h3 className="font-semibold">Business Details</h3>
                 </div>
 
