@@ -19,6 +19,7 @@ import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 
 import LeadManagement from "./LeadManagement";
+import CompanyManagement from "./CompanyManagement";
 
 export default function SalesManagement({ activeSubSection }: { activeSubSection?: string } = {}) {
   const { user, isLoading: authLoading } = useAuth();
@@ -29,6 +30,14 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     return (
       <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
         <LeadManagement />
+      </RoleBasedRoute>
+    );
+  }
+  
+  if (activeSubSection === 'company-management') {
+    return (
+      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+        <CompanyManagement />
       </RoleBasedRoute>
     );
   }
