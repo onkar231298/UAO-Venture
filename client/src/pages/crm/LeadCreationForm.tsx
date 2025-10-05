@@ -45,8 +45,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Plus, Building2, User, Package, DollarSign, X, Mail } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Building2, User, Package, DollarSign, X, Mail, FileText, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 
 // Form schemas - simplified and tailored for the form fields
 const companySchema = z.object({
@@ -858,6 +860,89 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* File Attachments */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-gray-500" />
+                  <h3 className="font-semibold">Product Specifications & Attachments</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <ObjectUploader
+                    maxNumberOfFiles={5}
+                    maxFileSize={20971520}
+                    allowedFileTypes={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.gif']}
+                    onGetUploadParameters={async () => {
+                      const response: any = await apiRequest("/api/objects/upload", {
+                        method: "POST",
+                      });
+                      return {
+                        method: "PUT" as const,
+                        url: response.uploadURL,
+                      };
+                    }}
+                    onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                      if (result.successful && result.successful.length > 0) {
+                        const currentAttachments = leadForm.getValues("attachments") || [];
+                        const newAttachments = result.successful.map((file: any) => ({
+                          name: file.name,
+                          url: file.uploadURL,
+                          size: file.size,
+                        }));
+                        leadForm.setValue("attachments", [...currentAttachments, ...newAttachments]);
+                        toast({
+                          title: "Files uploaded",
+                          description: `${result.successful.length} file(s) uploaded successfully`,
+                        });
+                      }
+                    }}
+                    buttonClassName="w-full"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span>Upload Documents</span>
+                    </div>
+                  </ObjectUploader>
+
+                  {/* Display uploaded files */}
+                  {leadForm.watch("attachments") && leadForm.watch("attachments")!.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Uploaded Files:</p>
+                      <div className="space-y-2">
+                        {leadForm.watch("attachments")!.map((file: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 border rounded-md"
+                            data-testid={`attachment-${index}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <div>
+                                <p className="text-sm font-medium">{file.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {(file.size / 1024).toFixed(2)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentAttachments = leadForm.getValues("attachments") || [];
+                                leadForm.setValue("attachments", currentAttachments.filter((_, i: number) => i !== index));
+                              }}
+                              className="text-destructive hover:bg-destructive/10 rounded-full p-1"
+                              data-testid={`remove-attachment-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Business Details */}
