@@ -1032,6 +1032,7 @@ export const leads = pgTable("leads", {
   certificationsNeeded: jsonb("certifications_needed").default("[]"),
   packagingPreference: varchar("packaging_preference", { length: 255 }),
   specialRequirements: text("special_requirements"),
+  attachments: jsonb("attachments").default("[]"), // Array of file URLs for product specs/documents
   
   // Business details
   leadSource: varchar("lead_source", { length: 100 }), // website, trade_show, referral, cold_call, linkedin

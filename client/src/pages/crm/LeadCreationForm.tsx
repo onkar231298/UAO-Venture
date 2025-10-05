@@ -63,7 +63,9 @@ const companySchema = z.object({
 const leadSchema = z.object({
   companyId: z.number().min(1, "Company is required"),
   contactPersonId: z.number().optional(),
-  leadSource: z.string().min(1, "Lead source is required"),
+  contactPersonName: z.string().optional(),
+  contactPersonPhone: z.string().optional(),
+  productsInterested: z.array(z.number()).optional(),
   buyingTimeline: z.string().optional(),
   expectedOrderValue: z.string().optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
@@ -72,6 +74,11 @@ const leadSchema = z.object({
   specialRequirements: z.string().optional(),
   currentSupplier: z.string().optional(),
   reasonForChange: z.string().optional(),
+  attachments: z.array(z.object({
+    name: z.string(),
+    url: z.string(),
+    size: z.number(),
+  })).optional(),
   additionalContacts: z.array(z.object({
     contactName: z.string(),
     email: z.string().email().optional().or(z.literal("")),
@@ -134,7 +141,9 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
     defaultValues: {
       companyId: 0,
       contactPersonId: undefined,
-      leadSource: "",
+      contactPersonName: "",
+      contactPersonPhone: "",
+      productsInterested: [],
       buyingTimeline: "",
       expectedOrderValue: "",
       priority: "medium",
@@ -143,6 +152,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
       specialRequirements: "",
       currentSupplier: "",
       reasonForChange: "",
+      attachments: [],
       additionalContacts: [],
     },
   });
@@ -666,7 +676,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                 </div>
               </div>
 
-              {/* Lead Source & Business Details */}
+              {/* Business Details */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gray-500" />
@@ -674,33 +684,6 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={leadForm.control}
-                    name="leadSource"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lead Source *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-lead-source">
-                              <SelectValue placeholder="Select source" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="website">Website</SelectItem>
-                            <SelectItem value="trade_show">Trade Show</SelectItem>
-                            <SelectItem value="referral">Referral</SelectItem>
-                            <SelectItem value="cold_call">Cold Call</SelectItem>
-                            <SelectItem value="linkedin">LinkedIn</SelectItem>
-                            <SelectItem value="email_campaign">Email Campaign</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={leadForm.control}
                     name="buyingTimeline"
