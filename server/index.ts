@@ -78,15 +78,32 @@ app.use((req, res, next) => {
     const userAgent = req.get('user-agent') || '';
     const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
     
-    if (!isDeployed || !isBotOrSEOTool) {
-      return next();
-    }
-
     try {
       const { slug } = req.params;
       const category = await storage.getCategoryBySlug(slug);
       
+      // Return 404 if category doesn't exist
       if (!category) {
+        console.log(`[404] Category not found: /ingredients/${slug}`);
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Category Not Found - BFI Organic</title>
+            <meta name="robots" content="noindex, follow">
+          </head>
+          <body>
+            <h1>Category Not Found</h1>
+            <p>The category "${slug}" does not exist.</p>
+          </body>
+          </html>
+        `);
+      }
+      
+      // Only serve SEO HTML for bots on deployed URLs
+      if (!isDeployed || !isBotOrSEOTool) {
         return next();
       }
 
@@ -166,15 +183,32 @@ app.use((req, res, next) => {
     const userAgent = req.get('user-agent') || '';
     const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
     
-    if (!isDeployed || !isBotOrSEOTool) {
-      return next();
-    }
-
     try {
       const { slug } = req.params;
       const healthSupport = await storage.getHealthSupportBySlug(slug);
       
+      // Return 404 if health support page doesn't exist
       if (!healthSupport) {
+        console.log(`[404] Health support page not found: /health-support/${slug}`);
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Page Not Found - BFI Organic</title>
+            <meta name="robots" content="noindex, follow">
+          </head>
+          <body>
+            <h1>Page Not Found</h1>
+            <p>The health support page "${slug}" does not exist.</p>
+          </body>
+          </html>
+        `);
+      }
+      
+      // Only serve SEO HTML for bots on deployed URLs
+      if (!isDeployed || !isBotOrSEOTool) {
         return next();
       }
 
@@ -693,7 +727,22 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
       const product = await storage.getProductBySlug(slug);
       
       if (!product) {
-        return next(); // Let React handle 404
+        console.log(`[404] Product not found: /products/${slug}`);
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Product Not Found - BFI Organic</title>
+            <meta name="robots" content="noindex, follow">
+          </head>
+          <body>
+            <h1>Product Not Found</h1>
+            <p>The product "${slug}" does not exist.</p>
+          </body>
+          </html>
+        `);
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;

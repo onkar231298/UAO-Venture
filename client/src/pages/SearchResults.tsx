@@ -45,16 +45,6 @@ export default function SearchResults() {
   // Decode the search query (handles both encoded and non-encoded URLs)
   const searchQuery = query ? decodeURIComponent(query) : '';
 
-  // Initialize SEO for search results page
-  useSEO({
-    title: searchQuery ? `Search Results for "${searchQuery}" - BFI Organic` : 'Search Results - BFI Organic',
-    description: searchQuery ? `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.` : 'Search for premium organic ingredients and natural products.',
-    keywords: searchQuery ? `${searchQuery}, organic ingredients, herbal extracts, natural products, search results` : 'organic ingredients, search, natural products',
-    canonicalUrl: `${window.location.origin}/search/${searchQuery ? encodeURIComponent(searchQuery) : ''}`,
-    pageType: "search",
-    pageId: searchQuery ? `search-${encodeURIComponent(searchQuery)}` : 'search'
-  });
-
   // Fetch search results
   const { data: productsData, isLoading, error } = useQuery<{ products: Product[]; total: number }>({
     queryKey: ["/api/products", "search", searchQuery, currentPage],
@@ -75,6 +65,18 @@ export default function SearchResults() {
     enabled: !!searchQuery?.trim(),
     staleTime: 30000,
     retry: 1
+  });
+
+  // Initialize SEO for search results page
+  // Add noindex when there are no results to prevent empty pages from being indexed
+  useSEO({
+    title: searchQuery ? `Search Results for "${searchQuery}" - BFI Organic` : 'Search Results - BFI Organic',
+    description: searchQuery ? `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.` : 'Search for premium organic ingredients and natural products.',
+    keywords: searchQuery ? `${searchQuery}, organic ingredients, herbal extracts, natural products, search results` : 'organic ingredients, search, natural products',
+    canonicalUrl: `${window.location.origin}/search/${searchQuery ? encodeURIComponent(searchQuery) : ''}`,
+    pageType: "search",
+    pageId: searchQuery ? `search-${encodeURIComponent(searchQuery)}` : 'search',
+    robots: productsData && productsData.products.length === 0 ? 'noindex, follow' : undefined
   });
 
   // Console log for debugging

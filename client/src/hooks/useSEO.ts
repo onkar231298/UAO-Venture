@@ -10,6 +10,7 @@ interface SEOProps {
   ogImage?: string;
   pageType?: string;
   pageId?: string;
+  robots?: string;
 }
 
 export function useSEO({
@@ -19,7 +20,8 @@ export function useSEO({
   canonicalUrl,
   ogImage,
   pageType = 'page',
-  pageId = '1'
+  pageId = '1',
+  robots
 }: SEOProps = {}) {
   useEffect(() => {
     const settings = seoService.getSettings();
@@ -50,6 +52,23 @@ export function useSEO({
         document.head.appendChild(metaKeywords);
       }
       metaKeywords.content = keywords;
+    }
+
+    // Add or update robots meta tag
+    if (robots) {
+      let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
+      if (!metaRobots) {
+        metaRobots = document.createElement('meta');
+        metaRobots.name = 'robots';
+        document.head.appendChild(metaRobots);
+      }
+      metaRobots.content = robots;
+    } else {
+      // Remove robots meta tag if it exists and robots is not specified
+      const existingRobots = document.querySelector('meta[name="robots"]');
+      if (existingRobots) {
+        existingRobots.remove();
+      }
     }
 
     // Add canonical URL
@@ -84,7 +103,7 @@ export function useSEO({
       page_id: pageId
     });
 
-  }, [title, description, keywords, canonicalUrl, ogImage, pageType, pageId]);
+  }, [title, description, keywords, canonicalUrl, ogImage, pageType, pageId, robots]);
 
   return {
     trackSEOEvent: seoService.trackSEOEvent.bind(seoService),
