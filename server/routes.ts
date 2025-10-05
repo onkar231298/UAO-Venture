@@ -3330,6 +3330,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid company data", errors: error.errors });
       }
+      // Check for duplicate GST number
+      if (error.code === '23505' && error.constraint === 'companies_gst_number_key') {
+        return res.status(400).json({ message: "A company with this GST number already exists. Please use a different GST number or leave it blank." });
+      }
       res.status(500).json({ message: "Failed to create company" });
     }
   });
