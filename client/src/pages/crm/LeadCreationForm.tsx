@@ -89,10 +89,11 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
 
   // Fetch companies for selection
-  const { data: companies = [] } = useQuery<any[]>({
+  const { data: companiesData } = useQuery<{ companies: any[]; total: number }>({
     queryKey: ["/api/crm/companies"],
     enabled: open && !showNewCompanyForm,
   });
+  const companies = companiesData?.companies || [];
 
   // Fetch contacts for selected company
   const { data: contacts = [] } = useQuery<any[]>({
@@ -132,7 +133,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
       expectedOrderValue: "",
       priority: "medium",
       currentStage: "new_lead",
-      assignedTo: user?.id || "",
+      assignedTo: (user as any)?.id || "",
       specialRequirements: "",
       currentSupplier: "",
       reasonForChange: "",
