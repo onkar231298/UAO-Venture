@@ -131,18 +131,14 @@ function Router() {
       <Route path="/video-slider" component={() => <VideoHeroSliderManager canvaVideoUrl="" />} />
       <Route path="/test-webp-upload" component={TestWebPUpload} />
       
+      {/* Admin dashboard routes - always registered, authentication handled inside AdminDashboard */}
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/*" component={AdminDashboard} />
+      <Route path="/dashboard" component={AdminDashboard} />
+      
       {/* Protected dashboard routes - only for authenticated users */}
       {!isLoading && isAuthenticated && user ? (
-        <>
-          {/* Admin dashboard - for admin and super_admin roles */}
-          {((user as any).role === 'admin' || (user as any).role === 'super_admin') ? (
-            <>
-              <Route path="/admin" component={AdminDashboard} />
-              <Route path="/admin/*" component={AdminDashboard} />
-              <Route path="/dashboard" component={AdminDashboard} />
-            </>
-          ) : null}
-          
+        <>          
           {/* Customer dashboard - accessible without admin auth */}
           <Route path="/customer/*" component={CustomerDashboard} />
           
