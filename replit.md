@@ -12,14 +12,26 @@ Preferred communication style: Simple, everyday language.
 - **New Feature**: Comprehensive B2B Lead Management System with company-centric structure integrated into the platform
 - **Database Schema**: Created 6 new tables (companies, company_contacts, leads, lead_activities, lead_tasks, assignment_rules) to support full CRM functionality. Added `assignedTo` column to companies table for sales rep assignment.
 - **15-Stage Sales Pipeline**: Implemented industry-specific pipeline stages (New Lead → First Contact → Discussion → Meeting Scheduled → Sample Submitted → Quotation Sent → Negotiation → Closed Won/Lost/On Hold) tailored for B2B organic ingredients business
-- **Kanban Board Interface**: Built interactive Lead Management Kanban board with drag-and-drop, filtering (search, priority, status), and real-time stats cards
+- **Drag-and-Drop Kanban Board** (October 2025): 
+  - Built interactive Lead Management Kanban board with drag-and-drop functionality using @dnd-kit
+  - Optimistic UI updates with automatic rollback on errors for smooth user experience
+  - Visual feedback during drag operations with collision detection and pointer/keyboard sensors
+  - Automatic activity logging when leads change stages with fromStage/toStage tracking
+  - RBAC-enforced stage updates: Only admins and assigned sales reps can move leads
+  - Fixed critical bug where destination stage was incorrectly derived from card ID instead of droppable container ID
+- **Activity Timeline & Lead Detail Dialog** (October 2025):
+  - Created comprehensive Activity Timeline component showing complete lead activity history
+  - Built Lead Detail Dialog with tabs for Overview, Activity Timeline, and Products
+  - Displays all activity types with timestamps, user attribution, and stage transitions
+  - Accessible via View/Activity buttons on lead cards for full audit trail visibility
 - **Company Management Interface**: Built table-based Company Management page with search, industry filters, assignment tracking, and role-based display (Company Management for admins, My Companies for sales reps)
 - **Role-Based Access Control (RBAC)**: Implemented comprehensive server-side RBAC filtering:
-  - **Admin Roles** (admin, super_admin, sales_manager): Full access to all leads and companies
-  - **Sales Roles** (sales_executive, sales_rep): Limited access to only assigned leads and companies (or companies they created)
+  - **Admin Roles** (admin, super_admin, sales_manager): Full access to all leads and companies, can move any lead
+  - **Sales Roles** (sales_executive, sales_rep): Limited access to only assigned leads and companies (or companies they created), can only move their assigned leads
   - **Backend Filtering**: Created RBAC helper functions in `server/rbac.ts` for server-side role-based filtering
   - **Storage Layer**: Updated `getLeads()` and `getCompanies()` methods to accept user context and apply RBAC filters
   - **API Layer**: Modified `/api/crm/leads` and `/api/crm/companies` routes to pass user information for automatic filtering
+  - **Stage Update Validation**: `/api/crm/leads/:id/update-stage` endpoint validates permissions before allowing stage changes
 - **Security Implementation**: Properly secured with RoleBasedRoute authorization for roles: admin, super_admin, sales_manager, sales_executive
 - **Technical Solution**: Custom queryFn implementation for filter parameters to ensure backend properly receives search/priority/status filters
 - **Architecture Decision**: Company-centric design where companies are master records and leads are child deals, matching B2B sales methodology. Sales reps can only see and work with leads/companies assigned to them or created by them.
@@ -28,6 +40,8 @@ Preferred communication style: Simple, everyday language.
   - Wrapped LeadManagement with RoleBasedRoute to prevent unauthorized access
   - Implemented buildLeadsUrl() with custom queryFn to properly send filter parameters to backend
   - Fixed import error in CompanyManagement by using `useAuth` instead of non-existent `useUser` hook
+  - Fixed drag-and-drop to correctly extract destination stage from droppable container (`over.data.current?.sortable?.containerId`) instead of card ID
+  - Added error rollback mechanism to restore previous cache state when stage update mutations fail
 
 ## SEO & Indexing Fixes (January 2025)
 - **Product Card Consistency Issue Resolved**: Fixed mobile layout inconsistency where ProductGroupCard (for products with variants) showed different styling than ProductCard (single products). Both components now use identical structures with the same Link wrapper, CardContent sections, button layouts, and responsive classes. This ensures all products display uniformly regardless of whether they have variants.
