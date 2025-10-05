@@ -831,6 +831,14 @@ export default function CompanyManagement() {
                     <p className="font-medium">{selectedCompany.gstNumber || "-"}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-muted-foreground">Primary Email</p>
+                    <p className="font-medium">{(selectedCompany as any).primaryEmail || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Primary Phone</p>
+                    <p className="font-medium">{(selectedCompany as any).primaryPhone || "-"}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-muted-foreground">Industry Type</p>
                     <p className="font-medium">{selectedCompany.industryType || "-"}</p>
                   </div>
