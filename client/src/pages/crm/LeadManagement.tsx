@@ -226,7 +226,17 @@ export default function LeadManagement() {
     if (!over) return;
 
     const leadId = parseInt(active.id as string);
-    const newStage = over.id as string;
+    
+    // Get the destination stage from the droppable container
+    // over.data.current?.sortable.containerId gives us the stage ID
+    const newStage = over.data.current?.sortable?.containerId || over.id as string;
+
+    // Validate that newStage is a valid pipeline stage
+    const isValidStage = PIPELINE_STAGES.some(stage => stage.id === newStage);
+    if (!isValidStage) {
+      console.error("Invalid stage:", newStage);
+      return;
+    }
 
     // Find the lead being dragged
     const lead = leads.find((l: LeadWithDetails) => l.id === leadId);
@@ -234,6 +244,9 @@ export default function LeadManagement() {
 
     // Don't update if dropped in the same stage
     if (lead.currentStage === newStage) return;
+
+    // Store previous state for rollback on error
+    const previousData = queryClient.getQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter]);
 
     // Optimistic update: immediately update UI
     queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter], (old: any) => {
@@ -246,8 +259,17 @@ export default function LeadManagement() {
       };
     });
 
-    // Update on server
-    updateStageMutation.mutate({ leadId, newStage });
+    // Update on server with error rollback
+    updateStageMutation.mutate(
+      { leadId, newStage },
+      {
+        onError: (error) => {
+          // Rollback to previous state on error
+          queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter], previousData);
+          console.error("Failed to update lead stage:", error);
+        }
+      }
+    );
   };
 
   const handleDragCancel = () => {
