@@ -25,24 +25,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  if (activeSubSection === 'sales-crm') {
-    return (
-      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
-        <LeadManagement />
-      </RoleBasedRoute>
-    );
-  }
-  
-  if (activeSubSection === 'company-management') {
-    return (
-      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
-        <CompanyManagement />
-      </RoleBasedRoute>
-    );
-  }
 
-  // State management
+  // State management - ALL hooks must be called before any returns
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -54,17 +38,17 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
     queryKey: ['/api/inquiries'],
-    enabled: !authLoading && !!user
+    enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
   const { data: quotations, isLoading: quotationsLoading } = useQuery({
     queryKey: ['/api/quotations'],
-    enabled: !authLoading && !!user
+    enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
   const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
     queryKey: ['/api/sample-requests'],
-    enabled: !authLoading && !!user
+    enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
   // Mutations
@@ -200,6 +184,24 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  // Route to Lead Management
+  if (activeSubSection === 'sales-crm') {
+    return (
+      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+        <LeadManagement />
+      </RoleBasedRoute>
+    );
+  }
+  
+  // Route to Company Management
+  if (activeSubSection === 'company-management') {
+    return (
+      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
+        <CompanyManagement />
+      </RoleBasedRoute>
+    );
   }
 
   return (
