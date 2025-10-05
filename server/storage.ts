@@ -3809,8 +3809,25 @@ export class DatabaseStorage implements IStorage {
     needsEnrichment?: boolean;
     limit?: number;
     offset?: number;
+    user?: { id: string; role: string }; // For RBAC filtering
   }): Promise<{ companies: Company[]; total: number }> {
     const conditions = [];
+
+    // Apply RBAC filters first
+    if (filters?.user) {
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      const isAdmin = adminRoles.includes(filters.user.role);
+      
+      if (!isAdmin) {
+        // Sales reps see only companies assigned to them OR companies they created
+        conditions.push(
+          or(
+            eq(companies.assignedTo, filters.user.id),
+            eq(companies.createdBy, filters.user.id)
+          )
+        );
+      }
+    }
 
     if (filters?.search) {
       conditions.push(
@@ -3941,8 +3958,20 @@ export class DatabaseStorage implements IStorage {
     createdTo?: Date;
     limit?: number;
     offset?: number;
+    user?: { id: string; role: string }; // For RBAC filtering
   }): Promise<{ leads: LeadWithDetails[]; total: number }> {
     const conditions = [];
+
+    // Apply RBAC filters first
+    if (filters?.user) {
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      const isAdmin = adminRoles.includes(filters.user.role);
+      
+      if (!isAdmin) {
+        // Sales reps see only assigned leads
+        conditions.push(eq(leads.assignedSalesRep, filters.user.id));
+      }
+    }
 
     if (filters?.assignedTo) {
       conditions.push(eq(leads.assignedSalesRep, filters.assignedTo));

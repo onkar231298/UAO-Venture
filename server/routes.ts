@@ -3239,12 +3239,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crm/companies', isAuthenticated, async (req: any, res) => {
     try {
       const { search, industryType, needsEnrichment, limit = '50', offset = '0' } = req.query;
+      
+      // Get user info for RBAC
+      const userId = req.user.claims.sub;
+      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
       const filters = {
         search,
         industryType,
         needsEnrichment: needsEnrichment === 'true',
         limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
+        offset: parseInt(offset as string),
+        user: { id: userId, role: userRole } // Pass user for RBAC filtering
       };
       const result = await storage.getCompanies(filters);
       res.json(result);
@@ -3385,6 +3391,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset = '0' 
       } = req.query;
       
+      // Get user info for RBAC
+      const userId = req.user.claims.sub;
+      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
       const filters = {
         assignedTo,
         stage,
@@ -3395,7 +3405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdFrom: createdFrom ? new Date(createdFrom) : undefined,
         createdTo: createdTo ? new Date(createdTo) : undefined,
         limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
+        offset: parseInt(offset as string),
+        user: { id: userId, role: userRole } // Pass user for RBAC filtering
       };
       
       const result = await storage.getLeads(filters);
