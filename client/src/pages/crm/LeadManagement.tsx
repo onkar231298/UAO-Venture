@@ -585,6 +585,9 @@ export default function LeadManagement() {
         lead={selectedLead}
         open={!!selectedLead}
         onOpenChange={(open) => !open && setSelectedLead(null)}
+        salesReps={salesReps}
+        onAssign={handleAssignLead}
+        canAssignLeads={!!canAssignLeads}
       />
     </div>
   );

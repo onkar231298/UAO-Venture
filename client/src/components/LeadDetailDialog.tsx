@@ -4,19 +4,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus } from "lucide-react";
 import { type LeadWithDetails } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  salesReps?: any[];
+  onAssign?: (leadId: number, assignedTo: string) => void;
+  canAssignLeads?: boolean;
 }
 
-export default function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
+export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps = [], onAssign, canAssignLeads = false }: LeadDetailDialogProps) {
+  const [selectedAssignee, setSelectedAssignee] = useState(lead?.assignedSalesRep || "");
+  
   if (!lead) return null;
+
+  const handleAssignmentChange = (value: string) => {
+    setSelectedAssignee(value);
+    if (onAssign) {
+      onAssign(lead.id, value);
+    }
+  };
 
   const formatCurrency = (amount: number | string | null) => {
     if (!amount) return "$0";
@@ -175,33 +188,52 @@ export default function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
               </CardContent>
             </Card>
 
-            {/* Sales Team */}
-            {lead.salesRep && (
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Sales Team
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Sales Representative</p>
+            {/* Sales Team & Assignment */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Sales Team & Assignment
+                </h3>
+                <div className="space-y-4">
+                  {/* Current Assignment */}
+                  <div>
+                    <p className="text-sm text-gray-500 mb-2">Currently Assigned To</p>
+                    {lead.salesRep ? (
                       <p className="font-medium">
                         {lead.salesRep.firstName} {lead.salesRep.lastName}
                       </p>
-                    </div>
-                    {lead.manager && (
-                      <div>
-                        <p className="text-sm text-gray-500">Sales Manager</p>
-                        <p className="font-medium">
-                          {lead.manager.firstName} {lead.manager.lastName}
-                        </p>
-                      </div>
+                    ) : (
+                      <p className="text-gray-400 italic">Unassigned</p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  
+                  {/* Assignment Dropdown (Only for admins/managers) */}
+                  {canAssignLeads && salesReps.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-500 mb-2">Change Assignment</p>
+                      <div className="flex gap-2 items-center">
+                        <Select value={selectedAssignee} onValueChange={handleAssignmentChange}>
+                          <SelectTrigger className="w-full" data-testid="select-assign-lead">
+                            <SelectValue placeholder="Select sales rep..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {salesReps.map((rep: any) => (
+                              <SelectItem key={rep.id} value={rep.id}>
+                                {rep.firstName} {rep.lastName} ({rep.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select a sales representative to assign this lead
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Notes */}
             {lead.notes && (
