@@ -17,6 +17,7 @@ interface ParsedLead {
   companyName: string;
   contactName: string;
   contactEmail: string;
+  countryCode: string;
   contactPhone: string;
   expectedValue: string;
   leadSource: string;
@@ -58,16 +59,17 @@ export default function BulkLeadUpload() {
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(",").map(v => v.trim().replace(/"/g, ""));
       
-      if (values.length < 6) continue; // Skip invalid rows
+      if (values.length < 7) continue; // Skip invalid rows
       
       leads.push({
         companyName: values[0] || "",
         contactName: values[1] || "",
         contactEmail: values[2] || "",
-        contactPhone: values[3] || "",
-        expectedValue: values[4] || "0",
-        leadSource: values[5] || "manual",
-        assignedToEmail: values[6] || undefined,
+        countryCode: values[3] || "",
+        contactPhone: values[4] || "",
+        expectedValue: values[5] || "0",
+        leadSource: values[6] || "manual",
+        assignedToEmail: values[7] || undefined,
         rowNumber: i + 1,
       });
     }
@@ -128,9 +130,9 @@ export default function BulkLeadUpload() {
 
   // Download CSV template
   const downloadTemplate = () => {
-    const template = `Company Name,Contact Person,Email,Phone,Expected Value,Lead Source,Assigned Sales Rep Email
-Acme Corp,John Smith,john@acme.com,+1-234-567-8900,50000,website,salesrep1@bfiorganic.com
-Beta Industries,Jane Doe,jane@beta.com,+1-234-567-8901,75000,referral,salesrep2@bfiorganic.com`;
+    const template = `Company Name,Contact Person,Email,Country Code,Phone,Expected Value,Lead Source,Assigned Sales Rep Email
+Acme Corp,John Smith,john@acme.com,+1,234-567-8900,50000,website,salesrep1@bfiorganic.com
+Beta Industries,Jane Doe,jane@beta.com,+91,234-567-8901,75000,referral,salesrep2@bfiorganic.com`;
     
     const blob = new Blob([template], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -201,6 +203,7 @@ Beta Industries,Jane Doe,jane@beta.com,+1-234-567-8901,75000,referral,salesrep2@
         companyName: lead.companyName,
         contactName: lead.contactName,
         contactEmail: lead.contactEmail,
+        countryCode: lead.countryCode,
         contactPhone: lead.contactPhone,
         expectedOrderValue: lead.expectedValue,
         leadSource: lead.leadSource,
@@ -331,6 +334,7 @@ Beta Industries,Jane Doe,jane@beta.com,+1-234-567-8901,75000,referral,salesrep2@
                       <TableHead>Company</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Value</TableHead>
                       <TableHead>Assignee</TableHead>
                     </TableRow>
@@ -342,6 +346,7 @@ Beta Industries,Jane Doe,jane@beta.com,+1-234-567-8901,75000,referral,salesrep2@
                         <TableCell className="text-xs">{lead.companyName}</TableCell>
                         <TableCell className="text-xs">{lead.contactName}</TableCell>
                         <TableCell className="text-xs">{lead.contactEmail}</TableCell>
+                        <TableCell className="text-xs">{lead.countryCode} {lead.contactPhone}</TableCell>
                         <TableCell className="text-xs">${lead.expectedValue}</TableCell>
                         <TableCell className="text-xs">{lead.assignedToEmail || "Default"}</TableCell>
                       </TableRow>
