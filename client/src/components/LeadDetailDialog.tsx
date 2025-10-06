@@ -148,8 +148,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                     <p className="text-sm text-gray-500">Phone</p>
                     <p className="font-medium">
                       {lead.contactPerson?.phone ? (
-                        <a href={`tel:${lead.contactPerson.phone}`} className="text-blue-600">
-                          {lead.contactPerson.phone}
+                        <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
+                          {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
                         </a>
                       ) : "N/A"}
                     </p>
