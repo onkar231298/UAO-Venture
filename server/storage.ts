@@ -3872,6 +3872,11 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  async getCompanyByName(companyName: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.companyName, companyName));
+    return company;
+  }
+
   async createCompany(companyData: InsertCompany): Promise<Company> {
     const [company] = await db.insert(companies).values(companyData).returning();
     return company;
