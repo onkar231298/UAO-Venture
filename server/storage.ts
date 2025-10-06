@@ -4229,6 +4229,7 @@ export class DatabaseStorage implements IStorage {
             companyId,
             contactName: data.contactName,
             email: data.contactEmail,
+            countryCode: data.countryCode || '',
             phone: data.contactPhone || '',
             designation: '',
             isPrimary: true,
