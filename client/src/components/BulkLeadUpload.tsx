@@ -147,14 +147,10 @@ Beta Industries,Jane Doe,jane@beta.com,+91,234-567-8901,75000,referral,salesrep2
   const uploadMutation = useMutation({
     mutationFn: async (leadsData: any[]) => {
       try {
-        const response = await apiRequest("POST", "/api/crm/leads/bulk-upload", { leads: leadsData });
-        
-        // Check if response is OK
-        if (!response.ok) {
-          const text = await response.text();
-          console.error("Upload error response:", text);
-          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-        }
+        const response = await apiRequest("/api/crm/leads/bulk-upload", {
+          method: "POST",
+          body: JSON.stringify({ leads: leadsData })
+        });
         
         const result = await response.json() as UploadResult;
         return result;
