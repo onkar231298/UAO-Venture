@@ -146,8 +146,22 @@ Beta Industries,Jane Doe,jane@beta.com,+91,234-567-8901,75000,referral,salesrep2
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (leadsData: any[]) => {
-      const response = await apiRequest("POST", "/api/crm/leads/bulk-upload", { leads: leadsData });
-      return await response.json() as UploadResult;
+      try {
+        const response = await apiRequest("POST", "/api/crm/leads/bulk-upload", { leads: leadsData });
+        
+        // Check if response is OK
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("Upload error response:", text);
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json() as UploadResult;
+        return result;
+      } catch (error: any) {
+        console.error("Upload mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: (result: UploadResult) => {
       setUploadResult(result);
@@ -167,9 +181,10 @@ Beta Industries,Jane Doe,jane@beta.com,+91,234-567-8901,75000,referral,salesrep2
       }
     },
     onError: (error: any) => {
+      console.error("Upload failed:", error);
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     },
