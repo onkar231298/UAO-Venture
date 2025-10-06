@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, UserPlus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { type Lead, type LeadWithDetails } from "@shared/schema";
 import LeadCreationForm from "./LeadCreationForm";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor, closestCenter, useDroppable } from "@dnd-kit/core";
@@ -40,6 +41,10 @@ interface DraggableLeadCardProps {
   getPriorityColor: (priority: string) => string;
   formatCurrency: (amount: number | string | null) => string;
   onViewDetails: (lead: LeadWithDetails) => void;
+  salesReps: any[];
+  onAssign: (leadId: number, assignedTo: string) => void;
+  currentUserId: string;
+  canAssignLeads: boolean;
 }
 
 interface DroppableColumnProps {
@@ -59,7 +64,7 @@ function DroppableColumn({ id, children }: DroppableColumnProps) {
   );
 }
 
-function DraggableLeadCard({ lead, getPriorityColor, formatCurrency, onViewDetails }: DraggableLeadCardProps) {
+function DraggableLeadCard({ lead, getPriorityColor, formatCurrency, onViewDetails, salesReps, onAssign, currentUserId, canAssignLeads }: DraggableLeadCardProps) {
   const {
     attributes,
     listeners,
@@ -86,9 +91,43 @@ function DraggableLeadCard({ lead, getPriorityColor, formatCurrency, onViewDetai
               </CardTitle>
               <p className="text-xs text-gray-500 mt-1">{lead.leadId}</p>
             </div>
-            <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
-              {lead.priority || "warm"}
-            </Badge>
+            <div className="flex items-center gap-1">
+              <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
+                {lead.priority || "warm"}
+              </Badge>
+              {canAssignLeads && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                      data-testid={`button-menu-${lead.id}`}
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {salesReps.map((rep) => (
+                      <DropdownMenuItem 
+                        key={rep.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAssign(lead.id, rep.id);
+                        }}
+                        data-testid={`menu-assign-${rep.id}`}
+                      >
+                        <UserPlus className="h-3 w-3 mr-2" />
+                        {rep.firstName} {rep.lastName}
+                        {lead.assignedSalesRep === rep.id && " (current)"}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-2">
@@ -210,6 +249,48 @@ export default function LeadManagement() {
     queryKey: ["/api/crm/stats"],
     enabled: !!user,
   });
+
+  const { data: salesReps = [] } = useQuery({
+    queryKey: ["/api/crm/sales-reps"],
+    enabled: !!user,
+  });
+
+  // Check if user can assign leads (admin or manager)
+  const canAssignLeads = user && ['admin', 'super_admin', 'sales_manager'].includes(user.role);
+
+  // Assignment mutation
+  const assignLeadMutation = useMutation({
+    mutationFn: async ({ leadId, assignedTo }: { leadId: number; assignedTo: string }) => {
+      const response = await fetch(`/api/crm/leads/${leadId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to assign lead');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+      toast({
+        title: "Lead Assigned",
+        description: "Lead has been successfully assigned",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Assignment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAssignLead = (leadId: number, assignedTo: string) => {
+    assignLeadMutation.mutate({ leadId, assignedTo });
+  };
 
   const leads = (leadsData as any)?.leads || [];
 
@@ -459,6 +540,10 @@ export default function LeadManagement() {
                               getPriorityColor={getPriorityColor}
                               formatCurrency={formatCurrency}
                               onViewDetails={setSelectedLead}
+                              salesReps={salesReps}
+                              onAssign={handleAssignLead}
+                              currentUserId={user?.id || ''}
+                              canAssignLeads={!!canAssignLeads}
                             />
                           ))}
                           {stageLeads.length === 0 && (
