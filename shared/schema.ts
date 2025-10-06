@@ -1004,6 +1004,7 @@ export const companyContacts = pgTable("company_contacts", {
   contactName: varchar("contact_name", { length: 255 }).notNull(),
   designation: varchar("designation", { length: 100 }),
   email: varchar("email", { length: 255 }),
+  countryCode: varchar("country_code", { length: 10 }),
   phone: varchar("phone", { length: 50 }),
   whatsapp: varchar("whatsapp", { length: 50 }),
   
