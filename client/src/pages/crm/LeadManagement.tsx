@@ -15,6 +15,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
+import BulkLeadUpload from "@/components/BulkLeadUpload";
 
 const PIPELINE_STAGES = [
   { id: "new_lead", label: "New Lead", color: "bg-gray-100 text-gray-800" },
@@ -316,10 +317,13 @@ export default function LeadManagement() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">Manage your B2B sales pipeline</p>
           </div>
-          <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Lead
-          </Button>
+          <div className="flex gap-2">
+            <BulkLeadUpload />
+            <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Lead
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}

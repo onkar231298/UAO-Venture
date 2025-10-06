@@ -4196,14 +4196,68 @@ export class DatabaseStorage implements IStorage {
     return lead;
   }
 
-  async bulkCreateLeads(leadDataArray: InsertLead[], createdBy: string): Promise<{ success: Lead[]; errors: { row: number; error: string }[] }> {
+  async bulkCreateLeads(leadDataArray: any[], createdBy: string): Promise<{ success: Lead[]; errors: { row: number; error: string }[] }> {
     const success: Lead[] = [];
     const errors: { row: number; error: string }[] = [];
 
     for (let i = 0; i < leadDataArray.length; i++) {
       try {
-        const leadData = leadDataArray[i];
-        const lead = await this.createLead({ ...leadData, createdBy });
+        const data = leadDataArray[i];
+        
+        // Create or find company
+        let companyId: number;
+        const existingCompany = await this.getCompanyByName(data.companyName);
+        
+        if (existingCompany) {
+          companyId = existingCompany.id;
+        } else {
+          const newCompany = await this.createCompany({
+            companyName: data.companyName,
+            email: data.contactEmail,
+            phone: data.contactPhone,
+            industryType: 'other',
+            country: 'Unknown',
+            createdBy,
+          });
+          companyId = newCompany.id;
+        }
+        
+        // Create contact person
+        let contactPersonId: number | undefined;
+        if (data.contactName && data.contactEmail) {
+          const contact = await this.createCompanyContact({
+            companyId,
+            contactName: data.contactName,
+            email: data.contactEmail,
+            phone: data.contactPhone || '',
+            designation: '',
+            isPrimary: true,
+            createdBy,
+          });
+          contactPersonId = contact.id;
+        }
+        
+        // Create lead
+        const leadData: InsertLead = {
+          companyId,
+          contactPersonId,
+          assignedSalesRep: data.assignedSalesRep,
+          currentStage: data.currentStage || 'new_lead',
+          previousStage: null,
+          priority: data.priority || 'warm',
+          status: data.status || 'active',
+          leadSource: data.leadSource || 'manual',
+          expectedOrderValue: data.expectedOrderValue || '0',
+          actualOrderValue: null,
+          nextFollowUp: null,
+          lastContactDate: null,
+          daysInCurrentStage: 0,
+          transferHistory: [],
+          notes: null,
+          createdBy,
+        };
+        
+        const lead = await this.createLead(leadData);
         success.push(lead);
       } catch (error: any) {
         errors.push({ row: i + 1, error: error.message || 'Unknown error' });
