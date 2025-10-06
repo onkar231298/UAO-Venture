@@ -3676,22 +3676,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk upload leads from CSV
   app.post('/api/crm/leads/bulk-upload', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Bulk upload request received');
       const userId = req.user.claims.sub;
       const { leads } = req.body;
+      
+      console.log('User ID:', userId);
+      console.log('Number of leads to upload:', leads?.length || 0);
       
       // Get user info for RBAC
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log('User not found:', userId);
         return res.status(401).json({ message: "User not found" });
       }
+      
+      console.log('User role:', user.role);
       
       // Only admins and managers can bulk upload leads
       const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
       if (!isAdmin) {
+        console.log('Insufficient permissions for user:', userId, 'Role:', user.role);
         return res.status(403).json({ message: "Insufficient permissions to bulk upload leads" });
       }
       
+      console.log('Starting bulk create leads...');
       const result = await storage.bulkCreateLeads(leads, userId);
+      console.log('Bulk upload result:', { success: result.success.length, errors: result.errors.length });
       res.json(result);
     } catch (error) {
       console.error('Error bulk uploading leads:', error);

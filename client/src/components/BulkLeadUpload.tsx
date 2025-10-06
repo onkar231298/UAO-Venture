@@ -229,6 +229,8 @@ Beta Industries,Jane Doe,jane@beta.com,+91,234-567-8901,75000,referral,salesrep2
       };
     }));
 
+    console.log("Uploading leads data:", leadsData);
+    console.log("Number of leads:", leadsData.length);
     uploadMutation.mutate(leadsData);
   };
 
