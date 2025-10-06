@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign } from "lucide-react";
 import { type Lead, type LeadWithDetails } from "@shared/schema";
 import LeadCreationForm from "./LeadCreationForm";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor, closestCenter } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor, closestCenter, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { queryClient } from "@/lib/queryClient";
@@ -39,6 +39,23 @@ interface DraggableLeadCardProps {
   getPriorityColor: (priority: string) => string;
   formatCurrency: (amount: number | string | null) => string;
   onViewDetails: (lead: LeadWithDetails) => void;
+}
+
+interface DroppableColumnProps {
+  id: string;
+  children: React.ReactNode;
+}
+
+function DroppableColumn({ id, children }: DroppableColumnProps) {
+  const { setNodeRef } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <div ref={setNodeRef} className="flex flex-col w-80 shrink-0 h-full">
+      {children}
+    </div>
+  );
 }
 
 function DraggableLeadCard({ lead, getPriorityColor, formatCurrency, onViewDetails }: DraggableLeadCardProps) {
@@ -227,9 +244,16 @@ export default function LeadManagement() {
 
     const leadId = parseInt(active.id as string);
     
-    // Get the destination stage from the droppable container
-    // over.data.current?.sortable.containerId gives us the stage ID
-    const newStage = over.data.current?.sortable?.containerId || over.id as string;
+    // Get the destination stage - with droppable columns, over.id is the stage ID
+    // But if dropped on a card, we need to get the container ID
+    let newStage: string;
+    if (over.data.current?.sortable?.containerId) {
+      // Dropped on another card - get its container
+      newStage = over.data.current.sortable.containerId as string;
+    } else {
+      // Dropped on empty space or column - over.id is the stage
+      newStage = over.id as string;
+    }
 
     // Validate that newStage is a valid pipeline stage
     const isValidStage = PIPELINE_STAGES.some(stage => stage.id === newStage);
@@ -267,6 +291,11 @@ export default function LeadManagement() {
           // Rollback to previous state on error
           queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter], previousData);
           console.error("Failed to update lead stage:", error);
+          toast({
+            title: "Error",
+            description: "Failed to update lead stage. Please try again.",
+            variant: "destructive",
+          });
         }
       }
     );
@@ -406,35 +435,37 @@ export default function LeadManagement() {
                 const leadIds = stageLeads.map((lead: LeadWithDetails) => lead.id.toString());
                 
                 return (
-                  <SortableContext key={stage.id} items={leadIds} strategy={verticalListSortingStrategy} id={stage.id}>
-                    <div className="flex flex-col w-80 shrink-0" data-testid={`column-${stage.id}`}>
-                      <div className="mb-3">
-                        <div className={`rounded-lg px-3 py-2 ${stage.color} flex items-center justify-between`}>
-                          <span className="font-semibold text-sm">{stage.label}</span>
-                          <Badge variant="secondary" className="bg-white/50">
-                            {stageLeads.length}
-                          </Badge>
+                  <DroppableColumn key={stage.id} id={stage.id}>
+                    <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
+                      <div data-testid={`column-${stage.id}`} className="h-full flex flex-col">
+                        <div className="mb-3">
+                          <div className={`rounded-lg px-3 py-2 ${stage.color} flex items-center justify-between`}>
+                            <span className="font-semibold text-sm">{stage.label}</span>
+                            <Badge variant="secondary" className="bg-white/50">
+                              {stageLeads.length}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 space-y-3 overflow-y-auto pr-2 min-h-[200px]">
+                          {stageLeads.map((lead: LeadWithDetails) => (
+                            <DraggableLeadCard
+                              key={lead.id}
+                              lead={lead}
+                              getPriorityColor={getPriorityColor}
+                              formatCurrency={formatCurrency}
+                              onViewDetails={setSelectedLead}
+                            />
+                          ))}
+                          {stageLeads.length === 0 && (
+                            <div className="text-center text-sm text-gray-400 mt-8">
+                              Drop leads here
+                            </div>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex-1 space-y-3 overflow-y-auto pr-2 min-h-[200px]">
-                        {stageLeads.map((lead: LeadWithDetails) => (
-                          <DraggableLeadCard
-                            key={lead.id}
-                            lead={lead}
-                            getPriorityColor={getPriorityColor}
-                            formatCurrency={formatCurrency}
-                            onViewDetails={setSelectedLead}
-                          />
-                        ))}
-                        {stageLeads.length === 0 && (
-                          <div className="text-center text-sm text-gray-400 mt-8">
-                            Drop leads here
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </SortableContext>
+                    </SortableContext>
+                  </DroppableColumn>
                 );
               })}
             </div>
