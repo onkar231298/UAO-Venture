@@ -181,6 +181,7 @@ export default function LeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [salesRepFilter, setSalesRepFilter] = useState("all");
   const [showLeadCreationForm, setShowLeadCreationForm] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
@@ -231,12 +232,13 @@ export default function LeadManagement() {
     if (searchTerm) params.append("search", searchTerm);
     if (priorityFilter !== "all") params.append("priority", priorityFilter);
     if (statusFilter !== "all") params.append("status", statusFilter);
+    if (salesRepFilter !== "all") params.append("assignedTo", salesRepFilter);
     const queryString = params.toString();
     return `/api/crm/leads${queryString ? `?${queryString}` : ""}`;
   };
 
   const { data: leadsData, isLoading } = useQuery({
-    queryKey: ["/api/crm/leads", searchTerm, priorityFilter, statusFilter],
+    queryKey: ["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter],
     queryFn: async () => {
       const response = await fetch(buildLeadsUrl());
       if (!response.ok) throw new Error("Failed to fetch leads");
@@ -352,10 +354,10 @@ export default function LeadManagement() {
     if (lead.currentStage === newStage) return;
 
     // Store previous state for rollback on error
-    const previousData = queryClient.getQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter]);
+    const previousData = queryClient.getQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter]);
 
     // Optimistic update: immediately update UI
-    queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter], (old: any) => {
+    queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter], (old: any) => {
       if (!old?.leads) return old;
       return {
         ...old,
@@ -371,7 +373,7 @@ export default function LeadManagement() {
       {
         onError: (error) => {
           // Rollback to previous state on error
-          queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter], previousData);
+          queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter], previousData);
           console.error("Failed to update lead stage:", error);
           toast({
             title: "Error",
@@ -490,6 +492,21 @@ export default function LeadManagement() {
               <SelectItem value="on_hold">On Hold</SelectItem>
             </SelectContent>
           </Select>
+          {canAssignLeads && (
+            <Select value={salesRepFilter} onValueChange={setSalesRepFilter}>
+              <SelectTrigger className="w-[200px]" data-testid="select-salesrep-filter">
+                <SelectValue placeholder="Sales Rep" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sales Reps</SelectItem>
+                {salesReps.map((rep: any) => (
+                  <SelectItem key={rep.id} value={rep.id}>
+                    {rep.firstName} {rep.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" data-testid="button-more-filters">
             <Filter className="h-4 w-4 mr-2" />
             More Filters

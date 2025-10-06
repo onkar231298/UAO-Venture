@@ -3438,9 +3438,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset = '0' 
       } = req.query;
       
-      // Get user info for RBAC
+      // Get user info for RBAC from database
       const userId = req.user.claims.sub;
-      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      const user = await storage.getUser(userId);
+      const userRole = user?.role || 'customer';
       
       const filters = {
         assignedTo,
