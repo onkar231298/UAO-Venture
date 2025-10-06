@@ -3609,6 +3609,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get sales reps for assignment dropdown
+  app.get('/api/crm/sales-reps', isAuthenticated, async (req: any, res) => {
+    try {
+      const salesReps = await storage.getSalesReps();
+      res.json(salesReps);
+    } catch (error) {
+      console.error('Error fetching sales reps:', error);
+      res.status(500).json({ message: "Failed to fetch sales reps" });
+    }
+  });
+
+  // Assign lead to sales rep
+  app.patch('/api/crm/leads/:id/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { assignedTo, reason } = req.body;
+      const leadId = parseInt(req.params.id);
+      
+      // Get user info for RBAC
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Only admins and managers can assign leads
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Insufficient permissions to assign leads" });
+      }
+      
+      const lead = await storage.assignLead(leadId, assignedTo, userId, reason);
+      res.json(lead);
+    } catch (error) {
+      console.error('Error assigning lead:', error);
+      res.status(500).json({ message: "Failed to assign lead" });
+    }
+  });
+
+  // Bulk assign leads
+  app.post('/api/crm/leads/bulk-assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { leadIds, assignedTo } = req.body;
+      
+      // Get user info for RBAC
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Only admins and managers can bulk assign leads
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Insufficient permissions to bulk assign leads" });
+      }
+      
+      const result = await storage.bulkAssignLeads(leadIds, assignedTo, userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error bulk assigning leads:', error);
+      res.status(500).json({ message: "Failed to bulk assign leads" });
+    }
+  });
+
+  // Bulk upload leads from CSV
+  app.post('/api/crm/leads/bulk-upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { leads } = req.body;
+      
+      // Get user info for RBAC
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Only admins and managers can bulk upload leads
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Insufficient permissions to bulk upload leads" });
+      }
+      
+      const result = await storage.bulkCreateLeads(leads, userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error bulk uploading leads:', error);
+      res.status(500).json({ message: "Failed to bulk upload leads" });
+    }
+  });
+
   // ========================================
   // CRM - LEAD ACTIVITY ROUTES
   // ========================================

@@ -374,10 +374,13 @@ export interface IStorage {
   getLead(id: number): Promise<LeadWithDetails | undefined>;
   getLeadByLeadId(leadId: string): Promise<LeadWithDetails | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
+  bulkCreateLeads(leads: InsertLead[], createdBy: string): Promise<{ success: Lead[]; errors: { row: number; error: string }[] }>;
   updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead>;
   deleteLead(id: number): Promise<void>;
   transferLead(leadId: number, toUserId: string, transferredBy: string, reason?: string): Promise<Lead>;
   updateLeadStage(leadId: number, newStage: string, userId: string): Promise<Lead>;
+  assignLead(leadId: number, assignedTo: string, assignedBy: string, reason?: string): Promise<Lead>;
+  bulkAssignLeads(leadIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number[]; errors: { leadId: number; error: string }[] }>;
   
   // CRM - Lead activity methods
   getLeadActivities(leadId: number): Promise<LeadActivity[]>;
@@ -4191,6 +4194,69 @@ export class DatabaseStorage implements IStorage {
     });
 
     return lead;
+  }
+
+  async bulkCreateLeads(leadDataArray: InsertLead[], createdBy: string): Promise<{ success: Lead[]; errors: { row: number; error: string }[] }> {
+    const success: Lead[] = [];
+    const errors: { row: number; error: string }[] = [];
+
+    for (let i = 0; i < leadDataArray.length; i++) {
+      try {
+        const leadData = leadDataArray[i];
+        const lead = await this.createLead({ ...leadData, createdBy });
+        success.push(lead);
+      } catch (error: any) {
+        errors.push({ row: i + 1, error: error.message || 'Unknown error' });
+      }
+    }
+
+    return { success, errors };
+  }
+
+  async assignLead(leadId: number, assignedTo: string, assignedBy: string, reason?: string): Promise<Lead> {
+    const existingLead = await this.getLead(leadId);
+    if (!existingLead) throw new Error('Lead not found');
+
+    const previousAssignee = existingLead.assignedSalesRep;
+    
+    const [lead] = await db.update(leads)
+      .set({
+        assignedSalesRep: assignedTo,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+
+    // Get the new assignee's name
+    const newAssignee = await this.getUser(assignedTo);
+    const previousAssigneeName = existingLead.salesRep ? `${existingLead.salesRep.firstName} ${existingLead.salesRep.lastName}` : 'Unassigned';
+    const newAssigneeName = newAssignee ? `${newAssignee.firstName} ${newAssignee.lastName}` : assignedTo;
+
+    await this.createLeadActivity({
+      leadId,
+      activityType: 'assignment',
+      subject: 'Lead Assigned',
+      description: `Lead ${previousAssignee ? `reassigned from ${previousAssigneeName} to` : 'assigned to'} ${newAssigneeName}${reason ? `. Reason: ${reason}` : ''}`,
+      createdBy: assignedBy,
+    });
+
+    return lead;
+  }
+
+  async bulkAssignLeads(leadIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number[]; errors: { leadId: number; error: string }[] }> {
+    const success: number[] = [];
+    const errors: { leadId: number; error: string }[] = [];
+
+    for (const leadId of leadIds) {
+      try {
+        await this.assignLead(leadId, assignedTo, assignedBy);
+        success.push(leadId);
+      } catch (error: any) {
+        errors.push({ leadId, error: error.message || 'Unknown error' });
+      }
+    }
+
+    return { success, errors };
   }
 
   // ========================================
