@@ -62,7 +62,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 {lead.company?.companyName || "Unknown Company"}
               </DialogTitle>
               <DialogDescription>
-                {lead.leadId} • Created {format(new Date(lead.createdAt), 'MMM d, yyyy')}
+                {lead.leadId} • Created {lead.createdAt ? format(new Date(lead.createdAt), 'MMM d, yyyy') : 'N/A'}
               </DialogDescription>
             </div>
             <div className="flex gap-2">
@@ -70,7 +70,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 {lead.priority || "warm"}
               </Badge>
               <Badge variant="outline">
-                {formatStageName(lead.currentStage)}
+                {lead.currentStage ? formatStageName(lead.currentStage) : 'N/A'}
               </Badge>
             </div>
           </div>
