@@ -391,6 +391,45 @@ app.use((req, res, next) => {
     });
   });
 
+  // Explicit SPA fallback for marketing routes (ensures Google sitelinks work)
+  // This catches browser requests that passed through SEO middleware
+  const marketingRoutes = ['/about', '/contact', '/blog', '/industries', '/certifications', '/products', '/ingredients', '/health-support', '/search'];
+  
+  marketingRoutes.forEach(route => {
+    app.get(route, (req, res, next) => {
+      // This handler runs AFTER SEO middleware for browsers
+      const isProduction = app.get("env") !== "development";
+      
+      if (isProduction) {
+        console.log(`[Marketing Route] Serving React app for: ${req.path}`);
+        const distPath = path.resolve(import.meta.dirname, "public");
+        return res.sendFile(path.resolve(distPath, "index.html"));
+      } else {
+        // In development, let Vite handle it
+        return next();
+      }
+    });
+  });
+
+  // Explicit SPA fallback for dynamic routes (ensures all pages load from Google sitelinks)
+  const dynamicRoutePatterns = ['/ingredients/:slug', '/health-support/:slug', '/products/:slug', '/industries/:slug'];
+  
+  dynamicRoutePatterns.forEach(pattern => {
+    app.get(pattern, (req, res, next) => {
+      // This handler runs AFTER 404 validation and SEO middleware for browsers
+      const isProduction = app.get("env") !== "development";
+      
+      if (isProduction) {
+        console.log(`[Dynamic Route] Serving React app for: ${req.path}`);
+        const distPath = path.resolve(import.meta.dirname, "public");
+        return res.sendFile(path.resolve(distPath, "index.html"));
+      } else {
+        // In development, let Vite handle it
+        return next();
+      }
+    });
+  });
+
   // Serve robots.txt and sitemap.xml for SEO
   app.get('/robots.txt', (req, res) => {
     res.setHeader('Content-Type', 'text/plain');
