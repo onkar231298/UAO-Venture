@@ -52,6 +52,7 @@ import RegulatoryCompliance from "@/pages/services/RegulatoryCompliance";
 import CustomPackaging from "@/pages/services/CustomPackaging";
 import LogisticsSolutions from "@/pages/services/LogisticsSolutions";
 import Certifications from "@/pages/Certifications";
+import Industries from "@/pages/Industries";
 import FoodIngredients from "@/pages/FoodIngredients";
 import OrganicHerbs from "@/pages/OrganicHerbs";
 import EUOrganicSpices from "@/pages/EUOrganicSpices";
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/cookie-policy" component={CookiePolicy} />
       
       {/* Industry-specific landing pages for SEO */}
+      <Route path="/industries" component={Industries} />
       <Route path="/food-ingredients" component={FoodIngredients} />
       <Route path="/organic-herbs" component={OrganicHerbs} />
       <Route path="/eu-organic-spices" component={EUOrganicSpices} />
