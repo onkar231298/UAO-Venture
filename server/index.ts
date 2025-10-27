@@ -335,6 +335,16 @@ app.use((req, res, next) => {
       title: 'Blog - Organic Ingredients Insights | BFI Organic',
       description: 'Stay updated with the latest insights on organic ingredients, health benefits, industry trends, and sustainable sourcing practices.',
       keywords: 'organic ingredients blog, health benefits, sustainable sourcing, industry insights'
+    },
+    '/industries': {
+      title: 'Industries We Serve - B2B Organic Ingredients Supplier | BFI Organic',
+      description: 'BFI Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant facility in Gujarat, India.',
+      keywords: 'organic ingredients supplier, pharmaceutical ingredients, food grade herbs, nutraceutical raw materials, cosmetic ingredients, B2B organic supplier, certified organic herbs'
+    },
+    '/certifications': {
+      title: 'Certifications & Quality Standards | BFI Organic',
+      description: 'BFI Organic holds ISO 9001:2015, USDA Organic, EU Organic, HACCP, and GMP certifications. View our quality certifications and compliance standards for organic ingredients.',
+      keywords: 'ISO certified organic, USDA organic certification, EU organic, HACCP, GMP, quality certifications, organic ingredients standards'
     }
   };
 
