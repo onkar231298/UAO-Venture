@@ -1133,8 +1133,8 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
       ${JSON.stringify(faqSchema, null, 2)}
     </script>` : ''}`;
 
-      // Inject into HTML head
-      html = html.replace('</head>', `${ogTags}\n${structuredDataScripts}\n  </head>`);
+      // Inject into HTML head (handle whitespace before </head>)
+      html = html.replace(/\s*<\/head>/, `${ogTags}\n${structuredDataScripts}\n  </head>`);
 
       console.log(`[Structured Data] Successfully injected for deployed URL: ${productUrl}`);
       console.log(`[Structured Data] HTML length: ${html.length}, Contains product schema: ${html.includes('@type":"Product"')}`);
