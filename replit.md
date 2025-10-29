@@ -6,6 +6,18 @@ This platform is a comprehensive B2B solution for organic products, integrating 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Updates (October 2025)
+
+### Product Structured Data Fix (October 29, 2025)
+- **Issue**: Google Structured Data test was failing for product pages on live website after sitelinks implementation
+- **Root Cause**: `/products` was accidentally added to marketingRoutes array, creating routing conflicts with `/products/:slug` handlers that inject Product schema
+- **Solution**: Removed `/products` from marketingRoutes array to prevent interference with individual product page structured data
+- **Technical Details**: 
+  - `/products` listing page already has proper SEO via listingPagesSEO handler with CollectionPage schema
+  - `/products/:slug` product detail pages have dedicated structured data handlers with full Product schema, breadcrumbs, FAQs, organization schema
+  - The conflict was preventing Google from seeing the rich Product schema for individual products
+- **Expected Outcome**: Google Structured Data test now passes for product pages; Product schema with pricing, availability, and other details properly visible to search engines
+
 ## System Architecture
 
 ### Frontend Architecture
