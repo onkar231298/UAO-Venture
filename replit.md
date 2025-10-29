@@ -13,15 +13,18 @@ Preferred communication style: Simple, everyday language.
 - **Root Causes**: 
   1. `/products` was accidentally added to marketingRoutes array, creating routing conflicts with `/products/:slug` handlers
   2. Bot detection logic was too restrictive and not catching Google's Rich Results Test tool
-- **Solution**: Two-part fix:
+  3. HTML injection was using string literal `'</head>'` which failed to match the actual HTML template's `  </head>` (with whitespace)
+- **Solution**: Three-part fix:
   1. Removed `/products` from marketingRoutes array to prevent interference with individual product page structured data
   2. Simplified structured data injection to work for ALL requests on deployed URLs (not just detected bots)
+  3. Fixed HTML injection to use regex `/\s*<\/head>/` that handles whitespace before closing head tag
 - **Technical Details**: 
   - `/products` listing page already has proper SEO via listingPagesSEO handler with CollectionPage schema
   - `/products/:slug` product detail pages have dedicated structured data handlers with full Product schema, breadcrumbs, FAQs, organization schema
   - Removed complex bot detection heuristics that were failing to catch Google's testing tools
   - Now: all requests to deployed URLs (bright-organic.com) receive full structured data injection
   - Non-deployed URLs (localhost, dev) still use React client-side rendering
+  - Regex-based HTML replacement ensures injection works regardless of HTML formatting/whitespace
 - **Expected Outcome**: 
   - ✅ Google Structured Data test passes for all product pages
   - ✅ Google Rich Results Test properly detects Product schema
