@@ -847,29 +847,12 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     const userAgent = req.get('user-agent') || '';
     const accept = req.get('accept') || '';
     
-    // Detect bots, crawlers, and SEO testing tools
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}`);
     
-    // Google Rich Results Test detection - based on observed patterns
-    const referer = req.get('referer') || '';
-    const isGoogleRichResultsTest = 
-      // Direct referer from Google's testing tools
-      referer.includes('search.google.com/test/rich-results') || 
-      referer.includes('developers.google.com') ||
-      referer.includes('search.google.com/structured-data') ||
-      // Chrome/Android user agents from Google domains 
-      (userAgent.includes('Chrome') && referer.includes('google.com')) ||
-      // Specific patterns observed from Google's mobile testing (Nexus 5X pattern)
-      (userAgent.includes('Nexus 5X') && userAgent.includes('Chrome')) ||
-      // Standard Chrome testing patterns from Google
-      (userAgent.includes('AppleWebKit/537.36') && userAgent.includes('Chrome') && 
-       (referer.includes('.google.') || referer.includes('googleapis')));
-    
-    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}, Bot: ${isBotOrSEOTool}, GoogleTest: ${isGoogleRichResultsTest}, Referer: ${referer.substring(0, 50)}`);
-    
-    // Process for deployed URLs AND (search engine bots OR Google Rich Results testing tools)
-    if (!isDeployed || (!isBotOrSEOTool && !isGoogleRichResultsTest)) {
-      console.log(`[SEO Skip] Not deployed or not a bot/Google testing tool, letting React handle: ${req.path}`);
+    // For deployed URLs, always inject structured data (not just for bots)
+    // This ensures Google Rich Results Test, Googlebot, and all crawlers see the schema
+    if (!isDeployed) {
+      console.log(`[SEO Skip] Not a deployed URL, letting React handle: ${req.path}`);
       return next();
     }
 
