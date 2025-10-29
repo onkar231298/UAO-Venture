@@ -1137,7 +1137,7 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
       html = html.replace(/\s*<\/head>/, `${ogTags}\n${structuredDataScripts}\n  </head>`);
 
       console.log(`[Structured Data] Successfully injected for deployed URL: ${productUrl}`);
-      console.log(`[Structured Data] HTML length: ${html.length}, Contains product schema: ${html.includes('@type":"Product"')}`);
+      console.log(`[Structured Data] HTML length: ${html.length}, Contains product schema: ${html.includes('"@type": "Product"')}`);
       
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Cache-Control', 'no-cache'); // Ensure fresh content for crawlers
