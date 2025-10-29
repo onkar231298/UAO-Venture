@@ -403,7 +403,8 @@ app.use((req, res, next) => {
 
   // Explicit SPA fallback for marketing routes (ensures Google sitelinks work)
   // This catches browser requests that passed through SEO middleware
-  const marketingRoutes = ['/about', '/contact', '/blog', '/industries', '/certifications', '/products', '/ingredients', '/health-support', '/search'];
+  // NOTE: /products removed - it has its own listingPagesSEO handler and conflicts with /products/:slug structured data
+  const marketingRoutes = ['/about', '/contact', '/blog', '/industries', '/certifications', '/ingredients', '/health-support', '/search'];
   
   marketingRoutes.forEach(route => {
     app.get(route, (req, res, next) => {
