@@ -2265,7 +2265,7 @@ export class DatabaseStorage implements IStorage {
           updatedAt: sampleRequests.updatedAt,
           productName: products.name,
           productCode: products.productId,
-          productImage: products.imageUrl,
+          productImage: products.mainImageThumbnail,
         })
         .from(sampleRequests)
         .leftJoin(products, eq(sampleRequests.productId, products.id))
