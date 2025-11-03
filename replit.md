@@ -6,7 +6,27 @@ This platform is a comprehensive B2B solution for organic products, integrating 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Updates (October 2025)
+## Recent Updates (October-November 2025)
+
+### Google Search Console Fixes (November 3, 2025)
+- **Issues Fixed**:
+  1. 404 errors on www subdomain (www.bright-organic.com returning 404)
+  2. 404 errors on legacy /product/ URLs
+  3. Noindex tags blocking search engines from indexing important pages
+- **Solutions Implemented**:
+  1. Added www to non-www redirect middleware with X-Forwarded-Proto support for proxy SSL termination
+  2. Existing /product/:slug to /products/:slug 301 redirect confirmed working
+  3. Removed all noindex tags from SearchResults.tsx, Products.tsx, and CategoryPage.tsx
+- **Technical Details**:
+  - www redirect positioned BEFORE registerRoutes to prevent redirect loops
+  - Protocol detection handles comma-separated X-Forwarded-Proto headers (multi-proxy deployments)
+  - Legitimate 404 pages still use noindex (category/ingredient not found pages)
+  - Search pages, filtered product pages, and category pages now fully indexable
+- **Expected Outcomes**:
+  - ✅ www.bright-organic.com properly redirects to bright-organic.com with 301
+  - ✅ Legacy /product/ URLs redirect to /products/ 
+  - ✅ Search Console noindex errors eliminated
+  - ✅ Improved crawl and index coverage in Google Search Console
 
 ### Product Structured Data Fix (October 29, 2025)
 - **Issue**: Google Structured Data test was failing for product pages on live website with "No items detected" error
