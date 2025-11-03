@@ -467,6 +467,12 @@ export default function Header() {
                     {isCustomerAuthenticated && (
                       <>
                         <DropdownMenuItem asChild>
+                          <Link href="/customer/dashboard" className="flex items-center cursor-pointer">
+                            <LayoutDashboard className="w-4 h-4 mr-2" />
+                            Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
                           <Link href="/customer/profile" className="flex items-center cursor-pointer">
                             <User className="w-4 h-4 mr-2" />
                             My Profile

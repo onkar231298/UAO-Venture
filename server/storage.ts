@@ -2227,7 +2227,7 @@ export class DatabaseStorage implements IStorage {
     assignedTo?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ requests: SampleRequest[]; total: number }> {
+  }): Promise<{ requests: any[]; total: number }> {
     const conditions = [];
     if (filters?.customerId) conditions.push(eq(sampleRequests.customerId, filters.customerId));
     if (filters?.status) conditions.push(eq(sampleRequests.status, filters.status));
@@ -2237,8 +2237,38 @@ export class DatabaseStorage implements IStorage {
     
     const [requestsResult, totalResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: sampleRequests.id,
+          requestId: sampleRequests.requestId,
+          customerId: sampleRequests.customerId,
+          productId: sampleRequests.productId,
+          contactName: sampleRequests.contactName,
+          companyName: sampleRequests.companyName,
+          phoneNumber: sampleRequests.phoneNumber,
+          emailAddress: sampleRequests.emailAddress,
+          sampleSize: sampleRequests.sampleSize,
+          purpose: sampleRequests.purpose,
+          expectedOrderQuantity: sampleRequests.expectedOrderQuantity,
+          message: sampleRequests.message,
+          shippingAddress: sampleRequests.shippingAddress,
+          city: sampleRequests.city,
+          state: sampleRequests.state,
+          postalCode: sampleRequests.postalCode,
+          country: sampleRequests.country,
+          status: sampleRequests.status,
+          notes: sampleRequests.notes,
+          trackingNumber: sampleRequests.trackingNumber,
+          processedAt: sampleRequests.processedAt,
+          processedBy: sampleRequests.processedBy,
+          assignedTo: sampleRequests.assignedTo,
+          createdAt: sampleRequests.createdAt,
+          updatedAt: sampleRequests.updatedAt,
+          productName: products.name,
+          productCode: products.productId,
+          productImage: products.imageUrl,
+        })
         .from(sampleRequests)
+        .leftJoin(products, eq(sampleRequests.productId, products.id))
         .where(whereClause)
         .orderBy(desc(sampleRequests.createdAt))
         .limit(filters?.limit || 50)

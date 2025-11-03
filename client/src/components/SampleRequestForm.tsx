@@ -78,7 +78,12 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
         postalCode: "",
         country: "United States"
       });
+      // Invalidate both admin and customer query keys
       queryClient.invalidateQueries({ queryKey: ["/api/sample-requests"] });
+      if (customerData?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/customer/sample-requests/${customerData.id}`] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customer/sample-requests", customerData.id] });
+      }
     },
     onError: (error: any) => {
       toast({
