@@ -47,7 +47,7 @@ export default function SampleRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<SampleRequest | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showActionDialog, setShowActionDialog] = useState(false);
-  const [actionType, setActionType] = useState<"approve" | "reject" | "ship" | null>(null);
+  const [actionType, setActionType] = useState<"approve" | "reject" | "ship" | "deliver" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
 
@@ -91,7 +91,7 @@ export default function SampleRequestsPage() {
     },
   });
 
-  const handleAction = (request: SampleRequest, action: "approve" | "reject" | "ship") => {
+  const handleAction = (request: SampleRequest, action: "approve" | "reject" | "ship" | "deliver") => {
     setSelectedRequest(request);
     setActionType(action);
     setShowActionDialog(true);
@@ -104,6 +104,7 @@ export default function SampleRequestsPage() {
     if (actionType === "approve") newStatus = "approved";
     if (actionType === "reject") newStatus = "rejected";
     if (actionType === "ship") newStatus = "shipped";
+    if (actionType === "deliver") newStatus = "completed";
 
     updateStatusMutation.mutate({
       id: selectedRequest.id,
@@ -290,6 +291,18 @@ export default function SampleRequestsPage() {
                           Mark Shipped
                         </Button>
                       )}
+                      {request.status === "shipped" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleAction(request, "deliver")}
+                          className="text-green-600 hover:text-green-700"
+                          data-testid={`button-deliver-${request.id}`}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Mark as Delivered
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
@@ -424,6 +437,7 @@ export default function SampleRequestsPage() {
               {actionType === "approve" && "Approve Sample Request"}
               {actionType === "reject" && "Reject Sample Request"}
               {actionType === "ship" && "Mark as Shipped"}
+              {actionType === "deliver" && "Mark as Delivered"}
             </DialogTitle>
             <DialogDescription>
               Request ID: {selectedRequest?.requestId}
