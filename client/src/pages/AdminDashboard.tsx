@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
+import SampleRequestsPage from "@/pages/crm/SampleRequestsPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -545,31 +546,7 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'sample-requests' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-1">Sample Requests Management</h2>
-                  <p className="text-sm text-gray-600">Manage and process customer sample requests</p>
-                </div>
-              </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sample Requests</CardTitle>
-                  <CardDescription>View and manage all customer sample requests</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Sample Requests Module</h3>
-                    <p className="text-gray-600 mb-4">
-                      This page will display all customer sample requests with filtering and management options.
-                    </p>
-                    <p className="text-sm text-gray-500">Module under development</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <SampleRequestsPage />
           )}
 
           {activeSection === 'newsletter' && (

@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -19,6 +19,8 @@ export default function CustomerDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [location] = useLocation();
   const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [selectedSampleRequest, setSelectedSampleRequest] = useState<any>(null);
+  const [showSampleTrackingDialog, setShowSampleTrackingDialog] = useState(false);
 
   // Data fetching for customer-specific data
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -1296,7 +1298,15 @@ export default function CustomerDashboard() {
                       Requested {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedSampleRequest(request);
+                      setShowSampleTrackingDialog(true);
+                    }}
+                    data-testid={`button-track-${request.id}`}
+                  >
                     <Eye className="w-4 h-4 mr-2" />
                     Track Sample
                   </Button>
@@ -1321,6 +1331,21 @@ export default function CustomerDashboard() {
     </div>
   );
 
+  // Sample Request Timeline Component
+  const getTimelineStatus = (currentStatus: string, stepStatus: string) => {
+    const statuses = ['pending', 'approved', 'shipped', 'completed'];
+    const currentIndex = statuses.indexOf(currentStatus);
+    const stepIndex = statuses.indexOf(stepStatus);
+    
+    if (currentStatus === 'rejected') {
+      return stepStatus === 'rejected' ? 'rejected' : 'inactive';
+    }
+    
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'active';
+    return 'inactive';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -1333,6 +1358,170 @@ export default function CustomerDashboard() {
           {renderMainContent()}
         </div>
       </div>
+
+      {/* Sample Request Tracking Dialog */}
+      <Dialog open={showSampleTrackingDialog} onOpenChange={setShowSampleTrackingDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sample Request Tracking</DialogTitle>
+            <DialogDescription>
+              Request ID: {selectedSampleRequest?.requestId}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSampleRequest && (
+            <div className="space-y-6">
+              {/* Visual Timeline */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+                <h3 className="font-semibold mb-4 text-gray-900">Tracking Status</h3>
+                <div className="flex items-center justify-between relative">
+                  {/* Progress Line */}
+                  <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0"></div>
+                  <div 
+                    className="absolute top-6 left-0 h-1 bg-green-500 z-0 transition-all duration-500"
+                    style={{
+                      width: selectedSampleRequest.status === 'completed' ? '100%' : 
+                             selectedSampleRequest.status === 'shipped' ? '66%' : 
+                             selectedSampleRequest.status === 'approved' ? '33%' : '0%'
+                    }}
+                  ></div>
+                  
+                  {/* Status Steps */}
+                  {[
+                    { status: 'pending', label: 'Pending', icon: Clock },
+                    { status: 'approved', label: 'Approved', icon: Check },
+                    { status: 'shipped', label: 'Shipped', icon: Truck },
+                    { status: 'completed', label: 'Delivered', icon: Package }
+                  ].map((step, index) => {
+                    const stepStatus = getTimelineStatus(selectedSampleRequest.status, step.status);
+                    const Icon = step.icon;
+                    
+                    return (
+                      <div key={step.status} className="flex flex-col items-center relative z-10">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                          stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                          stepStatus === 'active' ? 'bg-blue-500 text-white animate-pulse' :
+                          stepStatus === 'rejected' ? 'bg-red-500 text-white' :
+                          'bg-gray-200 text-gray-400'
+                        }`}>
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          stepStatus === 'completed' || stepStatus === 'active' ? 'text-gray-900' : 'text-gray-400'
+                        }`}>
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {selectedSampleRequest.status === 'rejected' && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                    <strong>Request Rejected</strong>
+                    {selectedSampleRequest.notes && <p className="mt-1">{selectedSampleRequest.notes}</p>}
+                  </div>
+                )}
+              </div>
+
+              {/* Request Details */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Request Information</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Request ID:</span>
+                        <span className="font-medium">{selectedSampleRequest.requestId}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Sample Size:</span>
+                        <span className="font-medium">{selectedSampleRequest.sampleSize || "25g"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Purpose:</span>
+                        <span className="font-medium">{selectedSampleRequest.purpose}</span>
+                      </div>
+                      {selectedSampleRequest.expectedOrderQuantity && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Expected Order:</span>
+                          <span className="font-medium">{selectedSampleRequest.expectedOrderQuantity}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Requested:</span>
+                        <span className="font-medium">
+                          {format(new Date(selectedSampleRequest.createdAt), "PPp")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedSampleRequest.message && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Your Message</h4>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                        {selectedSampleRequest.message}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Shipping Address
+                    </h4>
+                    <div className="bg-gray-50 p-3 rounded text-sm">
+                      <p>{selectedSampleRequest.shippingAddress}</p>
+                      <p>{selectedSampleRequest.city}, {selectedSampleRequest.state} {selectedSampleRequest.postalCode}</p>
+                      <p>{selectedSampleRequest.country}</p>
+                    </div>
+                  </div>
+
+                  {selectedSampleRequest.trackingNumber && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                        <Truck className="w-4 h-4 mr-2" />
+                        Tracking Information
+                      </h4>
+                      <div className="bg-blue-50 border border-blue-200 p-3 rounded">
+                        <p className="text-sm text-gray-600 mb-1">Tracking Number:</p>
+                        <p className="font-mono text-lg font-semibold text-blue-900">
+                          {selectedSampleRequest.trackingNumber}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSampleRequest.notes && selectedSampleRequest.status !== 'rejected' && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Admin Notes</h4>
+                      <p className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 p-3 rounded">
+                        {selectedSampleRequest.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Current Status:</span>
+                  <Badge className={`${getStatusColor(selectedSampleRequest.status || 'pending')}`}>
+                    {(selectedSampleRequest.status || 'pending').toUpperCase()}
+                  </Badge>
+                </div>
+                <Button variant="outline" onClick={() => setShowSampleTrackingDialog(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

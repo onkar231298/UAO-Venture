@@ -514,7 +514,12 @@ export const sampleRequests = pgTable("sample_requests", {
   postalCode: varchar("postal_code", { length: 20 }).notNull(),
   country: varchar("country", { length: 100 }).notNull(),
   
+  // Processing Details
   status: varchar("status", { length: 50 }).default("pending"), // pending, approved, shipped, completed, rejected
+  notes: text("notes"),
+  trackingNumber: varchar("tracking_number", { length: 100 }),
+  processedAt: timestamp("processed_at"),
+  processedBy: varchar("processed_by").references(() => users.id),
   assignedTo: varchar("assigned_to").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

@@ -1537,7 +1537,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requestId = parseInt(req.params.id);
-      const updateData = req.body;
+      const updateData = {
+        ...req.body,
+        updatedAt: new Date(),
+      };
+      
+      // If status is being changed, add processing metadata
+      if (req.body.status && ['approved', 'rejected', 'shipped', 'completed'].includes(req.body.status)) {
+        updateData.processedBy = userId;
+        updateData.processedAt = new Date();
+      }
       
       const sampleRequest = await storage.updateSampleRequest(requestId, updateData);
       res.json(sampleRequest);
