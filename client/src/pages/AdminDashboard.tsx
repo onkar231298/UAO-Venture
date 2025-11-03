@@ -9,6 +9,8 @@ import { useLocation } from "wouter";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
 import SampleRequestsPage from "@/pages/crm/SampleRequestsPage";
+import HighVolumeBidsPage from "@/pages/crm/HighVolumeBidsPage";
+import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -260,6 +262,30 @@ export default function AdminDashboard() {
                   Sample Requests
                 </button>
                 <button
+                  onClick={() => setActiveSection('high-volume-bids')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'high-volume-bids'
+                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  data-testid="nav-high-volume-bids"
+                >
+                  <TrendingUp className="mr-3 h-5 w-5" />
+                  High Volume Bids
+                </button>
+                <button
+                  onClick={() => setActiveSection('quotation-negotiations')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'quotation-negotiations'
+                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  data-testid="nav-quotation-negotiations"
+                >
+                  <DollarSign className="mr-3 h-5 w-5" />
+                  Quote Negotiations
+                </button>
+                <button
                   onClick={() => setActiveSection('purchase')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
                     activeSection === 'purchase'
@@ -398,6 +424,8 @@ export default function AdminDashboard() {
                    activeSection === 'enquiry-sample' ? 'Enquiry and Sample Management' :
                    activeSection === 'sales-crm' ? 'Sales CRM' :
                    activeSection === 'sample-requests' ? 'Sample Requests' :
+                   activeSection === 'high-volume-bids' ? 'High Volume Bids' :
+                   activeSection === 'quotation-negotiations' ? 'Quote Negotiations' :
                    activeSection === 'purchase' ? 'Purchase Management' :
                    activeSection === 'logistics' ? 'Logistics Management' :
                    activeSection === 'accounts' ? 'Accounts & Finance' :
@@ -547,6 +575,14 @@ export default function AdminDashboard() {
 
           {activeSection === 'sample-requests' && (
             <SampleRequestsPage />
+          )}
+
+          {activeSection === 'high-volume-bids' && (
+            <HighVolumeBidsPage />
+          )}
+
+          {activeSection === 'quotation-negotiations' && (
+            <QuotationNegotiationsPage />
           )}
 
           {activeSection === 'newsletter' && (

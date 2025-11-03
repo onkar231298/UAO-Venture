@@ -2409,6 +2409,118 @@ export class DatabaseStorage implements IStorage {
     return updatedQuotation;
   }
 
+  // Counter-offer operations
+  async submitCounterOffer(id: number, customerId: string, counterPrice: number, notes: string): Promise<Quotation> {
+    // Get current quotation to add to history
+    const [currentQuotation] = await db.select().from(quotations).where(eq(quotations.id, id));
+    
+    if (!currentQuotation) {
+      throw new Error('Quotation not found');
+    }
+
+    // Verify quotation belongs to customer
+    if (currentQuotation.customerId !== customerId) {
+      throw new Error('Unauthorized: Quotation does not belong to this customer');
+    }
+
+    // Add to negotiation history
+    const historyEntry = {
+      type: 'counter_offer',
+      amount: counterPrice,
+      notes: notes,
+      createdAt: new Date().toISOString(),
+      createdBy: customerId,
+    };
+
+    const currentHistory = Array.isArray(currentQuotation.negotiationHistory) 
+      ? currentQuotation.negotiationHistory 
+      : [];
+    const updatedHistory = [...currentHistory, historyEntry];
+
+    // Update quotation with counter-offer
+    const [updatedQuotation] = await db
+      .update(quotations)
+      .set({
+        customerCounterPrice: counterPrice.toString(),
+        counterOfferNotes: notes,
+        negotiationHistory: updatedHistory,
+        status: 'pending', // Reset to pending for admin review
+        updatedAt: new Date(),
+      })
+      .where(eq(quotations.id, id))
+      .returning();
+
+    return updatedQuotation;
+  }
+
+  async reviseQuotation(id: number, adminId: string, newPrice: number, notes: string): Promise<Quotation> {
+    // Get current quotation
+    const [currentQuotation] = await db.select().from(quotations).where(eq(quotations.id, id));
+    
+    if (!currentQuotation) {
+      throw new Error('Quotation not found');
+    }
+
+    // Add to negotiation history
+    const historyEntry = {
+      type: 'revision',
+      amount: newPrice,
+      notes: notes,
+      createdAt: new Date().toISOString(),
+      createdBy: adminId,
+    };
+
+    const currentHistory = Array.isArray(currentQuotation.negotiationHistory) 
+      ? currentQuotation.negotiationHistory 
+      : [];
+    const updatedHistory = [...currentHistory, historyEntry];
+
+    // Update quotation with revised price
+    const [updatedQuotation] = await db
+      .update(quotations)
+      .set({
+        totalAmount: newPrice.toString(),
+        negotiationHistory: updatedHistory,
+        customerCounterPrice: null, // Clear counter-offer
+        counterOfferNotes: null,
+        status: 'sent', // Send back to customer
+        updatedAt: new Date(),
+      })
+      .where(eq(quotations.id, id))
+      .returning();
+
+    return updatedQuotation;
+  }
+
+  // High Volume Bid Approval operations
+  async approveHighVolumeBid(id: number, adminId: string, approvalNotes: string): Promise<Inquiry> {
+    const [updatedInquiry] = await db
+      .update(inquiries)
+      .set({
+        requiresApproval: false,
+        approvedBy: adminId,
+        approvalNotes: approvalNotes,
+        approvedAt: new Date(),
+        status: 'approved',
+        updatedAt: new Date(),
+      })
+      .where(eq(inquiries.id, id))
+      .returning();
+    return updatedInquiry;
+  }
+
+  async updateDiscussionNotes(id: number, notes: string): Promise<Inquiry> {
+    const [updatedInquiry] = await db
+      .update(inquiries)
+      .set({
+        discussionNotes: notes,
+        updatedAt: new Date(),
+      })
+      .where(eq(inquiries.id, id))
+      .returning();
+    return updatedInquiry;
+  }
+
   // Hero slider operations
   async getHeroSlides(): Promise<any[]> {
     const slides = await db

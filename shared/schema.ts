@@ -484,6 +484,14 @@ export const inquiries = pgTable("inquiries", {
   urgency: varchar("urgency", { length: 50 }).default("normal"), // urgent, normal, low
   status: varchar("status", { length: 50 }).default("pending"), // pending, quoted, converted, closed
   assignedTo: varchar("assigned_to").references(() => users.id),
+  
+  // High Volume Bid Approval Workflow
+  requiresApproval: boolean("requires_approval").default(false),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvalNotes: text("approval_notes"),
+  discussionNotes: text("discussion_notes"), // Track discussions with customer
+  approvedAt: timestamp("approved_at"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -568,6 +576,11 @@ export const quotations = pgTable("quotations", {
   // Additional PDF fields
   placeOfSupply: varchar("place_of_supply", { length: 100 }),
   countryOfSupply: varchar("country_of_supply", { length: 100 }),
+  
+  // Counter-Offer and Negotiation
+  customerCounterPrice: decimal("customer_counter_price", { precision: 10, scale: 2 }), // Customer's proposed price
+  counterOfferNotes: text("counter_offer_notes"), // Customer's reasoning/notes
+  negotiationHistory: jsonb("negotiation_history").default("[]"), // Array of {type, amount, notes, createdAt, createdBy}
 });
 
 // Quotation items

@@ -1707,6 +1707,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Counter-offer on quotation (for customers - follows customer endpoint pattern)
+  app.post('/api/quotations/:customerId/:id/counter-offer', async (req: any, res) => {
+    try {
+      const customerId = req.params.customerId;
+      const quotationId = parseInt(req.params.id);
+      const { counterPrice, notes } = req.body;
+
+      // Validate input types
+      if (!counterPrice || typeof counterPrice !== 'number' || counterPrice <= 0) {
+        return res.status(400).json({ message: "Valid counter price is required" });
+      }
+
+      // Storage method will verify the quotation belongs to this customer
+      const quotation = await storage.submitCounterOffer(quotationId, customerId, counterPrice, notes || '');
+      res.json(quotation);
+    } catch (error: any) {
+      console.error("Error submitting counter-offer:", error);
+      // Return specific error messages from storage (e.g., "Unauthorized")
+      res.status(error.message.includes('Unauthorized') ? 403 : 500).json({ 
+        message: error.message || "Failed to submit counter-offer" 
+      });
+    }
+  });
+
+  // Revise quotation (for admins)
+  app.post('/api/quotations/:id/revise', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const quotationId = parseInt(req.params.id);
+      const { newPrice, notes } = req.body;
+
+      if (!newPrice) {
+        return res.status(400).json({ message: "New price is required" });
+      }
+
+      const quotation = await storage.reviseQuotation(quotationId, userId, newPrice, notes || '');
+      res.json(quotation);
+    } catch (error: any) {
+      console.error("Error revising quotation:", error);
+      res.status(500).json({ message: error.message || "Failed to revise quotation" });
+    }
+  });
+
+  // Approve high volume bid (for managers)
+  app.patch('/api/inquiries/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && user.role !== 'super_admin' && user.role !== 'sales_manager')) {
+        return res.status(403).json({ message: "Insufficient permissions - requires manager approval" });
+      }
+
+      const inquiryId = parseInt(req.params.id);
+      const { approvalNotes } = req.body;
+
+      const inquiry = await storage.approveHighVolumeBid(inquiryId, userId, approvalNotes || '');
+      res.json(inquiry);
+    } catch (error: any) {
+      console.error("Error approving bid:", error);
+      res.status(500).json({ message: error.message || "Failed to approve bid" });
+    }
+  });
+
+  // Update discussion notes (for admins/sales)
+  app.patch('/api/inquiries/:id/discussion-notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const inquiryId = parseInt(req.params.id);
+      const { notes } = req.body;
+
+      if (notes === undefined) {
+        return res.status(400).json({ message: "Discussion notes are required" });
+      }
+
+      const inquiry = await storage.updateDiscussionNotes(inquiryId, notes);
+      res.json(inquiry);
+    } catch (error: any) {
+      console.error("Error updating discussion notes:", error);
+      res.status(500).json({ message: error.message || "Failed to update discussion notes" });
+    }
+  });
+
   // Generate PDF for quotation
   app.get('/api/quotations/:id/pdf', async (req: any, res) => {
     try {

@@ -21,6 +21,9 @@ export default function CustomerDashboard() {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [selectedSampleRequest, setSelectedSampleRequest] = useState<any>(null);
   const [showSampleTrackingDialog, setShowSampleTrackingDialog] = useState(false);
+  const [showCounterOfferDialog, setShowCounterOfferDialog] = useState(false);
+  const [counterPrice, setCounterPrice] = useState("");
+  const [counterNotes, setCounterNotes] = useState("");
 
   // Data fetching for customer-specific data
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -71,6 +74,42 @@ export default function CustomerDashboard() {
       toast({
         title: "Error",
         description: "Failed to accept quotation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Counter-offer mutation
+  const counterOfferMutation = useMutation({
+    mutationFn: async ({ quotationId, price, notes }: { quotationId: number; price: number; notes: string }) => {
+      const response = await fetch(`/api/quotations/${customer?.id}/${quotationId}/counter-offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          counterPrice: price,
+          notes: notes
+        })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to submit counter-offer');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/quotations/${customer?.id}`] });
+      toast({
+        title: "Counter-Offer Submitted",
+        description: "Your counter-offer has been sent to our sales team for review.",
+      });
+      setShowCounterOfferDialog(false);
+      setCounterPrice("");
+      setCounterNotes("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit counter-offer. Please try again.",
         variant: "destructive",
       });
     }
@@ -1028,17 +1067,60 @@ export default function CustomerDashboard() {
                               </div>
                             </div>
 
+                            {/* Counter-Offer Info */}
+                            {quotation.customerCounterPrice && (
+                              <div className="space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                <h3 className="text-lg font-semibold text-amber-900 border-b border-amber-200 pb-2">
+                                  Your Counter-Offer
+                                </h3>
+                                <div className="space-y-2">
+                                  <div>
+                                    <span className="font-medium text-amber-900">Counter Price:</span>
+                                    <div className="text-2xl font-bold text-amber-700">
+                                      {quotation.currency || 'USD'} {quotation.customerCounterPrice}
+                                    </div>
+                                  </div>
+                                  {quotation.counterOfferNotes && (
+                                    <div>
+                                      <span className="font-medium text-amber-900">Your Notes:</span>
+                                      <p className="text-sm text-amber-800 mt-1">{quotation.counterOfferNotes}</p>
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-amber-700 bg-amber-100 p-2 rounded">
+                                    ⏳ Awaiting sales team review and response
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Action Buttons */}
                             <div className="flex gap-3 pt-4 border-t">
                               {quotation.status === 'sent' && (
-                                <Button 
-                                  className="bg-green-600 hover:bg-green-700"
-                                  onClick={() => acceptQuotationMutation.mutate(quotation.id)}
-                                  disabled={acceptQuotationMutation.isPending}
-                                >
-                                  <Package className="w-4 h-4 mr-2" />
-                                  {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
-                                </Button>
+                                <>
+                                  <Button 
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => acceptQuotationMutation.mutate(quotation.id)}
+                                    disabled={acceptQuotationMutation.isPending}
+                                    data-testid="button-accept-quote"
+                                  >
+                                    <Package className="w-4 h-4 mr-2" />
+                                    {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
+                                  </Button>
+                                  <Button 
+                                    variant="outline"
+                                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                    onClick={() => {
+                                      setSelectedQuotation(quotation);
+                                      setCounterPrice("");
+                                      setCounterNotes("");
+                                      setShowCounterOfferDialog(true);
+                                    }}
+                                    data-testid="button-counter-offer"
+                                  >
+                                    <DollarSign className="w-4 h-4 mr-2" />
+                                    Make Counter-Offer
+                                  </Button>
+                                </>
                               )}
                               <Button variant="outline">
                                 <FileText className="w-4 h-4 mr-2" />
@@ -1083,6 +1165,85 @@ export default function CustomerDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Counter-Offer Dialog */}
+      <Dialog open={showCounterOfferDialog} onOpenChange={setShowCounterOfferDialog}>
+        <DialogContent data-testid="dialog-counter-offer">
+          <DialogHeader>
+            <DialogTitle>Make Counter-Offer</DialogTitle>
+            <DialogDescription>
+              {selectedQuotation && `${(selectedQuotation as any).quotationId} - Current Price: ${(selectedQuotation as any).currency || 'USD'} ${(selectedQuotation as any).totalAmount}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Negotiation Tip:</strong> Our sales team reviews all counter-offers. 
+                Provide your target price and explain your reasoning to help reach a mutual agreement.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="counter-price">Your Counter Price *</Label>
+              <Input
+                id="counter-price"
+                type="number"
+                step="0.01"
+                placeholder="Enter your proposed price"
+                value={counterPrice}
+                onChange={(e) => setCounterPrice(e.target.value)}
+                data-testid="input-counter-price"
+              />
+              {selectedQuotation && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Current quotation: {(selectedQuotation as any).currency || 'USD'} {(selectedQuotation as any).totalAmount}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="counter-notes">Explanation (Optional)</Label>
+              <Textarea
+                id="counter-notes"
+                placeholder="Explain why you're proposing this price (e.g., budget constraints, market rates, bulk order discount request)"
+                value={counterNotes}
+                onChange={(e) => setCounterNotes(e.target.value)}
+                rows={4}
+                data-testid="input-counter-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCounterOfferDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!counterPrice || parseFloat(counterPrice) <= 0) {
+                  toast({
+                    title: "Invalid Price",
+                    description: "Please enter a valid counter price",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                counterOfferMutation.mutate({
+                  quotationId: (selectedQuotation as any).id,
+                  price: parseFloat(counterPrice),
+                  notes: counterNotes
+                });
+              }}
+              disabled={counterOfferMutation.isPending || !counterPrice}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-submit-counter-offer"
+            >
+              {counterOfferMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+              ) : (
+                <>Submit Counter-Offer</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
