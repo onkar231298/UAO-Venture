@@ -76,6 +76,33 @@ export default function CustomerDashboard() {
     }
   });
 
+  // Mark sample request as delivered mutation
+  const markSampleDeliveredMutation = useMutation({
+    mutationFn: async (requestId: number) => {
+      const response = await fetch(`/api/sample-requests/${requestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      if (!response.ok) throw new Error('Failed to mark sample as delivered');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/sample-requests/${customer?.id}`] });
+      toast({
+        title: "Sample Marked as Delivered",
+        description: "Thank you for confirming the delivery of your sample.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to mark sample as delivered. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   if (!isCustomerAuthenticated) {
     return <div className="flex items-center justify-center min-h-screen">Please login to access your dashboard.</div>;
   }
@@ -1298,18 +1325,33 @@ export default function CustomerDashboard() {
                       Requested {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedSampleRequest(request);
-                      setShowSampleTrackingDialog(true);
-                    }}
-                    data-testid={`button-track-${request.id}`}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Track Sample
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {request.status === "shipped" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => markSampleDeliveredMutation.mutate(request.id)}
+                        disabled={markSampleDeliveredMutation.isPending}
+                        className="text-green-600 hover:text-green-700"
+                        data-testid={`button-mark-delivered-${request.id}`}
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        {markSampleDeliveredMutation.isPending ? "Marking..." : "Mark as Delivered"}
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSampleRequest(request);
+                        setShowSampleTrackingDialog(true);
+                      }}
+                      data-testid={`button-track-${request.id}`}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Track Sample
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
