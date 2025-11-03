@@ -56,6 +56,21 @@ app.use((req, res, next) => {
   // Validate environment before starting
   validateEnvironment();
   
+  // 301 Redirect www to non-www for all requests (MUST be before registerRoutes)
+  app.use((req, res, next) => {
+    const host = req.get('host') || '';
+    if (host.startsWith('www.')) {
+      const newHost = host.replace(/^www\./, '');
+      // Use X-Forwarded-Proto for proxy SSL termination (handle comma-separated values)
+      const forwardedProto = req.get('x-forwarded-proto');
+      const protocol = forwardedProto 
+        ? forwardedProto.split(',')[0].trim().toLowerCase() 
+        : (req.protocol || 'https');
+      return res.redirect(301, `${protocol}://${newHost}${req.originalUrl}`);
+    }
+    next();
+  });
+  
   // Configure server routes
   const server = await registerRoutes(app);
 

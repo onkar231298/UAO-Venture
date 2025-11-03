@@ -108,17 +108,13 @@ export default function CategoryPage() {
   const totalPages = Math.ceil((productsData?.total || 0) / itemsPerPage);
 
   // Initialize SEO for category page
-  // Add noindex when: category has no products OR page is paginated (page 2+)
-  const shouldNoindex = (productsData && productsData.products.length === 0) || currentPage > 1;
-  
   useSEO({
     title: `${categoryName} - Premium Organic Ingredients | BFI Organic`,
     description: `Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy.`,
     keywords: `${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic`,
     canonicalUrl: `${window.location.origin}/ingredients/${slug}`,
     pageType: "category",
-    pageId: `category-${slug}`,
-    robots: shouldNoindex ? 'noindex, follow' : undefined
+    pageId: `category-${slug}`
   });
 
   // Redirect to 404 if category not found

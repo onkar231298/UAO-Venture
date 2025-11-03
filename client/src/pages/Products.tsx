@@ -218,23 +218,13 @@ export default function Products() {
   }, [healthSupportSlug, currentHealthSupport]);
 
   // Initialize SEO for products page
-  // Add noindex for filtered/paginated pages to prevent "Crawled - not indexed" issues
-  const hasActiveFilters = filters.search || filters.category.length > 0 || filters.healthSupport.length > 0 || 
-                           filters.origin.length > 0 || filters.form.length > 0 || filters.materials.length > 0 ||
-                           filters.productType.length > 0 || filters.inStock !== null || filters.priceRange !== null;
-  const hasPagination = currentPage > 1;
-  
-  // Noindex if: has filters, has pagination, OR has no results
-  const shouldNoindex = hasActiveFilters || hasPagination || (productsData && productsData.products.length === 0);
-  
   useSEO({
     title: "Premium Organic Ingredients & Natural Products",
     description: "Discover our comprehensive range of organic ingredients, herbal extracts, and natural products. Certified organic, pharmaceutical grade, and sustainably sourced from global suppliers.",
     keywords: "organic ingredients, herbal extracts, natural products, pharmaceutical ingredients, nutraceutical ingredients, organic herbs, botanical extracts",
     canonicalUrl: `${window.location.origin}/products`,
     pageType: "products",
-    pageId: "products-listing",
-    robots: shouldNoindex ? 'noindex, follow' : undefined
+    pageId: "products-listing"
   });
 
   // Convert health supports to options format
