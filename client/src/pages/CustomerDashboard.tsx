@@ -79,10 +79,9 @@ export default function CustomerDashboard() {
   // Mark sample request as delivered mutation
   const markSampleDeliveredMutation = useMutation({
     mutationFn: async (requestId: number) => {
-      const response = await fetch(`/api/sample-requests/${requestId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' })
+      const response = await fetch(`/api/customer/sample-requests/${requestId}/delivered`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
       });
       if (!response.ok) throw new Error('Failed to mark sample as delivered');
       return response.json();
@@ -1271,10 +1270,6 @@ export default function CustomerDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Sample Requests</h1>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Request Sample
-        </Button>
       </div>
 
       {/* Sample Requests List */}
@@ -1361,11 +1356,7 @@ export default function CustomerDashboard() {
             <CardContent className="p-12 text-center">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests yet</h3>
-              <p className="text-gray-600 mb-4">You haven't requested any product samples yet.</p>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Request First Sample
-              </Button>
+              <p className="text-gray-600">You haven't requested any product samples yet.</p>
             </CardContent>
           </Card>
         )}

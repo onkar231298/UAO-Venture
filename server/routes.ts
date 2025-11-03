@@ -1556,6 +1556,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer marks sample request as delivered
+  app.patch('/api/customer/sample-requests/:id/delivered', async (req: any, res) => {
+    try {
+      // Check if session exists and has customer data
+      if (!req.session?.passport?.user?.claims?.sub) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const customerId = req.session.passport.user.claims.sub;
+      const requestId = parseInt(req.params.id);
+      
+      // Get the sample request
+      const filters = { limit: 1, offset: 0, customerId };
+      const result = await storage.getSampleRequests(filters);
+      const sampleRequest = result.requests.find((r: any) => r.id === requestId);
+      
+      if (!sampleRequest || sampleRequest.customerId !== customerId) {
+        return res.status(404).json({ message: "Sample request not found" });
+      }
+      
+      // Only allow marking as delivered if status is "shipped"
+      if (sampleRequest.status !== 'shipped') {
+        return res.status(400).json({ message: "Sample request must be in shipped status to mark as delivered" });
+      }
+      
+      const updateData = {
+        status: 'completed',
+        updatedAt: new Date(),
+        processedAt: new Date()
+      };
+      
+      const updatedRequest = await storage.updateSampleRequest(requestId, updateData);
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error marking sample as delivered:", error);
+      res.status(500).json({ message: "Failed to mark sample as delivered" });
+    }
+  });
+
   // Enhanced inquiry creation - allow both logged in and non-logged users
   app.post('/api/inquiries-enhanced', async (req: any, res) => {
     try {
