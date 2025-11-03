@@ -1162,9 +1162,18 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     }
   });
 
-  // This SPA fallback will be handled by serveStatic() in production
-  // and by Vite middleware in development, so we don't need a separate one here
-  // The product/category handlers above will handle server-side rendering for SEO
+  // Custom production static serving to bypass Replit edge layer
+  if (app.get("env") !== "development") {
+    const distPath = path.resolve(import.meta.dirname, "public");
+    
+    // Serve static assets
+    app.use(express.static(distPath));
+    
+    // SPA fallback for unmatched routes (serves app.html instead of index.html)
+    app.get("*", (_req, res) => {
+      res.sendFile(path.resolve(distPath, "app.html"));
+    });
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -1179,8 +1188,6 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
-  } else {
-    serveStatic(app);
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
