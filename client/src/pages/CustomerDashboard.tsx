@@ -79,7 +79,7 @@ export default function CustomerDashboard() {
   // Mark sample request as delivered mutation
   const markSampleDeliveredMutation = useMutation({
     mutationFn: async (requestId: number) => {
-      const response = await fetch(`/api/customer/sample-requests/${requestId}/delivered`, {
+      const response = await fetch(`/api/customer/sample-requests/${customer?.id}/${requestId}/delivered`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }
       });

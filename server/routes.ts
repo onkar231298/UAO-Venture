@@ -1557,18 +1557,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer marks sample request as delivered
-  app.patch('/api/customer/sample-requests/:id/delivered', async (req: any, res) => {
+  app.patch('/api/customer/sample-requests/:customerId/:requestId/delivered', async (req: any, res) => {
     try {
-      // Check if session exists and has customer data
-      if (!req.session?.passport?.user?.claims?.sub) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const customerId = req.session.passport.user.claims.sub;
-      const requestId = parseInt(req.params.id);
+      const customerId = req.params.customerId;
+      const requestId = parseInt(req.params.requestId);
       
       // Get the sample request
-      const filters = { limit: 1, offset: 0, customerId };
+      const filters = { limit: 1000, offset: 0, customerId };
       const result = await storage.getSampleRequests(filters);
       const sampleRequest = result.requests.find((r: any) => r.id === requestId);
       
