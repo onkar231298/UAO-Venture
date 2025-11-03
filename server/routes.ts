@@ -3975,10 +3975,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.send(`User-agent: *
 Allow: /
 
-# Block admin areas
+# Allow public API endpoints for product data
+Allow: /api/products
+Allow: /api/categories
+Allow: /api/health-supports
+Allow: /api/ingredients
+Allow: /api/industries
+Allow: /api/detect-currency
+Allow: /api/recaptcha-site-key
+
+# Block admin and auth areas
 Disallow: /admin/
 Disallow: /crm/
-Disallow: /api/
+Disallow: /api/admin/
+Disallow: /api/auth/
+Disallow: /api/inquiries
+Disallow: /api/quotations
+Disallow: /api/companies
+Disallow: /api/leads
 
 # Sitemap
 Sitemap: https://bright-organic.com/sitemap.xml`);
