@@ -264,11 +264,10 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
           {/* Horizontal Tabs Layout */}
           <Tabs defaultValue="quote-requests" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
               <TabsTrigger value="accepted-quotes">Accepted Quotes</TabsTrigger>
               <TabsTrigger value="high-volume-bid">High Volume Bid</TabsTrigger>
-              <TabsTrigger value="sample-request">Sample Request</TabsTrigger>
             </TabsList>
 
             <TabsContent value="quote-requests" className="mt-6">
@@ -690,107 +689,6 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                     <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids found</h3>
                     <p className="text-gray-600">Large quantity bid requests will appear here</p>
-                  </div>
-                )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="sample-request" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Sample Requests</span>
-                    <span className="text-sm text-gray-500">Manage product sample requests</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* Sample Requests Filters */}
-                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-orange-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search sample requests by customer or product..."
-                          className="pl-10 bg-white"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Priority</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                {sampleRequestsLoading ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                    ))}
-                  </div>
-                ) : (sampleRequests as any)?.requests?.length ? (
-                  <div className="space-y-4">
-                    {(sampleRequests as any).requests.map((request: any) => (
-                      <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            <span className="font-medium">SAM-{request.id}</span>
-                            {getStatusBadge(request.status || 'pending')}
-                          </div>
-                          <Button variant="outline" size="sm">
-                            <Package className="w-4 h-4 mr-1" />
-                            Process
-                          </Button>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Customer:</span>
-                            <p className="font-medium">{request.customerName}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Product:</span>
-                            <p className="font-medium">{request.productName}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
-                    <p className="text-gray-600">New sample requests will appear here</p>
                   </div>
                 )}
                 </CardContent>
