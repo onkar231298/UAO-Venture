@@ -370,10 +370,109 @@ export default function CustomerDashboard() {
                             </div>
                           )}
                         </div>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Details
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" data-testid={`button-view-inquiry-${inquiry.id}`}>
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Inquiry Details - {inquiry.inquiryId}</DialogTitle>
+                              <DialogDescription>
+                                Complete inquiry information and status
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="space-y-6">
+                              {/* Inquiry Header */}
+                              <div className="border-b pb-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <h3 className="font-semibold mb-2">Inquiry Information</h3>
+                                    <div className="space-y-1 text-sm">
+                                      <p><span className="font-medium">Inquiry ID:</span> {inquiry.inquiryId}</p>
+                                      <p><span className="font-medium">Date:</span> {new Date(inquiry.createdAt).toLocaleDateString()}</p>
+                                      <p><span className="font-medium">Status:</span> 
+                                        <Badge className={`ml-2 ${getStatusColor(inquiry.status)}`}>
+                                          {inquiry.status}
+                                        </Badge>
+                                      </p>
+                                      <p><span className="font-medium">Urgency:</span> 
+                                        <Badge className={`ml-2 ${getUrgencyColor(inquiry.urgency)}`} variant="outline">
+                                          {inquiry.urgency}
+                                        </Badge>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <h3 className="font-semibold mb-2">Product Details</h3>
+                                    <div className="space-y-1 text-sm">
+                                      <p><span className="font-medium">Product:</span> {inquiry.productName}</p>
+                                      <p><span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}</p>
+                                      {inquiry.inquiryType === 'bulk_order' && (
+                                        <p>
+                                          <Badge className="bg-blue-100 text-blue-800">
+                                            High Volume Bid
+                                          </Badge>
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Requirements */}
+                              {inquiry.message && (
+                                <div>
+                                  <h3 className="font-semibold mb-2">Requirements & Details</h3>
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <p className="text-sm whitespace-pre-wrap">{inquiry.message}</p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Shipping Information */}
+                              {inquiry.shippingAddress && (
+                                <div>
+                                  <h3 className="font-semibold mb-2">Shipping Address</h3>
+                                  <div className="bg-blue-50 p-3 rounded text-sm">
+                                    <p>{inquiry.shippingAddress}</p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Contact Information */}
+                              <div>
+                                <h3 className="font-semibold mb-2">Contact Information</h3>
+                                <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
+                                  <p><span className="font-medium">Email:</span> {inquiry.contactEmail}</p>
+                                  {inquiry.contactPhone && (
+                                    <p><span className="font-medium">Phone:</span> {inquiry.contactPhone}</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Timeline */}
+                              <div className="pt-4 border-t">
+                                <h3 className="font-semibold mb-3">Timeline</h3>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span className="font-medium">Created:</span>
+                                    <span>{new Date(inquiry.createdAt).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span className="font-medium">Last Updated:</span>
+                                    <span>{new Date(inquiry.updatedAt).toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   ))}
