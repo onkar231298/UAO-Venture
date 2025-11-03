@@ -862,16 +862,15 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     const userAgent = req.get('user-agent') || '';
     const accept = req.get('accept') || '';
     
-    console.log(`[SEO Check] Host: ${host}, Deployed: ${isDeployed}, UserAgent: ${userAgent.substring(0, 100)}`);
+    console.log(`[ROUTE HIT] /products/${req.params.slug} - Host: ${host}, Deployed: ${isDeployed}`);
     
-    // For deployed URLs, always inject structured data (not just for bots)
-    // This ensures Google Rich Results Test, Googlebot, and all crawlers see the schema
+    // TEMPORARY: Force processing for ALL deployed URLs to test
     if (!isDeployed) {
       console.log(`[SEO Skip] Not a deployed URL, letting React handle: ${req.path}`);
       return next();
     }
 
-    console.log(`[SEO Processing] Injecting structured data for: /products/${req.params.slug} - UserAgent: ${userAgent.substring(0, 50)}`);
+    console.log(`[SEO Processing] Injecting structured data for: /products/${req.params.slug}`);
 
     try {
       // Get product from request (attached by previous middleware)
