@@ -1163,30 +1163,9 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     }
   });
 
-  // SPA fallback for ALL environments - handle client-side routing  
-  // Add explicit SPA route handling for React routes
-  app.get("*", (req, res, next) => {
-    // Skip API routes, object storage, and assets - let them be handled by registerRoutes  
-    if (req.path.startsWith('/api/') || req.path.startsWith('/attached_assets/') || req.path.startsWith('/objects/') || req.path.startsWith('/public-objects/')) {
-      return next();
-    }
-    
-    // For HTML requests (page refreshes), serve index.html to let React handle routing
-    if (req.headers.accept && req.headers.accept.includes('text/html')) {
-      console.log(`[SPA Fallback] Serving React app for: ${req.path}`);
-      const isProduction = app.get("env") !== "development";
-      
-      if (isProduction) {
-        const distPath = path.resolve(import.meta.dirname, "public");
-        return res.sendFile(path.resolve(distPath, "index.html"));
-      } else {
-        // In development, let Vite handle SPA routing
-        return next();
-      }
-    }
-    
-    next();
-  });
+  // This SPA fallback will be handled by serveStatic() in production
+  // and by Vite middleware in development, so we don't need a separate one here
+  // The product/category handlers above will handle server-side rendering for SEO
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

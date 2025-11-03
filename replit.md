@@ -8,6 +8,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (October-November 2025)
 
+### Critical Routing Fix for Product Structured Data (November 3, 2025)
+- **Issue**: Product pages on bright-organic.com were not serving structured data despite correct code in server
+- **Root Cause**: Duplicate SPA fallback middleware at line 1168 in server/index.ts was catching ALL requests (except /api/) BEFORE product handler could run
+- **Symptoms**: 
+  - Google Rich Results Test showed "No items detected"
+  - curl showed base index.html being served for all product URLs  
+  - Express WAS running (x-powered-by header present) but middleware wasn't executing
+  - No `[SEO Check]` logs appearing in production
+- **Solution**: Removed duplicate SPA fallback middleware that competed with serveStatic()
+- **Technical Details**:
+  - Product handlers at line 857 were registered but never reached due to earlier catch-all
+  - serveStatic() already provides proper SPA fallback via vite.ts line 82-84
+  - Removed redundant middleware to allow proper route matching order
+  - Now requests flow: product handlers → API routes → serveStatic catch-all
+- **Expected Outcome**:
+  - ✅ Product pages serve full structured data on deployed URLs
+  - ✅ Google Rich Results Test detects Product schema
+  - ✅ Server-side SEO injection works for all crawlers
+  - ✅ Production deployment serves correct HTML with metadata
+
 ### Google Search Console Fixes (November 3, 2025)
 - **Issues Fixed**:
   1. 404 errors on www subdomain (www.bright-organic.com returning 404)
