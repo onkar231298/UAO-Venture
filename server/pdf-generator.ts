@@ -91,7 +91,7 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     console.log('Logo not found, skipping logo insertion');
   }
   
-  yPos += 85; // Increased spacing to prevent overlap
+  yPos += 105; // Increased spacing to ensure no overlap with logo
   
   // Quotation Title
   doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
