@@ -82,17 +82,16 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   let yPos = 15;
   
   try {
-    // Add company logo (centered at top, smaller size)
-    const logoWidth = 120;
-    const logoHeight = 60;
+    // Add company logo (centered at top, proper aspect ratio)
+    const logoWidth = 140;
     const pageWidth = 595; // A4 page width in points
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.image('server/bfi-logo.png', logoX, yPos, { width: logoWidth, height: logoHeight });
+    doc.image('server/bfi-logo.png', logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
   } catch (error) {
     console.log('Logo not found, skipping logo insertion');
   }
   
-  yPos += 70;
+  yPos += 75;
   
   // Quotation Title
   doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
