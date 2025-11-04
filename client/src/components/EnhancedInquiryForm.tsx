@@ -121,15 +121,18 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       return;
     }
 
-    const inquiryData = {
+    const inquiryData: any = {
       productId: product.id,
       inquiryType,
       customerId: isCustomerAuthenticated ? customerData?.id : null,
       ...formData,
-      // High Volume Bid requires approval
       requiresApproval: inquiryType === "high_volume_bid",
-      bidStatus: inquiryType === "high_volume_bid" ? "pending" : null,
     };
+
+    // Only include bidStatus for high volume bids
+    if (inquiryType === "high_volume_bid") {
+      inquiryData.bidStatus = "pending";
+    }
 
     createInquiryMutation.mutate(inquiryData);
   };
