@@ -1460,6 +1460,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // High Volume Bids routes
+  app.get('/api/admin/high-volume-bids', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { bidStatus, limit = '50', offset = '0' } = req.query;
+      
+      const filters: any = {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      if (bidStatus) {
+        filters.bidStatus = bidStatus as string;
+      }
+
+      const result = await storage.getHighVolumeBids(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching high volume bids:", error);
+      res.status(500).json({ message: "Failed to fetch high volume bids" });
+    }
+  });
+
+  app.post('/api/admin/high-volume-bids/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const bidId = parseInt(req.params.id);
+      const { approvalNotes } = req.body;
+
+      // Update bid status to approved
+      const bid = await storage.updateHighVolumeBidStatus(bidId, 'approved', userId, approvalNotes);
+
+      // Get the bid with product and customer details
+      const bidDetails = await storage.getInquiry(bidId);
+      if (!bidDetails) {
+        return res.status(404).json({ message: "Bid not found" });
+      }
+
+      // Create a CRM lead in the sales pipeline
+      const leadData = {
+        companyName: bidDetails.companyName || 'Unknown Company',
+        contactName: bidDetails.contactName || 'Unknown Contact',
+        email: bidDetails.emailAddress,
+        phone: bidDetails.phoneNumber,
+        status: 'new',
+        stage: 'qualification',
+        source: 'high_volume_bid',
+        notes: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId}\nQuantity: ${bidDetails.quantity} ${bidDetails.unit}\nTarget Price: ${bidDetails.targetPrice}\n\nOriginal Message: ${bidDetails.message}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
+        assignedTo: userId,
+        productInterest: bidDetails.productId?.toString(),
+      };
+
+      const lead = await storage.createLead(leadData);
+
+      // Link the lead to the bid
+      await db
+        .update(inquiries)
+        .set({ crmLeadId: lead.id })
+        .where(eq(inquiries.id, bidId));
+
+      res.json({ bid, lead });
+    } catch (error) {
+      console.error("Error approving high volume bid:", error);
+      res.status(500).json({ message: "Failed to approve bid" });
+    }
+  });
+
+  app.post('/api/admin/high-volume-bids/:id/reject', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const bidId = parseInt(req.params.id);
+      const { approvalNotes } = req.body;
+
+      const bid = await storage.updateHighVolumeBidStatus(bidId, 'rejected', userId, approvalNotes);
+
+      res.json(bid);
+    } catch (error) {
+      console.error("Error rejecting high volume bid:", error);
+      res.status(500).json({ message: "Failed to reject bid" });
+    }
+  });
+
   // Sample Request routes
 
   // Create sample request (for both logged in and non-logged users)

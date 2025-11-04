@@ -2194,6 +2194,65 @@ export class DatabaseStorage implements IStorage {
     return inquiry;
   }
 
+  async getHighVolumeBids(filters?: {
+    bidStatus?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ bids: (Inquiry & { productName?: string; customerName?: string })[]; total: number }> {
+    const conditions = [eq(inquiries.requiresApproval, true)];
+    if (filters?.bidStatus) conditions.push(eq(inquiries.bidStatus, filters.bidStatus));
+    
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+    
+    const [bidsResult, totalResult] = await Promise.all([
+      db
+        .select({
+          ...inquiries,
+          productName: products.name,
+          customerName: users.firstName
+        })
+        .from(inquiries)
+        .leftJoin(products, eq(inquiries.productId, products.id))
+        .leftJoin(users, eq(inquiries.customerId, users.id))
+        .where(whereClause)
+        .orderBy(desc(inquiries.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db
+        .select({ count: count() })
+        .from(inquiries)
+        .where(whereClause)
+    ]);
+    
+    return { 
+      bids: bidsResult, 
+      total: totalResult[0].count 
+    };
+  }
+
+  async updateHighVolumeBidStatus(id: number, status: string, approvedBy?: string, approvalNotes?: string): Promise<Inquiry> {
+    const updates: any = {
+      bidStatus: status,
+      updatedAt: new Date()
+    };
+
+    if (status === 'approved') {
+      updates.approvedBy = approvedBy;
+      updates.approvalNotes = approvalNotes;
+      updates.approvedAt = new Date();
+    } else if (status === 'rejected') {
+      updates.approvalNotes = approvalNotes;
+    }
+
+    const [updated] = await db
+      .update(inquiries)
+      .set(updates)
+      .where(eq(inquiries.id, id))
+      .returning();
+
+    return updated;
+  }
+
   async createInquiry(inquiry: InsertInquiry): Promise<Inquiry> {
     try {
       // Generate inquiry ID based on type
