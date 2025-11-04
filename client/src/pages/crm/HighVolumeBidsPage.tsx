@@ -25,35 +25,31 @@ export default function HighVolumeBidsPage() {
   const [showDiscussionDialog, setShowDiscussionDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved">("all");
 
-  const { data: inquiriesData, isLoading } = useQuery({
-    queryKey: ["/api/inquiries", { type: "high_volume_bid" }],
+  const { data: bidsData, isLoading } = useQuery({
+    queryKey: ["/api/admin/high-volume-bids", filterStatus !== "all" ? { bidStatus: filterStatus } : {}],
   });
 
-  const allInquiries = (inquiriesData as any)?.inquiries || [];
+  const highVolumeBids = (bidsData as any)?.bids || [];
   
-  const highVolumeBids = allInquiries.filter((inq: any) => 
-    inq.inquiryType === 'high_volume_bid' || inq.inquiryType === 'bulk_order'
-  );
-
   const filteredBids = highVolumeBids.filter((bid: any) => {
     if (filterStatus === "all") return true;
-    if (filterStatus === "pending") return bid.requiresApproval && !bid.approvedBy;
-    if (filterStatus === "approved") return bid.approvedBy;
+    if (filterStatus === "pending") return bid.bidStatus === 'pending';
+    if (filterStatus === "approved") return bid.bidStatus === 'approved';
     return true;
   });
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
-      return await apiRequest(`/api/inquiries/${id}/approve`, {
-        method: "PATCH",
-        body: JSON.stringify({ approvalNotes: notes }),
+      return await apiRequest(`/api/admin/high-volume-bids/${id}/approve`, {
+        method: "POST",
+        body: { approvalNotes: notes },
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
       toast({
         title: "Bid Approved",
-        description: "High volume bid has been approved successfully.",
+        description: "High volume bid has been approved and a CRM lead has been created successfully.",
       });
       setShowApprovalDialog(false);
       setApprovalNotes("");
@@ -62,6 +58,29 @@ export default function HighVolumeBidsPage() {
       toast({
         title: "Approval Failed",
         description: error.message || "Failed to approve bid",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
+      return await apiRequest(`/api/admin/high-volume-bids/${id}/reject`, {
+        method: "POST",
+        body: { approvalNotes: notes },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
+      toast({
+        title: "Bid Rejected",
+        description: "High volume bid has been rejected.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Rejection Failed",
+        description: error.message || "Failed to reject bid",
         variant: "destructive",
       });
     },
@@ -149,10 +168,10 @@ export default function HighVolumeBidsPage() {
             All Bids ({highVolumeBids.length})
           </TabsTrigger>
           <TabsTrigger value="pending" data-testid="tab-pending">
-            Pending Approval ({highVolumeBids.filter((b: any) => b.requiresApproval && !b.approvedBy).length})
+            Pending Approval ({highVolumeBids.filter((b: any) => b.bidStatus === 'pending').length})
           </TabsTrigger>
           <TabsTrigger value="approved" data-testid="tab-approved">
-            Approved ({highVolumeBids.filter((b: any) => b.approvedBy).length})
+            Approved ({highVolumeBids.filter((b: any) => b.bidStatus === 'approved').length})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -183,10 +202,22 @@ export default function HighVolumeBidsPage() {
                       <Badge className={`${getUrgencyColor(bid.urgency)} border`}>
                         {bid.urgency || 'normal'}
                       </Badge>
-                      {bid.approvedBy && (
+                      {bid.bidStatus === 'approved' && (
                         <Badge className="bg-green-100 text-green-800 border border-green-200">
                           <CheckCheck className="w-3 h-3 mr-1" />
                           Approved
+                        </Badge>
+                      )}
+                      {bid.bidStatus === 'rejected' && (
+                        <Badge className="bg-red-100 text-red-800 border border-red-200">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Rejected
+                        </Badge>
+                      )}
+                      {bid.bidStatus === 'in_discussion' && (
+                        <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          In Discussion
                         </Badge>
                       )}
                     </div>
@@ -247,15 +278,32 @@ export default function HighVolumeBidsPage() {
                 )}
 
                 <div className="flex items-center gap-2">
-                  {!bid.approvedBy && (
-                    <Button
-                      onClick={() => handleApprove(bid)}
-                      className="bg-green-600 hover:bg-green-700"
-                      data-testid={`button-approve-${bid.id}`}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve Bid
-                    </Button>
+                  {bid.bidStatus === 'pending' && (
+                    <>
+                      <Button
+                        onClick={() => handleApprove(bid)}
+                        className="bg-green-600 hover:bg-green-700"
+                        data-testid={`button-approve-${bid.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approve Bid
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to reject this bid?')) {
+                            const notes = prompt('Please provide a reason for rejection:');
+                            if (notes) {
+                              rejectMutation.mutate({ id: bid.id, notes });
+                            }
+                          }
+                        }}
+                        data-testid={`button-reject-${bid.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Reject Bid
+                      </Button>
+                    </>
                   )}
                   <Button
                     variant="outline"

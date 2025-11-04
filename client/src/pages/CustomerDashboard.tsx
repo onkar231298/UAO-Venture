@@ -48,8 +48,8 @@ export default function CustomerDashboard() {
 
   // Extract inquiries data
   const allInquiries = (inquiries as any)?.inquiries || [];
-  const highVolumeBids = allInquiries.filter((inq: any) => inq.inquiryType === 'bulk_order');
-  const regularInquiries = allInquiries.filter((inq: any) => inq.inquiryType !== 'bulk_order');
+  const highVolumeBids = allInquiries.filter((inq: any) => inq.inquiryType === 'high_volume_bid');
+  const regularInquiries = allInquiries.filter((inq: any) => inq.inquiryType !== 'high_volume_bid');
 
   const queryClient = useQueryClient();
 
@@ -346,9 +346,29 @@ export default function CustomerDashboard() {
                             <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
                               {inquiry.urgency}
                             </Badge>
-                            {inquiry.inquiryType === 'bulk_order' && (
+                            {inquiry.inquiryType === 'high_volume_bid' && (
                               <Badge className="bg-blue-100 text-blue-800">
-                                High Volume
+                                High Volume Bid
+                              </Badge>
+                            )}
+                            {inquiry.requiresApproval && inquiry.bidStatus === 'pending' && (
+                              <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                Awaiting Approval
+                              </Badge>
+                            )}
+                            {inquiry.bidStatus === 'approved' && (
+                              <Badge className="bg-green-100 text-green-800 border border-green-200">
+                                Bid Approved
+                              </Badge>
+                            )}
+                            {inquiry.bidStatus === 'rejected' && (
+                              <Badge className="bg-red-100 text-red-800 border border-red-200">
+                                Bid Rejected
+                              </Badge>
+                            )}
+                            {inquiry.bidStatus === 'in_discussion' && (
+                              <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                                In Discussion
                               </Badge>
                             )}
                           </div>
