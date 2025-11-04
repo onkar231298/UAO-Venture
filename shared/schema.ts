@@ -487,10 +487,12 @@ export const inquiries = pgTable("inquiries", {
   
   // High Volume Bid Approval Workflow
   requiresApproval: boolean("requires_approval").default(false),
+  bidStatus: varchar("bid_status", { length: 50 }).default("pending"), // pending, approved, rejected, in_discussion
   approvedBy: varchar("approved_by").references(() => users.id),
   approvalNotes: text("approval_notes"),
   discussionNotes: text("discussion_notes"), // Track discussions with customer
   approvedAt: timestamp("approved_at"),
+  crmLeadId: integer("crm_lead_id"), // Link to CRM lead created after approval
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
