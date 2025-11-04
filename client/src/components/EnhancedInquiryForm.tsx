@@ -126,6 +126,9 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       inquiryType,
       customerId: isCustomerAuthenticated ? customerData?.id : null,
       ...formData,
+      // High Volume Bid requires approval
+      requiresApproval: inquiryType === "high_volume_bid",
+      bidStatus: inquiryType === "high_volume_bid" ? "pending" : null,
     };
 
     createInquiryMutation.mutate(inquiryData);
