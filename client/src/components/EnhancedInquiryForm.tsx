@@ -28,10 +28,11 @@ interface EnhancedInquiryFormProps {
   isAuthenticated: boolean;
   customerData?: any;
   isCustomerAuthenticated?: boolean;
+  defaultInquiryType?: string; // Allow setting default inquiry type
 }
 
-export function EnhancedInquiryForm({ product, isAuthenticated, customerData, isCustomerAuthenticated }: EnhancedInquiryFormProps) {
-  const [inquiryType, setInquiryType] = useState<string>("bulk_order");
+export function EnhancedInquiryForm({ product, isAuthenticated, customerData, isCustomerAuthenticated, defaultInquiryType = "bulk_order" }: EnhancedInquiryFormProps) {
+  const [inquiryType, setInquiryType] = useState<string>(defaultInquiryType);
   const [formData, setFormData] = useState({
     // Contact Information - auto-filled if customer is logged in
     contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
