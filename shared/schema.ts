@@ -804,6 +804,9 @@ export const insertInquirySchema = createInsertSchema(inquiries).omit({
   inquiryId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  expectedDelivery: z.coerce.date().nullable().optional(),
+  approvedAt: z.coerce.date().nullable().optional(),
 });
 
 export const insertProductDocumentSchema = createInsertSchema(productDocuments).omit({
