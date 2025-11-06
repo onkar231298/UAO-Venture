@@ -476,9 +476,9 @@ export const inquiries = pgTable("inquiries", {
   
   // Inquiry Details
   inquiryType: varchar("inquiry_type", { length: 50 }).default("bulk_order"), // bulk_order, high_volume_bid, quote_request
-  quantity: decimal("quantity", { precision: 10, scale: 2 }),
+  quantity: decimal("quantity", { precision: 15, scale: 2 }),
   unit: varchar("unit", { length: 50 }),
-  targetPrice: decimal("target_price", { precision: 10, scale: 2 }), // For bidding
+  targetPrice: decimal("target_price", { precision: 15, scale: 2 }), // For bidding
   expectedDelivery: timestamp("expected_delivery"),
   message: text("message"),
   urgency: varchar("urgency", { length: 50 }).default("normal"), // urgent, normal, low
