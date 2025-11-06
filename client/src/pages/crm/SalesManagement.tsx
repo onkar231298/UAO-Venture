@@ -89,11 +89,94 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     }
   });
 
-  // Filter and sort inquiries
-  const filteredInquiries = React.useMemo(() => {
+  // Filter product enquiries (excluding high volume bids)
+  const filteredProductEnquiries = React.useMemo(() => {
     if (!(inquiries as any)?.inquiries) return [];
     
     let filtered = (inquiries as any).inquiries.filter((inquiry: Inquiry) => {
+      // Exclude high volume bids - only show regular product enquiries
+      if (inquiry.inquiryType === 'high_volume_bid') return false;
+
+      // Search filter
+      const searchMatch = searchTerm === "" || 
+        inquiry.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inquiry.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inquiry.inquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inquiry as any).productName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Status filter
+      const statusMatch = statusFilter === "all" || inquiry.status === statusFilter;
+
+      // Urgency filter
+      const urgencyMatch = urgencyFilter === "all" || inquiry.urgency === urgencyFilter;
+
+      // Date filter
+      let dateMatch = true;
+      if (dateFilter !== "all" && inquiry.createdAt) {
+        const inquiryDate = new Date(inquiry.createdAt);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        switch (dateFilter) {
+          case "today":
+            dateMatch = inquiryDate >= today;
+            break;
+          case "yesterday":
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            dateMatch = inquiryDate >= yesterday && inquiryDate < today;
+            break;
+          case "week":
+            const weekStart = new Date(today);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            dateMatch = inquiryDate >= weekStart;
+            break;
+          case "month":
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateMatch = inquiryDate >= monthStart;
+            break;
+          case "quarter":
+            const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+            dateMatch = inquiryDate >= quarterStart;
+            break;
+        }
+      }
+
+      return searchMatch && statusMatch && urgencyMatch && dateMatch;
+    });
+
+    // Sort inquiries
+    filtered.sort((a: Inquiry, b: Inquiry) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        case "high_value":
+          const aQty = parseFloat(a.quantity || "0");
+          const bQty = parseFloat(b.quantity || "0");
+          return bQty - aQty;
+        case "urgency":
+          const urgencyOrder = { urgent: 3, normal: 2, low: 1 };
+          return (urgencyOrder[b.urgency as keyof typeof urgencyOrder] || 0) - 
+                 (urgencyOrder[a.urgency as keyof typeof urgencyOrder] || 0);
+        case "company":
+          return (a.companyName || "").localeCompare(b.companyName || "");
+        case "newest":
+        default:
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
+
+    return filtered;
+  }, [inquiries, searchTerm, statusFilter, dateFilter, urgencyFilter, sortBy]);
+
+  // Filter high volume bids only
+  const filteredHighVolumeBids = React.useMemo(() => {
+    if (!(inquiries as any)?.inquiries) return [];
+    
+    let filtered = (inquiries as any).inquiries.filter((inquiry: Inquiry) => {
+      // Only show high volume bids
+      if (inquiry.inquiryType !== 'high_volume_bid') return false;
+
       // Search filter
       const searchMatch = searchTerm === "" || 
         inquiry.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -263,26 +346,28 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
 
           {/* Horizontal Tabs Layout */}
-          <Tabs defaultValue="quote-requests" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
+          <Tabs defaultValue="product-enquiry" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="product-enquiry">Product Enquiry</TabsTrigger>
+              <TabsTrigger value="high-volume-bids">High Volume Bids</TabsTrigger>
               <TabsTrigger value="accepted-quotes">Accepted Quotes</TabsTrigger>
-              <TabsTrigger value="high-volume-bid">High Volume Bid</TabsTrigger>
+              <TabsTrigger value="sample-requests">Sample Requests</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="quote-requests" className="mt-6">
+            <TabsContent value="product-enquiry" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Quote Requests</span>
+                    <span>Product Enquiry</span>
                     <Button size="sm">
                       <Plus className="w-4 h-4 mr-2" />
-                      New Quote Request
+                      New Enquiry
                     </Button>
                   </CardTitle>
+                  <CardDescription>Regular product enquiries and quote requests</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Quote Requests Filters */}
+                  {/* Product Enquiry Filters */}
                   <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <div className="relative">
@@ -335,11 +420,11 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                       <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
                     ))}
                   </div>
-                ) : filteredInquiries?.length ? (
+                ) : filteredProductEnquiries?.length ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
                       <div className="text-sm text-gray-600">
-                        Showing {filteredInquiries.length} of {(inquiries as any)?.inquiries?.length || 0} inquiries
+                        Showing {filteredProductEnquiries.length} product enquiries
                       </div>
                       <div className="flex gap-2">
                         {statusFilter !== "all" && (
@@ -359,7 +444,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         )}
                       </div>
                     </div>
-                    {filteredInquiries.map((inquiry: Inquiry) => (
+                    {filteredProductEnquiries.map((inquiry: Inquiry) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
@@ -592,7 +677,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
               </Card>
             </TabsContent>
 
-            <TabsContent value="high-volume-bid" className="mt-6">
+            <TabsContent value="high-volume-bids" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -602,6 +687,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                       New Bid Request
                     </Button>
                   </CardTitle>
+                  <CardDescription>High volume orders requiring manager approval</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* High Volume Bid Filters */}
@@ -657,9 +743,14 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                       <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
                     ))}
                   </div>
-                ) : (inquiries as any)?.inquiries?.filter((inq: Inquiry) => inq.inquiryType === 'bulk_order').length ? (
+                ) : filteredHighVolumeBids?.length ? (
                   <div className="space-y-4">
-                    {(inquiries as any).inquiries.filter((inq: Inquiry) => inq.inquiryType === 'bulk_order').map((inquiry: Inquiry) => (
+                    <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
+                      <div className="text-sm text-gray-600">
+                        Showing {filteredHighVolumeBids.length} high volume bids
+                      </div>
+                    </div>
+                    {filteredHighVolumeBids.map((inquiry: Inquiry) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
@@ -691,6 +782,63 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                     <p className="text-gray-600">Large quantity bid requests will appear here</p>
                   </div>
                 )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="sample-requests" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Sample Requests</span>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Sample Request
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>Product sample requests from customers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {sampleRequestsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
+                      ))}
+                    </div>
+                  ) : (sampleRequests as any)?.requests?.length ? (
+                    <div className="space-y-4">
+                      {(sampleRequests as any).requests.map((request: any) => (
+                        <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <span className="font-medium">SR-{request.id}</span>
+                              {getStatusBadge(request.status || 'pending')}
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Request
+                            </Button>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Customer:</span>
+                              <p className="font-medium">{request.contactName}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Product:</span>
+                              <p className="font-medium">{request.productName || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
+                      <p className="text-gray-600">Product sample requests will appear here</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
