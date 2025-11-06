@@ -1303,6 +1303,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create inquiry (allow both admin and customer creation)
   app.post('/api/inquiries', async (req: any, res) => {
     try {
+      console.log('[INQUIRY DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+      
       let customerId = null;
       
       // Check if admin user is authenticated
@@ -1314,12 +1316,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId = req.body.customerId;
       }
       
+      console.log('[INQUIRY DEBUG] Customer ID:', customerId);
+      
       const inquiryData = insertInquirySchema.parse({ ...req.body, customerId });
       
       const inquiry = await storage.createInquiry(inquiryData);
       res.status(201).json(inquiry);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('[INQUIRY DEBUG] Validation errors:', JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: "Invalid inquiry data", errors: error.errors });
       }
       console.error("Error creating inquiry:", error);
