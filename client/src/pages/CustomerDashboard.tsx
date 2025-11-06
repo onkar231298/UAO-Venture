@@ -676,15 +676,153 @@ export default function CustomerDashboard() {
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Details
-                          </Button>
-                          {bid.status === 'pending' && (
-                            <Button size="sm">
-                              <FileText className="w-4 h-4 mr-1" />
-                              Track Progress
-                            </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" data-testid={`button-view-bid-${bid.id}`}>
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Details
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>High Volume Bid Details - {bid.inquiryId}</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-sm text-gray-600">Bid ID</p>
+                                    <p className="font-medium">{bid.inquiryId}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-600">Status</p>
+                                    <Badge className={getStatusColor(bid.status)}>{bid.status}</Badge>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-600">Product</p>
+                                    <p className="font-medium">{bid.productName}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-600">Quantity</p>
+                                    <p className="font-medium text-blue-600">{bid.quantity} {bid.unit}</p>
+                                  </div>
+                                  {bid.targetPrice && (
+                                    <div>
+                                      <p className="text-sm text-gray-600">Target Price</p>
+                                      <p className="font-medium">${bid.targetPrice}/{bid.unit}</p>
+                                    </div>
+                                  )}
+                                  {bid.expectedDelivery && (
+                                    <div>
+                                      <p className="text-sm text-gray-600">Expected Delivery</p>
+                                      <p className="font-medium">{format(new Date(bid.expectedDelivery), 'MMM dd, yyyy')}</p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-sm text-gray-600">Urgency</p>
+                                    <Badge variant="outline" className={getUrgencyColor(bid.urgency)}>
+                                      {bid.urgency}
+                                    </Badge>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-600">Submitted</p>
+                                    <p className="font-medium">{format(new Date(bid.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                                  </div>
+                                </div>
+                                
+                                {bid.message && (
+                                  <div>
+                                    <p className="text-sm text-gray-600 mb-2">Requirements</p>
+                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                      <p className="text-sm">{bid.message}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {bid.bidStatus && (
+                                  <div>
+                                    <p className="text-sm text-gray-600 mb-2">Approval Status</p>
+                                    <div className="flex items-center space-x-2">
+                                      {bid.bidStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-800">Awaiting Approval</Badge>}
+                                      {bid.bidStatus === 'approved' && <Badge className="bg-green-100 text-green-800">Approved</Badge>}
+                                      {bid.bidStatus === 'rejected' && <Badge className="bg-red-100 text-red-800">Rejected</Badge>}
+                                      {bid.bidStatus === 'in_discussion' && <Badge className="bg-purple-100 text-purple-800">In Discussion</Badge>}
+                                    </div>
+                                    {bid.approvalNotes && (
+                                      <div className="mt-2 bg-gray-50 p-3 rounded">
+                                        <p className="text-sm font-medium text-gray-700">Manager Notes:</p>
+                                        <p className="text-sm text-gray-600 mt-1">{bid.approvalNotes}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                  <p className="text-sm text-blue-900">
+                                    <strong>Next Steps:</strong> Our team will review your high volume bid request and respond within 24-48 hours. 
+                                    {bid.bidStatus === 'approved' && ' Your bid has been approved and a sales representative will contact you shortly.'}
+                                    {bid.bidStatus === 'pending' && ' We are currently reviewing your request.'}
+                                  </p>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          {bid.bidStatus === 'pending' && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" data-testid={`button-track-bid-${bid.id}`}>
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Track Progress
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Bid Progress - {bid.inquiryId}</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">✓</div>
+                                    <div>
+                                      <p className="font-medium">Bid Submitted</p>
+                                      <p className="text-sm text-gray-600">{format(new Date(bid.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className={`flex items-center space-x-3 p-3 rounded-lg ${bid.bidStatus === 'approved' ? 'bg-green-50' : 'bg-gray-100'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${bid.bidStatus === 'approved' ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                      {bid.bidStatus === 'approved' ? '✓' : '2'}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">Manager Approval</p>
+                                      <p className="text-sm text-gray-600">
+                                        {bid.bidStatus === 'approved' ? 'Approved on ' + (bid.approvedAt ? format(new Date(bid.approvedAt), 'MMM dd, yyyy') : 'Recently') : 'Pending review'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white">3</div>
+                                    <div>
+                                      <p className="font-medium">Sales Discussion</p>
+                                      <p className="text-sm text-gray-600">Awaiting approval</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white">4</div>
+                                    <div>
+                                      <p className="font-medium">Quotation Sent</p>
+                                      <p className="text-sm text-gray-600">Awaiting approval</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="bg-blue-50 p-4 rounded-lg mt-4">
+                                    <p className="text-sm text-blue-900">
+                                      <strong>Current Status:</strong> {bid.bidStatus === 'pending' ? 'Your bid is under review by our management team.' : 'Your bid has been approved and is being processed by our sales team.'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           )}
                         </div>
                       </div>
