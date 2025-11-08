@@ -34,6 +34,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [sortBy, setSortBy] = useState("newest");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
+  const [showHighVolumeBidDetails, setShowHighVolumeBidDetails] = useState(false);
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -680,14 +681,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
             <TabsContent value="high-volume-bids" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>High Volume Bids</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Bid Request
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>High volume orders requiring manager approval</CardDescription>
+                  <CardTitle>High Volume Bids</CardTitle>
+                  <CardDescription>Customer-submitted high volume orders requiring manager approval</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* High Volume Bid Filters */}
@@ -752,24 +747,51 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                     </div>
                     {filteredHighVolumeBids.map((inquiry: Inquiry) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
-                            <span className="font-medium">BID-{inquiry.id}</span>
-                            {getStatusBadge(inquiry.status || 'pending')}
+                            <span className="font-semibold text-lg">BID-{inquiry.id}</span>
+                            <Badge className={
+                              inquiry.bidStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                              inquiry.bidStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                              inquiry.bidStatus === 'in_discussion' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }>
+                              {inquiry.bidStatus || 'pending'}
+                            </Badge>
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInquiry(inquiry);
+                              setShowHighVolumeBidDetails(true);
+                            }}
+                            data-testid={`button-view-bid-${inquiry.id}`}
+                          >
                             <Eye className="w-4 h-4 mr-1" />
                             View Bid
                           </Button>
                         </div>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div className="grid md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-600">Customer:</span>
+                            <span className="text-gray-500 text-xs">Customer</span>
                             <p className="font-medium">{inquiry.contactName}</p>
+                            <p className="text-gray-600 text-xs">{inquiry.companyName}</p>
                           </div>
                           <div>
-                            <span className="text-gray-600">Volume:</span>
+                            <span className="text-gray-500 text-xs">Product</span>
+                            <p className="font-medium">{(inquiry as any).productName || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs">Quantity & Bid Value</span>
                             <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
+                            <p className="text-green-600 font-semibold">${inquiry.targetPrice || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs">Submitted On</span>
+                            <p className="font-medium">
+                              {inquiry.createdAt ? new Date(inquiry.createdAt).toLocaleDateString() : 'N/A'}
+                            </p>
                           </div>
                         </div>
                       </div>
