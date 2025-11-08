@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   insertInquirySchema, 
@@ -30,7 +31,9 @@ import {
   insertLeadActivitySchema,
   insertLeadTaskSchema,
   insertAssignmentRuleSchema,
+  quotationItems,
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -1767,6 +1770,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Received quotation data:", req.body);
       
+      // Extract items array before parsing (it's not part of quotations table schema)
+      const items = req.body.items || [];
+      
       // Convert string date to Date object if needed
       const processedData = {
         ...req.body,
@@ -1774,10 +1780,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validUntil: typeof req.body.validUntil === 'string' ? new Date(req.body.validUntil) : req.body.validUntil
       };
       
+      // Remove items from processedData before parsing (they go in separate table)
+      delete processedData.items;
+      
       const quotationData = insertQuotationSchema.parse(processedData);
       console.log("Parsed quotation data:", quotationData);
+      console.log("Quotation items count:", items.length);
       
       const quotation = await storage.createQuotation(quotationData);
+      
+      // Create quotation items if provided
+      if (items.length > 0) {
+        for (const item of items) {
+          await db.insert(quotationItems).values({
+            quotationId: quotation.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            specifications: item.specifications || null
+          });
+        }
+        console.log(`Created ${items.length} quotation items for quotation ${quotation.id}`);
+      }
       
       // Update the inquiry status to "responded" when quotation is created
       if (quotation.inquiryId) {
@@ -1923,6 +1949,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quotation not found" });
       }
 
+      // Fetch quotation items
+      const quotationItemsResult = await db
+        .select()
+        .from(quotationItems)
+        .where(eq(quotationItems.quotationId, quotationId));
+      
+      // Use first item if exists, otherwise fall back to inquiry-derived data
+      const firstItem = quotationItemsResult.length > 0 ? quotationItemsResult[0] : null;
+      
+      console.log(`PDF generation for quotation ${quotationId}:`, {
+        hasItems: quotationItemsResult.length > 0,
+        itemCount: quotationItemsResult.length,
+        firstItemUnitPrice: firstItem?.unitPrice,
+        firstItemQuantity: firstItem?.quantity,
+        fallbackUnitPrice: quotation.unitPrice,
+        fallbackQuantity: quotation.quantity
+      });
+
       // Get customer details
       const customer = await storage.getUser(quotation.customerId);
       if (!customer) {
@@ -1932,16 +1976,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import PDF generator
       const { generateQuotationPDF } = await import('./pdf-generator');
       
-      // Prepare quotation data for PDF
+      // Prepare quotation data for PDF (use item data if available, fallback to inquiry data)
       const quotationData = {
         id: quotation.id,
         quotationId: quotation.quotationId,
         quotationDate: quotation.createdAt,
         validUntil: quotation.validUntil,
         productName: quotation.productName,
-        quantity: quotation.quantity,
-        unit: quotation.unit,
-        unitPrice: quotation.unitPrice,
+        quantity: firstItem ? firstItem.quantity : quotation.quantity,
+        unit: firstItem ? firstItem.unit : quotation.unit,
+        unitPrice: firstItem ? firstItem.unitPrice : quotation.unitPrice,
         totalAmount: quotation.totalAmount,
         currency: quotation.currency,
         terms: quotation.terms,

@@ -33,20 +33,30 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
       // Calculate total amount: unitPrice * quantity
       const unitPrice = parseFloat(revisedPrice);
       const quantity = parseFloat(inquiry.quantity || "0");
-      const totalAmount = (unitPrice * quantity).toFixed(2);
+      const totalPrice = (unitPrice * quantity).toFixed(2);
       
       const quotationData = {
         inquiryId: inquiry.id,
         customerId: inquiry.customerId,
-        quantity: inquiry.quantity,
-        unit: inquiry.unit,
-        unitPrice: revisedPrice, // Per kg price
-        totalAmount: totalAmount, // Calculated: price per kg × quantity
+        productId: inquiry.productId, // Add for schema validation and backward compatibility
+        quantity: inquiry.quantity, // Add to main quotation data (duplicates first item)
+        unit: inquiry.unit, // Add to main quotation data (duplicates first item)
+        unitPrice: revisedPrice, // Add to main quotation data (duplicates first item)
+        totalAmount: totalPrice, // Total amount for the quotation
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days validity
-        terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}/kg\nRevised Unit Price: $${revisedPrice}/kg\nQuantity: ${inquiry.quantity} ${inquiry.unit}\nTotal Amount: $${totalAmount}\n\n${approvalNotes || 'No additional notes'}`,
+        terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}/kg\nRevised Unit Price: $${revisedPrice}/kg\nQuantity: ${inquiry.quantity} ${inquiry.unit}\nTotal Amount: $${totalPrice}\n\n${approvalNotes || 'No additional notes'}`,
         notes: approvalNotes || 'Revised quote for high volume bid',
         status: 'sent',
-        createdBy: 'admin_001' // Will be overridden by server with actual user ID
+        createdBy: 'admin_001', // Will be overridden by server with actual user ID
+        // Add quotation items array with the single item (line-level details)
+        items: [{
+          productId: inquiry.productId,
+          quantity: inquiry.quantity,
+          unit: inquiry.unit,
+          unitPrice: revisedPrice, // Per kg price
+          totalPrice: totalPrice, // Calculated: price per kg × quantity
+          specifications: inquiry.message || '' // Use the bid message as specifications
+        }]
       };
 
       return await apiRequest('/api/quotations', {
