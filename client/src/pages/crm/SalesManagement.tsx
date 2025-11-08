@@ -17,6 +17,7 @@ import { Search, Filter, Download, MessageSquare, TrendingUp, DollarSign, Users,
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
+import HighVolumeBidDetailsDialog from "@/components/HighVolumeBidDetailsDialog";
 
 import LeadManagement from "./LeadManagement";
 import CompanyManagement from "./CompanyManagement";
@@ -874,6 +875,15 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           inquiry={selectedInquiry}
           open={showInquiryDetails}
           onOpenChange={setShowInquiryDetails}
+        />
+      )}
+
+      {/* High Volume Bid Details Dialog */}
+      {selectedInquiry && (
+        <HighVolumeBidDetailsDialog
+          inquiry={selectedInquiry}
+          open={showHighVolumeBidDetails}
+          onOpenChange={setShowHighVolumeBidDetails}
         />
       )}
     </RoleBasedRoute>
