@@ -36,6 +36,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
   const [showHighVolumeBidDetails, setShowHighVolumeBidDetails] = useState(false);
+  
+  // High Volume Bid specific filters
+  const [bidSearchTerm, setBidSearchTerm] = useState("");
+  const [bidStatusFilter, setBidStatusFilter] = useState("all");
+  const [bidQuantityFilter, setBidQuantityFilter] = useState("1000+");
+  const [bidDateFilter, setBidDateFilter] = useState("all");
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -180,33 +186,39 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
       if (inquiry.inquiryType !== 'high_volume_bid') return false;
 
       // Search filter
-      const searchMatch = searchTerm === "" || 
-        inquiry.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inquiry.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inquiry.inquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (inquiry as any).productName?.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchMatch = bidSearchTerm === "" || 
+        inquiry.contactName?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
+        inquiry.companyName?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
+        inquiry.inquiryId?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
+        (inquiry as any).productName?.toLowerCase().includes(bidSearchTerm.toLowerCase());
 
-      // Status filter
-      const statusMatch = statusFilter === "all" || inquiry.status === statusFilter;
+      // Bid Status filter (bidStatus, not status)
+      const statusMatch = bidStatusFilter === "all" || inquiry.bidStatus === bidStatusFilter;
 
-      // Urgency filter
-      const urgencyMatch = urgencyFilter === "all" || inquiry.urgency === urgencyFilter;
+      // Quantity filter
+      let quantityMatch = true;
+      if (bidQuantityFilter !== "1000+") {
+        const qty = parseFloat(inquiry.quantity || "0");
+        switch (bidQuantityFilter) {
+          case "5000+":
+            quantityMatch = qty >= 5000;
+            break;
+          case "10000+":
+            quantityMatch = qty >= 10000;
+            break;
+        }
+      }
 
       // Date filter
       let dateMatch = true;
-      if (dateFilter !== "all" && inquiry.createdAt) {
+      if (bidDateFilter !== "all" && inquiry.createdAt) {
         const inquiryDate = new Date(inquiry.createdAt);
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
-        switch (dateFilter) {
+        switch (bidDateFilter) {
           case "today":
             dateMatch = inquiryDate >= today;
-            break;
-          case "yesterday":
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            dateMatch = inquiryDate >= yesterday && inquiryDate < today;
             break;
           case "week":
             const weekStart = new Date(today);
@@ -217,39 +229,19 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             dateMatch = inquiryDate >= monthStart;
             break;
-          case "quarter":
-            const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-            dateMatch = inquiryDate >= quarterStart;
-            break;
         }
       }
 
-      return searchMatch && statusMatch && urgencyMatch && dateMatch;
+      return searchMatch && statusMatch && quantityMatch && dateMatch;
     });
 
-    // Sort inquiries
+    // Sort by newest first for bids
     filtered.sort((a: Inquiry, b: Inquiry) => {
-      switch (sortBy) {
-        case "oldest":
-          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-        case "high_value":
-          const aQty = parseFloat(a.quantity || "0");
-          const bQty = parseFloat(b.quantity || "0");
-          return bQty - aQty;
-        case "urgency":
-          const urgencyOrder = { urgent: 3, normal: 2, low: 1 };
-          return (urgencyOrder[b.urgency as keyof typeof urgencyOrder] || 0) - 
-                 (urgencyOrder[a.urgency as keyof typeof urgencyOrder] || 0);
-        case "company":
-          return (a.companyName || "").localeCompare(b.companyName || "");
-        case "newest":
-        default:
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-      }
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
 
     return filtered;
-  }, [inquiries, searchTerm, statusFilter, dateFilter, urgencyFilter, sortBy]);
+  }, [inquiries, bidSearchTerm, bidStatusFilter, bidQuantityFilter, bidDateFilter]);
 
   // Status badge helper function
   const getStatusBadge = (status: string) => {
@@ -692,25 +684,29 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <Input
+                          value={bidSearchTerm}
+                          onChange={(e) => setBidSearchTerm(e.target.value)}
                           placeholder="Search high volume bids by customer or product..."
                           className="pl-10 bg-white"
+                          data-testid="input-bid-search"
                         />
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
+                      <Select value={bidStatusFilter} onValueChange={setBidStatusFilter}>
+                        <SelectTrigger className="w-32" data-testid="select-bid-status">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="quoted">Quoted</SelectItem>
-                          <SelectItem value="negotiating">Negotiating</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                          <SelectItem value="in_discussion">In Discussion</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Select defaultValue="1000+">
-                        <SelectTrigger className="w-32">
+                      <Select value={bidQuantityFilter} onValueChange={setBidQuantityFilter}>
+                        <SelectTrigger className="w-32" data-testid="select-bid-quantity">
                           <SelectValue placeholder="Min Qty" />
                         </SelectTrigger>
                         <SelectContent>
@@ -719,8 +715,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                           <SelectItem value="10000+">10000+ kg</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
+                      <Select value={bidDateFilter} onValueChange={setBidDateFilter}>
+                        <SelectTrigger className="w-32" data-testid="select-bid-date">
                           <SelectValue placeholder="Date" />
                         </SelectTrigger>
                         <SelectContent>
