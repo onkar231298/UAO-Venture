@@ -1583,18 +1583,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Step 3: Create CRM lead with proper foreign keys
-      const leadData = {
+      const leadData: any = {
         companyId,
-        contactPersonId: contactPersonId || undefined,
+        contactPersonId: contactPersonId || null,
         leadSource: 'high_volume_bid',
         priority: 'hot',
         currentStage: 'quotation_sent',
         status: 'active',
-        productsInterested: [bidDetails.productId?.toString()],
-        requiredQuantity: bidDetails.quantity,
-        unit: bidDetails.unit,
-        specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId}\nQuantity: ${bidDetails.quantity} ${bidDetails.unit}\nTarget Price: ${bidDetails.targetPrice}\n\nOriginal Message: ${bidDetails.message}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
+        productsInterested: bidDetails.productId ? [bidDetails.productId.toString()] : [],
+        requiredQuantity: bidDetails.quantity ? bidDetails.quantity.toString() : null,
+        unit: bidDetails.unit || null,
+        specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\n\nOriginal Message: ${bidDetails.message || 'N/A'}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
         assignedSalesRep: userId,
+        assignedBy: userId,
+        assignedAt: new Date(),
+        stageEnteredAt: new Date(),
+        assignmentMode: 'manual',
+        isManualLead: false,
         createdBy: userId,
       };
 
