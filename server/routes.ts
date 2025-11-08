@@ -531,7 +531,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Service 2: ip-api.com (free, no key required)
         async () => {
           const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=countryCode`);
-          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const text = await response.text();
+          const data = JSON.parse(text); // Handle non-JSON responses better
+          if (data.status === 'fail') {
+            throw new Error(data.message || 'IP lookup failed');
+          }
           return { countryCode: data.countryCode, service: 'ip-api.com' };
         }
       ];
