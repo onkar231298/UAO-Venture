@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import HighVolumeBidDetailsDialog from "@/components/HighVolumeBidDetailsDialog";
 
 export default function HighVolumeBidsPage() {
   const { user } = useAuth() as { user: any };
@@ -23,6 +24,7 @@ export default function HighVolumeBidsPage() {
   const [discussionNotes, setDiscussionNotes] = useState("");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showDiscussionDialog, setShowDiscussionDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved">("all");
 
   const { data: bidsData, isLoading } = useQuery({
@@ -42,7 +44,7 @@ export default function HighVolumeBidsPage() {
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
       return await apiRequest(`/api/admin/high-volume-bids/${id}/approve`, {
         method: "POST",
-        body: { approvalNotes: notes },
+        body: JSON.stringify({ approvalNotes: notes }),
       });
     },
     onSuccess: (data) => {
@@ -63,28 +65,6 @@ export default function HighVolumeBidsPage() {
     },
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
-      return await apiRequest(`/api/admin/high-volume-bids/${id}/reject`, {
-        method: "POST",
-        body: { approvalNotes: notes },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
-      toast({
-        title: "Bid Rejected",
-        description: "High volume bid has been rejected.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Rejection Failed",
-        description: error.message || "Failed to reject bid",
-        variant: "destructive",
-      });
-    },
-  });
 
   const updateDiscussionMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
@@ -279,31 +259,14 @@ export default function HighVolumeBidsPage() {
 
                 <div className="flex items-center gap-2">
                   {bid.bidStatus === 'pending' && (
-                    <>
-                      <Button
-                        onClick={() => handleApprove(bid)}
-                        className="bg-green-600 hover:bg-green-700"
-                        data-testid={`button-approve-${bid.id}`}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approve Bid
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to reject this bid?')) {
-                            const notes = prompt('Please provide a reason for rejection:');
-                            if (notes) {
-                              rejectMutation.mutate({ id: bid.id, notes });
-                            }
-                          }
-                        }}
-                        data-testid={`button-reject-${bid.id}`}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Reject Bid
-                      </Button>
-                    </>
+                    <Button
+                      onClick={() => handleApprove(bid)}
+                      className="bg-green-600 hover:bg-green-700"
+                      data-testid={`button-approve-${bid.id}`}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Approve Bid
+                    </Button>
                   )}
                   <Button
                     variant="outline"
@@ -315,7 +278,10 @@ export default function HighVolumeBidsPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => window.location.href = `/crm/inquiries/${bid.id}`}
+                    onClick={() => {
+                      setSelectedInquiry(bid);
+                      setShowDetailsDialog(true);
+                    }}
                     data-testid={`button-view-${bid.id}`}
                   >
                     <FileText className="w-4 h-4 mr-2" />
@@ -410,6 +376,15 @@ export default function HighVolumeBidsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Full Details Dialog */}
+      {selectedInquiry && (
+        <HighVolumeBidDetailsDialog
+          inquiry={selectedInquiry}
+          open={showDetailsDialog}
+          onOpenChange={setShowDetailsDialog}
+        />
+      )}
     </div>
   );
 }

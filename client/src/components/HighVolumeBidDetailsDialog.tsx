@@ -22,7 +22,6 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const [approvalNotes, setApprovalNotes] = useState("");
   const [revisedPrice, setRevisedPrice] = useState("");
   const [showApprovalForm, setShowApprovalForm] = useState(false);
-  const [showRejectionForm, setShowRejectionForm] = useState(false);
   const [showRevisedQuoteForm, setShowRevisedQuoteForm] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -71,6 +70,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
       });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
       queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/high-volume-bids'] });
       onOpenChange(false);
       setShowRevisedQuoteForm(false);
       setRevisedPrice("");
@@ -98,6 +98,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
         description: "High volume bid has been approved and CRM lead created",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/high-volume-bids'] });
       onOpenChange(false);
       setShowApprovalForm(false);
       setApprovalNotes("");
@@ -111,31 +112,6 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
     },
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest(`/api/admin/high-volume-bids/${inquiry.id}/reject`, {
-        method: "POST",
-        body: JSON.stringify({ approvalNotes }),
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Bid Rejected",
-        description: "High volume bid has been rejected",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
-      onOpenChange(false);
-      setShowRejectionForm(false);
-      setApprovalNotes("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject bid",
-        variant: "destructive",
-      });
-    },
-  });
 
   const getBidStatusBadge = (status: string) => {
     const statusColors = {
@@ -284,7 +260,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                 <CardTitle className="text-lg">Admin Decision Required</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!showApprovalForm && !showRejectionForm && !showRevisedQuoteForm && (
+                {!showApprovalForm && !showRevisedQuoteForm && (
                   <div className="flex flex-wrap gap-3">
                     <Button 
                       onClick={() => setShowApprovalForm(true)}
@@ -301,14 +277,6 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                     >
                       <FileEdit className="w-4 h-4 mr-2" />
                       Give Revised Quote
-                    </Button>
-                    <Button 
-                      onClick={() => setShowRejectionForm(true)}
-                      variant="destructive"
-                      data-testid="button-reject-bid"
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reject Bid
                     </Button>
                   </div>
                 )}
@@ -344,44 +312,6 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                         }}
                         variant="outline"
                         data-testid="button-cancel-approve"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rejection Form */}
-                {showRejectionForm && (
-                  <div className="space-y-4 p-4 bg-white rounded border border-red-300">
-                    <h4 className="font-semibold text-red-700">Reject Bid</h4>
-                    <div>
-                      <Label htmlFor="rejectionNotes">Rejection Reason (Optional)</Label>
-                      <Textarea
-                        id="rejectionNotes"
-                        value={approvalNotes}
-                        onChange={(e) => setApprovalNotes(e.target.value)}
-                        placeholder="Add reason for rejection..."
-                        rows={3}
-                        data-testid="input-rejection-notes"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => rejectMutation.mutate()}
-                        disabled={rejectMutation.isPending}
-                        variant="destructive"
-                        data-testid="button-confirm-reject"
-                      >
-                        {rejectMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
-                      </Button>
-                      <Button 
-                        onClick={() => {
-                          setShowRejectionForm(false);
-                          setApprovalNotes("");
-                        }}
-                        variant="outline"
-                        data-testid="button-cancel-reject"
                       >
                         Cancel
                       </Button>
