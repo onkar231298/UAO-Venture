@@ -33,11 +33,12 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
       const quotationData = {
         inquiryId: inquiry.id,
         customerId: inquiry.customerId,
-        totalAmount: parseFloat(revisedPrice),
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days validity
+        totalAmount: revisedPrice, // Keep as string for decimal field
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days validity
         terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}\nRevised Amount: $${revisedPrice}\n\n${approvalNotes || 'No additional notes'}`,
         notes: approvalNotes || 'Revised quote for high volume bid',
-        status: 'sent'
+        status: 'sent',
+        createdBy: 'admin_001' // Will be overridden by server with actual user ID
       };
 
       return await apiRequest('/api/quotations', {
