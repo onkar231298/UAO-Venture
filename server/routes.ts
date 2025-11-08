@@ -3911,11 +3911,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority, 
         status, 
         companyId, 
+        leadSource,
+        isManualLead,
         search, 
         createdFrom, 
         createdTo, 
         limit = '50', 
-        offset = '0' 
+        offset = '0',
+        sortBy,
+        sortOrder = 'desc'
       } = req.query;
       
       // Get user info for RBAC from database
@@ -3928,12 +3932,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage,
         priority,
         status,
-        companyId: companyId ? parseInt(companyId) : undefined,
+        companyId: companyId ? parseInt(companyId as string) : undefined,
+        leadSource,
+        isManualLead: isManualLead === 'true' ? true : isManualLead === 'false' ? false : undefined,
         search,
-        createdFrom: createdFrom ? new Date(createdFrom) : undefined,
-        createdTo: createdTo ? new Date(createdTo) : undefined,
+        createdFrom: createdFrom ? new Date(createdFrom as string) : undefined,
+        createdTo: createdTo ? new Date(createdTo as string) : undefined,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
+        sortBy,
+        sortOrder: sortOrder as 'asc' | 'desc',
         user: { id: userId, role: userRole } // Pass user for RBAC filtering
       };
       
@@ -3980,13 +3988,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...leadFields,
         createdBy: userId,
         assignedSalesRep: req.body.assignedSalesRep || userId,
-        assignmentMode: req.body.assignedSalesRep ? 'manual' : 'auto'
+        assignedBy: userId, // Track who assigned this lead
+        assignedAt: new Date(), // Track when this lead was assigned
+        assignmentMode: req.body.assignedSalesRep ? 'manual' : 'auto',
+        isManualLead: req.body.isManualLead !== undefined ? req.body.isManualLead : true, // Default to manual for API-created leads
+        leadSource: req.body.leadSource || 'manual',
+        stageEnteredAt: new Date() // Set when stage is entered
       });
 
       if (!req.body.assignedSalesRep) {
         const autoAssignedUserId = await storage.applyAssignmentRules(leadData);
         if (autoAssignedUserId) {
           leadData.assignedSalesRep = autoAssignedUserId;
+          leadData.assignmentMode = 'auto';
         }
       }
 
@@ -4020,6 +4034,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid lead data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create lead" });
+    }
+  });
+
+  // Dedicated endpoint for manual lead creation (for clarity)
+  app.post('/api/crm/leads/manual', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Only admins and managers can create manual leads
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'sales_manager';
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Insufficient permissions to create manual leads" });
+      }
+      
+      const { additionalContacts, ...leadFields } = req.body;
+      
+      const leadData = insertLeadSchema.parse({
+        ...leadFields,
+        createdBy: userId,
+        assignedBy: userId,
+        assignedAt: new Date(),
+        isManualLead: true, // Always true for manual endpoint
+        leadSource: leadFields.leadSource || 'manual',
+        stageEnteredAt: new Date(),
+        assignmentMode: 'manual'
+      });
+
+      const lead = await storage.createLead(leadData);
+      
+      // Create company contacts for additional contacts if provided
+      if (additionalContacts && Array.isArray(additionalContacts) && additionalContacts.length > 0 && leadData.companyId) {
+        for (const contact of additionalContacts) {
+          if (contact.contactName && (contact.email || contact.phone)) {
+            try {
+              await storage.createCompanyContact({
+                companyId: leadData.companyId,
+                contactName: contact.contactName,
+                designation: contact.designation || null,
+                email: contact.email || null,
+                phone: contact.phone || null,
+                isPrimary: false,
+              });
+            } catch (contactError) {
+              console.error('Error creating additional contact:', contactError);
+            }
+          }
+        }
+      }
+      
+      res.json(lead);
+    } catch (error: any) {
+      console.error('Error creating manual lead:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid lead data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create manual lead" });
     }
   });
 

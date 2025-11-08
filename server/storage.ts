@@ -365,11 +365,16 @@ export interface IStorage {
     priority?: string;
     status?: string;
     companyId?: number;
+    leadSource?: string;
+    isManualLead?: boolean;
     search?: string;
     createdFrom?: Date;
     createdTo?: Date;
     limit?: number;
     offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    user?: { id: string; role: string };
   }): Promise<{ leads: LeadWithDetails[]; total: number }>;
   getLead(id: number): Promise<LeadWithDetails | undefined>;
   getLeadByLeadId(leadId: string): Promise<LeadWithDetails | undefined>;
@@ -4163,11 +4168,15 @@ export class DatabaseStorage implements IStorage {
     priority?: string;
     status?: string;
     companyId?: number;
+    leadSource?: string;
+    isManualLead?: boolean;
     search?: string;
     createdFrom?: Date;
     createdTo?: Date;
     limit?: number;
     offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
     user?: { id: string; role: string }; // For RBAC filtering
   }): Promise<{ leads: LeadWithDetails[]; total: number }> {
     const conditions = [];
@@ -4203,6 +4212,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(leads.companyId, filters.companyId));
     }
 
+    if (filters?.leadSource) {
+      conditions.push(eq(leads.leadSource, filters.leadSource));
+    }
+
+    if (filters?.isManualLead !== undefined) {
+      conditions.push(eq(leads.isManualLead, filters.isManualLead));
+    }
+
     if (filters?.search) {
       const searchConditions = or(
         like(leads.leadId, `%${filters.search}%`),
@@ -4235,7 +4252,25 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(companyContacts, eq(leads.contactPersonId, companyContacts.id))
       .leftJoin(users, eq(leads.assignedSalesRep, users.id))
       .where(whereCondition)
-      .orderBy(desc(leads.createdAt))
+      .orderBy(
+        filters?.sortBy && filters?.sortOrder
+          ? (() => {
+              // Map sort keys to actual Drizzle column objects for type safety
+              const sortColumnMap: Record<string, typeof leads.createdAt | typeof leads.updatedAt | typeof leads.currentStage | typeof leads.priority | typeof leads.expectedOrderValue | typeof leads.leadScore | typeof leads.lastContactDate | typeof leads.nextFollowUpDate> = {
+                'createdAt': leads.createdAt,
+                'updatedAt': leads.updatedAt,
+                'currentStage': leads.currentStage,
+                'priority': leads.priority,
+                'expectedOrderValue': leads.expectedOrderValue,
+                'leadScore': leads.leadScore,
+                'lastContactDate': leads.lastContactDate,
+                'nextFollowUpDate': leads.nextFollowUpDate,
+              };
+              const sortColumn = sortColumnMap[filters.sortBy] || leads.updatedAt;
+              return filters.sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+            })()
+          : desc(leads.updatedAt)
+      )
       .limit(filters?.limit || 50)
       .offset(filters?.offset || 0);
 
