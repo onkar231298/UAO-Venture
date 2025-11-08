@@ -8,6 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (October-November 2025)
 
+### High Volume Bid Admin Workflow Simplification (November 8, 2025)
+- **Business Decision**: Removed "Reject Bid" functionality entirely from admin interface
+- **Rationale**: Admins must respond to high-volume bids by either approving them (creating CRM lead) or counter-offering with revised quote - no reject option needed
+- **Changes Made**:
+  1. Removed reject mutation, state variables, and UI from HighVolumeBidsPage.tsx
+  2. Removed reject mutation, button, and rejection form from HighVolumeBidDetailsDialog.tsx
+  3. Fixed TypeScript error in approve mutation (JSON.stringify body)
+  4. Fixed "View Full Details" button to open HighVolumeBidDetailsDialog instead of navigating to non-existent route
+  5. Added query invalidation for `/api/admin/high-volume-bids` to both approve and revised quote mutations
+- **Current Admin Actions**: Only two actions available - "Approve Bid & Create Lead" and "Give Revised Quote" (counter offer)
+- **Expected Outcomes**:
+  - ✅ Simplified admin workflow with only constructive actions
+  - ✅ Admin bids list auto-refreshes after approve/revise actions
+  - ✅ View Full Details dialog shows complete bid information
+  - ✅ No TypeScript errors in bid management pages
+
 ### Critical Routing Fix for Product Structured Data (November 3, 2025)
 - **Issue**: Product pages on bright-organic.com were not serving structured data despite correct code in server
 - **Root Cause**: Duplicate SPA fallback middleware at line 1168 in server/index.ts was catching ALL requests (except /api/) BEFORE product handler could run
