@@ -32,8 +32,12 @@ import {
   insertLeadTaskSchema,
   insertAssignmentRuleSchema,
   quotationItems,
+  companies,
+  companyContacts,
+  leads,
+  inquiries,
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -1557,7 +1561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let contact = await db.select().from(companyContacts)
           .where(and(
             eq(companyContacts.companyId, companyId),
-            eq(companyContacts.name, contactName)
+            eq(companyContacts.contactName, contactName)
           ))
           .limit(1);
         
@@ -1566,7 +1570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [newContact] = await db.insert(companyContacts)
             .values({
               companyId,
-              name: contactName,
+              contactName: contactName,
               email: bidDetails.emailAddress,
               phone: bidDetails.phoneNumber,
               isPrimary: true,
@@ -1974,7 +1978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let contact = await db.select().from(companyContacts)
           .where(and(
             eq(companyContacts.companyId, companyId),
-            eq(companyContacts.name, contactName)
+            eq(companyContacts.contactName, contactName)
           ))
           .limit(1);
         
@@ -1983,7 +1987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [newContact] = await db.insert(companyContacts)
             .values({
               companyId,
-              name: contactName,
+              contactName: contactName,
               email: inquiry.emailAddress,
               phone: inquiry.phoneNumber,
               isPrimary: true,
