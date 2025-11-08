@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, UserPlus } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, UserPlus, List, Kanban } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { type Lead, type LeadWithDetails } from "@shared/schema";
 import LeadCreationForm from "./LeadCreationForm";
@@ -17,6 +17,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
 import BulkLeadUpload from "@/components/BulkLeadUpload";
+import LeadListView from "@/components/LeadListView";
 
 const PIPELINE_STAGES = [
   { id: "new_lead", label: "New Lead", color: "bg-gray-100 text-gray-800" },
@@ -182,9 +183,15 @@ export default function LeadManagement() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [salesRepFilter, setSalesRepFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showLeadCreationForm, setShowLeadCreationForm] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
 
   // Drag sensors for better UX
   const sensors = useSensors(
@@ -233,12 +240,19 @@ export default function LeadManagement() {
     if (priorityFilter !== "all") params.append("priority", priorityFilter);
     if (statusFilter !== "all") params.append("status", statusFilter);
     if (salesRepFilter !== "all") params.append("assignedTo", salesRepFilter);
+    if (sourceFilter !== "all") params.append("leadSource", sourceFilter);
+    if (stageFilter.length > 0) params.append("stage", stageFilter.join(","));
+    if (dateFrom) params.append("createdFrom", dateFrom);
+    if (dateTo) params.append("createdTo", dateTo);
     const queryString = params.toString();
     return `/api/crm/leads${queryString ? `?${queryString}` : ""}`;
   };
 
+  // Complete query key for all filters
+  const leadsQueryKey = ["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter, sourceFilter, stageFilter.join(","), dateFrom, dateTo];
+
   const { data: leadsData, isLoading } = useQuery({
-    queryKey: ["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter],
+    queryKey: leadsQueryKey,
     queryFn: async () => {
       const response = await fetch(buildLeadsUrl());
       if (!response.ok) throw new Error("Failed to fetch leads");
@@ -354,10 +368,10 @@ export default function LeadManagement() {
     if (lead.currentStage === newStage) return;
 
     // Store previous state for rollback on error
-    const previousData = queryClient.getQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter]);
+    const previousData = queryClient.getQueryData(leadsQueryKey);
 
     // Optimistic update: immediately update UI
-    queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter], (old: any) => {
+    queryClient.setQueryData(leadsQueryKey, (old: any) => {
       if (!old?.leads) return old;
       return {
         ...old,
@@ -373,7 +387,7 @@ export default function LeadManagement() {
       {
         onError: (error) => {
           // Rollback to previous state on error
-          queryClient.setQueryData(["/api/crm/leads", searchTerm, priorityFilter, statusFilter, salesRepFilter], previousData);
+          queryClient.setQueryData(leadsQueryKey, previousData);
           console.error("Failed to update lead stage:", error);
           toast({
             title: "Error",
@@ -401,6 +415,29 @@ export default function LeadManagement() {
             <p className="text-sm text-gray-600 dark:text-gray-400">Manage your B2B sales pipeline</p>
           </div>
           <div className="flex gap-2">
+            {/* View Toggle */}
+            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8"
+                data-testid="button-view-list"
+              >
+                <List className="h-4 w-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="h-8"
+                data-testid="button-view-kanban"
+              >
+                <Kanban className="h-4 w-4 mr-1" />
+                Board
+              </Button>
+            </div>
             <BulkLeadUpload />
             <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -458,78 +495,201 @@ export default function LeadManagement() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search leads, companies..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-leads"
-            />
-          </div>
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[150px]" data-testid="select-priority-filter">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="hot">Hot</SelectItem>
-              <SelectItem value="warm">Warm</SelectItem>
-              <SelectItem value="cold">Cold</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="won">Won</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
-            </SelectContent>
-          </Select>
-          {canAssignLeads && (
-            <Select value={salesRepFilter} onValueChange={setSalesRepFilter}>
-              <SelectTrigger className="w-[200px]" data-testid="select-salesrep-filter">
-                <SelectValue placeholder="Sales Rep" />
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search leads, companies..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-leads"
+              />
+            </div>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[150px]" data-testid="select-priority-filter">
+                <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sales Reps</SelectItem>
-                {salesReps.map((rep: any) => (
-                  <SelectItem key={rep.id} value={rep.id}>
-                    {rep.firstName} {rep.lastName}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="hot">Hot</SelectItem>
+                <SelectItem value="warm">Warm</SelectItem>
+                <SelectItem value="cold">Cold</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="won">Won</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+                <SelectItem value="on_hold">On Hold</SelectItem>
+              </SelectContent>
+            </Select>
+            {canAssignLeads && (
+              <Select value={salesRepFilter} onValueChange={setSalesRepFilter}>
+                <SelectTrigger className="w-[200px]" data-testid="select-salesrep-filter">
+                  <SelectValue placeholder="Sales Rep" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sales Reps</SelectItem>
+                  {salesReps.map((rep: any) => (
+                    <SelectItem key={rep.id} value={rep.id}>
+                      {rep.firstName} {rep.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              data-testid="button-more-filters"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {showAdvancedFilters ? 'Less' : 'More'} Filters
+            </Button>
+          </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="flex flex-wrap gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="select-source-filter">
+                  <SelectValue placeholder="Lead Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="website_inquiry">Website Inquiry</SelectItem>
+                  <SelectItem value="high_volume_bid">High Volume Bid</SelectItem>
+                  <SelectItem value="accepted_quotation">Accepted Quotation</SelectItem>
+                  <SelectItem value="sample_request">Sample Request</SelectItem>
+                  <SelectItem value="referral">Referral</SelectItem>
+                  <SelectItem value="import">Import</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-[180px]" data-testid="button-stage-filter">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Stages {stageFilter.length > 0 && `(${stageFilter.length})`}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[250px]" align="start">
+                  <DropdownMenuLabel>Select Stages</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {PIPELINE_STAGES.map((stage) => (
+                      <DropdownMenuItem
+                        key={stage.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setStageFilter(prev =>
+                            prev.includes(stage.id)
+                              ? prev.filter(s => s !== stage.id)
+                              : [...prev, stage.id]
+                          );
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={stageFilter.includes(stage.id)}
+                          onChange={() => {}}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm">{stage.label}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  {stageFilter.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setStageFilter([])}
+                        className="text-red-600"
+                      >
+                        Clear Selection
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  placeholder="From Date"
+                  className="w-[160px]"
+                  data-testid="input-date-from"
+                />
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  placeholder="To Date"
+                  className="w-[160px]"
+                  data-testid="input-date-to"
+                />
+              </div>
+
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPriorityFilter("all");
+                  setStatusFilter("active");
+                  setSalesRepFilter("all");
+                  setSourceFilter("all");
+                  setStageFilter([]);
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                data-testid="button-clear-filters"
+              >
+                Clear All Filters
+              </Button>
+            </div>
           )}
-          <Button variant="outline" data-testid="button-more-filters">
-            <Filter className="h-4 w-4 mr-2" />
-            More Filters
-          </Button>
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* List View or Kanban Board */}
       <div className="flex-1 min-h-0 relative">
-        <div className="absolute top-4 right-8 flex items-center gap-2 text-sm text-gray-500 z-10 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-md shadow-sm">
-          <span>Drag cards to update stage</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-          </svg>
-        </div>
-        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent pointer-events-none z-[5]"></div>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
-        >
+        {viewMode === 'list' ? (
+          <div className="h-full bg-white dark:bg-gray-800">
+            <LeadListView
+              leads={leads}
+              onViewDetails={setSelectedLead}
+              salesReps={salesReps}
+              canAssignLeads={!!canAssignLeads}
+              onAssign={handleAssignLead}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="absolute top-4 right-8 flex items-center gap-2 text-sm text-gray-500 z-10 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-md shadow-sm">
+              <span>Drag cards to update stage</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+            </div>
+            <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent pointer-events-none z-[5]"></div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
           <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-4 scroll-smooth">
             <div className="flex gap-4 h-full min-w-max pb-4">
               {PIPELINE_STAGES.map((stage) => {
@@ -577,18 +737,20 @@ export default function LeadManagement() {
             </div>
           </div>
           
-          <DragOverlay>
-            {activeLead ? (
-              <Card className="cursor-move shadow-2xl opacity-90 rotate-3">
-                <CardHeader className="p-4 pb-3">
-                  <CardTitle className="text-sm font-semibold">
-                    {activeLead.company?.companyName || "Unknown Company"}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+              <DragOverlay>
+                {activeLead ? (
+                  <Card className="cursor-move shadow-2xl opacity-90 rotate-3">
+                    <CardHeader className="p-4 pb-3">
+                      <CardTitle className="text-sm font-semibold">
+                        {activeLead.company?.companyName || "Unknown Company"}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </>
+        )}
       </div>
 
       {/* Lead Creation Dialog */}
