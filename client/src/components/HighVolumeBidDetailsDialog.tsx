@@ -30,12 +30,20 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const reviseQuoteMutation = useMutation({
     mutationFn: async () => {
       // Create a quotation for the bid with revised price
+      // Calculate total amount: unitPrice * quantity
+      const unitPrice = parseFloat(revisedPrice);
+      const quantity = parseFloat(inquiry.quantity || "0");
+      const totalAmount = (unitPrice * quantity).toFixed(2);
+      
       const quotationData = {
         inquiryId: inquiry.id,
         customerId: inquiry.customerId,
-        totalAmount: revisedPrice, // Keep as string for decimal field
+        quantity: inquiry.quantity,
+        unit: inquiry.unit,
+        unitPrice: revisedPrice, // Per kg price
+        totalAmount: totalAmount, // Calculated: price per kg × quantity
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days validity
-        terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}\nRevised Amount: $${revisedPrice}\n\n${approvalNotes || 'No additional notes'}`,
+        terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}/kg\nRevised Unit Price: $${revisedPrice}/kg\nQuantity: ${inquiry.quantity} ${inquiry.unit}\nTotal Amount: $${totalAmount}\n\n${approvalNotes || 'No additional notes'}`,
         notes: approvalNotes || 'Revised quote for high volume bid',
         status: 'sent',
         createdBy: 'admin_001' // Will be overridden by server with actual user ID

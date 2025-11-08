@@ -8,16 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [selectedSampleRequest, setSelectedSampleRequest] = useState<any>(null);
   const [showSampleTrackingDialog, setShowSampleTrackingDialog] = useState(false);
@@ -755,6 +757,106 @@ export default function CustomerDashboard() {
                                     )}
                                   </div>
                                 )}
+                                
+                                {/* Quotations Response */}
+                                {(() => {
+                                  const relatedQuotations = quotations?.quotations?.filter(
+                                    (q: any) => q.inquiryId === bid.id
+                                  ) || [];
+                                  
+                                  return relatedQuotations.length > 0 && (
+                                    <div className="pt-4 border-t">
+                                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-green-600" />
+                                        Admin Response - Revised Quote Received
+                                      </h3>
+                                      <div className="space-y-4">
+                                        {relatedQuotations.map((quote: any) => (
+                                          <div key={quote.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div>
+                                                <p className="font-semibold text-lg">{quote.quotationId}</p>
+                                                <p className="text-sm text-gray-600">
+                                                  Sent on {new Date(quote.createdAt).toLocaleDateString()}
+                                                </p>
+                                              </div>
+                                              <Badge className={`${
+                                                quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                                quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                quote.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                                'bg-gray-100 text-gray-800'
+                                              }`}>
+                                                {quote.status}
+                                              </Badge>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-4 mb-3">
+                                              <div className="bg-white p-3 rounded">
+                                                <p className="text-sm text-gray-600 mb-1">Unit Price</p>
+                                                <p className="text-lg font-semibold text-green-700">
+                                                  {quote.currency} {parseFloat(quote.unitPrice || quote.totalAmount).toLocaleString()}
+                                                </p>
+                                              </div>
+                                              <div className="bg-white p-3 rounded">
+                                                <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                                                <p className="text-lg font-semibold text-green-700">
+                                                  {quote.currency} {parseFloat(quote.totalAmount).toLocaleString()}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                                              <div>
+                                                <span className="font-medium">Quantity:</span> {bid.quantity} {bid.unit}
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">Valid Until:</span> {new Date(quote.validUntil).toLocaleDateString()}
+                                              </div>
+                                            </div>
+
+                                            {quote.terms && (
+                                              <div className="bg-white p-3 rounded mt-3">
+                                                <p className="text-sm font-medium mb-1">Terms & Conditions:</p>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">{quote.terms}</p>
+                                              </div>
+                                            )}
+
+                                            {quote.notes && (
+                                              <div className="bg-white p-3 rounded mt-3">
+                                                <p className="text-sm font-medium mb-1">Notes:</p>
+                                                <p className="text-sm text-gray-700">{quote.notes}</p>
+                                              </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2 mt-3 pt-3 border-t">
+                                              <Button 
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => window.open(`/api/quotations/${quote.id}/pdf`, '_blank')}
+                                                data-testid={`button-download-quote-pdf-${quote.id}`}
+                                              >
+                                                <FileText className="w-4 h-4 mr-1" />
+                                                Download PDF
+                                              </Button>
+                                              {quote.status === 'sent' && (
+                                                <Button 
+                                                  size="sm"
+                                                  className="bg-green-600 hover:bg-green-700"
+                                                  onClick={() => acceptQuotationMutation.mutate(quote.id)}
+                                                  disabled={acceptQuotationMutation.isPending}
+                                                  data-testid={`button-accept-quote-${quote.id}`}
+                                                >
+                                                  <Package className="w-4 h-4 mr-1" />
+                                                  {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quote'}
+                                                </Button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                                 
                                 <div className="bg-blue-50 p-4 rounded-lg">
                                   <p className="text-sm text-blue-900">
