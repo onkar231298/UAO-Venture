@@ -27,6 +27,45 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const reviseQuoteMutation = useMutation({
+    mutationFn: async () => {
+      // Create a quotation for the bid with revised price
+      const quotationData = {
+        inquiryId: inquiry.id,
+        customerId: inquiry.customerId,
+        totalAmount: parseFloat(revisedPrice),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days validity
+        terms: `Revised Quote for High Volume Bid\n\nOriginal Bid Amount: $${inquiry.targetPrice}\nRevised Amount: $${revisedPrice}\n\n${approvalNotes || 'No additional notes'}`,
+        notes: approvalNotes || 'Revised quote for high volume bid',
+        status: 'sent'
+      };
+
+      return await apiRequest('/api/quotations', {
+        method: "POST",
+        body: JSON.stringify(quotationData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Revised Quote Sent",
+        description: "Revised quotation has been created and sent to customer",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+      onOpenChange(false);
+      setShowRevisedQuoteForm(false);
+      setRevisedPrice("");
+      setApprovalNotes("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create revised quote",
+        variant: "destructive",
+      });
+    },
+  });
+
   const approveMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest(`/api/admin/high-volume-bids/${inquiry.id}/approve`, {
@@ -363,17 +402,12 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                     </div>
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => {
-                          // TODO: Implement revised quote submission
-                          toast({
-                            title: "Coming Soon",
-                            description: "Revised quote functionality will be implemented next",
-                          });
-                        }}
+                        onClick={() => reviseQuoteMutation.mutate()}
+                        disabled={!revisedPrice || reviseQuoteMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-700"
                         data-testid="button-confirm-revised-quote"
                       >
-                        Send Revised Quote
+                        {reviseQuoteMutation.isPending ? "Sending..." : "Send Revised Quote"}
                       </Button>
                       <Button 
                         onClick={() => {
