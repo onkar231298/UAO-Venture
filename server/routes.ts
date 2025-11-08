@@ -1583,6 +1583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Step 3: Create CRM lead with proper foreign keys
+      // Calculate expected order value: quantity * target price
+      const quantity = bidDetails.quantity ? parseFloat(bidDetails.quantity.toString()) : 0;
+      const targetPrice = bidDetails.targetPrice ? parseFloat(bidDetails.targetPrice.toString()) : 0;
+      const expectedOrderValue = quantity * targetPrice;
+
       const leadData: any = {
         companyId,
         contactPersonId: contactPersonId || null,
@@ -1593,7 +1598,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productsInterested: bidDetails.productId ? [bidDetails.productId.toString()] : [],
         requiredQuantity: bidDetails.quantity ? bidDetails.quantity.toString() : null,
         unit: bidDetails.unit || null,
-        specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\n\nOriginal Message: ${bidDetails.message || 'N/A'}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
+        expectedOrderValue: expectedOrderValue > 0 ? expectedOrderValue.toString() : null,
+        currency: 'USD',
+        specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: $${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: $${expectedOrderValue.toFixed(2)}\n\nOriginal Message: ${bidDetails.message || 'N/A'}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
         assignedSalesRep: userId,
         assignedBy: userId,
         assignedAt: new Date(),
@@ -2005,19 +2012,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Step 3: Create CRM lead with proper foreign keys
-      const leadData = {
+      const leadData: any = {
         companyId,
-        contactPersonId: contactPersonId || undefined,
+        contactPersonId: contactPersonId || null,
         leadSource: 'accepted_quotation',
         priority: 'hot',
         currentStage: 'quotation_sent',
         status: 'active',
-        productsInterested: [inquiry.productId?.toString()],
-        requiredQuantity: quotation.quantity,
-        unit: quotation.unit,
-        expectedOrderValue: quotation.totalAmount,
-        specialRequirements: `Quotation #${quotation.quotationId} accepted by customer\n\nProduct: ${inquiry.productId}\nQuantity: ${quotation.quantity} ${quotation.unit}\nUnit Price: ${quotation.unitPrice}\nTotal Amount: ${quotation.totalAmount}\n\nOriginal Message: ${inquiry.message || 'N/A'}`,
+        productsInterested: inquiry.productId ? [inquiry.productId.toString()] : [],
+        requiredQuantity: quotation.quantity ? quotation.quantity.toString() : null,
+        unit: quotation.unit || null,
+        expectedOrderValue: quotation.totalAmount ? quotation.totalAmount.toString() : null,
+        currency: 'USD',
+        specialRequirements: `Quotation #${quotation.quotationId} accepted by customer\n\nProduct: ${inquiry.productId || 'N/A'}\nQuantity: ${quotation.quantity || 'N/A'} ${quotation.unit || ''}\nUnit Price: $${quotation.unitPrice || 'N/A'}\nTotal Amount: $${quotation.totalAmount || 'N/A'}\n\nOriginal Message: ${inquiry.message || 'N/A'}`,
         assignedSalesRep: userId,
+        assignedBy: userId,
+        assignedAt: new Date(),
+        stageEnteredAt: new Date(),
+        assignmentMode: 'manual',
+        isManualLead: false,
         createdBy: userId,
       };
 
