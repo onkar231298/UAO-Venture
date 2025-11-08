@@ -1059,7 +1059,9 @@ export const leads = pgTable("leads", {
   attachments: jsonb("attachments").default("[]"), // Array of file URLs for product specs/documents
   
   // Business details
-  leadSource: varchar("lead_source", { length: 100 }), // website, trade_show, referral, cold_call, linkedin
+  leadSource: varchar("lead_source", { length: 100 }), // website, trade_show, referral, cold_call, linkedin, manual, high_volume_bid, accepted_quotation, sample_request
+  isManualLead: boolean("is_manual_lead").default(false), // True if created manually by admin/sales
+  importedAt: timestamp("imported_at"), // Timestamp if imported from CSV/Excel
   expectedOrderValue: decimal("expected_order_value", { precision: 15, scale: 2 }),
   currency: varchar("currency", { length: 5 }).default("USD"),
   buyingTimeline: varchar("buying_timeline", { length: 50 }), // immediate, 1_month, 3_months, 6_months_plus
@@ -1083,6 +1085,8 @@ export const leads = pgTable("leads", {
   
   // Assignment
   assignedSalesRep: varchar("assigned_sales_rep").references(() => users.id),
+  assignedBy: varchar("assigned_by").references(() => users.id), // Who assigned this lead
+  assignedAt: timestamp("assigned_at"), // When was this lead assigned
   salesManager: varchar("sales_manager").references(() => users.id),
   regionTerritory: varchar("region_territory", { length: 100 }),
   assignmentMode: varchar("assignment_mode", { length: 50 }).default("manual"), // manual, auto
@@ -1095,6 +1099,8 @@ export const leads = pgTable("leads", {
   nextFollowUpDate: timestamp("next_follow_up_date"),
   daysInCurrentStage: integer("days_in_current_stage").default(0),
   totalAge: integer("total_age").default(0), // Days since creation
+  stageEnteredAt: timestamp("stage_entered_at").defaultNow(), // When current stage was entered
+  slaDeadline: timestamp("sla_deadline"), // SLA deadline for current stage
   
   // Status
   status: varchar("status", { length: 50 }).default("active"), // active, won, lost, on_hold
