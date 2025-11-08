@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, DollarSign, MessageSquare, Calendar, User, Building, FileText, TrendingDown, TrendingUp, Package } from "lucide-react";
+import { Loader2, DollarSign, MessageSquare, Calendar, User, Building, FileText, TrendingDown, TrendingUp, Package, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 
@@ -57,6 +57,30 @@ export default function QuotationNegotiationsPage() {
       toast({
         title: "Revision Failed",
         description: error.message || "Failed to revise quotation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const convertToLeadMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      return await apiRequest(`/api/quotations/${quotationId}/convert-to-lead`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+      toast({
+        title: "Lead Created",
+        description: `CRM lead ${data.lead.leadId} has been created successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Failed to convert quotation to lead",
         variant: "destructive",
       });
     },
@@ -238,7 +262,7 @@ export default function QuotationNegotiationsPage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {quotation.customerCounterPrice && (
                     <Button
                       onClick={() => handleRevise(quotation)}
@@ -248,6 +272,22 @@ export default function QuotationNegotiationsPage() {
                       <DollarSign className="w-4 h-4 mr-2" />
                       Revise Quotation
                     </Button>
+                  )}
+                  {quotation.status === 'accepted' && !quotation.crmLeadId && (
+                    <Button
+                      onClick={() => convertToLeadMutation.mutate(quotation.id)}
+                      disabled={convertToLeadMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                      data-testid={`button-convert-to-lead-${quotation.id}`}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      {convertToLeadMutation.isPending ? 'Converting...' : 'Convert to Lead'}
+                    </Button>
+                  )}
+                  {quotation.status === 'accepted' && quotation.crmLeadId && (
+                    <Badge className="bg-green-100 text-green-800 border border-green-200">
+                      Lead Created
+                    </Badge>
                   )}
                   <Button
                     variant="outline"

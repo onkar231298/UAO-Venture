@@ -1525,18 +1525,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Bid not found" });
       }
 
-      // Create a CRM lead in the sales pipeline
+      // Step 1: Find or create company record
+      const companyName = bidDetails.companyName || 'Unknown Company';
+      let company = await db.select().from(companies)
+        .where(eq(companies.companyName, companyName))
+        .limit(1);
+      
+      let companyId: number;
+      if (company.length === 0) {
+        // Create new company
+        const [newCompany] = await db.insert(companies)
+          .values({
+            companyName,
+            primaryEmail: bidDetails.emailAddress,
+            primaryPhone: bidDetails.phoneNumber,
+            dataCompleteness: 'partial',
+            needsEnrichment: true,
+            assignedTo: userId,
+            createdBy: userId,
+          })
+          .returning();
+        companyId = newCompany.id;
+      } else {
+        companyId = company[0].id;
+      }
+
+      // Step 2: Find or create contact person record (optional)
+      const contactName = bidDetails.contactName;
+      let contactPersonId: number | null = null;
+      if (contactName) {
+        let contact = await db.select().from(companyContacts)
+          .where(and(
+            eq(companyContacts.companyId, companyId),
+            eq(companyContacts.name, contactName)
+          ))
+          .limit(1);
+        
+        if (contact.length === 0) {
+          // Create new contact
+          const [newContact] = await db.insert(companyContacts)
+            .values({
+              companyId,
+              name: contactName,
+              email: bidDetails.emailAddress,
+              phone: bidDetails.phoneNumber,
+              isPrimary: true,
+            })
+            .returning();
+          contactPersonId = newContact.id;
+        } else {
+          contactPersonId = contact[0].id;
+        }
+      }
+
+      // Step 3: Create CRM lead with proper foreign keys
       const leadData = {
-        companyName: bidDetails.companyName || 'Unknown Company',
-        contactName: bidDetails.contactName || 'Unknown Contact',
-        email: bidDetails.emailAddress,
-        phone: bidDetails.phoneNumber,
-        status: 'new',
-        stage: 'qualification',
-        source: 'high_volume_bid',
-        notes: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId}\nQuantity: ${bidDetails.quantity} ${bidDetails.unit}\nTarget Price: ${bidDetails.targetPrice}\n\nOriginal Message: ${bidDetails.message}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
-        assignedTo: userId,
-        productInterest: bidDetails.productId?.toString(),
+        companyId,
+        contactPersonId: contactPersonId || undefined,
+        leadSource: 'high_volume_bid',
+        priority: 'hot',
+        currentStage: 'quotation_sent',
+        status: 'active',
+        productsInterested: [bidDetails.productId?.toString()],
+        requiredQuantity: bidDetails.quantity,
+        unit: bidDetails.unit,
+        specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId}\nQuantity: ${bidDetails.quantity} ${bidDetails.unit}\nTarget Price: ${bidDetails.targetPrice}\n\nOriginal Message: ${bidDetails.message}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
+        assignedSalesRep: userId,
+        createdBy: userId,
       };
 
       const lead = await storage.createLead(leadData);
@@ -1842,6 +1897,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error accepting quotation:", error);
       res.status(500).json({ message: "Failed to accept quotation" });
+    }
+  });
+
+  // Convert accepted quotation to CRM lead (for admins)
+  app.post('/api/quotations/:id/convert-to-lead', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const quotationId = parseInt(req.params.id);
+      
+      // Get quotation details
+      const quotationsResult = await storage.getQuotations({ limit: 1000, offset: 0 });
+      const quotation = quotationsResult.quotations.find(q => q.id === quotationId);
+      
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      if (quotation.status !== 'accepted') {
+        return res.status(400).json({ message: "Only accepted quotations can be converted to leads" });
+      }
+
+      // Check if lead already exists for this quotation
+      const existingLeadCheck = await db.select().from(inquiries)
+        .where(and(
+          eq(inquiries.id, quotation.inquiryId),
+          isNotNull(inquiries.crmLeadId)
+        ))
+        .limit(1);
+      
+      if (existingLeadCheck.length > 0) {
+        return res.status(400).json({ message: "Lead already exists for this quotation" });
+      }
+
+      // Get inquiry details for the quotation
+      const inquiry = await storage.getInquiry(quotation.inquiryId);
+      if (!inquiry) {
+        return res.status(404).json({ message: "Related inquiry not found" });
+      }
+
+      // Step 1: Find or create company record
+      const companyName = inquiry.companyName || 'Unknown Company';
+      let company = await db.select().from(companies)
+        .where(eq(companies.companyName, companyName))
+        .limit(1);
+      
+      let companyId: number;
+      if (company.length === 0) {
+        // Create new company
+        const [newCompany] = await db.insert(companies)
+          .values({
+            companyName,
+            primaryEmail: inquiry.emailAddress,
+            primaryPhone: inquiry.phoneNumber,
+            dataCompleteness: 'partial',
+            needsEnrichment: true,
+            assignedTo: userId,
+            createdBy: userId,
+          })
+          .returning();
+        companyId = newCompany.id;
+      } else {
+        companyId = company[0].id;
+      }
+
+      // Step 2: Find or create contact person record (optional)
+      const contactName = inquiry.contactName;
+      let contactPersonId: number | null = null;
+      if (contactName) {
+        let contact = await db.select().from(companyContacts)
+          .where(and(
+            eq(companyContacts.companyId, companyId),
+            eq(companyContacts.name, contactName)
+          ))
+          .limit(1);
+        
+        if (contact.length === 0) {
+          // Create new contact
+          const [newContact] = await db.insert(companyContacts)
+            .values({
+              companyId,
+              name: contactName,
+              email: inquiry.emailAddress,
+              phone: inquiry.phoneNumber,
+              isPrimary: true,
+            })
+            .returning();
+          contactPersonId = newContact.id;
+        } else {
+          contactPersonId = contact[0].id;
+        }
+      }
+
+      // Step 3: Create CRM lead with proper foreign keys
+      const leadData = {
+        companyId,
+        contactPersonId: contactPersonId || undefined,
+        leadSource: 'accepted_quotation',
+        priority: 'hot',
+        currentStage: 'quotation_sent',
+        status: 'active',
+        productsInterested: [inquiry.productId?.toString()],
+        requiredQuantity: quotation.quantity,
+        unit: quotation.unit,
+        expectedOrderValue: quotation.totalAmount,
+        specialRequirements: `Quotation #${quotation.quotationId} accepted by customer\n\nProduct: ${inquiry.productId}\nQuantity: ${quotation.quantity} ${quotation.unit}\nUnit Price: ${quotation.unitPrice}\nTotal Amount: ${quotation.totalAmount}\n\nOriginal Message: ${inquiry.message || 'N/A'}`,
+        assignedSalesRep: userId,
+        createdBy: userId,
+      };
+
+      const lead = await storage.createLead(leadData);
+
+      // Link the lead to the inquiry
+      await db
+        .update(inquiries)
+        .set({ crmLeadId: lead.id })
+        .where(eq(inquiries.id, quotation.inquiryId));
+
+      res.json({ lead, message: "Quotation successfully converted to CRM lead" });
+    } catch (error) {
+      console.error("Error converting quotation to lead:", error);
+      res.status(500).json({ message: "Failed to convert quotation to lead" });
     }
   });
 
