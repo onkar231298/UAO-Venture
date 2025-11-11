@@ -475,56 +475,56 @@ export default function AdminDashboard() {
           {activeSection === 'overview' && (
             <>
               {/* Welcome Section */}
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   Welcome back, {(adminUser as any).firstName || 'Admin'}!
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
                   Manage your B2B organic ingredients platform from this dashboard.
                 </p>
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                     <CardTitle className="text-sm font-medium">Total Products</CardTitle>
                     <Package className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 pt-2">
                     <div className="text-2xl font-bold">{(stats as any)?.totalProducts || 0}</div>
                     <p className="text-xs text-muted-foreground">Active in catalog</p>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                     <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 pt-2">
                     <div className="text-2xl font-bold">{(stats as any)?.totalInquiries || 0}</div>
                     <p className="text-xs text-muted-foreground">Customer inquiries</p>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                     <CardTitle className="text-sm font-medium">Active Users</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 pt-2">
                     <div className="text-2xl font-bold">{(stats as any)?.totalUsers || 0}</div>
                     <p className="text-xs text-muted-foreground">Registered users</p>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                     <CardTitle className="text-sm font-medium">Revenue</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 pt-2">
                     <div className="text-2xl font-bold">$0</div>
                     <p className="text-xs text-muted-foreground">This month</p>
                   </CardContent>
@@ -532,52 +532,52 @@ export default function AdminDashboard() {
               </div>
 
               {/* Recent Activities and Quick Actions */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="p-0 pb-4">
                     <CardTitle>Recent Activities</CardTitle>
                     <CardDescription>Latest platform activities and updates</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="text-sm">
+                  <CardContent className="space-y-4 p-0">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
+                      <div className="text-sm flex-1 min-w-0">
                         <span className="font-medium">New product added:</span> Organic Turmeric Extract
                       </div>
-                      <span className="text-xs text-gray-500 ml-auto">2 hours ago</span>
+                      <span className="text-xs text-gray-500 flex-shrink-0">2h ago</span>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="text-sm">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
+                      <div className="text-sm flex-1 min-w-0">
                         <span className="font-medium">Customer inquiry:</span> Bulk pricing request
                       </div>
-                      <span className="text-xs text-gray-500 ml-auto">4 hours ago</span>
+                      <span className="text-xs text-gray-500 flex-shrink-0">4h ago</span>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <div className="text-sm">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
+                      <div className="text-sm flex-1 min-w-0">
                         <span className="font-medium">Stock update:</span> Ashwagandha Powder restocked
                       </div>
-                      <span className="text-xs text-gray-500 ml-auto">1 day ago</span>
+                      <span className="text-xs text-gray-500 flex-shrink-0">1d ago</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
+                <Card className="p-4 sm:p-6">
+                  <CardHeader className="p-0 pb-4">
                     <CardTitle>Quick Actions</CardTitle>
                     <CardDescription>Frequently used administrative functions</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button className="w-full justify-start" variant="outline">
+                  <CardContent className="space-y-3 p-0">
+                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
                       <Plus className="mr-2 h-4 w-4" />
                       Add New Product
                     </Button>
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
                       <Users className="mr-2 h-4 w-4" />
                       Manage Users
                     </Button>
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
                       <FileText className="mr-2 h-4 w-4" />
                       View Inquiries
                     </Button>
@@ -621,8 +621,8 @@ export default function AdminDashboard() {
           )}
           
           {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
-            <Card>
-              <CardHeader>
+            <Card className="p-4 sm:p-6">
+              <CardHeader className="p-0 pb-4">
                 <CardTitle>
                   {activeSection === 'inventory' ? 'Inventory Management' :
                    activeSection === 'sales' ? 'Sales Management' :
@@ -635,7 +635,7 @@ export default function AdminDashboard() {
                 </CardTitle>
                 <CardDescription>This module interface will be implemented here</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <p className="text-sm text-gray-600">
                   Complete {activeSection} management interface coming soon with full functionality.
                 </p>

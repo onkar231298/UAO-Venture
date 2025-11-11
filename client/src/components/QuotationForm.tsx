@@ -164,7 +164,7 @@ Packaging: Standard export packaging`,
             <CardTitle className="text-lg">Customer & Inquiry Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium">Customer</Label>
               <p className="text-sm">{inquiry.contactName}</p>
@@ -189,7 +189,7 @@ Packaging: Standard export packaging`,
             <CardTitle className="text-lg">Quotation Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="validUntil">Valid Until</Label>
                 <Input
@@ -198,12 +198,13 @@ Packaging: Standard export packaging`,
                   value={formData.validUntil}
                   onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
                   required
+                  className="min-h-[44px]"
                 />
               </div>
               <div>
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,11 +215,11 @@ Packaging: Standard export packaging`,
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -236,7 +237,7 @@ Packaging: Standard export packaging`,
               <div>
                 <Label htmlFor="priceType">Price Type</Label>
                 <Select value={formData.priceType} onValueChange={(value) => setFormData({ ...formData, priceType: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -261,7 +262,7 @@ Packaging: Standard export packaging`,
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             Line Items
-            <Button type="button" size="sm" onClick={addItem}>
+            <Button type="button" size="sm" onClick={addItem} className="min-h-[44px]">
               <Plus className="w-4 h-4 mr-1" />
               Add Item
             </Button>
@@ -273,19 +274,20 @@ Packaging: Standard export packaging`,
               <div className="flex items-center justify-between">
                 <span className="font-medium">Item {index + 1}</span>
                 {items.length > 1 && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeItem(index)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => removeItem(index)} className="min-h-[44px]">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Product Name</Label>
                   <Input
                     value={item.productName}
                     onChange={(e) => updateItem(index, 'productName', e.target.value)}
                     required
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
@@ -294,11 +296,12 @@ Packaging: Standard export packaging`,
                     value={item.specifications}
                     onChange={(e) => updateItem(index, 'specifications', e.target.value)}
                     placeholder="Quality, grade, etc."
+                    className="min-h-[44px]"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <Label>Quantity</Label>
                   <Input
@@ -307,12 +310,13 @@ Packaging: Standard export packaging`,
                     value={item.quantity}
                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                     required
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
                   <Label>Unit</Label>
                   <Select value={item.unit} onValueChange={(value) => updateItem(index, 'unit', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="min-h-[44px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -332,6 +336,7 @@ Packaging: Standard export packaging`,
                     value={item.unitPrice}
                     onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
                     required
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
@@ -352,7 +357,7 @@ Packaging: Standard export packaging`,
             <h3 className="text-sm font-semibold text-gray-700">Pricing & Tax Calculations</h3>
             
             {/* Discount Section */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="discountPercent">Discount (%)</Label>
                 <Input
@@ -364,6 +369,7 @@ Packaging: Standard export packaging`,
                   value={formData.discountPercent}
                   onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
                   placeholder="0.00"
+                  className="min-h-[44px]"
                 />
               </div>
             </div>
@@ -384,7 +390,7 @@ Packaging: Standard export packaging`,
               </div>
               
               {formData.includeGst && (
-                <div className="grid grid-cols-2 gap-4 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-0 sm:pl-6">
                   <div>
                     <Label htmlFor="gstNumber">GST Number</Label>
                     <Input
@@ -393,6 +399,7 @@ Packaging: Standard export packaging`,
                       onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
                       placeholder="Enter GST Number"
                       maxLength={15}
+                      className="min-h-[44px]"
                     />
                   </div>
                   <div>
@@ -401,7 +408,7 @@ Packaging: Standard export packaging`,
                       value={formData.gstPercentage} 
                       onValueChange={(value) => setFormData({ ...formData, gstPercentage: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="min-h-[44px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -478,11 +485,11 @@ Packaging: Standard export packaging`,
       </Card>
 
         {/* Submit */}
-        <div className="flex justify-end space-x-3 sticky bottom-0 bg-white pt-4 border-t">
-          <Button type="button" variant="outline">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white pt-4 border-t">
+          <Button type="button" variant="outline" className="min-h-[44px]">
             Save as Draft
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="min-h-[44px]">
             {isLoading ? "Creating..." : formData.status === "sent" ? "Send Quotation" : "Create Quotation"}
           </Button>
         </div>

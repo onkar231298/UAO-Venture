@@ -22,14 +22,14 @@ export default function CustomerInquiries() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <Card className="max-w-md mx-auto">
             <CardHeader className="text-center">
               <CardTitle>Customer Access Required</CardTitle>
               <CardDescription>Please log in to view your inquiries</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => setLocation('/login')}>
+              <Button onClick={() => setLocation('/login')} className="min-h-[44px]" data-testid="button-go-to-login">
                 Go to Login
               </Button>
             </CardContent>
@@ -53,11 +53,11 @@ export default function CustomerInquiries() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-6">
             <MessageSquare className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">My Inquiries</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">My Inquiries</h1>
           </div>
 
           {isLoading || !inquiries ? (
@@ -76,11 +76,11 @@ export default function CustomerInquiries() {
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No inquiries yet</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No inquiries yet</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   You haven't submitted any product inquiries yet.
                 </p>
-                <Button onClick={() => setLocation('/products')}>
+                <Button onClick={() => setLocation('/products')} className="min-h-[44px]" data-testid="button-browse-products">
                   Browse Products
                 </Button>
               </CardContent>
@@ -89,44 +89,44 @@ export default function CustomerInquiries() {
             <div className="space-y-4">
               {(Array.isArray((inquiries as any).inquiries) ? (inquiries as any).inquiries : []).map((inquiry: any) => (
                 <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Package className="w-5 h-5 text-blue-600" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                             {inquiry.productName || 'Product Inquiry'}
                           </h3>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 truncate">
                             Inquiry ID: {inquiry.inquiryId}
                           </p>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(inquiry.status || 'pending')}>
+                      <Badge className={`${getStatusColor(inquiry.status || 'pending')} shrink-0`}>
                         {inquiry.status || 'pending'}
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Quantity</p>
-                        <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
+                        <p className="font-medium text-sm sm:text-base">{inquiry.quantity} {inquiry.unit}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Urgency</p>
-                        <p className="font-medium capitalize">{inquiry.urgency || 'normal'}</p>
+                        <p className="font-medium text-sm sm:text-base capitalize">{inquiry.urgency || 'normal'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Submitted</p>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm sm:text-base">
                           {inquiry.createdAt ? formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true }) : 'Recently'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Actions</p>
-                        <Button variant="outline" size="sm" className="h-8">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Actions</p>
+                        <Button variant="outline" size="sm" className="min-h-[44px] w-full sm:w-auto" data-testid={`button-view-inquiry-${inquiry.id}`}>
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
@@ -135,7 +135,7 @@ export default function CustomerInquiries() {
 
                     {inquiry.message && (
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-700">{inquiry.message}</p>
+                        <p className="text-sm text-gray-700 break-words">{inquiry.message}</p>
                       </div>
                     )}
                   </CardContent>

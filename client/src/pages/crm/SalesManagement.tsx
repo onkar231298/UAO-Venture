@@ -279,7 +279,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           </div>
 
           {/* Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
@@ -331,7 +331,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           <div className="w-full mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <span>Product Enquiry</span>
                     <div className="flex gap-2">
                       <Button 
@@ -340,11 +340,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         onClick={handleRefresh}
                         disabled={isRefreshing}
                         data-testid="button-refresh-inquiries"
+                        className="min-h-[44px]"
                       >
                         <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                         Refresh
                       </Button>
-                      <Button size="sm">
+                      <Button size="sm" className="min-h-[44px]">
                         <Plus className="w-4 h-4 mr-2" />
                         New Enquiry
                       </Button>
@@ -354,21 +355,21 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 </CardHeader>
                 <CardContent>
                   {/* Product Enquiry Filters */}
-                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
+                  <div className="flex flex-col gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="w-full">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <Input
                           placeholder="Search inquiries by customer, company, or product..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 bg-white"
+                          className="pl-10 bg-white min-h-[44px]"
                         />
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -378,7 +379,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         </SelectContent>
                       </Select>
                       <Select value={dateFilter} onValueChange={setDateFilter}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                           <SelectValue placeholder="Date" />
                         </SelectTrigger>
                         <SelectContent>
@@ -389,7 +390,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         </SelectContent>
                       </Select>
                       <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                           <SelectValue placeholder="Urgency" />
                         </SelectTrigger>
                         <SelectContent>
@@ -408,11 +409,11 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                   </div>
                 ) : filteredProductEnquiries?.length ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
                       <div className="text-sm text-gray-600">
                         Showing {filteredProductEnquiries.length} product enquiries
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {statusFilter !== "all" && (
                           <Badge variant="outline" className="text-xs">
                             Status: {statusFilter}
@@ -432,8 +433,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                     </div>
                     {filteredProductEnquiries.map((inquiry: Inquiry) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
+                        <div className="flex flex-col gap-3 mb-3">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">INQ-{inquiry.id}</span>
                             {getStatusBadge(inquiry.status || 'pending')}
                             <Badge variant="outline" className={
@@ -450,7 +451,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -459,13 +460,14 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 setShowInquiryDetails(true);
                               }}
                               data-testid={`button-view-inquiry-${inquiry.id}`}
+                              className="min-h-[44px] w-full sm:w-auto"
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button size="sm" data-testid={`button-create-quote-${inquiry.id}`}>
+                                <Button size="sm" data-testid={`button-create-quote-${inquiry.id}`} className="min-h-[44px] w-full sm:w-auto">
                                   <FileText className="w-4 h-4 mr-1" />
                                   Create Quote
                                 </Button>
@@ -493,6 +495,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 }}
                                 disabled={convertToLeadMutation.isPending}
                                 data-testid={`button-convert-lead-${inquiry.id}`}
+                                className="min-h-[44px] w-full sm:w-auto"
                               >
                                 <UserPlus className="w-4 h-4 mr-1" />
                                 Convert to Lead
@@ -500,7 +503,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                             )}
                           </div>
                         </div>
-                        <div className="grid md:grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Customer:</span>
                             <p className="font-medium">{inquiry.contactName}</p>

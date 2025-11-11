@@ -291,12 +291,12 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
             {step === 1 ? "Create New Lead - Select Company" : "Create New Lead - Lead Details"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             {step === 1
               ? "Select an existing company or create a new one"
               : "Enter lead details and requirements"}

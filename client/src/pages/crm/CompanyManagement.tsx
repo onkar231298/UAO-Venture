@@ -315,88 +315,94 @@ export default function CompanyManagement() {
               <p className="text-muted-foreground">No companies found</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company Name</TableHead>
-                  <TableHead>Industry</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Assigned To</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companies.map((company) => (
-                  <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium" data-testid={`text-company-name-${company.id}`}>
-                            {company.companyName}
-                          </p>
-                          {company.website && (
-                            <a 
-                              href={company.website} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                            >
-                              <Globe className="h-3 w-3" />
-                              {company.website}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {company.industryType || "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {company.addressCity && (
-                          <>
-                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm">
-                              {company.addressCity}
-                              {company.addressState && `, ${company.addressState}`}
+            <div className="overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden sm:rounded-lg">
+                  <Table className="min-w-[800px]">
+                    <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
+                      <TableRow>
+                        <TableHead>Company Name</TableHead>
+                        <TableHead>Industry</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead>Assigned To</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {companies.map((company) => (
+                        <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium" data-testid={`text-company-name-${company.id}`}>
+                                  {company.companyName}
+                                </p>
+                                {company.website && (
+                                  <a 
+                                    href={company.website} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <Globe className="h-3 w-3" />
+                                    {company.website}
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {company.industryType || "-"}
                             </span>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {company.companySize || "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {company.assignedTo || (
-                          <span className="text-amber-600">Unassigned</span>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedCompany(company);
-                          setViewDetailsOpen(true);
-                        }}
-                        data-testid={`button-view-company-${company.id}`}
-                      >
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {company.addressCity && (
+                                <>
+                                  <MapPin className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {company.addressCity}
+                                    {company.addressState && `, ${company.addressState}`}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {company.companySize || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">
+                              {company.assignedTo || (
+                                <span className="text-amber-600">Unassigned</span>
+                              )}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCompany(company);
+                                setViewDetailsOpen(true);
+                              }}
+                              data-testid={`button-view-company-${company.id}`}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -141,10 +141,10 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-3xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>High Volume Bid Details - BID-{inquiry.id}</span>
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="text-base sm:text-lg">High Volume Bid Details - BID-{inquiry.id}</span>
             <div className="flex items-center space-x-2">
               {getBidStatusBadge(inquiry.bidStatus || 'pending')}
             </div>
@@ -155,31 +155,31 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
           {/* Customer Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <User className="w-5 h-5 mr-2" />
+              <CardTitle className="text-base sm:text-lg flex items-center">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Customer Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">Contact Name</p>
-                    <p className="font-medium">{inquiry.contactName || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Contact Name</p>
+                    <p className="font-medium text-sm sm:text-base">{inquiry.contactName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Company</p>
-                    <p className="font-medium">{inquiry.companyName || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Company</p>
+                    <p className="font-medium text-sm sm:text-base">{inquiry.companyName || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">{inquiry.emailAddress || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Email</p>
+                    <p className="font-medium text-sm sm:text-base truncate">{inquiry.emailAddress || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">{inquiry.phoneNumber || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Phone</p>
+                    <p className="font-medium text-sm sm:text-base">{inquiry.phoneNumber || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -189,40 +189,40 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
           {/* Product & Bid Details */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <Package className="w-5 h-5 mr-2" />
+              <CardTitle className="text-base sm:text-lg flex items-center">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Product & Bid Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">Product</p>
-                    <p className="font-medium">{(inquiry as any).productName || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Product</p>
+                    <p className="font-medium text-sm sm:text-base">{(inquiry as any).productName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Quantity Requested</p>
-                    <p className="font-medium text-lg">{inquiry.quantity} {inquiry.unit}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Quantity Requested</p>
+                    <p className="font-medium text-base sm:text-lg">{inquiry.quantity} {inquiry.unit}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Expected Delivery</p>
-                    <p className="font-medium">{formatDate(inquiry.expectedDelivery)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Expected Delivery</p>
+                    <p className="font-medium text-sm sm:text-base">{formatDate(inquiry.expectedDelivery)}</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">Bid Value (Target Price)</p>
-                    <p className="font-bold text-2xl text-green-600">${inquiry.targetPrice || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Bid Value (Target Price)</p>
+                    <p className="font-bold text-xl sm:text-2xl text-green-600">${inquiry.targetPrice || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Submitted On</p>
-                    <p className="font-medium">{formatDate(inquiry.createdAt)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Submitted On</p>
+                    <p className="font-medium text-sm sm:text-base">{formatDate(inquiry.createdAt)}</p>
                   </div>
                   {inquiry.approvedAt && (
                     <div>
-                      <p className="text-sm text-gray-500">Approval Date</p>
-                      <p className="font-medium">{formatDate(inquiry.approvedAt)}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Approval Date</p>
+                      <p className="font-medium text-sm sm:text-base">{formatDate(inquiry.approvedAt)}</p>
                     </div>
                   )}
                 </div>
@@ -257,14 +257,14 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
           {inquiry.bidStatus === 'pending' && (
             <Card className="border-2 border-blue-200 bg-blue-50">
               <CardHeader>
-                <CardTitle className="text-lg">Admin Decision Required</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Admin Decision Required</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {!showApprovalForm && !showRevisedQuoteForm && (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Button 
                       onClick={() => setShowApprovalForm(true)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
                       data-testid="button-approve-bid"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
@@ -272,7 +272,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                     </Button>
                     <Button 
                       onClick={() => setShowRevisedQuoteForm(true)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto"
                       data-testid="button-revised-quote"
                     >
                       <FileEdit className="w-4 h-4 mr-2" />
@@ -283,24 +283,25 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
 
                 {/* Approval Form */}
                 {showApprovalForm && (
-                  <div className="space-y-4 p-4 bg-white rounded border border-green-300">
-                    <h4 className="font-semibold text-green-700">Approve Bid & Create CRM Lead</h4>
+                  <div className="space-y-4 p-3 sm:p-4 bg-white rounded border border-green-300">
+                    <h4 className="font-semibold text-sm sm:text-base text-green-700">Approve Bid & Create CRM Lead</h4>
                     <div>
-                      <Label htmlFor="approvalNotes">Approval Notes (Optional)</Label>
+                      <Label htmlFor="approvalNotes" className="text-sm">Approval Notes (Optional)</Label>
                       <Textarea
                         id="approvalNotes"
                         value={approvalNotes}
                         onChange={(e) => setApprovalNotes(e.target.value)}
                         placeholder="Add any notes about this approval..."
                         rows={3}
+                        className="text-sm"
                         data-testid="input-approval-notes"
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         onClick={() => approveMutation.mutate()}
                         disabled={approveMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
                         data-testid="button-confirm-approve"
                       >
                         {approveMutation.isPending ? "Approving..." : "Confirm Approval"}
@@ -311,6 +312,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                           setApprovalNotes("");
                         }}
                         variant="outline"
+                        className="min-h-[44px] w-full sm:w-auto"
                         data-testid="button-cancel-approve"
                       >
                         Cancel
@@ -321,13 +323,13 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
 
                 {/* Revised Quote Form */}
                 {showRevisedQuoteForm && (
-                  <div className="space-y-4 p-4 bg-white rounded border border-blue-300">
-                    <h4 className="font-semibold text-blue-700">Give Revised Quote</h4>
-                    <p className="text-sm text-gray-600">
+                  <div className="space-y-4 p-3 sm:p-4 bg-white rounded border border-blue-300">
+                    <h4 className="font-semibold text-sm sm:text-base text-blue-700">Give Revised Quote</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Customer bid: ${inquiry.targetPrice}. Provide your revised price below.
                     </p>
                     <div>
-                      <Label htmlFor="revisedPrice">Revised Price ($)</Label>
+                      <Label htmlFor="revisedPrice" className="text-sm">Revised Price ($)</Label>
                       <Input
                         id="revisedPrice"
                         type="number"
@@ -335,25 +337,27 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                         value={revisedPrice}
                         onChange={(e) => setRevisedPrice(e.target.value)}
                         placeholder="Enter revised price..."
+                        className="text-sm min-h-[44px]"
                         data-testid="input-revised-price"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="revisedNotes">Notes to Customer</Label>
+                      <Label htmlFor="revisedNotes" className="text-sm">Notes to Customer</Label>
                       <Textarea
                         id="revisedNotes"
                         value={approvalNotes}
                         onChange={(e) => setApprovalNotes(e.target.value)}
                         placeholder="Add notes about the revised quote..."
                         rows={3}
+                        className="text-sm"
                         data-testid="input-revised-notes"
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         onClick={() => reviseQuoteMutation.mutate()}
                         disabled={!revisedPrice || reviseQuoteMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto"
                         data-testid="button-confirm-revised-quote"
                       >
                         {reviseQuoteMutation.isPending ? "Sending..." : "Send Revised Quote"}
@@ -365,6 +369,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                           setApprovalNotes("");
                         }}
                         variant="outline"
+                        className="min-h-[44px] w-full sm:w-auto"
                         data-testid="button-cancel-revised-quote"
                       >
                         Cancel

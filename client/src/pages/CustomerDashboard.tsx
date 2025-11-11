@@ -197,17 +197,17 @@ export default function CustomerDashboard() {
   };
 
   const renderDashboardOverview = () => (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-        <p className="text-gray-600">Welcome back, {customer?.firstName} {customer?.lastName}</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
+        <p className="text-sm sm:text-base text-gray-600">Welcome back, {customer?.firstName} {customer?.lastName}</p>
         <p className="text-sm text-gray-500">{customer?.companyName}</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Inquiries</p>
@@ -219,11 +219,11 @@ export default function CustomerDashboard() {
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Saved Products</p>
-                <p className="text-2xl font-bold text-gray-900">{savedProducts?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{savedProducts?.length || 0}</p>
               </div>
               <Heart className="w-8 h-8 text-red-600" />
             </div>
@@ -231,11 +231,11 @@ export default function CustomerDashboard() {
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">High Volume Bids</p>
-                <p className="text-2xl font-bold text-gray-900">{highVolumeBids?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{highVolumeBids?.length || 0}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-blue-600" />
             </div>
@@ -243,11 +243,11 @@ export default function CustomerDashboard() {
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Quotes</p>
-                <p className="text-2xl font-bold text-gray-900">{quotations?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{quotations?.length || 0}</p>
               </div>
               <FileText className="w-8 h-8 text-green-600" />
             </div>
@@ -258,29 +258,29 @@ export default function CustomerDashboard() {
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your latest inquiries and updates</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+          <CardDescription className="text-sm">Your latest inquiries and updates</CardDescription>
         </CardHeader>
         <CardContent>
           {inquiries?.inquiries && inquiries.inquiries.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {inquiries.inquiries.slice(0, 3).map((inquiry: any) => (
-                <div key={inquiry.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <MessageSquare className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium">{inquiry.inquiryId}</p>
-                      <p className="text-sm text-gray-500">{inquiry.productName}</p>
+                <div key={inquiry.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <MessageSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate">{inquiry.inquiryId}</p>
+                      <p className="text-sm text-gray-500 truncate">{inquiry.productName}</p>
                     </div>
                   </div>
-                  <Badge className={`${getStatusColor(inquiry.status)}`}>
+                  <Badge className={`${getStatusColor(inquiry.status)} shrink-0`}>
                     {inquiry.status}
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No recent activity</p>
+            <p className="text-sm sm:text-base text-gray-500">No recent activity</p>
           )}
         </CardContent>
       </Card>
@@ -288,10 +288,10 @@ export default function CustomerDashboard() {
   );
 
   const renderInquiries = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Inquiries & Bids</h1>
-        <Button>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Inquiries & Bids</h1>
+        <Button className="min-h-[44px] w-full sm:w-auto" data-testid="button-new-inquiry">
           <Plus className="w-4 h-4 mr-2" />
           New Inquiry
         </Button>
@@ -299,31 +299,31 @@ export default function CustomerDashboard() {
 
       {/* Tabbed Interface */}
       <Tabs defaultValue="inquiries" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="inquiries">My Enquiry</TabsTrigger>
           <TabsTrigger value="high-volume-bids">High Volume Bid</TabsTrigger>
           <TabsTrigger value="received-quotes">Received Quotes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inquiries" className="mt-6">
+        <TabsContent value="inquiries" className="mt-4 sm:mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <MessageSquare className="w-5 h-5" />
                 My Enquiry
               </CardTitle>
-              <CardDescription>All submitted inquiries and requests</CardDescription>
+              <CardDescription className="text-sm">All submitted inquiries and requests</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Search and Filter */}
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     placeholder="Search my enquiries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 min-h-[44px]"
                   />
                 </div>
               </div>
@@ -394,23 +394,23 @@ export default function CustomerDashboard() {
                         </div>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" data-testid={`button-view-inquiry-${inquiry.id}`}>
+                            <Button variant="outline" size="sm" className="min-h-[44px]" data-testid={`button-view-inquiry-${inquiry.id}`}>
                               <Eye className="w-4 h-4 mr-1" />
                               View Details
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                          <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>Inquiry Details - {inquiry.inquiryId}</DialogTitle>
-                              <DialogDescription>
+                              <DialogTitle className="text-base sm:text-lg">Inquiry Details - {inquiry.inquiryId}</DialogTitle>
+                              <DialogDescription className="text-sm">
                                 Complete inquiry information and status
                               </DialogDescription>
                             </DialogHeader>
                             
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                               {/* Inquiry Header */}
-                              <div className="border-b pb-4">
-                                <div className="grid grid-cols-2 gap-4">
+                              <div className="border-b pb-3 sm:pb-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                   <div>
                                     <h3 className="font-semibold mb-2">Inquiry Information</h3>
                                     <div className="space-y-1 text-sm">
@@ -685,12 +685,12 @@ export default function CustomerDashboard() {
                                 View Details
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>High Volume Bid Details - {bid.inquiryId}</DialogTitle>
+                                <DialogTitle className="text-base sm:text-lg">High Volume Bid Details - {bid.inquiryId}</DialogTitle>
                               </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3 sm:space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                   <div>
                                     <p className="text-sm text-gray-600">Bid ID</p>
                                     <p className="font-medium">{bid.inquiryId}</p>
@@ -876,11 +876,11 @@ export default function CustomerDashboard() {
                                   Track Progress
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
+                              <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                                 <DialogHeader>
-                                  <DialogTitle>Bid Progress - {bid.inquiryId}</DialogTitle>
+                                  <DialogTitle className="text-base sm:text-lg">Bid Progress - {bid.inquiryId}</DialogTitle>
                                 </DialogHeader>
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                   <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                                     <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">✓</div>
                                     <div>
@@ -1051,18 +1051,18 @@ export default function CustomerDashboard() {
                                 View Details
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>Quotation Details - {quotation.quotationId}</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle className="text-base sm:text-lg">Quotation Details - {quotation.quotationId}</DialogTitle>
+                                <DialogDescription className="text-sm">
                                   Complete quotation information and pricing details
                                 </DialogDescription>
                               </DialogHeader>
                               
-                              <div className="space-y-6">
+                              <div className="space-y-4 sm:space-y-6">
                                 {/* Quotation Header */}
-                                <div className="border-b pb-4">
-                                  <div className="grid grid-cols-2 gap-4">
+                                <div className="border-b pb-3 sm:pb-4">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     <div>
                                       <h3 className="font-semibold mb-2">Quotation Information</h3>
                                       <div className="space-y-1 text-sm">
@@ -1412,20 +1412,20 @@ export default function CustomerDashboard() {
                             View Details
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
                               <FileText className="w-5 h-5" />
                               Quotation Details - {quotation.quotationId}
                             </DialogTitle>
-                            <DialogDescription>
+                            <DialogDescription className="text-sm">
                               Complete quotation information and terms
                             </DialogDescription>
                           </DialogHeader>
                           
-                          <div className="space-y-6">
+                          <div className="space-y-4 sm:space-y-6">
                             {/* Header Section */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                               <div>
                                 <h4 className="font-semibold text-sm text-gray-600">Quotation ID</h4>
                                 <p className="text-lg font-bold">{quotation.quotationId}</p>
@@ -1858,12 +1858,12 @@ export default function CustomerDashboard() {
                           View Details
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>High Volume Bid Details - {bid.inquiryId}</DialogTitle>
+                          <DialogTitle className="text-base sm:text-lg">High Volume Bid Details - {bid.inquiryId}</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3 sm:space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
                               <p className="text-sm text-gray-600">Bid ID</p>
                               <p className="font-medium">{bid.inquiryId}</p>
@@ -1949,11 +1949,11 @@ export default function CustomerDashboard() {
                             Track Progress
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                           <DialogHeader>
-                            <DialogTitle>Bid Progress - {bid.inquiryId}</DialogTitle>
+                            <DialogTitle className="text-base sm:text-lg">Bid Progress - {bid.inquiryId}</DialogTitle>
                           </DialogHeader>
-                          <div className="space-y-4">
+                          <div className="space-y-3 sm:space-y-4">
                             <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">✓</div>
                               <div>
@@ -2141,7 +2141,7 @@ export default function CustomerDashboard() {
       
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Render main content based on route */}
           {renderMainContent()}
         </div>
@@ -2149,16 +2149,16 @@ export default function CustomerDashboard() {
 
       {/* Sample Request Tracking Dialog */}
       <Dialog open={showSampleTrackingDialog} onOpenChange={setShowSampleTrackingDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sample Request Tracking</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Sample Request Tracking</DialogTitle>
+            <DialogDescription className="text-sm">
               Request ID: {selectedSampleRequest?.requestId}
             </DialogDescription>
           </DialogHeader>
           
           {selectedSampleRequest && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Visual Timeline */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
                 <h3 className="font-semibold mb-4 text-gray-900">Tracking Status</h3>

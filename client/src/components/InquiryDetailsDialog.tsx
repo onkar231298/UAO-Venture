@@ -60,9 +60,9 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <span>Inquiry Details - INQ-{inquiry.id}</span>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               {getStatusBadge(inquiry.status || 'pending')}
               {getUrgencyBadge(inquiry.urgency || 'normal')}
             </div>
@@ -79,7 +79,7 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-gray-500" />
@@ -125,7 +125,7 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500">Product</p>
@@ -190,7 +190,7 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <div className="flex items-center space-x-2">
                     <CalendarDays className="w-4 h-4 text-gray-500" />
@@ -250,6 +250,7 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               onClick={() => onConvertToLead(inquiry)}
               disabled={isConvertingToLead}
               data-testid="button-convert-to-lead-dialog"
+              className="min-h-[44px] w-full sm:w-auto"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               {isConvertingToLead ? 'Converting...' : 'Convert to Lead'}

@@ -59,7 +59,7 @@ function DroppableColumn({ id, children }: DroppableColumnProps) {
   });
 
   return (
-    <div ref={setNodeRef} className="flex flex-col w-80 shrink-0 h-full">
+    <div ref={setNodeRef} className="flex flex-col min-w-[280px] sm:min-w-[320px] shrink-0 h-full">
       {children}
     </div>
   );
@@ -429,54 +429,56 @@ export default function LeadManagement() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Lead Management</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">Manage your B2B sales pipeline</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* View Toggle */}
             <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1">
               <Button
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
-                className="h-8"
+                className="h-8 px-2 sm:px-3"
                 data-testid="button-view-list"
               >
-                <List className="h-4 w-4 mr-1" />
-                List
+                <List className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">List</span>
               </Button>
               <Button
                 variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('kanban')}
-                className="h-8"
+                className="h-8 px-2 sm:px-3"
                 data-testid="button-view-kanban"
               >
-                <Kanban className="h-4 w-4 mr-1" />
-                Board
+                <Kanban className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Board</span>
               </Button>
             </div>
             <BulkLeadUpload />
             <Button
               variant="outline"
+              size="sm"
               onClick={handleManualRefresh}
               disabled={isRefreshing}
               data-testid="button-refresh-leads"
+              className="hidden sm:flex"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Lead
+            <Button size="sm" data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Create Lead</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -525,8 +527,8 @@ export default function LeadManagement() {
 
         {/* Filters */}
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <div className="relative flex-1 min-w-full sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search leads, companies..."
@@ -537,7 +539,7 @@ export default function LeadManagement() {
               />
             </div>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[150px]" data-testid="select-priority-filter">
+              <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-priority-filter">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -548,7 +550,7 @@ export default function LeadManagement() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+              <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -561,7 +563,7 @@ export default function LeadManagement() {
             </Select>
             {canAssignLeads && (
               <Select value={salesRepFilter} onValueChange={setSalesRepFilter}>
-                <SelectTrigger className="w-[200px]" data-testid="select-salesrep-filter">
+                <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-salesrep-filter">
                   <SelectValue placeholder="Sales Rep" />
                 </SelectTrigger>
                 <SelectContent>
@@ -575,9 +577,11 @@ export default function LeadManagement() {
               </Select>
             )}
             <Button 
-              variant="outline" 
+              variant="outline"
+              size="sm"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               data-testid="button-more-filters"
+              className="w-full sm:w-auto"
             >
               <Filter className="h-4 w-4 mr-2" />
               {showAdvancedFilters ? 'Less' : 'More'} Filters
@@ -586,9 +590,9 @@ export default function LeadManagement() {
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div className="flex flex-wrap gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-[180px]" data-testid="select-source-filter">
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-source-filter">
                   <SelectValue placeholder="Lead Source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -605,7 +609,7 @@ export default function LeadManagement() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-[180px]" data-testid="button-stage-filter">
+                  <Button variant="outline" className="w-full sm:w-[180px]" data-testid="button-stage-filter">
                     <Filter className="h-4 w-4 mr-2" />
                     Stages {stageFilter.length > 0 && `(${stageFilter.length})`}
                   </Button>
@@ -651,13 +655,13 @@ export default function LeadManagement() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   placeholder="From Date"
-                  className="w-[160px]"
+                  className="w-full sm:w-[160px]"
                   data-testid="input-date-from"
                 />
                 <Input
@@ -665,13 +669,14 @@ export default function LeadManagement() {
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   placeholder="To Date"
-                  className="w-[160px]"
+                  className="w-full sm:w-[160px]"
                   data-testid="input-date-to"
                 />
               </div>
 
               <Button 
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setSearchTerm("");
                   setPriorityFilter("all");
@@ -683,6 +688,7 @@ export default function LeadManagement() {
                   setDateTo("");
                 }}
                 data-testid="button-clear-filters"
+                className="w-full sm:w-auto"
               >
                 Clear All Filters
               </Button>
@@ -705,7 +711,7 @@ export default function LeadManagement() {
           </div>
         ) : (
           <>
-            <div className="absolute top-4 right-8 flex items-center gap-2 text-sm text-gray-500 z-10 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-md shadow-sm">
+            <div className="absolute top-4 right-8 hidden md:flex items-center gap-2 text-sm text-gray-500 z-10 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-md shadow-sm">
               <span>Drag cards to update stage</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -719,8 +725,8 @@ export default function LeadManagement() {
               onDragEnd={handleDragEnd}
               onDragCancel={handleDragCancel}
             >
-          <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-4 scroll-smooth">
-            <div className="flex gap-4 h-full min-w-max pb-4">
+          <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-gray-50 dark:bg-gray-900 p-2 sm:p-4 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-3 sm:gap-4 h-full min-w-max pb-4">
               {PIPELINE_STAGES.map((stage) => {
                 const stageLeads = groupedLeads[stage.id] || [];
                 const leadIds = stageLeads.map((lead: LeadWithDetails) => lead.id.toString());
@@ -730,15 +736,15 @@ export default function LeadManagement() {
                     <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
                       <div data-testid={`column-${stage.id}`} className="h-full flex flex-col">
                         <div className="mb-3">
-                          <div className={`rounded-lg px-3 py-2 ${stage.color} flex items-center justify-between`}>
-                            <span className="font-semibold text-sm">{stage.label}</span>
-                            <Badge variant="secondary" className="bg-white/50">
+                          <div className={`rounded-lg px-2 sm:px-3 py-2 ${stage.color} flex items-center justify-between`}>
+                            <span className="font-semibold text-xs sm:text-sm">{stage.label}</span>
+                            <Badge variant="secondary" className="bg-white/50 text-xs">
                               {stageLeads.length}
                             </Badge>
                           </div>
                         </div>
                         
-                        <div className="flex-1 space-y-3 overflow-y-auto pr-2 min-h-[200px]">
+                        <div className="flex-1 space-y-2 sm:space-y-3 overflow-y-auto pr-1 sm:pr-2 min-h-[200px]">
                           {stageLeads.map((lead: LeadWithDetails) => (
                             <DraggableLeadCard
                               key={lead.id}
@@ -753,7 +759,7 @@ export default function LeadManagement() {
                             />
                           ))}
                           {stageLeads.length === 0 && (
-                            <div className="text-center text-sm text-gray-400 mt-8">
+                            <div className="text-center text-xs sm:text-sm text-gray-400 mt-8">
                               Drop leads here
                             </div>
                           )}

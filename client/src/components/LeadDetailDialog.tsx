@@ -61,22 +61,22 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <DialogTitle className="text-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1">
+              <DialogTitle className="text-lg sm:text-2xl">
                 {lead.company?.companyName || "Unknown Company"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm">
                 {lead.leadId} • Created {lead.createdAt ? format(new Date(lead.createdAt), 'MMM d, yyyy') : 'N/A'}
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
-              <Badge className={getPriorityColor(lead.priority || "warm")}>
+            <div className="flex flex-wrap gap-2">
+              <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
                 {lead.priority || "warm"}
               </Badge>
-              <Badge variant="outline">
+              <Badge variant="outline" className="text-xs">
                 {lead.currentStage ? formatStageName(lead.currentStage) : 'N/A'}
               </Badge>
             </div>
@@ -84,21 +84,21 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Activity Timeline</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
+            <TabsTrigger value="products" className="text-xs sm:text-sm py-2">Products</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
             {/* Company Information */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Building className="h-4 w-4" />
                   Company Information
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Company Name</p>
                     <p className="font-medium">{lead.company?.companyName || "N/A"}</p>
@@ -127,12 +127,12 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
             {/* Contact Information */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Primary Contact
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Contact Name</p>
                     <p className="font-medium">{lead.contactPerson?.contactName || "N/A"}</p>
@@ -167,12 +167,12 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
             {/* Deal Information */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
                   Deal Information
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Expected Order Value</p>
                     <p className="font-medium text-lg">{formatCurrency(lead.expectedOrderValue)}</p>
@@ -195,7 +195,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
             {/* Sales Team & Assignment */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Sales Team & Assignment
@@ -243,7 +243,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
             {/* Special Requirements */}
             {lead.specialRequirements && (
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Special Requirements
@@ -261,13 +261,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
           <TabsContent value="products" className="space-y-4">
             {productsLoading ? (
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <p className="text-gray-500">Loading products...</p>
                 </CardContent>
               </Card>
             ) : productIds.length === 0 ? (
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <p className="text-gray-500">No products associated with this lead</p>
                 </CardContent>
               </Card>
@@ -277,11 +277,11 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 <div className="grid gap-4">
                   {products.map((product) => (
                     <Card key={product.id} data-testid={`product-card-${product.id}`}>
-                      <CardContent className="p-6">
-                        <div className="flex gap-4">
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
                           {/* Product Image */}
                           {product.mainImage && (
-                            <div className="w-24 h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                            <div className="w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
                               <img 
                                 src={product.mainImage} 
                                 alt={product.name}
@@ -293,22 +293,22 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                           
                           {/* Product Details */}
                           <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                               <div>
-                                <h4 className="font-semibold text-lg" data-testid={`product-name-${product.id}`}>
+                                <h4 className="font-semibold text-base sm:text-lg" data-testid={`product-name-${product.id}`}>
                                   {product.name}
                                 </h4>
-                                <p className="text-sm text-gray-500" data-testid={`product-id-${product.id}`}>
+                                <p className="text-xs sm:text-sm text-gray-500" data-testid={`product-id-${product.id}`}>
                                   SKU: {product.productId}
                                 </p>
                               </div>
-                              <Badge variant="outline" data-testid={`product-status-${product.id}`}>
+                              <Badge variant="outline" className="text-xs w-fit" data-testid={`product-status-${product.id}`}>
                                 {product.status || 'Active'}
                               </Badge>
                             </div>
 
                             {/* Product Info Grid */}
-                            <div className="grid grid-cols-2 gap-3 mt-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                               {lead.requiredQuantity && (
                                 <div>
                                   <p className="text-xs text-gray-500">Required Quantity</p>
@@ -357,7 +357,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
                 {/* Deal Summary */}
                 <Card>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
                       Deal Summary
@@ -389,7 +389,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 {/* Special Requirements */}
                 {lead.specialRequirements && (
                   <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 sm:p-6">
                       <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         Additional Details

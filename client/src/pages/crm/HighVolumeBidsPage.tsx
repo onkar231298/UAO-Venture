@@ -152,11 +152,11 @@ export default function HighVolumeBidsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">High Volume Bids</h1>
-          <p className="text-gray-600">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">High Volume Bids</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             Manage large orders requiring special pricing and manager approval
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function HighVolumeBidsPage() {
           onClick={handleRefresh}
           disabled={isRefreshing}
           variant="outline"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 min-h-[44px] w-full sm:w-auto"
           data-testid="button-refresh-bids"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -174,17 +174,19 @@ export default function HighVolumeBidsPage() {
 
       {/* Filter Tabs */}
       <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all" data-testid="tab-all">
-            All Bids ({highVolumeBids.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending" data-testid="tab-pending">
-            Pending Approval ({highVolumeBids.filter((b: any) => b.bidStatus === 'pending').length})
-          </TabsTrigger>
-          <TabsTrigger value="approved" data-testid="tab-approved">
-            Approved ({highVolumeBids.filter((b: any) => b.bidStatus === 'approved').length})
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
+            <TabsTrigger value="all" data-testid="tab-all" className="whitespace-nowrap">
+              All Bids ({highVolumeBids.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" data-testid="tab-pending" className="whitespace-nowrap">
+              Pending Approval ({highVolumeBids.filter((b: any) => b.bidStatus === 'pending').length})
+            </TabsTrigger>
+            <TabsTrigger value="approved" data-testid="tab-approved" className="whitespace-nowrap">
+              Approved ({highVolumeBids.filter((b: any) => b.bidStatus === 'approved').length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       {/* Bids List */}
@@ -202,67 +204,69 @@ export default function HighVolumeBidsPage() {
         <div className="space-y-4">
           {filteredBids.map((bid: any) => (
             <Card key={bid.id} className="hover:shadow-md transition-shadow" data-testid={`bid-card-${bid.id}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{bid.inquiryId}</h3>
-                      <Badge className={getStatusColor(bid.status)}>
-                        {bid.status || 'pending'}
-                      </Badge>
-                      <Badge className={`${getUrgencyColor(bid.urgency)} border`}>
-                        {bid.urgency || 'normal'}
-                      </Badge>
-                      {bid.bidStatus === 'approved' && (
-                        <Badge className="bg-green-100 text-green-800 border border-green-200">
-                          <CheckCheck className="w-3 h-3 mr-1" />
-                          Approved
+                    <div className="mb-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{bid.inquiryId}</h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={getStatusColor(bid.status)}>
+                          {bid.status || 'pending'}
                         </Badge>
-                      )}
-                      {bid.bidStatus === 'rejected' && (
-                        <Badge className="bg-red-100 text-red-800 border border-red-200">
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Rejected
+                        <Badge className={`${getUrgencyColor(bid.urgency)} border`}>
+                          {bid.urgency || 'normal'}
                         </Badge>
-                      )}
-                      {bid.bidStatus === 'in_discussion' && (
-                        <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          In Discussion
-                        </Badge>
-                      )}
+                        {bid.bidStatus === 'approved' && (
+                          <Badge className="bg-green-100 text-green-800 border border-green-200">
+                            <CheckCheck className="w-3 h-3 mr-1" />
+                            Approved
+                          </Badge>
+                        )}
+                        {bid.bidStatus === 'rejected' && (
+                          <Badge className="bg-red-100 text-red-800 border border-red-200">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Rejected
+                          </Badge>
+                        )}
+                        {bid.bidStatus === 'in_discussion' && (
+                          <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            In Discussion
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="grid md:grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex items-center gap-2 text-gray-600">
-                        <User className="w-4 h-4" />
-                        <span>{bid.contactName}</span>
+                        <User className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{bid.contactName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
-                        <Building className="w-4 h-4" />
-                        <span>{bid.companyName}</span>
+                        <Building className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{bid.companyName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
-                        <Package className="w-4 h-4" />
-                        <span>{bid.productName}</span>
+                        <Package className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{bid.productName}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Quantity</p>
-                    <p className="font-semibold text-gray-900">{bid.quantity} {bid.unit}</p>
+                    <p className="font-semibold text-gray-900 text-sm sm:text-base">{bid.quantity} {bid.unit}</p>
                   </div>
                   {bid.targetPrice && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Target Price</p>
-                      <p className="font-semibold text-gray-900">${bid.targetPrice}</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">${bid.targetPrice}</p>
                     </div>
                   )}
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Requested</p>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-xs sm:text-sm text-gray-700">
                       {formatDistanceToNow(new Date(bid.createdAt), { addSuffix: true })}
                     </p>
                   </div>
@@ -288,11 +292,11 @@ export default function HighVolumeBidsPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   {bid.bidStatus === 'pending' && (
                     <Button
                       onClick={() => handleApprove(bid)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 min-h-[44px]"
                       data-testid={`button-approve-${bid.id}`}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
@@ -302,10 +306,11 @@ export default function HighVolumeBidsPage() {
                   <Button
                     variant="outline"
                     onClick={() => handleDiscussion(bid)}
+                    className="min-h-[44px]"
                     data-testid={`button-discussion-${bid.id}`}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
-                    {bid.discussionNotes ? "Update Discussion" : "Add Discussion Notes"}
+                    <span className="truncate">{bid.discussionNotes ? "Update Discussion" : "Add Discussion Notes"}</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -313,6 +318,7 @@ export default function HighVolumeBidsPage() {
                       setSelectedInquiry(bid);
                       setShowDetailsDialog(true);
                     }}
+                    className="min-h-[44px]"
                     data-testid={`button-view-${bid.id}`}
                   >
                     <FileText className="w-4 h-4 mr-2" />
@@ -327,34 +333,39 @@ export default function HighVolumeBidsPage() {
 
       {/* Approval Dialog */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent data-testid="dialog-approval">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]" data-testid="dialog-approval">
           <DialogHeader>
-            <DialogTitle>Approve High Volume Bid</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Approve High Volume Bid</DialogTitle>
+            <DialogDescription className="text-sm">
               {selectedInquiry?.inquiryId} - {selectedInquiry?.companyName}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="approval-notes">Approval Notes</Label>
+              <Label htmlFor="approval-notes" className="text-sm font-medium">Approval Notes</Label>
               <Textarea
                 id="approval-notes"
                 placeholder="Add notes about this approval (pricing agreed, special terms, etc.)"
                 value={approvalNotes}
                 onChange={(e) => setApprovalNotes(e.target.value)}
                 rows={4}
+                className="mt-2 text-sm"
                 data-testid="input-approval-notes"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowApprovalDialog(false)}
+              className="w-full sm:w-auto min-h-[44px]"
+            >
               Cancel
             </Button>
             <Button
               onClick={() => approveMutation.mutate({ id: selectedInquiry.id, notes: approvalNotes })}
               disabled={approveMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px]"
               data-testid="button-confirm-approve"
             >
               {approveMutation.isPending ? (
@@ -369,33 +380,39 @@ export default function HighVolumeBidsPage() {
 
       {/* Discussion Notes Dialog */}
       <Dialog open={showDiscussionDialog} onOpenChange={setShowDiscussionDialog}>
-        <DialogContent data-testid="dialog-discussion">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]" data-testid="dialog-discussion">
           <DialogHeader>
-            <DialogTitle>Discussion Notes</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Discussion Notes</DialogTitle>
+            <DialogDescription className="text-sm">
               {selectedInquiry?.inquiryId} - {selectedInquiry?.companyName}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="discussion-notes">Notes</Label>
+              <Label htmlFor="discussion-notes" className="text-sm font-medium">Notes</Label>
               <Textarea
                 id="discussion-notes"
                 placeholder="Record discussions with customer about pricing, quantities, delivery terms, etc."
                 value={discussionNotes}
                 onChange={(e) => setDiscussionNotes(e.target.value)}
                 rows={6}
+                className="mt-2 text-sm"
                 data-testid="input-discussion-notes"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDiscussionDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDiscussionDialog(false)}
+              className="w-full sm:w-auto min-h-[44px]"
+            >
               Cancel
             </Button>
             <Button
               onClick={() => updateDiscussionMutation.mutate({ id: selectedInquiry.id, notes: discussionNotes })}
               disabled={updateDiscussionMutation.isPending}
+              className="w-full sm:w-auto min-h-[44px]"
               data-testid="button-save-discussion"
             >
               {updateDiscussionMutation.isPending ? (

@@ -346,16 +346,18 @@ export default function WebsiteManagement() {
 
           {/* Main Content Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-8">
-              <TabsTrigger value="products">Products</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="hero-slider">Hero Slider</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="schema">Schema Validator</TabsTrigger>
-              <TabsTrigger value="seo">SEO</TabsTrigger>
-              <TabsTrigger value="global-seo">Global SEO</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 sm:mx-0 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList className="inline-flex min-w-min gap-2 w-full sm:w-auto px-4 sm:px-0">
+                <TabsTrigger value="products" className="snap-start min-w-[100px]">Products</TabsTrigger>
+                <TabsTrigger value="categories" className="snap-start min-w-[100px]">Categories</TabsTrigger>
+                <TabsTrigger value="hero-slider" className="snap-start min-w-[100px]">Hero Slider</TabsTrigger>
+                <TabsTrigger value="tags" className="snap-start min-w-[100px]">Tags</TabsTrigger>
+                <TabsTrigger value="schema" className="snap-start min-w-[120px]">Schema Validator</TabsTrigger>
+                <TabsTrigger value="seo" className="snap-start min-w-[100px]">SEO</TabsTrigger>
+                <TabsTrigger value="global-seo" className="snap-start min-w-[100px]">Global SEO</TabsTrigger>
+                <TabsTrigger value="analytics" className="snap-start min-w-[100px]">Analytics</TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Products Management Tab */}
             <TabsContent value="products" className="mt-6">

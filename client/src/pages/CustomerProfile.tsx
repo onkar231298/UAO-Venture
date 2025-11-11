@@ -15,14 +15,14 @@ export default function CustomerProfile() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <Card className="max-w-md mx-auto">
             <CardHeader className="text-center">
               <CardTitle>Customer Access Required</CardTitle>
               <CardDescription>Please log in to view your profile</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => window.location.href = '/login'}>
+              <Button onClick={() => window.location.href = '/login'} className="min-h-[44px]" data-testid="button-go-to-login">
                 Go to Login
               </Button>
             </CardContent>
@@ -36,28 +36,28 @@ export default function CustomerProfile() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
             Welcome, {customer.firstName} {customer.lastName}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Manage your profile and explore our premium organic ingredients
           </p>
         </div>
 
         {/* Customer Profile Info */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <User className="w-5 h-5" />
                   Customer Profile
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">Full Name</label>
@@ -129,28 +129,28 @@ export default function CustomerProfile() {
             </Card>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <MessageSquare className="w-5 h-5" />
                   Quick Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-browse-products">
                   <Package className="w-4 h-4 mr-2" />
                   Browse Products
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-submit-inquiry">
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Submit Inquiry
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-download-catalog">
                   <FileText className="w-4 h-4 mr-2" />
                   Download Catalog
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-request-quote">
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Request Quote
                 </Button>
@@ -159,23 +159,25 @@ export default function CustomerProfile() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Account Actions</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Account Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                   onClick={() => setLocation('/products')}
+                  data-testid="button-explore-products"
                 >
                   Explore Products
                 </Button>
                 <Button 
                   variant="destructive" 
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                   onClick={() => {
                     logoutCustomer();
                     setLocation('/');
                   }}
+                  data-testid="button-logout"
                 >
                   Logout
                 </Button>
@@ -187,13 +189,13 @@ export default function CustomerProfile() {
         {/* Recent Activity Placeholder */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your recent interactions with BFI Organic</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+            <CardDescription className="text-sm">Your recent interactions with BFI Organic</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-gray-500">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No recent activity to display</p>
+              <p className="text-base sm:text-lg">No recent activity to display</p>
               <p className="text-sm">Start exploring our products to see your activity here</p>
             </div>
           </CardContent>

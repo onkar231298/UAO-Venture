@@ -280,31 +280,33 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {canAssignLeads && (
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={isAllSelected || isSomeSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Select all leads"
-                    data-testid="checkbox-select-all"
-                  />
-                </TableHead>
-              )}
-              <TableHead className="w-[120px]">Lead ID</TableHead>
-              <SortHeader column="companyName">Company</SortHeader>
-              <SortHeader column="contactName">Contact</SortHeader>
-              <SortHeader column="currentStage">Stage</SortHeader>
-              <SortHeader column="priority">Priority</SortHeader>
-              <SortHeader column="expectedOrderValue">Value</SortHeader>
-              <SortHeader column="assignedRep">Assigned To</SortHeader>
-              <SortHeader column="createdAt">Created</SortHeader>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+      <div className="flex-1 overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-hidden sm:rounded-lg">
+            <Table className="min-w-[800px]">
+              <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
+                <TableRow>
+                  {canAssignLeads && (
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={isAllSelected || isSomeSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all leads"
+                        data-testid="checkbox-select-all"
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="w-[120px]">Lead ID</TableHead>
+                  <SortHeader column="companyName">Company</SortHeader>
+                  <SortHeader column="contactName">Contact</SortHeader>
+                  <SortHeader column="currentStage">Stage</SortHeader>
+                  <SortHeader column="priority">Priority</SortHeader>
+                  <SortHeader column="expectedOrderValue">Value</SortHeader>
+                  <SortHeader column="assignedRep">Assigned To</SortHeader>
+                  <SortHeader column="createdAt">Created</SortHeader>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
           <TableBody>
             {paginatedLeads.length === 0 ? (
               <TableRow>
@@ -413,6 +415,8 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
             )}
           </TableBody>
         </Table>
+          </div>
+        </div>
       </div>
 
       {/* Pagination */}

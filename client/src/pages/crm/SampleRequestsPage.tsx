@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Package, Search, Check, X, Truck, Eye, Filter, RefreshCw } from "lucide-react";
@@ -253,111 +254,7 @@ export default function SampleRequestsPage() {
                 <div key={i} className="animate-pulse bg-gray-100 h-24 rounded"></div>
               ))}
             </div>
-          ) : filteredRequests.length > 0 ? (
-            <div className="space-y-4">
-              {filteredRequests.map((request) => (
-                <div 
-                  key={request.id} 
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  data-testid={`card-request-${request.id}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-gray-900" data-testid={`text-request-id-${request.id}`}>
-                        {request.requestId}
-                      </span>
-                      {getStatusBadge(request.status)}
-                      <span className="text-xs text-gray-500">
-                        {format(new Date(request.createdAt), "MMM dd, yyyy")}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedRequest(request);
-                          setShowDetailsDialog(true);
-                        }}
-                        data-testid={`button-view-${request.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                      {request.status === "pending" && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleAction(request, "approve")}
-                            className="text-green-600 hover:text-green-700"
-                            data-testid={`button-approve-${request.id}`}
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleAction(request, "reject")}
-                            className="text-red-600 hover:text-red-700"
-                            data-testid={`button-reject-${request.id}`}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {request.status === "approved" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAction(request, "ship")}
-                          className="text-blue-600 hover:text-blue-700"
-                          data-testid={`button-ship-${request.id}`}
-                        >
-                          <Truck className="w-4 h-4 mr-1" />
-                          Mark Shipped
-                        </Button>
-                      )}
-                      {request.status === "shipped" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAction(request, "deliver")}
-                          className="text-green-600 hover:text-green-700"
-                          data-testid={`button-deliver-${request.id}`}
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Mark as Delivered
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Customer:</span>
-                      <p className="font-medium" data-testid={`text-customer-${request.id}`}>
-                        {request.contactName}
-                      </p>
-                      <p className="text-gray-500 text-xs">{request.companyName}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Contact:</span>
-                      <p className="font-medium">{request.emailAddress}</p>
-                      <p className="text-gray-500 text-xs">{request.phoneNumber}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Sample Size:</span>
-                      <p className="font-medium">{request.sampleSize || "25g"}</p>
-                      <p className="text-gray-500 text-xs">Purpose: {request.purpose}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
+          ) : filteredRequests.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
@@ -366,6 +263,123 @@ export default function SampleRequestsPage() {
                   ? "Try adjusting your filters"
                   : "New sample requests will appear here"}
               </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden sm:rounded-lg">
+                  <Table className="min-w-[800px]">
+                    <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
+                      <TableRow>
+                        <TableHead>Request ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Sample Size</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((request) => (
+                        <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
+                          <TableCell className="font-semibold" data-testid={`text-request-id-${request.id}`}>
+                            {request.requestId}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium" data-testid={`text-customer-${request.id}`}>
+                                {request.contactName}
+                              </p>
+                              <p className="text-xs text-gray-500">{request.purpose}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{request.companyName}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm">{request.emailAddress}</p>
+                              <p className="text-xs text-gray-500">{request.phoneNumber}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{request.sampleSize || "25g"}</span>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(request.status)}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs text-gray-500">
+                              {format(new Date(request.createdAt), "MMM dd, yyyy")}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setShowDetailsDialog(true);
+                                }}
+                                data-testid={`button-view-${request.id}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {request.status === "pending" && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleAction(request, "approve")}
+                                    className="text-green-600 hover:text-green-700"
+                                    data-testid={`button-approve-${request.id}`}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleAction(request, "reject")}
+                                    className="text-red-600 hover:text-red-700"
+                                    data-testid={`button-reject-${request.id}`}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {request.status === "approved" && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleAction(request, "ship")}
+                                  className="text-blue-600 hover:text-blue-700"
+                                  data-testid={`button-ship-${request.id}`}
+                                >
+                                  <Truck className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {request.status === "shipped" && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleAction(request, "deliver")}
+                                  className="text-green-600 hover:text-green-700"
+                                  data-testid={`button-deliver-${request.id}`}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

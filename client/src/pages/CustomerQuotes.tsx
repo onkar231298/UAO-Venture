@@ -22,14 +22,14 @@ export default function CustomerQuotes() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <Card className="max-w-md mx-auto">
             <CardHeader className="text-center">
               <CardTitle>Customer Access Required</CardTitle>
               <CardDescription>Please log in to view your quotations</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => setLocation('/login')}>
+              <Button onClick={() => setLocation('/login')} className="min-h-[44px]" data-testid="button-go-to-login">
                 Go to Login
               </Button>
             </CardContent>
@@ -54,11 +54,11 @@ export default function CustomerQuotes() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-6">
             <FileText className="w-6 h-6 text-green-600" />
-            <h1 className="text-2xl font-bold text-gray-900">My Quotations</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">My Quotations</h1>
           </div>
 
           {isLoading || !quotations ? (
@@ -77,11 +77,11 @@ export default function CustomerQuotes() {
             <Card>
               <CardContent className="py-12 text-center">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No quotations yet</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No quotations yet</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   Request quotes for products and they will appear here.
                 </p>
-                <Button onClick={() => setLocation('/products')}>
+                <Button onClick={() => setLocation('/products')} className="min-h-[44px]" data-testid="button-browse-products">
                   Browse Products
                 </Button>
               </CardContent>
@@ -90,51 +90,53 @@ export default function CustomerQuotes() {
             <div className="space-y-4">
               {(Array.isArray(quotations) ? quotations : []).map((quotation: any) => (
                 <Card key={quotation.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <FileText className="w-5 h-5 text-green-600" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                             Quote #{quotation.quotationId}
                           </h3>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 truncate">
                             {quotation.productName || 'Product Quotation'}
                           </p>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(quotation.status || 'pending')}>
+                      <Badge className={`${getStatusColor(quotation.status || 'pending')} shrink-0`}>
                         {quotation.status || 'pending'}
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Quantity</p>
-                        <p className="font-medium">{quotation.quantity} {quotation.unit}</p>
+                        <p className="font-medium text-sm sm:text-base">{quotation.quantity} {quotation.unit}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Price</p>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm sm:text-base">
                           {quotation.totalPrice ? `$${quotation.totalPrice}` : 'Pending'}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Valid Until</p>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm sm:text-base">
                           {quotation.validUntil ? formatDistanceToNow(new Date(quotation.validUntil), { addSuffix: true }) : 'N/A'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Actions</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Actions</p>
                         <div className="flex gap-1">
-                          <Button variant="outline" size="sm" className="h-8">
+                          <Button variant="outline" size="sm" className="min-h-[44px] flex-1 sm:flex-none" data-testid={`button-view-quote-${quotation.id}`}>
                             <Eye className="w-3 h-3" />
+                            <span className="sm:hidden ml-1">View</span>
                           </Button>
-                          <Button variant="outline" size="sm" className="h-8">
+                          <Button variant="outline" size="sm" className="min-h-[44px] flex-1 sm:flex-none" data-testid={`button-download-quote-${quotation.id}`}>
                             <Download className="w-3 h-3" />
+                            <span className="sm:hidden ml-1">Download</span>
                           </Button>
                         </div>
                       </div>
@@ -142,19 +144,19 @@ export default function CustomerQuotes() {
 
                     {quotation.notes && (
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-700">{quotation.notes}</p>
+                        <p className="text-sm text-gray-700 break-words">{quotation.notes}</p>
                       </div>
                     )}
 
                     {quotation.status === 'sent' && (
-                      <div className="flex gap-2 mt-4 pt-4 border-t">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 min-h-[44px]" data-testid={`button-accept-quote-${quotation.id}`}>
                           Accept Quote
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="min-h-[44px]" data-testid={`button-reject-quote-${quotation.id}`}>
                           Reject Quote
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="min-h-[44px]" data-testid={`button-request-changes-${quotation.id}`}>
                           Request Changes
                         </Button>
                       </div>
