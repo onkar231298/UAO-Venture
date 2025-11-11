@@ -2621,9 +2621,9 @@ export class DatabaseStorage implements IStorage {
         leadId: updatedInquiry.crmLeadId,
         activityType: 'negotiation',
         activityDate: new Date(),
-        subject: 'Revised Price Submitted',
-        description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}`,
-        outcome: 'completed',
+        subject: 'Revised Price Submitted to Customer',
+        description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer for approval.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}\n\nStatus: Pending Customer Approval`,
+        outcome: 'pending',
         createdBy: userId || null,
         createdAt: new Date(),
       });
