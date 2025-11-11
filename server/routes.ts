@@ -1458,6 +1458,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bid Revision API endpoints
+  app.get('/api/bid-revisions/:inquiryId', isAuthenticated, async (req: any, res) => {
+    try {
+      const inquiryId = parseInt(req.params.inquiryId);
+      const revisions = await storage.getBidRevisions(inquiryId);
+      res.json(revisions);
+    } catch (error) {
+      console.error("Error fetching bid revisions:", error);
+      res.status(500).json({ message: "Failed to fetch bid revisions" });
+    }
+  });
+
+  app.post('/api/bid-revisions/:revisionId/respond', isAuthenticated, async (req: any, res) => {
+    try {
+      const revisionId = parseInt(req.params.revisionId);
+      const customerId = req.user.claims.sub;
+      const { status, responseNotes } = req.body;
+
+      if (status !== 'accepted' && status !== 'rejected') {
+        return res.status(400).json({ message: "Invalid status. Must be 'accepted' or 'rejected'" });
+      }
+
+      const updatedRevision = await storage.respondToBidRevision(
+        revisionId,
+        customerId,
+        { status, responseNotes }
+      );
+
+      res.json(updatedRevision);
+    } catch (error) {
+      console.error("Error responding to bid revision:", error);
+      res.status(500).json({ message: "Failed to respond to bid revision" });
+    }
+  });
+
   // Update inquiry (for sales team)
   app.put('/api/inquiries/:id', isAuthenticated, async (req: any, res) => {
     try {

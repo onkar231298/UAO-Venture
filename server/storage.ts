@@ -18,6 +18,7 @@ import {
   healthSupportRelations,
   heroSlides,
   sampleRequests,
+  bidRevisions,
   companies,
   companyContacts,
   leads,
@@ -47,6 +48,8 @@ import {
   type ProductWithAll,
   type Inquiry,
   type InsertInquiry,
+  type BidRevision,
+  type InsertBidRevision,
   type Quotation,
   type InsertQuotation,
   type ProductDocument,
@@ -239,6 +242,11 @@ export interface IStorage {
   getInquiry(id: number): Promise<Inquiry | undefined>;
   createInquiry(inquiry: InsertInquiry): Promise<Inquiry>;
   updateInquiry(id: number, inquiry: Partial<InsertInquiry>): Promise<Inquiry>;
+  
+  // Bid Revision operations
+  getBidRevisions(inquiryId: number): Promise<BidRevision[]>;
+  createBidRevision(revision: InsertBidRevision): Promise<BidRevision>;
+  respondToBidRevision(revisionId: number, customerId: string, responseData: { status: 'accepted' | 'rejected'; responseNotes?: string }): Promise<BidRevision>;
   
   // Sample Request operations
   getSampleRequests(filters?: {
@@ -2399,6 +2407,73 @@ export class DatabaseStorage implements IStorage {
     return updatedInquiry;
   }
 
+  // Bid Revision operations
+  async getBidRevisions(inquiryId: number): Promise<BidRevision[]> {
+    const revisions = await db
+      .select()
+      .from(bidRevisions)
+      .where(eq(bidRevisions.inquiryId, inquiryId))
+      .orderBy(desc(bidRevisions.submittedAt));
+    return revisions;
+  }
+
+  async createBidRevision(revision: InsertBidRevision): Promise<BidRevision> {
+    const [newRevision] = await db
+      .insert(bidRevisions)
+      .values({
+        ...revision,
+        status: 'pending',
+        submittedAt: new Date(),
+      })
+      .returning();
+    
+    // Update inquiry's latestRevisionId and bidStatus to 'rev_proposed'
+    await db
+      .update(inquiries)
+      .set({ 
+        latestRevisionId: newRevision.id,
+        bidStatus: 'rev_proposed',
+        updatedAt: new Date(),
+      })
+      .where(eq(inquiries.id, revision.inquiryId));
+    
+    return newRevision;
+  }
+
+  async respondToBidRevision(
+    revisionId: number, 
+    customerId: string, 
+    responseData: { status: 'accepted' | 'rejected'; responseNotes?: string }
+  ): Promise<BidRevision> {
+    const [updatedRevision] = await db
+      .update(bidRevisions)
+      .set({
+        status: responseData.status,
+        respondedBy: customerId,
+        respondedAt: new Date(),
+        responseNotes: responseData.responseNotes || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(bidRevisions.id, revisionId))
+      .returning();
+    
+    if (!updatedRevision) {
+      throw new Error('Bid revision not found');
+    }
+    
+    // Update inquiry bidStatus based on customer response
+    const newBidStatus = responseData.status === 'accepted' ? 'customer_accepted' : 'customer_rejected';
+    await db
+      .update(inquiries)
+      .set({ 
+        bidStatus: newBidStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(inquiries.id, updatedRevision.inquiryId));
+    
+    return updatedRevision;
+  }
+
   // Quotation operations
   async getQuotations(filters?: {
     customerId?: string;
@@ -2600,33 +2675,46 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inquiries.id, id))
       .returning();
     
-    // If this inquiry is linked to a lead and a revised price was provided, update the lead and create activity
-    if (updatedInquiry.crmLeadId && revisedPrice && parseFloat(revisedPrice) > 0) {
+    // If a revised price was provided, create a bid revision
+    if (revisedPrice && parseFloat(revisedPrice) > 0 && userId) {
       const revisedAmount = parseFloat(revisedPrice);
-      const quantity = updatedInquiry.quantity ? parseFloat(updatedInquiry.quantity.toString()) : 1;
-      const expectedOrderValue = revisedAmount * quantity;
       
-      // Update the lead's expected order value
-      await db
-        .update(leads)
-        .set({
-          expectedOrderValue: expectedOrderValue.toString(),
-          currency: currency || 'USD',
-          updatedAt: new Date(),
-        })
-        .where(eq(leads.id, updatedInquiry.crmLeadId));
-      
-      // Create a lead activity for the price revision
-      await db.insert(leadActivities).values({
-        leadId: updatedInquiry.crmLeadId,
-        activityType: 'negotiation',
-        activityDate: new Date(),
-        subject: 'Revised Price Submitted to Customer',
-        description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer for approval.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}\n\nStatus: Pending Customer Approval`,
-        outcome: 'pending',
-        createdBy: userId || null,
-        createdAt: new Date(),
+      // Create bid revision
+      await this.createBidRevision({
+        inquiryId: id,
+        revisedAmount: revisedAmount.toString(),
+        currency: currency || 'USD',
+        notes: notes,
+        submittedBy: userId,
       });
+      
+      // If linked to a lead, update the lead's expected order value and create activity
+      if (updatedInquiry.crmLeadId) {
+        const quantity = updatedInquiry.quantity ? parseFloat(updatedInquiry.quantity.toString()) : 1;
+        const expectedOrderValue = revisedAmount * quantity;
+        
+        // Update the lead's expected order value
+        await db
+          .update(leads)
+          .set({
+            expectedOrderValue: expectedOrderValue.toString(),
+            currency: currency || 'USD',
+            updatedAt: new Date(),
+          })
+          .where(eq(leads.id, updatedInquiry.crmLeadId));
+        
+        // Create a lead activity for the price revision
+        await db.insert(leadActivities).values({
+          leadId: updatedInquiry.crmLeadId,
+          activityType: 'negotiation',
+          activityDate: new Date(),
+          subject: 'Revised Price Submitted to Customer',
+          description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer for approval.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}\n\nStatus: Pending Customer Approval`,
+          outcome: 'pending',
+          createdBy: userId || null,
+          createdAt: new Date(),
+        });
+      }
     }
     
     return updatedInquiry;

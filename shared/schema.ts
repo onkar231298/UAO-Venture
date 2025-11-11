@@ -10,6 +10,7 @@ import {
   decimal,
   boolean,
   uuid,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -493,11 +494,17 @@ export const inquiries = pgTable("inquiries", {
   discussionNotes: text("discussion_notes"), // Track discussions with customer
   approvedAt: timestamp("approved_at"),
   crmLeadId: integer("crm_lead_id"), // Link to CRM lead created after approval
-  latestRevisionId: integer("latest_revision_id").references(() => bidRevisions.id, { onDelete: "set null" }), // FK to bid_revisions, tracks most recent revision
+  latestRevisionId: integer("latest_revision_id"), // FK to bid_revisions, tracks most recent revision
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  latestRevisionFk: foreignKey({
+    columns: [table.latestRevisionId],
+    foreignColumns: [bidRevisions.id],
+    name: "inquiries_latest_revision_fk"
+  }).onDelete("set null"),
+}));
 
 // Bid revisions - Track price negotiation history for high volume bids
 export const bidRevisions = pgTable("bid_revisions", {
