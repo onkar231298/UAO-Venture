@@ -39,6 +39,24 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
     },
   });
 
+  // Fetch quotations for this inquiry to show accepted pricing
+  const { data: quotationsData } = useQuery({
+    queryKey: ['/api/quotations', inquiry?.customerId],
+    enabled: Boolean(inquiry?.customerId && open),
+    queryFn: async () => {
+      const response = await fetch(`/api/customer/quotations/${inquiry.customerId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch quotations');
+      }
+      return response.json();
+    },
+  });
+
+  // Find the accepted quotation for this inquiry
+  const acceptedQuotation = quotationsData?.quotations?.find(
+    (q: any) => q.inquiryId === inquiry?.id && q.status === 'accepted'
+  );
+
   const reviseQuoteMutation = useMutation({
     mutationFn: async () => {
       // Create a quotation for the bid with revised price
@@ -343,6 +361,68 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
               <CardContent>
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <p className="text-sm">{inquiry.approvalNotes}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Accepted Quotation Details - Show prominently when customer accepts */}
+          {acceptedQuotation && inquiry.bidStatus === 'customer_accepted' && (
+            <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <CardTitle className="text-lg text-emerald-800">Customer Accepted Quotation</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Price Comparison */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Original Bid Price</p>
+                    <p className="text-xl font-semibold text-gray-700">
+                      ${parseFloat(inquiry.targetPrice || "0").toFixed(2)}/{inquiry.unit}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Customer's target price</p>
+                  </div>
+                  <div className="bg-emerald-100 p-4 rounded-lg border-2 border-emerald-300">
+                    <p className="text-xs text-emerald-700 mb-1">✓ Accepted Price</p>
+                    <p className="text-xl font-bold text-emerald-800">
+                      ${parseFloat(acceptedQuotation.unitPrice || acceptedQuotation.totalAmount).toFixed(2)}/{inquiry.unit}
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-1">Your revised quotation</p>
+                  </div>
+                </div>
+
+                {/* Order Details */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Quantity</p>
+                      <p className="text-base font-semibold text-gray-900">
+                        {acceptedQuotation.quantity} {acceptedQuotation.unit}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Total Amount</p>
+                      <p className="text-base font-bold text-emerald-700">
+                        ${parseFloat(acceptedQuotation.totalAmount || "0").toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quotation Info */}
+                <div className="text-xs text-gray-600">
+                  <p><strong>Quotation ID:</strong> {acceptedQuotation.quotationId}</p>
+                  {acceptedQuotation.validUntil && (
+                    <p><strong>Valid Until:</strong> {new Date(acceptedQuotation.validUntil).toLocaleDateString()}</p>
+                  )}
+                </div>
+
+                {/* Call to Action */}
+                <div className="bg-emerald-600 text-white p-3 rounded-lg text-center">
+                  <p className="text-sm font-medium">🎉 Customer approved! Ready to convert to CRM lead below.</p>
                 </div>
               </CardContent>
             </Card>
