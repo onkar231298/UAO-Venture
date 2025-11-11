@@ -1665,9 +1665,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inquiry not found" });
       }
 
-      // Check if inquiry type is product_inquiry (not high volume bid or sample request)
-      if (inquiryDetails.inquiryType !== 'product_inquiry') {
-        return res.status(400).json({ message: "Only product inquiries can be converted using this endpoint" });
+      // Exclude high volume bids (they have their own conversion endpoint)
+      if (inquiryDetails.inquiryType === 'high_volume_bid') {
+        return res.status(400).json({ message: "High volume bids cannot be converted using this endpoint. Use the high volume bid approval flow instead." });
       }
 
       // Check if already converted to lead
