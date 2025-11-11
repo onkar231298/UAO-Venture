@@ -11,6 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,24 @@ interface LeadListViewProps {
 type SortColumn = 'companyName' | 'contactName' | 'currentStage' | 'priority' | 'expectedOrderValue' | 'createdAt' | 'assignedRep';
 type SortOrder = 'asc' | 'desc';
 
+const PIPELINE_STAGES = [
+  { id: "new_lead", label: "New Lead" },
+  { id: "first_contact", label: "First Contact" },
+  { id: "discussion", label: "Discussion" },
+  { id: "meeting_scheduled", label: "Meeting Scheduled" },
+  { id: "meeting_completed", label: "Meeting Completed" },
+  { id: "sample_requested", label: "Sample Requested" },
+  { id: "sample_submitted", label: "Sample Submitted" },
+  { id: "sample_feedback", label: "Sample Feedback" },
+  { id: "quotation_sent", label: "Quotation Sent" },
+  { id: "negotiation", label: "Negotiation" },
+  { id: "certificates_shared", label: "Certificates Shared" },
+  { id: "order_pending", label: "Order Pending" },
+  { id: "won", label: "Won" },
+  { id: "lost", label: "Lost" },
+  { id: "on_hold", label: "On Hold" },
+];
+
 export default function LeadListView({ leads, onViewDetails, salesReps, canAssignLeads, onAssign }: LeadListViewProps) {
   const { toast } = useToast();
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
@@ -51,6 +70,39 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
+
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ leadId, stage }: { leadId: number; stage: string }) => {
+      const response = await fetch(`/api/crm/leads/${leadId}/update-stage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stage }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update stage');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      toast({
+        title: "Success",
+        description: "Lead stage updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -283,10 +335,25 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
                     {lead.company?.companyName || "Unknown Company"}
                   </TableCell>
                   <TableCell>{lead.contactPerson?.contactName || "No contact"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {getStageLabel(lead.currentStage || '')}
-                    </Badge>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={lead.currentStage || "new_lead"}
+                      onValueChange={(value) => {
+                        updateStageMutation.mutate({ leadId: lead.id, stage: value });
+                      }}
+                      disabled={updateStageMutation.isPending}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-[160px]" data-testid={`select-stage-${lead.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PIPELINE_STAGES.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.id} className="text-xs">
+                            {stage.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
