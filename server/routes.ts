@@ -2834,6 +2834,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get multiple products by IDs (bulk fetch)
+  app.get('/api/admin/products/bulk', isAuthenticated, async (req, res) => {
+    try {
+      const { ids } = req.query;
+      
+      if (!ids || typeof ids !== 'string') {
+        return res.status(400).json({ message: "Product IDs are required" });
+      }
+
+      const productIds = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      
+      if (productIds.length === 0) {
+        return res.json([]);
+      }
+
+      const products = await storage.getProductsByIds(productIds);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products by IDs:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
   // Create new product
   app.post('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {

@@ -144,6 +144,7 @@ export interface IStorage {
   }): Promise<{ products: Product[]; total: number }>;
   getProduct(id: number): Promise<Product | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
+  getProductsByIds(ids: number[]): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
@@ -1123,6 +1124,22 @@ export class DatabaseStorage implements IStorage {
         and(eq(products.slug, slug), eq(products.isActive, true))
       );
     return product;
+  }
+
+  async getProductsByIds(ids: number[]): Promise<Product[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const results = await db
+      .select({
+        ...products,
+        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
+      })
+      .from(products)
+      .where(sql`${products.id} = ANY(${ids})`);
+    
+    return results;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
