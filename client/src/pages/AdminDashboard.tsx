@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +15,18 @@ import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarInset,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
 import {
   Users,
   Package,
@@ -31,7 +44,8 @@ import {
   TrendingUp,
   LayoutDashboard,
   Send,
-  Mail
+  Mail,
+  LogOut
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -130,311 +144,331 @@ export default function AdminDashboard() {
     return null;
   }
 
-  return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        {/* Logo/Brand */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">BFI Admin Portal</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
-          <a 
-            href="/" 
-            className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
-          >
-            <Globe className="w-4 h-4 mr-1" />
-            Back to Website
-          </a>
-        </div>
+  const getPageTitle = () => {
+    switch(activeSection) {
+      case 'overview': return 'Dashboard';
+      case 'inventory': return 'Inventory Management';
+      case 'sales': return 'Sales Management';
+      case 'enquiry-sample': return 'Customer Inquiries';
+      case 'sales-crm': return 'Lead Management';
+      case 'sample-requests': return 'Sample Requests';
+      case 'high-volume-bids': return 'High Volume Bids';
+      case 'quotation-negotiations': return 'Quote Negotiations';
+      case 'company-management': return 'Customer Management';
+      case 'purchase': return 'Purchase Management';
+      case 'logistics': return 'Logistics Management';
+      case 'accounts': return 'Accounts & Finance';
+      case 'website': return 'Website Management';
+      case 'users': return 'User Management';
+      case 'analytics': return 'Analytics & Reports';
+      case 'newsletter': return 'Newsletter Subscriptions';
+      case 'blog': return 'Blog Management';
+      case 'settings': return 'System Settings';
+      default: return 'Dashboard';
+    }
+  };
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="space-y-8">
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-900">
+        {/* Sidebar Navigation */}
+        <Sidebar className="border-r border-gray-200 dark:border-gray-700">
+          {/* Logo/Brand */}
+          <SidebarHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">BFI Admin Portal</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
+            <a 
+              href="/" 
+              className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
+            >
+              <Globe className="w-4 h-4 mr-1" />
+              Back to Website
+            </a>
+          </SidebarHeader>
+
+          {/* Navigation Menu */}
+          <SidebarContent className="px-2 py-4">
             {/* MAIN Section */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 MAIN
               </h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setLocation('/admin/dashboard')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'overview'
-                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <LayoutDashboard className="mr-3 h-5 w-5" />
-                  Dashboard
-                </button>
-              </div>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setLocation('/admin/dashboard')}
+                    isActive={activeSection === 'overview'}
+                    className="w-full"
+                  >
+                    <LayoutDashboard className="mr-3 h-5 w-5" />
+                    <span>Dashboard</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </div>
 
             {/* OPERATIONS Section */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 OPERATIONS
               </h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveSection('inventory')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'inventory'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Warehouse className="mr-3 h-5 w-5" />
-                  Inventory Management
-                </button>
-                <button
-                  onClick={() => setActiveSection('sales')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sample-requests' || activeSection === 'high-volume-bids' || activeSection === 'quotation-negotiations' || activeSection === 'sales-crm' || activeSection === 'company-management'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <TrendingUp className="mr-3 h-5 w-5" />
-                  Sales Management
-                </button>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('inventory')}
+                    isActive={activeSection === 'inventory'}
+                    className="w-full"
+                  >
+                    <Warehouse className="mr-3 h-5 w-5" />
+                    <span>Inventory Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('sales')}
+                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management'].includes(activeSection)}
+                    className="w-full"
+                  >
+                    <TrendingUp className="mr-3 h-5 w-5" />
+                    <span>Sales Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 
                 {/* Sales Management Sub-items */}
-                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sample-requests' || activeSection === 'high-volume-bids' || activeSection === 'quotation-negotiations' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
-                  <div className="ml-6 mt-2 space-y-1">
-                    <button
-                      onClick={() => setActiveSection('enquiry-sample')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'enquiry-sample'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Send className="mr-3 h-4 w-4" />
-                      Customer Inquiries
-                    </button>
-                    <button
-                      onClick={() => setActiveSection('sample-requests')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'sample-requests'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                      data-testid="nav-sample-requests"
-                    >
-                      <Package className="mr-3 h-4 w-4" />
-                      Sample Requests
-                    </button>
-                    <button
-                      onClick={() => setActiveSection('high-volume-bids')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'high-volume-bids'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                      data-testid="nav-high-volume-bids"
-                    >
-                      <TrendingUp className="mr-3 h-4 w-4" />
-                      High Volume Bids
-                    </button>
-                    <button
-                      onClick={() => setActiveSection('quotation-negotiations')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'quotation-negotiations'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                      data-testid="nav-quotation-negotiations"
-                    >
-                      <DollarSign className="mr-3 h-4 w-4" />
-                      Quote Negotiations
-                    </button>
-                    <button
-                      onClick={() => setLocation('/admin/dashboard/crm/leads')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'sales-crm'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Users className="mr-3 h-4 w-4" />
-                      Lead Management
-                    </button>
-                    <button
-                      onClick={() => setLocation('/admin/dashboard/crm/companies')}
-                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'company-management'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                      data-testid="nav-company-management"
-                    >
-                      <Users className="mr-3 h-4 w-4" />
-                      Customer Management
-                    </button>
+                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management'].includes(activeSection) && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('enquiry-sample')}
+                        isActive={activeSection === 'enquiry-sample'}
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Send className="mr-3 h-4 w-4" />
+                        <span>Customer Inquiries</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('sample-requests')}
+                        isActive={activeSection === 'sample-requests'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-sample-requests"
+                      >
+                        <Package className="mr-3 h-4 w-4" />
+                        <span>Sample Requests</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('high-volume-bids')}
+                        isActive={activeSection === 'high-volume-bids'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-high-volume-bids"
+                      >
+                        <TrendingUp className="mr-3 h-4 w-4" />
+                        <span>High Volume Bids</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('quotation-negotiations')}
+                        isActive={activeSection === 'quotation-negotiations'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-quotation-negotiations"
+                      >
+                        <DollarSign className="mr-3 h-4 w-4" />
+                        <span>Quote Negotiations</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setLocation('/admin/dashboard/crm/leads')}
+                        isActive={activeSection === 'sales-crm'}
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Users className="mr-3 h-4 w-4" />
+                        <span>Lead Management</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setLocation('/admin/dashboard/crm/companies')}
+                        isActive={activeSection === 'company-management'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-company-management"
+                      >
+                        <Users className="mr-3 h-4 w-4" />
+                        <span>Customer Management</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </div>
                 )}
-                <button
-                  onClick={() => setActiveSection('purchase')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'purchase'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <ShoppingCart className="mr-3 h-5 w-5" />
-                  Purchase Management
-                </button>
-                <button
-                  onClick={() => setActiveSection('logistics')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'logistics'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Truck className="mr-3 h-5 w-5" />
-                  Logistics Management
-                </button>
-                <button
-                  onClick={() => setActiveSection('accounts')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'accounts'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Calculator className="mr-3 h-5 w-5" />
-                  Accounts & Finance
-                </button>
-                <button
-                  onClick={() => setActiveSection('website')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'website'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Globe className="mr-3 h-5 w-5" />
-                  Website Management
-                </button>
-                <button
-                  onClick={() => setActiveSection('users')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'users'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Users className="mr-3 h-5 w-5" />
-                  User Management
-                </button>
-                <button
-                  onClick={() => setActiveSection('analytics')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'analytics'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <BarChart3 className="mr-3 h-5 w-5" />
-                  Analytics & Reports
-                </button>
-                <button
-                  onClick={() => setActiveSection('newsletter')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'newsletter'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Mail className="mr-3 h-5 w-5" />
-                  Newsletter Subscriptions
-                </button>
-                <button
-                  onClick={() => setActiveSection('blog')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'blog'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <FileText className="mr-3 h-5 w-5" />
-                  Blog Management
-                </button>
-              </div>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('purchase')}
+                    isActive={activeSection === 'purchase'}
+                    className="w-full"
+                  >
+                    <ShoppingCart className="mr-3 h-5 w-5" />
+                    <span>Purchase Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('logistics')}
+                    isActive={activeSection === 'logistics'}
+                    className="w-full"
+                  >
+                    <Truck className="mr-3 h-5 w-5" />
+                    <span>Logistics Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('accounts')}
+                    isActive={activeSection === 'accounts'}
+                    className="w-full"
+                  >
+                    <Calculator className="mr-3 h-5 w-5" />
+                    <span>Accounts & Finance</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('website')}
+                    isActive={activeSection === 'website'}
+                    className="w-full"
+                  >
+                    <Globe className="mr-3 h-5 w-5" />
+                    <span>Website Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('users')}
+                    isActive={activeSection === 'users'}
+                    className="w-full"
+                  >
+                    <Users className="mr-3 h-5 w-5" />
+                    <span>User Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('analytics')}
+                    isActive={activeSection === 'analytics'}
+                    className="w-full"
+                  >
+                    <BarChart3 className="mr-3 h-5 w-5" />
+                    <span>Analytics & Reports</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('newsletter')}
+                    isActive={activeSection === 'newsletter'}
+                    className="w-full"
+                  >
+                    <Mail className="mr-3 h-5 w-5" />
+                    <span>Newsletter Subscriptions</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('blog')}
+                    isActive={activeSection === 'blog'}
+                    className="w-full"
+                  >
+                    <FileText className="mr-3 h-5 w-5" />
+                    <span>Blog Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </div>
 
             {/* PROFILE Section */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                 PROFILE
               </h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveSection('settings')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'settings'
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('settings')}
+                    isActive={activeSection === 'settings'}
+                    className="w-full"
+                  >
+                    <Settings className="mr-3 h-5 w-5" />
+                    <span>System Settings</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </div>
+          </SidebarContent>
+
+          {/* Logout Button */}
+          <SidebarFooter className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.location.href = '/api/logout'}
+                  className="w-full text-red-600 hover:bg-red-50"
                 >
-                  <Settings className="mr-3 h-5 w-5" />
-                  System Settings
-                </button>
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span>Log out</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        </Sidebar>
+
+        {/* Main Content Area with App Bar */}
+        <SidebarInset className="flex-1 overflow-auto">
+          {/* Top App Bar */}
+          <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between px-4 py-3 md:px-6">
+              {/* Left: Mobile Trigger + Title */}
+              <div className="flex items-center gap-3 flex-1">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex-1">
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                    {getPageTitle()}
+                  </h1>
+                  <p className="hidden md:block text-sm text-gray-600 dark:text-gray-400">
+                    Manage your B2B organic ingredients platform
+                  </p>
+                </div>
+              </div>
+
+              {/* Right: User Info + Badge */}
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
+                  {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
+                </Badge>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-blue-600 text-white">
+                    {(adminUser as any)?.firstName?.[0] || 'A'}
+                    {(adminUser as any)?.lastName?.[0] || 'D'}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </div>
-          </div>
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => window.location.href = '/api/logout'}
-            className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <Send className="mr-3 h-4 w-4 rotate-45" />
-            Log out
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
-        {/* Top Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {activeSection === 'overview' ? 'Dashboard' : 
-                   activeSection === 'inventory' ? 'Inventory Management' :
-                   activeSection === 'sales' ? 'Sales Management' :
-                   activeSection === 'enquiry-sample' ? 'Enquiry and Sample Management' :
-                   activeSection === 'sales-crm' ? 'Sales CRM' :
-                   activeSection === 'sample-requests' ? 'Sample Requests' :
-                   activeSection === 'high-volume-bids' ? 'High Volume Bids' :
-                   activeSection === 'quotation-negotiations' ? 'Quote Negotiations' :
-                   activeSection === 'purchase' ? 'Purchase Management' :
-                   activeSection === 'logistics' ? 'Logistics Management' :
-                   activeSection === 'accounts' ? 'Accounts & Finance' :
-                   activeSection === 'website' ? 'Website Management' :
-                   activeSection === 'users' ? 'User Management' :
-                   activeSection === 'analytics' ? 'Analytics & Reports' :
-                   activeSection === 'newsletter' ? 'Newsletter Subscriptions' :
-                   activeSection === 'blog' ? 'Blog Management' :
-                   activeSection === 'settings' ? 'System Settings' : 'Dashboard'}
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Manage your B2B organic ingredients platform
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
-              </Badge>
-            </div>
-          </div>
-        </header>
+          </header>
 
         {/* Content Based on Active Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -609,7 +643,8 @@ export default function AdminDashboard() {
             </Card>
           )}
         </div>
-      </main>
-    </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
