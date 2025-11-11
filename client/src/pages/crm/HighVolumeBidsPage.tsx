@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import HighVolumeBidDetailsDialog from "@/components/HighVolumeBidDetailsDialog";
@@ -22,6 +23,8 @@ export default function HighVolumeBidsPage() {
   const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [discussionNotes, setDiscussionNotes] = useState("");
+  const [revisedPrice, setRevisedPrice] = useState("");
+  const [revisedCurrency, setRevisedCurrency] = useState("USD");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showDiscussionDialog, setShowDiscussionDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -86,20 +89,24 @@ export default function HighVolumeBidsPage() {
 
 
   const updateDiscussionMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
+    mutationFn: async ({ id, notes, revisedPrice, currency }: { id: number; notes: string; revisedPrice?: string; currency?: string }) => {
       return await apiRequest(`/api/inquiries/${id}/discussion-notes`, {
         method: "PATCH",
-        body: JSON.stringify({ notes }),
+        body: JSON.stringify({ notes, revisedPrice, currency }),
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({
         title: "Discussion Notes Updated",
         description: "Discussion notes have been saved successfully.",
       });
       setShowDiscussionDialog(false);
       setDiscussionNotes("");
+      setRevisedPrice("");
+      setRevisedCurrency("USD");
     },
     onError: (error: any) => {
       toast({
@@ -400,6 +407,42 @@ export default function HighVolumeBidsPage() {
                 data-testid="input-discussion-notes"
               />
             </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="revised-price" className="text-sm font-medium">Revised Price (Optional)</Label>
+                <Input
+                  id="revised-price"
+                  type="number"
+                  step="0.01"
+                  placeholder="Enter revised price"
+                  value={revisedPrice}
+                  onChange={(e) => setRevisedPrice(e.target.value)}
+                  className="mt-2 min-h-[44px] text-base"
+                  data-testid="input-revised-price"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will update the expected order value in the lead
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="revised-currency" className="text-sm font-medium">Currency</Label>
+                <Select value={revisedCurrency} onValueChange={setRevisedCurrency}>
+                  <SelectTrigger id="revised-currency" className="mt-2 min-h-[44px]" data-testid="select-revised-currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="AUD">AUD</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
@@ -410,7 +453,12 @@ export default function HighVolumeBidsPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => updateDiscussionMutation.mutate({ id: selectedInquiry.id, notes: discussionNotes })}
+              onClick={() => updateDiscussionMutation.mutate({ 
+                id: selectedInquiry.id, 
+                notes: discussionNotes,
+                revisedPrice: revisedPrice || undefined,
+                currency: revisedCurrency
+              })}
               disabled={updateDiscussionMutation.isPending}
               className="w-full sm:w-auto min-h-[44px]"
               data-testid="button-save-discussion"
