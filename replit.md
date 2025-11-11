@@ -13,6 +13,7 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS for utility-first styling, shadcn/ui for pre-built components leveraging Radix UI primitives.
 - **Responsiveness**: Mobile-first approach with full responsiveness.
 - **UI/UX Decisions**: Custom color scheme, accessible UI components, optimized image loading, dynamic hero slider, three-column category navigation, consistent product card design.
+- **Admin Navigation**: Clean sidebar structure with Sales Management as parent category containing Customer Inquiries, Sample Requests, High Volume Bids, Quote Negotiations, Lead Management, and Customer Management (renamed from Company Management for clarity).
 
 ### Backend Architecture
 - **Technology Stack**: Express.js with TypeScript.

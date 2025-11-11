@@ -190,7 +190,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => setActiveSection('sales')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sales-crm' || activeSection === 'company-management'
+                    activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sample-requests' || activeSection === 'high-volume-bids' || activeSection === 'quotation-negotiations' || activeSection === 'sales-crm' || activeSection === 'company-management'
                       ? 'bg-gray-100 text-gray-900'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
                 </button>
                 
                 {/* Sales Management Sub-items */}
-                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
+                {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'sample-requests' || activeSection === 'high-volume-bids' || activeSection === 'quotation-negotiations' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
                   <div className="ml-6 mt-2 space-y-1">
                     <button
                       onClick={() => setActiveSection('enquiry-sample')}
@@ -214,15 +214,40 @@ export default function AdminDashboard() {
                       Customer Inquiries
                     </button>
                     <button
-                      onClick={() => setActiveSection('bidding-requests')}
+                      onClick={() => setActiveSection('sample-requests')}
                       className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                        activeSection === 'bidding-requests'
+                        activeSection === 'sample-requests'
                           ? 'bg-blue-50 text-blue-700 border border-blue-200'
                           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
+                      data-testid="nav-sample-requests"
+                    >
+                      <Package className="mr-3 h-4 w-4" />
+                      Sample Requests
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('high-volume-bids')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'high-volume-bids'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                      data-testid="nav-high-volume-bids"
                     >
                       <TrendingUp className="mr-3 h-4 w-4" />
-                      Bidding Requests
+                      High Volume Bids
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('quotation-negotiations')}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        activeSection === 'quotation-negotiations'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                      data-testid="nav-quotation-negotiations"
+                    >
+                      <DollarSign className="mr-3 h-4 w-4" />
+                      Quote Negotiations
                     </button>
                     <button
                       onClick={() => setLocation('/admin/dashboard/crm/leads')}
@@ -244,47 +269,11 @@ export default function AdminDashboard() {
                       }`}
                       data-testid="nav-company-management"
                     >
-                      <Warehouse className="mr-3 h-4 w-4" />
-                      Company Management
+                      <Users className="mr-3 h-4 w-4" />
+                      Customer Management
                     </button>
                   </div>
                 )}
-                <button
-                  onClick={() => setActiveSection('sample-requests')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'sample-requests'
-                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                  data-testid="nav-sample-requests"
-                >
-                  <Package className="mr-3 h-5 w-5" />
-                  Sample Requests
-                </button>
-                <button
-                  onClick={() => setActiveSection('high-volume-bids')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'high-volume-bids'
-                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                  data-testid="nav-high-volume-bids"
-                >
-                  <TrendingUp className="mr-3 h-5 w-5" />
-                  High Volume Bids
-                </button>
-                <button
-                  onClick={() => setActiveSection('quotation-negotiations')}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeSection === 'quotation-negotiations'
-                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                  data-testid="nav-quotation-negotiations"
-                >
-                  <DollarSign className="mr-3 h-5 w-5" />
-                  Quote Negotiations
-                </button>
                 <button
                   onClick={() => setActiveSection('purchase')}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${

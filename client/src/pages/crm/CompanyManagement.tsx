@@ -183,11 +183,11 @@ export default function CompanyManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-company-management">
-            {isAdmin ? "Company Management" : "My Companies"}
+            {isAdmin ? "Customer Management" : "My Companies"}
           </h1>
           <p className="text-muted-foreground">
             {isAdmin
-              ? "Manage all companies and assignments"
+              ? "Manage all registered customers and company details"
               : "View companies assigned to you or created by you"}
           </p>
         </div>
