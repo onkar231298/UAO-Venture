@@ -1646,6 +1646,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Convert Product Enquiry to CRM Lead
+  app.post('/api/admin/inquiries/:id/convert-to-lead', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager') && !user.role?.includes('sales_executive'))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const inquiryId = parseInt(req.params.id);
+      const { notes } = req.body;
+
+      // Get the inquiry with product and customer details
+      const inquiryDetails = await storage.getInquiry(inquiryId);
+      if (!inquiryDetails) {
+        return res.status(404).json({ message: "Inquiry not found" });
+      }
+
+      // Check if inquiry type is product_inquiry (not high volume bid or sample request)
+      if (inquiryDetails.inquiryType !== 'product_inquiry') {
+        return res.status(400).json({ message: "Only product inquiries can be converted using this endpoint" });
+      }
+
+      // Check if already converted to lead
+      if (inquiryDetails.crmLeadId) {
+        return res.status(400).json({ message: "This inquiry has already been converted to a lead", leadId: inquiryDetails.crmLeadId });
+      }
+
+      // Step 1: Find or create company record
+      const companyName = inquiryDetails.companyName || 'Unknown Company';
+      let company = await db.select().from(companies)
+        .where(eq(companies.companyName, companyName))
+        .limit(1);
+      
+      let companyId: number;
+      if (company.length === 0) {
+        // Create new company
+        const [newCompany] = await db.insert(companies)
+          .values({
+            companyName,
+            primaryEmail: inquiryDetails.emailAddress,
+            primaryPhone: inquiryDetails.phoneNumber,
+            dataCompleteness: 'partial',
+            needsEnrichment: true,
+            assignedTo: userId,
+            createdBy: userId,
+          })
+          .returning();
+        companyId = newCompany.id;
+      } else {
+        companyId = company[0].id;
+      }
+
+      // Step 2: Find or create contact person record
+      const contactName = inquiryDetails.contactName;
+      let contactPersonId: number | null = null;
+      if (contactName) {
+        let contact = await db.select().from(companyContacts)
+          .where(and(
+            eq(companyContacts.companyId, companyId),
+            eq(companyContacts.contactName, contactName)
+          ))
+          .limit(1);
+        
+        if (contact.length === 0) {
+          // Create new contact
+          const [newContact] = await db.insert(companyContacts)
+            .values({
+              companyId,
+              contactName: contactName,
+              email: inquiryDetails.emailAddress,
+              phone: inquiryDetails.phoneNumber,
+              isPrimary: true,
+            })
+            .returning();
+          contactPersonId = newContact.id;
+        } else {
+          contactPersonId = contact[0].id;
+        }
+      }
+
+      // Step 3: Create CRM lead with proper foreign keys
+      // Product enquiries don't have targetPrice, so expectedOrderValue should be null
+      const leadData: any = {
+        companyId,
+        contactPersonId: contactPersonId || null,
+        leadSource: 'product_inquiry',
+        priority: 'warm',
+        currentStage: 'initial_contact',
+        status: 'active',
+        productsInterested: inquiryDetails.productId ? [inquiryDetails.productId] : [],
+        requiredQuantity: inquiryDetails.quantity ? inquiryDetails.quantity.toString() : null,
+        unit: inquiryDetails.unit || null,
+        expectedOrderValue: null,
+        currency: 'USD',
+        specialRequirements: `Product Inquiry #${inquiryDetails.inquiryId} converted to lead\n\nProduct: ${inquiryDetails.productId || 'N/A'}\nQuantity: ${inquiryDetails.quantity || 'N/A'} ${inquiryDetails.unit || ''}\n\nOriginal Message: ${inquiryDetails.message || 'N/A'}\n\nConversion Notes: ${notes || 'N/A'}`,
+        assignedSalesRep: userId,
+        assignedBy: userId,
+        assignedAt: new Date(),
+        stageEnteredAt: new Date(),
+        assignmentMode: 'manual',
+        isManualLead: false,
+        createdBy: userId,
+      };
+
+      const lead = await storage.createLead(leadData);
+
+      // Link the lead to the inquiry
+      await db
+        .update(inquiries)
+        .set({ crmLeadId: lead.id })
+        .where(eq(inquiries.id, inquiryId));
+
+      res.json({ inquiry: inquiryDetails, lead, message: "Product inquiry successfully converted to CRM lead" });
+    } catch (error) {
+      console.error("Error converting inquiry to lead:", error);
+      res.status(500).json({ message: "Failed to convert inquiry to lead" });
+    }
+  });
+
   // Sample Request routes
 
   // Create sample request (for both logged in and non-logged users)
