@@ -66,7 +66,12 @@ export default function CustomerDashboard() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate customer quotations
       queryClient.invalidateQueries({ queryKey: [`/api/customer/quotations/${customer?.id}`] });
+      // Invalidate customer inquiries to reflect updated bid status
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customer?.id}`] });
+      // Invalidate admin high volume bids to update admin dashboard in real-time
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/high-volume-bids'] });
       toast({
         title: "Quotation Accepted",
         description: "Your quotation has been accepted successfully. Our sales team will contact you to proceed with the order.",
