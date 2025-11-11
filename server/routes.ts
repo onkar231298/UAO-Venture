@@ -2106,6 +2106,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quotation = await storage.updateQuotation(quotationId, { 
         status: 'accepted'
       });
+      
+      // If this quotation is linked to a high volume bid, update the bid status
+      if (quotation.inquiryId) {
+        const inquiry = await storage.getInquiry(quotation.inquiryId);
+        if (inquiry && inquiry.inquiryType === 'high_volume_bid') {
+          await storage.updateInquiry(quotation.inquiryId, {
+            bidStatus: 'customer_accepted'
+          });
+        }
+      }
+      
       res.json(quotation);
     } catch (error) {
       console.error("Error accepting quotation:", error);
