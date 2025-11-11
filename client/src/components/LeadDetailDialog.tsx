@@ -4,11 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package } from "lucide-react";
 import { type LeadWithDetails } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -23,6 +24,12 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [selectedAssignee, setSelectedAssignee] = useState(lead?.assignedSalesRep || "");
   
   if (!lead) return null;
+
+  const productIds = lead.productsInterested || [];
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['/api/admin/products/bulk', { ids: productIds.join(',') }],
+    enabled: productIds.length > 0 && open,
+  });
 
   const handleAssignmentChange = (value: string) => {
     setSelectedAssignee(value);
@@ -254,11 +261,149 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
           </TabsContent>
 
           <TabsContent value="products" className="space-y-4">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-gray-500">Product information will be displayed here</p>
-              </CardContent>
-            </Card>
+            {productsLoading ? (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-gray-500">Loading products...</p>
+                </CardContent>
+              </Card>
+            ) : productIds.length === 0 ? (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-gray-500">No products associated with this lead</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Product Cards */}
+                <div className="grid gap-4">
+                  {products.map((product: any) => (
+                    <Card key={product.id} data-testid={`product-card-${product.id}`}>
+                      <CardContent className="p-6">
+                        <div className="flex gap-4">
+                          {/* Product Image */}
+                          {product.mainImage && (
+                            <div className="w-24 h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                              <img 
+                                src={product.mainImage} 
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                data-testid={`product-image-${product.id}`}
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Product Details */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="font-semibold text-lg" data-testid={`product-name-${product.id}`}>
+                                  {product.name}
+                                </h4>
+                                <p className="text-sm text-gray-500" data-testid={`product-id-${product.id}`}>
+                                  SKU: {product.productId}
+                                </p>
+                              </div>
+                              <Badge variant="outline" data-testid={`product-status-${product.id}`}>
+                                {product.status || 'Active'}
+                              </Badge>
+                            </div>
+
+                            {/* Product Info Grid */}
+                            <div className="grid grid-cols-2 gap-3 mt-3">
+                              {lead.requiredQuantity && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Required Quantity</p>
+                                  <p className="font-medium" data-testid={`product-quantity-${product.id}`}>
+                                    {lead.requiredQuantity} {lead.unit || 'units'}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {product.moq && (
+                                <div>
+                                  <p className="text-xs text-gray-500">MOQ</p>
+                                  <p className="font-medium">{product.moq}</p>
+                                </div>
+                              )}
+                              
+                              {product.packingSize && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Packing Size</p>
+                                  <p className="font-medium">{product.packingSize}</p>
+                                </div>
+                              )}
+                              
+                              {product.leadTime && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Lead Time</p>
+                                  <p className="font-medium">{product.leadTime}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Product Description */}
+                            {product.description && (
+                              <div className="mt-3">
+                                <p className="text-sm text-gray-600 line-clamp-2">
+                                  {product.description}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Deal Summary */}
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Deal Summary
+                    </h3>
+                    <div className="space-y-3">
+                      {lead.requiredQuantity && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total Quantity</span>
+                          <span className="font-medium" data-testid="deal-total-quantity">
+                            {lead.requiredQuantity} {lead.unit || 'units'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center border-t pt-3">
+                        <span className="font-semibold">Expected Order Value</span>
+                        <span className="font-bold text-lg" data-testid="deal-expected-value">
+                          {formatCurrency(lead.expectedOrderValue)}
+                        </span>
+                      </div>
+                      {!lead.expectedOrderValue && (
+                        <p className="text-sm text-gray-500 italic">
+                          Price pending - quotation in progress
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Special Requirements */}
+                {lead.specialRequirements && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Additional Details
+                      </h3>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap" data-testid="product-special-requirements">
+                        {lead.specialRequirements}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
