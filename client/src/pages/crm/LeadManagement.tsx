@@ -192,6 +192,7 @@ export default function LeadManagement() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Drag sensors for better UX
   const sensors = useSensors(
@@ -307,6 +308,25 @@ export default function LeadManagement() {
   const handleAssignLead = (leadId: number, assignedTo: string) => {
     assignLeadMutation.mutate({ leadId, assignedTo });
   };
+
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+    toast({
+      title: "Leads data has been updated",
+    });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+    }, 300000); // 5 minutes in milliseconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const leads = (leadsData as any)?.leads || [];
 
@@ -439,6 +459,15 @@ export default function LeadManagement() {
               </Button>
             </div>
             <BulkLeadUpload />
+            <Button
+              variant="outline"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              data-testid="button-refresh-leads"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             <Button data-testid="button-create-lead" onClick={() => setShowLeadCreationForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Lead

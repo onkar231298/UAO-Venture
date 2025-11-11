@@ -101,6 +101,7 @@ export default function CompanyManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -177,6 +178,27 @@ export default function CompanyManagement() {
   const adminRoles = ['admin', 'super_admin', 'sales_manager'];
   const isAdmin = user && (user as any).role ? adminRoles.includes((user as any).role) : false;
 
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast({
+        title: "Companies data has been updated",
+      });
+    }, 500);
+  };
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+    }, 300000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
@@ -191,10 +213,21 @@ export default function CompanyManagement() {
               : "View companies assigned to you or created by you"}
           </p>
         </div>
-        <Button data-testid="button-create-company" onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Company
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            data-testid="button-refresh-companies"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button data-testid="button-create-company" onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Company
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -26,6 +26,7 @@ export default function HighVolumeBidsPage() {
   const [showDiscussionDialog, setShowDiscussionDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved">("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: bidsData, isLoading } = useQuery({
     queryKey: ["/api/admin/high-volume-bids", filterStatus !== "all" ? { bidStatus: filterStatus } : {}],
@@ -39,6 +40,24 @@ export default function HighVolumeBidsPage() {
     if (filterStatus === "approved") return bid.bidStatus === 'approved';
     return true;
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
+    toast({
+      title: "Data Refreshed",
+      description: "High volume bids data has been updated",
+    });
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
+    }, 300000);
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
@@ -134,11 +153,23 @@ export default function HighVolumeBidsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">High Volume Bids</h1>
-        <p className="text-gray-600">
-          Manage large orders requiring special pricing and manager approval
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">High Volume Bids</h1>
+          <p className="text-gray-600">
+            Manage large orders requiring special pricing and manager approval
+          </p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          variant="outline"
+          className="flex items-center gap-2"
+          data-testid="button-refresh-bids"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Filter Tabs */}
