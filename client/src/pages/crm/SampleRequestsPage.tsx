@@ -50,10 +50,29 @@ export default function SampleRequestsPage() {
   const [actionType, setActionType] = useState<"approve" | "reject" | "ship" | "deliver" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: sampleRequests, isLoading } = useQuery<{ requests: SampleRequest[], total: number }>({
     queryKey: ['/api/sample-requests', { status: statusFilter !== 'all' ? statusFilter : undefined }],
   });
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sample-requests'] });
+    }, 300000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['/api/sample-requests'] });
+    toast({
+      title: "Success",
+      description: "Sample requests data has been updated",
+    });
+    setIsRefreshing(false);
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, notes, trackingNumber }: { 
@@ -162,6 +181,16 @@ export default function SampleRequestsPage() {
           <p className="text-sm text-gray-600">Manage and process customer sample requests</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            data-testid="button-refresh-samples"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Badge variant="outline" className="text-sm">
             {filteredRequests.length} Total
           </Badge>
