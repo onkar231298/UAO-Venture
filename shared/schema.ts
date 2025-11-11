@@ -487,16 +487,44 @@ export const inquiries = pgTable("inquiries", {
   
   // High Volume Bid Approval Workflow
   requiresApproval: boolean("requires_approval").default(false),
-  bidStatus: varchar("bid_status", { length: 50 }).default("pending"), // pending, approved, rejected, in_discussion
+  bidStatus: varchar("bid_status", { length: 50 }).default("pending"), // pending, rev_proposed, customer_accepted, customer_rejected, approved, rejected, converted
   approvedBy: varchar("approved_by").references(() => users.id),
   approvalNotes: text("approval_notes"),
   discussionNotes: text("discussion_notes"), // Track discussions with customer
   approvedAt: timestamp("approved_at"),
   crmLeadId: integer("crm_lead_id"), // Link to CRM lead created after approval
+  latestRevisionId: integer("latest_revision_id").references(() => bidRevisions.id, { onDelete: "set null" }), // FK to bid_revisions, tracks most recent revision
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Bid revisions - Track price negotiation history for high volume bids
+export const bidRevisions = pgTable("bid_revisions", {
+  id: serial("id").primaryKey(),
+  inquiryId: integer("inquiry_id").references(() => inquiries.id, { onDelete: "cascade" }).notNull(),
+  
+  // Revised pricing
+  revisedAmount: decimal("revised_amount", { precision: 15, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).default("USD"),
+  notes: text("notes"), // Admin's notes when submitting revision
+  
+  // Revision status and tracking
+  status: varchar("status", { length: 50 }).default("pending"), // pending, accepted, rejected
+  submittedBy: varchar("submitted_by").references(() => users.id).notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  
+  // Customer response
+  respondedBy: varchar("responded_by").references(() => users.id),
+  respondedAt: timestamp("responded_at"),
+  responseNotes: text("response_notes"), // Customer's response notes
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  inquiryIdIdx: index("bid_revisions_inquiry_id_idx").on(table.inquiryId),
+  statusIdx: index("bid_revisions_status_idx").on(table.status),
+}));
 
 // Sample requests - New table for sample requests
 export const sampleRequests = pgTable("sample_requests", {
@@ -705,6 +733,13 @@ export const inquiriesRelations = relations(inquiries, ({ one, many }) => ({
   product: one(products, { fields: [inquiries.productId], references: [products.id] }),
   assignedUser: one(users, { fields: [inquiries.assignedTo], references: [users.id] }),
   quotations: many(quotations),
+  bidRevisions: many(bidRevisions),
+}));
+
+export const bidRevisionsRelations = relations(bidRevisions, ({ one }) => ({
+  inquiry: one(inquiries, { fields: [bidRevisions.inquiryId], references: [inquiries.id] }),
+  submitter: one(users, { fields: [bidRevisions.submittedBy], references: [users.id] }),
+  responder: one(users, { fields: [bidRevisions.respondedBy], references: [users.id] }),
 }));
 
 export const sampleRequestsRelations = relations(sampleRequests, ({ one }) => ({
@@ -809,6 +844,15 @@ export const insertInquirySchema = createInsertSchema(inquiries).omit({
   approvedAt: z.coerce.date().nullable().optional(),
 });
 
+export const insertBidRevisionSchema = createInsertSchema(bidRevisions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  submittedAt: z.coerce.date().optional(),
+  respondedAt: z.coerce.date().nullable().optional(),
+});
+
 export const insertProductDocumentSchema = createInsertSchema(productDocuments).omit({
   id: true,
   createdAt: true,
@@ -826,6 +870,8 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertInquiry = z.infer<typeof insertInquirySchema>;
 export type Inquiry = typeof inquiries.$inferSelect;
+export type InsertBidRevision = z.infer<typeof insertBidRevisionSchema>;
+export type BidRevision = typeof bidRevisions.$inferSelect;
 export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
 export type Quotation = typeof quotations.$inferSelect;
 export type Category = typeof categories.$inferSelect;
