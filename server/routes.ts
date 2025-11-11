@@ -1618,6 +1618,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ crmLeadId: lead.id })
         .where(eq(inquiries.id, bidId));
 
+      // Create activity for bid approval
+      await storage.createLeadActivity({
+        leadId: lead.id,
+        activityType: 'approval',
+        activityDate: new Date(),
+        subject: 'High Volume Bid Approved',
+        description: `High Volume Bid #${bidDetails.inquiryId} has been approved and converted to lead.\n\nProduct: ${bidDetails.productName || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: ${expectedOrderValue.toFixed(2)}\n\nApproval Notes: ${approvalNotes || 'No additional notes'}\n\nBid Status: Approved`,
+        outcome: 'completed',
+        createdBy: userId,
+      });
+
       res.json({ bid, lead });
     } catch (error) {
       console.error("Error approving high volume bid:", error);

@@ -2624,9 +2624,8 @@ export class DatabaseStorage implements IStorage {
         subject: 'Revised Price Submitted',
         description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}`,
         outcome: 'completed',
-        performedBy: userId || null,
+        createdBy: userId || null,
         createdAt: new Date(),
-        updatedAt: new Date(),
       });
     }
     
