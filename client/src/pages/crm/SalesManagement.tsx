@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2 } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
@@ -33,6 +34,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [sortBy, setSortBy] = useState("newest");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [inquiryToConvert, setInquiryToConvert] = useState<Inquiry | null>(null);
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -75,6 +78,45 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
       });
       queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+    },
+    onError: (error: Error) => {
+      if (error.message === 'UNAUTHORIZED') {
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const convertToLeadMutation = useMutation({
+    mutationFn: async ({ inquiryId, notes }: { inquiryId: number; notes?: string }) => {
+      const response = await fetch(`/api/admin/inquiries/${inquiryId}/convert-to-lead`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to convert inquiry to lead');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Inquiry successfully converted to CRM lead"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      setConvertDialogOpen(false);
+      setInquiryToConvert(null);
     },
     onError: (error: Error) => {
       if (error.message === 'UNAUTHORIZED') {
@@ -368,6 +410,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                             }>
                               {inquiry.urgency}
                             </Badge>
+                            {inquiry.crmLeadId && (
+                              <Badge className="bg-green-100 text-green-800 border-green-300">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Converted to Lead
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button 
@@ -377,13 +425,14 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 setSelectedInquiry(inquiry);
                                 setShowInquiryDetails(true);
                               }}
+                              data-testid={`button-view-inquiry-${inquiry.id}`}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button size="sm">
+                                <Button size="sm" data-testid={`button-create-quote-${inquiry.id}`}>
                                   <FileText className="w-4 h-4 mr-1" />
                                   Create Quote
                                 </Button>
@@ -401,6 +450,21 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 </div>
                               </DialogContent>
                             </Dialog>
+                            {!inquiry.crmLeadId && (
+                              <Button 
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  setInquiryToConvert(inquiry);
+                                  setConvertDialogOpen(true);
+                                }}
+                                disabled={convertToLeadMutation.isPending}
+                                data-testid={`button-convert-lead-${inquiry.id}`}
+                              >
+                                <UserPlus className="w-4 h-4 mr-1" />
+                                Convert to Lead
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <div className="grid md:grid-cols-3 gap-4 text-sm">
@@ -447,6 +511,41 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           onOpenChange={setShowInquiryDetails}
         />
       )}
+
+      {/* Convert to Lead Confirmation Dialog */}
+      <AlertDialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert Inquiry to CRM Lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will convert inquiry <strong>INQ-{inquiryToConvert?.id}</strong> from <strong>{inquiryToConvert?.contactName}</strong> into a CRM lead.
+              <br /><br />
+              A company and contact record will be created if they don't already exist, and the lead will be assigned to you for follow-up.
+              <br /><br />
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={convertToLeadMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (inquiryToConvert) {
+                  convertToLeadMutation.mutate({
+                    inquiryId: inquiryToConvert.id,
+                    notes: `Converted from product inquiry INQ-${inquiryToConvert.id}`
+                  });
+                }
+              }}
+              disabled={convertToLeadMutation.isPending}
+              data-testid="button-confirm-convert-lead"
+            >
+              {convertToLeadMutation.isPending ? 'Converting...' : 'Convert to Lead'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </RoleBasedRoute>
   );
 }
