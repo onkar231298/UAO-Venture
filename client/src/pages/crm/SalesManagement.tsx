@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2 } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
@@ -36,6 +36,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [inquiryToConvert, setInquiryToConvert] = useState<Inquiry | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -129,6 +130,26 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
       });
     }
   });
+
+  // Auto-refresh inquiries every 5 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+    }, 300000);
+
+    return () => clearInterval(intervalId);
+  }, [queryClient]);
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+    toast({
+      title: "Refreshed",
+      description: "Inquiries data has been updated"
+    });
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   // Filter product enquiries (excluding high volume bids)
   const filteredProductEnquiries = React.useMemo(() => {
@@ -312,10 +333,22 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Product Enquiry</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Enquiry
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        data-testid="button-refresh-inquiries"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                      <Button size="sm">
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Enquiry
+                      </Button>
+                    </div>
                   </CardTitle>
                   <CardDescription>Regular product enquiries and quote requests</CardDescription>
                 </CardHeader>

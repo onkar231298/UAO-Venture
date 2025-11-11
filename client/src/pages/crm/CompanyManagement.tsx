@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw } from "lucide-react";
 
 const companySchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
