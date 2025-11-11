@@ -102,7 +102,7 @@ import {
   type LeadWithDetails,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, asc, count, sql, or } from "drizzle-orm";
+import { eq, like, and, desc, asc, count, sql, or, inArray } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -1137,7 +1137,7 @@ export class DatabaseStorage implements IStorage {
         isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
       })
       .from(products)
-      .where(sql`${products.id} = ANY(${ids})`);
+      .where(inArray(products.id, ids));
     
     return results;
   }
