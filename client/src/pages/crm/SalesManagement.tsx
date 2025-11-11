@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Filter, Download, MessageSquare, TrendingUp, DollarSign, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
-import HighVolumeBidDetailsDialog from "@/components/HighVolumeBidDetailsDialog";
 
 import LeadManagement from "./LeadManagement";
 import CompanyManagement from "./CompanyManagement";
@@ -35,13 +33,6 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [sortBy, setSortBy] = useState("newest");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showInquiryDetails, setShowInquiryDetails] = useState(false);
-  const [showHighVolumeBidDetails, setShowHighVolumeBidDetails] = useState(false);
-  
-  // High Volume Bid specific filters
-  const [bidSearchTerm, setBidSearchTerm] = useState("");
-  const [bidStatusFilter, setBidStatusFilter] = useState("all");
-  const [bidQuantityFilter, setBidQuantityFilter] = useState("1000+");
-  const [bidDateFilter, setBidDateFilter] = useState("all");
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -49,12 +40,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
-  const { data: quotations, isLoading: quotationsLoading } = useQuery({
+  const { data: quotations } = useQuery({
     queryKey: ['/api/quotations'],
     enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
-  const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
+  const { data: sampleRequests } = useQuery({
     queryKey: ['/api/sample-requests'],
     enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
@@ -177,72 +168,6 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     return filtered;
   }, [inquiries, searchTerm, statusFilter, dateFilter, urgencyFilter, sortBy]);
 
-  // Filter high volume bids only
-  const filteredHighVolumeBids = React.useMemo(() => {
-    if (!(inquiries as any)?.inquiries) return [];
-    
-    let filtered = (inquiries as any).inquiries.filter((inquiry: Inquiry) => {
-      // Only show high volume bids
-      if (inquiry.inquiryType !== 'high_volume_bid') return false;
-
-      // Search filter
-      const searchMatch = bidSearchTerm === "" || 
-        inquiry.contactName?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
-        inquiry.companyName?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
-        inquiry.inquiryId?.toLowerCase().includes(bidSearchTerm.toLowerCase()) ||
-        (inquiry as any).productName?.toLowerCase().includes(bidSearchTerm.toLowerCase());
-
-      // Bid Status filter (bidStatus, not status)
-      const statusMatch = bidStatusFilter === "all" || inquiry.bidStatus === bidStatusFilter;
-
-      // Quantity filter
-      let quantityMatch = true;
-      if (bidQuantityFilter !== "1000+") {
-        const qty = parseFloat(inquiry.quantity || "0");
-        switch (bidQuantityFilter) {
-          case "5000+":
-            quantityMatch = qty >= 5000;
-            break;
-          case "10000+":
-            quantityMatch = qty >= 10000;
-            break;
-        }
-      }
-
-      // Date filter
-      let dateMatch = true;
-      if (bidDateFilter !== "all" && inquiry.createdAt) {
-        const inquiryDate = new Date(inquiry.createdAt);
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        switch (bidDateFilter) {
-          case "today":
-            dateMatch = inquiryDate >= today;
-            break;
-          case "week":
-            const weekStart = new Date(today);
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            dateMatch = inquiryDate >= weekStart;
-            break;
-          case "month":
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            dateMatch = inquiryDate >= monthStart;
-            break;
-        }
-      }
-
-      return searchMatch && statusMatch && quantityMatch && dateMatch;
-    });
-
-    // Sort by newest first for bids
-    filtered.sort((a: Inquiry, b: Inquiry) => {
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    });
-
-    return filtered;
-  }, [inquiries, bidSearchTerm, bidStatusFilter, bidQuantityFilter, bidDateFilter]);
-
   // Status badge helper function
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -339,16 +264,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
 
 
-          {/* Horizontal Tabs Layout */}
-          <Tabs defaultValue="product-enquiry" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="product-enquiry">Product Enquiry</TabsTrigger>
-              <TabsTrigger value="high-volume-bids">High Volume Bids</TabsTrigger>
-              <TabsTrigger value="accepted-quotes">Accepted Quotes</TabsTrigger>
-              <TabsTrigger value="sample-requests">Sample Requests</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="product-enquiry" className="mt-6">
+          {/* Product Enquiry Section */}
+          <div className="w-full mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -518,350 +435,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="accepted-quotes" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Accepted Quotations - Ready for Order Processing</span>
-                    <div className="flex gap-2">
-                      <Badge className="bg-green-100 text-green-800">
-                        {(quotations as any)?.quotations?.filter((q: any) => q.status === 'accepted')?.length || 0} Accepted
-                      </Badge>
-                      <Button size="sm" variant="outline">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export Orders
-                      </Button>
-                    </div>
-                  </CardTitle>
-                  <CardDescription>
-                    Quotations accepted by customers - process these into sales orders
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Accepted Quotes Filters */}
-                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-green-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search accepted quotations by customer or quotation ID..."
-                          className="pl-10 bg-white"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Select defaultValue="accepted">
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="accepted">Accepted</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select defaultValue="high_value">
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Sort" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high_value">High Value</SelectItem>
-                          <SelectItem value="newest">Newest</SelectItem>
-                          <SelectItem value="oldest">Oldest</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  {quotationsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (quotations as any)?.quotations?.filter((q: any) => q.status === 'accepted')?.length ? (
-                    <div className="space-y-4">
-                      {(quotations as any).quotations
-                        .filter((quotation: any) => quotation.status === 'accepted')
-                        .map((quotation: any) => (
-                        <div key={quotation.id} className="border rounded-lg p-4 hover:bg-gray-50 bg-green-50 border-green-200">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-semibold text-lg">{quotation.quotationId}</span>
-                              <Badge className="bg-green-600 text-white">ACCEPTED</Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {quotation.currency || 'USD'}
-                              </Badge>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xl font-bold text-green-600">
-                                {quotation.currency || 'USD'} {quotation.totalAmount}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {quotation.priceType?.replace('_', ' ') || 'Ex-Warehouse'}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
-                            <div>
-                              <span className="font-medium text-gray-600">Customer:</span>
-                              <div>{quotation.customerId}</div>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-600">Accepted Date:</span>
-                              <div>{quotation.updatedAt ? new Date(quotation.updatedAt).toLocaleDateString() : 'N/A'}</div>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-600">Valid Until:</span>
-                              <div>{quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString() : 'N/A'}</div>
-                            </div>
-                          </div>
-
-                          {quotation.terms && (
-                            <div className="bg-white rounded border p-3 mb-3">
-                              <span className="font-medium text-gray-600">Terms & Conditions:</span>
-                              <p className="text-sm mt-1 whitespace-pre-line">{quotation.terms}</p>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between pt-3 border-t">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Clock className="w-4 h-4" />
-                              Created: {quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : 'N/A'}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                View Details
-                              </Button>
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                                <Package className="w-4 h-4 mr-1" />
-                                Create Sales Order
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Mail className="w-4 h-4 mr-1" />
-                                Contact Customer
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Package className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                      <p className="text-gray-500 mb-2">No accepted quotations yet</p>
-                      <p className="text-xs text-gray-400">
-                        Quotations accepted by customers will appear here for order processing
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="high-volume-bids" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>High Volume Bids</CardTitle>
-                  <CardDescription>Customer-submitted high volume orders requiring manager approval</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* High Volume Bid Filters */}
-                  <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          value={bidSearchTerm}
-                          onChange={(e) => setBidSearchTerm(e.target.value)}
-                          placeholder="Search high volume bids by customer or product..."
-                          className="pl-10 bg-white"
-                          data-testid="input-bid-search"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Select value={bidStatusFilter} onValueChange={setBidStatusFilter}>
-                        <SelectTrigger className="w-32" data-testid="select-bid-status">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                          <SelectItem value="in_discussion">In Discussion</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={bidQuantityFilter} onValueChange={setBidQuantityFilter}>
-                        <SelectTrigger className="w-32" data-testid="select-bid-quantity">
-                          <SelectValue placeholder="Min Qty" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1000+">1000+ kg</SelectItem>
-                          <SelectItem value="5000+">5000+ kg</SelectItem>
-                          <SelectItem value="10000+">10000+ kg</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={bidDateFilter} onValueChange={setBidDateFilter}>
-                        <SelectTrigger className="w-32" data-testid="select-bid-date">
-                          <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                {inquiriesLoading ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                    ))}
-                  </div>
-                ) : filteredHighVolumeBids?.length ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
-                      <div className="text-sm text-gray-600">
-                        Showing {filteredHighVolumeBids.length} high volume bids
-                      </div>
-                    </div>
-                    {filteredHighVolumeBids.map((inquiry: Inquiry) => (
-                      <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <span className="font-semibold text-lg">BID-{inquiry.id}</span>
-                            <Badge className={
-                              inquiry.bidStatus === 'approved' ? 'bg-green-100 text-green-800' :
-                              inquiry.bidStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                              inquiry.bidStatus === 'in_discussion' ? 'bg-blue-100 text-blue-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }>
-                              {inquiry.bidStatus || 'pending'}
-                            </Badge>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedInquiry(inquiry);
-                              setShowHighVolumeBidDetails(true);
-                            }}
-                            data-testid={`button-view-bid-${inquiry.id}`}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Bid
-                          </Button>
-                        </div>
-                        <div className="grid md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500 text-xs">Customer</span>
-                            <p className="font-medium">{inquiry.contactName}</p>
-                            <p className="text-gray-600 text-xs">{inquiry.companyName}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 text-xs">Product</span>
-                            <p className="font-medium">{(inquiry as any).productName || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 text-xs">Quantity & Bid Value</span>
-                            <p className="font-medium">{inquiry.quantity} {inquiry.unit}</p>
-                            <p className="text-green-600 font-semibold">${inquiry.targetPrice || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 text-xs">Submitted On</span>
-                            <p className="font-medium">
-                              {inquiry.createdAt ? new Date(inquiry.createdAt).toLocaleDateString() : 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids found</h3>
-                    <p className="text-gray-600">Large quantity bid requests will appear here</p>
-                  </div>
-                )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="sample-requests" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Sample Requests</span>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Sample Request
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>Product sample requests from customers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {sampleRequestsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (sampleRequests as any)?.requests?.length ? (
-                    <div className="space-y-4">
-                      {(sampleRequests as any).requests.map((request: any) => (
-                        <div key={request.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-medium">SR-{request.id}</span>
-                              {getStatusBadge(request.status || 'pending')}
-                            </div>
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4 mr-1" />
-                              View Request
-                            </Button>
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{request.contactName}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Product:</span>
-                              <p className="font-medium">{request.productName || 'N/A'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests found</h3>
-                      <p className="text-gray-600">Product sample requests will appear here</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          </div>
         </div>
       </div>
 
@@ -873,32 +447,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           onOpenChange={setShowInquiryDetails}
         />
       )}
-
-      {/* High Volume Bid Details Dialog */}
-      {selectedInquiry && (
-        <HighVolumeBidDetailsDialog
-          inquiry={selectedInquiry}
-          open={showHighVolumeBidDetails}
-          onOpenChange={setShowHighVolumeBidDetails}
-        />
-      )}
     </RoleBasedRoute>
   );
 }
-
-// Helper function to get status badge styling
-const getStatusBadge = (status: string) => {
-  const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    quoted: 'bg-blue-100 text-blue-800',
-    converted: 'bg-green-100 text-green-800',
-    closed: 'bg-gray-100 text-gray-800'
-  };
-  
-  return (
-    <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.pending}>
-      {status}
-    </Badge>
-  );
-};
 
