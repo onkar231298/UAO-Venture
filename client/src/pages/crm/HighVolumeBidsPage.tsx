@@ -303,6 +303,20 @@ export default function HighVolumeBidsPage() {
                   </div>
                 )}
 
+                {bid.bidStatus === 'customer_accepted' && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border-2 border-emerald-300">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-emerald-800 mb-1">✓ Customer Accepted Quotation</p>
+                        <p className="text-xs text-emerald-700">
+                          The customer has accepted your revised quotation. Click "View Full Details" below to see the accepted pricing and convert to CRM lead.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {bid.discussionNotes && (
                   <div className="mb-4 p-3 bg-purple-50 rounded border border-purple-100">
                     <p className="text-xs text-purple-600 font-medium mb-1">Discussion Notes:</p>
