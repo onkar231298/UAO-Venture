@@ -60,10 +60,12 @@ export default function CustomerInquiries() {
 
   const respondMutation = useMutation({
     mutationFn: async ({ revisionId, decision, notes }: { revisionId: number; decision: 'accept' | 'reject'; notes: string }) => {
+      // Convert 'accept'/'reject' to 'accepted'/'rejected' for backend
+      const status = decision === 'accept' ? 'accepted' : 'rejected';
       return apiRequest(`/api/bid-revisions/${revisionId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision, responseNotes: notes })
+        body: JSON.stringify({ status, responseNotes: notes })
       });
     },
     onSuccess: (_, variables) => {
