@@ -1555,14 +1555,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bidId = parseInt(req.params.id);
       const { approvalNotes } = req.body;
 
-      // Update bid status to approved
-      const bid = await storage.updateHighVolumeBidStatus(bidId, 'approved', userId, approvalNotes);
-
-      // Get the bid with product and customer details
+      // Get the bid with product and customer details first
       const bidDetails = await storage.getInquiry(bidId);
       if (!bidDetails) {
         return res.status(404).json({ message: "Bid not found" });
       }
+
+      // Validate bid status before approval
+      const currentBidStatus = bidDetails.bidStatus || 'pending';
+      
+      // Check if a revised price is awaiting customer response
+      if (currentBidStatus === 'rev_proposed') {
+        return res.status(400).json({ 
+          message: "Cannot approve bid while waiting for customer response on revised price. Customer must accept or reject the offer first." 
+        });
+      }
+
+      // Check if customer rejected the revised price
+      if (currentBidStatus === 'customer_rejected') {
+        return res.status(400).json({ 
+          message: "Customer rejected the revised price. Please submit a new revised quote or reject the bid." 
+        });
+      }
+
+      // Only allow approval for pending (direct approval) or customer_accepted statuses
+      if (currentBidStatus !== 'pending' && currentBidStatus !== 'customer_accepted') {
+        return res.status(400).json({ 
+          message: `Cannot approve bid with status '${currentBidStatus}'. Bid must be 'pending' or 'customer_accepted'.` 
+        });
+      }
+
+      // Update bid status to approved
+      const bid = await storage.updateHighVolumeBidStatus(bidId, 'approved', userId, approvalNotes);
 
       // Step 1: Find or create company record
       const companyName = bidDetails.companyName || 'Unknown Company';
@@ -1654,12 +1678,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(inquiries.id, bidId));
 
       // Create activity for bid approval
+      const activityDescription = currentBidStatus === 'customer_accepted'
+        ? `High Volume Bid #${bidDetails.inquiryId} has been approved and converted to lead after customer accepted revised price.\n\nProduct: ${bidDetails.productName || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: ${expectedOrderValue.toFixed(2)}\n\nApproval Notes: ${approvalNotes || 'No additional notes'}\n\nBid Status: Approved (Customer Accepted Revised Price)`
+        : `High Volume Bid #${bidDetails.inquiryId} has been directly approved and converted to lead.\n\nProduct: ${bidDetails.productName || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: ${expectedOrderValue.toFixed(2)}\n\nApproval Notes: ${approvalNotes || 'No additional notes'}\n\nBid Status: Approved (Direct Approval)`;
+
       await storage.createLeadActivity({
         leadId: lead.id,
         activityType: 'approval',
         activityDate: new Date(),
-        subject: 'High Volume Bid Approved',
-        description: `High Volume Bid #${bidDetails.inquiryId} has been approved and converted to lead.\n\nProduct: ${bidDetails.productName || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: ${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: ${expectedOrderValue.toFixed(2)}\n\nApproval Notes: ${approvalNotes || 'No additional notes'}\n\nBid Status: Approved`,
+        subject: currentBidStatus === 'customer_accepted' 
+          ? 'High Volume Bid Approved - Customer Accepted' 
+          : 'High Volume Bid Approved',
+        description: activityDescription,
         outcome: 'completed',
         createdBy: userId,
       });

@@ -1,21 +1,88 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, Calendar, Package, Eye, Clock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { MessageSquare, Calendar, Package, Eye, Clock, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function CustomerInquiries() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [responseNotes, setResponseNotes] = useState<Record<number, string>>({});
+  const [respondingTo, setRespondingTo] = useState<number | null>(null);
 
   const { data: inquiries, isLoading } = useQuery({
     queryKey: [`/api/customer/inquiries/${customer?.id}`],
     enabled: !!customer?.id,
+  });
+
+  // Fetch pending bid revisions for this customer's high volume bids
+  const { data: pendingRevisions } = useQuery({
+    queryKey: ['/api/customer/pending-revisions', customer?.id],
+    enabled: !!customer?.id && !!inquiries,
+    queryFn: async () => {
+      // Get all customer's high volume bids with rev_proposed status
+      const highVolumeBids = ((inquiries as any)?.inquiries || []).filter(
+        (inq: any) => inq.inquiryType === 'high_volume_bid' && inq.bidStatus === 'rev_proposed'
+      );
+      
+      if (highVolumeBids.length === 0) return [];
+      
+      // Fetch revisions for each bid
+      const revisionsPromises = highVolumeBids.map((bid: any) =>
+        fetch(`/api/bid-revisions/${bid.id}`).then(r => r.json())
+      );
+      
+      const allRevisions = await Promise.all(revisionsPromises);
+      
+      // Filter to only pending revisions and add inquiry details
+      return allRevisions.flatMap((revisions: any, index: number) => 
+        (revisions as any[])
+          .filter((rev: any) => rev.status === 'pending')
+          .map((rev: any) => ({
+            ...rev,
+            inquiry: highVolumeBids[index]
+          }))
+      );
+    }
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: async ({ revisionId, decision, notes }: { revisionId: number; decision: 'accept' | 'reject'; notes: string }) => {
+      return apiRequest(`/api/bid-revisions/${revisionId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, responseNotes: notes })
+      });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: variables.decision === 'accept' ? 'Offer Accepted' : 'Offer Rejected',
+        description: `You have ${variables.decision}ed the revised price offer.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/customer/pending-revisions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customer?.id}`] });
+      setResponseNotes({});
+      setRespondingTo(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit response. Please try again.',
+        variant: 'destructive',
+      });
+    }
   });
 
   if (!isCustomerAuthenticated || !customer) {
@@ -59,6 +126,131 @@ export default function CustomerInquiries() {
             <MessageSquare className="w-6 h-6 text-blue-600" />
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">My Inquiries</h1>
           </div>
+
+          {/* Pending Price Offers Section */}
+          {pendingRevisions && (pendingRevisions as any[]).length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Pending Price Offers</h2>
+                <Badge className="bg-green-100 text-green-800">{(pendingRevisions as any[]).length}</Badge>
+              </div>
+              <div className="space-y-4">
+                {(pendingRevisions as any[]).map((revision: any) => (
+                  <Card key={revision.id} className="border-2 border-green-200 bg-green-50">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{revision.inquiry.productName}</h3>
+                          <p className="text-sm text-gray-600 mb-2">Inquiry ID: {revision.inquiry.inquiryId}</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Your Bid</p>
+                              <p className="font-medium">${parseFloat(revision.inquiry.targetPrice).toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Our Offer</p>
+                              <p className="font-bold text-green-600 text-lg">
+                                {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Quantity</p>
+                              <p className="font-medium">{revision.inquiry.quantity} {revision.inquiry.unit}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {revision.notes && (
+                        <div className="mb-4 p-3 bg-white rounded border">
+                          <p className="text-xs text-gray-500 mb-1">Message from our team:</p>
+                          <p className="text-sm">{revision.notes}</p>
+                        </div>
+                      )}
+
+                      {respondingTo === revision.id ? (
+                        <div className="space-y-3 p-4 bg-white rounded border">
+                          <div>
+                            <Label htmlFor={`notes-${revision.id}`} className="text-sm">Your Response (Optional)</Label>
+                            <Textarea
+                              id={`notes-${revision.id}`}
+                              value={responseNotes[revision.id] || ''}
+                              onChange={(e) => setResponseNotes({ ...responseNotes, [revision.id]: e.target.value })}
+                              placeholder="Add any notes about your decision..."
+                              rows={3}
+                              className="text-sm"
+                              data-testid={`textarea-response-notes-${revision.id}`}
+                            />
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Button
+                              onClick={() => respondMutation.mutate({ 
+                                revisionId: revision.id, 
+                                decision: 'accept', 
+                                notes: responseNotes[revision.id] || '' 
+                              })}
+                              disabled={respondMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 min-h-[44px]"
+                              data-testid={`button-confirm-accept-${revision.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              {respondMutation.isPending ? 'Submitting...' : 'Confirm Accept'}
+                            </Button>
+                            <Button
+                              onClick={() => respondMutation.mutate({ 
+                                revisionId: revision.id, 
+                                decision: 'reject', 
+                                notes: responseNotes[revision.id] || '' 
+                              })}
+                              disabled={respondMutation.isPending}
+                              variant="destructive"
+                              className="min-h-[44px]"
+                              data-testid={`button-confirm-reject-${revision.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-2" />
+                              {respondMutation.isPending ? 'Submitting...' : 'Confirm Reject'}
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setRespondingTo(null);
+                                setResponseNotes({ ...responseNotes, [revision.id]: '' });
+                              }}
+                              variant="outline"
+                              className="min-h-[44px]"
+                              data-testid={`button-cancel-response-${revision.id}`}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            onClick={() => setRespondingTo(revision.id)}
+                            className="bg-green-600 hover:bg-green-700 min-h-[44px]"
+                            data-testid={`button-accept-offer-${revision.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Accept Offer
+                          </Button>
+                          <Button
+                            onClick={() => setRespondingTo(revision.id)}
+                            variant="destructive"
+                            className="min-h-[44px]"
+                            data-testid={`button-reject-offer-${revision.id}`}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject Offer
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isLoading || !inquiries ? (
             <div className="space-y-4">

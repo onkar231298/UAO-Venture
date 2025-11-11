@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Inquiry } from "@shared/schema";
-import { User, Package, DollarSign, Calendar, CheckCircle, XCircle, FileEdit } from "lucide-react";
+import { User, Package, DollarSign, Calendar, CheckCircle, XCircle, FileEdit, History } from "lucide-react";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,7 +24,20 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const [showApprovalForm, setShowApprovalForm] = useState(false);
   const [showRevisedQuoteForm, setShowRevisedQuoteForm] = useState(false);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast} = useToast();
+
+  // Fetch bid revisions for negotiation history
+  const { data: bidRevisions = [] } = useQuery({
+    queryKey: ['/api/bid-revisions', inquiry?.id],
+    enabled: Boolean(inquiry?.id && open),
+    queryFn: async () => {
+      const response = await fetch(`/api/bid-revisions/${inquiry.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch bid revisions');
+      }
+      return response.json();
+    },
+  });
 
   const reviseQuoteMutation = useMutation({
     mutationFn: async () => {
@@ -116,14 +129,29 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const getBidStatusBadge = (status: string) => {
     const statusColors = {
       pending: 'bg-yellow-100 text-yellow-800',
+      rev_proposed: 'bg-blue-100 text-blue-800',
+      customer_accepted: 'bg-emerald-100 text-emerald-800',
+      customer_rejected: 'bg-orange-100 text-orange-800',
       approved: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
+      converted: 'bg-purple-100 text-purple-800',
       in_discussion: 'bg-blue-100 text-blue-800'
+    };
+    
+    const statusLabels = {
+      pending: 'Pending Review',
+      rev_proposed: 'Revised Quote Sent',
+      customer_accepted: 'Customer Accepted',
+      customer_rejected: 'Customer Rejected',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      converted: 'Converted to Lead',
+      in_discussion: 'In Discussion'
     };
     
     return (
       <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.pending}>
-        {status}
+        {statusLabels[status as keyof typeof statusLabels] || status}
       </Badge>
     );
   };
@@ -239,6 +267,73 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
             </CardContent>
           </Card>
 
+          {/* Negotiation History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg flex items-center">
+                <History className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Negotiation History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bidRevisions && (bidRevisions as any[]).length > 0 ? (
+                <div className="space-y-3">
+                  {(bidRevisions as any[]).map((revision: any, index: number) => (
+                    <div 
+                      key={revision.id} 
+                      className="border rounded-lg p-3 sm:p-4 bg-gray-50"
+                      data-testid={`revision-${revision.id}`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-base sm:text-lg text-green-600">
+                              {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toFixed(2)}
+                            </span>
+                            <Badge className={
+                              revision.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                              revision.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }>
+                              {revision.status === 'accepted' ? 'Accepted' : 
+                               revision.status === 'rejected' ? 'Rejected' : 
+                               'Pending Customer Response'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Submitted {formatDate(revision.submittedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {revision.notes && (
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500 mb-1">Admin Notes:</p>
+                          <p className="text-sm bg-white p-2 rounded border">{revision.notes}</p>
+                        </div>
+                      )}
+                      
+                      {revision.respondedAt && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-gray-500 mb-1">
+                            Customer Response ({formatDate(revision.respondedAt)}):
+                          </p>
+                          <p className="text-sm bg-white p-2 rounded border">
+                            {revision.responseNotes || 'No notes provided'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No negotiation history available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Approval Notes (if exists) */}
           {inquiry.approvalNotes && (
             <Card>
@@ -254,30 +349,66 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
           )}
 
           {/* Admin Actions */}
-          {inquiry.bidStatus === 'pending' && (
-            <Card className="border-2 border-blue-200 bg-blue-50">
+          {/* Show admin actions for pending, customer_accepted, and customer_rejected states */}
+          {(inquiry.bidStatus === 'pending' || inquiry.bidStatus === 'customer_accepted' || inquiry.bidStatus === 'customer_rejected') && (
+            <Card className={`border-2 ${
+              inquiry.bidStatus === 'customer_accepted' ? 'border-green-200 bg-green-50' :
+              inquiry.bidStatus === 'customer_rejected' ? 'border-orange-200 bg-orange-50' :
+              'border-blue-200 bg-blue-50'
+            }`}>
               <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Admin Decision Required</CardTitle>
+                <CardTitle className="text-base sm:text-lg">
+                  {inquiry.bidStatus === 'customer_accepted' ? 'Customer Accepted - Ready to Convert' :
+                   inquiry.bidStatus === 'customer_rejected' ? 'Customer Rejected - Revise Offer' :
+                   'Admin Decision Required'}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {inquiry.bidStatus === 'customer_accepted' && (
+                  <p className="text-sm text-green-700 mb-2">
+                    ✅ Customer has accepted the revised price. You can now approve and convert this to a CRM lead.
+                  </p>
+                )}
+                {inquiry.bidStatus === 'customer_rejected' && (
+                  <p className="text-sm text-orange-700 mb-2">
+                    ⚠️ Customer rejected the revised price. You can submit a new revised quote.
+                  </p>
+                )}
+                
                 {!showApprovalForm && !showRevisedQuoteForm && (
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <Button 
-                      onClick={() => setShowApprovalForm(true)}
-                      className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
-                      data-testid="button-approve-bid"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve Bid & Create Lead
-                    </Button>
-                    <Button 
-                      onClick={() => setShowRevisedQuoteForm(true)}
-                      className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto"
-                      data-testid="button-revised-quote"
-                    >
-                      <FileEdit className="w-4 h-4 mr-2" />
-                      Give Revised Quote
-                    </Button>
+                    {inquiry.bidStatus === 'customer_accepted' && (
+                      <Button 
+                        onClick={() => setShowApprovalForm(true)}
+                        className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
+                        data-testid="button-convert-to-lead"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approve & Convert to Lead
+                      </Button>
+                    )}
+                    {(inquiry.bidStatus === 'pending' || inquiry.bidStatus === 'customer_rejected') && (
+                      <>
+                        {inquiry.bidStatus === 'pending' && (
+                          <Button 
+                            onClick={() => setShowApprovalForm(true)}
+                            className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
+                            data-testid="button-approve-bid"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve Bid & Create Lead
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => setShowRevisedQuoteForm(true)}
+                          className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto"
+                          data-testid="button-revised-quote"
+                        >
+                          <FileEdit className="w-4 h-4 mr-2" />
+                          {inquiry.bidStatus === 'customer_rejected' ? 'Submit New Revised Quote' : 'Give Revised Quote'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -381,8 +512,25 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
             </Card>
           )}
 
+          {/* Waiting for Customer Response */}
+          {inquiry.bidStatus === 'rev_proposed' && (
+            <Card className="border-2 border-blue-200 bg-blue-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  <p className="font-medium">
+                    Waiting for customer response on revised price
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  A revised quote has been sent to the customer. The bid will be ready for conversion once the customer accepts the offer.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Approved/Rejected Status Info */}
-          {inquiry.bidStatus !== 'pending' && (
+          {(inquiry.bidStatus === 'approved' || inquiry.bidStatus === 'rejected' || inquiry.bidStatus === 'converted') && (
             <Card className={inquiry.bidStatus === 'approved' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2">
