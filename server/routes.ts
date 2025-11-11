@@ -2251,13 +2251,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const inquiryId = parseInt(req.params.id);
-      const { notes } = req.body;
+      const { notes, revisedPrice, currency } = req.body;
 
       if (notes === undefined) {
         return res.status(400).json({ message: "Discussion notes are required" });
       }
 
-      const inquiry = await storage.updateDiscussionNotes(inquiryId, notes);
+      const inquiry = await storage.updateDiscussionNotes(inquiryId, notes, revisedPrice, currency, userId);
       res.json(inquiry);
     } catch (error: any) {
       console.error("Error updating discussion notes:", error);

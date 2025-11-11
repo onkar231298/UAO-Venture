@@ -2590,7 +2590,7 @@ export class DatabaseStorage implements IStorage {
     return updatedInquiry;
   }
 
-  async updateDiscussionNotes(id: number, notes: string): Promise<Inquiry> {
+  async updateDiscussionNotes(id: number, notes: string, revisedPrice?: string, currency?: string, userId?: string): Promise<Inquiry> {
     const [updatedInquiry] = await db
       .update(inquiries)
       .set({
@@ -2599,6 +2599,37 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(inquiries.id, id))
       .returning();
+    
+    // If this inquiry is linked to a lead and a revised price was provided, update the lead and create activity
+    if (updatedInquiry.crmLeadId && revisedPrice && parseFloat(revisedPrice) > 0) {
+      const revisedAmount = parseFloat(revisedPrice);
+      const quantity = updatedInquiry.quantity ? parseFloat(updatedInquiry.quantity.toString()) : 1;
+      const expectedOrderValue = revisedAmount * quantity;
+      
+      // Update the lead's expected order value
+      await db
+        .update(leads)
+        .set({
+          expectedOrderValue: expectedOrderValue.toString(),
+          currency: currency || 'USD',
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, updatedInquiry.crmLeadId));
+      
+      // Create a lead activity for the price revision
+      await db.insert(leadActivities).values({
+        leadId: updatedInquiry.crmLeadId,
+        activityType: 'negotiation',
+        activityDate: new Date(),
+        subject: 'Revised Price Submitted',
+        description: `Revised price of ${currency || 'USD'} ${revisedAmount} per unit submitted to customer.\nTotal Expected Order Value: ${currency || 'USD'} ${expectedOrderValue.toFixed(2)}\n\nDiscussion Notes:\n${notes}`,
+        outcome: 'completed',
+        performedBy: userId || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    
     return updatedInquiry;
   }
 
