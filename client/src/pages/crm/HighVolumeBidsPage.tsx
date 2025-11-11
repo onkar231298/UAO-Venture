@@ -223,6 +223,24 @@ export default function HighVolumeBidsPage() {
                         <Badge className={`${getUrgencyColor(bid.urgency)} border`}>
                           {bid.urgency || 'normal'}
                         </Badge>
+                        {bid.bidStatus === 'rev_proposed' && (
+                          <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Awaiting Customer Response
+                          </Badge>
+                        )}
+                        {bid.bidStatus === 'customer_accepted' && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <CheckCheck className="w-3 h-3 mr-1" />
+                            Customer Accepted - Ready to Convert
+                          </Badge>
+                        )}
+                        {bid.bidStatus === 'customer_rejected' && (
+                          <Badge className="bg-orange-100 text-orange-800 border border-orange-200">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Customer Rejected - Needs New Offer
+                          </Badge>
+                        )}
                         {bid.bidStatus === 'approved' && (
                           <Badge className="bg-green-100 text-green-800 border border-green-200">
                             <CheckCheck className="w-3 h-3 mr-1" />
