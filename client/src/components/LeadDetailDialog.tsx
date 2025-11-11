@@ -23,13 +23,13 @@ interface LeadDetailDialogProps {
 export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps = [], onAssign, canAssignLeads = false }: LeadDetailDialogProps) {
   const [selectedAssignee, setSelectedAssignee] = useState(lead?.assignedSalesRep || "");
   
-  if (!lead) return null;
-
-  const productIds = lead.productsInterested || [];
+  const productIds = lead?.productsInterested || [];
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/admin/products/bulk', { ids: productIds.join(',') }],
-    enabled: productIds.length > 0 && open,
+    enabled: productIds.length > 0 && open && !!lead,
   });
+  
+  if (!lead) return null;
 
   const handleAssignmentChange = (value: string) => {
     setSelectedAssignee(value);
