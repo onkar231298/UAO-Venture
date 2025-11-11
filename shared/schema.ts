@@ -11,7 +11,7 @@ import {
   boolean,
   uuid,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1048,7 +1048,7 @@ export const leads = pgTable("leads", {
   contactPersonId: integer("contact_person_id").references(() => companyContacts.id),
   
   // Product requirements
-  productsInterested: jsonb("products_interested").default("[]"), // Array of product IDs
+  productsInterested: jsonb("products_interested").$type<number[]>().default(sql`'[]'::jsonb`), // Array of product IDs
   requiredQuantity: decimal("required_quantity", { precision: 10, scale: 2 }),
   unit: varchar("unit", { length: 50 }),
   frequency: varchar("frequency", { length: 50 }), // one_time, monthly, quarterly, annual

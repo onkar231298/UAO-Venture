@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package } from "lucide-react";
-import { type LeadWithDetails } from "@shared/schema";
+import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +26,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   if (!lead) return null;
 
   const productIds = lead.productsInterested || [];
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/admin/products/bulk', { ids: productIds.join(',') }],
     enabled: productIds.length > 0 && open,
   });
@@ -118,8 +118,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Location</p>
-                    <p className="font-medium">{lead.company?.address || "N/A"}</p>
+                    <p className="text-sm text-gray-500">Industry</p>
+                    <p className="font-medium">{lead.company?.industryType || "N/A"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -178,10 +178,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                     <p className="font-medium text-lg">{formatCurrency(lead.expectedOrderValue)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Expected Close Date</p>
-                    <p className="font-medium">
-                      {lead.expectedCloseDate ? format(new Date(lead.expectedCloseDate), 'MMM d, yyyy') : "N/A"}
-                    </p>
+                    <p className="text-sm text-gray-500">Buying Timeline</p>
+                    <p className="font-medium">{lead.buyingTimeline || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Lead Source</p>
@@ -242,15 +240,15 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
               </CardContent>
             </Card>
 
-            {/* Notes */}
-            {lead.notes && (
+            {/* Special Requirements */}
+            {lead.specialRequirements && (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Notes
+                    Special Requirements
                   </h3>
-                  <p className="text-gray-700 whitespace-pre-wrap">{lead.notes}</p>
+                  <p className="text-gray-700 whitespace-pre-wrap">{lead.specialRequirements}</p>
                 </CardContent>
               </Card>
             )}
@@ -277,7 +275,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
               <>
                 {/* Product Cards */}
                 <div className="grid gap-4">
-                  {products.map((product: any) => (
+                  {products.map((product) => (
                     <Card key={product.id} data-testid={`product-card-${product.id}`}>
                       <CardContent className="p-6">
                         <div className="flex gap-4">
