@@ -509,6 +509,11 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           inquiry={selectedInquiry}
           open={showInquiryDetails}
           onOpenChange={setShowInquiryDetails}
+          onConvertToLead={(inquiry) => {
+            setInquiryToConvert(inquiry);
+            setConvertDialogOpen(true);
+          }}
+          isConvertingToLead={convertToLeadMutation.isPending}
         />
       )}
 

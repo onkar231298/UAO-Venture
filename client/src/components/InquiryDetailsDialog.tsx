@@ -1,18 +1,21 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Mail, Phone, Building, MapPin, Package, Clock, User, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, Mail, Phone, Building, MapPin, Package, Clock, User, MessageSquare, UserPlus, CheckCircle2 } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 
 interface InquiryDetailsDialogProps {
   inquiry: Inquiry & { productName?: string };
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onConvertToLead?: (inquiry: Inquiry) => void;
+  isConvertingToLead?: boolean;
 }
 
-export default function InquiryDetailsDialog({ inquiry, open, onOpenChange }: InquiryDetailsDialogProps) {
+export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onConvertToLead, isConvertingToLead = false }: InquiryDetailsDialogProps) {
   const getStatusBadge = (status: string) => {
     const statusColors = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -42,8 +45,9 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange }: In
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -221,9 +225,37 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange }: In
                 </div>
                 {getStatusBadge(inquiry.status || 'pending')}
               </div>
+
+              {inquiry.crmLeadId && (
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Converted to CRM Lead</p>
+                      <p className="text-sm text-green-700">This inquiry has been converted to a lead in the CRM system</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800 border-green-300">
+                    Lead ID: {inquiry.crmLeadId}
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {onConvertToLead && !inquiry.crmLeadId && (
+          <DialogFooter className="mt-6">
+            <Button
+              onClick={() => onConvertToLead(inquiry)}
+              disabled={isConvertingToLead}
+              data-testid="button-convert-to-lead-dialog"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              {isConvertingToLead ? 'Converting...' : 'Convert to Lead'}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
