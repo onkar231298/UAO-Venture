@@ -192,17 +192,18 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     customerYPos += 13;
   }
   
-  // Customer address (condensed)
-  if (customer.address || quotation.customerAddress) {
-    const address = customer.address || quotation.customerAddress;
-    doc.text(address, 310, customerYPos, { width: 230, lineGap: 1 });
+  // Customer address (condensed) - prioritize new streetAddress field
+  const streetAddress = customer.streetAddress || customer.address || quotation.customerAddress;
+  if (streetAddress) {
+    doc.text(streetAddress, 310, customerYPos, { width: 230, lineGap: 1 });
     customerYPos += 13;
   }
   
-  // City, State, Country, Postal Code (condensed on one line)
+  // City, State, Postal Code, Country (condensed on one line)
   const locationParts = [];
   if (customer.city || quotation.customerCity) locationParts.push(customer.city || quotation.customerCity);
   if (customer.state || quotation.customerState) locationParts.push(customer.state || quotation.customerState);
+  if (customer.postalCode || quotation.customerPostalCode) locationParts.push(customer.postalCode || quotation.customerPostalCode);
   if (customer.country || quotation.customerCountry) locationParts.push(customer.country || quotation.customerCountry);
   
   if (locationParts.length > 0) {

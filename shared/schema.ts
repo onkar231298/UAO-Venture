@@ -39,7 +39,11 @@ export const users = pgTable("users", {
   userType: varchar("user_type").default("customer"), // staff, customer
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
-  address: text("address"),
+  address: text("address"), // Legacy field, kept for compatibility
+  streetAddress: varchar("street_address", { length: 500 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }),
+  postalCode: varchar("postal_code", { length: 20 }),
   country: varchar("country"),
   industryType: varchar("industry_type"),
   accountStatus: varchar("account_status").default("active"), // pending, active, suspended
@@ -1354,12 +1358,20 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const customerRegistrationSchema = insertUserSchema.extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Please confirm your password"),
+  streetAddress: z.string().min(1, "Street address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State/Province is required"),
+  postalCode: z.string().min(1, "Postal code is required"),
 }).pick({
   firstName: true,
   lastName: true,
   email: true,
   phoneNumber: true,
   companyName: true,
+  streetAddress: true,
+  city: true,
+  state: true,
+  postalCode: true,
   country: true,
   industryType: true,
   password: true,
