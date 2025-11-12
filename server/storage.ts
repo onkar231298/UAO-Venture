@@ -263,6 +263,7 @@ export interface IStorage {
   // Quotation operations
   getQuotations(filters?: {
     customerId?: string;
+    inquiryId?: number;
     status?: string;
     limit?: number;
     offset?: number;
@@ -2477,6 +2478,7 @@ export class DatabaseStorage implements IStorage {
   // Quotation operations
   async getQuotations(filters?: {
     customerId?: string;
+    inquiryId?: number;
     status?: string;
     limit?: number;
     offset?: number;
@@ -2485,6 +2487,10 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.customerId) {
       conditions.push(eq(quotations.customerId, filters.customerId));
+    }
+    
+    if (filters?.inquiryId) {
+      conditions.push(eq(quotations.inquiryId, filters.inquiryId));
     }
     
     if (filters?.status) {

@@ -18,7 +18,7 @@ interface InquiryDetailsDialogProps {
 
 export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onConvertToLead, isConvertingToLead = false }: InquiryDetailsDialogProps) {
   // Fetch quotations for this inquiry
-  const { data: quotationsData } = useQuery({
+  const { data: quotationsData, isLoading: isLoadingQuotations } = useQuery({
     queryKey: [`/api/inquiries/${inquiry.id}/quotations`],
     enabled: open && !!inquiry.id,
   });
@@ -284,8 +284,23 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
             </CardContent>
           </Card>
 
-          {/* Quotation Status - Show if quotation exists */}
-          {latestQuotation && (
+          {/* Quotation Status - Show loading, empty state, or quotation data */}
+          {isLoadingQuotations ? (
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Quotation Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="animate-pulse space-y-3">
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                  <div className="h-16 bg-gray-200 rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : latestQuotation ? (
             <Card className="border-2">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
@@ -382,7 +397,7 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
                 )}
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </div>
 
         {onConvertToLead && !inquiry.crmLeadId && (
