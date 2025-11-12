@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import * as converter from 'number-to-words';
 
 interface QuotationData {
   id: number;
@@ -71,8 +72,44 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   const discountAmount = quotation.discountAmount || "0.00";
   const gstAmount = quotation.gstAmount || "0.00";
   const finalAmount = quotation.totalAmount;
-  const amount = parseFloat(finalAmount);
-  const amountInWords = `${quotation.currency} ${amount.toLocaleString()} Only`;
+  
+  // Convert amount to words with safety checks
+  let amountInWords = '';
+  try {
+    const amount = parseFloat(finalAmount);
+    
+    if (isNaN(amount) || amount < 0) {
+      amountInWords = `${quotation.currency} Zero Only`;
+    } else {
+      const integerPart = Math.floor(amount);
+      const decimalPart = Math.round((amount - integerPart) * 100);
+      
+      // Determine fractional currency unit based on currency code
+      const fractionalUnits: Record<string, string> = {
+        'INR': 'paise',
+        'USD': 'cents',
+        'EUR': 'cents',
+        'GBP': 'pence',
+        'AUD': 'cents',
+        'CAD': 'cents',
+        'SGD': 'cents',
+        'AED': 'fils',
+        'SAR': 'halalas',
+      };
+      const fractionalUnit = fractionalUnits[quotation.currency] || 'cents';
+      
+      amountInWords = `${quotation.currency} ${converter.toWords(integerPart)}`;
+      if (decimalPart > 0) {
+        amountInWords += ` and ${converter.toWords(decimalPart)} ${fractionalUnit}`;
+      }
+      amountInWords += ' Only';
+      // Capitalize first letter
+      amountInWords = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
+    }
+  } catch (error) {
+    console.error('Error converting amount to words:', error);
+    amountInWords = `${quotation.currency} ${parseFloat(finalAmount || '0').toFixed(2)} Only`;
+  }
   
   // Colors
   const orangeColor = '#ff8c00';

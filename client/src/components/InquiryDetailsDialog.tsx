@@ -178,6 +178,21 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
                   </div>
                 </>
               )}
+
+              {inquiry.notes && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <MessageSquare className="w-4 h-4 text-gray-500" />
+                      <p className="text-sm text-gray-500 font-medium">Additional Notes</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <p className="text-sm whitespace-pre-wrap">{inquiry.notes}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

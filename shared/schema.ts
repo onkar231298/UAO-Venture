@@ -482,6 +482,7 @@ export const inquiries = pgTable("inquiries", {
   targetPrice: decimal("target_price", { precision: 15, scale: 2 }), // For bidding
   expectedDelivery: timestamp("expected_delivery"),
   message: text("message"),
+  notes: text("notes"), // Additional customer notes
   urgency: varchar("urgency", { length: 50 }).default("normal"), // urgent, normal, low
   status: varchar("status", { length: 50 }).default("pending"), // pending, quoted, converted, closed
   assignedTo: varchar("assigned_to").references(() => users.id),

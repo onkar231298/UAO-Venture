@@ -1804,21 +1804,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Step 3: Create CRM lead with proper foreign keys
-      // Product enquiries don't have targetPrice, so expectedOrderValue should be null
+      // Step 3: Fetch quotation for this inquiry if exists
+      const quotationResult = await db.select().from(quotations)
+        .where(eq(quotations.inquiryId, inquiryId))
+        .limit(1);
+      
+      let expectedOrderValue: string | null = null;
+      let currentStage = 'initial_contact';
+      let quotationInfo = '';
+      
+      if (quotationResult.length > 0) {
+        const quotation = quotationResult[0];
+        expectedOrderValue = quotation.totalAmount || null;
+        currentStage = 'quotation_sent';
+        quotationInfo = `\n\nQuotation Details:\nQuotation ID: ${quotation.quotationId}\nTotal Amount: ${quotation.currency} ${quotation.totalAmount}\nStatus: ${quotation.status}`;
+      }
+      
+      // Step 4: Create CRM lead with proper foreign keys and quotation data
       const leadData: any = {
         companyId,
         contactPersonId: contactPersonId || null,
         leadSource: 'product_inquiry',
         priority: 'warm',
-        currentStage: 'initial_contact',
+        currentStage: currentStage,
         status: 'active',
         productsInterested: inquiryDetails.productId ? [inquiryDetails.productId] : [],
         requiredQuantity: inquiryDetails.quantity ? inquiryDetails.quantity.toString() : null,
         unit: inquiryDetails.unit || null,
-        expectedOrderValue: null,
-        currency: 'USD',
-        specialRequirements: `Product Inquiry #${inquiryDetails.inquiryId} converted to lead\n\nProduct: ${inquiryDetails.productId || 'N/A'}\nQuantity: ${inquiryDetails.quantity || 'N/A'} ${inquiryDetails.unit || ''}\n\nOriginal Message: ${inquiryDetails.message || 'N/A'}\n\nConversion Notes: ${notes || 'N/A'}`,
+        expectedOrderValue: expectedOrderValue,
+        currency: quotationResult.length > 0 ? quotationResult[0].currency : 'USD',
+        specialRequirements: `Product Inquiry #${inquiryDetails.inquiryId} converted to lead\n\nProduct: ${inquiryDetails.productId || 'N/A'}\nQuantity: ${inquiryDetails.quantity || 'N/A'} ${inquiryDetails.unit || ''}${quotationInfo}\n\nOriginal Message: ${inquiryDetails.message || 'N/A'}\n\nConversion Notes: ${notes || 'N/A'}`,
         assignedSalesRep: userId,
         assignedBy: userId,
         assignedAt: new Date(),
