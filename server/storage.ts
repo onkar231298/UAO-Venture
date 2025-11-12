@@ -2187,7 +2187,7 @@ export class DatabaseStorage implements IStorage {
     inquiryType?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ inquiries: (Inquiry & { productName?: string })[]; total: number }> {
+  }): Promise<{ inquiries: (Inquiry & { productName?: string; latestQuotationStatus?: string })[]; total: number }> {
     const conditions = [];
     if (filters?.customerId) conditions.push(eq(inquiries.customerId, filters.customerId));
     if (filters?.status) conditions.push(eq(inquiries.status, filters.status));
@@ -2200,10 +2200,21 @@ export class DatabaseStorage implements IStorage {
       db
         .select({
           ...inquiries,
-          productName: products.name
+          productName: products.name,
+          latestQuotationStatus: sql<string>`latest_quotation.status`
         })
         .from(inquiries)
         .leftJoin(products, eq(inquiries.productId, products.id))
+        .leftJoin(
+          sql`LATERAL (
+            SELECT status 
+            FROM ${quotations} 
+            WHERE ${quotations.inquiryId} = ${inquiries.id} 
+            ORDER BY ${quotations.createdAt} DESC 
+            LIMIT 1
+          ) AS latest_quotation`,
+          sql`true`
+        )
         .where(whereClause)
         .orderBy(desc(inquiries.createdAt))
         .limit(filters?.limit || 50)
