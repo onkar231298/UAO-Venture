@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { toWords } from 'number-to-words';
+import converter from 'number-to-words';
 
 interface QuotationData {
   id: number;
@@ -100,11 +100,11 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
       };
       const fractionalUnit = fractionalUnits[quotation.currency] || 'cents';
       
-      const integerWords = toWords(integerPart);
+      const integerWords = converter.toWords(integerPart);
       console.log(`[PDF] Integer words: ${integerWords}`);
       amountInWords = `${quotation.currency} ${integerWords}`;
       if (decimalPart > 0) {
-        const decimalWords = toWords(decimalPart);
+        const decimalWords = converter.toWords(decimalPart);
         console.log(`[PDF] Decimal words: ${decimalWords}`);
         amountInWords += ` and ${decimalWords} ${fractionalUnit}`;
       }
