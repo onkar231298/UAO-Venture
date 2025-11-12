@@ -77,12 +77,14 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   let amountInWords = '';
   try {
     const amount = parseFloat(finalAmount);
+    console.log(`[PDF] Converting amount to words: ${amount} ${quotation.currency}`);
     
     if (isNaN(amount) || amount < 0) {
       amountInWords = `${quotation.currency} Zero Only`;
     } else {
       const integerPart = Math.floor(amount);
       const decimalPart = Math.round((amount - integerPart) * 100);
+      console.log(`[PDF] Integer: ${integerPart}, Decimal: ${decimalPart}`);
       
       // Determine fractional currency unit based on currency code
       const fractionalUnits: Record<string, string> = {
@@ -98,16 +100,22 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
       };
       const fractionalUnit = fractionalUnits[quotation.currency] || 'cents';
       
-      amountInWords = `${quotation.currency} ${converter.toWords(integerPart)}`;
+      const integerWords = converter.toWords(integerPart);
+      console.log(`[PDF] Integer words: ${integerWords}`);
+      amountInWords = `${quotation.currency} ${integerWords}`;
       if (decimalPart > 0) {
-        amountInWords += ` and ${converter.toWords(decimalPart)} ${fractionalUnit}`;
+        const decimalWords = converter.toWords(decimalPart);
+        console.log(`[PDF] Decimal words: ${decimalWords}`);
+        amountInWords += ` and ${decimalWords} ${fractionalUnit}`;
       }
       amountInWords += ' Only';
       // Capitalize first letter
       amountInWords = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
+      console.log(`[PDF] Final amount in words: ${amountInWords}`);
     }
   } catch (error) {
     console.error('Error converting amount to words:', error);
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
     amountInWords = `${quotation.currency} ${parseFloat(finalAmount || '0').toFixed(2)} Only`;
   }
   
