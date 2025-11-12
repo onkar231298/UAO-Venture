@@ -439,7 +439,7 @@ export default function CustomerDashboard() {
                                     <div className="space-y-1 text-sm">
                                       <p><span className="font-medium">Product:</span> {inquiry.productName}</p>
                                       <p><span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}</p>
-                                      {inquiry.inquiryType === 'bulk_order' && (
+                                      {inquiry.inquiryType === 'high_volume_bid' && (
                                         <p>
                                           <Badge className="bg-blue-100 text-blue-800">
                                             High Volume Bid
@@ -475,9 +475,9 @@ export default function CustomerDashboard() {
                               <div>
                                 <h3 className="font-semibold mb-2">Contact Information</h3>
                                 <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
-                                  <p><span className="font-medium">Email:</span> {inquiry.contactEmail}</p>
-                                  {inquiry.contactPhone && (
-                                    <p><span className="font-medium">Phone:</span> {inquiry.contactPhone}</p>
+                                  <p><span className="font-medium">Email:</span> {inquiry.emailAddress}</p>
+                                  {inquiry.phoneNumber && (
+                                    <p><span className="font-medium">Phone:</span> {inquiry.phoneNumber}</p>
                                   )}
                                 </div>
                               </div>
