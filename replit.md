@@ -8,6 +8,7 @@ This platform is a comprehensive B2B solution for organic products, featuring a 
 - **PDF Amount in Words**: Enhanced quotation PDF generator with currency-aware number-to-words conversion supporting multiple currencies (USD/INR/EUR/GBP/AUD/CAD/SGD/AED/SAR) with correct fractional units (cents/paise/pence/fils/halalas) and safety checks for invalid amounts
 - **Lead Conversion Data Transfer**: Fixed lead conversion from regular inquiries to properly fetch and transfer quotation total amount to CRM lead expectedOrderValue field
 - **Activity Logging**: Verified comprehensive activity logging for lead assignments and stage changes (assignLead and updateLeadStage methods create proper activity entries)
+- **Detailed Customer Address Collection**: Enhanced customer registration to collect complete address details (street address, city, state/province, postal code) for accurate quotation generation. Updated users table schema, registration form UI, and quotation PDF generator with backward compatibility for existing records.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
