@@ -2187,7 +2187,7 @@ export class DatabaseStorage implements IStorage {
     inquiryType?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ inquiries: (Inquiry & { productName?: string; latestQuotationStatus?: string })[]; total: number }> {
+  }): Promise<{ inquiries: (Inquiry & { productName?: string; latestQuotationStatus?: string | null })[]; total: number }> {
     const conditions = [];
     if (filters?.customerId) conditions.push(eq(inquiries.customerId, filters.customerId));
     if (filters?.status) conditions.push(eq(inquiries.status, filters.status));

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
@@ -431,7 +431,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         )}
                       </div>
                     </div>
-                    {filteredProductEnquiries.map((inquiry: Inquiry) => (
+                    {filteredProductEnquiries.map((inquiry: Inquiry & { productName?: string; latestQuotationStatus?: string | null }) => (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex flex-col gap-3 mb-3">
                           <div className="flex flex-wrap items-center gap-2">
@@ -448,6 +448,25 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                               <Badge className="bg-green-100 text-green-800 border-green-300">
                                 <CheckCircle2 className="w-3 h-3 mr-1" />
                                 Converted to Lead
+                              </Badge>
+                            )}
+                            {/* Quotation Status Badges */}
+                            {inquiry.latestQuotationStatus === 'accepted' && (
+                              <Badge className="bg-green-100 text-green-800 border-2 border-green-300">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Quote Accepted
+                              </Badge>
+                            )}
+                            {inquiry.latestQuotationStatus === 'rejected' && (
+                              <Badge className="bg-red-100 text-red-800 border-2 border-red-300">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Quote Rejected
+                              </Badge>
+                            )}
+                            {inquiry.latestQuotationStatus === 'sent' && (
+                              <Badge className="bg-blue-100 text-blue-800 border-2 border-blue-300">
+                                <Send className="w-3 h-3 mr-1" />
+                                Quote Sent
                               </Badge>
                             )}
                           </div>
