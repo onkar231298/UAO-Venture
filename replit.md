@@ -4,6 +4,7 @@
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
 ## Recent Changes (November 12, 2025)
+- **Quotation Status Visibility in Admin Inquiry Management**: Enhanced InquiryDetailsDialog to display customer quotation acceptance/rejection status with visual indicators (green for accepted, red for rejected, blue for sent, gray for expired). Added API endpoint GET /api/inquiries/:id/quotations to fetch quotation data, updated storage interface to support inquiryId filtering, and implemented loading states for better UX. Admin can now instantly see if customer has accepted or rejected sent quotes directly in the inquiry details view.
 - **Customer Notes Field**: Added `notes` field to inquiries table to capture and display customer additional notes in admin inquiry view
 - **PDF Amount in Words**: Enhanced quotation PDF generator with currency-aware number-to-words conversion supporting multiple currencies (USD/INR/EUR/GBP/AUD/CAD/SGD/AED/SAR) with correct fractional units (cents/paise/pence/fils/halalas) and safety checks for invalid amounts
 - **Lead Conversion Data Transfer**: Fixed lead conversion from regular inquiries to properly fetch and transfer quotation total amount to CRM lead expectedOrderValue field
