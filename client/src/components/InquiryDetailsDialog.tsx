@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Mail, Phone, Building, MapPin, Package, Clock, User, MessageSquare, UserPlus, CheckCircle2 } from "lucide-react";
+import { CalendarDays, Mail, Phone, Building, MapPin, Package, Clock, User, MessageSquare, UserPlus, CheckCircle2, FileText, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 interface InquiryDetailsDialogProps {
   inquiry: Inquiry & { productName?: string };
@@ -16,6 +17,15 @@ interface InquiryDetailsDialogProps {
 }
 
 export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onConvertToLead, isConvertingToLead = false }: InquiryDetailsDialogProps) {
+  // Fetch quotations for this inquiry
+  const { data: quotationsData } = useQuery({
+    queryKey: [`/api/inquiries/${inquiry.id}/quotations`],
+    enabled: open && !!inquiry.id,
+  });
+
+  const quotations = quotationsData?.quotations || [];
+  const latestQuotation = quotations.length > 0 ? quotations[0] : null;
+
   const getStatusBadge = (status: string) => {
     const statusColors = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -26,6 +36,22 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
     
     return (
       <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.pending}>
+        {status}
+      </Badge>
+    );
+  };
+
+  const getQuotationStatusBadge = (status: string) => {
+    const statusColors = {
+      sent: 'bg-blue-100 text-blue-800',
+      accepted: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      expired: 'bg-gray-100 text-gray-800',
+      draft: 'bg-yellow-100 text-yellow-800',
+    };
+    
+    return (
+      <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.draft}>
         {status}
       </Badge>
     );
@@ -257,6 +283,106 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               )}
             </CardContent>
           </Card>
+
+          {/* Quotation Status - Show if quotation exists */}
+          {latestQuotation && (
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Quotation Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg mb-1">{latestQuotation.quotationId}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-500">Total Amount:</span>{' '}
+                        <span className="font-medium">{latestQuotation.currency} {parseFloat(latestQuotation.totalAmount || '0').toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Valid Until:</span>{' '}
+                        <span className="font-medium">{latestQuotation.validUntil ? new Date(latestQuotation.validUntil).toLocaleDateString() : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {getQuotationStatusBadge(latestQuotation.status)}
+                </div>
+
+                {/* Customer Response - Show accepted/rejected with prominent visual */}
+                {latestQuotation.status === 'accepted' && (
+                  <div className="flex items-start p-4 bg-green-50 rounded-lg border-2 border-green-300">
+                    <ThumbsUp className="w-5 h-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-green-900 mb-1">Customer Accepted the Quote</p>
+                      <p className="text-sm text-green-700">
+                        The customer has accepted this quotation. You can now proceed with converting this inquiry to a lead.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {latestQuotation.status === 'rejected' && (
+                  <div className="flex items-start p-4 bg-red-50 rounded-lg border-2 border-red-300">
+                    <ThumbsDown className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-red-900 mb-1">Customer Rejected the Quote</p>
+                      <p className="text-sm text-red-700">
+                        The customer has rejected this quotation. Consider reaching out to understand their concerns or create a revised quotation.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {latestQuotation.status === 'sent' && (
+                  <div className="flex items-start p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-blue-900 mb-1">Awaiting Customer Response</p>
+                      <p className="text-sm text-blue-700">
+                        The quotation has been sent to the customer and is pending their review and acceptance.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {latestQuotation.status === 'expired' && (
+                  <div className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-300">
+                    <Clock className="w-5 h-5 text-gray-600 mr-3 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 mb-1">Quotation Expired</p>
+                      <p className="text-sm text-gray-700">
+                        This quotation has passed its validity date. Consider creating a new quotation if the customer is still interested.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Counter Offer Information if exists */}
+                {latestQuotation.customerCounterPrice && (
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="font-semibold text-yellow-900 mb-2">Customer Counter-Offer</p>
+                    <div className="text-sm space-y-1">
+                      <p>
+                        <span className="text-gray-600">Proposed Price:</span>{' '}
+                        <span className="font-medium text-yellow-900">
+                          {latestQuotation.currency} {parseFloat(latestQuotation.customerCounterPrice).toLocaleString()}
+                        </span>
+                      </p>
+                      {latestQuotation.counterOfferNotes && (
+                        <div className="mt-2">
+                          <span className="text-gray-600">Notes:</span>
+                          <p className="text-gray-700 mt-1 italic">&quot;{latestQuotation.counterOfferNotes}&quot;</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {onConvertToLead && !inquiry.crmLeadId && (

@@ -2114,6 +2114,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get quotations for a specific inquiry
+  app.get('/api/inquiries/:id/quotations', async (req: any, res) => {
+    try {
+      const inquiryId = parseInt(req.params.id);
+      
+      const result = await storage.getQuotations({
+        inquiryId,
+        limit: 10,
+        offset: 0
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching inquiry quotations:", error);
+      res.status(500).json({ message: "Failed to fetch quotations" });
+    }
+  });
+
   // Accept quotation (for customers)
   app.patch('/api/quotations/:id/accept', async (req: any, res) => {
     try {
