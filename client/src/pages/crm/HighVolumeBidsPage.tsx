@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw, Clock, UserPlus } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw, Clock, ArrowRightCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -30,12 +30,6 @@ export default function HighVolumeBidsPage() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedSalesRep, setSelectedSalesRep] = useState<string>("");
-
-  // Fetch sales reps for assignment dropdown
-  const { data: salesReps = [] } = useQuery<any[]>({
-    queryKey: ['/api/crm/sales-reps'],
-  });
 
   const { data: bidsData, isLoading } = useQuery({
     queryKey: ["/api/admin/high-volume-bids", filterStatus !== "all" ? { bidStatus: filterStatus } : {}],
@@ -68,26 +62,22 @@ export default function HighVolumeBidsPage() {
     return () => clearInterval(interval);
   }, [queryClient]);
 
-  const approveMutation = useMutation({
-    mutationFn: async ({ id, notes, assignedSalesRep }: { id: number; notes: string; assignedSalesRep?: string }) => {
+  const convertToLeadMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
       return await apiRequest(`/api/admin/high-volume-bids/${id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ approvalNotes: notes, assignedSalesRep }),
+        body: JSON.stringify({ approvalNotes: notes }),
       });
     },
     onSuccess: (data) => {
-      const assignedRep = salesReps.find((r: any) => r.id === selectedSalesRep);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
       toast({
-        title: "Bid Approved & Lead Created",
-        description: assignedRep 
-          ? `Lead assigned to ${assignedRep.firstName} ${assignedRep.lastName}`
-          : "High volume bid has been approved and CRM lead created successfully.",
+        title: "Converted to Lead",
+        description: "High volume bid has been converted to a CRM lead. You can now assign it to a sales rep from Lead Management.",
       });
       setShowApprovalDialog(false);
       setApprovalNotes("");
-      setSelectedSalesRep("");
     },
     onError: (error: any) => {
       toast({
@@ -347,10 +337,10 @@ export default function HighVolumeBidsPage() {
                     <Button
                       onClick={() => handleApprove(bid)}
                       className="bg-green-600 hover:bg-green-700 min-h-[44px]"
-                      data-testid={`button-approve-${bid.id}`}
+                      data-testid={`button-convert-${bid.id}`}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve Bid
+                      <ArrowRightCircle className="w-4 h-4 mr-2" />
+                      Convert to Lead
                     </Button>
                   )}
                   <Button
@@ -381,44 +371,27 @@ export default function HighVolumeBidsPage() {
         </div>
       )}
 
-      {/* Approval Dialog */}
+      {/* Convert to Lead Dialog */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]" data-testid="dialog-approval">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]" data-testid="dialog-convert">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">Approve High Volume Bid</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Convert to CRM Lead</DialogTitle>
             <DialogDescription className="text-sm">
               {selectedInquiry?.inquiryId} - {selectedInquiry?.companyName}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Salesperson Assignment */}
-            <div>
-              <Label htmlFor="salesRepSelect" className="text-sm font-medium flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Assign to Sales Representative
-              </Label>
-              <Select value={selectedSalesRep} onValueChange={setSelectedSalesRep}>
-                <SelectTrigger id="salesRepSelect" className="mt-2" data-testid="select-sales-rep">
-                  <SelectValue placeholder="Select a salesperson to assign..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {salesReps.map((rep: any) => (
-                    <SelectItem key={rep.id} value={rep.id}>
-                      {rep.firstName} {rep.lastName} ({rep.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Select the salesperson who will handle this high volume deal
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                This will convert the high volume bid to a CRM lead. You can assign it to a sales representative later from the Lead Management page.
               </p>
             </div>
             
             <div>
-              <Label htmlFor="approval-notes" className="text-sm font-medium">Approval Notes (Optional)</Label>
+              <Label htmlFor="approval-notes" className="text-sm font-medium">Notes (Optional)</Label>
               <Textarea
                 id="approval-notes"
-                placeholder="Add notes about this approval (pricing agreed, special terms, etc.)"
+                placeholder="Add notes about this conversion (pricing agreed, special terms, etc.)"
                 value={approvalNotes}
                 onChange={(e) => setApprovalNotes(e.target.value)}
                 rows={4}
@@ -432,7 +405,6 @@ export default function HighVolumeBidsPage() {
               variant="outline" 
               onClick={() => {
                 setShowApprovalDialog(false);
-                setSelectedSalesRep("");
                 setApprovalNotes("");
               }}
               className="w-full sm:w-auto min-h-[44px]"
@@ -440,19 +412,18 @@ export default function HighVolumeBidsPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => approveMutation.mutate({ 
+              onClick={() => convertToLeadMutation.mutate({ 
                 id: selectedInquiry.id, 
-                notes: approvalNotes,
-                assignedSalesRep: selectedSalesRep || undefined
+                notes: approvalNotes
               })}
-              disabled={approveMutation.isPending || !selectedSalesRep}
+              disabled={convertToLeadMutation.isPending}
               className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px]"
-              data-testid="button-confirm-approve"
+              data-testid="button-confirm-convert"
             >
-              {approveMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Approving...</>
+              {convertToLeadMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Converting...</>
               ) : (
-                <><CheckCircle className="w-4 h-4 mr-2" /> Approve & Assign</>
+                <><ArrowRightCircle className="w-4 h-4 mr-2" /> Convert to Lead</>
               )}
             </Button>
           </DialogFooter>

@@ -5,9 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Inquiry } from "@shared/schema";
-import { User, Package, DollarSign, Calendar, CheckCircle, XCircle, FileEdit, History, UserPlus } from "lucide-react";
+import { User, Package, DollarSign, Calendar, CheckCircle, XCircle, FileEdit, History, ArrowRightCircle } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,15 +23,8 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
   const [revisedPrice, setRevisedPrice] = useState("");
   const [showApprovalForm, setShowApprovalForm] = useState(false);
   const [showRevisedQuoteForm, setShowRevisedQuoteForm] = useState(false);
-  const [selectedSalesRep, setSelectedSalesRep] = useState<string>("");
   const queryClient = useQueryClient();
   const { toast} = useToast();
-
-  // Fetch sales reps for assignment dropdown
-  const { data: salesReps = [] } = useQuery<any[]>({
-    queryKey: ['/api/crm/sales-reps'],
-    enabled: open,
-  });
 
   // Fetch bid revisions for negotiation history
   const { data: bidRevisions = [] } = useQuery({
@@ -124,23 +116,17 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
     },
   });
 
-  const approveMutation = useMutation({
+  const convertToLeadMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest(`/api/admin/high-volume-bids/${inquiry.id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ 
-          approvalNotes,
-          assignedSalesRep: selectedSalesRep || undefined
-        }),
+        body: JSON.stringify({ approvalNotes }),
       });
     },
     onSuccess: () => {
-      const assignedRep = salesReps.find((r: any) => r.id === selectedSalesRep);
       toast({
-        title: "Bid Approved & Lead Created",
-        description: assignedRep 
-          ? `Lead assigned to ${assignedRep.firstName} ${assignedRep.lastName}`
-          : "High volume bid has been approved and CRM lead created",
+        title: "Converted to Lead",
+        description: "High volume bid has been converted to a CRM lead. You can now assign it to a sales rep from Lead Management.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/high-volume-bids'] });
@@ -148,12 +134,11 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
       onOpenChange(false);
       setShowApprovalForm(false);
       setApprovalNotes("");
-      setSelectedSalesRep("");
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to approve bid",
+        description: error.message || "Failed to convert bid to lead",
         variant: "destructive",
       });
     },
@@ -462,7 +447,7 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
               <CardContent className="space-y-4">
                 {inquiry.bidStatus === 'customer_accepted' && (
                   <p className="text-sm text-green-700 mb-2">
-                    ✅ Customer has accepted the revised price. You can now approve and convert this to a CRM lead.
+                    ✅ Customer has accepted the revised price. You can now convert this to a CRM lead.
                   </p>
                 )}
                 {inquiry.bidStatus === 'customer_rejected' && (
@@ -479,8 +464,8 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                         className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
                         data-testid="button-convert-to-lead"
                       >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approve & Convert to Lead
+                        <ArrowRightCircle className="w-4 h-4 mr-2" />
+                        Convert to Lead
                       </Button>
                     )}
                     {(inquiry.bidStatus === 'pending' || inquiry.bidStatus === 'customer_rejected') && (
@@ -489,10 +474,10 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                           <Button 
                             onClick={() => setShowApprovalForm(true)}
                             className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
-                            data-testid="button-approve-bid"
+                            data-testid="button-convert-bid"
                           >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve Bid & Create Lead
+                            <ArrowRightCircle className="w-4 h-4 mr-2" />
+                            Convert to Lead
                           </Button>
                         )}
                         <Button 
@@ -508,41 +493,24 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                   </div>
                 )}
 
-                {/* Approval Form */}
+                {/* Convert to Lead Form */}
                 {showApprovalForm && (
                   <div className="space-y-4 p-3 sm:p-4 bg-white rounded border border-green-300">
-                    <h4 className="font-semibold text-sm sm:text-base text-green-700">Approve Bid & Create CRM Lead</h4>
+                    <h4 className="font-semibold text-sm sm:text-base text-green-700">Convert to CRM Lead</h4>
                     
-                    {/* Salesperson Assignment */}
-                    <div>
-                      <Label htmlFor="salesRepAssign" className="text-sm flex items-center gap-1">
-                        <UserPlus className="w-4 h-4" />
-                        Assign to Sales Representative
-                      </Label>
-                      <Select value={selectedSalesRep} onValueChange={setSelectedSalesRep}>
-                        <SelectTrigger id="salesRepAssign" className="mt-1" data-testid="select-sales-rep">
-                          <SelectValue placeholder="Select a salesperson to assign..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {salesReps.map((rep: any) => (
-                            <SelectItem key={rep.id} value={rep.id}>
-                              {rep.firstName} {rep.lastName} ({rep.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Select the salesperson who will handle this high volume deal
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        This will convert the high volume bid to a CRM lead. You can assign it to a sales representative later from the Lead Management page.
                       </p>
                     </div>
                     
                     <div>
-                      <Label htmlFor="approvalNotes" className="text-sm">Approval Notes (Optional)</Label>
+                      <Label htmlFor="approvalNotes" className="text-sm">Notes (Optional)</Label>
                       <Textarea
                         id="approvalNotes"
                         value={approvalNotes}
                         onChange={(e) => setApprovalNotes(e.target.value)}
-                        placeholder="Add any notes about this approval..."
+                        placeholder="Add any notes about this conversion..."
                         rows={3}
                         className="text-sm"
                         data-testid="input-approval-notes"
@@ -550,22 +518,21 @@ export default function HighVolumeBidDetailsDialog({ inquiry, open, onOpenChange
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
-                        onClick={() => approveMutation.mutate()}
-                        disabled={approveMutation.isPending || !selectedSalesRep}
+                        onClick={() => convertToLeadMutation.mutate()}
+                        disabled={convertToLeadMutation.isPending}
                         className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
-                        data-testid="button-confirm-approve"
+                        data-testid="button-confirm-convert"
                       >
-                        {approveMutation.isPending ? "Approving..." : "Confirm Approval & Assign"}
+                        {convertToLeadMutation.isPending ? "Converting..." : "Convert to Lead"}
                       </Button>
                       <Button 
                         onClick={() => {
                           setShowApprovalForm(false);
                           setApprovalNotes("");
-                          setSelectedSalesRep("");
                         }}
                         variant="outline"
                         className="min-h-[44px] w-full sm:w-auto"
-                        data-testid="button-cancel-approve"
+                        data-testid="button-cancel-convert"
                       >
                         Cancel
                       </Button>
