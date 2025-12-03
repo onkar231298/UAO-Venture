@@ -32,6 +32,7 @@ import {
   insertLeadTaskSchema,
   insertAssignmentRuleSchema,
   quotationItems,
+  quotations,
   companies,
   companyContacts,
   leads,
