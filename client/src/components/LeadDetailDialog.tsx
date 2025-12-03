@@ -4,10 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,6 +27,26 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/admin/products/bulk', { ids: productIds.join(',') }],
     enabled: productIds.length > 0 && open && !!lead,
+  });
+  
+  // Fetch original inquiry/bid data for leads from inquiries
+  const isFromInquiry = lead?.leadSource === 'high_volume_bid' || lead?.leadSource === 'product_inquiry';
+  const { data: inquiryData, isLoading: inquiryLoading } = useQuery<{
+    inquiry: any;
+    quotations: any[];
+    bidRevisions: any[];
+  }>({
+    queryKey: ['/api/crm/leads/original-inquiry', lead?.id],
+    queryFn: async () => {
+      if (!lead?.id) return null;
+      const response = await fetch(`/api/crm/leads/${lead.id}/original-inquiry`);
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch inquiry details');
+      }
+      return response.json();
+    },
+    enabled: isFromInquiry && open && !!lead?.id,
   });
   
   if (!lead) return null;
@@ -71,6 +91,19 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
               <DialogDescription className="text-sm">
                 {lead.leadId} • Created {lead.createdAt ? format(new Date(lead.createdAt), 'MMM d, yyyy') : 'N/A'}
               </DialogDescription>
+              {/* Prominent Lead Source Badge */}
+              {lead.leadSource === 'high_volume_bid' && (
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 border-2 border-blue-300 rounded-md">
+                  <DollarSign className="w-4 h-4 text-blue-700" />
+                  <span className="text-sm font-semibold text-blue-800">High Volume Bid</span>
+                </div>
+              )}
+              {lead.leadSource === 'product_inquiry' && (
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 border-2 border-green-300 rounded-md">
+                  <Package className="w-4 h-4 text-green-700" />
+                  <span className="text-sm font-semibold text-green-800">Regular Enquiry</span>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
@@ -84,10 +117,15 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
             <TabsTrigger value="products" className="text-xs sm:text-sm py-2">Products</TabsTrigger>
+            {isFromInquiry && (
+              <TabsTrigger value="bid-details" className="text-xs sm:text-sm py-2">
+                {lead.leadSource === 'high_volume_bid' ? 'Bid Details' : 'Inquiry Details'}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -403,6 +441,212 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
               </>
             )}
           </TabsContent>
+
+          {/* Bid/Inquiry Details Tab */}
+          {isFromInquiry && (
+            <TabsContent value="bid-details" className="space-y-4">
+              {inquiryLoading ? (
+                <Card>
+                  <CardContent className="p-6 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    <span className="ml-2 text-gray-500">Loading inquiry details...</span>
+                  </CardContent>
+                </Card>
+              ) : inquiryData?.inquiry ? (
+                <>
+                  {/* Original Inquiry/Bid Information */}
+                  <Card className={lead.leadSource === 'high_volume_bid' ? 'border-2 border-blue-200' : 'border-2 border-green-200'}>
+                    <CardContent className="p-4 sm:p-6">
+                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        {lead.leadSource === 'high_volume_bid' ? (
+                          <>
+                            <DollarSign className="h-4 w-4 text-blue-600" />
+                            <span className="text-blue-800">Original High Volume Bid</span>
+                          </>
+                        ) : (
+                          <>
+                            <Package className="h-4 w-4 text-green-600" />
+                            <span className="text-green-800">Original Inquiry</span>
+                          </>
+                        )}
+                        <Badge className="ml-2" variant="outline">
+                          {inquiryData.inquiry.inquiryId}
+                        </Badge>
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Product</p>
+                          <p className="font-medium">{inquiryData.inquiry.productName || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Quantity</p>
+                          <p className="font-medium">{inquiryData.inquiry.quantity} {inquiryData.inquiry.unit}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Target Price</p>
+                          <p className="font-medium text-lg">${inquiryData.inquiry.targetPrice || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Submitted</p>
+                          <p className="font-medium">
+                            {inquiryData.inquiry.createdAt 
+                              ? formatDistanceToNow(new Date(inquiryData.inquiry.createdAt), { addSuffix: true })
+                              : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Original Message */}
+                      {inquiryData.inquiry.message && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded border">
+                          <p className="text-xs text-gray-500 mb-1">Customer Message:</p>
+                          <p className="text-sm">{inquiryData.inquiry.message}</p>
+                        </div>
+                      )}
+                      
+                      {/* Customer Notes */}
+                      {inquiryData.inquiry.notes && (
+                        <div className="mt-3 p-3 bg-yellow-50 rounded border border-yellow-200">
+                          <p className="text-xs text-yellow-700 mb-1">Customer Notes:</p>
+                          <p className="text-sm">{inquiryData.inquiry.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Discussion Notes */}
+                  {inquiryData.inquiry.discussionNotes && (
+                    <Card>
+                      <CardContent className="p-4 sm:p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Discussion Notes
+                        </h3>
+                        <div className="p-3 bg-purple-50 rounded border border-purple-200">
+                          <p className="text-sm whitespace-pre-wrap">{inquiryData.inquiry.discussionNotes}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Negotiation History (for high volume bids) */}
+                  {lead.leadSource === 'high_volume_bid' && inquiryData.bidRevisions && inquiryData.bidRevisions.length > 0 && (
+                    <Card>
+                      <CardContent className="p-4 sm:p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                          <History className="h-4 w-4" />
+                          Negotiation History
+                        </h3>
+                        <div className="space-y-3">
+                          {inquiryData.bidRevisions.map((revision: any, index: number) => (
+                            <div key={revision.id} className="border rounded-lg p-4 bg-gray-50">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-lg text-green-600">
+                                  {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toFixed(2)}
+                                </span>
+                                <Badge className={
+                                  revision.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                                  revision.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }>
+                                  {revision.status === 'accepted' ? (
+                                    <><CheckCircle className="w-3 h-3 mr-1" /> Accepted</>
+                                  ) : revision.status === 'rejected' ? (
+                                    <><XCircle className="w-3 h-3 mr-1" /> Rejected</>
+                                  ) : (
+                                    <><Clock className="w-3 h-3 mr-1" /> Pending</>
+                                  )}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Submitted {revision.submittedAt 
+                                  ? formatDistanceToNow(new Date(revision.submittedAt), { addSuffix: true })
+                                  : 'N/A'}
+                              </p>
+                              {revision.notes && (
+                                <div className="mt-2 p-2 bg-white rounded border">
+                                  <p className="text-xs text-gray-500">Notes:</p>
+                                  <p className="text-sm">{revision.notes}</p>
+                                </div>
+                              )}
+                              {revision.respondedAt && revision.responseNotes && (
+                                <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                  <p className="text-xs text-blue-600">Customer Response:</p>
+                                  <p className="text-sm">{revision.responseNotes}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Quotations */}
+                  {inquiryData.quotations && inquiryData.quotations.length > 0 && (
+                    <Card>
+                      <CardContent className="p-4 sm:p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Quotations
+                        </h3>
+                        <div className="space-y-3">
+                          {inquiryData.quotations.map((quotation: any) => (
+                            <div key={quotation.id} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">{quotation.quotationId}</span>
+                                <Badge className={
+                                  quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                  quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  quotation.status === 'expired' ? 'bg-gray-100 text-gray-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }>
+                                  {quotation.status}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="text-gray-500">Total Amount:</span>
+                                  <span className="font-semibold ml-1">${parseFloat(quotation.totalAmount || 0).toFixed(2)}</span>
+                                </div>
+                                {quotation.validUntil && (
+                                  <div>
+                                    <span className="text-gray-500">Valid Until:</span>
+                                    <span className="ml-1">{format(new Date(quotation.validUntil), 'MMM d, yyyy')}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Approval Notes */}
+                  {inquiryData.inquiry.approvalNotes && (
+                    <Card>
+                      <CardContent className="p-4 sm:p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          Approval Notes
+                        </h3>
+                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                          <p className="text-sm whitespace-pre-wrap">{inquiryData.inquiry.approvalNotes}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center text-gray-500">
+                    No original inquiry data found for this lead.
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>

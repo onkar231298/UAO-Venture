@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";

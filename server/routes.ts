@@ -37,8 +37,10 @@ import {
   companyContacts,
   leads,
   inquiries,
+  bidRevisions,
+  products,
 } from "@shared/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, desc } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -1554,7 +1556,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const bidId = parseInt(req.params.id);
-      const { approvalNotes } = req.body;
+      const { approvalNotes, assignedSalesRep } = req.body;
+      
+      // Determine the sales rep to assign (use provided or default to current user)
+      const targetSalesRep = assignedSalesRep || userId;
 
       // Get the bid with product and customer details first
       const bidDetails = await storage.getInquiry(bidId);
@@ -1661,7 +1666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expectedOrderValue: expectedOrderValue > 0 ? expectedOrderValue.toString() : null,
         currency: 'USD',
         specialRequirements: `High Volume Bid #${bidDetails.inquiryId} approved\n\nProduct: ${bidDetails.productId || 'N/A'}\nQuantity: ${bidDetails.quantity || 'N/A'} ${bidDetails.unit || ''}\nTarget Price: $${bidDetails.targetPrice || 'N/A'}\nExpected Order Value: $${expectedOrderValue.toFixed(2)}\n\nOriginal Message: ${bidDetails.message || 'N/A'}\n\nApproval Notes: ${approvalNotes || 'N/A'}`,
-        assignedSalesRep: userId,
+        assignedSalesRep: targetSalesRep,
         assignedBy: userId,
         assignedAt: new Date(),
         stageEnteredAt: new Date(),
@@ -4541,6 +4546,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error bulk uploading leads:', error);
       res.status(500).json({ message: "Failed to bulk upload leads" });
+    }
+  });
+
+  // Get original inquiry/bid linked to a lead
+  app.get('/api/crm/leads/:leadId/original-inquiry', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      
+      // Find the inquiry where crmLeadId matches this lead
+      const inquiry = await db.select()
+        .from(inquiries)
+        .where(eq(inquiries.crmLeadId, leadId))
+        .limit(1);
+      
+      if (inquiry.length === 0) {
+        return res.status(404).json({ message: "No original inquiry found for this lead" });
+      }
+      
+      const inquiryData = inquiry[0];
+      
+      // Also fetch quotations for this inquiry
+      const quotationsData = await db.select()
+        .from(quotations)
+        .where(eq(quotations.inquiryId, inquiryData.id))
+        .orderBy(desc(quotations.createdAt));
+      
+      // Fetch bid revisions if this is a high volume bid
+      let bidRevisionsData: any[] = [];
+      if (inquiryData.inquiryType === 'high_volume_bid') {
+        bidRevisionsData = await db.select()
+          .from(bidRevisions)
+          .where(eq(bidRevisions.inquiryId, inquiryData.id))
+          .orderBy(desc(bidRevisions.submittedAt));
+      }
+      
+      // Fetch product name
+      let productName = null;
+      if (inquiryData.productId) {
+        const product = await db.select({ name: products.name })
+          .from(products)
+          .where(eq(products.id, inquiryData.productId))
+          .limit(1);
+        productName = product[0]?.name || null;
+      }
+      
+      res.json({
+        inquiry: {
+          ...inquiryData,
+          productName
+        },
+        quotations: quotationsData,
+        bidRevisions: bidRevisionsData
+      });
+    } catch (error) {
+      console.error('Error fetching original inquiry for lead:', error);
+      res.status(500).json({ message: "Failed to fetch original inquiry" });
     }
   });
 
