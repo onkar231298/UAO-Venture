@@ -33,6 +33,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
     unit: "kg",
     message: "",
     urgency: "normal",
+    inquiryType: "bulk_order", // Explicitly set inquiry type for regular quote requests
     // Contact Information - auto-filled if customer is logged in
     contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
     companyName: customerData?.companyName || "",
@@ -70,6 +71,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
         unit: "kg",
         message: "",
         urgency: "normal",
+        inquiryType: "bulk_order",
         contactName: "",
         companyName: "",
         phoneNumber: "",

@@ -33,6 +33,7 @@ interface EnhancedInquiryFormProps {
 
 export function EnhancedInquiryForm({ product, isAuthenticated, customerData, isCustomerAuthenticated, defaultInquiryType = "bulk_order" }: EnhancedInquiryFormProps) {
   const [inquiryType, setInquiryType] = useState<string>(defaultInquiryType);
+  const isHighVolumeBidLocked = defaultInquiryType === "high_volume_bid";
   const [formData, setFormData] = useState({
     // Contact Information - auto-filled if customer is logged in
     contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
@@ -187,47 +188,68 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
 
         <div className="flex-1 overflow-y-auto px-1">
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {/* Inquiry Type Selection */}
-          <Card className={`${currentConfig.color} border mb-4`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center justify-between">
-                Inquiry Type
-                <Badge className={currentConfig.badge}>
-                  {currentConfig.title}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                value={inquiryType}
-                onValueChange={setInquiryType}
-                className="grid grid-cols-3 gap-4"
-              >
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
-                  <RadioGroupItem value="bulk_order" id="bulk_order" />
-                  <Label htmlFor="bulk_order" className="cursor-pointer flex-1">
-                    <div className="font-medium">Bulk Order</div>
-                    <div className="text-xs text-gray-600">Regular procurement</div>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
-                  <RadioGroupItem value="high_volume_bid" id="high_volume_bid" />
-                  <Label htmlFor="high_volume_bid" className="cursor-pointer flex-1">
-                    <div className="font-medium">High Volume</div>
-                    <div className="text-xs text-gray-600">Competitive pricing</div>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
-                  <RadioGroupItem value="quote_request" id="quote_request" />
-                  <Label htmlFor="quote_request" className="cursor-pointer flex-1">
-                    <div className="font-medium">Quote Request</div>
-                    <div className="text-xs text-gray-600">Detailed pricing</div>
-                  </Label>
-                </div>
-              </RadioGroup>
-              <p className="text-sm text-gray-600 mt-2">{currentConfig.description}</p>
-            </CardContent>
-          </Card>
+          {/* Inquiry Type Selection - Only show if not locked to high volume bid */}
+          {isHighVolumeBidLocked ? (
+            <Card className="bg-blue-50 border-blue-200 border mb-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                    High Volume Bid Request
+                  </span>
+                  <Badge className="bg-blue-100 text-blue-800">
+                    High Volume Bidding
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-blue-700">
+                  You are submitting a high volume bid for competitive pricing on large quantity orders.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className={`${currentConfig.color} border mb-4`}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  Inquiry Type
+                  <Badge className={currentConfig.badge}>
+                    {currentConfig.title}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup
+                  value={inquiryType}
+                  onValueChange={setInquiryType}
+                  className="grid grid-cols-3 gap-4"
+                >
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
+                    <RadioGroupItem value="bulk_order" id="bulk_order" />
+                    <Label htmlFor="bulk_order" className="cursor-pointer flex-1">
+                      <div className="font-medium">Bulk Order</div>
+                      <div className="text-xs text-gray-600">Regular procurement</div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
+                    <RadioGroupItem value="high_volume_bid" id="high_volume_bid" />
+                    <Label htmlFor="high_volume_bid" className="cursor-pointer flex-1">
+                      <div className="font-medium">High Volume</div>
+                      <div className="text-xs text-gray-600">Competitive pricing</div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-white/50 cursor-pointer">
+                    <RadioGroupItem value="quote_request" id="quote_request" />
+                    <Label htmlFor="quote_request" className="cursor-pointer flex-1">
+                      <div className="font-medium">Quote Request</div>
+                      <div className="text-xs text-gray-600">Detailed pricing</div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-sm text-gray-600 mt-2">{currentConfig.description}</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Contact Information (Required for ALL users) */}
           <Card className="border-red-200 bg-red-50">
