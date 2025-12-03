@@ -434,14 +434,14 @@ export default function Header() {
                       <Avatar className="w-4 h-4 sm:w-6 sm:h-6 mr-1 sm:mr-2">
                         <AvatarImage src={user?.avatar} />
                         <AvatarFallback className="bg-green-500 text-white text-xs">
-                          {isAuthenticated ? user?.name?.charAt(0) || 'A' : customer?.email?.charAt(0) || 'U'}
+                          {isAuthenticated ? user?.name?.charAt(0) || 'A' : customer?.firstName?.charAt(0) || customer?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:inline">
-                        {isAuthenticated ? user?.name || 'Admin' : customer?.email || 'User'}
+                        {isAuthenticated ? user?.name || 'Admin' : customer?.firstName ? `${customer.firstName} ${customer.lastName || ''}`.trim() : customer?.companyName || 'User'}
                       </span>
                       <span className="sm:hidden">
-                        {isAuthenticated ? 'Admin' : 'User'}
+                        {isAuthenticated ? 'Admin' : customer?.firstName || 'User'}
                       </span>
                       <ChevronDown className="w-3 h-3 ml-1" />
                     </Button>
