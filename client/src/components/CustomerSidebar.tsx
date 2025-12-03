@@ -99,8 +99,8 @@ export default function CustomerSidebar() {
   const savedProductsCount = Array.isArray(savedProductsData) ? savedProductsData.length : 0;
   const sampleRequestsCount = sampleRequestsData?.total || 0;
   
-  // Calculate high volume bids from inquiries (bulk_order type)
-  const highVolumeBidsCount = inquiriesData?.inquiries?.filter((inq: any) => inq.inquiryType === 'bulk_order').length || 0;
+  // Calculate high volume bids from inquiries
+  const highVolumeBidsCount = inquiriesData?.inquiries?.filter((inq: any) => inq.inquiryType === 'high_volume_bid').length || 0;
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },

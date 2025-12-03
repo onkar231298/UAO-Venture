@@ -340,9 +340,9 @@ export default function CustomerDashboard() {
                     <div key={i} className="animate-pulse bg-gray-100 h-16 rounded"></div>
                   ))}
                 </div>
-              ) : allInquiries && allInquiries.length > 0 ? (
+              ) : regularInquiries && regularInquiries.length > 0 ? (
                 <div className="space-y-4">
-                  {allInquiries.map((inquiry: any) => (
+                  {regularInquiries.map((inquiry: any) => (
                     <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -354,31 +354,6 @@ export default function CustomerDashboard() {
                             <Badge variant="outline" className={getUrgencyColor(inquiry.urgency)}>
                               {inquiry.urgency}
                             </Badge>
-                            {inquiry.inquiryType === 'high_volume_bid' && (
-                              <Badge className="bg-blue-100 text-blue-800">
-                                High Volume Bid
-                              </Badge>
-                            )}
-                            {inquiry.requiresApproval && inquiry.bidStatus === 'pending' && (
-                              <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                Awaiting Approval
-                              </Badge>
-                            )}
-                            {inquiry.bidStatus === 'approved' && (
-                              <Badge className="bg-green-100 text-green-800 border border-green-200">
-                                Bid Approved
-                              </Badge>
-                            )}
-                            {inquiry.bidStatus === 'rejected' && (
-                              <Badge className="bg-red-100 text-red-800 border border-red-200">
-                                Bid Rejected
-                              </Badge>
-                            )}
-                            {inquiry.bidStatus === 'in_discussion' && (
-                              <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
-                                In Discussion
-                              </Badge>
-                            )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div>
