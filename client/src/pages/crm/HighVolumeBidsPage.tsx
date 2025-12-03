@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw, Clock } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, MessageSquare, Calendar, DollarSign, Package, User, Building, FileText, CheckCheck, RefreshCw, Clock, UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +30,12 @@ export default function HighVolumeBidsPage() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedSalesRep, setSelectedSalesRep] = useState<string>("");
+
+  // Fetch sales reps for assignment dropdown
+  const { data: salesReps = [] } = useQuery<any[]>({
+    queryKey: ['/api/crm/sales-reps'],
+  });
 
   const { data: bidsData, isLoading } = useQuery({
     queryKey: ["/api/admin/high-volume-bids", filterStatus !== "all" ? { bidStatus: filterStatus } : {}],
@@ -63,20 +69,25 @@ export default function HighVolumeBidsPage() {
   }, [queryClient]);
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
+    mutationFn: async ({ id, notes, assignedSalesRep }: { id: number; notes: string; assignedSalesRep?: string }) => {
       return await apiRequest(`/api/admin/high-volume-bids/${id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ approvalNotes: notes }),
+        body: JSON.stringify({ approvalNotes: notes, assignedSalesRep }),
       });
     },
     onSuccess: (data) => {
+      const assignedRep = salesReps.find((r: any) => r.id === selectedSalesRep);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
       toast({
-        title: "Bid Approved",
-        description: "High volume bid has been approved and a CRM lead has been created successfully.",
+        title: "Bid Approved & Lead Created",
+        description: assignedRep 
+          ? `Lead assigned to ${assignedRep.firstName} ${assignedRep.lastName}`
+          : "High volume bid has been approved and CRM lead created successfully.",
       });
       setShowApprovalDialog(false);
       setApprovalNotes("");
+      setSelectedSalesRep("");
     },
     onError: (error: any) => {
       toast({
@@ -380,8 +391,31 @@ export default function HighVolumeBidsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Salesperson Assignment */}
             <div>
-              <Label htmlFor="approval-notes" className="text-sm font-medium">Approval Notes</Label>
+              <Label htmlFor="salesRepSelect" className="text-sm font-medium flex items-center gap-2">
+                <UserPlus className="w-4 h-4" />
+                Assign to Sales Representative
+              </Label>
+              <Select value={selectedSalesRep} onValueChange={setSelectedSalesRep}>
+                <SelectTrigger id="salesRepSelect" className="mt-2" data-testid="select-sales-rep">
+                  <SelectValue placeholder="Select a salesperson to assign..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {salesReps.map((rep: any) => (
+                    <SelectItem key={rep.id} value={rep.id}>
+                      {rep.firstName} {rep.lastName} ({rep.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the salesperson who will handle this high volume deal
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="approval-notes" className="text-sm font-medium">Approval Notes (Optional)</Label>
               <Textarea
                 id="approval-notes"
                 placeholder="Add notes about this approval (pricing agreed, special terms, etc.)"
@@ -396,21 +430,29 @@ export default function HighVolumeBidsPage() {
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setShowApprovalDialog(false)}
+              onClick={() => {
+                setShowApprovalDialog(false);
+                setSelectedSalesRep("");
+                setApprovalNotes("");
+              }}
               className="w-full sm:w-auto min-h-[44px]"
             >
               Cancel
             </Button>
             <Button
-              onClick={() => approveMutation.mutate({ id: selectedInquiry.id, notes: approvalNotes })}
-              disabled={approveMutation.isPending}
+              onClick={() => approveMutation.mutate({ 
+                id: selectedInquiry.id, 
+                notes: approvalNotes,
+                assignedSalesRep: selectedSalesRep || undefined
+              })}
+              disabled={approveMutation.isPending || !selectedSalesRep}
               className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px]"
               data-testid="button-confirm-approve"
             >
               {approveMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Approving...</>
               ) : (
-                <><CheckCircle className="w-4 h-4 mr-2" /> Approve</>
+                <><CheckCircle className="w-4 h-4 mr-2" /> Approve & Assign</>
               )}
             </Button>
           </DialogFooter>
