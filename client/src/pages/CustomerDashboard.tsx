@@ -2347,8 +2347,9 @@ export default function CustomerDashboard() {
                 {[
                   { key: 'submitted', label: 'Bid Submitted', icon: Check, description: 'Your bid has been received' },
                   { key: 'manager_approval', label: 'Manager Approval', icon: User, description: 'Pending review by our management team' },
-                  { key: 'sales_discussion', label: 'Sales Discussion', icon: MessageSquare, description: 'Awaiting approval' },
-                  { key: 'quotation_sent', label: 'Quotation Sent', icon: FileText, description: 'Awaiting approval' },
+                  { key: 'sales_discussion', label: 'Sales Discussion', icon: MessageSquare, description: 'Sales team is reviewing your bid' },
+                  { key: 'quotation_sent', label: 'Quotation Sent', icon: FileText, description: 'Revised quote has been sent to you' },
+                  { key: 'completed', label: 'Completed', icon: Check, description: 'Bid has been processed successfully' },
                 ].map((step, index) => {
                   const currentStatus = bidTrackingData.bidProgressStatus || 'submitted';
                   const statusOrder = ['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'];
@@ -2386,12 +2387,35 @@ export default function CustomerDashboard() {
               </div>
 
               {/* Current Status Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-blue-800">
-                  Current Status: Your bid is under review by our management team.
+              <div className={`rounded-lg p-4 border ${
+                bidTrackingData.bidProgressStatus === 'completed' 
+                  ? 'bg-green-50 border-green-200' 
+                  : bidTrackingData.bidProgressStatus === 'quotation_sent'
+                  ? 'bg-purple-50 border-purple-200'
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <p className={`text-sm font-medium ${
+                  bidTrackingData.bidProgressStatus === 'completed' 
+                    ? 'text-green-800' 
+                    : bidTrackingData.bidProgressStatus === 'quotation_sent'
+                    ? 'text-purple-800'
+                    : 'text-blue-800'
+                }`}>
+                  {bidTrackingData.bidProgressStatus === 'submitted' && 'Your bid has been submitted and is awaiting review.'}
+                  {bidTrackingData.bidProgressStatus === 'manager_approval' && 'Your bid is under review by our management team.'}
+                  {bidTrackingData.bidProgressStatus === 'sales_discussion' && 'Our sales team is reviewing your bid for discussion.'}
+                  {bidTrackingData.bidProgressStatus === 'quotation_sent' && 'A revised quotation has been sent. Please check your quotes.'}
+                  {bidTrackingData.bidProgressStatus === 'completed' && 'Your bid has been completed successfully!'}
+                  {!bidTrackingData.bidProgressStatus && 'Your bid is being processed.'}
                 </p>
                 {bidTrackingData.bidProgressUpdatedAt && (
-                  <p className="text-xs text-blue-600 mt-1">
+                  <p className={`text-xs mt-1 ${
+                    bidTrackingData.bidProgressStatus === 'completed' 
+                      ? 'text-green-600' 
+                      : bidTrackingData.bidProgressStatus === 'quotation_sent'
+                      ? 'text-purple-600'
+                      : 'text-blue-600'
+                  }`}>
                     Last updated: {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
                   </p>
                 )}

@@ -27,7 +27,6 @@ interface LeadDetailDialogProps {
 
 export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps = [], onAssign, canAssignLeads = false }: LeadDetailDialogProps) {
   const [selectedAssignee, setSelectedAssignee] = useState(lead?.assignedSalesRep || "");
-  const [showRevisedQuoteForm, setShowRevisedQuoteForm] = useState(false);
   const [revisedAmount, setRevisedAmount] = useState("");
   const [revisedCurrency, setRevisedCurrency] = useState("USD");
   const [revisedMessage, setRevisedMessage] = useState("");
@@ -98,7 +97,6 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads/original-inquiry', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/customer/high-volume-bids'] });
-      setShowRevisedQuoteForm(false);
       setRevisedAmount("");
       setRevisedMessage("");
       toast({
