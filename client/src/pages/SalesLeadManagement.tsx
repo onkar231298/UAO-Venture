@@ -149,7 +149,6 @@ export default function SalesLeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
-  const [salesRepFilter, setSalesRepFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState<string[]>([]);
   const [sourceFilter, setSourceFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -197,7 +196,6 @@ export default function SalesLeadManagement() {
     if (searchTerm) params.append("search", searchTerm);
     if (priorityFilter !== "all") params.append("priority", priorityFilter);
     if (statusFilter !== "all") params.append("status", statusFilter);
-    if (salesRepFilter !== "all") params.append("assignedTo", salesRepFilter);
     if (sourceFilter !== "all") params.append("leadSource", sourceFilter);
     if (stageFilter.length > 0) params.append("stage", stageFilter.join(","));
     if (dateFrom) params.append("createdFrom", dateFrom);
@@ -212,7 +210,7 @@ export default function SalesLeadManagement() {
     return `/api/crm/leads${queryString ? `?${queryString}` : ""}`;
   };
 
-  const leadsQueryKey = ["/api/crm/leads", "sales", searchTerm, priorityFilter, statusFilter, salesRepFilter, sourceFilter, stageFilter.join(","), dateFrom, dateTo, userWithRole?.id];
+  const leadsQueryKey = ["/api/crm/leads", "sales", searchTerm, priorityFilter, statusFilter, sourceFilter, stageFilter.join(","), dateFrom, dateTo, userWithRole?.id];
 
   const { data: leadsData, isLoading } = useQuery({
     queryKey: leadsQueryKey,
@@ -229,6 +227,7 @@ export default function SalesLeadManagement() {
     enabled: !!user,
   });
 
+  // Fetch sales reps for assignment functionality (not for filtering)
   const { data: salesReps = [] } = useQuery<any[]>({
     queryKey: ["/api/crm/sales-reps"],
     enabled: !!user && isSalesManager,
@@ -463,21 +462,6 @@ export default function SalesLeadManagement() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              {isSalesManager && (
-                <Select value={salesRepFilter} onValueChange={setSalesRepFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="All Sales Reps" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sales Reps</SelectItem>
-                    {salesReps.map((rep: any) => (
-                      <SelectItem key={rep.id} value={rep.id}>
-                        {rep.firstName} {rep.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
               <Button
                 variant="outline"
                 size="sm"
