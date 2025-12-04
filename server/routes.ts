@@ -5366,6 +5366,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // EMAIL INTEGRATION ROUTES
   // ========================================
 
+  // Admin: Get users for email configuration assignment
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      // Use getSalesReps which returns users with admin, super_admin, sales_manager, sales_executive roles
+      const eligibleUsers = await storage.getSalesReps();
+      res.json(eligibleUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
   // Get user's email configuration
   app.get('/api/email/config', isAuthenticated, async (req: any, res) => {
     try {

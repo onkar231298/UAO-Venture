@@ -48,21 +48,8 @@ export default function EmailConfigManagement() {
     queryKey: ['/api/admin/email-configs'],
   });
 
-  const { data: users = [] } = useQuery<UserOption[]>({
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<UserOption[]>({
     queryKey: ['/api/admin/users'],
-    select: (data: any) => {
-      if (Array.isArray(data)) {
-        return data.filter((u: any) => 
-          u.role === 'admin' || u.role === 'super_admin' || u.role === 'sales_manager' || u.role === 'sales_executive'
-        );
-      }
-      if (data?.users && Array.isArray(data.users)) {
-        return data.users.filter((u: any) => 
-          u.role === 'admin' || u.role === 'super_admin' || u.role === 'sales_manager' || u.role === 'sales_executive'
-        );
-      }
-      return [];
-    }
   });
 
   const createMutation = useMutation({
@@ -239,17 +226,28 @@ export default function EmailConfigManagement() {
                       <SelectValue placeholder="Select a user" />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            <span>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}</span>
-                            <Badge variant="outline" className="text-xs ml-2">
-                              {user.role?.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {isLoadingUsers ? (
+                        <div className="flex items-center justify-center py-2">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span className="text-sm">Loading users...</span>
+                        </div>
+                      ) : users.length === 0 ? (
+                        <div className="py-2 text-center text-sm text-gray-500">
+                          No eligible users found
+                        </div>
+                      ) : (
+                        users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              <span>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}</span>
+                              <Badge variant="outline" className="text-xs ml-2">
+                                {user.role?.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
