@@ -2481,14 +2481,22 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Bid revision not found');
     }
     
-    // Update inquiry bidStatus based on customer response
+    // Update inquiry bidStatus and bidProgressStatus based on customer response
     const newBidStatus = responseData.status === 'accepted' ? 'customer_accepted' : 'customer_rejected';
+    const updateData: any = { 
+      bidStatus: newBidStatus,
+      updatedAt: new Date(),
+    };
+    
+    // If customer accepted, mark bid as completed
+    if (responseData.status === 'accepted') {
+      updateData.bidProgressStatus = 'completed';
+      updateData.bidProgressUpdatedAt = new Date();
+    }
+    
     await db
       .update(inquiries)
-      .set({ 
-        bidStatus: newBidStatus,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(inquiries.id, updatedRevision.inquiryId));
     
     return updatedRevision;

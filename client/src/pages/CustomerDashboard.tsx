@@ -166,6 +166,40 @@ export default function CustomerDashboard() {
     }
   });
 
+  // Respond to bid revision (accept/reject) mutation
+  const respondToBidRevisionMutation = useMutation({
+    mutationFn: async ({ revisionId, status, responseNotes }: { revisionId: number; status: 'accepted' | 'rejected'; responseNotes?: string }) => {
+      const response = await fetch(`/api/bid-revisions/${revisionId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, responseNotes })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to respond to quote');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customer/high-volume-bids', selectedBidForTracking?.id, 'tracking'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customer?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      toast({
+        title: variables.status === 'accepted' ? "Quote Accepted" : "Quote Rejected",
+        description: variables.status === 'accepted' 
+          ? "You have accepted the revised quote. Our sales team will contact you to proceed."
+          : "You have rejected the revised quote. Our team may send an updated offer.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to respond to quote. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   if (!isCustomerAuthenticated) {
     return <div className="flex items-center justify-center min-h-screen">Please login to access your dashboard.</div>;
   }
@@ -2428,27 +2462,77 @@ export default function CustomerDashboard() {
                     <DollarSign className="w-4 h-4 mr-2" />
                     Revised Quotes
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {bidTrackingData.revisions.map((revision: any) => (
-                      <div key={revision.id} className="bg-gray-50 p-3 rounded-lg border">
+                      <div key={revision.id} className={`p-4 rounded-lg border ${
+                        revision.status === 'pending' ? 'bg-yellow-50 border-yellow-200' :
+                        revision.status === 'accepted' ? 'bg-green-50 border-green-200' :
+                        'bg-gray-50 border-gray-200'
+                      }`}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-green-600">
-                            {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toFixed(2)}
+                          <span className="font-semibold text-lg text-green-700">
+                            {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
                           <Badge className={
                             revision.status === 'accepted' ? 'bg-green-100 text-green-800' :
                             revision.status === 'rejected' ? 'bg-red-100 text-red-800' :
                             'bg-yellow-100 text-yellow-800'
                           }>
-                            {revision.status}
+                            {revision.status === 'pending' ? 'Awaiting Response' : revision.status}
                           </Badge>
                         </div>
                         {revision.notes && (
-                          <p className="text-sm text-gray-600">{revision.notes}</p>
+                          <p className="text-sm text-gray-600 mb-2">{revision.notes}</p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">
-                          {formatDistanceToNow(new Date(revision.submittedAt))} ago
+                        <p className="text-xs text-gray-400">
+                          Received {formatDistanceToNow(new Date(revision.submittedAt))} ago
                         </p>
+                        
+                        {/* Accept/Reject buttons for pending revisions */}
+                        {revision.status === 'pending' && (
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={() => respondToBidRevisionMutation.mutate({ 
+                                revisionId: revision.id, 
+                                status: 'accepted' 
+                              })}
+                              disabled={respondToBidRevisionMutation.isPending}
+                              data-testid={`btn-accept-revision-${revision.id}`}
+                            >
+                              {respondToBidRevisionMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Check className="w-4 h-4 mr-2" />
+                              )}
+                              Accept Quote
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => respondToBidRevisionMutation.mutate({ 
+                                revisionId: revision.id, 
+                                status: 'rejected' 
+                              })}
+                              disabled={respondToBidRevisionMutation.isPending}
+                              data-testid={`btn-reject-revision-${revision.id}`}
+                            >
+                              Reject Quote
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {/* Show response if already responded */}
+                        {revision.status !== 'pending' && revision.respondedAt && (
+                          <div className={`mt-2 p-2 rounded text-sm ${
+                            revision.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {revision.status === 'accepted' ? 'You accepted this quote' : 'You rejected this quote'}
+                            {revision.responseNotes && (
+                              <p className="mt-1 text-xs">{revision.responseNotes}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
