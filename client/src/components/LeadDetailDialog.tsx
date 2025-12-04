@@ -4,12 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -22,6 +27,12 @@ interface LeadDetailDialogProps {
 
 export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps = [], onAssign, canAssignLeads = false }: LeadDetailDialogProps) {
   const [selectedAssignee, setSelectedAssignee] = useState(lead?.assignedSalesRep || "");
+  const [showRevisedQuoteForm, setShowRevisedQuoteForm] = useState(false);
+  const [revisedAmount, setRevisedAmount] = useState("");
+  const [revisedCurrency, setRevisedCurrency] = useState("USD");
+  const [revisedMessage, setRevisedMessage] = useState("");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const productIds = lead?.productsInterested || [];
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
@@ -48,6 +59,98 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     },
     enabled: isFromInquiry && open && !!lead?.id,
   });
+
+  // Mutation to update bid progress status
+  const updateStatusMutation = useMutation({
+    mutationFn: async (status: string) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/high-volume-bid/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads/original-inquiry', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      toast({
+        title: "Status Updated",
+        description: "Bid progress status has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to send revised quote
+  const sendRevisedQuoteMutation = useMutation({
+    mutationFn: async (data: { messageType: string; message: string; revisedAmount?: string; currency?: string }) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/high-volume-bid/message`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads/original-inquiry', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      setShowRevisedQuoteForm(false);
+      setRevisedAmount("");
+      setRevisedMessage("");
+      toast({
+        title: "Revised Quote Sent",
+        description: "Your revised quote has been sent to the customer.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send revised quote",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendRevisedQuote = () => {
+    if (!revisedAmount || !revisedMessage) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both amount and message.",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendRevisedQuoteMutation.mutate({
+      messageType: 'revised_quote',
+      message: revisedMessage,
+      revisedAmount,
+      currency: revisedCurrency,
+    });
+  };
+
+  const getProgressStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'submitted': 'Bid Submitted',
+      'manager_approval': 'Manager Approval',
+      'sales_discussion': 'Sales Discussion',
+      'quotation_sent': 'Quotation Sent',
+      'completed': 'Completed',
+    };
+    return labels[status] || status;
+  };
+
+  const getProgressStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'submitted': 'bg-gray-500',
+      'manager_approval': 'bg-yellow-500',
+      'sales_discussion': 'bg-blue-500',
+      'quotation_sent': 'bg-purple-500',
+      'completed': 'bg-green-500',
+    };
+    return colors[status] || 'bg-gray-500';
+  };
   
   if (!lead) return null;
 
@@ -524,6 +627,157 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                         </h3>
                         <div className="p-3 bg-purple-50 rounded border border-purple-200">
                           <p className="text-sm whitespace-pre-wrap">{inquiryData.inquiry.discussionNotes}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* High Volume Bid Workflow Management */}
+                  {lead.leadSource === 'high_volume_bid' && (
+                    <Card className="border-2 border-blue-300 bg-blue-50/30">
+                      <CardContent className="p-4 sm:p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2 text-blue-800">
+                          <ArrowRight className="h-4 w-4" />
+                          High Volume Bid Workflow
+                        </h3>
+                        
+                        {/* Current Progress Status */}
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 mb-2">Current Progress:</p>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'].map((status, index) => {
+                              const currentStatus = inquiryData.inquiry.bidProgressStatus || 'submitted';
+                              const statusOrder = ['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'];
+                              const currentIndex = statusOrder.indexOf(currentStatus);
+                              const isCompleted = index < currentIndex;
+                              const isCurrent = status === currentStatus;
+                              
+                              return (
+                                <div 
+                                  key={status}
+                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${
+                                    isCompleted ? 'bg-green-100 text-green-800' :
+                                    isCurrent ? 'bg-blue-500 text-white ring-2 ring-blue-300' :
+                                    'bg-gray-100 text-gray-500'
+                                  }`}
+                                >
+                                  {isCompleted && <CheckCircle className="w-3 h-3" />}
+                                  {getProgressStatusLabel(status)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Update Status Dropdown */}
+                        <div className="mb-4">
+                          <Label className="text-sm text-gray-600 mb-2 block">Update Status:</Label>
+                          <div className="flex gap-2">
+                            <Select 
+                              value={inquiryData.inquiry.bidProgressStatus || 'submitted'}
+                              onValueChange={(value) => updateStatusMutation.mutate(value)}
+                            >
+                              <SelectTrigger className="flex-1" data-testid="select-bid-status">
+                                <SelectValue placeholder="Select status..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="submitted">Bid Submitted</SelectItem>
+                                <SelectItem value="manager_approval">Manager Approval</SelectItem>
+                                <SelectItem value="sales_discussion">Sales Discussion</SelectItem>
+                                <SelectItem value="quotation_sent">Quotation Sent</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {updateStatusMutation.isPending && (
+                              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Send Revised Quote */}
+                        <div className="border-t pt-4">
+                          <Button
+                            variant={showRevisedQuoteForm ? "outline" : "default"}
+                            className="w-full mb-3"
+                            onClick={() => setShowRevisedQuoteForm(!showRevisedQuoteForm)}
+                            data-testid="btn-toggle-revised-quote"
+                          >
+                            {showRevisedQuoteForm ? (
+                              <>
+                                <ChevronUp className="w-4 h-4 mr-2" />
+                                Hide Revised Quote Form
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 mr-2" />
+                                Send Revised Quote
+                              </>
+                            )}
+                          </Button>
+
+                          {showRevisedQuoteForm && (
+                            <div className="space-y-3 p-4 bg-white rounded-lg border">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label htmlFor="revised-amount">Amount</Label>
+                                  <Input
+                                    id="revised-amount"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Enter amount"
+                                    value={revisedAmount}
+                                    onChange={(e) => setRevisedAmount(e.target.value)}
+                                    data-testid="input-revised-amount"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="revised-currency">Currency</Label>
+                                  <Select value={revisedCurrency} onValueChange={setRevisedCurrency}>
+                                    <SelectTrigger data-testid="select-revised-currency">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="USD">USD</SelectItem>
+                                      <SelectItem value="EUR">EUR</SelectItem>
+                                      <SelectItem value="GBP">GBP</SelectItem>
+                                      <SelectItem value="INR">INR</SelectItem>
+                                      <SelectItem value="AUD">AUD</SelectItem>
+                                      <SelectItem value="CAD">CAD</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div>
+                                <Label htmlFor="revised-message">Message to Customer</Label>
+                                <Textarea
+                                  id="revised-message"
+                                  placeholder="Enter your message..."
+                                  value={revisedMessage}
+                                  onChange={(e) => setRevisedMessage(e.target.value)}
+                                  rows={3}
+                                  data-testid="textarea-revised-message"
+                                />
+                              </div>
+                              <Button
+                                className="w-full"
+                                onClick={handleSendRevisedQuote}
+                                disabled={sendRevisedQuoteMutation.isPending}
+                                data-testid="btn-send-revised-quote"
+                              >
+                                {sendRevisedQuoteMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Sending...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Send Revised Quote
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

@@ -26,6 +26,8 @@ export default function CustomerDashboard() {
   const [showCounterOfferDialog, setShowCounterOfferDialog] = useState(false);
   const [counterPrice, setCounterPrice] = useState("");
   const [counterNotes, setCounterNotes] = useState("");
+  const [selectedBidForTracking, setSelectedBidForTracking] = useState<any>(null);
+  const [showBidTrackingDialog, setShowBidTrackingDialog] = useState(false);
 
   // Data fetching for customer-specific data
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -46,6 +48,21 @@ export default function CustomerDashboard() {
   const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
     queryKey: [`/api/customer/sample-requests/${customer?.id}`],
     enabled: isCustomerAuthenticated && !!customer?.id
+  });
+
+  // Query for bid tracking data (uses the numeric database id)
+  const { data: bidTrackingData, isLoading: bidTrackingLoading } = useQuery<any>({
+    queryKey: ['/api/customer/high-volume-bids', selectedBidForTracking?.id, 'tracking'],
+    queryFn: async () => {
+      if (!selectedBidForTracking?.id) return null;
+      const response = await fetch(`/api/customer/high-volume-bids/${selectedBidForTracking.id}/tracking`);
+      if (!response.ok) {
+        console.error('Failed to fetch tracking data for bid:', selectedBidForTracking.id);
+        return null;
+      }
+      return response.json();
+    },
+    enabled: showBidTrackingDialog && !!selectedBidForTracking?.id,
   });
 
   // Extract inquiries data
@@ -658,7 +675,20 @@ export default function CustomerDashboard() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              setSelectedBidForTracking(bid);
+                              setShowBidTrackingDialog(true);
+                            }}
+                            data-testid={`button-track-bid-${bid.id}`}
+                          >
+                            <MapPin className="w-4 h-4 mr-1" />
+                            Track Status
+                          </Button>
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm" data-testid={`button-view-bid-${bid.id}`}>
@@ -2289,6 +2319,129 @@ export default function CustomerDashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bid Progress Tracking Dialog */}
+      <Dialog open={showBidTrackingDialog} onOpenChange={setShowBidTrackingDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Bid Progress - {selectedBidForTracking?.inquiryId}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              Track the progress of your high volume bid
+            </DialogDescription>
+          </DialogHeader>
+          
+          {bidTrackingLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-500">Loading tracking information...</span>
+            </div>
+          ) : bidTrackingData ? (
+            <div className="space-y-6 py-4">
+              {/* Progress Steps */}
+              <div className="space-y-4">
+                {[
+                  { key: 'submitted', label: 'Bid Submitted', icon: Check, description: 'Your bid has been received' },
+                  { key: 'manager_approval', label: 'Manager Approval', icon: User, description: 'Pending review by our management team' },
+                  { key: 'sales_discussion', label: 'Sales Discussion', icon: MessageSquare, description: 'Awaiting approval' },
+                  { key: 'quotation_sent', label: 'Quotation Sent', icon: FileText, description: 'Awaiting approval' },
+                ].map((step, index) => {
+                  const currentStatus = bidTrackingData.bidProgressStatus || 'submitted';
+                  const statusOrder = ['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'];
+                  const currentIndex = statusOrder.indexOf(currentStatus);
+                  const stepIndex = statusOrder.indexOf(step.key);
+                  const isCompleted = stepIndex < currentIndex;
+                  const isCurrent = step.key === currentStatus;
+                  const StepIcon = step.icon;
+                  
+                  return (
+                    <div key={step.key} className="flex items-start gap-4">
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                        isCompleted ? 'bg-green-500 text-white' :
+                        isCurrent ? 'bg-blue-500 text-white ring-4 ring-blue-200' :
+                        'bg-gray-200 text-gray-500'
+                      }`}>
+                        {isCompleted ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <span className="font-semibold">{index + 1}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 pb-4 border-b last:border-b-0">
+                        <h4 className={`font-semibold ${isCurrent ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-500'}`}>
+                          {step.label}
+                        </h4>
+                        <p className="text-sm text-gray-500">{step.description}</p>
+                        {isCurrent && (
+                          <Badge className="mt-2 bg-blue-100 text-blue-800">Current Status</Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Current Status Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-blue-800">
+                  Current Status: Your bid is under review by our management team.
+                </p>
+                {bidTrackingData.bidProgressUpdatedAt && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Last updated: {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
+                  </p>
+                )}
+              </div>
+
+              {/* Revised Quotes */}
+              {bidTrackingData.revisions && bidTrackingData.revisions.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Revised Quotes
+                  </h4>
+                  <div className="space-y-2">
+                    {bidTrackingData.revisions.map((revision: any) => (
+                      <div key={revision.id} className="bg-gray-50 p-3 rounded-lg border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-green-600">
+                            {revision.currency || 'USD'} {parseFloat(revision.revisedAmount).toFixed(2)}
+                          </span>
+                          <Badge className={
+                            revision.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                            revision.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }>
+                            {revision.status}
+                          </Badge>
+                        </div>
+                        {revision.notes && (
+                          <p className="text-sm text-gray-600">{revision.notes}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDistanceToNow(new Date(revision.submittedAt))} ago
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-500">
+              <p>Unable to load tracking information.</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBidTrackingDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
