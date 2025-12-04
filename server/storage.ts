@@ -19,6 +19,7 @@ import {
   heroSlides,
   sampleRequests,
   bidRevisions,
+  bidNegotiations,
   companies,
   companyContacts,
   leads,
@@ -50,6 +51,8 @@ import {
   type InsertInquiry,
   type BidRevision,
   type InsertBidRevision,
+  type BidNegotiation,
+  type InsertBidNegotiation,
   type Quotation,
   type InsertQuotation,
   type ProductDocument,
@@ -247,6 +250,11 @@ export interface IStorage {
   getBidRevisions(inquiryId: number): Promise<BidRevision[]>;
   createBidRevision(revision: InsertBidRevision): Promise<BidRevision>;
   respondToBidRevision(revisionId: number, customerId: string, responseData: { status: 'accepted' | 'rejected'; responseNotes?: string }): Promise<BidRevision>;
+  
+  // Bid Negotiation operations
+  getBidNegotiations(inquiryId: number, customerVisible?: boolean): Promise<BidNegotiation[]>;
+  createBidNegotiation(negotiation: InsertBidNegotiation): Promise<BidNegotiation>;
+  updateBidProgressStatus(inquiryId: number, status: string): Promise<Inquiry>;
   
   // Sample Request operations
   getSampleRequests(filters?: {
@@ -2484,6 +2492,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inquiries.id, updatedRevision.inquiryId));
     
     return updatedRevision;
+  }
+
+  // Bid Negotiation operations
+  async getBidNegotiations(inquiryId: number, customerVisible?: boolean): Promise<BidNegotiation[]> {
+    const conditions = [eq(bidNegotiations.inquiryId, inquiryId)];
+    
+    if (customerVisible !== undefined) {
+      conditions.push(eq(bidNegotiations.isVisibleToCustomer, customerVisible));
+    }
+    
+    const negotiations = await db
+      .select()
+      .from(bidNegotiations)
+      .where(and(...conditions))
+      .orderBy(desc(bidNegotiations.createdAt));
+    
+    return negotiations;
+  }
+
+  async createBidNegotiation(negotiation: InsertBidNegotiation): Promise<BidNegotiation> {
+    const [newNegotiation] = await db
+      .insert(bidNegotiations)
+      .values({
+        ...negotiation,
+        createdAt: new Date(),
+      })
+      .returning();
+    
+    return newNegotiation;
+  }
+
+  async updateBidProgressStatus(inquiryId: number, status: string): Promise<Inquiry> {
+    const [updatedInquiry] = await db
+      .update(inquiries)
+      .set({
+        bidProgressStatus: status,
+        bidProgressUpdatedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(inquiries.id, inquiryId))
+      .returning();
+    
+    return updatedInquiry;
   }
 
   // Quotation operations
