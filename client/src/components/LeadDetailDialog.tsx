@@ -769,6 +769,83 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                             </div>
                           )}
 
+                          {/* Quotation Sent State - Waiting for Customer Response */}
+                          {(inquiryData.inquiry.bidProgressStatus) === 'quotation_sent' && (
+                            <div className="space-y-4">
+                              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Clock className="w-5 h-5 text-purple-600" />
+                                  <p className="font-medium text-purple-800">Awaiting Customer Response</p>
+                                </div>
+                                <p className="text-sm text-purple-600">A revised quotation has been sent. Waiting for the customer to accept or reject.</p>
+                              </div>
+                              
+                              {/* Option to send another revised quote if customer rejects */}
+                              <div className="border rounded-lg p-4 bg-gray-50">
+                                <p className="text-sm font-medium text-gray-700 mb-3">Send Another Revised Quote (if customer rejects):</p>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                  <div>
+                                    <Label htmlFor="revised-amount-alt">Amount *</Label>
+                                    <Input
+                                      id="revised-amount-alt"
+                                      type="number"
+                                      placeholder="Enter amount"
+                                      value={revisedAmount}
+                                      onChange={(e) => setRevisedAmount(e.target.value)}
+                                      data-testid="input-revised-amount-alt"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="revised-currency-alt">Currency</Label>
+                                    <Select value={revisedCurrency} onValueChange={setRevisedCurrency}>
+                                      <SelectTrigger id="revised-currency-alt" data-testid="select-revised-currency-alt">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="USD">USD</SelectItem>
+                                        <SelectItem value="EUR">EUR</SelectItem>
+                                        <SelectItem value="GBP">GBP</SelectItem>
+                                        <SelectItem value="INR">INR</SelectItem>
+                                        <SelectItem value="AUD">AUD</SelectItem>
+                                        <SelectItem value="CAD">CAD</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div className="mb-2">
+                                  <Label htmlFor="revised-message-alt">Message to Customer *</Label>
+                                  <Textarea
+                                    id="revised-message-alt"
+                                    placeholder="Enter your message to the customer..."
+                                    value={revisedMessage}
+                                    onChange={(e) => setRevisedMessage(e.target.value)}
+                                    rows={2}
+                                    data-testid="textarea-revised-message-alt"
+                                  />
+                                </div>
+                                <Button
+                                  className="w-full"
+                                  variant="outline"
+                                  onClick={handleSendRevisedQuote}
+                                  disabled={sendRevisedQuoteMutation.isPending || !revisedAmount || !revisedMessage}
+                                  data-testid="btn-send-another-quote"
+                                >
+                                  {sendRevisedQuoteMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Sending...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Send Another Quote
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Completed State */}
                           {(inquiryData.inquiry.bidProgressStatus) === 'completed' && (
                             <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
