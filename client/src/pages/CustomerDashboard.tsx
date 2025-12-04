@@ -2383,7 +2383,7 @@ export default function CustomerDashboard() {
                   { key: 'manager_approval', label: 'Manager Approval', icon: User, description: 'Pending review by our management team' },
                   { key: 'sales_discussion', label: 'Sales Discussion', icon: MessageSquare, description: 'Sales team is reviewing your bid' },
                   { key: 'quotation_sent', label: 'Quotation Sent', icon: FileText, description: 'Revised quote has been sent to you' },
-                  { key: 'completed', label: 'Completed', icon: Check, description: 'Bid has been processed successfully' },
+                  { key: 'completed', label: 'Deal Confirmed', icon: Check, description: 'Your deal has been confirmed!' },
                 ].map((step, index) => {
                   const currentStatus = bidTrackingData.bidProgressStatus || 'submitted';
                   const statusOrder = ['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'];
@@ -2421,39 +2421,91 @@ export default function CustomerDashboard() {
               </div>
 
               {/* Current Status Summary */}
-              <div className={`rounded-lg p-4 border ${
-                bidTrackingData.bidProgressStatus === 'completed' 
-                  ? 'bg-green-50 border-green-200' 
-                  : bidTrackingData.bidProgressStatus === 'quotation_sent'
+              {bidTrackingData.bidProgressStatus === 'completed' ? (
+                /* Deal Confirmed - Rich Summary for Completed Bids */
+                (() => {
+                  const acceptedRevision = bidTrackingData.revisions?.find((r: any) => r.status === 'accepted');
+                  const dealAmount = acceptedRevision?.revisedAmount || bidTrackingData.estimatedValue;
+                  const dealCurrency = acceptedRevision?.currency || 'USD';
+                  
+                  return (
+                    <div className="rounded-xl p-5 border-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50">
+                      {/* Celebration Header */}
+                      <div className="text-center mb-4">
+                        <div className="inline-flex items-center justify-center w-14 h-14 bg-green-100 rounded-full mb-2">
+                          <Check className="w-8 h-8 text-green-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-green-800">Deal Confirmed!</h3>
+                        <p className="text-sm text-green-600">Your high volume bid has been successfully processed</p>
+                      </div>
+                      
+                      {/* Deal Details */}
+                      <div className="bg-white rounded-lg p-4 border border-green-200 space-y-3">
+                        {/* Final Amount */}
+                        {dealAmount && (
+                          <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 flex items-center gap-2">
+                              <DollarSign className="w-4 h-4" />
+                              Final Deal Value
+                            </span>
+                            <span className="text-xl font-bold text-green-600">
+                              {dealCurrency} {parseFloat(dealAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Completion Date */}
+                        {bidTrackingData.bidProgressUpdatedAt && (
+                          <div className="flex items-center justify-between py-2">
+                            <span className="text-gray-600 flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              Completed On
+                            </span>
+                            <span className="font-medium text-gray-800">
+                              {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Next Steps */}
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 font-medium">What's Next?</p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Our sales team will contact you shortly to finalize the order details and arrange delivery.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className={`rounded-lg p-4 border ${
+                  bidTrackingData.bidProgressStatus === 'quotation_sent'
                   ? 'bg-purple-50 border-purple-200'
                   : 'bg-blue-50 border-blue-200'
-              }`}>
-                <p className={`text-sm font-medium ${
-                  bidTrackingData.bidProgressStatus === 'completed' 
-                    ? 'text-green-800' 
-                    : bidTrackingData.bidProgressStatus === 'quotation_sent'
+                }`}>
+                  <p className={`text-sm font-medium ${
+                    bidTrackingData.bidProgressStatus === 'quotation_sent'
                     ? 'text-purple-800'
                     : 'text-blue-800'
-                }`}>
-                  {bidTrackingData.bidProgressStatus === 'submitted' && 'Your bid has been submitted and is awaiting review.'}
-                  {bidTrackingData.bidProgressStatus === 'manager_approval' && 'Your bid is under review by our management team.'}
-                  {bidTrackingData.bidProgressStatus === 'sales_discussion' && 'Our sales team is reviewing your bid for discussion.'}
-                  {bidTrackingData.bidProgressStatus === 'quotation_sent' && 'A revised quotation has been sent. Please check your quotes.'}
-                  {bidTrackingData.bidProgressStatus === 'completed' && 'Your bid has been completed successfully!'}
-                  {!bidTrackingData.bidProgressStatus && 'Your bid is being processed.'}
-                </p>
-                {bidTrackingData.bidProgressUpdatedAt && (
-                  <p className={`text-xs mt-1 ${
-                    bidTrackingData.bidProgressStatus === 'completed' 
-                      ? 'text-green-600' 
-                      : bidTrackingData.bidProgressStatus === 'quotation_sent'
+                  }`}>
+                    {bidTrackingData.bidProgressStatus === 'submitted' && 'Your bid has been submitted and is awaiting review.'}
+                    {bidTrackingData.bidProgressStatus === 'manager_approval' && 'Your bid is under review by our management team.'}
+                    {bidTrackingData.bidProgressStatus === 'sales_discussion' && 'Our sales team is reviewing your bid for discussion.'}
+                    {bidTrackingData.bidProgressStatus === 'quotation_sent' && 'A revised quotation has been sent. Please check your quotes below.'}
+                    {!bidTrackingData.bidProgressStatus && 'Your bid is being processed.'}
+                  </p>
+                  {bidTrackingData.bidProgressUpdatedAt && (
+                    <p className={`text-xs mt-1 ${
+                      bidTrackingData.bidProgressStatus === 'quotation_sent'
                       ? 'text-purple-600'
                       : 'text-blue-600'
-                  }`}>
-                    Last updated: {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
-                  </p>
-                )}
-              </div>
+                    }`}>
+                      Last updated: {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Revised Quotes */}
               {bidTrackingData.revisions && bidTrackingData.revisions.length > 0 && (

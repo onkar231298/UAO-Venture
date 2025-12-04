@@ -846,14 +846,100 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                             </div>
                           )}
 
-                          {/* Completed State */}
-                          {(inquiryData.inquiry.bidProgressStatus) === 'completed' && (
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
-                              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                              <p className="font-medium text-green-800">Bid Workflow Completed</p>
-                              <p className="text-sm text-green-600">This bid has been processed successfully.</p>
-                            </div>
-                          )}
+                          {/* Completed State - Deal Won Summary */}
+                          {(inquiryData.inquiry.bidProgressStatus) === 'completed' && (() => {
+                            // Find the accepted revision or get the latest one
+                            const acceptedRevision = inquiryData.bidRevisions?.find((r: any) => r.status === 'accepted');
+                            const totalRevisions = inquiryData.bidRevisions?.length || 0;
+                            const dealAmount = acceptedRevision?.revisedAmount || inquiryData.inquiry.estimatedValue;
+                            const dealCurrency = acceptedRevision?.currency || 'USD';
+                            const acceptedAt = acceptedRevision?.respondedAt || inquiryData.inquiry.bidProgressUpdatedAt;
+                            
+                            return (
+                              <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 shadow-sm">
+                                {/* Header with celebration */}
+                                <div className="text-center mb-4">
+                                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
+                                    <CheckCircle className="w-10 h-10 text-green-600" />
+                                  </div>
+                                  <h3 className="text-xl font-bold text-green-800">Deal Won!</h3>
+                                  <p className="text-sm text-green-600">This high volume bid has been successfully completed</p>
+                                </div>
+                                
+                                {/* Deal Summary */}
+                                <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
+                                  <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Deal Summary</h4>
+                                  
+                                  {/* Final Amount */}
+                                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-600 flex items-center gap-2">
+                                      <DollarSign className="w-4 h-4" />
+                                      Final Deal Value
+                                    </span>
+                                    <span className="text-2xl font-bold text-green-600">
+                                      {dealCurrency} {dealAmount ? parseFloat(dealAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'N/A'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Customer Info */}
+                                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-600 flex items-center gap-2">
+                                      <User className="w-4 h-4" />
+                                      Customer
+                                    </span>
+                                    <span className="font-medium text-gray-800">
+                                      {lead.customerName || inquiryData.inquiry.customerName || 'N/A'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Company */}
+                                  {(lead.companyName || inquiryData.inquiry.companyName) && (
+                                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                      <span className="text-gray-600 flex items-center gap-2">
+                                        <Building className="w-4 h-4" />
+                                        Company
+                                      </span>
+                                      <span className="font-medium text-gray-800">
+                                        {lead.companyName || inquiryData.inquiry.companyName}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Negotiation Rounds */}
+                                  {totalRevisions > 0 && (
+                                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                      <span className="text-gray-600 flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4" />
+                                        Negotiation Rounds
+                                      </span>
+                                      <Badge className="bg-blue-100 text-blue-800">
+                                        {totalRevisions} {totalRevisions === 1 ? 'revision' : 'revisions'}
+                                      </Badge>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Completion Date */}
+                                  <div className="flex items-center justify-between py-2">
+                                    <span className="text-gray-600 flex items-center gap-2">
+                                      <Calendar className="w-4 h-4" />
+                                      Deal Closed
+                                    </span>
+                                    <span className="font-medium text-gray-800">
+                                      {acceptedAt ? format(new Date(acceptedAt), 'MMM dd, yyyy HH:mm') : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Status Badge */}
+                                <div className="flex justify-center">
+                                  <Badge className="bg-green-600 text-white px-4 py-1.5 text-sm">
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    {acceptedRevision ? 'Customer Accepted Quote' : 'Bid Accepted by Sales'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Manual Status Update (Advanced) */}
                           <div className="pt-3 border-t">
