@@ -848,12 +848,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
                           {/* Completed State - Deal Won Summary */}
                           {(inquiryData.inquiry.bidProgressStatus) === 'completed' && (() => {
-                            // Find the accepted revision or get the latest one
-                            const acceptedRevision = inquiryData.bidRevisions?.find((r: any) => r.status === 'accepted');
-                            const totalRevisions = inquiryData.bidRevisions?.length || 0;
-                            const dealAmount = acceptedRevision?.revisedAmount || inquiryData.inquiry.estimatedValue;
+                            // Find the accepted revision with null safety
+                            const revisions = inquiryData?.bidRevisions || [];
+                            const acceptedRevision = revisions.find((r: any) => r.status === 'accepted');
+                            const totalRevisions = revisions.length;
+                            const dealAmount = acceptedRevision?.revisedAmount || inquiryData?.inquiry?.estimatedValue || lead?.expectedOrderValue;
                             const dealCurrency = acceptedRevision?.currency || 'USD';
-                            const acceptedAt = acceptedRevision?.respondedAt || inquiryData.inquiry.bidProgressUpdatedAt;
+                            const acceptedAt = acceptedRevision?.respondedAt || inquiryData?.inquiry?.bidProgressUpdatedAt;
                             
                             return (
                               <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 shadow-sm">
