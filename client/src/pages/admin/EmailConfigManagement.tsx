@@ -21,6 +21,10 @@ interface EmailConfig {
   isActive: boolean;
   serviceType: string;
   isConnected: boolean;
+  signatureName: string | null;
+  signaturePosition: string | null;
+  signaturePhone: string | null;
+  signatureMobile: string | null;
   createdAt: string;
 }
 
@@ -41,6 +45,10 @@ export default function EmailConfigManagement() {
     displayName: "",
     isPrimary: true,
     isActive: true,
+    signatureName: "",
+    signaturePosition: "",
+    signaturePhone: "",
+    signatureMobile: "",
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -181,6 +189,10 @@ export default function EmailConfigManagement() {
       displayName: "",
       isPrimary: true,
       isActive: true,
+      signatureName: "",
+      signaturePosition: "",
+      signaturePhone: "",
+      signatureMobile: "",
     });
   };
 
@@ -192,6 +204,10 @@ export default function EmailConfigManagement() {
       displayName: config.displayName || "",
       isPrimary: config.isPrimary,
       isActive: config.isActive,
+      signatureName: config.signatureName || "",
+      signaturePosition: config.signaturePosition || "",
+      signaturePhone: config.signaturePhone || "",
+      signatureMobile: config.signatureMobile || "",
     });
     setIsDialogOpen(true);
   };
@@ -328,6 +344,59 @@ export default function EmailConfigManagement() {
                   <p className="text-xs text-gray-500 mt-1">
                     The name that appears in the "From" field of sent emails.
                   </p>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium text-sm mb-3 text-gray-700">Email Signature Details</h4>
+                  <p className="text-xs text-gray-500 mb-3">
+                    These details will be included in the email signature with company branding and certifications.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <Label htmlFor="signatureName">Full Name (for signature)</Label>
+                      <Input
+                        id="signatureName"
+                        value={formData.signatureName}
+                        onChange={(e) => setFormData({ ...formData, signatureName: e.target.value })}
+                        placeholder="John Smith"
+                        data-testid="input-signature-name"
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Label htmlFor="signaturePosition">Position / Title</Label>
+                      <Input
+                        id="signaturePosition"
+                        value={formData.signaturePosition}
+                        onChange={(e) => setFormData({ ...formData, signaturePosition: e.target.value })}
+                        placeholder="Senior Sales Executive"
+                        data-testid="input-signature-position"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="signaturePhone">Office Phone</Label>
+                      <Input
+                        id="signaturePhone"
+                        value={formData.signaturePhone}
+                        onChange={(e) => setFormData({ ...formData, signaturePhone: e.target.value })}
+                        placeholder="+91 22 1234 5678"
+                        data-testid="input-signature-phone"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="signatureMobile">Mobile</Label>
+                      <Input
+                        id="signatureMobile"
+                        value={formData.signatureMobile}
+                        onChange={(e) => setFormData({ ...formData, signatureMobile: e.target.value })}
+                        placeholder="+91 98765 43210"
+                        data-testid="input-signature-mobile"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
