@@ -41,7 +41,7 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Setup local strategy for both admin and customer login
+  // Setup local strategy for admin, staff, and customer login
   passport.use(new LocalStrategy(
     { usernameField: 'email' },
     async (email, password, done) => {
@@ -56,13 +56,34 @@ export async function setupAuth(app: Express) {
                 email: adminUser.email,
                 first_name: adminUser.firstName,
                 last_name: adminUser.lastName,
+                role: adminUser.role,
                 exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
               },
               isLocal: true,
-              isAdmin: true
+              isAdmin: true,
+              isStaff: false
             };
             return done(null, userSession);
           }
+        }
+
+        // Check for sales staff credentials (database-based with hashed passwords)
+        const staffUser = await storage.verifyStaffCredentials(email, password);
+        if (staffUser) {
+          const userSession = {
+            claims: {
+              sub: staffUser.id,
+              email: staffUser.email,
+              first_name: staffUser.firstName,
+              last_name: staffUser.lastName,
+              role: staffUser.role,
+              exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
+            },
+            isLocal: true,
+            isAdmin: false,
+            isStaff: true
+          };
+          return done(null, userSession);
         }
 
         // Check for demo customer credentials
@@ -95,10 +116,12 @@ export async function setupAuth(app: Express) {
               email: customerUser.email,
               first_name: customerUser.firstName,
               last_name: customerUser.lastName,
+              role: customerUser.role,
               exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
             },
             isLocal: true,
-            isAdmin: false
+            isAdmin: false,
+            isStaff: false
           };
           return done(null, userSession);
         }

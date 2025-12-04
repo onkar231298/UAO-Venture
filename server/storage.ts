@@ -119,6 +119,11 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: InsertUser): Promise<User>;
   
+  // Staff authentication operations
+  verifyStaffCredentials(email: string, password: string): Promise<User | null>;
+  createStaffWithPassword(data: InsertUser & { password: string }): Promise<User>;
+  updateStaffPassword(userId: string, newPassword: string): Promise<boolean>;
+  
   // Customer operations
   getUserByEmail(email: string): Promise<User | undefined>;
   getSalesReps(): Promise<User[]>;
@@ -480,6 +485,63 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  // Staff authentication operations
+  async verifyStaffCredentials(email: string, password: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    if (!user || !user.password) {
+      return null;
+    }
+    
+    // Check if user has a sales role
+    const salesRoles = ['sales_manager', 'sales_executive', 'sales_rep'];
+    if (!salesRoles.includes(user.role || '')) {
+      return null;
+    }
+    
+    // Verify password
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return null;
+    }
+    
+    return user;
+  }
+
+  async createStaffWithPassword(data: InsertUser & { password: string }): Promise<User> {
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...data,
+        password: hashedPassword,
+      })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...data,
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async updateStaffPassword(userId: string, newPassword: string): Promise<boolean> {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    const result = await db
+      .update(users)
+      .set({ password: hashedPassword, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return result.length > 0;
   }
 
   // Customer operations

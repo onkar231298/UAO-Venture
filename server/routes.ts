@@ -5206,6 +5206,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================
+  // STAFF ACCOUNT MANAGEMENT ROUTES
+  // ========================================
+
+  // Admin endpoint to create staff accounts with passwords
+  app.post('/api/admin/create-staff', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id, email, password, firstName, lastName, role, companyName, phoneNumber } = req.body;
+
+      if (!id || !email || !password || !firstName || !lastName || !role) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const validRoles = ['sales_manager', 'sales_executive', 'sales_rep'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be sales_manager, sales_executive, or sales_rep" });
+      }
+
+      const newUser = await storage.createStaffWithPassword({
+        id,
+        email,
+        password,
+        firstName,
+        lastName,
+        role,
+        companyName: companyName || '',
+        phoneNumber: phoneNumber || '',
+        address: '',
+        profileImageUrl: '',
+      });
+
+      res.json({ 
+        message: "Staff account created successfully",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role
+        }
+      });
+    } catch (error) {
+      console.error('Error creating staff account:', error);
+      res.status(500).json({ message: "Failed to create staff account" });
+    }
+  });
+
+  // Admin endpoint to update staff password
+  app.post('/api/admin/update-staff-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { userId, newPassword } = req.body;
+
+      if (!userId || !newPassword) {
+        return res.status(400).json({ message: "Missing userId or newPassword" });
+      }
+
+      const success = await storage.updateStaffPassword(userId, newPassword);
+      if (success) {
+        res.json({ message: "Password updated successfully" });
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
   // Newsletter subscription routes
   app.post('/api/newsletter/subscribe', async (req, res) => {
     try {
