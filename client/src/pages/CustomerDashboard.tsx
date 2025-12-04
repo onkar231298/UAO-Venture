@@ -169,7 +169,7 @@ export default function CustomerDashboard() {
   // Respond to bid revision (accept/reject) mutation
   const respondToBidRevisionMutation = useMutation({
     mutationFn: async ({ revisionId, status, responseNotes }: { revisionId: number; status: 'accepted' | 'rejected'; responseNotes?: string }) => {
-      const response = await fetch(`/api/bid-revisions/${revisionId}/respond`, {
+      const response = await fetch(`/api/customer/bid-revisions/${customer?.id}/${revisionId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, responseNotes })

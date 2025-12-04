@@ -248,6 +248,7 @@ export interface IStorage {
   
   // Bid Revision operations
   getBidRevisions(inquiryId: number): Promise<BidRevision[]>;
+  getBidRevisionById(revisionId: number): Promise<BidRevision | null>;
   createBidRevision(revision: InsertBidRevision): Promise<BidRevision>;
   respondToBidRevision(revisionId: number, customerId: string, responseData: { status: 'accepted' | 'rejected'; responseNotes?: string }): Promise<BidRevision>;
   
@@ -2435,6 +2436,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bidRevisions.inquiryId, inquiryId))
       .orderBy(desc(bidRevisions.submittedAt));
     return revisions;
+  }
+
+  async getBidRevisionById(revisionId: number): Promise<BidRevision | null> {
+    const [revision] = await db
+      .select()
+      .from(bidRevisions)
+      .where(eq(bidRevisions.id, revisionId))
+      .limit(1);
+    return revision || null;
   }
 
   async createBidRevision(revision: InsertBidRevision): Promise<BidRevision> {

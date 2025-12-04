@@ -1496,6 +1496,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer endpoint for responding to bid revisions (accept/reject)
+  app.post('/api/customer/bid-revisions/:customerId/:revisionId/respond', async (req: any, res) => {
+    try {
+      const revisionId = parseInt(req.params.revisionId);
+      const customerId = req.params.customerId;
+      const { status, responseNotes } = req.body;
+
+      if (status !== 'accepted' && status !== 'rejected') {
+        return res.status(400).json({ message: "Invalid status. Must be 'accepted' or 'rejected'" });
+      }
+
+      // Verify the revision belongs to this customer's inquiry
+      const revision = await storage.getBidRevisionById(revisionId);
+      if (!revision) {
+        return res.status(404).json({ message: "Bid revision not found" });
+      }
+
+      // Get the inquiry to verify ownership
+      const inquiry = await storage.getInquiry(revision.inquiryId);
+      if (!inquiry || inquiry.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedRevision = await storage.respondToBidRevision(
+        revisionId,
+        customerId,
+        { status, responseNotes }
+      );
+
+      res.json(updatedRevision);
+    } catch (error) {
+      console.error("Error responding to bid revision:", error);
+      res.status(500).json({ message: "Failed to respond to bid revision" });
+    }
+  });
+
   // Update inquiry (for sales team)
   app.put('/api/inquiries/:id', isAuthenticated, async (req: any, res) => {
     try {
