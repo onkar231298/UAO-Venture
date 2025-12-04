@@ -473,8 +473,8 @@ export default function SalesPersonDashboard() {
                                 <User className="w-5 h-5 text-blue-600" />
                               </div>
                               <div>
-                                <p className="font-medium">{lead.customerName || 'Unknown'}</p>
-                                <p className="text-sm text-gray-500">{lead.companyName || 'No company'}</p>
+                                <p className="font-medium">{lead.company?.companyName || 'Unknown Company'}</p>
+                                <p className="text-sm text-gray-500">{lead.contactPerson?.contactName || 'No contact'}</p>
                               </div>
                             </div>
                             {getStatusBadge(lead.stage || lead.status)}
@@ -559,18 +559,18 @@ export default function SalesPersonDashboard() {
                             <User className="w-6 h-6 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-semibold">{lead.customerName || 'Unknown'}</p>
+                            <p className="font-semibold">{lead.company?.companyName || 'Unknown Company'}</p>
                             <div className="flex items-center gap-2 text-sm text-gray-500">
-                              {lead.companyName && (
+                              {lead.contactPerson?.contactName && (
                                 <span className="flex items-center gap-1">
-                                  <Building className="w-3 h-3" />
-                                  {lead.companyName}
+                                  <User className="w-3 h-3" />
+                                  {lead.contactPerson.contactName}
                                 </span>
                               )}
-                              {lead.email && (
+                              {lead.contactPerson?.email && (
                                 <span className="flex items-center gap-1">
                                   <Mail className="w-3 h-3" />
-                                  {lead.email}
+                                  {lead.contactPerson.email}
                                 </span>
                               )}
                             </div>
