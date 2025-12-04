@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,18 +219,19 @@ export default function SalesPersonDashboard() {
               <Home className="w-4 h-4 mr-3" />
               Overview
             </Button>
-            <Button
-              variant={activeTab === 'leads' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('leads')}
-              data-testid="nav-leads"
-            >
-              <Target className="w-4 h-4 mr-3" />
-              My Leads
-              {summary.activeLeads > 0 && (
-                <Badge className="ml-auto bg-blue-100 text-blue-800">{summary.activeLeads}</Badge>
-              )}
-            </Button>
+            <Link href="/sales/leads">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                data-testid="nav-leads"
+              >
+                <Target className="w-4 h-4 mr-3" />
+                My Leads
+                {summary.activeLeads > 0 && (
+                  <Badge className="ml-auto bg-blue-100 text-blue-800">{summary.activeLeads}</Badge>
+                )}
+              </Button>
+            </Link>
             <Button
               variant={activeTab === 'inquiries' ? 'secondary' : 'ghost'}
               className="w-full justify-start"
@@ -301,19 +303,21 @@ export default function SalesPersonDashboard() {
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab('leads')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Active Leads</p>
-                        <p className="text-2xl font-bold text-blue-600">{summary.activeLeads}</p>
+                <Link href="/sales/leads">
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Active Leads</p>
+                          <p className="text-2xl font-bold text-blue-600">{summary.activeLeads}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Target className="w-6 h-6 text-blue-600" />
+                        </div>
                       </div>
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Target className="w-6 h-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
 
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab('inquiries')}>
                   <CardContent className="p-4">
@@ -423,17 +427,15 @@ export default function SalesPersonDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button className="w-full justify-start" variant="outline" onClick={() => setActiveTab('leads')}>
-                      <Target className="w-4 h-4 mr-2" />
-                      View All Leads
-                    </Button>
+                    <Link href="/sales/leads">
+                      <Button className="w-full justify-start" variant="outline">
+                        <Target className="w-4 h-4 mr-2" />
+                        View All Leads
+                      </Button>
+                    </Link>
                     <Button className="w-full justify-start" variant="outline" onClick={() => setActiveTab('bids')}>
                       <Briefcase className="w-4 h-4 mr-2" />
                       Manage Bids
-                    </Button>
-                    <Button className="w-full justify-start" variant="outline" onClick={() => window.location.href = '/admin/crm/leads'}>
-                      <ClipboardList className="w-4 h-4 mr-2" />
-                      Full CRM View
                     </Button>
                   </CardContent>
                 </Card>
@@ -445,9 +447,11 @@ export default function SalesPersonDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-lg">Recent Leads</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('leads')}>
-                      View All <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
+                    <Link href="/sales/leads">
+                      <Button variant="ghost" size="sm">
+                        View All <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </Link>
                   </CardHeader>
                   <CardContent>
                     {leadsLoading ? (
@@ -523,107 +527,6 @@ export default function SalesPersonDashboard() {
                 </Card>
               </div>
             </>
-          )}
-
-          {/* Leads Tab */}
-          {activeTab === 'leads' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>My Assigned Leads</CardTitle>
-                <CardDescription>All leads assigned to you for follow-up</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {leadsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-                ) : leads.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No leads assigned to you yet</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left p-3 font-medium text-gray-600">Lead ID</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Company</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Contact</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Stage</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Priority</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Value</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Created</th>
-                          <th className="text-left p-3 font-medium text-gray-600">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {leads.map((lead: any) => (
-                          <tr
-                            key={lead.id}
-                            className="border-b hover:bg-gray-50 cursor-pointer"
-                            data-testid={`lead-row-${lead.id}`}
-                          >
-                            <td className="p-3">
-                              <span className="text-sm font-mono text-gray-600">{lead.leadId}</span>
-                            </td>
-                            <td className="p-3">
-                              <span className="font-medium">{lead.company?.companyName || 'Unknown Company'}</span>
-                            </td>
-                            <td className="p-3">
-                              <div>
-                                <p className="text-sm">{lead.contactPerson?.contactName || 'No contact'}</p>
-                                {lead.contactPerson?.email && (
-                                  <p className="text-xs text-gray-500">{lead.contactPerson.email}</p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              {getStatusBadge(lead.stage || lead.status)}
-                            </td>
-                            <td className="p-3">
-                              <Badge 
-                                variant="outline"
-                                className={
-                                  lead.priority === 'hot' ? 'bg-red-100 text-red-700 border-red-200' :
-                                  lead.priority === 'warm' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                  'bg-blue-100 text-blue-700 border-blue-200'
-                                }
-                              >
-                                {lead.priority || 'warm'}
-                              </Badge>
-                            </td>
-                            <td className="p-3">
-                              <span className="font-medium text-green-600">
-                                {lead.expectedOrderValue ? `$${parseFloat(lead.expectedOrderValue).toLocaleString()}` : '$0'}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-sm text-gray-500">
-                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedLead(lead);
-                                  setShowLeadDialog(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           )}
 
           {/* Inquiries Tab */}

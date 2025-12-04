@@ -33,6 +33,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import SalesPersonDashboard from "@/pages/SalesPersonDashboard";
+import SalesLeadManagement from "@/pages/SalesLeadManagement";
 import VideoUploadTest from "@/pages/VideoUploadTest";
 import VideoHeroSliderManager from "@/pages/VideoHeroSliderManager";
 import CustomerRegistration from "@/pages/CustomerRegistration";
@@ -149,6 +150,7 @@ function Router() {
           {((user as any).role?.includes('sales') || (user as any).role === 'admin' || (user as any).role === 'super_admin') ? (
             <>
               <Route path="/sales" component={SalesPersonDashboard} />
+              <Route path="/sales/leads" component={SalesLeadManagement} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
             </>
           ) : null}
