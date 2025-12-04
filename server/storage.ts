@@ -4467,11 +4467,24 @@ export class DatabaseStorage implements IStorage {
 
     // Apply RBAC filters first
     if (filters?.user) {
-      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
-      const isAdmin = adminRoles.includes(filters.user.role);
+      const superAdminRoles = ['admin', 'super_admin'];
+      const isSuperAdmin = superAdminRoles.includes(filters.user.role);
+      const isSalesManager = filters.user.role === 'sales_manager';
       
-      if (!isAdmin) {
-        // Sales reps see only assigned leads
+      if (isSuperAdmin) {
+        // Super admin and admin see ALL leads - no filter applied
+      } else if (isSalesManager) {
+        // Sales managers see:
+        // 1. Leads assigned to themselves
+        // 2. Leads where they are marked as the salesManager (team ownership)
+        conditions.push(
+          or(
+            eq(leads.assignedSalesRep, filters.user.id),
+            eq(leads.salesManager, filters.user.id)
+          )
+        );
+      } else {
+        // Sales reps/executives see only leads assigned to them
         conditions.push(eq(leads.assignedSalesRep, filters.user.id));
       }
     }
@@ -4799,11 +4812,24 @@ export class DatabaseStorage implements IStorage {
 
     const previousAssignee = existingLead.assignedSalesRep;
     
+    // Check if the person making the assignment is a sales manager
+    const assigningUser = await this.getUser(assignedBy);
+    const isSalesManagerAssigning = assigningUser?.role === 'sales_manager';
+    
+    const updateData: any = {
+      assignedSalesRep: assignedTo,
+      assignedBy: assignedBy,
+      assignedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // If a sales manager is assigning, set them as the salesManager for team ownership
+    if (isSalesManagerAssigning) {
+      updateData.salesManager = assignedBy;
+    }
+    
     const [lead] = await db.update(leads)
-      .set({
-        assignedSalesRep: assignedTo,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(leads.id, leadId))
       .returning();
 
