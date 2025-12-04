@@ -4606,6 +4606,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================================
+  // CRM - HIGH VOLUME BID MANAGEMENT FROM LEADS
+  // ========================================
+
+  // Update bid progress status from Lead Management
+  app.patch('/api/crm/leads/:leadId/high-volume-bid/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const { status } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Valid status values
+      const validStatuses = ['submitted', 'manager_approval', 'sales_discussion', 'quotation_sent', 'completed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      // Find the inquiry linked to this lead
+      const inquiry = await db.select()
+        .from(inquiries)
+        .where(eq(inquiries.crmLeadId, leadId))
+        .limit(1);
+      
+      if (inquiry.length === 0) {
+        return res.status(404).json({ message: "No inquiry found for this lead" });
+      }
+      
+      const inquiryId = inquiry[0].id;
+      
+      // Update the bid progress status
+      const updatedInquiry = await storage.updateBidProgressStatus(inquiryId, status);
+      
+      // Create a negotiation entry for the status update
+      await storage.createBidNegotiation({
+        inquiryId,
+        leadId,
+        messageType: 'status_update',
+        message: `Bid status updated to: ${status.replace('_', ' ')}`,
+        authorId: userId,
+        authorRole: 'admin',
+        isVisibleToCustomer: true,
+      });
+      
+      res.json(updatedInquiry);
+    } catch (error) {
+      console.error('Error updating bid progress status:', error);
+      res.status(500).json({ message: "Failed to update bid status" });
+    }
+  });
+
+  // Send revised quote or message from Lead Management
+  app.post('/api/crm/leads/:leadId/high-volume-bid/message', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const { messageType, message, revisedAmount, currency } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Validate message type
+      const validTypes = ['revised_quote', 'admin_note', 'status_update'];
+      if (!validTypes.includes(messageType)) {
+        return res.status(400).json({ message: "Invalid message type" });
+      }
+      
+      // Find the inquiry linked to this lead
+      const inquiry = await db.select()
+        .from(inquiries)
+        .where(eq(inquiries.crmLeadId, leadId))
+        .limit(1);
+      
+      if (inquiry.length === 0) {
+        return res.status(404).json({ message: "No inquiry found for this lead" });
+      }
+      
+      const inquiryId = inquiry[0].id;
+      
+      // Create negotiation entry
+      const negotiation = await storage.createBidNegotiation({
+        inquiryId,
+        leadId,
+        messageType,
+        message,
+        revisedAmount: revisedAmount || null,
+        currency: currency || null,
+        authorId: userId,
+        authorRole: 'admin',
+        isVisibleToCustomer: messageType !== 'admin_note',
+      });
+      
+      // If it's a revised quote, also create a bid revision for legacy compatibility
+      if (messageType === 'revised_quote' && revisedAmount) {
+        await storage.createBidRevision({
+          inquiryId,
+          revisedAmount,
+          currency: currency || 'USD',
+          notes: message,
+          submittedBy: userId,
+        });
+        
+        // Update bid progress status to quotation_sent
+        await storage.updateBidProgressStatus(inquiryId, 'quotation_sent');
+      }
+      
+      res.json(negotiation);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Get bid negotiations/messages for a lead
+  app.get('/api/crm/leads/:leadId/high-volume-bid/negotiations', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      
+      // Find the inquiry linked to this lead
+      const inquiry = await db.select()
+        .from(inquiries)
+        .where(eq(inquiries.crmLeadId, leadId))
+        .limit(1);
+      
+      if (inquiry.length === 0) {
+        return res.status(404).json({ message: "No inquiry found for this lead" });
+      }
+      
+      const negotiations = await storage.getBidNegotiations(inquiry[0].id);
+      
+      res.json(negotiations);
+    } catch (error) {
+      console.error('Error fetching negotiations:', error);
+      res.status(500).json({ message: "Failed to fetch negotiations" });
+    }
+  });
+
+  // Customer tracking endpoint for high volume bids
+  app.get('/api/customer/high-volume-bids/:inquiryId/tracking', async (req: any, res) => {
+    try {
+      const inquiryId = parseInt(req.params.inquiryId);
+      
+      const inquiry = await storage.getInquiry(inquiryId);
+      
+      if (!inquiry) {
+        return res.status(404).json({ message: "Inquiry not found" });
+      }
+      
+      // Fetch customer-visible negotiations
+      const negotiations = await storage.getBidNegotiations(inquiryId, true);
+      
+      // Fetch bid revisions
+      const revisions = await storage.getBidRevisions(inquiryId);
+      
+      res.json({
+        inquiryId: inquiry.inquiryId,
+        bidProgressStatus: inquiry.bidProgressStatus || 'submitted',
+        bidProgressUpdatedAt: inquiry.bidProgressUpdatedAt,
+        bidStatus: inquiry.bidStatus,
+        createdAt: inquiry.createdAt,
+        negotiations,
+        revisions,
+      });
+    } catch (error) {
+      console.error('Error fetching bid tracking:', error);
+      res.status(500).json({ message: "Failed to fetch bid tracking" });
+    }
+  });
+
+  // ========================================
   // CRM - LEAD ACTIVITY ROUTES
   // ========================================
 
