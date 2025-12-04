@@ -128,12 +128,17 @@ export default function EmailConfigManagement() {
 
   const connectGmailMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest(`/api/admin/email-configs/${id}/connect`, {
+      const response = await fetch(`/api/admin/email-configs/${id}/connect`, {
         method: 'GET',
+        credentials: 'include',
       });
-      return response;
+      if (!response.ok) {
+        throw new Error('Failed to start Gmail connection');
+      }
+      return response.json();
     },
     onSuccess: (data: any) => {
+      console.log('Connect Gmail response:', data);
       if (data.authUrl) {
         window.location.href = data.authUrl;
       }
