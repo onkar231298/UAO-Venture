@@ -198,17 +198,18 @@ export default function EmailConfigManagement() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Configuration
-            </CardTitle>
-            <CardDescription>
-              Manage company email addresses for sales team members. Users with configured emails can send and receive emails from the Lead Management system.
-            </CardDescription>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Configuration
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Manage company email addresses for sales team members. Users with configured emails can send and receive emails from the Lead Management system.
+              </CardDescription>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) {
               setEditingConfig(null);
@@ -331,6 +332,7 @@ export default function EmailConfigManagement() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
