@@ -494,6 +494,8 @@ export const inquiries = pgTable("inquiries", {
   // High Volume Bid Approval Workflow
   requiresApproval: boolean("requires_approval").default(false),
   bidStatus: varchar("bid_status", { length: 50 }).default("pending"), // pending, rev_proposed, customer_accepted, customer_rejected, approved, rejected, converted
+  bidProgressStatus: varchar("bid_progress_status", { length: 50 }).default("submitted"), // submitted, manager_approval, sales_discussion, quotation_sent, completed
+  bidProgressUpdatedAt: timestamp("bid_progress_updated_at").defaultNow(),
   approvedBy: varchar("approved_by").references(() => users.id),
   approvalNotes: text("approval_notes"),
   discussionNotes: text("discussion_notes"), // Track discussions with customer
@@ -536,6 +538,33 @@ export const bidRevisions = pgTable("bid_revisions", {
 }, (table) => ({
   inquiryIdIdx: index("bid_revisions_inquiry_id_idx").on(table.inquiryId),
   statusIdx: index("bid_revisions_status_idx").on(table.status),
+}));
+
+// Bid negotiations - Track messages/communications for high volume bids
+export const bidNegotiations = pgTable("bid_negotiations", {
+  id: serial("id").primaryKey(),
+  inquiryId: integer("inquiry_id").references(() => inquiries.id, { onDelete: "cascade" }).notNull(),
+  leadId: integer("lead_id"), // References crmLeads.id - FK added via relations
+  
+  // Message content
+  messageType: varchar("message_type", { length: 50 }).notNull(), // status_update, revised_quote, customer_message, admin_note
+  message: text("message").notNull(),
+  
+  // Revised quote details (when messageType is 'revised_quote')
+  revisedAmount: decimal("revised_amount", { precision: 15, scale: 2 }),
+  currency: varchar("currency", { length: 10 }),
+  
+  // Author information
+  authorId: varchar("author_id").references(() => users.id).notNull(),
+  authorRole: varchar("author_role", { length: 50 }).notNull(), // admin, sales_rep, customer
+  
+  // Visibility
+  isVisibleToCustomer: boolean("is_visible_to_customer").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  inquiryIdIdx: index("bid_negotiations_inquiry_id_idx").on(table.inquiryId),
+  leadIdIdx: index("bid_negotiations_lead_id_idx").on(table.leadId),
 }));
 
 // Sample requests - New table for sample requests
@@ -754,6 +783,11 @@ export const bidRevisionsRelations = relations(bidRevisions, ({ one }) => ({
   responder: one(users, { fields: [bidRevisions.respondedBy], references: [users.id] }),
 }));
 
+export const bidNegotiationsRelations = relations(bidNegotiations, ({ one }) => ({
+  inquiry: one(inquiries, { fields: [bidNegotiations.inquiryId], references: [inquiries.id] }),
+  author: one(users, { fields: [bidNegotiations.authorId], references: [users.id] }),
+}));
+
 export const sampleRequestsRelations = relations(sampleRequests, ({ one }) => ({
   customer: one(users, { fields: [sampleRequests.customerId], references: [users.id] }),
   product: one(products, { fields: [sampleRequests.productId], references: [products.id] }),
@@ -865,6 +899,11 @@ export const insertBidRevisionSchema = createInsertSchema(bidRevisions).omit({
   respondedAt: z.coerce.date().nullable().optional(),
 });
 
+export const insertBidNegotiationSchema = createInsertSchema(bidNegotiations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertProductDocumentSchema = createInsertSchema(productDocuments).omit({
   id: true,
   createdAt: true,
@@ -884,6 +923,8 @@ export type InsertInquiry = z.infer<typeof insertInquirySchema>;
 export type Inquiry = typeof inquiries.$inferSelect;
 export type InsertBidRevision = z.infer<typeof insertBidRevisionSchema>;
 export type BidRevision = typeof bidRevisions.$inferSelect;
+export type InsertBidNegotiation = z.infer<typeof insertBidNegotiationSchema>;
+export type BidNegotiation = typeof bidNegotiations.$inferSelect;
 export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
 export type Quotation = typeof quotations.$inferSelect;
 export type Category = typeof categories.$inferSelect;
