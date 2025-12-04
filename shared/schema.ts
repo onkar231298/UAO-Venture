@@ -1424,3 +1424,119 @@ export const customerRegistrationSchema = insertUserSchema.extend({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type CustomerRegistration = z.infer<typeof customerRegistrationSchema>;
+
+// ========================================
+// EMAIL INTEGRATION TABLES
+// ========================================
+
+// User email configuration - stores company email assigned to each user
+export const userEmailConfigs = pgTable("user_email_configs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  companyEmail: varchar("company_email", { length: 255 }).notNull(), // e.g., omkar@rightorganic.com
+  displayName: varchar("display_name", { length: 255 }), // Display name for emails
+  department: varchar("department", { length: 100 }), // sales, support, admin, etc.
+  isPrimary: boolean("is_primary").default(true),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email threads - groups related emails together, linked to leads
+export const emailThreads = pgTable("email_threads", {
+  id: serial("id").primaryKey(),
+  threadId: varchar("thread_id", { length: 255 }).unique(), // External Gmail thread ID
+  leadId: integer("lead_id").references(() => leads.id),
+  companyId: integer("company_id").references(() => companies.id),
+  subject: varchar("subject", { length: 500 }),
+  snippet: text("snippet"), // Preview text
+  participantEmails: jsonb("participant_emails").$type<string[]>().default(sql`'[]'::jsonb`),
+  lastMessageAt: timestamp("last_message_at"),
+  messageCount: integer("message_count").default(0),
+  isRead: boolean("is_read").default(false),
+  status: varchar("status", { length: 50 }).default("active"), // active, archived, spam
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Individual email messages
+export const emailMessages = pgTable("email_messages", {
+  id: serial("id").primaryKey(),
+  messageId: varchar("message_id", { length: 255 }).unique(), // External Gmail message ID
+  threadId: integer("thread_id").references(() => emailThreads.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  direction: varchar("direction", { length: 20 }).notNull(), // inbound, outbound
+  fromEmail: varchar("from_email", { length: 255 }).notNull(),
+  fromName: varchar("from_name", { length: 255 }),
+  toEmails: jsonb("to_emails").$type<string[]>().default(sql`'[]'::jsonb`),
+  ccEmails: jsonb("cc_emails").$type<string[]>().default(sql`'[]'::jsonb`),
+  bccEmails: jsonb("bcc_emails").$type<string[]>().default(sql`'[]'::jsonb`),
+  subject: varchar("subject", { length: 500 }),
+  bodyHtml: text("body_html"),
+  bodyText: text("body_text"),
+  attachments: jsonb("attachments").$type<{ filename: string; mimeType: string; size: number; url?: string }[]>().default(sql`'[]'::jsonb`),
+  sentAt: timestamp("sent_at"),
+  receivedAt: timestamp("received_at"),
+  status: varchar("status", { length: 50 }).default("sent"), // draft, sending, sent, failed, received
+  senderId: varchar("sender_id").references(() => users.id), // Who sent it from CRM
+  isRead: boolean("is_read").default(false),
+  labelIds: jsonb("label_ids").$type<string[]>().default(sql`'[]'::jsonb`), // Gmail labels
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email relations
+export const userEmailConfigsRelations = relations(userEmailConfigs, ({ one }) => ({
+  user: one(users, { fields: [userEmailConfigs.userId], references: [users.id] }),
+}));
+
+export const emailThreadsRelations = relations(emailThreads, ({ one, many }) => ({
+  lead: one(leads, { fields: [emailThreads.leadId], references: [leads.id] }),
+  company: one(companies, { fields: [emailThreads.companyId], references: [companies.id] }),
+  messages: many(emailMessages),
+}));
+
+export const emailMessagesRelations = relations(emailMessages, ({ one }) => ({
+  thread: one(emailThreads, { fields: [emailMessages.threadId], references: [emailThreads.id] }),
+  lead: one(leads, { fields: [emailMessages.leadId], references: [leads.id] }),
+  sender: one(users, { fields: [emailMessages.senderId], references: [users.id] }),
+}));
+
+// Email schemas
+export const insertUserEmailConfigSchema = createInsertSchema(userEmailConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailThreadSchema = createInsertSchema(emailThreads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailMessageSchema = createInsertSchema(emailMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email types
+export type UserEmailConfig = typeof userEmailConfigs.$inferSelect;
+export type InsertUserEmailConfig = z.infer<typeof insertUserEmailConfigSchema>;
+export type EmailThread = typeof emailThreads.$inferSelect;
+export type InsertEmailThread = z.infer<typeof insertEmailThreadSchema>;
+export type EmailMessage = typeof emailMessages.$inferSelect;
+export type InsertEmailMessage = z.infer<typeof insertEmailMessageSchema>;
+
+// Extended email types
+export type EmailThreadWithMessages = EmailThread & {
+  messages: EmailMessage[];
+  lead?: Lead;
+  company?: Company;
+};
+
+export type EmailMessageWithDetails = EmailMessage & {
+  thread?: EmailThread;
+  sender?: User;
+};

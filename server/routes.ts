@@ -5362,6 +5362,243 @@ Disallow: /api/leads
 Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
+  // ========================================
+  // EMAIL INTEGRATION ROUTES
+  // ========================================
+
+  // Get user's email configuration
+  app.get('/api/email/config', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const config = await storage.getUserEmailConfig(userId);
+      res.json(config || null);
+    } catch (error) {
+      console.error('Error fetching email config:', error);
+      res.status(500).json({ message: 'Failed to fetch email configuration' });
+    }
+  });
+
+  // Admin: Get all email configurations
+  app.get('/api/admin/email-configs', isAuthenticated, async (req: any, res) => {
+    try {
+      const configs = await storage.getUserEmailConfigs();
+      res.json(configs);
+    } catch (error) {
+      console.error('Error fetching email configs:', error);
+      res.status(500).json({ message: 'Failed to fetch email configurations' });
+    }
+  });
+
+  // Admin: Create email configuration for user
+  app.post('/api/admin/email-configs', isAuthenticated, async (req: any, res) => {
+    try {
+      const config = await storage.createUserEmailConfig(req.body);
+      res.status(201).json(config);
+    } catch (error) {
+      console.error('Error creating email config:', error);
+      res.status(500).json({ message: 'Failed to create email configuration' });
+    }
+  });
+
+  // Admin: Update email configuration
+  app.patch('/api/admin/email-configs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const config = await storage.updateUserEmailConfig(id, req.body);
+      res.json(config);
+    } catch (error) {
+      console.error('Error updating email config:', error);
+      res.status(500).json({ message: 'Failed to update email configuration' });
+    }
+  });
+
+  // Admin: Delete email configuration
+  app.delete('/api/admin/email-configs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteUserEmailConfig(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting email config:', error);
+      res.status(500).json({ message: 'Failed to delete email configuration' });
+    }
+  });
+
+  // Get email threads for a lead
+  app.get('/api/crm/leads/:leadId/emails', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const threads = await storage.getEmailThreads({ leadId });
+      
+      // Get messages for each thread
+      const threadsWithMessages = await Promise.all(
+        threads.map(async (thread) => {
+          const messages = await storage.getEmailMessages({ threadId: thread.id });
+          return { ...thread, messages };
+        })
+      );
+      
+      res.json(threadsWithMessages);
+    } catch (error) {
+      console.error('Error fetching lead emails:', error);
+      res.status(500).json({ message: 'Failed to fetch emails' });
+    }
+  });
+
+  // Get all emails for a lead (flat list)
+  app.get('/api/crm/leads/:leadId/email-messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const messages = await storage.getEmailMessages({ leadId });
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching lead email messages:', error);
+      res.status(500).json({ message: 'Failed to fetch email messages' });
+    }
+  });
+
+  // Send email from lead context
+  app.post('/api/crm/leads/:leadId/emails/send', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user.claims.sub;
+      const { to, cc, bcc, subject, bodyHtml, bodyText } = req.body;
+
+      if (!to || !subject || !bodyHtml) {
+        return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
+      }
+
+      // Get sender's email config
+      const emailConfig = await storage.getUserEmailConfig(userId);
+      if (!emailConfig) {
+        return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
+      }
+
+      // Get lead details for context
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Create or get email thread
+      let thread = await storage.getEmailThreads({ leadId }).then(t => t[0]);
+      
+      if (!thread) {
+        thread = await storage.createEmailThread({
+          leadId,
+          companyId: lead.companyId,
+          subject,
+          participantEmails: [emailConfig.companyEmail, ...to],
+          status: 'active',
+        });
+      }
+
+      // Store email message in database (Gmail integration will be added when OAuth is set up)
+      const message = await storage.createEmailMessage({
+        threadId: thread.id,
+        leadId,
+        direction: 'outbound',
+        fromEmail: emailConfig.companyEmail,
+        fromName: emailConfig.displayName || undefined,
+        toEmails: to,
+        ccEmails: cc || [],
+        bccEmails: bcc || [],
+        subject,
+        bodyHtml,
+        bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+        sentAt: new Date(),
+        status: 'sent',
+        senderId: userId,
+      });
+
+      // Create lead activity for the email
+      await storage.createLeadActivity({
+        leadId,
+        activityType: 'email',
+        subject: `Email sent: ${subject}`,
+        description: `Email sent to ${to.join(', ')}`,
+        createdBy: userId,
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        message: 'Email recorded successfully',
+        emailMessage: message,
+        thread,
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      res.status(500).json({ message: 'Failed to send email' });
+    }
+  });
+
+  // Record incoming email (webhook or manual)
+  app.post('/api/emails/receive', isAuthenticated, async (req: any, res) => {
+    try {
+      const { leadId, threadId, fromEmail, fromName, subject, bodyHtml, bodyText, externalMessageId, externalThreadId } = req.body;
+
+      // Find or create thread
+      let thread;
+      if (externalThreadId) {
+        thread = await storage.getEmailThreadByExternalId(externalThreadId);
+      }
+      
+      if (!thread && threadId) {
+        thread = await storage.getEmailThread(threadId);
+      }
+      
+      if (!thread && leadId) {
+        const lead = await storage.getLead(leadId);
+        if (lead) {
+          thread = await storage.createEmailThread({
+            threadId: externalThreadId || undefined,
+            leadId,
+            companyId: lead.companyId,
+            subject,
+            participantEmails: [fromEmail],
+            status: 'active',
+          });
+        }
+      }
+
+      if (!thread) {
+        return res.status(400).json({ message: 'Could not find or create email thread' });
+      }
+
+      // Store the message
+      const message = await storage.createEmailMessage({
+        messageId: externalMessageId || undefined,
+        threadId: thread.id,
+        leadId: thread.leadId || undefined,
+        direction: 'inbound',
+        fromEmail,
+        fromName,
+        toEmails: [],
+        subject,
+        bodyHtml,
+        bodyText,
+        receivedAt: new Date(),
+        status: 'received',
+      });
+
+      // Create activity if linked to lead
+      if (thread.leadId) {
+        await storage.createLeadActivity({
+          leadId: thread.leadId,
+          activityType: 'email',
+          subject: `Email received: ${subject}`,
+          description: `Email from ${fromName || fromEmail}`,
+          createdBy: 'system',
+        });
+      }
+
+      res.status(201).json({ success: true, message, thread });
+    } catch (error) {
+      console.error('Error receiving email:', error);
+      res.status(500).json({ message: 'Failed to record email' });
+    }
+  });
+
   // Sitemap.xml route - simplified for maximum reliability
   app.get('/sitemap.xml', async (req, res) => {
     // Always set XML headers first

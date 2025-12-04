@@ -106,6 +106,15 @@ import {
   type AssignmentRule,
   type InsertAssignmentRule,
   type LeadWithDetails,
+  userEmailConfigs,
+  emailThreads,
+  emailMessages,
+  type UserEmailConfig,
+  type InsertUserEmailConfig,
+  type EmailThread,
+  type InsertEmailThread,
+  type EmailMessage,
+  type InsertEmailMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray } from "drizzle-orm";
@@ -449,6 +458,27 @@ export interface IStorage {
     totalRevenue: number;
     activitiesLogged: number;
   }>;
+
+  // Email configuration methods
+  getUserEmailConfig(userId: string): Promise<UserEmailConfig | undefined>;
+  getUserEmailConfigs(): Promise<UserEmailConfig[]>;
+  createUserEmailConfig(config: InsertUserEmailConfig): Promise<UserEmailConfig>;
+  updateUserEmailConfig(id: number, config: Partial<InsertUserEmailConfig>): Promise<UserEmailConfig>;
+  deleteUserEmailConfig(id: number): Promise<void>;
+
+  // Email thread methods  
+  getEmailThreads(filters?: { leadId?: number; companyId?: number; status?: string }): Promise<EmailThread[]>;
+  getEmailThread(id: number): Promise<EmailThread | undefined>;
+  getEmailThreadByExternalId(threadId: string): Promise<EmailThread | undefined>;
+  createEmailThread(thread: InsertEmailThread): Promise<EmailThread>;
+  updateEmailThread(id: number, thread: Partial<InsertEmailThread>): Promise<EmailThread>;
+
+  // Email message methods
+  getEmailMessages(filters?: { threadId?: number; leadId?: number; direction?: string }): Promise<EmailMessage[]>;
+  getEmailMessage(id: number): Promise<EmailMessage | undefined>;
+  getEmailMessageByExternalId(messageId: string): Promise<EmailMessage | undefined>;
+  createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
+  updateEmailMessage(id: number, message: Partial<InsertEmailMessage>): Promise<EmailMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5141,6 +5171,157 @@ export class DatabaseStorage implements IStorage {
       totalRevenue: revenueResult?.total || 0,
       activitiesLogged: activitiesCount,
     };
+  }
+
+  // ========================================
+  // EMAIL CONFIGURATION METHODS
+  // ========================================
+
+  async getUserEmailConfig(userId: string): Promise<UserEmailConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(userEmailConfigs)
+      .where(and(eq(userEmailConfigs.userId, userId), eq(userEmailConfigs.isPrimary, true)));
+    return config;
+  }
+
+  async getUserEmailConfigs(): Promise<UserEmailConfig[]> {
+    return await db
+      .select()
+      .from(userEmailConfigs)
+      .where(eq(userEmailConfigs.isActive, true))
+      .orderBy(desc(userEmailConfigs.createdAt));
+  }
+
+  async createUserEmailConfig(config: InsertUserEmailConfig): Promise<UserEmailConfig> {
+    const [created] = await db.insert(userEmailConfigs).values(config).returning();
+    return created;
+  }
+
+  async updateUserEmailConfig(id: number, config: Partial<InsertUserEmailConfig>): Promise<UserEmailConfig> {
+    const [updated] = await db
+      .update(userEmailConfigs)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(userEmailConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteUserEmailConfig(id: number): Promise<void> {
+    await db.delete(userEmailConfigs).where(eq(userEmailConfigs.id, id));
+  }
+
+  // ========================================
+  // EMAIL THREAD METHODS
+  // ========================================
+
+  async getEmailThreads(filters?: { leadId?: number; companyId?: number; status?: string }): Promise<EmailThread[]> {
+    const conditions = [];
+
+    if (filters?.leadId) {
+      conditions.push(eq(emailThreads.leadId, filters.leadId));
+    }
+    if (filters?.companyId) {
+      conditions.push(eq(emailThreads.companyId, filters.companyId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(emailThreads.status, filters.status));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db
+      .select()
+      .from(emailThreads)
+      .where(whereCondition)
+      .orderBy(desc(emailThreads.lastMessageAt));
+  }
+
+  async getEmailThread(id: number): Promise<EmailThread | undefined> {
+    const [thread] = await db.select().from(emailThreads).where(eq(emailThreads.id, id));
+    return thread;
+  }
+
+  async getEmailThreadByExternalId(threadId: string): Promise<EmailThread | undefined> {
+    const [thread] = await db.select().from(emailThreads).where(eq(emailThreads.threadId, threadId));
+    return thread;
+  }
+
+  async createEmailThread(thread: InsertEmailThread): Promise<EmailThread> {
+    const [created] = await db.insert(emailThreads).values(thread).returning();
+    return created;
+  }
+
+  async updateEmailThread(id: number, thread: Partial<InsertEmailThread>): Promise<EmailThread> {
+    const [updated] = await db
+      .update(emailThreads)
+      .set({ ...thread, updatedAt: new Date() })
+      .where(eq(emailThreads.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ========================================
+  // EMAIL MESSAGE METHODS
+  // ========================================
+
+  async getEmailMessages(filters?: { threadId?: number; leadId?: number; direction?: string }): Promise<EmailMessage[]> {
+    const conditions = [];
+
+    if (filters?.threadId) {
+      conditions.push(eq(emailMessages.threadId, filters.threadId));
+    }
+    if (filters?.leadId) {
+      conditions.push(eq(emailMessages.leadId, filters.leadId));
+    }
+    if (filters?.direction) {
+      conditions.push(eq(emailMessages.direction, filters.direction));
+    }
+
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db
+      .select()
+      .from(emailMessages)
+      .where(whereCondition)
+      .orderBy(desc(emailMessages.sentAt));
+  }
+
+  async getEmailMessage(id: number): Promise<EmailMessage | undefined> {
+    const [message] = await db.select().from(emailMessages).where(eq(emailMessages.id, id));
+    return message;
+  }
+
+  async getEmailMessageByExternalId(messageId: string): Promise<EmailMessage | undefined> {
+    const [message] = await db.select().from(emailMessages).where(eq(emailMessages.messageId, messageId));
+    return message;
+  }
+
+  async createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage> {
+    const [created] = await db.insert(emailMessages).values(message).returning();
+    
+    // Update thread message count and last message date
+    if (message.threadId) {
+      await db
+        .update(emailThreads)
+        .set({
+          messageCount: sql`${emailThreads.messageCount} + 1`,
+          lastMessageAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(emailThreads.id, message.threadId));
+    }
+    
+    return created;
+  }
+
+  async updateEmailMessage(id: number, message: Partial<InsertEmailMessage>): Promise<EmailMessage> {
+    const [updated] = await db
+      .update(emailMessages)
+      .set({ ...message, updatedAt: new Date() })
+      .where(eq(emailMessages.id, id))
+      .returning();
+    return updated;
   }
 }
 

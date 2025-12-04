@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -30,6 +30,11 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [revisedAmount, setRevisedAmount] = useState("");
   const [revisedCurrency, setRevisedCurrency] = useState("USD");
   const [revisedMessage, setRevisedMessage] = useState("");
+  const [emailTo, setEmailTo] = useState<string[]>([]);
+  const [emailCc, setEmailCc] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [showComposeEmail, setShowComposeEmail] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -130,6 +135,79 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     });
   };
 
+  // Fetch email threads for the lead
+  const { data: emailThreads = [], isLoading: emailsLoading } = useQuery<any[]>({
+    queryKey: ['/api/crm/leads', lead?.id, 'emails'],
+    queryFn: async () => {
+      if (!lead?.id) return [];
+      const response = await fetch(`/api/crm/leads/${lead.id}/emails`);
+      if (!response.ok) throw new Error('Failed to fetch emails');
+      return response.json();
+    },
+    enabled: open && !!lead?.id,
+  });
+
+  // Fetch user's email config
+  const { data: emailConfig } = useQuery<any>({
+    queryKey: ['/api/email/config'],
+    enabled: open,
+  });
+
+  // Send email mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: async (data: { to: string[]; cc?: string[]; subject: string; bodyHtml: string }) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/emails/send`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      setEmailTo([]);
+      setEmailCc([]);
+      setEmailSubject("");
+      setEmailBody("");
+      setShowComposeEmail(false);
+      toast({
+        title: "Email Sent",
+        description: "Your email has been recorded successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send email",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendEmail = () => {
+    if (emailTo.length === 0 || !emailSubject || !emailBody) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in recipient, subject, and message.",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendEmailMutation.mutate({
+      to: emailTo,
+      cc: emailCc.length > 0 ? emailCc : undefined,
+      subject: emailSubject,
+      bodyHtml: `<div>${emailBody.replace(/\n/g, '<br>')}</div>`,
+    });
+  };
+
+  const initializeComposeEmail = () => {
+    // Pre-fill recipient from contact email
+    if (lead?.contactPerson?.contactEmail) {
+      setEmailTo([lead.contactPerson.contactEmail]);
+    }
+    setShowComposeEmail(true);
+  };
+
   const getProgressStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       'submitted': 'Bid Submitted',
@@ -220,10 +298,14 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
             <TabsTrigger value="products" className="text-xs sm:text-sm py-2">Products</TabsTrigger>
+            <TabsTrigger value="emails" className="text-xs sm:text-sm py-2">
+              <Mail className="h-3 w-3 mr-1" />
+              Emails
+            </TabsTrigger>
             {isFromInquiry && (
               <TabsTrigger value="bid-details" className="text-xs sm:text-sm py-2">
                 {lead.leadSource === 'high_volume_bid' ? 'Bid Details' : 'Inquiry Details'}
@@ -543,6 +625,184 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 )}
               </>
             )}
+          </TabsContent>
+
+          {/* Emails Tab */}
+          <TabsContent value="emails" className="space-y-4">
+            <Card>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Inbox className="h-4 w-4" />
+                    Email Communication
+                  </h3>
+                  <Button 
+                    size="sm" 
+                    onClick={initializeComposeEmail}
+                    disabled={!emailConfig}
+                    data-testid="button-compose-email"
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Compose Email
+                  </Button>
+                </div>
+
+                {!emailConfig && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md mb-4">
+                    <p className="text-sm text-yellow-800">
+                      Email sending is not configured for your account. Please contact an administrator to set up your company email.
+                    </p>
+                  </div>
+                )}
+
+                {showComposeEmail && (
+                  <Card className="mb-4 border-2 border-blue-200">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <Send className="h-4 w-4 text-blue-600" />
+                        New Email
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="email-to">To</Label>
+                          <Input
+                            id="email-to"
+                            value={emailTo.join(', ')}
+                            onChange={(e) => setEmailTo(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                            placeholder="recipient@example.com"
+                            data-testid="input-email-to"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email-cc">CC (optional)</Label>
+                          <Input
+                            id="email-cc"
+                            value={emailCc.join(', ')}
+                            onChange={(e) => setEmailCc(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                            placeholder="cc@example.com"
+                            data-testid="input-email-cc"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email-subject">Subject</Label>
+                          <Input
+                            id="email-subject"
+                            value={emailSubject}
+                            onChange={(e) => setEmailSubject(e.target.value)}
+                            placeholder="Email subject"
+                            data-testid="input-email-subject"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email-body">Message</Label>
+                          <Textarea
+                            id="email-body"
+                            value={emailBody}
+                            onChange={(e) => setEmailBody(e.target.value)}
+                            placeholder="Type your message here..."
+                            rows={6}
+                            data-testid="textarea-email-body"
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setShowComposeEmail(false)}
+                            data-testid="button-cancel-email"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={handleSendEmail}
+                            disabled={sendEmailMutation.isPending}
+                            data-testid="button-send-email"
+                          >
+                            {sendEmailMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-1" />
+                                Send Email
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Email History */}
+                <div className="space-y-3">
+                  {emailsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                      <span className="ml-2 text-gray-500">Loading emails...</span>
+                    </div>
+                  ) : emailThreads.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Mail className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                      <p>No emails yet</p>
+                      <p className="text-sm">Start a conversation by composing an email</p>
+                    </div>
+                  ) : (
+                    emailThreads.flatMap((thread: any) => 
+                      (thread.messages || []).map((email: any) => (
+                        <div 
+                          key={email.id} 
+                          className={`p-4 rounded-lg border ${
+                            email.direction === 'outbound' 
+                              ? 'bg-blue-50 border-blue-200 ml-4' 
+                              : 'bg-gray-50 border-gray-200 mr-4'
+                          }`}
+                          data-testid={`email-message-${email.id}`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              {email.direction === 'outbound' ? (
+                                <Send className="h-4 w-4 text-blue-600" />
+                              ) : (
+                                <Reply className="h-4 w-4 text-gray-600" />
+                              )}
+                              <span className="font-medium text-sm">
+                                {email.direction === 'outbound' ? 'Sent' : 'Received'}
+                              </span>
+                              <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'} className="text-xs">
+                                {email.direction === 'outbound' ? email.fromEmail : email.fromEmail}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {email.sentAt 
+                                ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
+                                : email.receivedAt 
+                                  ? format(new Date(email.receivedAt), 'MMM d, yyyy h:mm a')
+                                  : 'N/A'}
+                            </span>
+                          </div>
+                          <p className="font-medium text-sm mb-1">{email.subject}</p>
+                          {email.toEmails?.length > 0 && (
+                            <p className="text-xs text-gray-500 mb-2">
+                              To: {email.toEmails.join(', ')}
+                            </p>
+                          )}
+                          <div 
+                            className="text-sm text-gray-700 whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ 
+                              __html: email.bodyText || email.bodyHtml?.replace(/<[^>]*>/g, '') || '' 
+                            }}
+                          />
+                        </div>
+                      ))
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Bid/Inquiry Details Tab */}

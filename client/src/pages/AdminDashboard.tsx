@@ -15,6 +15,7 @@ import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
+import EmailConfigManagement from "@/pages/admin/EmailConfigManagement";
 import {
   SidebarProvider,
   Sidebar,
@@ -619,8 +620,12 @@ export default function AdminDashboard() {
           {activeSection === 'users' && (
             <UserManagement />
           )}
+
+          {activeSection === 'settings' && (
+            <EmailConfigManagement />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

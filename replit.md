@@ -3,6 +3,22 @@
 ## Overview
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
+## Recent Changes (December 4, 2025)
+- **Email Integration for Lead Management**: Added comprehensive email communication system within Lead Detail Dialog. Features include:
+  - Email tab in Lead Detail Dialog showing full email history (sent/received)
+  - Compose email functionality with To, CC, Subject, and Message fields
+  - Pre-populated recipient from lead contact email
+  - Email thread tracking linked to leads and companies
+  - Activity logging for all email communications
+- **Admin Email Configuration Management**: New Settings page for managing company email addresses. Features include:
+  - Admin interface to configure email addresses for sales team users
+  - Assign company email addresses to specific users (sales managers, executives)
+  - Display name configuration for sent emails
+  - Primary email and active status toggles
+  - Gmail API integration setup instructions
+- **Database Schema for Email**: Added three new tables: `user_email_configs` (user-to-email mapping), `email_threads` (conversation grouping), `email_messages` (individual emails with direction, status, attachments)
+- **Sales Manager RBAC Fix**: Fixed critical bug where Sales Managers could see all organization leads. Now properly filters to show only leads assigned to themselves and their sales executives using the `salesManager` field.
+
 ## Recent Changes (November 12, 2025)
 - **Quotation Status Badges in Admin Inquiry List**: Added color-coded quotation status badges to admin inquiry list view for at-a-glance visibility. Modified backend getInquiries method to use LATERAL join to efficiently fetch latest quotation status for each inquiry. Displays green "Quote Accepted", red "Quote Rejected", or blue "Quote Sent" badges directly in the inquiry list, eliminating need to open details dialog to check status. Properly typed latestQuotationStatus field through shared schema and API response types.
 - **Quotation Status Visibility in Admin Inquiry Management**: Enhanced InquiryDetailsDialog to display customer quotation acceptance/rejection status with visual indicators (green for accepted, red for rejected, blue for sent, gray for expired). Added API endpoint GET /api/inquiries/:id/quotations to fetch quotation data, updated storage interface to support inquiryId filtering, and implemented loading states for better UX. Admin can now instantly see if customer has accepted or rejected sent quotes directly in the inquiry details view.
