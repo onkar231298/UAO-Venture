@@ -461,9 +461,10 @@ export interface IStorage {
 
   // Email configuration methods
   getUserEmailConfig(userId: string): Promise<UserEmailConfig | undefined>;
+  getEmailConfigById(id: number): Promise<UserEmailConfig | undefined>;
   getUserEmailConfigs(): Promise<UserEmailConfig[]>;
   createUserEmailConfig(config: InsertUserEmailConfig): Promise<UserEmailConfig>;
-  updateUserEmailConfig(id: number, config: Partial<InsertUserEmailConfig>): Promise<UserEmailConfig>;
+  updateUserEmailConfig(id: number, config: Partial<InsertUserEmailConfig & { accessToken?: string | null; refreshToken?: string | null; tokenExpiresAt?: Date | null; isConnected?: boolean }>): Promise<UserEmailConfig>;
   deleteUserEmailConfig(id: number): Promise<void>;
 
   // Email thread methods  
@@ -5182,6 +5183,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(userEmailConfigs)
       .where(and(eq(userEmailConfigs.userId, userId), eq(userEmailConfigs.isPrimary, true)));
+    return config;
+  }
+
+  async getEmailConfigById(id: number): Promise<UserEmailConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(userEmailConfigs)
+      .where(eq(userEmailConfigs.id, id));
     return config;
   }
 

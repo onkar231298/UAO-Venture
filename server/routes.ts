@@ -50,6 +50,7 @@ import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
+import * as gmailApi from "./gmail";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services
@@ -5436,6 +5437,132 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // ========================================
+  // GMAIL OAUTH ROUTES
+  // ========================================
+
+  // Start Gmail OAuth flow for an email configuration
+  app.get('/api/admin/email-configs/:id/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      const config = await storage.getEmailConfigById(configId);
+      
+      if (!config) {
+        return res.status(404).json({ message: 'Email configuration not found' });
+      }
+
+      // Store the config ID in session for the callback
+      (req as any).session.gmailOAuthConfigId = configId;
+      (req as any).session.save();
+      
+      const authUrl = gmailApi.getAuthUrl();
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Error starting Gmail OAuth:', error);
+      res.status(500).json({ message: 'Failed to start Gmail OAuth' });
+    }
+  });
+
+  // Gmail OAuth callback
+  app.get('/api/auth/gmail/callback', async (req: any, res) => {
+    try {
+      const { code, error } = req.query;
+      
+      if (error) {
+        console.error('Gmail OAuth error:', error);
+        return res.redirect('/admin?error=gmail_oauth_denied');
+      }
+
+      if (!code) {
+        return res.redirect('/admin?error=gmail_oauth_no_code');
+      }
+
+      const configId = req.session?.gmailOAuthConfigId;
+      if (!configId) {
+        return res.redirect('/admin?error=gmail_oauth_session_expired');
+      }
+
+      // Exchange code for tokens
+      const tokens = await gmailApi.getTokensFromCode(code as string);
+      
+      if (!tokens.access_token) {
+        return res.redirect('/admin?error=gmail_oauth_no_token');
+      }
+
+      // Update the email configuration with the tokens
+      await storage.updateUserEmailConfig(configId, {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || undefined,
+        tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
+        isConnected: true,
+      });
+
+      // Clear the session variable
+      delete req.session.gmailOAuthConfigId;
+
+      res.redirect('/admin?success=gmail_connected');
+    } catch (error) {
+      console.error('Error in Gmail OAuth callback:', error);
+      res.redirect('/admin?error=gmail_oauth_failed');
+    }
+  });
+
+  // Disconnect Gmail from an email configuration
+  app.post('/api/admin/email-configs/:id/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      
+      await storage.updateUserEmailConfig(configId, {
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
+        isConnected: false,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error disconnecting Gmail:', error);
+      res.status(500).json({ message: 'Failed to disconnect Gmail' });
+    }
+  });
+
+  // Check Gmail connection status for an email config
+  app.get('/api/admin/email-configs/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      const config = await storage.getEmailConfigById(configId);
+      
+      if (!config) {
+        return res.status(404).json({ message: 'Email configuration not found' });
+      }
+
+      if (!config.isConnected || !config.accessToken) {
+        return res.json({ connected: false });
+      }
+
+      // Try to get Gmail profile to verify connection
+      try {
+        const profile = await gmailApi.getProfile(config.accessToken);
+        res.json({ 
+          connected: true, 
+          email: profile.emailAddress,
+          messagesTotal: profile.messagesTotal,
+        });
+      } catch (error) {
+        // Token might be expired, mark as disconnected
+        await storage.updateUserEmailConfig(configId, { isConnected: false });
+        res.json({ connected: false, error: 'Token expired' });
+      }
+    } catch (error) {
+      console.error('Error checking Gmail status:', error);
+      res.status(500).json({ message: 'Failed to check Gmail status' });
+    }
+  });
+
+  // ========================================
+  // END GMAIL OAUTH ROUTES
+  // ========================================
+
   // Get email threads for a lead
   app.get('/api/crm/leads/:leadId/emails', isAuthenticated, async (req: any, res) => {
     try {
@@ -5486,6 +5613,14 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
       }
 
+      // Check if Gmail is connected
+      if (!emailConfig.isConnected || !emailConfig.accessToken) {
+        return res.status(400).json({ 
+          message: 'Gmail is not connected. Please connect your Gmail account in Settings → Email Configuration to send emails.',
+          requiresGmailConnect: true,
+        });
+      }
+
       // Get lead details for context
       const lead = await storage.getLead(leadId);
       if (!lead) {
@@ -5505,38 +5640,82 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
-      // Store email message in database (Gmail integration will be added when OAuth is set up)
+      // Actually send email via Gmail API
+      let gmailResult: { messageId: string; threadId: string } | null = null;
+      let emailStatus = 'pending';
+
+      try {
+        gmailResult = await gmailApi.sendEmail(emailConfig.accessToken, {
+          to: Array.isArray(to) ? to : [to],
+          cc: cc || [],
+          bcc: bcc || [],
+          subject,
+          bodyHtml,
+          bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+          fromName: emailConfig.displayName || undefined,
+          fromEmail: emailConfig.companyEmail,
+        });
+        emailStatus = 'sent';
+        console.log('Email sent successfully via Gmail API:', gmailResult);
+      } catch (gmailError: any) {
+        console.error('Gmail API error:', gmailError);
+        
+        // Check if it's an auth error
+        if (gmailError.message?.includes('invalid_grant') || gmailError.code === 401) {
+          // Mark email config as disconnected
+          await storage.updateUserEmailConfig(emailConfig.id, { isConnected: false });
+          return res.status(401).json({ 
+            message: 'Gmail authentication expired. Please reconnect your Gmail account in Settings.',
+            requiresGmailConnect: true,
+          });
+        }
+        
+        emailStatus = 'failed';
+        return res.status(500).json({ 
+          message: 'Failed to send email via Gmail. Please try again.',
+          error: gmailError.message,
+        });
+      }
+
+      // Store email message in database
       const message = await storage.createEmailMessage({
+        messageId: gmailResult?.messageId || undefined,
         threadId: thread.id,
         leadId,
         direction: 'outbound',
         fromEmail: emailConfig.companyEmail,
         fromName: emailConfig.displayName || undefined,
-        toEmails: to,
+        toEmails: Array.isArray(to) ? to : [to],
         ccEmails: cc || [],
         bccEmails: bcc || [],
         subject,
         bodyHtml,
         bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
         sentAt: new Date(),
-        status: 'sent',
+        status: emailStatus,
         senderId: userId,
       });
+
+      // Update thread with Gmail thread ID if we got one
+      if (gmailResult?.threadId && !thread.threadId) {
+        await storage.updateEmailThread(thread.id, { threadId: gmailResult.threadId });
+      }
 
       // Create lead activity for the email
       await storage.createLeadActivity({
         leadId,
         activityType: 'email',
         subject: `Email sent: ${subject}`,
-        description: `Email sent to ${to.join(', ')}`,
+        description: `Email sent to ${Array.isArray(to) ? to.join(', ') : to}`,
         createdBy: userId,
       });
 
       res.status(201).json({ 
         success: true, 
-        message: 'Email recorded successfully',
+        message: 'Email sent successfully via Gmail',
         emailMessage: message,
         thread,
+        gmailMessageId: gmailResult?.messageId,
       });
     } catch (error) {
       console.error('Error sending email:', error);

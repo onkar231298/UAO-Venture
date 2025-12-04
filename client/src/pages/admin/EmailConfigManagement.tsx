@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle } from "lucide-react";
+import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle, Link2, Unlink, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ interface EmailConfig {
   isPrimary: boolean;
   isActive: boolean;
   serviceType: string;
+  isConnected: boolean;
   createdAt: string;
 }
 
@@ -120,6 +121,49 @@ export default function EmailConfigManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete email configuration",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const connectGmailMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest(`/api/admin/email-configs/${id}/connect`, {
+        method: 'GET',
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start Gmail connection",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const disconnectGmailMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/email-configs/${id}/disconnect`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/email-configs'] });
+      toast({
+        title: "Gmail Disconnected",
+        description: "Gmail has been disconnected from this email configuration.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to disconnect Gmail",
         variant: "destructive",
       });
     },
@@ -349,15 +393,15 @@ export default function EmailConfigManagement() {
               {emailConfigs.map((config) => (
                 <div 
                   key={config.id} 
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 gap-4"
                   data-testid={`email-config-${config.id}`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="p-2 bg-blue-100 rounded-full">
-                      <Mail className="h-5 w-5 text-blue-600" />
+                    <div className={`p-2 rounded-full ${config.isConnected ? 'bg-green-100' : 'bg-blue-100'}`}>
+                      <Mail className={`h-5 w-5 ${config.isConnected ? 'text-green-600' : 'text-blue-600'}`} />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium">{getUserDisplayName(config.userId)}</p>
                         <Badge variant="outline" className="text-xs">
                           {getUserRole(config.userId)}
@@ -378,9 +422,63 @@ export default function EmailConfigManagement() {
                       {config.displayName && (
                         <p className="text-xs text-gray-500">Display: {config.displayName}</p>
                       )}
+                      <div className="mt-1">
+                        {config.isConnected ? (
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            <Link2 className="h-3 w-3 mr-1" />
+                            Gmail Connected
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">
+                            <Unlink className="h-3 w-3 mr-1" />
+                            Gmail Not Connected
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {config.isConnected ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to disconnect Gmail from this email configuration?')) {
+                            disconnectGmailMutation.mutate(config.id);
+                          }
+                        }}
+                        disabled={disconnectGmailMutation.isPending}
+                        data-testid={`button-disconnect-gmail-${config.id}`}
+                      >
+                        {disconnectGmailMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Unlink className="h-4 w-4 mr-1" />
+                            Disconnect
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => connectGmailMutation.mutate(config.id)}
+                        disabled={connectGmailMutation.isPending}
+                        data-testid={`button-connect-gmail-${config.id}`}
+                      >
+                        {connectGmailMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Connect Gmail
+                          </>
+                        )}
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 

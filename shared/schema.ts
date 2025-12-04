@@ -1438,6 +1438,11 @@ export const userEmailConfigs = pgTable("user_email_configs", {
   department: varchar("department", { length: 100 }), // sales, support, admin, etc.
   isPrimary: boolean("is_primary").default(true),
   isActive: boolean("is_active").default(true),
+  serviceType: varchar("service_type", { length: 50 }).default("gmail"), // gmail, outlook, etc.
+  accessToken: text("access_token"), // OAuth access token
+  refreshToken: text("refresh_token"), // OAuth refresh token
+  tokenExpiresAt: timestamp("token_expires_at"), // When the access token expires
+  isConnected: boolean("is_connected").default(false), // Whether OAuth is connected
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
