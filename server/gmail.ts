@@ -6,6 +6,99 @@ const SCOPES = [
   'https://www.googleapis.com/auth/gmail.modify',
 ];
 
+// Email signature configuration
+export interface SignatureConfig {
+  name: string;
+  position: string;
+  email: string;
+  phone?: string;
+  mobile?: string;
+}
+
+// Generate professional HTML email signature with certification logos
+export function generateEmailSignature(config: SignatureConfig): string {
+  const { name, position, email, phone, mobile } = config;
+  
+  // Base URL for the production site (for hosting logo images)
+  const baseUrl = 'https://bright-organic.com';
+  
+  return `
+<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #2e7d32; font-family: Arial, Helvetica, sans-serif;">
+  <!-- Signature Header -->
+  <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, Helvetica, sans-serif;">
+    <tr>
+      <td style="padding-right: 20px; border-right: 2px solid #2e7d32;">
+        <img src="${baseUrl}/attached_assets/bfi-logo.png" alt="Bright Fame Organic" width="100" style="display: block;" />
+      </td>
+      <td style="padding-left: 20px;">
+        <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #1a5f1a;">${name}</p>
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #333;">${position}</p>
+        <p style="margin: 0 0 3px 0; font-size: 13px; color: #555;">
+          <strong style="color: #2e7d32;">Bright Fame Organic Pvt. Ltd.</strong>
+        </p>
+        <p style="margin: 0 0 3px 0; font-size: 12px; color: #666;">
+          <a href="mailto:${email}" style="color: #2e7d32; text-decoration: none;">${email}</a>
+        </p>
+        ${phone ? `<p style="margin: 0 0 3px 0; font-size: 12px; color: #666;">Phone: ${phone}</p>` : ''}
+        ${mobile ? `<p style="margin: 0 0 3px 0; font-size: 12px; color: #666;">Mobile: ${mobile}</p>` : ''}
+        <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+          <a href="https://bright-organic.com" style="color: #2e7d32; text-decoration: none;">www.bright-organic.com</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Certification Logos -->
+  <div style="margin-top: 15px; padding: 10px 0;">
+    <p style="margin: 0 0 8px 0; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Our Certifications</p>
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <!-- NPOP Logo -->
+        <td style="padding: 5px 8px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/India_Organic_Logo.svg/100px-India_Organic_Logo.svg.png" alt="NPOP Organic India" width="40" height="40" style="display: block;" title="NPOP - National Programme for Organic Production" />
+        </td>
+        <!-- USDA NOP Logo -->
+        <td style="padding: 5px 8px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/USDA_organic_seal.svg/100px-USDA_organic_seal.svg.png" alt="USDA Organic" width="40" height="40" style="display: block;" title="USDA NOP - National Organic Program" />
+        </td>
+        <!-- EU Organic Logo -->
+        <td style="padding: 5px 8px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/EU_organic_farming_logo.svg/100px-EU_organic_farming_logo.svg.png" alt="EU Organic" width="40" height="40" style="display: block;" title="EU Organic Certification" />
+        </td>
+        <!-- BRC Logo (placeholder - using text) -->
+        <td style="padding: 5px 8px; background: #f5f5f5; border-radius: 4px;">
+          <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #003366; text-align: center;">BRC</div>
+        </td>
+        <!-- USFDA Logo -->
+        <td style="padding: 5px 8px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/FDA-Logo.svg/100px-FDA-Logo.svg.png" alt="US FDA" width="40" height="40" style="display: block;" title="US FDA Registered" />
+        </td>
+        <!-- Kosher Logo (placeholder - using text) -->
+        <td style="padding: 5px 8px; background: #f5f5f5; border-radius: 4px;">
+          <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: #333; text-align: center;">KOSHER</div>
+        </td>
+        <!-- Halal Logo -->
+        <td style="padding: 5px 8px; background: #f5f5f5; border-radius: 4px;">
+          <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #006400; text-align: center;">HALAL</div>
+        </td>
+        <!-- Spice Board Logo (placeholder - using text) -->
+        <td style="padding: 5px 8px; background: #f5f5f5; border-radius: 4px;">
+          <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: bold; color: #8B4513; text-align: center;">SPICE<br/>BOARD</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Disclaimer -->
+  <div style="margin-top: 15px; padding: 12px; background-color: #f9f9f9; border-left: 3px solid #2e7d32; font-size: 10px; color: #777; line-height: 1.4;">
+    <p style="margin: 0 0 8px 0; font-weight: bold; color: #555;">CONFIDENTIALITY NOTICE & DISCLAIMER</p>
+    <p style="margin: 0;">
+      This email and any attachments are confidential and intended solely for the addressee(s). If you are not the intended recipient, please notify the sender immediately and delete this email. Any unauthorized review, use, disclosure, or distribution is prohibited. The information contained herein does not constitute an offer or acceptance unless explicitly stated. Bright Fame Organic Pvt. Ltd. does not accept responsibility for any loss or damage arising from viruses or other malware that may affect your computer systems. Views expressed in this email are those of the sender and may not represent the official policy of the company.
+    </p>
+  </div>
+</div>`;
+}
+
 // OAuth2 client configuration
 function getOAuth2Client() {
   const clientId = process.env.GMAIL_CLIENT_ID;
