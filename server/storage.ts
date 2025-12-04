@@ -113,6 +113,7 @@ import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
 import { Readable } from "stream";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
