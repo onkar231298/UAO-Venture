@@ -21,7 +21,11 @@ export function getSession() {
     tableName: "sessions",
   });
   
-  const isProduction = process.env.NODE_ENV === 'production';
+  // In production (Replit deployment), always use secure cookies
+  // Check for production indicators - NODE_ENV or absence of dev domain
+  const isProduction = process.env.NODE_ENV === 'production' || !process.env.REPLIT_DEV_DOMAIN;
+  
+  console.log('[Session] isProduction:', isProduction, 'NODE_ENV:', process.env.NODE_ENV);
   
   return session({
     secret: process.env.SESSION_SECRET!,
@@ -30,9 +34,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: isProduction,
+      secure: true, // Always use secure cookies since Replit uses HTTPS
       sameSite: 'lax',
-      domain: isProduction ? '.bright-organic.com' : undefined,
       maxAge: sessionTtl,
     },
   });
