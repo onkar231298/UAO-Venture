@@ -11,13 +11,8 @@ function getOAuth2Client() {
   const clientId = process.env.GMAIL_CLIENT_ID;
   const clientSecret = process.env.GMAIL_CLIENT_SECRET;
   
-  // Build redirect URI with https:// prefix
-  let redirectUri: string;
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/gmail/callback`;
-  } else {
-    redirectUri = 'http://localhost:5000/api/auth/gmail/callback';
-  }
+  // Use production domain for OAuth redirect URI
+  const redirectUri = 'https://bright-organic.com/api/auth/gmail/callback';
   
   console.log('Gmail OAuth redirect URI:', redirectUri);
 
