@@ -543,53 +543,83 @@ export default function SalesPersonDashboard() {
                     <p className="text-gray-500">No leads assigned to you yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {leads.map((lead: any) => (
-                      <div
-                        key={lead.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => {
-                          setSelectedLead(lead);
-                          setShowLeadDialog(true);
-                        }}
-                        data-testid={`lead-row-${lead.id}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">{lead.company?.companyName || 'Unknown Company'}</p>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              {lead.contactPerson?.contactName && (
-                                <span className="flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  {lead.contactPerson.contactName}
-                                </span>
-                              )}
-                              {lead.contactPerson?.email && (
-                                <span className="flex items-center gap-1">
-                                  <Mail className="w-3 h-3" />
-                                  {lead.contactPerson.email}
-                                </span>
-                              )}
-                            </div>
-                            {lead.expectedOrderValue && (
-                              <p className="text-sm text-green-600 font-medium">
-                                Expected: ${parseFloat(lead.expectedOrderValue).toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {getStatusBadge(lead.stage || lead.status)}
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium text-gray-600">Lead ID</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Company</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Contact</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Stage</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Priority</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Value</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Created</th>
+                          <th className="text-left p-3 font-medium text-gray-600">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leads.map((lead: any) => (
+                          <tr
+                            key={lead.id}
+                            className="border-b hover:bg-gray-50 cursor-pointer"
+                            data-testid={`lead-row-${lead.id}`}
+                          >
+                            <td className="p-3">
+                              <span className="text-sm font-mono text-gray-600">{lead.leadId}</span>
+                            </td>
+                            <td className="p-3">
+                              <span className="font-medium">{lead.company?.companyName || 'Unknown Company'}</span>
+                            </td>
+                            <td className="p-3">
+                              <div>
+                                <p className="text-sm">{lead.contactPerson?.contactName || 'No contact'}</p>
+                                {lead.contactPerson?.email && (
+                                  <p className="text-xs text-gray-500">{lead.contactPerson.email}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              {getStatusBadge(lead.stage || lead.status)}
+                            </td>
+                            <td className="p-3">
+                              <Badge 
+                                variant="outline"
+                                className={
+                                  lead.priority === 'hot' ? 'bg-red-100 text-red-700 border-red-200' :
+                                  lead.priority === 'warm' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                  'bg-blue-100 text-blue-700 border-blue-200'
+                                }
+                              >
+                                {lead.priority || 'warm'}
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <span className="font-medium text-green-600">
+                                {lead.expectedOrderValue ? `$${parseFloat(lead.expectedOrderValue).toLocaleString()}` : '$0'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm text-gray-500">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedLead(lead);
+                                  setShowLeadDialog(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
