@@ -5016,6 +5016,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================
+  // SALES PERSON DASHBOARD ROUTES
+  // ========================================
+
+  // Sales Person Dashboard - Get aggregated data for logged-in sales rep
+  app.get('/api/sales/dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Access denied. Sales role required." });
+      }
+
+      // Get counts for assigned items
+      const [leadsResult, inquiriesResult, samplesResult, bidsResult] = await Promise.all([
+        storage.getLeads({ assignedTo: userId, limit: 1000 }),
+        storage.getInquiries({ assignedTo: userId, limit: 1000 }),
+        storage.getSampleRequests({ assignedTo: userId, limit: 1000 }),
+        storage.getInquiries({ assignedTo: userId, inquiryType: 'high_volume_bid', limit: 1000 }),
+      ]);
+
+      // Calculate metrics
+      const leads = leadsResult.leads || [];
+      const activeLeads = leads.filter((l: any) => l.status === 'active').length;
+      const wonLeads = leads.filter((l: any) => l.stage === 'won').length;
+      const lostLeads = leads.filter((l: any) => l.stage === 'lost').length;
+      
+      const inquiries = inquiriesResult.inquiries || [];
+      const pendingInquiries = inquiries.filter((i: any) => i.status === 'pending').length;
+      
+      const samples = samplesResult.requests || [];
+      const samplesInProgress = samples.filter((s: any) => !['completed', 'cancelled'].includes(s.status)).length;
+      
+      const bids = bidsResult.inquiries || [];
+      const pendingBids = bids.filter((b: any) => b.bidProgressStatus !== 'completed').length;
+      const quotationsSent = bids.filter((b: any) => b.bidProgressStatus === 'quotation_sent').length;
+
+      // Calculate conversion rate
+      const totalClosedLeads = wonLeads + lostLeads;
+      const conversionRate = totalClosedLeads > 0 ? Math.round((wonLeads / totalClosedLeads) * 100) : 0;
+
+      // Calculate total deal value from won leads
+      const totalDealValue = leads
+        .filter((l: any) => l.stage === 'won')
+        .reduce((sum: number, l: any) => sum + (parseFloat(l.expectedOrderValue) || 0), 0);
+
+      res.json({
+        summary: {
+          activeLeads,
+          pendingInquiries,
+          samplesInProgress,
+          pendingBids,
+          quotationsSent,
+        },
+        performance: {
+          dealsWon: wonLeads,
+          dealsLost: lostLeads,
+          conversionRate,
+          totalDealValue,
+          totalLeads: leads.length,
+        },
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching sales dashboard:', error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Sales Person - Get assigned leads
+  app.get('/api/sales/my-leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Access denied. Sales role required." });
+      }
+
+      const { stage, status, limit = '50', offset = '0' } = req.query;
+      const filters: any = {
+        assignedTo: userId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+      if (stage) filters.stage = stage;
+      if (status) filters.status = status;
+
+      const result = await storage.getLeads(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching sales leads:', error);
+      res.status(500).json({ message: "Failed to fetch leads" });
+    }
+  });
+
+  // Sales Person - Get assigned inquiries
+  app.get('/api/sales/my-inquiries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Access denied. Sales role required." });
+      }
+
+      const { status, limit = '50', offset = '0' } = req.query;
+      const filters: any = {
+        assignedTo: userId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+      if (status) filters.status = status;
+
+      const result = await storage.getInquiries(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching sales inquiries:', error);
+      res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
+  // Sales Person - Get assigned sample requests
+  app.get('/api/sales/my-samples', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Access denied. Sales role required." });
+      }
+
+      const { status, limit = '50', offset = '0' } = req.query;
+      const filters: any = {
+        assignedTo: userId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+      if (status) filters.status = status;
+
+      const result = await storage.getSampleRequests(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching sales sample requests:', error);
+      res.status(500).json({ message: "Failed to fetch sample requests" });
+    }
+  });
+
+  // Sales Person - Get assigned high volume bids
+  app.get('/api/sales/my-bids', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Access denied. Sales role required." });
+      }
+
+      const { bidStatus, limit = '50', offset = '0' } = req.query;
+      const filters: any = {
+        assignedTo: userId,
+        inquiryType: 'high_volume_bid',
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+
+      const result = await storage.getInquiries(filters);
+      
+      // Filter by bid status if provided
+      let filteredInquiries = result.inquiries;
+      if (bidStatus) {
+        filteredInquiries = filteredInquiries.filter((i: any) => i.bidProgressStatus === bidStatus);
+      }
+
+      res.json({
+        bids: filteredInquiries,
+        total: filteredInquiries.length,
+      });
+    } catch (error) {
+      console.error('Error fetching sales bids:', error);
+      res.status(500).json({ message: "Failed to fetch bids" });
+    }
+  });
+
   // Newsletter subscription routes
   app.post('/api/newsletter/subscribe', async (req, res) => {
     try {
