@@ -1169,9 +1169,9 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     // Serve static assets
     app.use(express.static(distPath));
     
-    // SPA fallback for unmatched routes (serves app.html instead of index.html)
+    // SPA fallback for unmatched routes
     app.get("*", (_req, res) => {
-      res.sendFile(path.resolve(distPath, "app.html"));
+      res.sendFile(path.resolve(distPath, "index.html"));
     });
   }
 
