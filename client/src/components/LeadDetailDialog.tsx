@@ -71,6 +71,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads/original-inquiry', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customer/high-volume-bids'] });
       toast({
         title: "Status Updated",
         description: "Bid progress status has been updated successfully.",
@@ -96,12 +97,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads/original-inquiry', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customer/high-volume-bids'] });
       setShowRevisedQuoteForm(false);
       setRevisedAmount("");
       setRevisedMessage("");
       toast({
         title: "Revised Quote Sent",
-        description: "Your revised quote has been sent to the customer.",
+        description: "Your revised quote has been sent and status updated to 'Quotation Sent'.",
       });
     },
     onError: (error: any) => {
@@ -669,57 +671,44 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                           </div>
                         </div>
 
-                        {/* Update Status Dropdown */}
-                        <div className="mb-4">
-                          <Label className="text-sm text-gray-600 mb-2 block">Update Status:</Label>
-                          <div className="flex gap-2">
-                            <Select 
-                              value={inquiryData.inquiry.bidProgressStatus || 'submitted'}
-                              onValueChange={(value) => updateStatusMutation.mutate(value)}
+                        {/* Action Buttons Based on Current Stage */}
+                        <div className="border-t pt-4 space-y-4">
+                          <p className="text-sm font-medium text-gray-700">Available Actions:</p>
+                          
+                          {/* Action: Accept Bid - Available until quotation_sent */}
+                          {['submitted', 'manager_approval', 'sales_discussion'].includes(inquiryData.inquiry.bidProgressStatus || 'submitted') && (
+                            <Button
+                              variant="default"
+                              className="w-full bg-green-600 hover:bg-green-700"
+                              onClick={() => {
+                                updateStatusMutation.mutate('completed');
+                                toast({
+                                  title: "Bid Accepted",
+                                  description: "The bid has been accepted and marked as completed.",
+                                });
+                              }}
+                              disabled={updateStatusMutation.isPending}
+                              data-testid="btn-accept-bid"
                             >
-                              <SelectTrigger className="flex-1" data-testid="select-bid-status">
-                                <SelectValue placeholder="Select status..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="submitted">Bid Submitted</SelectItem>
-                                <SelectItem value="manager_approval">Manager Approval</SelectItem>
-                                <SelectItem value="sales_discussion">Sales Discussion</SelectItem>
-                                <SelectItem value="quotation_sent">Quotation Sent</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {updateStatusMutation.isPending && (
-                              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                            )}
-                          </div>
-                        </div>
+                              {updateStatusMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                              )}
+                              Accept Bid
+                            </Button>
+                          )}
 
-                        {/* Send Revised Quote */}
-                        <div className="border-t pt-4">
-                          <Button
-                            variant={showRevisedQuoteForm ? "outline" : "default"}
-                            className="w-full mb-3"
-                            onClick={() => setShowRevisedQuoteForm(!showRevisedQuoteForm)}
-                            data-testid="btn-toggle-revised-quote"
-                          >
-                            {showRevisedQuoteForm ? (
-                              <>
-                                <ChevronUp className="w-4 h-4 mr-2" />
-                                Hide Revised Quote Form
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 mr-2" />
-                                Send Revised Quote
-                              </>
-                            )}
-                          </Button>
-
-                          {showRevisedQuoteForm && (
+                          {/* Send Revised Quote Form - Always visible when not completed */}
+                          {(inquiryData.inquiry.bidProgressStatus || 'submitted') !== 'completed' && (
                             <div className="space-y-3 p-4 bg-white rounded-lg border">
+                              <h4 className="font-medium text-gray-800 flex items-center gap-2">
+                                <Send className="w-4 h-4 text-blue-600" />
+                                Send Revised Quote
+                              </h4>
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <Label htmlFor="revised-amount">Amount</Label>
+                                  <Label htmlFor="revised-amount">Amount *</Label>
                                   <Input
                                     id="revised-amount"
                                     type="number"
@@ -748,10 +737,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                 </div>
                               </div>
                               <div>
-                                <Label htmlFor="revised-message">Message to Customer</Label>
+                                <Label htmlFor="revised-message">Message to Customer *</Label>
                                 <Textarea
                                   id="revised-message"
-                                  placeholder="Enter your message..."
+                                  placeholder="Enter your message to the customer..."
                                   value={revisedMessage}
                                   onChange={(e) => setRevisedMessage(e.target.value)}
                                   rows={3}
@@ -761,7 +750,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                               <Button
                                 className="w-full"
                                 onClick={handleSendRevisedQuote}
-                                disabled={sendRevisedQuoteMutation.isPending}
+                                disabled={sendRevisedQuoteMutation.isPending || !revisedAmount || !revisedMessage}
                                 data-testid="btn-send-revised-quote"
                               >
                                 {sendRevisedQuoteMutation.isPending ? (
@@ -776,8 +765,49 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                   </>
                                 )}
                               </Button>
+                              <p className="text-xs text-gray-500 text-center">
+                                Sending a revised quote will update status to "Quotation Sent"
+                              </p>
                             </div>
                           )}
+
+                          {/* Completed State */}
+                          {(inquiryData.inquiry.bidProgressStatus) === 'completed' && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
+                              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                              <p className="font-medium text-green-800">Bid Workflow Completed</p>
+                              <p className="text-sm text-green-600">This bid has been processed successfully.</p>
+                            </div>
+                          )}
+
+                          {/* Manual Status Update (Advanced) */}
+                          <div className="pt-3 border-t">
+                            <details className="text-sm">
+                              <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                                Advanced: Manual Status Update
+                              </summary>
+                              <div className="mt-2 flex gap-2">
+                                <Select 
+                                  value={inquiryData.inquiry.bidProgressStatus || 'submitted'}
+                                  onValueChange={(value) => updateStatusMutation.mutate(value)}
+                                >
+                                  <SelectTrigger className="flex-1" data-testid="select-bid-status">
+                                    <SelectValue placeholder="Select status..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="submitted">Bid Submitted</SelectItem>
+                                    <SelectItem value="manager_approval">Manager Approval</SelectItem>
+                                    <SelectItem value="sales_discussion">Sales Discussion</SelectItem>
+                                    <SelectItem value="quotation_sent">Quotation Sent</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {updateStatusMutation.isPending && (
+                                  <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                )}
+                              </div>
+                            </details>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
