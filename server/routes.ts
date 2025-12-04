@@ -5640,6 +5640,21 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
+      // Generate email signature if signature details are configured
+      let finalBodyHtml = bodyHtml;
+      let signature = '';
+      
+      if (emailConfig.signatureName || emailConfig.signaturePosition) {
+        signature = gmailApi.generateEmailSignature({
+          name: emailConfig.signatureName || emailConfig.displayName || 'Team Member',
+          position: emailConfig.signaturePosition || 'Sales Team',
+          email: emailConfig.companyEmail,
+          phone: emailConfig.signaturePhone || undefined,
+          mobile: emailConfig.signatureMobile || undefined,
+        });
+        finalBodyHtml = bodyHtml + signature;
+      }
+
       // Actually send email via Gmail API
       let gmailResult: { messageId: string; threadId: string } | null = null;
       let emailStatus = 'pending';
@@ -5650,8 +5665,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           cc: cc || [],
           bcc: bcc || [],
           subject,
-          bodyHtml,
-          bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+          bodyHtml: finalBodyHtml,
+          bodyText: bodyText || finalBodyHtml.replace(/<[^>]*>/g, ''),
           fromName: emailConfig.displayName || undefined,
           fromEmail: emailConfig.companyEmail,
         });
@@ -5677,7 +5692,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
-      // Store email message in database
+      // Store email message in database (store original body without signature for cleaner display)
       const message = await storage.createEmailMessage({
         messageId: gmailResult?.messageId || undefined,
         threadId: thread.id,
@@ -5689,8 +5704,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         ccEmails: cc || [],
         bccEmails: bcc || [],
         subject,
-        bodyHtml,
-        bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+        bodyHtml: finalBodyHtml,
+        bodyText: bodyText || finalBodyHtml.replace(/<[^>]*>/g, ''),
         sentAt: new Date(),
         status: emailStatus,
         senderId: userId,
