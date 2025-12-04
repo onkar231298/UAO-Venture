@@ -138,132 +138,53 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  // Replit OAuth routes removed - admin uses /admin/login only
-
+  // Unified logout - redirect to login page
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      // Local admin logout - redirect to admin login
-      res.redirect("/admin/login");
+      res.redirect("/login");
     });
   });
 
-  // Admin login routes
+  // Redirect /admin/login to unified /login page
   app.get("/admin/login", (req, res) => {
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>BFI Organic - Admin Login</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #16a085 0%, #f4d03f 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .login-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-          }
-          .logo {
-            text-align: center;
-            margin-bottom: 2rem;
-          }
-          .logo h1 {
-            color: #16a085;
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-          }
-          .logo p {
-            color: #666;
-            font-size: 0.9rem;
-          }
-          .form-group {
-            margin-bottom: 1rem;
-          }
-          label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #333;
-            font-weight: 500;
-          }
-          input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e1e1e1;
-            border-radius: 5px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-          }
-          input:focus {
-            outline: none;
-            border-color: #16a085;
-          }
-          button {
-            width: 100%;
-            background: #16a085;
-            color: white;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.3s;
-          }
-          button:hover {
-            background: #138d75;
-          }
-          .error {
-            background: #fee;
-            color: #c33;
-            padding: 0.75rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            text-align: center;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="login-container">
-          <div class="logo">
-            <h1>BFI ORGANIC</h1>
-            <p>Backend Administration</p>
-          </div>
-          ${req.query.error ? '<div class="error">Invalid credentials. Please try again.</div>' : ''}
-          <form action="/admin/login" method="POST">
-            <div class="form-group">
-              <label for="email">Email:</label>
-              <input type="email" id="email" name="email" placeholder="Enter admin email" required>
-            </div>
-            <div class="form-group">
-              <label for="password">Password:</label>
-              <input type="password" id="password" name="password" placeholder="Enter admin password" required>
-            </div>
-            <button type="submit">Login to Admin Dashboard</button>
-          </form>
-        </div>
-      </body>
-      </html>
-    `);
+    res.redirect("/login");
   });
 
-  // Unified login endpoint for both admin and customers
-  app.post("/admin/login", passport.authenticate('local', {
-    successRedirect: '/',
-    failureRedirect: '/login?error=admin_failed'
-  }));
+  // Unified login endpoint - redirects based on user role
+  app.post("/admin/login", (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return res.redirect('/login?error=login_failed');
+      }
+      if (!user) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          return res.redirect('/login?error=login_failed');
+        }
+        
+        // Redirect based on user role
+        const role = user.claims?.role || '';
+        
+        if (role === 'admin' || role === 'super_admin') {
+          return res.redirect('/admin');
+        } else if (role.includes('sales')) {
+          return res.redirect('/sales');
+        } else if (role === 'customer') {
+          return res.redirect('/customer/dashboard');
+        } else {
+          // Other staff roles
+          return res.redirect('/staff');
+        }
+      });
+    })(req, res, next);
+  });
 
   // Customer login endpoint
   app.post("/customer/login", passport.authenticate('local', {
-    successRedirect: '/',
+    successRedirect: '/customer/dashboard',
     failureRedirect: '/login?error=customer_failed'
   }));
 }

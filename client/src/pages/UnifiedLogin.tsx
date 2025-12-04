@@ -27,11 +27,19 @@ export default function UnifiedLogin() {
   // Check for error parameter in URL
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('error') === 'admin_failed') {
-      setError("Invalid admin credentials. Please try again.");
-      window.history.replaceState(null, '', '/login');
-    } else if (urlParams.get('error') === 'customer_failed') {
-      setError("Invalid customer credentials. Please try again.");
+    const errorType = urlParams.get('error');
+    if (errorType) {
+      if (errorType === 'invalid_credentials') {
+        setError("Invalid email or password. Please try again.");
+      } else if (errorType === 'login_failed') {
+        setError("Login failed. Please try again.");
+      } else if (errorType === 'admin_failed') {
+        setError("Invalid credentials. Please try again.");
+      } else if (errorType === 'customer_failed') {
+        setError("Invalid customer credentials. Please try again.");
+      } else {
+        setError("An error occurred. Please try again.");
+      }
       window.history.replaceState(null, '', '/login');
     }
   }, []);
