@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +51,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [showEmailView, setShowEmailView] = useState(false);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [hasAutoSynced, setHasAutoSynced] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -284,10 +286,19 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
-      toast({
-        title: "Emails Synced",
-        description: data.message || `Synced ${data.newMessages || 0} new email replies`,
-      });
+      setLastSyncTime(new Date());
+      const newMessages = data?.newMessages || 0;
+      if (newMessages > 0) {
+        toast({
+          title: "New Emails Found",
+          description: `${newMessages} new email${newMessages > 1 ? 's' : ''} synced from Gmail`,
+        });
+      } else {
+        toast({
+          title: "Sync Complete",
+          description: "No new replies found",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -297,6 +308,22 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       });
     },
   });
+
+  // Auto-sync emails when switching to email tab (once per dialog open)
+  useEffect(() => {
+    if (activeTab === 'emails' && emailConfig?.isConnected && !hasAutoSynced && lead?.id && emailThreads.length > 0) {
+      setHasAutoSynced(true);
+      syncEmailsMutation.mutate();
+    }
+  }, [activeTab, emailConfig?.isConnected, hasAutoSynced, lead?.id, emailThreads.length]);
+
+  // Reset auto-sync flag when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setHasAutoSynced(false);
+      setLastSyncTime(null);
+    }
+  }, [open]);
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
     try {
@@ -1031,24 +1058,32 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
                 {/* Email History Header with Sync Button */}
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-600">Email History</h4>
-                  {emailConfig && emailThreads.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-gray-600">Email History</h4>
+                    {lastSyncTime && (
+                      <span className="text-xs text-gray-400">
+                        Last synced: {formatDistanceToNow(lastSyncTime, { addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  {emailConfig?.isConnected && emailThreads.length > 0 && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => syncEmailsMutation.mutate()}
                       disabled={syncEmailsMutation.isPending}
+                      className="bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
                       data-testid="button-sync-emails"
                     >
                       {syncEmailsMutation.isPending ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Syncing...
+                          Checking for replies...
                         </>
                       ) : (
                         <>
                           <RefreshCw className="h-3 w-3 mr-1" />
-                          Sync Replies
+                          Check for New Replies
                         </>
                       )}
                     </Button>
