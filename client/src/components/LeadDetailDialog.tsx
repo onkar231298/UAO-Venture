@@ -1153,8 +1153,23 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                   )}
                 </div>
 
+                {/* Email Threads - Visual Legend */}
+                {emailThreads.length > 1 && (
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-2 px-2">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span> Active
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-orange-500"></span> Needs Reply
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-gray-400"></span> Idle (72h+)
+                    </span>
+                  </div>
+                )}
+
                 {/* Email Messages */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {emailsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -1167,7 +1182,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                       <p className="text-sm">Start a conversation by composing an email</p>
                     </div>
                   ) : (
-                    emailThreads.map((thread: any) => {
+                    emailThreads.map((thread: any, threadIndex: number) => {
                       // Sort messages chronologically (oldest first)
                       const sortedMessages = [...(thread.messages || [])].sort((a: any, b: any) => {
                         const dateA = new Date(a.sentAt || a.receivedAt || 0).getTime();
@@ -1175,29 +1190,74 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                         return dateA - dateB;
                       });
                       
+                      // Determine thread age/status for coloring
+                      const lastMessage = sortedMessages[sortedMessages.length - 1];
+                      const lastMessageDate = lastMessage ? new Date(lastMessage.sentAt || lastMessage.receivedAt || 0) : new Date(thread.createdAt || 0);
+                      const hoursSinceLastMessage = (Date.now() - lastMessageDate.getTime()) / (1000 * 60 * 60);
+                      const hasInboundMessages = sortedMessages.some((m: any) => m.direction === 'inbound');
+                      
+                      // Color palette for thread distinction
+                      const threadColors = [
+                        { border: 'border-l-blue-500', bg: 'bg-blue-50', headerBg: 'bg-blue-100', badge: 'bg-blue-100 text-blue-700' },
+                        { border: 'border-l-purple-500', bg: 'bg-purple-50', headerBg: 'bg-purple-100', badge: 'bg-purple-100 text-purple-700' },
+                        { border: 'border-l-emerald-500', bg: 'bg-emerald-50', headerBg: 'bg-emerald-100', badge: 'bg-emerald-100 text-emerald-700' },
+                        { border: 'border-l-amber-500', bg: 'bg-amber-50', headerBg: 'bg-amber-100', badge: 'bg-amber-100 text-amber-700' },
+                        { border: 'border-l-rose-500', bg: 'bg-rose-50', headerBg: 'bg-rose-100', badge: 'bg-rose-100 text-rose-700' },
+                        { border: 'border-l-cyan-500', bg: 'bg-cyan-50', headerBg: 'bg-cyan-100', badge: 'bg-cyan-100 text-cyan-700' },
+                        { border: 'border-l-indigo-500', bg: 'bg-indigo-50', headerBg: 'bg-indigo-100', badge: 'bg-indigo-100 text-indigo-700' },
+                        { border: 'border-l-teal-500', bg: 'bg-teal-50', headerBg: 'bg-teal-100', badge: 'bg-teal-100 text-teal-700' },
+                      ];
+                      const colorScheme = threadColors[threadIndex % threadColors.length];
+                      
+                      // Determine status label
+                      let statusLabel = 'Active';
+                      let statusColor = 'bg-green-100 text-green-700';
+                      if (hoursSinceLastMessage > 72) {
+                        statusLabel = 'Idle';
+                        statusColor = 'bg-gray-100 text-gray-600';
+                      } else if (hasInboundMessages && lastMessage?.direction === 'inbound') {
+                        statusLabel = 'Needs Reply';
+                        statusColor = 'bg-orange-100 text-orange-700';
+                      }
+                      
                       return (
-                        <div key={thread.id} className="border rounded-lg overflow-hidden" data-testid={`email-thread-${thread.id}`}>
-                          {/* Thread Header */}
-                          <div className="bg-gray-100 px-4 py-2 flex justify-between items-center border-b">
-                            <div className="flex items-center gap-2">
+                        <div 
+                          key={thread.id} 
+                          className={`border rounded-lg overflow-hidden border-l-4 ${colorScheme.border} shadow-sm hover:shadow-md transition-shadow`} 
+                          data-testid={`email-thread-${thread.id}`}
+                        >
+                          {/* Thread Header with Color Coding */}
+                          <div className={`${colorScheme.headerBg} px-4 py-3 flex justify-between items-center border-b`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${colorScheme.badge}`}>
+                                {threadIndex + 1}
+                              </span>
                               <Mail className="h-4 w-4 text-gray-600" />
                               <span className="font-medium text-sm">{thread.subject || 'No Subject'}</span>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge className={`text-xs ${colorScheme.badge} border-0`}>
                                 {sortedMessages.length} {sortedMessages.length === 1 ? 'message' : 'messages'}
                               </Badge>
+                              <Badge className={`text-xs ${statusColor} border-0`}>
+                                {statusLabel}
+                              </Badge>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedThread({ ...thread, messages: sortedMessages });
-                                setShowThreadView(true);
-                              }}
-                              data-testid={`button-view-thread-${thread.id}`}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Complete Thread
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">
+                                Last: {format(lastMessageDate, 'MMM d, h:mm a')}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedThread({ ...thread, messages: sortedMessages });
+                                  setShowThreadView(true);
+                                }}
+                                data-testid={`button-view-thread-${thread.id}`}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View Thread
+                              </Button>
+                            </div>
                           </div>
                           
                           {/* Thread Messages */}
