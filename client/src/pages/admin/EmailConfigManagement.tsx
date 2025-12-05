@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle, Link2, Unlink, ExternalLink } from "lucide-react";
+import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle, Link2, Unlink, ExternalLink, Upload, Image, X, Pen } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ interface EmailConfig {
   isActive: boolean;
   serviceType: string;
   isConnected: boolean;
+  signatureImageUrl: string | null;
   createdAt: string;
 }
 
@@ -35,6 +36,10 @@ interface UserOption {
 export default function EmailConfigManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<EmailConfig | null>(null);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [selectedConfigForSignature, setSelectedConfigForSignature] = useState<EmailConfig | null>(null);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     userId: "",
     companyEmail: "",
@@ -173,6 +178,120 @@ export default function EmailConfigManagement() {
       });
     },
   });
+
+  const removeSignatureMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/admin/email-configs/${id}/signature`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/email-configs'] });
+      setSignatureDialogOpen(false);
+      setSelectedConfigForSignature(null);
+      toast({
+        title: "Signature Removed",
+        description: "Digital signature has been removed from this email configuration.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove signature",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>, configId: number) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please upload an image file (PNG, JPG, or GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB for signatures)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Signature image must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingSignature(true);
+
+    try {
+      // Get upload URL
+      const uploadUrlResponse = await fetch(`/api/admin/email-configs/${configId}/signature-upload-url`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!uploadUrlResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadURL } = await uploadUrlResponse.json();
+
+      // Upload the file
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload signature');
+      }
+
+      // Extract the object path from the upload URL
+      const urlObj = new URL(uploadURL);
+      const signatureImageUrl = urlObj.pathname;
+
+      // Update the email config with the signature URL
+      const updateResponse = await apiRequest(`/api/admin/email-configs/${configId}/signature`, {
+        method: 'PUT',
+        body: JSON.stringify({ signatureImageUrl }),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/email-configs'] });
+      setSignatureDialogOpen(false);
+      setSelectedConfigForSignature(null);
+
+      toast({
+        title: "Signature Uploaded",
+        description: "Digital signature has been added successfully.",
+      });
+    } catch (error) {
+      console.error('Error uploading signature:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload signature image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingSignature(false);
+      if (signatureInputRef.current) {
+        signatureInputRef.current.value = '';
+      }
+    }
+  };
+
+  const openSignatureDialog = (config: EmailConfig) => {
+    setSelectedConfigForSignature(config);
+    setSignatureDialogOpen(true);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -427,7 +546,7 @@ export default function EmailConfigManagement() {
                       {config.displayName && (
                         <p className="text-xs text-gray-500">Display: {config.displayName}</p>
                       )}
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         {config.isConnected ? (
                           <Badge className="bg-green-100 text-green-800 text-xs">
                             <Link2 className="h-3 w-3 mr-1" />
@@ -437,6 +556,17 @@ export default function EmailConfigManagement() {
                           <Badge variant="destructive" className="text-xs">
                             <Unlink className="h-3 w-3 mr-1" />
                             Gmail Not Connected
+                          </Badge>
+                        )}
+                        {config.signatureImageUrl ? (
+                          <Badge className="bg-purple-100 text-purple-800 text-xs">
+                            <Pen className="h-3 w-3 mr-1" />
+                            Signature Added
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-gray-500">
+                            <Pen className="h-3 w-3 mr-1" />
+                            No Signature
                           </Badge>
                         )}
                       </div>
@@ -484,6 +614,16 @@ export default function EmailConfigManagement() {
                         )}
                       </Button>
                     )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={() => openSignatureDialog(config)}
+                      data-testid={`button-signature-config-${config.id}`}
+                    >
+                      <Pen className="h-4 w-4 mr-1" />
+                      Signature
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -551,6 +691,117 @@ export default function EmailConfigManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Digital Signature Dialog */}
+      <Dialog open={signatureDialogOpen} onOpenChange={(open) => {
+        setSignatureDialogOpen(open);
+        if (!open) {
+          setSelectedConfigForSignature(null);
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pen className="h-5 w-5" />
+              Digital Signature
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedConfigForSignature && (
+            <div className="space-y-6">
+              <div className="text-sm text-gray-600">
+                <p><strong>Email:</strong> {selectedConfigForSignature.companyEmail}</p>
+                <p><strong>User:</strong> {getUserDisplayName(selectedConfigForSignature.userId)}</p>
+              </div>
+
+              {/* Current Signature Preview */}
+              {selectedConfigForSignature.signatureImageUrl && (
+                <div className="space-y-2">
+                  <Label>Current Signature</Label>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <img 
+                      src={selectedConfigForSignature.signatureImageUrl}
+                      alt="Email Signature"
+                      className="max-w-[300px] max-h-[150px] object-contain"
+                      data-testid="signature-preview"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to remove this signature?')) {
+                        removeSignatureMutation.mutate(selectedConfigForSignature.id);
+                      }
+                    }}
+                    disabled={removeSignatureMutation.isPending}
+                    data-testid="button-remove-signature"
+                  >
+                    {removeSignatureMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <X className="h-4 w-4 mr-2" />
+                    )}
+                    Remove Signature
+                  </Button>
+                </div>
+              )}
+
+              {/* Upload New Signature */}
+              <div className="space-y-3">
+                <Label>
+                  {selectedConfigForSignature.signatureImageUrl ? 'Replace Signature' : 'Upload Signature'}
+                </Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    ref={signatureInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleSignatureUpload(e, selectedConfigForSignature.id)}
+                    data-testid="input-signature-file"
+                  />
+                  <div className="space-y-2">
+                    <Image className="h-10 w-10 mx-auto text-gray-400" />
+                    <Button
+                      variant="outline"
+                      onClick={() => signatureInputRef.current?.click()}
+                      disabled={uploadingSignature}
+                      data-testid="button-upload-signature"
+                    >
+                      {uploadingSignature ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose Image
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, or GIF. Max 2MB.
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h5 className="font-medium text-purple-800 text-sm mb-1">Recommended Dimensions</h5>
+                  <p className="text-xs text-purple-700">
+                    <strong>Width:</strong> 300px (max 400px)<br />
+                    <strong>Height:</strong> 100px (max 150px)
+                  </p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    This signature will be automatically appended to all emails sent from this account.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
