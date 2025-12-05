@@ -16,27 +16,32 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true, // Auto-create table if missing in production
     ttl: sessionTtl,
     tableName: "sessions",
   });
   
-  // In production (Replit deployment), always use secure cookies
   // Check for production indicators - NODE_ENV or absence of dev domain
   const isProduction = process.env.NODE_ENV === 'production' || !process.env.REPLIT_DEV_DOMAIN;
   
   console.log('[Session] isProduction:', isProduction, 'NODE_ENV:', process.env.NODE_ENV);
   
+  // Session secret with fallback for production environments
+  const sessionSecret = process.env.SESSION_SECRET || 'bfi-organic-session-secret-2025';
+  
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    name: 'bfi.sid', // Custom session name to avoid conflicts
+    proxy: true, // Trust the reverse proxy (Replit's infrastructure)
     cookie: {
       httpOnly: true,
-      secure: true, // Always use secure cookies since Replit uses HTTPS
+      secure: isProduction, // Only secure in production (HTTPS)
       sameSite: 'lax',
       maxAge: sessionTtl,
+      path: '/',
     },
   });
 }
