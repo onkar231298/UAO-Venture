@@ -5437,6 +5437,128 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Admin: Get signature upload URL for email configuration
+  // Recommended dimensions: 300x100px (max 400x150px)
+  app.post('/api/admin/email-configs/:id/signature-upload-url', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      const config = await storage.getEmailConfigById(configId);
+      
+      if (!config) {
+        return res.status(404).json({ message: 'Email configuration not found' });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getPublicObjectUploadURL();
+      
+      res.json({ 
+        uploadURL, 
+        provider: 'replit-object-storage',
+        recommendedDimensions: {
+          width: 300,
+          height: 100,
+          maxWidth: 400,
+          maxHeight: 150
+        }
+      });
+    } catch (error) {
+      console.error('Error generating signature upload URL:', error);
+      res.status(500).json({ message: 'Failed to generate signature upload URL' });
+    }
+  });
+
+  // Admin: Update signature image URL for email configuration
+  app.put('/api/admin/email-configs/:id/signature', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      const { signatureImageUrl } = req.body;
+
+      if (!signatureImageUrl) {
+        return res.status(400).json({ message: 'Signature image URL is required' });
+      }
+
+      const config = await storage.getEmailConfigById(configId);
+      if (!config) {
+        return res.status(404).json({ message: 'Email configuration not found' });
+      }
+
+      const userId = req.user.claims.sub;
+
+      // Set ACL policy for the signature image to make it public
+      try {
+        const objectStorageService = new ObjectStorageService();
+        const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+          signatureImageUrl,
+          {
+            owner: userId,
+            visibility: "public",
+          },
+        );
+
+        // Ensure the returned path is clean
+        const cleanPath = objectPath.startsWith('/objects/') 
+          ? objectPath 
+          : `/objects/${objectPath}`;
+
+        // Update the email configuration with the signature URL
+        const updatedConfig = await storage.updateUserEmailConfig(configId, {
+          signatureImageUrl: cleanPath,
+        });
+
+        res.json({ 
+          success: true, 
+          signatureImageUrl: cleanPath,
+          config: updatedConfig 
+        });
+      } catch (aclError) {
+        console.error('Error setting signature image ACL:', aclError);
+        
+        // Fallback: still save the URL even if ACL setting fails
+        const objectStorageService = new ObjectStorageService();
+        const fallbackPath = objectStorageService.normalizeObjectEntityPath(signatureImageUrl);
+        const cleanPath = fallbackPath.startsWith('/objects/') 
+          ? fallbackPath 
+          : `/objects/${fallbackPath}`;
+
+        const updatedConfig = await storage.updateUserEmailConfig(configId, {
+          signatureImageUrl: cleanPath,
+        });
+
+        res.json({ 
+          success: true, 
+          signatureImageUrl: cleanPath,
+          config: updatedConfig,
+          warning: 'ACL policy not set, but signature should still be accessible'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating signature:', error);
+      res.status(500).json({ message: 'Failed to update signature image' });
+    }
+  });
+
+  // Admin: Remove signature image from email configuration
+  app.delete('/api/admin/email-configs/:id/signature', isAuthenticated, async (req: any, res) => {
+    try {
+      const configId = parseInt(req.params.id);
+      const config = await storage.getEmailConfigById(configId);
+      
+      if (!config) {
+        return res.status(404).json({ message: 'Email configuration not found' });
+      }
+
+      // Update the email configuration to remove the signature URL
+      const updatedConfig = await storage.updateUserEmailConfig(configId, {
+        signatureImageUrl: null,
+      });
+
+      res.json({ success: true, config: updatedConfig });
+    } catch (error) {
+      console.error('Error removing signature:', error);
+      res.status(500).json({ message: 'Failed to remove signature image' });
+    }
+  });
+
   // ========================================
   // GMAIL OAUTH ROUTES
   // ========================================
