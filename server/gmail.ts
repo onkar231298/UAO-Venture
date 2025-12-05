@@ -6,6 +6,24 @@ const SCOPES = [
   'https://www.googleapis.com/auth/gmail.modify',
 ];
 
+// Token refresh buffer - refresh 5 minutes before expiry
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
+// Email config interface for type safety
+export interface EmailConfigForRefresh {
+  id: number;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenExpiresAt: Date | null;
+}
+
+// Callback to update tokens in storage
+export type TokenUpdateCallback = (configId: number, tokens: {
+  accessToken: string;
+  refreshToken?: string;
+  tokenExpiresAt: Date;
+}) => Promise<void>;
+
 // OAuth2 client configuration
 function getOAuth2Client() {
   const clientId = process.env.GMAIL_CLIENT_ID;
@@ -13,8 +31,6 @@ function getOAuth2Client() {
   
   // Use production domain for OAuth redirect URI
   const redirectUri = 'https://bright-organic.com/api/auth/gmail/callback';
-  
-  console.log('Gmail OAuth redirect URI:', redirectUri);
 
   if (!clientId || !clientSecret) {
     throw new Error('Gmail OAuth credentials not configured');
@@ -40,11 +56,104 @@ export async function getTokensFromCode(code: string) {
   return tokens;
 }
 
+// Check if token needs refresh
+function isTokenExpired(tokenExpiresAt: Date | null): boolean {
+  if (!tokenExpiresAt) return true;
+  const now = Date.now();
+  const expiresAt = new Date(tokenExpiresAt).getTime();
+  return now >= expiresAt - TOKEN_REFRESH_BUFFER_MS;
+}
+
+// Refresh access token using refresh token
+async function refreshAccessToken(refreshToken: string): Promise<{
+  accessToken: string;
+  expiresAt: Date;
+  newRefreshToken?: string;
+}> {
+  const oauth2Client = getOAuth2Client();
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  
+  const { credentials } = await oauth2Client.refreshAccessToken();
+  
+  if (!credentials.access_token) {
+    throw new Error('Failed to refresh access token - no access token returned');
+  }
+  
+  // Calculate expiry time (default to 1 hour if not provided)
+  const expiresIn = credentials.expiry_date 
+    ? credentials.expiry_date - Date.now()
+    : 3600 * 1000;
+  const expiresAt = new Date(Date.now() + expiresIn);
+  
+  console.log('[Gmail] Token refreshed successfully, expires at:', expiresAt);
+  
+  return {
+    accessToken: credentials.access_token,
+    expiresAt,
+    newRefreshToken: credentials.refresh_token || undefined,
+  };
+}
+
+// Get valid access token, refreshing if needed
+export async function ensureValidAccessToken(
+  config: EmailConfigForRefresh,
+  updateTokens: TokenUpdateCallback
+): Promise<string> {
+  // Check if we have the required tokens
+  if (!config.accessToken && !config.refreshToken) {
+    throw new Error('Gmail not connected - no tokens available');
+  }
+  
+  // If token is still valid, return it
+  if (config.accessToken && !isTokenExpired(config.tokenExpiresAt)) {
+    console.log('[Gmail] Access token still valid, expires at:', config.tokenExpiresAt);
+    return config.accessToken;
+  }
+  
+  // Token expired or missing - need to refresh
+  if (!config.refreshToken) {
+    throw new Error('Gmail token expired and no refresh token available - reconnection required');
+  }
+  
+  console.log('[Gmail] Access token expired, refreshing...');
+  
+  try {
+    const refreshed = await refreshAccessToken(config.refreshToken);
+    
+    // Update tokens in database
+    await updateTokens(config.id, {
+      accessToken: refreshed.accessToken,
+      refreshToken: refreshed.newRefreshToken,
+      tokenExpiresAt: refreshed.expiresAt,
+    });
+    
+    return refreshed.accessToken;
+  } catch (error: any) {
+    console.error('[Gmail] Token refresh failed:', error.message);
+    
+    // Check if this is an invalid_grant error (refresh token revoked)
+    if (error.message?.includes('invalid_grant') || error.code === 400) {
+      throw new Error('Gmail authorization revoked - please reconnect your Gmail account');
+    }
+    
+    throw error;
+  }
+}
+
 // Create Gmail client with access token
 export function getGmailClient(accessToken: string): gmail_v1.Gmail {
   const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({ access_token: accessToken });
   return google.gmail({ version: 'v1', auth: oauth2Client });
+}
+
+// Create Gmail client with automatic token refresh
+export async function getGmailClientWithRefresh(
+  config: EmailConfigForRefresh,
+  updateTokens: TokenUpdateCallback
+): Promise<gmail_v1.Gmail> {
+  const validAccessToken = await ensureValidAccessToken(config, updateTokens);
+  return getGmailClient(validAccessToken);
 }
 
 // Send email using Gmail API

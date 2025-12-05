@@ -5536,22 +5536,46 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'Email configuration not found' });
       }
 
-      if (!config.isConnected || !config.accessToken) {
+      if (!config.isConnected || (!config.accessToken && !config.refreshToken)) {
         return res.json({ connected: false });
       }
 
-      // Try to get Gmail profile to verify connection
+      // Try to get Gmail profile to verify connection (with auto token refresh)
       try {
-        const profile = await gmailApi.getProfile(config.accessToken);
+        const validAccessToken = await gmailApi.ensureValidAccessToken(
+          {
+            id: config.id,
+            accessToken: config.accessToken,
+            refreshToken: config.refreshToken,
+            tokenExpiresAt: config.tokenExpiresAt,
+          },
+          async (cfgId, tokens) => {
+            await storage.updateUserEmailConfig(cfgId, {
+              accessToken: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              tokenExpiresAt: tokens.tokenExpiresAt,
+            });
+          }
+        );
+
+        const profile = await gmailApi.getProfile(validAccessToken);
         res.json({ 
           connected: true, 
           email: profile.emailAddress,
           messagesTotal: profile.messagesTotal,
         });
-      } catch (error) {
-        // Token might be expired, mark as disconnected
-        await storage.updateUserEmailConfig(configId, { isConnected: false });
-        res.json({ connected: false, error: 'Token expired' });
+      } catch (error: any) {
+        console.error('Gmail status check error:', error.message);
+        // Authorization revoked or refresh failed - mark as disconnected
+        if (error.message?.includes('authorization revoked') || 
+            error.message?.includes('invalid_grant') ||
+            error.message?.includes('reconnect')) {
+          await storage.updateUserEmailConfig(configId, { 
+            isConnected: false,
+            accessToken: null,
+          });
+        }
+        res.json({ connected: false, error: 'Token expired or revoked' });
       }
     } catch (error) {
       console.error('Error checking Gmail status:', error);
@@ -5614,7 +5638,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Check if Gmail is connected
-      if (!emailConfig.isConnected || !emailConfig.accessToken) {
+      if (!emailConfig.isConnected || (!emailConfig.accessToken && !emailConfig.refreshToken)) {
         return res.status(400).json({ 
           message: 'Gmail is not connected. Please connect your Gmail account in Settings → Email Configuration to send emails.',
           requiresGmailConnect: true,
@@ -5640,12 +5664,30 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
-      // Actually send email via Gmail API
+      // Actually send email via Gmail API with automatic token refresh
       let gmailResult: { messageId: string; threadId: string } | null = null;
       let emailStatus = 'pending';
 
       try {
-        gmailResult = await gmailApi.sendEmail(emailConfig.accessToken, {
+        // Get valid access token (refreshes if expired)
+        const validAccessToken = await gmailApi.ensureValidAccessToken(
+          {
+            id: emailConfig.id,
+            accessToken: emailConfig.accessToken,
+            refreshToken: emailConfig.refreshToken,
+            tokenExpiresAt: emailConfig.tokenExpiresAt,
+          },
+          async (configId, tokens) => {
+            // Update tokens in database
+            await storage.updateUserEmailConfig(configId, {
+              accessToken: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              tokenExpiresAt: tokens.tokenExpiresAt,
+            });
+          }
+        );
+
+        gmailResult = await gmailApi.sendEmail(validAccessToken, {
           to: Array.isArray(to) ? to : [to],
           cc: cc || [],
           bcc: bcc || [],
@@ -5660,12 +5702,17 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       } catch (gmailError: any) {
         console.error('Gmail API error:', gmailError);
         
-        // Check if it's an auth error
-        if (gmailError.message?.includes('invalid_grant') || gmailError.code === 401) {
+        // Check if it's an auth error that requires reconnection
+        if (gmailError.message?.includes('authorization revoked') || 
+            gmailError.message?.includes('invalid_grant') ||
+            gmailError.message?.includes('reconnect')) {
           // Mark email config as disconnected
-          await storage.updateUserEmailConfig(emailConfig.id, { isConnected: false });
+          await storage.updateUserEmailConfig(emailConfig.id, { 
+            isConnected: false,
+            accessToken: null,
+          });
           return res.status(401).json({ 
-            message: 'Gmail authentication expired. Please reconnect your Gmail account in Settings.',
+            message: 'Gmail authorization has expired or been revoked. Please reconnect your Gmail account in Settings.',
             requiresGmailConnect: true,
           });
         }
