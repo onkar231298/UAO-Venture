@@ -6106,7 +6106,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Get user's email config for Gmail access
-      const emailConfig = await storage.getEmailConfigByUserId(userId);
+      const emailConfig = await storage.getUserEmailConfig(userId);
       if (!emailConfig || !emailConfig.isConnected || !emailConfig.accessToken) {
         return res.status(400).json({ 
           message: 'Gmail not connected. Please connect your Gmail account in Settings.',
