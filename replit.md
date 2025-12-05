@@ -4,6 +4,12 @@
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
 ## Recent Changes (December 5, 2025)
+- **Email Thread Separation Fix**: Fixed critical bug where all emails for a lead were incorrectly grouped into a single thread. Now each new email creates a separate thread, while replies properly append to existing threads. Backend distinguishes between new emails and replies using `isReply` flag from frontend.
+
+- **Gmail Thread Linking**: Replies now correctly append to existing Gmail conversations. Backend uses `replyToEmail()` function when replying, which passes the Gmail threadId to the API request body. Gmail thread IDs are persisted in the database after initial send and reused for subsequent replies.
+
+- **Attachment & Signature Path Validation**: Added comprehensive logging and path normalization for email attachments and signatures. Ensures all object storage paths start with `/objects/` prefix. Graceful error handling continues email send even if individual attachments fail to load.
+
 - **Signature Image Base64 Embedding**: Fixed signature images to display reliably in all email clients by embedding as base64 inline attachments using Content-ID (CID) references instead of external URLs. Signature images are now fetched from object storage, converted to base64, and attached as inline MIME parts.
 
 - **CC/BCC Recipients Fix**: Resolved issue where emails failed to send when CC/BCC fields were empty. Fixed by properly defaulting undefined CC/BCC arrays to empty arrays before filtering and joining.
