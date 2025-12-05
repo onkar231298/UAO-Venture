@@ -3,6 +3,26 @@
 ## Overview
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
+## Recent Changes (December 5, 2025)
+- **Digital Signature Image Upload**: Added digital signature image upload feature to email configuration management. Features include:
+  - Signature image upload in admin email settings (Settings > Email Configuration)
+  - Recommended dimensions: 300x100px (max 400x150px)
+  - Client-side dimension validation with user-friendly error messages
+  - File type validation (PNG, JPG, GIF) and size limit (2MB max)
+  - Signature preview with remove option
+  - Purple "Signature Added" badge on email configs with signatures
+  - Signature button to manage signatures per email configuration
+
+- **Professional Rich Text Email Composer**: Enhanced email composition with TipTap editor. Features include:
+  - Full formatting toolbar: bold, italic, underline, strikethrough
+  - Text highlighting (6 colors) and text color selection (8 colors)
+  - Bullet and numbered lists, text alignment options
+  - Block quotes, horizontal rules, link insertion/removal
+  - Undo/Redo functionality
+  - File attachments (multiple files, max 25MB each)
+  - Email threading with "Reply to existing thread" or "Start new thread" toggle
+  - "View Complete Email" dialog and "Reply" buttons in email history
+
 ## Recent Changes (December 4, 2025)
 - **Email Integration for Lead Management**: Added comprehensive email communication system within Lead Detail Dialog. Features include:
   - Email tab in Lead Detail Dialog showing full email history (sent/received)

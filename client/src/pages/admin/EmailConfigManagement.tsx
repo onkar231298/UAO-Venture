@@ -203,6 +203,25 @@ export default function EmailConfigManagement() {
     },
   });
 
+  const validateImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement('img');
+      const objectUrl = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ width: img.width, height: img.height });
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image'));
+      };
+      
+      img.src = objectUrl;
+    });
+  };
+
   const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>, configId: number) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -222,6 +241,32 @@ export default function EmailConfigManagement() {
       toast({
         title: "File Too Large",
         description: "Signature image must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate image dimensions
+    try {
+      const dimensions = await validateImageDimensions(file);
+      const maxWidth = 400;
+      const maxHeight = 150;
+      
+      if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
+        toast({
+          title: "Image Too Large",
+          description: `Signature image must be max ${maxWidth}x${maxHeight}px. Your image is ${dimensions.width}x${dimensions.height}px.`,
+          variant: "destructive",
+        });
+        if (signatureInputRef.current) {
+          signatureInputRef.current.value = '';
+        }
+        return;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to validate image dimensions",
         variant: "destructive",
       });
       return;
