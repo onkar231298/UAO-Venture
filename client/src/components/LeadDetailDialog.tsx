@@ -298,7 +298,47 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     },
   });
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadAttachment = async (file: File): Promise<string | null> => {
+    try {
+      // Get upload URL
+      const urlResponse = await apiRequest('/api/email-attachments/upload-url', {
+        method: 'POST',
+      });
+      
+      if (!urlResponse.uploadURL) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      // Upload file to object storage
+      const uploadResponse = await fetch(urlResponse.uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      // Get the file URL from the response location or construct it
+      const fileUrl = uploadResponse.headers.get('Location') || urlResponse.uploadURL.split('?')[0];
+      
+      // Finalize the upload
+      const finalizeResponse = await apiRequest('/api/email-attachments/finalize', {
+        method: 'POST',
+        body: JSON.stringify({ fileUrl, fileName: file.name }),
+      });
+      
+      return finalizeResponse.fileUrl;
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      return null;
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -317,13 +357,41 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
         file,
         name: file.name,
         size: file.size,
+        uploading: true,
       });
     }
+    
+    // Add files with uploading state
     setAttachments([...attachments, ...newAttachments]);
     
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    
+    // Upload each file
+    for (let i = 0; i < newAttachments.length; i++) {
+      const att = newAttachments[i];
+      const uploadedUrl = await uploadAttachment(att.file);
+      
+      setAttachments(prev => {
+        const updated = [...prev];
+        const attIndex = updated.findIndex(a => a.file === att.file && a.name === att.name);
+        if (attIndex !== -1) {
+          if (uploadedUrl) {
+            updated[attIndex] = { ...updated[attIndex], uploading: false, uploadedUrl };
+          } else {
+            // Remove failed upload
+            updated.splice(attIndex, 1);
+            toast({
+              title: "Upload Failed",
+              description: `Failed to upload ${att.name}`,
+              variant: "destructive",
+            });
+          }
+        }
+        return updated;
+      });
     }
   };
 
@@ -902,10 +970,16 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                               {attachments.map((att, index) => (
                                 <div
                                   key={index}
-                                  className="flex items-center gap-2 px-2 py-1 bg-white border rounded-md text-sm"
+                                  className={`flex items-center gap-2 px-2 py-1 bg-white border rounded-md text-sm ${att.uploading ? 'opacity-60' : ''}`}
                                   data-testid={`attachment-item-${index}`}
                                 >
-                                  <Paperclip className="h-3 w-3 text-gray-400" />
+                                  {att.uploading ? (
+                                    <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+                                  ) : att.uploadedUrl ? (
+                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                  ) : (
+                                    <Paperclip className="h-3 w-3 text-gray-400" />
+                                  )}
                                   <span className="max-w-[150px] truncate">{att.name}</span>
                                   <span className="text-xs text-gray-500">({formatFileSize(att.size)})</span>
                                   <button
@@ -934,7 +1008,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                           <Button 
                             size="sm" 
                             onClick={handleSendEmail}
-                            disabled={sendEmailMutation.isPending}
+                            disabled={sendEmailMutation.isPending || attachments.some(a => a.uploading)}
                             data-testid="button-send-email"
                           >
                             {sendEmailMutation.isPending ? (

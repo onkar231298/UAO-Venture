@@ -164,7 +164,14 @@ export interface InlineAttachment {
   filename?: string;  // e.g., 'signature.png'
 }
 
-// Send email using Gmail API with support for inline attachments
+// Regular file attachment
+export interface FileAttachment {
+  base64Data: string; // Base64 encoded file data
+  mimeType: string;   // e.g., 'application/pdf'
+  filename: string;   // e.g., 'document.pdf'
+}
+
+// Send email using Gmail API with support for inline and file attachments
 export async function sendEmail(
   accessToken: string,
   options: {
@@ -177,6 +184,7 @@ export async function sendEmail(
     fromName?: string;
     fromEmail?: string;
     inlineAttachments?: InlineAttachment[];
+    fileAttachments?: FileAttachment[];
   }
 ): Promise<{ messageId: string; threadId: string }> {
   const gmail = getGmailClient(accessToken);
@@ -187,8 +195,11 @@ export async function sendEmail(
   const bccHeader = (options.bcc || []).filter(e => e && e.trim()).join(', ');
   
   const hasInlineAttachments = options.inlineAttachments && options.inlineAttachments.length > 0;
-  const boundary = 'boundary_' + Date.now();
+  const hasFileAttachments = options.fileAttachments && options.fileAttachments.length > 0;
+  
+  const mixedBoundary = 'mixed_' + Date.now();
   const relatedBoundary = 'related_' + Date.now();
+  const alternativeBoundary = 'alternative_' + Date.now();
   
   let emailLines = [
     `To: ${toHeader}`,
@@ -207,25 +218,50 @@ export async function sendEmail(
     `MIME-Version: 1.0`,
   );
   
-  if (hasInlineAttachments) {
-    // Use multipart/related for inline images
+  // Determine outer boundary structure
+  if (hasFileAttachments) {
+    // multipart/mixed as outer container for file attachments
+    emailLines.push(
+      `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+      '',
+      `--${mixedBoundary}`,
+    );
+    
+    if (hasInlineAttachments) {
+      // multipart/related for inline images inside mixed
+      emailLines.push(
+        `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+        '',
+        `--${relatedBoundary}`,
+        `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+        '',
+      );
+    } else {
+      emailLines.push(
+        `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+        '',
+      );
+    }
+  } else if (hasInlineAttachments) {
+    // multipart/related for inline images only
     emailLines.push(
       `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
       '',
       `--${relatedBoundary}`,
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
       '',
     );
   } else {
+    // Simple multipart/alternative for text/html
     emailLines.push(
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
       '',
     );
   }
   
   // Add text/plain part
   emailLines.push(
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     '',
     options.bodyText || options.bodyHtml.replace(/<[^>]*>/g, ''),
@@ -234,15 +270,15 @@ export async function sendEmail(
   
   // Add text/html part
   emailLines.push(
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     '',
     options.bodyHtml,
     '',
-    `--${boundary}--`,
+    `--${alternativeBoundary}--`,
   );
   
-  // Add inline attachments if any
+  // Add inline attachments if any (close related boundary)
   if (hasInlineAttachments) {
     for (const attachment of options.inlineAttachments!) {
       emailLines.push(
@@ -257,6 +293,22 @@ export async function sendEmail(
       );
     }
     emailLines.push('', `--${relatedBoundary}--`);
+  }
+  
+  // Add file attachments if any
+  if (hasFileAttachments) {
+    for (const attachment of options.fileAttachments!) {
+      emailLines.push(
+        '',
+        `--${mixedBoundary}`,
+        `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+        `Content-Transfer-Encoding: base64`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        '',
+        attachment.base64Data,
+      );
+    }
+    emailLines.push('', `--${mixedBoundary}--`);
   }
   
   const rawEmail = emailLines.join('\r\n');
@@ -275,7 +327,7 @@ export async function sendEmail(
   };
 }
 
-// Reply to an existing email thread with support for inline attachments
+// Reply to an existing email thread with support for inline and file attachments
 export async function replyToEmail(
   accessToken: string,
   threadId: string,
@@ -291,6 +343,7 @@ export async function replyToEmail(
     inReplyTo?: string;
     references?: string;
     inlineAttachments?: InlineAttachment[];
+    fileAttachments?: FileAttachment[];
   }
 ): Promise<{ messageId: string; threadId: string }> {
   const gmail = getGmailClient(accessToken);
@@ -300,8 +353,11 @@ export async function replyToEmail(
   const bccHeader = (options.bcc || []).filter(e => e && e.trim()).join(', ');
   
   const hasInlineAttachments = options.inlineAttachments && options.inlineAttachments.length > 0;
-  const boundary = 'boundary_' + Date.now();
+  const hasFileAttachments = options.fileAttachments && options.fileAttachments.length > 0;
+  
+  const mixedBoundary = 'mixed_' + Date.now();
   const relatedBoundary = 'related_' + Date.now();
+  const alternativeBoundary = 'alternative_' + Date.now();
   
   let emailLines = [
     `To: ${toHeader}`,
@@ -322,33 +378,56 @@ export async function replyToEmail(
     `MIME-Version: 1.0`,
   );
   
-  if (hasInlineAttachments) {
+  // Determine outer boundary structure
+  if (hasFileAttachments) {
+    // multipart/mixed as outer container for file attachments
+    emailLines.push(
+      `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+      '',
+      `--${mixedBoundary}`,
+    );
+    
+    if (hasInlineAttachments) {
+      emailLines.push(
+        `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+        '',
+        `--${relatedBoundary}`,
+        `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+        '',
+      );
+    } else {
+      emailLines.push(
+        `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+        '',
+      );
+    }
+  } else if (hasInlineAttachments) {
     emailLines.push(
       `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
       '',
       `--${relatedBoundary}`,
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
       '',
     );
   } else {
     emailLines.push(
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
       '',
     );
   }
   
   emailLines.push(
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     '',
     options.bodyText || options.bodyHtml.replace(/<[^>]*>/g, ''),
     '',
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     '',
     options.bodyHtml,
     '',
-    `--${boundary}--`,
+    `--${alternativeBoundary}--`,
   );
   
   if (hasInlineAttachments) {
@@ -365,6 +444,22 @@ export async function replyToEmail(
       );
     }
     emailLines.push('', `--${relatedBoundary}--`);
+  }
+  
+  // Add file attachments if any
+  if (hasFileAttachments) {
+    for (const attachment of options.fileAttachments!) {
+      emailLines.push(
+        '',
+        `--${mixedBoundary}`,
+        `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+        `Content-Transfer-Encoding: base64`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        '',
+        attachment.base64Data,
+      );
+    }
+    emailLines.push('', `--${mixedBoundary}--`);
   }
   
   const rawEmail = emailLines.join('\r\n');

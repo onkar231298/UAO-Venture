@@ -5559,6 +5559,51 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Get upload URL for email attachments
+  app.post('/api/email-attachments/upload-url', isAuthenticated, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getPrivateObjectUploadURL();
+      
+      res.json({ 
+        uploadURL, 
+        provider: 'replit-object-storage',
+      });
+    } catch (error) {
+      console.error('Error generating attachment upload URL:', error);
+      res.status(500).json({ message: 'Failed to generate upload URL' });
+    }
+  });
+
+  // Finalize email attachment upload (set ACL)
+  app.post('/api/email-attachments/finalize', isAuthenticated, async (req: any, res) => {
+    try {
+      const { fileUrl, fileName } = req.body;
+      
+      if (!fileUrl) {
+        return res.status(400).json({ message: 'File URL is required' });
+      }
+
+      const userId = req.user.claims.sub;
+      const objectStorageService = new ObjectStorageService();
+      
+      // Normalize and store the path
+      const objectPath = objectStorageService.normalizeObjectEntityPath(fileUrl);
+      const cleanPath = objectPath.startsWith('/objects/') 
+        ? objectPath 
+        : `/objects/${objectPath}`;
+      
+      res.json({ 
+        success: true, 
+        fileUrl: cleanPath,
+        fileName: fileName || 'attachment',
+      });
+    } catch (error) {
+      console.error('Error finalizing attachment upload:', error);
+      res.status(500).json({ message: 'Failed to finalize attachment upload' });
+    }
+  });
+
   // ========================================
   // GMAIL OAUTH ROUTES
   // ========================================
@@ -5747,7 +5792,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     try {
       const leadId = parseInt(req.params.leadId);
       const userId = req.user.claims.sub;
-      const { to, cc, bcc, subject, bodyHtml, bodyText } = req.body;
+      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments } = req.body;
 
       if (!to || !subject || !bodyHtml) {
         return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
@@ -5794,6 +5839,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       let finalBodyHtml = bodyHtml;
       let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
       let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
+      let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
       
       // Fetch signature image and prepare as inline attachment
       if (emailConfig.signatureImageUrl) {
@@ -5838,6 +5884,35 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         }
       }
 
+      // Fetch file attachments from object storage
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        const objectStorageService = new ObjectStorageService();
+        for (const att of attachments) {
+          try {
+            if (!att.fileUrl) continue;
+            
+            const attachmentFile = await objectStorageService.getObjectEntityFile(att.fileUrl);
+            const [fileContent] = await attachmentFile.download();
+            const base64Data = fileContent.toString('base64');
+            
+            // Get file metadata for mime type
+            const [metadata] = await attachmentFile.getMetadata();
+            const mimeType = metadata.contentType || 'application/octet-stream';
+            
+            fileAttachments.push({
+              base64Data,
+              mimeType,
+              filename: att.fileName || 'attachment',
+            });
+            
+            console.log('[Email] File attachment loaded:', att.fileName, 'size:', fileContent.length, 'bytes');
+          } catch (attError) {
+            console.error('[Email] Failed to load attachment:', att.fileName, attError);
+            // Continue with other attachments even if one fails
+          }
+        }
+      }
+
       try {
         // Get valid access token (refreshes if expired)
         const validAccessToken = await gmailApi.ensureValidAccessToken(
@@ -5867,6 +5942,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           fromName: emailConfig.displayName || undefined,
           fromEmail: emailConfig.companyEmail,
           inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
+          fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
         });
         emailStatus = 'sent';
         console.log('Email sent successfully via Gmail API:', gmailResult);
