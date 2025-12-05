@@ -31,6 +31,11 @@ import {
   insertLeadActivitySchema,
   insertLeadTaskSchema,
   insertAssignmentRuleSchema,
+  insertStaffSchema,
+  updateStaffSchema,
+  resetPasswordSchema,
+  STAFF_DEPARTMENTS,
+  ALL_STAFF_ROLES,
   quotationItems,
   quotations,
   companies,
@@ -349,6 +354,229 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating customer:", error);
       res.status(500).json({ message: "Failed to update customer" });
+    }
+  });
+
+  // ========================================
+  // STAFF MANAGEMENT ROUTES
+  // ========================================
+
+  // Get all staff users with filtering
+  app.get('/api/admin/staff', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can manage staff." });
+      }
+
+      const { search, department, role, isActive, page = '1', limit = '50' } = req.query;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      const result = await storage.getStaffUsers({
+        search: search as string,
+        department: department as string,
+        role: role as string,
+        isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+        limit: parseInt(limit),
+        offset,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching staff users:", error);
+      res.status(500).json({ message: "Failed to fetch staff users" });
+    }
+  });
+
+  // Get single staff user
+  app.get('/api/admin/staff/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can manage staff." });
+      }
+
+      const staffUser = await storage.getStaffUser(req.params.id);
+      if (!staffUser) {
+        return res.status(404).json({ message: "Staff user not found" });
+      }
+
+      // Don't return password
+      const { password: _, ...staffData } = staffUser;
+      res.json(staffData);
+    } catch (error) {
+      console.error("Error fetching staff user:", error);
+      res.status(500).json({ message: "Failed to fetch staff user" });
+    }
+  });
+
+  // Create new staff user
+  app.post('/api/admin/staff', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can create staff." });
+      }
+
+      // Validate request body
+      const validatedData = insertStaffSchema.parse(req.body);
+
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+
+      // Generate unique staff ID
+      const staffId = `staff_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+
+      // Create staff user
+      const newStaff = await storage.createStaffWithPassword({
+        id: staffId,
+        email: validatedData.email,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        password: validatedData.password,
+        role: validatedData.role,
+        department: validatedData.department,
+        phoneNumber: validatedData.phoneNumber || null,
+        userType: 'staff',
+        isActive: true,
+      });
+
+      // Don't return password
+      const { password: _, ...staffData } = newStaff;
+      res.status(201).json(staffData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation failed", errors: error.errors });
+      }
+      console.error("Error creating staff user:", error);
+      res.status(500).json({ message: "Failed to create staff user" });
+    }
+  });
+
+  // Update staff user
+  app.patch('/api/admin/staff/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can update staff." });
+      }
+
+      // Validate request body
+      const validatedData = updateStaffSchema.parse(req.body);
+
+      // Check if trying to update email to one that already exists
+      if (validatedData.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        if (existingUser && existingUser.id !== req.params.id) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+      }
+
+      const updatedStaff = await storage.updateStaff(req.params.id, validatedData);
+
+      // Don't return password
+      const { password: _, ...staffData } = updatedStaff;
+      res.json(staffData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation failed", errors: error.errors });
+      }
+      console.error("Error updating staff user:", error);
+      res.status(500).json({ message: "Failed to update staff user" });
+    }
+  });
+
+  // Toggle staff active status
+  app.patch('/api/admin/staff/:id/toggle-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can manage staff." });
+      }
+
+      const staffUser = await storage.getStaffUser(req.params.id);
+      if (!staffUser) {
+        return res.status(404).json({ message: "Staff user not found" });
+      }
+
+      const updatedStaff = await storage.updateStaff(req.params.id, {
+        isActive: !staffUser.isActive,
+      });
+
+      // Don't return password
+      const { password: _, ...staffData } = updatedStaff;
+      res.json(staffData);
+    } catch (error) {
+      console.error("Error toggling staff status:", error);
+      res.status(500).json({ message: "Failed to toggle staff status" });
+    }
+  });
+
+  // Reset staff password
+  app.patch('/api/admin/staff/:id/reset-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can reset passwords." });
+      }
+
+      // Validate request body
+      const validatedData = resetPasswordSchema.parse(req.body);
+
+      const success = await storage.updateStaffPassword(req.params.id, validatedData.newPassword);
+      if (!success) {
+        return res.status(404).json({ message: "Staff user not found" });
+      }
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation failed", errors: error.errors });
+      }
+      console.error("Error resetting staff password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Delete staff user
+  app.delete('/api/admin/staff/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied. Only Super Admin can delete staff." });
+      }
+
+      // Check if trying to delete yourself
+      if (req.params.id === user.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await storage.deleteStaff(req.params.id);
+      res.json({ message: "Staff user deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting staff user:", error);
+      res.status(500).json({ message: "Failed to delete staff user" });
+    }
+  });
+
+  // Get staff departments and roles (for dropdowns)
+  app.get('/api/admin/staff/options/departments-roles', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json({
+        departments: STAFF_DEPARTMENTS,
+        roles: ALL_STAFF_ROLES,
+      });
+    } catch (error) {
+      console.error("Error fetching staff options:", error);
+      res.status(500).json({ message: "Failed to fetch staff options" });
     }
   });
 
