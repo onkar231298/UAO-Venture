@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -50,6 +50,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [showEmailView, setShowEmailView] = useState(false);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const [activeTab, setActiveTab] = useState("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -273,6 +274,30 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     initializeComposeEmail(thread?.id, email.subject);
   };
 
+  // Sync emails from Gmail mutation
+  const syncEmailsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/emails/sync`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      toast({
+        title: "Emails Synced",
+        description: data.message || `Synced ${data.newMessages || 0} new email replies`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync emails from Gmail",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -403,7 +428,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
@@ -584,7 +609,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            <ActivityTimeline leadId={lead.id} />
+            <ActivityTimeline 
+              leadId={lead.id} 
+              onViewEmail={() => setActiveTab("email")} 
+            />
           </TabsContent>
 
           <TabsContent value="products" className="space-y-4">
@@ -927,7 +955,33 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                   </Card>
                 )}
 
-                {/* Email History */}
+                {/* Email History Header with Sync Button */}
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-600">Email History</h4>
+                  {emailConfig && emailThreads.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => syncEmailsMutation.mutate()}
+                      disabled={syncEmailsMutation.isPending}
+                      data-testid="button-sync-emails"
+                    >
+                      {syncEmailsMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Sync Replies
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Email Messages */}
                 <div className="space-y-3">
                   {emailsLoading ? (
                     <div className="flex items-center justify-center py-8">

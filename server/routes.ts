@@ -5790,35 +5790,52 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       let gmailResult: { messageId: string; threadId: string } | null = null;
       let emailStatus = 'pending';
       
-      // Build final email body with signature if configured (outside try for scope)
+      // Build final email body with signature if configured
       let finalBodyHtml = bodyHtml;
       let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
+      let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
       
+      // Fetch signature image and prepare as inline attachment
       if (emailConfig.signatureImageUrl) {
-        // Get the base URL for the signature image
-        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-          : process.env.REPLIT_DOMAINS 
-            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
-            : 'https://bright-organic.com';
-        
-        const signatureUrl = emailConfig.signatureImageUrl.startsWith('http') 
-          ? emailConfig.signatureImageUrl 
-          : `${baseUrl}${emailConfig.signatureImageUrl}`;
-        
-        // Append signature to HTML body
-        finalBodyHtml = `${bodyHtml}
-          <br><br>
-          <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
-            <tr>
-              <td>
-                <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
-              </td>
-            </tr>
-          </table>`;
-        
-        // Add text signature placeholder
-        finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
+        try {
+          const objectStorageService = new ObjectStorageService();
+          const signatureFile = await objectStorageService.getObjectEntityFile(emailConfig.signatureImageUrl);
+          
+          // Download file content as buffer
+          const [fileContent] = await signatureFile.download();
+          const base64Data = fileContent.toString('base64');
+          
+          // Get file metadata for mime type
+          const [metadata] = await signatureFile.getMetadata();
+          const mimeType = metadata.contentType || 'image/png';
+          
+          // Add to inline attachments
+          inlineAttachments.push({
+            contentId: 'signature_image',
+            base64Data,
+            mimeType,
+            filename: 'signature.png',
+          });
+          
+          // Append signature to HTML body using CID reference
+          finalBodyHtml = `${bodyHtml}
+            <br><br>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+              <tr>
+                <td>
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                </td>
+              </tr>
+            </table>`;
+          
+          // Add text signature placeholder
+          finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
+          
+          console.log('[Email] Signature image loaded successfully, size:', fileContent.length, 'bytes');
+        } catch (signatureError) {
+          console.error('[Email] Failed to load signature image:', signatureError);
+          // Continue without signature if loading fails
+        }
       }
 
       try {
@@ -5849,6 +5866,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           bodyText: finalBodyText,
           fromName: emailConfig.displayName || undefined,
           fromEmail: emailConfig.companyEmail,
+          inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         });
         emailStatus = 'sent';
         console.log('Email sent successfully via Gmail API:', gmailResult);
@@ -5987,6 +6005,129 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     } catch (error) {
       console.error('Error receiving email:', error);
       res.status(500).json({ message: 'Failed to record email' });
+    }
+  });
+
+  // Sync email replies from Gmail for a lead's thread
+  app.post('/api/crm/leads/:leadId/emails/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Get lead and its email thread
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      const threads = await storage.getEmailThreads({ leadId });
+      if (threads.length === 0) {
+        return res.json({ success: true, message: 'No email threads to sync', newMessages: 0 });
+      }
+
+      // Get user's email config for Gmail access
+      const emailConfig = await storage.getEmailConfigByUserId(userId);
+      if (!emailConfig || !emailConfig.isConnected || !emailConfig.accessToken) {
+        return res.status(400).json({ 
+          message: 'Gmail not connected. Please connect your Gmail account in Settings.',
+          requiresGmailConnect: true,
+        });
+      }
+
+      // Get valid access token
+      const validAccessToken = await gmailApi.ensureValidAccessToken(
+        {
+          id: emailConfig.id,
+          accessToken: emailConfig.accessToken,
+          refreshToken: emailConfig.refreshToken,
+          tokenExpiresAt: emailConfig.tokenExpiresAt,
+        },
+        async (configId, tokens) => {
+          await storage.updateUserEmailConfig(configId, {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            tokenExpiresAt: tokens.tokenExpiresAt,
+          });
+        }
+      );
+
+      let newMessagesCount = 0;
+
+      // For each thread with a Gmail thread ID, fetch messages
+      for (const thread of threads) {
+        if (!thread.threadId) continue;
+
+        try {
+          const gmailThread = await gmailApi.getThread(validAccessToken, thread.threadId);
+          
+          if (!gmailThread.messages) continue;
+
+          // Get existing message IDs in our database
+          const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
+          const existingMessageIds = new Set(existingMessages.map(m => m.messageId).filter(Boolean));
+
+          for (const gmailMessage of gmailThread.messages) {
+            if (!gmailMessage.id || existingMessageIds.has(gmailMessage.id)) continue;
+
+            const parsedMessage = gmailApi.parseEmailMessage(gmailMessage);
+            
+            // Skip if this is an outbound message from our company email
+            if (parsedMessage.from.email === emailConfig.companyEmail) continue;
+
+            // This is an inbound reply from customer
+            await storage.createEmailMessage({
+              messageId: gmailMessage.id,
+              threadId: thread.id,
+              leadId,
+              direction: 'inbound',
+              fromEmail: parsedMessage.from.email,
+              fromName: parsedMessage.from.name || undefined,
+              toEmails: parsedMessage.to,
+              ccEmails: parsedMessage.cc,
+              subject: parsedMessage.subject,
+              bodyHtml: parsedMessage.bodyHtml,
+              bodyText: parsedMessage.bodyText,
+              receivedAt: parsedMessage.date,
+              status: 'received',
+            });
+
+            // Create lead activity for the received email
+            await storage.createLeadActivity({
+              leadId,
+              activityType: 'email',
+              subject: `Email received: ${parsedMessage.subject}`,
+              description: `Reply from ${parsedMessage.from.name || parsedMessage.from.email}`,
+              createdBy: 'system',
+            });
+
+            newMessagesCount++;
+          }
+        } catch (threadError) {
+          console.error(`Error syncing thread ${thread.threadId}:`, threadError);
+          // Continue with other threads
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Synced ${newMessagesCount} new email replies`,
+        newMessages: newMessagesCount,
+      });
+    } catch (error: any) {
+      console.error('Error syncing emails:', error);
+      
+      if (error.message?.includes('authorization') || error.message?.includes('invalid_grant')) {
+        return res.status(401).json({ 
+          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
+          requiresGmailConnect: true,
+        });
+      }
+      
+      res.status(500).json({ message: 'Failed to sync emails' });
     }
   });
 

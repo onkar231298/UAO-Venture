@@ -156,7 +156,15 @@ export async function getGmailClientWithRefresh(
   return getGmailClient(validAccessToken);
 }
 
-// Send email using Gmail API
+// Inline attachment for embedding in emails (like signatures)
+export interface InlineAttachment {
+  contentId: string;  // e.g., 'signature_image'
+  base64Data: string; // Base64 encoded image data
+  mimeType: string;   // e.g., 'image/png'
+  filename?: string;  // e.g., 'signature.png'
+}
+
+// Send email using Gmail API with support for inline attachments
 export async function sendEmail(
   accessToken: string,
   options: {
@@ -168,22 +176,27 @@ export async function sendEmail(
     bodyText?: string;
     fromName?: string;
     fromEmail?: string;
+    inlineAttachments?: InlineAttachment[];
   }
 ): Promise<{ messageId: string; threadId: string }> {
   const gmail = getGmailClient(accessToken);
 
   // Build email MIME message
   const toHeader = options.to.join(', ');
-  const ccHeader = options.cc?.join(', ') || '';
-  const bccHeader = options.bcc?.join(', ') || '';
+  const ccHeader = (options.cc || []).filter(e => e && e.trim()).join(', ');
+  const bccHeader = (options.bcc || []).filter(e => e && e.trim()).join(', ');
   
+  const hasInlineAttachments = options.inlineAttachments && options.inlineAttachments.length > 0;
   const boundary = 'boundary_' + Date.now();
+  const relatedBoundary = 'related_' + Date.now();
   
   let emailLines = [
     `To: ${toHeader}`,
   ];
   
+  // Only add CC header if there are valid CC addresses
   if (ccHeader) emailLines.push(`Cc: ${ccHeader}`);
+  // Only add BCC header if there are valid BCC addresses
   if (bccHeader) emailLines.push(`Bcc: ${bccHeader}`);
   if (options.fromName && options.fromEmail) {
     emailLines.push(`From: ${options.fromName} <${options.fromEmail}>`);
@@ -192,20 +205,59 @@ export async function sendEmail(
   emailLines.push(
     `Subject: ${options.subject}`,
     `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
+  );
+  
+  if (hasInlineAttachments) {
+    // Use multipart/related for inline images
+    emailLines.push(
+      `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+      '',
+      `--${relatedBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+    );
+  } else {
+    emailLines.push(
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+    );
+  }
+  
+  // Add text/plain part
+  emailLines.push(
     `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     '',
     options.bodyText || options.bodyHtml.replace(/<[^>]*>/g, ''),
     '',
+  );
+  
+  // Add text/html part
+  emailLines.push(
     `--${boundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     '',
     options.bodyHtml,
     '',
-    `--${boundary}--`
+    `--${boundary}--`,
   );
+  
+  // Add inline attachments if any
+  if (hasInlineAttachments) {
+    for (const attachment of options.inlineAttachments!) {
+      emailLines.push(
+        '',
+        `--${relatedBoundary}`,
+        `Content-Type: ${attachment.mimeType}`,
+        `Content-Transfer-Encoding: base64`,
+        `Content-ID: <${attachment.contentId}>`,
+        `Content-Disposition: inline; filename="${attachment.filename || 'image'}"`,
+        '',
+        attachment.base64Data,
+      );
+    }
+    emailLines.push('', `--${relatedBoundary}--`);
+  }
   
   const rawEmail = emailLines.join('\r\n');
   const encodedEmail = Buffer.from(rawEmail).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -223,13 +275,14 @@ export async function sendEmail(
   };
 }
 
-// Reply to an existing email thread
+// Reply to an existing email thread with support for inline attachments
 export async function replyToEmail(
   accessToken: string,
   threadId: string,
   options: {
     to: string[];
     cc?: string[];
+    bcc?: string[];
     subject: string;
     bodyHtml: string;
     bodyText?: string;
@@ -237,20 +290,25 @@ export async function replyToEmail(
     fromEmail?: string;
     inReplyTo?: string;
     references?: string;
+    inlineAttachments?: InlineAttachment[];
   }
 ): Promise<{ messageId: string; threadId: string }> {
   const gmail = getGmailClient(accessToken);
 
   const toHeader = options.to.join(', ');
-  const ccHeader = options.cc?.join(', ') || '';
+  const ccHeader = (options.cc || []).filter(e => e && e.trim()).join(', ');
+  const bccHeader = (options.bcc || []).filter(e => e && e.trim()).join(', ');
   
+  const hasInlineAttachments = options.inlineAttachments && options.inlineAttachments.length > 0;
   const boundary = 'boundary_' + Date.now();
+  const relatedBoundary = 'related_' + Date.now();
   
   let emailLines = [
     `To: ${toHeader}`,
   ];
   
   if (ccHeader) emailLines.push(`Cc: ${ccHeader}`);
+  if (bccHeader) emailLines.push(`Bcc: ${bccHeader}`);
   if (options.fromName && options.fromEmail) {
     emailLines.push(`From: ${options.fromName} <${options.fromEmail}>`);
   }
@@ -262,8 +320,24 @@ export async function replyToEmail(
   emailLines.push(
     `Subject: ${options.subject}`,
     `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
+  );
+  
+  if (hasInlineAttachments) {
+    emailLines.push(
+      `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+      '',
+      `--${relatedBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+    );
+  } else {
+    emailLines.push(
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+    );
+  }
+  
+  emailLines.push(
     `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     '',
@@ -274,8 +348,24 @@ export async function replyToEmail(
     '',
     options.bodyHtml,
     '',
-    `--${boundary}--`
+    `--${boundary}--`,
   );
+  
+  if (hasInlineAttachments) {
+    for (const attachment of options.inlineAttachments!) {
+      emailLines.push(
+        '',
+        `--${relatedBoundary}`,
+        `Content-Type: ${attachment.mimeType}`,
+        `Content-Transfer-Encoding: base64`,
+        `Content-ID: <${attachment.contentId}>`,
+        `Content-Disposition: inline; filename="${attachment.filename || 'image'}"`,
+        '',
+        attachment.base64Data,
+      );
+    }
+    emailLines.push('', `--${relatedBoundary}--`);
+  }
   
   const rawEmail = emailLines.join('\r\n');
   const encodedEmail = Buffer.from(rawEmail).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

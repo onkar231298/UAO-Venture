@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Clock, User, ArrowRight, MessageSquare, Phone, Mail, FileText, CheckCircle } from "lucide-react";
+import { Clock, User, ArrowRight, MessageSquare, Phone, Mail, FileText, CheckCircle, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Activity {
   id: number;
@@ -22,9 +23,10 @@ interface Activity {
 
 interface ActivityTimelineProps {
   leadId: number;
+  onViewEmail?: () => void;  // Callback to switch to email tab
 }
 
-export default function ActivityTimeline({ leadId }: ActivityTimelineProps) {
+export default function ActivityTimeline({ leadId, onViewEmail }: ActivityTimelineProps) {
   const { data: activities = [], isLoading } = useQuery<Activity[]>({
     queryKey: [`/api/crm/leads/${leadId}/activities`],
   });
@@ -144,6 +146,22 @@ export default function ActivityTimeline({ leadId }: ActivityTimelineProps) {
                       <p className="text-xs text-gray-500 mt-1">
                         Duration: {activity.duration} minutes
                       </p>
+                    )}
+                    
+                    {/* View Full Email button for received email activities */}
+                    {activity.activityType === 'email' && 
+                     activity.subject?.includes('received') && 
+                     onViewEmail && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={onViewEmail}
+                        data-testid={`button-view-email-activity-${activity.id}`}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Full Email
+                      </Button>
                     )}
                   </div>
                   
