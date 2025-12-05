@@ -300,14 +300,10 @@ export default function EmailConfigManagement() {
         throw new Error('Failed to upload signature');
       }
 
-      // Extract the object path from the upload URL
-      const urlObj = new URL(uploadURL);
-      const signatureImageUrl = urlObj.pathname;
-
-      // Update the email config with the signature URL
+      // Update the email config with the full upload URL (server will normalize)
       const updateResponse = await apiRequest(`/api/admin/email-configs/${configId}/signature`, {
         method: 'PUT',
-        body: JSON.stringify({ signatureImageUrl }),
+        body: JSON.stringify({ signatureImageUrl: uploadURL }),
       });
 
       queryClient.invalidateQueries({ queryKey: ['/api/admin/email-configs'] });

@@ -5789,6 +5789,37 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Actually send email via Gmail API with automatic token refresh
       let gmailResult: { messageId: string; threadId: string } | null = null;
       let emailStatus = 'pending';
+      
+      // Build final email body with signature if configured (outside try for scope)
+      let finalBodyHtml = bodyHtml;
+      let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
+      
+      if (emailConfig.signatureImageUrl) {
+        // Get the base URL for the signature image
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+          : process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+            : 'https://bright-organic.com';
+        
+        const signatureUrl = emailConfig.signatureImageUrl.startsWith('http') 
+          ? emailConfig.signatureImageUrl 
+          : `${baseUrl}${emailConfig.signatureImageUrl}`;
+        
+        // Append signature to HTML body
+        finalBodyHtml = `${bodyHtml}
+          <br><br>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+            <tr>
+              <td>
+                <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+              </td>
+            </tr>
+          </table>`;
+        
+        // Add text signature placeholder
+        finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
+      }
 
       try {
         // Get valid access token (refreshes if expired)
@@ -5814,8 +5845,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           cc: cc || [],
           bcc: bcc || [],
           subject,
-          bodyHtml,
-          bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+          bodyHtml: finalBodyHtml,
+          bodyText: finalBodyText,
           fromName: emailConfig.displayName || undefined,
           fromEmail: emailConfig.companyEmail,
         });
@@ -5846,7 +5877,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
-      // Store email message in database
+      // Store email message in database (with signature if appended)
       const message = await storage.createEmailMessage({
         messageId: gmailResult?.messageId || undefined,
         threadId: thread.id,
@@ -5858,8 +5889,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         ccEmails: cc || [],
         bccEmails: bcc || [],
         subject,
-        bodyHtml,
-        bodyText: bodyText || bodyHtml.replace(/<[^>]*>/g, ''),
+        bodyHtml: finalBodyHtml,
+        bodyText: finalBodyText,
         sentAt: new Date(),
         status: emailStatus,
         senderId: userId,
