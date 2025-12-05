@@ -1443,11 +1443,6 @@ export const userEmailConfigs = pgTable("user_email_configs", {
   refreshToken: text("refresh_token"), // OAuth refresh token
   tokenExpiresAt: timestamp("token_expires_at"), // When the access token expires
   isConnected: boolean("is_connected").default(false), // Whether OAuth is connected
-  // Email signature fields
-  signatureName: varchar("signature_name", { length: 255 }), // Full name for signature
-  signaturePosition: varchar("signature_position", { length: 255 }), // Job title/position
-  signaturePhone: varchar("signature_phone", { length: 50 }), // Office phone
-  signatureMobile: varchar("signature_mobile", { length: 50 }), // Mobile phone
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
