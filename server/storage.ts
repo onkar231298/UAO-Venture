@@ -134,6 +134,27 @@ export interface IStorage {
   createStaffWithPassword(data: InsertUser & { password: string }): Promise<User>;
   updateStaffPassword(userId: string, newPassword: string): Promise<boolean>;
   
+  // Staff management operations
+  getStaffUsers(filters?: {
+    search?: string;
+    department?: string;
+    role?: string;
+    isActive?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ staff: User[]; total: number }>;
+  getStaffUser(id: string): Promise<User | undefined>;
+  updateStaff(id: string, data: Partial<{
+    email: string;
+    firstName: string;
+    lastName: string;
+    department: string;
+    role: string;
+    phoneNumber: string;
+    isActive: boolean;
+  }>): Promise<User>;
+  deleteStaff(id: string): Promise<void>;
+  
   // Customer operations
   getUserByEmail(email: string): Promise<User | undefined>;
   getSalesReps(): Promise<User[]>;
@@ -527,9 +548,17 @@ export class DatabaseStorage implements IStorage {
       return null;
     }
     
-    // Check if user has a sales role
-    const salesRoles = ['sales_manager', 'sales_executive', 'sales_rep'];
-    if (!salesRoles.includes(user.role || '')) {
+    // Check if user is a staff member (any staff role)
+    const staffRoles = [
+      'super_admin', 'admin',
+      'sales_manager', 'sales_executive',
+      'purchase_manager', 'purchase_executive',
+      'inventory_manager', 'inventory_executive',
+      'logistics_manager', 'logistics_executive',
+      'accounts_manager', 'accounts_executive',
+      'seo_manager', 'website_manager'
+    ];
+    if (!staffRoles.includes(user.role || '')) {
       return null;
     }
     
@@ -574,6 +603,90 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return result.length > 0;
+  }
+
+  // Staff management operations
+  async getStaffUsers(filters?: {
+    search?: string;
+    department?: string;
+    role?: string;
+    isActive?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ staff: User[]; total: number }> {
+    const conditions = [eq(users.userType, 'staff')];
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(users.firstName, `%${filters.search}%`),
+          like(users.lastName, `%${filters.search}%`),
+          like(users.email, `%${filters.search}%`)
+        )!
+      );
+    }
+    
+    if (filters?.department) {
+      conditions.push(eq(users.department, filters.department));
+    }
+    
+    if (filters?.role) {
+      conditions.push(eq(users.role, filters.role));
+    }
+    
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(users.isActive, filters.isActive));
+    }
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(...conditions));
+
+    const staff = await db
+      .select()
+      .from(users)
+      .where(and(...conditions))
+      .orderBy(desc(users.createdAt))
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
+
+    return { staff, total: totalResult?.count || 0 };
+  }
+
+  async getStaffUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.userType, 'staff')));
+    return user;
+  }
+
+  async updateStaff(id: string, data: Partial<{
+    email: string;
+    firstName: string;
+    lastName: string;
+    department: string;
+    role: string;
+    phoneNumber: string;
+    isActive: boolean;
+  }>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(users.id, id), eq(users.userType, 'staff')))
+      .returning();
+    
+    if (!user) {
+      throw new Error('Staff user not found');
+    }
+    return user;
+  }
+
+  async deleteStaff(id: string): Promise<void> {
+    await db
+      .delete(users)
+      .where(and(eq(users.id, id), eq(users.userType, 'staff')));
   }
 
   // Customer operations
