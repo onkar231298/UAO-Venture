@@ -5293,7 +5293,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(emailMessages)
       .where(whereCondition)
-      .orderBy(desc(emailMessages.sentAt));
+      .orderBy(asc(emailMessages.sentAt));
   }
 
   async getEmailMessage(id: number): Promise<EmailMessage | undefined> {

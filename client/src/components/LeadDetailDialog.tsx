@@ -49,6 +49,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [replyToThreadId, setReplyToThreadId] = useState<number | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [showEmailView, setShowEmailView] = useState(false);
+  const [selectedThread, setSelectedThread] = useState<any | null>(null);
+  const [showThreadView, setShowThreadView] = useState(false);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -1163,80 +1165,117 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                       <p className="text-sm">Start a conversation by composing an email</p>
                     </div>
                   ) : (
-                    emailThreads.flatMap((thread: any) => 
-                      (thread.messages || []).map((email: any) => (
-                        <div 
-                          key={email.id} 
-                          className={`p-4 rounded-lg border ${
-                            email.direction === 'outbound' 
-                              ? 'bg-blue-50 border-blue-200 ml-4' 
-                              : 'bg-gray-50 border-gray-200 mr-4'
-                          }`}
-                          data-testid={`email-message-${email.id}`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {email.direction === 'outbound' ? (
-                                <Send className="h-4 w-4 text-blue-600" />
-                              ) : (
-                                <Reply className="h-4 w-4 text-gray-600" />
-                              )}
-                              <span className="font-medium text-sm">
-                                {email.direction === 'outbound' ? 'Sent' : 'Received'}
-                              </span>
-                              <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'} className="text-xs">
-                                {email.fromEmail}
+                    emailThreads.map((thread: any) => {
+                      // Sort messages chronologically (oldest first)
+                      const sortedMessages = [...(thread.messages || [])].sort((a: any, b: any) => {
+                        const dateA = new Date(a.sentAt || a.receivedAt || 0).getTime();
+                        const dateB = new Date(b.sentAt || b.receivedAt || 0).getTime();
+                        return dateA - dateB;
+                      });
+                      
+                      return (
+                        <div key={thread.id} className="border rounded-lg overflow-hidden" data-testid={`email-thread-${thread.id}`}>
+                          {/* Thread Header */}
+                          <div className="bg-gray-100 px-4 py-2 flex justify-between items-center border-b">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium text-sm">{thread.subject || 'No Subject'}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {sortedMessages.length} {sortedMessages.length === 1 ? 'message' : 'messages'}
                               </Badge>
                             </div>
-                            <span className="text-xs text-gray-500 whitespace-nowrap">
-                              {email.sentAt 
-                                ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
-                                : email.receivedAt 
-                                  ? format(new Date(email.receivedAt), 'MMM d, yyyy h:mm a')
-                                  : 'N/A'}
-                            </span>
-                          </div>
-                          <p className="font-medium text-sm mb-1">{email.subject}</p>
-                          {email.toEmails?.length > 0 && (
-                            <p className="text-xs text-gray-500 mb-2">
-                              To: {email.toEmails.join(', ')}
-                            </p>
-                          )}
-                          <div 
-                            className="text-sm text-gray-700 line-clamp-3"
-                            dangerouslySetInnerHTML={{ 
-                              __html: email.bodyText || email.bodyHtml?.replace(/<[^>]*>/g, '') || '' 
-                            }}
-                          />
-                          
-                          <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setSelectedEmail(email);
-                                setShowEmailView(true);
+                                setSelectedThread({ ...thread, messages: sortedMessages });
+                                setShowThreadView(true);
                               }}
-                              data-testid={`button-view-email-${email.id}`}
+                              data-testid={`button-view-thread-${thread.id}`}
                             >
                               <Eye className="h-3 w-3 mr-1" />
-                              View Complete Email
+                              View Complete Thread
                             </Button>
-                            {emailConfig && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleReplyToEmail(email)}
-                                data-testid={`button-reply-email-${email.id}`}
+                          </div>
+                          
+                          {/* Thread Messages */}
+                          <div className="divide-y">
+                            {sortedMessages.map((email: any) => (
+                              <div 
+                                key={email.id} 
+                                className={`p-4 ${
+                                  email.direction === 'outbound' 
+                                    ? 'bg-blue-50' 
+                                    : 'bg-white'
+                                }`}
+                                data-testid={`email-message-${email.id}`}
                               >
-                                <Reply className="h-3 w-3 mr-1" />
-                                Reply
-                              </Button>
-                            )}
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {email.direction === 'outbound' ? (
+                                      <Send className="h-4 w-4 text-blue-600" />
+                                    ) : (
+                                      <Reply className="h-4 w-4 text-gray-600" />
+                                    )}
+                                    <span className="font-medium text-sm">
+                                      {email.direction === 'outbound' ? 'Sent' : 'Received'}
+                                    </span>
+                                    <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'} className="text-xs">
+                                      {email.fromEmail}
+                                    </Badge>
+                                  </div>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    {email.sentAt 
+                                      ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
+                                      : email.receivedAt 
+                                        ? format(new Date(email.receivedAt), 'MMM d, yyyy h:mm a')
+                                        : 'N/A'}
+                                  </span>
+                                </div>
+                                <p className="font-medium text-sm mb-1">{email.subject}</p>
+                                {email.toEmails?.length > 0 && (
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    To: {email.toEmails.join(', ')}
+                                  </p>
+                                )}
+                                <div 
+                                  className="text-sm text-gray-700 line-clamp-3"
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: email.bodyText || email.bodyHtml?.replace(/<[^>]*>/g, '') || '' 
+                                  }}
+                                />
+                                
+                                <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedEmail(email);
+                                      setShowEmailView(true);
+                                    }}
+                                    data-testid={`button-view-email-${email.id}`}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View Complete Email
+                                  </Button>
+                                  {emailConfig && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleReplyToEmail(email)}
+                                      data-testid={`button-reply-email-${email.id}`}
+                                    >
+                                      <Reply className="h-3 w-3 mr-1" />
+                                      Reply
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))
-                    )
+                      );
+                    })
                   )}
                 </div>
               </CardContent>
@@ -1249,6 +1288,96 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
             onOpenChange={setShowEmailView}
             onReply={(email) => handleReplyToEmail(email)}
           />
+
+          {/* Thread View Dialog */}
+          <Dialog open={showThreadView} onOpenChange={setShowThreadView}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Email Thread: {selectedThread?.subject || 'No Subject'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                {selectedThread?.messages?.map((email: any, index: number) => (
+                  <div 
+                    key={email.id}
+                    className={`p-4 rounded-lg border ${
+                      email.direction === 'outbound' 
+                        ? 'bg-blue-50 border-blue-200' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs">
+                          #{index + 1}
+                        </Badge>
+                        {email.direction === 'outbound' ? (
+                          <Send className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Reply className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="font-medium">
+                          {email.direction === 'outbound' ? 'Sent' : 'Received'}
+                        </span>
+                        <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'}>
+                          {email.fromEmail}
+                        </Badge>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {email.sentAt 
+                          ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
+                          : email.receivedAt 
+                            ? format(new Date(email.receivedAt), 'MMM d, yyyy h:mm a')
+                            : 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <p className="text-sm"><strong>Subject:</strong> {email.subject}</p>
+                      {email.toEmails?.length > 0 && (
+                        <p className="text-sm text-gray-600">
+                          <strong>To:</strong> {email.toEmails.join(', ')}
+                        </p>
+                      )}
+                      {email.ccEmails?.length > 0 && (
+                        <p className="text-sm text-gray-600">
+                          <strong>CC:</strong> {email.ccEmails.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div 
+                      className="prose prose-sm max-w-none mt-3 pt-3 border-t"
+                      dangerouslySetInnerHTML={{ __html: email.bodyHtml || email.bodyText || '' }}
+                    />
+                    
+                    {emailConfig && (
+                      <div className="mt-3 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowThreadView(false);
+                            handleReplyToEmail(email);
+                          }}
+                        >
+                          <Reply className="h-3 w-3 mr-1" />
+                          Reply to this message
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button variant="outline" onClick={() => setShowThreadView(false)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Bid/Inquiry Details Tab */}
           {isFromInquiry && (
