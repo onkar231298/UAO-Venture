@@ -908,12 +908,17 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                   </h3>
                   <Button 
                     size="sm" 
-                    onClick={initializeComposeEmail}
+                    onClick={() => {
+                      setIsNewThread(true);
+                      setReplyToThreadId(null);
+                      initializeComposeEmail();
+                    }}
                     disabled={!emailConfig}
+                    className="bg-green-600 hover:bg-green-700 text-white"
                     data-testid="button-compose-email"
                   >
-                    <Send className="h-4 w-4 mr-1" />
-                    Compose Email
+                    <Plus className="h-4 w-4 mr-1" />
+                    Start New Thread
                   </Button>
                 </div>
 
