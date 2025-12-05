@@ -6216,18 +6216,37 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           }
         );
 
-        gmailResult = await gmailApi.sendEmail(validAccessToken, {
-          to: Array.isArray(to) ? to : [to],
-          cc: cc || [],
-          bcc: bcc || [],
-          subject,
-          bodyHtml: finalBodyHtml,
-          bodyText: finalBodyText,
-          fromName: emailConfig.displayName || undefined,
-          fromEmail: emailConfig.companyEmail,
-          inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
-          fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
-        });
+        // If replying to an existing thread that has a Gmail threadId, use replyToEmail
+        // Otherwise, send a new email
+        if (isReply && thread.threadId) {
+          console.log('[Email Send] Replying to existing Gmail thread:', thread.threadId);
+          gmailResult = await gmailApi.replyToEmail(validAccessToken, thread.threadId, {
+            to: Array.isArray(to) ? to : [to],
+            cc: cc || [],
+            bcc: bcc || [],
+            subject,
+            bodyHtml: finalBodyHtml,
+            bodyText: finalBodyText,
+            fromName: emailConfig.displayName || undefined,
+            fromEmail: emailConfig.companyEmail,
+            inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
+            fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
+          });
+        } else {
+          console.log('[Email Send] Sending new email (new thread)');
+          gmailResult = await gmailApi.sendEmail(validAccessToken, {
+            to: Array.isArray(to) ? to : [to],
+            cc: cc || [],
+            bcc: bcc || [],
+            subject,
+            bodyHtml: finalBodyHtml,
+            bodyText: finalBodyText,
+            fromName: emailConfig.displayName || undefined,
+            fromEmail: emailConfig.companyEmail,
+            inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
+            fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
+          });
+        }
         emailStatus = 'sent';
         console.log('Email sent successfully via Gmail API:', gmailResult);
       } catch (gmailError: any) {
