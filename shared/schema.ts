@@ -27,6 +27,49 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Staff Departments
+export const STAFF_DEPARTMENTS = [
+  "sales",
+  "purchase", 
+  "inventory",
+  "logistics",
+  "accounts",
+  "marketing",
+  "admin",
+] as const;
+
+export type StaffDepartment = typeof STAFF_DEPARTMENTS[number];
+
+// Staff Roles by Department
+export const STAFF_ROLES = {
+  sales: ["sales_manager", "sales_executive"],
+  purchase: ["purchase_manager", "purchase_executive"],
+  inventory: ["inventory_manager", "inventory_executive"],
+  logistics: ["logistics_manager", "logistics_executive"],
+  accounts: ["accounts_manager", "accounts_executive"],
+  marketing: ["seo_manager", "website_manager"],
+  admin: ["super_admin", "admin"],
+} as const;
+
+export const ALL_STAFF_ROLES = [
+  "super_admin",
+  "admin",
+  "sales_manager",
+  "sales_executive",
+  "purchase_manager",
+  "purchase_executive",
+  "inventory_manager",
+  "inventory_executive",
+  "logistics_manager",
+  "logistics_executive",
+  "accounts_manager",
+  "accounts_executive",
+  "seo_manager",
+  "website_manager",
+] as const;
+
+export type StaffRole = typeof ALL_STAFF_ROLES[number];
+
 // User storage table for Replit Auth and role management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
@@ -37,6 +80,7 @@ export const users = pgTable("users", {
   password: varchar("password"), // For customer authentication
   role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
   userType: varchar("user_type").default("customer"), // staff, customer
+  department: varchar("department"), // sales, purchase, inventory, logistics, accounts, marketing, admin
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
   address: text("address"), // Legacy field, kept for compatibility
@@ -1424,6 +1468,39 @@ export const customerRegistrationSchema = insertUserSchema.extend({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type CustomerRegistration = z.infer<typeof customerRegistrationSchema>;
+
+// Staff user schemas
+export const insertStaffSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  department: z.enum(STAFF_DEPARTMENTS, { required_error: "Department is required" }),
+  role: z.string().min(1, "Role is required"),
+  phoneNumber: z.string().optional(),
+});
+
+export const updateStaffSchema = z.object({
+  email: z.string().email("Please enter a valid email address").optional(),
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  department: z.enum(STAFF_DEPARTMENTS).optional(),
+  role: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const resetPasswordSchema = z.object({
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type UpdateStaff = z.infer<typeof updateStaffSchema>;
+
+// Staff user type for frontend display
+export type StaffUser = User & {
+  department: string | null;
+};
 
 // ========================================
 // EMAIL INTEGRATION TABLES
