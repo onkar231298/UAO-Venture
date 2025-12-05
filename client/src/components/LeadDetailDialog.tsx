@@ -248,10 +248,21 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     });
   };
 
-  const initializeComposeEmail = (threadId?: number, replySubject?: string) => {
-    // Pre-fill recipient from contact email
-    if (lead?.contactPerson?.contactEmail) {
+  const initializeComposeEmail = (threadId?: number, replySubject?: string, replyToEmails?: string[], replyCcEmails?: string[]) => {
+    // Pre-fill recipients - use reply recipients if provided, otherwise use lead contact email
+    if (replyToEmails && replyToEmails.length > 0) {
+      setEmailTo(replyToEmails);
+    } else if (lead?.contactPerson?.contactEmail) {
       setEmailTo([lead.contactPerson.contactEmail]);
+    } else {
+      setEmailTo([]);
+    }
+    
+    // Pre-fill CC if provided
+    if (replyCcEmails && replyCcEmails.length > 0) {
+      setEmailCc(replyCcEmails);
+    } else {
+      setEmailCc([]);
     }
     
     if (threadId && replySubject) {
@@ -273,7 +284,33 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     const thread = emailThreads.find((t: any) => 
       t.messages?.some((m: any) => m.id === email.id)
     );
-    initializeComposeEmail(thread?.id, email.subject);
+    
+    // Get the email config to know our company email
+    const ourEmail = emailConfig?.companyEmail?.toLowerCase();
+    
+    // Build reply recipients:
+    // - If we sent the email (outbound), reply to the original recipients
+    // - If we received the email (inbound), reply to the sender
+    let replyTo: string[] = [];
+    let replyCc: string[] = [];
+    
+    if (email.direction === 'outbound') {
+      // We sent this email, reply to the same recipients
+      replyTo = (email.toEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+    } else {
+      // We received this email, reply to the sender
+      replyTo = email.fromEmail ? [email.fromEmail] : [];
+    }
+    
+    // Include original CC recipients (excluding our email)
+    replyCc = (email.ccEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+    
+    // If no recipients found, fall back to lead contact email
+    if (replyTo.length === 0 && lead?.contactPerson?.contactEmail) {
+      replyTo = [lead.contactPerson.contactEmail];
+    }
+    
+    initializeComposeEmail(thread?.id, email.subject, replyTo, replyCc);
   };
 
   // Sync emails from Gmail mutation
@@ -911,12 +948,34 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                 // Switching to reply mode - use the first thread
                                 const firstThread = emailThreads[0] as any;
                                 if (firstThread?.messages?.[0]) {
+                                  const lastMessage = firstThread.messages[firstThread.messages.length - 1];
                                   setReplyToThreadId(firstThread.id);
-                                  setEmailSubject(`Re: ${firstThread.subject || firstThread.messages[0].subject}`);
+                                  setEmailSubject(`Re: ${firstThread.subject || lastMessage.subject}`);
+                                  
+                                  // Auto-populate recipients from the last message
+                                  const ourEmail = emailConfig?.companyEmail?.toLowerCase();
+                                  if (lastMessage.direction === 'outbound') {
+                                    // We sent the last email, reply to same recipients
+                                    const toEmails = (lastMessage.toEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                                    if (toEmails.length > 0) setEmailTo(toEmails);
+                                  } else {
+                                    // We received the last email, reply to sender
+                                    if (lastMessage.fromEmail) setEmailTo([lastMessage.fromEmail]);
+                                  }
+                                  // Include CC recipients
+                                  const ccEmails = (lastMessage.ccEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                                  setEmailCc(ccEmails);
                                 }
                               } else {
+                                // Switching to new thread mode - clear recipients
                                 setReplyToThreadId(null);
                                 setEmailSubject("");
+                                if (lead?.contactPerson?.contactEmail) {
+                                  setEmailTo([lead.contactPerson.contactEmail]);
+                                } else {
+                                  setEmailTo([]);
+                                }
+                                setEmailCc([]);
                               }
                             }}
                             data-testid="button-toggle-thread"
