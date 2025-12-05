@@ -1443,6 +1443,7 @@ export const userEmailConfigs = pgTable("user_email_configs", {
   refreshToken: text("refresh_token"), // OAuth refresh token
   tokenExpiresAt: timestamp("token_expires_at"), // When the access token expires
   isConnected: boolean("is_connected").default(false), // Whether OAuth is connected
+  signatureImageUrl: text("signature_image_url"), // Digital signature image URL (recommended: 300x100px, max 400x150px)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
