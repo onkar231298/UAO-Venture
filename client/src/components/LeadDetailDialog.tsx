@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import RichTextEditor from "./RichTextEditor";
+import EmailViewDialog from "./EmailViewDialog";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -23,6 +25,14 @@ interface LeadDetailDialogProps {
   salesReps?: any[];
   onAssign?: (leadId: number, assignedTo: string) => void;
   canAssignLeads?: boolean;
+}
+
+interface EmailAttachment {
+  file: File;
+  name: string;
+  size: number;
+  uploading?: boolean;
+  uploadedUrl?: string;
 }
 
 export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps = [], onAssign, canAssignLeads = false }: LeadDetailDialogProps) {
@@ -35,6 +45,12 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [showComposeEmail, setShowComposeEmail] = useState(false);
+  const [isNewThread, setIsNewThread] = useState(true);
+  const [replyToThreadId, setReplyToThreadId] = useState<number | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
+  const [showEmailView, setShowEmailView] = useState(false);
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -155,7 +171,14 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   // Send email mutation
   const sendEmailMutation = useMutation({
-    mutationFn: async (data: { to: string[]; cc?: string[]; subject: string; bodyHtml: string }) => {
+    mutationFn: async (data: { 
+      to: string[]; 
+      cc?: string[]; 
+      subject: string; 
+      bodyHtml: string;
+      threadId?: number;
+      attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number }>;
+    }) => {
       return apiRequest(`/api/crm/leads/${lead?.id}/emails/send`, {
         method: 'POST',
         body: JSON.stringify(data),
@@ -164,14 +187,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
-      setEmailTo([]);
-      setEmailCc([]);
-      setEmailSubject("");
-      setEmailBody("");
-      setShowComposeEmail(false);
+      resetEmailForm();
       toast({
         title: "Email Sent",
-        description: "Your email has been recorded successfully.",
+        description: "Your email has been sent successfully via Gmail.",
       });
     },
     onError: (error: any) => {
@@ -183,7 +202,18 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     },
   });
 
-  const handleSendEmail = () => {
+  const resetEmailForm = () => {
+    setEmailTo([]);
+    setEmailCc([]);
+    setEmailSubject("");
+    setEmailBody("");
+    setShowComposeEmail(false);
+    setIsNewThread(true);
+    setReplyToThreadId(null);
+    setAttachments([]);
+  };
+
+  const handleSendEmail = async () => {
     if (emailTo.length === 0 || !emailSubject || !emailBody) {
       toast({
         title: "Missing Information",
@@ -192,20 +222,96 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       });
       return;
     }
+
+    // Upload attachments first if any
+    const uploadedAttachments: Array<{ fileName: string; fileUrl: string; fileSize: number }> = [];
+    for (const att of attachments) {
+      if (att.uploadedUrl) {
+        uploadedAttachments.push({
+          fileName: att.name,
+          fileUrl: att.uploadedUrl,
+          fileSize: att.size,
+        });
+      }
+    }
+
     sendEmailMutation.mutate({
       to: emailTo,
       cc: emailCc.length > 0 ? emailCc : undefined,
       subject: emailSubject,
-      bodyHtml: `<div>${emailBody.replace(/\n/g, '<br>')}</div>`,
+      bodyHtml: emailBody,
+      threadId: !isNewThread && replyToThreadId ? replyToThreadId : undefined,
+      attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
     });
   };
 
-  const initializeComposeEmail = () => {
+  const initializeComposeEmail = (threadId?: number, replySubject?: string) => {
     // Pre-fill recipient from contact email
     if (lead?.contactPerson?.contactEmail) {
       setEmailTo([lead.contactPerson.contactEmail]);
     }
+    
+    if (threadId && replySubject) {
+      setIsNewThread(false);
+      setReplyToThreadId(threadId);
+      setEmailSubject(replySubject.startsWith('Re:') ? replySubject : `Re: ${replySubject}`);
+    } else {
+      setIsNewThread(true);
+      setReplyToThreadId(null);
+      setEmailSubject("");
+    }
+    
+    setEmailBody("");
+    setAttachments([]);
     setShowComposeEmail(true);
+  };
+
+  const handleReplyToEmail = (email: any) => {
+    const thread = emailThreads.find((t: any) => 
+      t.messages?.some((m: any) => m.id === email.id)
+    );
+    initializeComposeEmail(thread?.id, email.subject);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newAttachments: EmailAttachment[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 25 * 1024 * 1024) { // 25MB limit
+        toast({
+          title: "File Too Large",
+          description: `${file.name} exceeds 25MB limit.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      newAttachments.push({
+        file,
+        name: file.name,
+        size: file.size,
+      });
+    }
+    setAttachments([...attachments, ...newAttachments]);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getProgressStatusLabel = (status: string) => {
@@ -658,30 +764,66 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 {showComposeEmail && (
                   <Card className="mb-4 border-2 border-blue-200">
                     <CardContent className="p-4">
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Send className="h-4 w-4 text-blue-600" />
-                        New Email
-                      </h4>
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium flex items-center gap-2">
+                          {isNewThread ? (
+                            <>
+                              <Plus className="h-4 w-4 text-blue-600" />
+                              New Email Thread
+                            </>
+                          ) : (
+                            <>
+                              <Reply className="h-4 w-4 text-blue-600" />
+                              Reply to Thread
+                            </>
+                          )}
+                        </h4>
+                        {emailThreads.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsNewThread(!isNewThread);
+                              if (isNewThread) {
+                                // Switching to reply mode - use the first thread
+                                const firstThread = emailThreads[0] as any;
+                                if (firstThread?.messages?.[0]) {
+                                  setReplyToThreadId(firstThread.id);
+                                  setEmailSubject(`Re: ${firstThread.subject || firstThread.messages[0].subject}`);
+                                }
+                              } else {
+                                setReplyToThreadId(null);
+                                setEmailSubject("");
+                              }
+                            }}
+                            data-testid="button-toggle-thread"
+                          >
+                            {isNewThread ? "Reply to existing thread" : "Start new thread"}
+                          </Button>
+                        )}
+                      </div>
                       <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="email-to">To</Label>
-                          <Input
-                            id="email-to"
-                            value={emailTo.join(', ')}
-                            onChange={(e) => setEmailTo(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                            placeholder="recipient@example.com"
-                            data-testid="input-email-to"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="email-cc">CC (optional)</Label>
-                          <Input
-                            id="email-cc"
-                            value={emailCc.join(', ')}
-                            onChange={(e) => setEmailCc(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                            placeholder="cc@example.com"
-                            data-testid="input-email-cc"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="email-to">To</Label>
+                            <Input
+                              id="email-to"
+                              value={emailTo.join(', ')}
+                              onChange={(e) => setEmailTo(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                              placeholder="recipient@example.com"
+                              data-testid="input-email-to"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="email-cc">CC (optional)</Label>
+                            <Input
+                              id="email-cc"
+                              value={emailCc.join(', ')}
+                              onChange={(e) => setEmailCc(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                              placeholder="cc@example.com"
+                              data-testid="input-email-cc"
+                            />
+                          </div>
                         </div>
                         <div>
                           <Label htmlFor="email-subject">Subject</Label>
@@ -694,21 +836,69 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                           />
                         </div>
                         <div>
-                          <Label htmlFor="email-body">Message</Label>
-                          <Textarea
-                            id="email-body"
-                            value={emailBody}
-                            onChange={(e) => setEmailBody(e.target.value)}
-                            placeholder="Type your message here..."
-                            rows={6}
-                            data-testid="textarea-email-body"
+                          <Label>Message</Label>
+                          <RichTextEditor
+                            content={emailBody}
+                            onChange={setEmailBody}
+                            placeholder="Write your email here... Use the toolbar above for formatting."
+                            minHeight="180px"
                           />
                         </div>
-                        <div className="flex gap-2 justify-end">
+
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              multiple
+                              onChange={handleFileSelect}
+                              className="hidden"
+                              id="email-attachments"
+                              data-testid="input-email-attachments"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              data-testid="button-attach-file"
+                            >
+                              <Paperclip className="h-4 w-4 mr-1" />
+                              Attach Files
+                            </Button>
+                            <span className="text-xs text-gray-500">Max 25MB per file</span>
+                          </div>
+
+                          {attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
+                              {attachments.map((att, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 px-2 py-1 bg-white border rounded-md text-sm"
+                                  data-testid={`attachment-item-${index}`}
+                                >
+                                  <Paperclip className="h-3 w-3 text-gray-400" />
+                                  <span className="max-w-[150px] truncate">{att.name}</span>
+                                  <span className="text-xs text-gray-500">({formatFileSize(att.size)})</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeAttachment(index)}
+                                    className="text-gray-400 hover:text-red-500"
+                                    data-testid={`button-remove-attachment-${index}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-2 border-t">
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => setShowComposeEmail(false)}
+                            onClick={resetEmailForm}
                             data-testid="button-cancel-email"
                           >
                             Cancel
@@ -763,7 +953,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                           data-testid={`email-message-${email.id}`}
                         >
                           <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {email.direction === 'outbound' ? (
                                 <Send className="h-4 w-4 text-blue-600" />
                               ) : (
@@ -773,10 +963,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                 {email.direction === 'outbound' ? 'Sent' : 'Received'}
                               </span>
                               <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'} className="text-xs">
-                                {email.direction === 'outbound' ? email.fromEmail : email.fromEmail}
+                                {email.fromEmail}
                               </Badge>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
                               {email.sentAt 
                                 ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
                                 : email.receivedAt 
@@ -791,11 +981,37 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                             </p>
                           )}
                           <div 
-                            className="text-sm text-gray-700 whitespace-pre-wrap"
+                            className="text-sm text-gray-700 line-clamp-3"
                             dangerouslySetInnerHTML={{ 
                               __html: email.bodyText || email.bodyHtml?.replace(/<[^>]*>/g, '') || '' 
                             }}
                           />
+                          
+                          <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmail(email);
+                                setShowEmailView(true);
+                              }}
+                              data-testid={`button-view-email-${email.id}`}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Complete Email
+                            </Button>
+                            {emailConfig && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReplyToEmail(email)}
+                                data-testid={`button-reply-email-${email.id}`}
+                              >
+                                <Reply className="h-3 w-3 mr-1" />
+                                Reply
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )
@@ -804,6 +1020,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
               </CardContent>
             </Card>
           </TabsContent>
+
+          <EmailViewDialog
+            email={selectedEmail}
+            open={showEmailView}
+            onOpenChange={setShowEmailView}
+            onReply={(email) => handleReplyToEmail(email)}
+          />
 
           {/* Bid/Inquiry Details Tab */}
           {isFromInquiry && (
