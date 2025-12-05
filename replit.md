@@ -4,6 +4,17 @@
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
 ## Recent Changes (December 5, 2025)
+- **Signature Image Base64 Embedding**: Fixed signature images to display reliably in all email clients by embedding as base64 inline attachments using Content-ID (CID) references instead of external URLs. Signature images are now fetched from object storage, converted to base64, and attached as inline MIME parts.
+
+- **CC/BCC Recipients Fix**: Resolved issue where emails failed to send when CC/BCC fields were empty. Fixed by properly defaulting undefined CC/BCC arrays to empty arrays before filtering and joining.
+
+- **Customer Reply Sync**: Added Gmail thread synchronization to fetch customer email replies. Features include:
+  - Manual "Sync Replies" button in Lead Detail Email tab
+  - Endpoint fetches Gmail thread messages and stores inbound replies
+  - Creates lead activities for received emails
+  - "View Full Email" button in activity timeline for email activities
+  - Navigation from activity timeline to Email tab with email preview
+
 - **Digital Signature Image Upload**: Added digital signature image upload feature to email configuration management. Features include:
   - Signature image upload in admin email settings (Settings > Email Configuration)
   - Recommended dimensions: 300x100px (max 400x150px)
