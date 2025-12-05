@@ -6020,7 +6020,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     try {
       const leadId = parseInt(req.params.leadId);
       const userId = req.user.claims.sub;
-      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments } = req.body;
+      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestThreadId, isReply } = req.body;
+
+      console.log('[Email Send] Starting email send - leadId:', leadId, 'threadId:', requestThreadId, 'isReply:', isReply);
+      console.log('[Email Send] Attachments received:', attachments?.length || 0, JSON.stringify(attachments || []));
 
       if (!to || !subject || !bodyHtml) {
         return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
@@ -6031,6 +6034,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       if (!emailConfig) {
         return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
       }
+
+      console.log('[Email Send] Email config found, signature URL:', emailConfig.signatureImageUrl || 'none');
 
       // Check if Gmail is connected
       if (!emailConfig.isConnected || (!emailConfig.accessToken && !emailConfig.refreshToken)) {
@@ -6046,17 +6051,27 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'Lead not found' });
       }
 
-      // Create or get email thread
-      let thread = await storage.getEmailThreads({ leadId }).then(t => t[0]);
+      // Thread handling: 
+      // - If replying to an existing thread (requestThreadId provided), use that thread
+      // - If starting a new email (no requestThreadId), ALWAYS create a new thread
+      let thread: any = null;
+      
+      if (requestThreadId && isReply) {
+        // This is a reply to an existing thread - fetch and use it
+        thread = await storage.getEmailThread(requestThreadId);
+        console.log('[Email Send] Using existing thread for reply:', thread?.id);
+      }
       
       if (!thread) {
+        // Create a new thread for this email
         thread = await storage.createEmailThread({
           leadId,
           companyId: lead.companyId,
           subject,
-          participantEmails: [emailConfig.companyEmail, ...to],
+          participantEmails: [emailConfig.companyEmail, ...(Array.isArray(to) ? to : [to])],
           status: 'active',
         });
+        console.log('[Email Send] Created new thread:', thread.id, 'for subject:', subject);
       }
 
       // Actually send email via Gmail API with automatic token refresh
@@ -6072,8 +6087,23 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Fetch signature image and prepare as inline attachment
       if (emailConfig.signatureImageUrl) {
         try {
+          console.log('[Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
           const objectStorageService = new ObjectStorageService();
-          const signatureFile = await objectStorageService.getObjectEntityFile(emailConfig.signatureImageUrl);
+          
+          // Ensure the signature URL starts with /objects/
+          let signaturePath = emailConfig.signatureImageUrl;
+          if (!signaturePath.startsWith('/objects/')) {
+            // Try to normalize the path if it's a full URL
+            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
+            console.log('[Email] Normalized signature path:', signaturePath);
+          }
+          
+          if (!signaturePath.startsWith('/objects/')) {
+            console.error('[Email] Invalid signature path format:', signaturePath);
+            throw new Error('Invalid signature path format');
+          }
+          
+          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
           
           // Download file content as buffer
           const [fileContent] = await signatureFile.download();
@@ -6105,21 +6135,43 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           // Add text signature placeholder
           finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
           
-          console.log('[Email] Signature image loaded successfully, size:', fileContent.length, 'bytes');
-        } catch (signatureError) {
-          console.error('[Email] Failed to load signature image:', signatureError);
+          console.log('[Email] Signature image loaded successfully, size:', fileContent.length, 'bytes, mimeType:', mimeType);
+        } catch (signatureError: any) {
+          console.error('[Email] Failed to load signature image:', signatureError?.message || signatureError);
           // Continue without signature if loading fails
         }
+      } else {
+        console.log('[Email] No signature configured for this email config');
       }
 
       // Fetch file attachments from object storage
       if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        console.log('[Email] Processing', attachments.length, 'file attachments');
         const objectStorageService = new ObjectStorageService();
+        
         for (const att of attachments) {
           try {
-            if (!att.fileUrl) continue;
+            if (!att.fileUrl) {
+              console.log('[Email] Skipping attachment without fileUrl:', att.fileName);
+              continue;
+            }
             
-            const attachmentFile = await objectStorageService.getObjectEntityFile(att.fileUrl);
+            console.log('[Email] Loading attachment:', att.fileName, 'from path:', att.fileUrl);
+            
+            // Ensure the attachment URL starts with /objects/
+            let attachmentPath = att.fileUrl;
+            if (!attachmentPath.startsWith('/objects/')) {
+              // Try to normalize the path if it's a full URL
+              attachmentPath = objectStorageService.normalizeObjectEntityPath(attachmentPath);
+              console.log('[Email] Normalized attachment path:', attachmentPath);
+            }
+            
+            if (!attachmentPath.startsWith('/objects/')) {
+              console.error('[Email] Invalid attachment path format:', attachmentPath);
+              continue;
+            }
+            
+            const attachmentFile = await objectStorageService.getObjectEntityFile(attachmentPath);
             const [fileContent] = await attachmentFile.download();
             const base64Data = fileContent.toString('base64');
             
@@ -6133,12 +6185,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
               filename: att.fileName || 'attachment',
             });
             
-            console.log('[Email] File attachment loaded:', att.fileName, 'size:', fileContent.length, 'bytes');
-          } catch (attError) {
-            console.error('[Email] Failed to load attachment:', att.fileName, attError);
+            console.log('[Email] File attachment loaded successfully:', att.fileName, 'size:', fileContent.length, 'bytes, mimeType:', mimeType);
+          } catch (attError: any) {
+            console.error('[Email] Failed to load attachment:', att.fileName, 'Error:', attError?.message || attError);
             // Continue with other attachments even if one fails
           }
         }
+        
+        console.log('[Email] Successfully loaded', fileAttachments.length, 'of', attachments.length, 'attachments');
+      } else {
+        console.log('[Email] No file attachments to process');
       }
 
       try {

@@ -182,6 +182,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       subject: string; 
       bodyHtml: string;
       threadId?: number;
+      isReply?: boolean;
       attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number }>;
     }) => {
       return apiRequest(`/api/crm/leads/${lead?.id}/emails/send`, {
@@ -246,6 +247,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       subject: emailSubject,
       bodyHtml: emailBody,
       threadId: !isNewThread && replyToThreadId ? replyToThreadId : undefined,
+      isReply: !isNewThread && !!replyToThreadId,
       attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
     });
   };
