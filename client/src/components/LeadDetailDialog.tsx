@@ -73,6 +73,17 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     country: "United States",
   });
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [quoteFormData, setQuoteFormData] = useState({
+    productId: 0,
+    quantity: "",
+    unit: "kg",
+    unitPrice: "",
+    priceType: "ex_warehouse",
+    currency: "USD",
+    validDays: "30",
+    terms: "",
+    notes: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -514,6 +525,111 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     }
     
     createSampleRequestMutation.mutate(sampleFormData);
+  };
+
+  // Quotation creation mutation
+  const createQuotationMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/quotations`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      setShowQuoteForm(false);
+      resetQuoteFormData();
+      toast({
+        title: "Quotation Created",
+        description: "The quotation has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create quotation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const initializeQuoteForm = (selectedProductId?: number) => {
+    const product = selectedProductId 
+      ? products.find(p => p.id === selectedProductId)
+      : products.length === 1 ? products[0] : null;
+    
+    setQuoteFormData({
+      productId: product?.id || 0,
+      quantity: lead?.requiredQuantity?.toString() || "",
+      unit: lead?.unit || "kg",
+      unitPrice: "",
+      priceType: "ex_warehouse",
+      currency: lead?.preferredCurrency || "USD",
+      validDays: "30",
+      terms: "Payment due within 30 days of invoice. FOB shipping.",
+      notes: "",
+    });
+    setShowQuoteForm(true);
+  };
+
+  const resetQuoteFormData = () => {
+    setQuoteFormData({
+      productId: 0,
+      quantity: "",
+      unit: "kg",
+      unitPrice: "",
+      priceType: "ex_warehouse",
+      currency: "USD",
+      validDays: "30",
+      terms: "",
+      notes: "",
+    });
+  };
+
+  const handleQuoteFormSubmit = () => {
+    if (!quoteFormData.productId) {
+      toast({
+        title: "Product Required",
+        description: "Please select a product for the quotation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!quoteFormData.quantity || !quoteFormData.unitPrice) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter quantity and unit price.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const quantity = parseFloat(quoteFormData.quantity);
+    const unitPrice = parseFloat(quoteFormData.unitPrice);
+    const totalAmount = quantity * unitPrice;
+    
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + parseInt(quoteFormData.validDays || "30"));
+    
+    const product = products.find(p => p.id === quoteFormData.productId);
+    
+    createQuotationMutation.mutate({
+      productId: quoteFormData.productId,
+      productName: product?.name,
+      quantity: quoteFormData.quantity,
+      unit: quoteFormData.unit,
+      unitPrice: quoteFormData.unitPrice,
+      totalAmount: totalAmount.toFixed(2),
+      subtotal: totalAmount.toFixed(2),
+      priceType: quoteFormData.priceType,
+      currency: quoteFormData.currency,
+      validUntil: validUntil.toISOString(),
+      terms: quoteFormData.terms,
+      notes: quoteFormData.notes,
+      status: "draft",
+    });
   };
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
@@ -1338,17 +1454,209 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                     size="sm" 
                     className="bg-green-600 hover:bg-green-700 text-white"
                     data-testid="button-create-quotation"
-                    onClick={() => {
-                      toast({
-                        title: "Coming Soon",
-                        description: "Quotation creation form will be available soon.",
-                      });
-                    }}
+                    onClick={() => initializeQuoteForm()}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Create Quote
                   </Button>
                 </div>
+
+                {/* Quote Creation Form */}
+                {showQuoteForm && (
+                  <Card className="mb-4 border-2 border-green-200 bg-green-50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-medium flex items-center gap-2 text-green-800">
+                          <FileText className="h-4 w-4" />
+                          New Quotation
+                        </h4>
+                        <Button variant="ghost" size="sm" onClick={() => setShowQuoteForm(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Product Selection */}
+                        <div className="md:col-span-2">
+                          <Label htmlFor="quote-product">Product *</Label>
+                          <Select
+                            value={quoteFormData.productId.toString()}
+                            onValueChange={(value) => setQuoteFormData({...quoteFormData, productId: parseInt(value)})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.length > 0 ? (
+                                products.map((product) => (
+                                  <SelectItem key={product.id} value={product.id.toString()}>
+                                    {product.name} ({product.productId})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="0" disabled>No products available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Quantity and Price */}
+                        <div>
+                          <Label htmlFor="quote-quantity">Quantity *</Label>
+                          <Input
+                            id="quote-quantity"
+                            type="number"
+                            value={quoteFormData.quantity}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, quantity: e.target.value})}
+                            placeholder="e.g., 500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="quote-unit">Unit</Label>
+                          <Select
+                            value={quoteFormData.unit}
+                            onValueChange={(value) => setQuoteFormData({...quoteFormData, unit: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                              <SelectItem value="mt">Metric Tons (MT)</SelectItem>
+                              <SelectItem value="lb">Pounds (lb)</SelectItem>
+                              <SelectItem value="units">Units</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="quote-price">Unit Price *</Label>
+                          <Input
+                            id="quote-price"
+                            type="number"
+                            step="0.01"
+                            value={quoteFormData.unitPrice}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, unitPrice: e.target.value})}
+                            placeholder="Price per unit"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="quote-currency">Currency</Label>
+                          <Select
+                            value={quoteFormData.currency}
+                            onValueChange={(value) => setQuoteFormData({...quoteFormData, currency: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USD">USD - US Dollar</SelectItem>
+                              <SelectItem value="EUR">EUR - Euro</SelectItem>
+                              <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                              <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="quote-price-type">Price Type</Label>
+                          <Select
+                            value={quoteFormData.priceType}
+                            onValueChange={(value) => setQuoteFormData({...quoteFormData, priceType: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ex_warehouse">Ex-Warehouse</SelectItem>
+                              <SelectItem value="ex_works">Ex-Works</SelectItem>
+                              <SelectItem value="fob">FOB (Free on Board)</SelectItem>
+                              <SelectItem value="cif">CIF (Cost, Insurance, Freight)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="quote-validity">Valid For (Days)</Label>
+                          <Select
+                            value={quoteFormData.validDays}
+                            onValueChange={(value) => setQuoteFormData({...quoteFormData, validDays: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="7">7 Days</SelectItem>
+                              <SelectItem value="14">14 Days</SelectItem>
+                              <SelectItem value="30">30 Days</SelectItem>
+                              <SelectItem value="60">60 Days</SelectItem>
+                              <SelectItem value="90">90 Days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Calculated Total */}
+                        {quoteFormData.quantity && quoteFormData.unitPrice && (
+                          <div className="md:col-span-2 bg-white p-3 rounded-lg border">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Estimated Total:</span>
+                              <span className="text-xl font-bold text-green-700">
+                                {quoteFormData.currency} {(parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="md:col-span-2">
+                          <Label htmlFor="quote-terms">Terms & Conditions</Label>
+                          <Textarea
+                            id="quote-terms"
+                            value={quoteFormData.terms}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, terms: e.target.value})}
+                            placeholder="Payment terms, delivery conditions..."
+                            rows={2}
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <Label htmlFor="quote-notes">Internal Notes</Label>
+                          <Textarea
+                            id="quote-notes"
+                            value={quoteFormData.notes}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, notes: e.target.value})}
+                            placeholder="Notes (not visible to customer)..."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setShowQuoteForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleQuoteFormSubmit}
+                          disabled={createQuotationMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {createQuotationMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4 mr-2" />
+                              Create Quotation
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {quotationsLoading ? (
                   <div className="flex items-center justify-center py-8">
