@@ -1418,6 +1418,8 @@ export type LeadWithDetails = Lead & {
   salesRep?: User;
   activities?: LeadActivity[];
   tasks?: LeadTask[];
+  unreadEmailCount?: number;
+  latestUnreadEmailAt?: Date | string | null;
 };
 
 export type CompanyWithContacts = Company & {
