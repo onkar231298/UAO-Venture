@@ -84,6 +84,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     validDays: "30",
     terms: "",
     notes: "",
+    discountPercent: "0",
+    includeGst: false,
+    gstNumber: "",
+    gstPercentage: "18",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -579,6 +583,10 @@ Validity: 30 days from quotation date
 Quality: As per specifications
 Packaging: Standard export packaging`,
       notes: "",
+      discountPercent: "0",
+      includeGst: false,
+      gstNumber: "",
+      gstPercentage: "18",
     });
     setShowQuoteForm(true);
   };
@@ -594,6 +602,10 @@ Packaging: Standard export packaging`,
       validDays: "30",
       terms: "",
       notes: "",
+      discountPercent: "0",
+      includeGst: false,
+      gstNumber: "",
+      gstPercentage: "18",
     });
   };
 
@@ -618,7 +630,18 @@ Packaging: Standard export packaging`,
     
     const quantity = parseFloat(quoteFormData.quantity);
     const unitPrice = parseFloat(quoteFormData.unitPrice);
-    const totalAmount = quantity * unitPrice;
+    const subtotal = quantity * unitPrice;
+    
+    const discountPercent = parseFloat(quoteFormData.discountPercent) || 0;
+    const discountAmount = (subtotal * discountPercent) / 100;
+    
+    let gstAmount = 0;
+    if (quoteFormData.includeGst) {
+      const gstPercent = parseFloat(quoteFormData.gstPercentage) || 0;
+      gstAmount = ((subtotal - discountAmount) * gstPercent) / 100;
+    }
+    
+    const totalAmount = subtotal - discountAmount + gstAmount;
     
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + parseInt(quoteFormData.validDays || "30"));
@@ -632,10 +655,16 @@ Packaging: Standard export packaging`,
       unit: quoteFormData.unit,
       unitPrice: quoteFormData.unitPrice,
       totalAmount: totalAmount.toFixed(2),
-      subtotal: totalAmount.toFixed(2),
+      subtotal: subtotal.toFixed(2),
+      discountPercent: quoteFormData.discountPercent,
+      discountAmount: discountAmount.toFixed(2),
+      includeGst: quoteFormData.includeGst,
+      gstNumber: quoteFormData.includeGst ? quoteFormData.gstNumber : null,
+      gstPercentage: quoteFormData.includeGst ? quoteFormData.gstPercentage : null,
+      gstAmount: quoteFormData.includeGst ? gstAmount.toFixed(2) : null,
       priceType: quoteFormData.priceType,
       currency: quoteFormData.currency,
-      validUntil: validUntil.toISOString(),
+      validUntil: validUntil,
       terms: quoteFormData.terms,
       notes: quoteFormData.notes,
       status: "draft",
@@ -1700,14 +1729,97 @@ Best regards`,
                           </Select>
                         </div>
                         
-                        {/* Calculated Total */}
+                        {/* Discount */}
+                        <div>
+                          <Label htmlFor="quote-discount">Discount (%)</Label>
+                          <Input
+                            id="quote-discount"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={quoteFormData.discountPercent}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, discountPercent: e.target.value})}
+                            placeholder="0"
+                          />
+                        </div>
+                        
+                        {/* GST Toggle */}
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="include-gst"
+                            checked={quoteFormData.includeGst}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, includeGst: e.target.checked})}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="include-gst">Include GST</Label>
+                        </div>
+                        
+                        {/* GST Details */}
+                        {quoteFormData.includeGst && (
+                          <>
+                            <div>
+                              <Label htmlFor="gst-number">GST Number</Label>
+                              <Input
+                                id="gst-number"
+                                value={quoteFormData.gstNumber}
+                                onChange={(e) => setQuoteFormData({...quoteFormData, gstNumber: e.target.value})}
+                                placeholder="Enter GST number"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="gst-percentage">GST Rate (%)</Label>
+                              <Select
+                                value={quoteFormData.gstPercentage}
+                                onValueChange={(value) => setQuoteFormData({...quoteFormData, gstPercentage: value})}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="5">5%</SelectItem>
+                                  <SelectItem value="12">12%</SelectItem>
+                                  <SelectItem value="18">18%</SelectItem>
+                                  <SelectItem value="28">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Calculated Total with Breakdown */}
                         {quoteFormData.quantity && quoteFormData.unitPrice && (
-                          <div className="md:col-span-2 bg-white p-3 rounded-lg border">
-                            <div className="flex justify-between items-center">
-                              <span className="font-medium">Estimated Total:</span>
-                              <span className="text-xl font-bold text-green-700">
-                                {quoteFormData.currency} {(parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                              </span>
+                          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span>{quoteFormData.currency} {(parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                              </div>
+                              {parseFloat(quoteFormData.discountPercent) > 0 && (
+                                <div className="flex justify-between text-red-600">
+                                  <span>Discount ({quoteFormData.discountPercent}%):</span>
+                                  <span>-{quoteFormData.currency} {((parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice) * parseFloat(quoteFormData.discountPercent)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                              )}
+                              {quoteFormData.includeGst && (
+                                <div className="flex justify-between text-blue-600">
+                                  <span>GST ({quoteFormData.gstPercentage}%):</span>
+                                  <span>+{quoteFormData.currency} {(((parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice) * (1 - parseFloat(quoteFormData.discountPercent) / 100)) * parseFloat(quoteFormData.gstPercentage)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center pt-2 border-t font-bold">
+                                <span>Total:</span>
+                                <span className="text-xl text-green-700">
+                                  {quoteFormData.currency} {(() => {
+                                    const subtotal = parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice);
+                                    const discount = (subtotal * parseFloat(quoteFormData.discountPercent || "0")) / 100;
+                                    const afterDiscount = subtotal - discount;
+                                    const gst = quoteFormData.includeGst ? (afterDiscount * parseFloat(quoteFormData.gstPercentage || "0")) / 100 : 0;
+                                    return (afterDiscount + gst).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                  })()}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         )}
