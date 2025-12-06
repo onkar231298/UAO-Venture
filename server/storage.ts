@@ -298,6 +298,7 @@ export interface IStorage {
     customerId?: string;
     status?: string;
     assignedTo?: string;
+    leadId?: number;
     limit?: number;
     offset?: number;
   }): Promise<{ requests: SampleRequest[]; total: number }>;
@@ -309,6 +310,7 @@ export interface IStorage {
   getQuotations(filters?: {
     customerId?: string;
     inquiryId?: number;
+    leadId?: number;
     status?: string;
     limit?: number;
     offset?: number;
@@ -2543,6 +2545,7 @@ export class DatabaseStorage implements IStorage {
     customerId?: string;
     status?: string;
     assignedTo?: string;
+    leadId?: number;
     limit?: number;
     offset?: number;
   }): Promise<{ requests: any[]; total: number }> {
@@ -2550,6 +2553,7 @@ export class DatabaseStorage implements IStorage {
     if (filters?.customerId) conditions.push(eq(sampleRequests.customerId, filters.customerId));
     if (filters?.status) conditions.push(eq(sampleRequests.status, filters.status));
     if (filters?.assignedTo) conditions.push(eq(sampleRequests.assignedTo, filters.assignedTo));
+    if (filters?.leadId) conditions.push(eq(sampleRequests.leadId, filters.leadId));
     
     const whereClause = conditions.length > 0 ? (conditions.length === 1 ? conditions[0] : and(...conditions)) : undefined;
     
@@ -2579,6 +2583,7 @@ export class DatabaseStorage implements IStorage {
           processedAt: sampleRequests.processedAt,
           processedBy: sampleRequests.processedBy,
           assignedTo: sampleRequests.assignedTo,
+          leadId: sampleRequests.leadId,
           createdAt: sampleRequests.createdAt,
           updatedAt: sampleRequests.updatedAt,
           productName: products.name,
@@ -2767,6 +2772,7 @@ export class DatabaseStorage implements IStorage {
   async getQuotations(filters?: {
     customerId?: string;
     inquiryId?: number;
+    leadId?: number;
     status?: string;
     limit?: number;
     offset?: number;
@@ -2779,6 +2785,10 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.inquiryId) {
       conditions.push(eq(quotations.inquiryId, filters.inquiryId));
+    }
+    
+    if (filters?.leadId) {
+      conditions.push(eq(quotations.leadId, filters.leadId));
     }
     
     if (filters?.status) {
@@ -2805,6 +2815,9 @@ export class DatabaseStorage implements IStorage {
           createdBy: quotations.createdBy,
           createdAt: quotations.createdAt,
           updatedAt: quotations.updatedAt,
+          leadId: quotations.leadId,
+          sentAt: quotations.sentAt,
+          sentBy: quotations.sentBy,
           // Product info from inquiry
           productName: products.name,
           productId: products.productId,

@@ -6873,6 +6873,266 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Get sample requests for a lead
+  app.get('/api/crm/leads/:leadId/sample-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      const result = await storage.getSampleRequests({ leadId });
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error fetching lead sample requests:', error);
+      res.status(500).json({ message: 'Failed to fetch sample requests' });
+    }
+  });
+
+  // Create sample request for a lead
+  app.post('/api/crm/leads/:leadId/sample-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists and get lead details
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Check user has permission (admin or assigned sales rep)
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isAssignedSalesRep = lead.assignedSalesRep === userId;
+      
+      if (!isAdmin && !isAssignedSalesRep) {
+        return res.status(403).json({ message: 'Not authorized to create sample requests for this lead' });
+      }
+
+      // Create sample request with lead link
+      const sampleRequest = await storage.createSampleRequest({
+        ...req.body,
+        leadId,
+      });
+
+      // Log activity
+      await storage.createLeadActivity({
+        leadId,
+        type: 'sample_request',
+        title: 'Sample Request Created',
+        description: `Sample request ${sampleRequest.requestId} created for product`,
+        createdBy: userId,
+      });
+
+      res.status(201).json(sampleRequest);
+    } catch (error: any) {
+      console.error('Error creating lead sample request:', error);
+      res.status(500).json({ message: 'Failed to create sample request' });
+    }
+  });
+
+  // Get quotations for a lead
+  app.get('/api/crm/leads/:leadId/quotations', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      const result = await storage.getQuotations({ leadId });
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error fetching lead quotations:', error);
+      res.status(500).json({ message: 'Failed to fetch quotations' });
+    }
+  });
+
+  // Create quotation for a lead
+  app.post('/api/crm/leads/:leadId/quotations', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists and get lead details
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Check user has permission (admin or assigned sales rep)
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isAssignedSalesRep = lead.assignedSalesRep === userId;
+      
+      if (!isAdmin && !isAssignedSalesRep) {
+        return res.status(403).json({ message: 'Not authorized to create quotations for this lead' });
+      }
+
+      // Create quotation with lead link
+      const quotation = await storage.createQuotation({
+        ...req.body,
+        leadId,
+        createdBy: userId,
+      });
+
+      // Log activity
+      await storage.createLeadActivity({
+        leadId,
+        type: 'quote_created',
+        title: 'Quotation Created',
+        description: `Quotation ${quotation.quotationId} created with value ${req.body.currency || 'USD'} ${req.body.totalAmount || 0}`,
+        createdBy: userId,
+      });
+
+      res.status(201).json(quotation);
+    } catch (error: any) {
+      console.error('Error creating lead quotation:', error);
+      res.status(500).json({ message: 'Failed to create quotation' });
+    }
+  });
+
+  // Send quotation via email
+  app.post('/api/crm/leads/:leadId/quotations/:quotationId/send', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const quotationId = parseInt(req.params.quotationId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Verify quotation exists and belongs to this lead
+      const quotation = await storage.getQuotation(quotationId);
+      if (!quotation || quotation.leadId !== leadId) {
+        return res.status(404).json({ message: 'Quotation not found or does not belong to this lead' });
+      }
+
+      // Check user has permission (admin or assigned sales rep)
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isAssignedSalesRep = lead.assignedSalesRep === userId;
+      
+      if (!isAdmin && !isAssignedSalesRep) {
+        return res.status(403).json({ message: 'Not authorized to send quotations for this lead' });
+      }
+
+      // Get email configuration for the sender
+      const emailConfig = await storage.getEmailConfigByUserId(userId);
+      if (!emailConfig?.accessToken) {
+        return res.status(400).json({ 
+          message: 'Gmail not connected. Please connect your Gmail account in Email Settings.',
+          requiresGmailConnect: true,
+        });
+      }
+
+      // Get company contact email for the lead
+      const { email, subject, body, attachPdf } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Recipient email is required' });
+      }
+
+      // TODO: Generate PDF and attach if attachPdf is true
+      // For now, send the email with body content
+      
+      const emailSendResult = await sendEmail(
+        emailConfig.accessToken,
+        emailConfig.refreshToken || '',
+        {
+          to: email,
+          subject: subject || `Quotation ${quotation.quotationId}`,
+          body: body || `Please find attached the quotation ${quotation.quotationId}.`,
+          attachments: [],
+          cc: [],
+          bcc: [],
+        }
+      );
+
+      // Update quotation with sent status
+      await storage.updateQuotation(quotationId, {
+        status: 'sent',
+        sentAt: new Date(),
+        sentBy: userId,
+      } as any);
+
+      // Log activity
+      await storage.createLeadActivity({
+        leadId,
+        type: 'quote_sent',
+        title: 'Quotation Sent',
+        description: `Quotation ${quotation.quotationId} sent to ${email}`,
+        createdBy: userId,
+      });
+
+      // Store email message
+      await storage.storeEmailMessage({
+        leadId,
+        threadId: null,
+        direction: 'outbound',
+        fromEmail: emailConfig.email,
+        toEmails: [email],
+        ccEmails: [],
+        bccEmails: [],
+        subject: subject || `Quotation ${quotation.quotationId}`,
+        bodyHtml: body || '',
+        bodyText: body || '',
+        sentAt: new Date(),
+        gmailMessageId: emailSendResult.messageId || null,
+        gmailThreadId: emailSendResult.threadId || null,
+        isRead: true,
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Quotation sent successfully',
+        quotationId: quotation.quotationId,
+      });
+    } catch (error: any) {
+      console.error('Error sending quotation:', error);
+      
+      if (error.message?.includes('authorization') || error.message?.includes('invalid_grant')) {
+        return res.status(401).json({ 
+          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
+          requiresGmailConnect: true,
+        });
+      }
+      
+      res.status(500).json({ message: 'Failed to send quotation' });
+    }
+  });
+
   // Sitemap.xml route - simplified for maximum reliability
   app.get('/sitemap.xml', async (req, res) => {
     // Always set XML headers first
