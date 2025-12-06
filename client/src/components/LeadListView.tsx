@@ -28,6 +28,7 @@ import {
   Eye,
   MoreVertical,
   Users,
+  Mail,
 } from "lucide-react";
 import { type LeadWithDetails } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
@@ -332,9 +333,29 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-mono text-xs">{lead.leadId}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      {lead.leadId}
+                      {(lead.unreadEmailCount ?? 0) > 0 && (
+                        <Badge 
+                          className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 flex items-center gap-1 animate-pulse"
+                          data-testid={`badge-unread-email-${lead.id}`}
+                        >
+                          <Mail className="h-3 w-3" />
+                          {lead.unreadEmailCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">
-                    {lead.company?.companyName || "Unknown Company"}
+                    <div className="flex flex-col">
+                      <span>{lead.company?.companyName || "Unknown Company"}</span>
+                      {(lead.unreadEmailCount ?? 0) > 0 && lead.latestUnreadEmailAt && (
+                        <span className="text-[10px] text-red-600 font-normal">
+                          Reply received {formatDistanceToNow(new Date(lead.latestUnreadEmailAt), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{lead.contactPerson?.contactName || "No contact"}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>

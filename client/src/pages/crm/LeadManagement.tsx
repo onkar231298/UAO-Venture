@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, UserPlus, List, Kanban, RefreshCw } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, UserPlus, List, Kanban, RefreshCw, Mail } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { type Lead, type LeadWithDetails } from "@shared/schema";
 import LeadCreationForm from "./LeadCreationForm";
@@ -91,6 +91,20 @@ function DraggableLeadCard({ lead, getPriorityColor, formatCurrency, onViewDetai
                 {lead.company?.companyName || "Unknown Company"}
               </CardTitle>
               <p className="text-xs text-gray-500 mt-1">{lead.leadId}</p>
+              {/* Unread Email Badge - Urgent attention needed */}
+              {(lead.unreadEmailCount ?? 0) > 0 && (
+                <div className="mt-1" data-testid={`badge-unread-email-${lead.id}`}>
+                  <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 flex items-center gap-1 animate-pulse w-fit">
+                    <Mail className="h-3 w-3" />
+                    {lead.unreadEmailCount} unread
+                  </Badge>
+                  {lead.latestUnreadEmailAt && (
+                    <p className="text-[10px] text-red-600 mt-0.5">
+                      Reply received {new Date(lead.latestUnreadEmailAt).toLocaleDateString()} at {new Date(lead.latestUnreadEmailAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+              )}
               {/* Lead Source Badge - Prominent differentiation */}
               {lead.leadSource === 'high_volume_bid' && (
                 <Badge className="mt-1 bg-blue-100 text-blue-800 border border-blue-300 text-xs">
