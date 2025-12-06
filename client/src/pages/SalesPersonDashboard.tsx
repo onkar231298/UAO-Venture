@@ -25,6 +25,7 @@ import {
   Phone,
   Mail,
   Building,
+  Building2,
   Target,
   Award,
   BarChart3,
@@ -241,6 +242,16 @@ export default function SalesPersonDashboard() {
                 {summary.activeLeads > 0 && (
                   <Badge className="ml-auto bg-blue-100 text-blue-800">{summary.activeLeads}</Badge>
                 )}
+              </Button>
+            </Link>
+            <Link href="/sales/my-companies">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                data-testid="nav-my-companies"
+              >
+                <Building2 className="w-4 h-4 mr-3" />
+                My Companies
               </Button>
             </Link>
             <Button
