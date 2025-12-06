@@ -7332,36 +7332,38 @@ Phone: +91-7249847439`;
       }
       
       // If threadId is provided, try to get the original message for proper threading
+      let actualThreadId = threadId;
+      let threadFound = false;
+      
       if (threadId) {
         try {
-          // First, get the thread to find the last message for proper In-Reply-To headers
-          try {
-            const thread = await gmailApi.getThread(emailConfig.accessToken, threadId);
-            if (thread && thread.messages && thread.messages.length > 0) {
-              // Get the last message in the thread for proper reply headers
-              const lastMessage = thread.messages[thread.messages.length - 1];
-              if (lastMessage && lastMessage.payload?.headers) {
-                // Find Message-ID header from the last message
-                const headers = lastMessage.payload.headers;
-                const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
-                const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
-                const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
-                
-                if (messageIdHeader?.value) {
-                  emailOptions.inReplyTo = messageIdHeader.value;
-                  // Build references chain
-                  if (referencesHeader?.value) {
-                    emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
-                  } else {
-                    emailOptions.references = messageIdHeader.value;
-                  }
+          // First, try to get the thread directly
+          const thread = await gmailApi.getThread(emailConfig.accessToken, threadId);
+          if (thread && thread.messages && thread.messages.length > 0) {
+            threadFound = true;
+            // Get the last message in the thread for proper reply headers
+            const lastMessage = thread.messages[thread.messages.length - 1];
+            if (lastMessage && lastMessage.payload?.headers) {
+              // Find Message-ID header from the last message
+              const headers = lastMessage.payload.headers;
+              const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
+              const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
+              const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
+              
+              if (messageIdHeader?.value) {
+                emailOptions.inReplyTo = messageIdHeader.value;
+                // Build references chain
+                if (referencesHeader?.value) {
+                  emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
+                } else {
+                  emailOptions.references = messageIdHeader.value;
                 }
-                
-                // Also ensure subject starts with "Re:" if it's a reply to maintain thread
-                if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
-                  const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
-                  emailOptions.subject = `Re: ${originalSubject}`;
-                }
+              }
+              
+              // Also ensure subject starts with "Re:" if it's a reply to maintain thread
+              if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
+                const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
+                emailOptions.subject = `Re: ${originalSubject}`;
               }
             }
             console.log('Thread reply headers set:', { 
@@ -7369,25 +7371,70 @@ Phone: +91-7249847439`;
               references: emailOptions.references ? 'set' : 'not set',
               subject: emailOptions.subject 
             });
-          } catch (threadFetchError) {
-            console.log('Could not fetch thread for reply headers, continuing without:', threadFetchError);
           }
+        } catch (threadFetchError: any) {
+          console.log('Direct thread lookup failed, searching by customer email...');
           
-          emailSendResult = await gmailApi.replyToEmail(
-            emailConfig.accessToken,
-            threadId,
-            emailOptions
-          );
-        } catch (replyError: any) {
-          // If thread not found (404), fall back to sending as new email
-          if (replyError.status === 404 || replyError.code === 404) {
-            console.log('Thread not found in Gmail, sending as new email');
-            emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
-          } else {
-            throw replyError;
+          // Thread not found directly - try to find by searching for customer email
+          try {
+            const searchResults = await gmailApi.searchEmailsByContact(emailConfig.accessToken, email, { maxResults: 10 });
+            if (searchResults.messages && searchResults.messages.length > 0) {
+              // Get the most recent message's thread ID
+              const recentMessage = searchResults.messages[0];
+              if (recentMessage.threadId) {
+                actualThreadId = recentMessage.threadId;
+                console.log('Found thread via email search:', actualThreadId);
+                
+                // Fetch the thread to get reply headers
+                const foundThread = await gmailApi.getThread(emailConfig.accessToken, actualThreadId);
+                if (foundThread && foundThread.messages && foundThread.messages.length > 0) {
+                  threadFound = true;
+                  const lastMessage = foundThread.messages[foundThread.messages.length - 1];
+                  if (lastMessage && lastMessage.payload?.headers) {
+                    const headers = lastMessage.payload.headers;
+                    const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
+                    const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
+                    const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
+                    
+                    if (messageIdHeader?.value) {
+                      emailOptions.inReplyTo = messageIdHeader.value;
+                      if (referencesHeader?.value) {
+                        emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
+                      } else {
+                        emailOptions.references = messageIdHeader.value;
+                      }
+                    }
+                    
+                    if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
+                      const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
+                      emailOptions.subject = `Re: ${originalSubject}`;
+                    }
+                  }
+                }
+              }
+            }
+          } catch (searchError) {
+            console.log('Email search also failed:', searchError);
           }
         }
+      }
+      
+      // Send email - either as reply or new email
+      if (actualThreadId && threadFound) {
+        try {
+          emailSendResult = await gmailApi.replyToEmail(
+            emailConfig.accessToken,
+            actualThreadId,
+            emailOptions
+          );
+          console.log('Email sent as reply to thread:', actualThreadId);
+        } catch (replyError: any) {
+          // If reply fails, fall back to sending as new email
+          console.log('Reply failed, sending as new email:', replyError.message);
+          emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
+        }
       } else {
+        console.log('No thread found, sending as new email');
         emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
       }
 
@@ -7408,22 +7455,26 @@ Phone: +91-7249847439`;
       });
 
       // Store email message - use the threadId from request or from the send result
-      await storage.storeEmailMessage({
-        leadId,
-        threadId: emailSendResult.threadId || threadId || null,
-        direction: 'outbound',
-        fromEmail: emailConfig.email,
-        toEmails: [email],
-        ccEmails: [],
-        bccEmails: [],
-        subject: subject || `Quotation ${quotation.quotationId}`,
-        bodyHtml: body || '',
-        bodyText: body || '',
-        sentAt: new Date(),
-        gmailMessageId: emailSendResult.messageId || null,
-        gmailThreadId: emailSendResult.threadId || threadId || null,
-        isRead: true,
-      });
+      try {
+        await storage.createEmailMessage({
+          leadId,
+          direction: 'outbound',
+          fromEmail: emailConfig.companyEmail || emailConfig.email,
+          toEmails: [email],
+          ccEmails: [],
+          bccEmails: [],
+          subject: emailOptions.subject || `Quotation ${quotation.quotationId}`,
+          bodyHtml: emailBody,
+          bodyText: emailBodyText,
+          sentAt: new Date(),
+          messageId: emailSendResult.messageId || null,
+          gmailThreadId: emailSendResult.threadId || null,
+          isRead: true,
+        });
+      } catch (storeError) {
+        console.log('Could not store email message in database:', storeError);
+        // Continue without failing - email was already sent
+      }
 
       res.json({ 
         success: true, 
