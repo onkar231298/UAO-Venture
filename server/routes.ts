@@ -1567,6 +1567,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inquiryData = insertInquirySchema.parse({ ...req.body, customerId });
       
       const inquiry = await storage.createInquiry(inquiryData);
+      
+      // Create notification for admins and sales managers about new enquiry
+      try {
+        const productName = req.body.productName || 'Unknown Product';
+        const companyName = req.body.companyName || req.body.customerName || 'Unknown';
+        await storage.createNotificationsForRole({
+          type: 'new_enquiry',
+          title: 'New Enquiry Received',
+          message: `New enquiry for "${productName}" from ${companyName}`,
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          isRead: false,
+          link: '/admin/sales/inquiries',
+        }, ['super_admin', 'admin', 'sales_manager']);
+      } catch (notifError) {
+        console.error('Failed to create notification for enquiry:', notifError);
+      }
+      
       res.status(201).json(inquiry);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2151,6 +2169,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const sampleRequest = await storage.createSampleRequest(requestData);
+      
+      // Create notification for admins and sales managers about new sample request
+      try {
+        const productName = req.body.productName || 'Unknown Product';
+        const companyName = req.body.companyName || req.body.customerName || 'Unknown';
+        await storage.createNotificationsForRole({
+          type: 'new_sample_request',
+          title: 'New Sample Request',
+          message: `New sample request for "${productName}" from ${companyName}`,
+          entityType: 'sample_request',
+          entityId: sampleRequest.id,
+          isRead: false,
+          link: '/admin/sales/sample-requests',
+        }, ['super_admin', 'admin', 'sales_manager']);
+      } catch (notifError) {
+        console.error('Failed to create notification for sample request:', notifError);
+      }
+      
       res.status(201).json(sampleRequest);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4841,6 +4877,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const lead = await storage.assignLead(leadId, assignedTo, userId, reason);
+      
+      // Create notification for the assigned sales rep
+      try {
+        if (assignedTo && assignedTo !== userId) {
+          const companyName = lead.company?.companyName || 'Unknown Company';
+          await storage.createNotification({
+            userId: assignedTo,
+            type: 'lead_assigned',
+            title: 'New Lead Assigned',
+            message: `You have been assigned a new lead: ${companyName}`,
+            entityType: 'lead',
+            entityId: leadId,
+            isRead: false,
+            link: `/admin/sales/leads?leadId=${leadId}`,
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to create notification for lead assignment:', notifError);
+      }
+      
       res.json(lead);
     } catch (error) {
       console.error('Error assigning lead:', error);
@@ -4867,6 +4923,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await storage.bulkAssignLeads(leadIds, assignedTo, userId);
+      
+      // Create notification for the assigned sales rep about bulk assignment
+      try {
+        if (assignedTo && assignedTo !== userId && result.success > 0) {
+          await storage.createNotification({
+            userId: assignedTo,
+            type: 'lead_assigned',
+            title: 'Leads Assigned',
+            message: `You have been assigned ${result.success} new lead${result.success > 1 ? 's' : ''}`,
+            entityType: 'lead',
+            entityId: null,
+            isRead: false,
+            link: '/admin/sales/leads',
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to create notification for bulk lead assignment:', notifError);
+      }
+      
       res.json(result);
     } catch (error) {
       console.error('Error bulk assigning leads:', error);
@@ -5991,6 +6066,125 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     } catch (error) {
       console.error('Error removing signature:', error);
       res.status(500).json({ message: 'Failed to remove signature image' });
+    }
+  });
+
+  // ===== NOTIFICATION ROUTES =====
+  
+  // Get notifications for the current user
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const { isRead, limit, offset } = req.query;
+      const filters: any = {};
+      
+      if (isRead !== undefined) {
+        filters.isRead = isRead === 'true';
+      }
+      if (limit) {
+        filters.limit = parseInt(limit as string);
+      }
+      if (offset) {
+        filters.offset = parseInt(offset as string);
+      }
+      
+      const notifications = await storage.getNotifications(userId, filters);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+  
+  // Get unread notification count
+  app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      res.status(500).json({ message: 'Failed to fetch unread count' });
+    }
+  });
+  
+  // Mark a single notification as read
+  app.post('/api/notifications/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      // Ensure user can only mark their own notifications as read
+      if (notification.userId !== userId) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const updated = await storage.markNotificationAsRead(notificationId);
+      res.json(updated);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Failed to mark notification as read' });
+    }
+  });
+  
+  // Mark all notifications as read
+  app.post('/api/notifications/mark-all-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const count = await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true, markedCount: count });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: 'Failed to mark notifications as read' });
+    }
+  });
+  
+  // Delete a notification
+  app.delete('/api/notifications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      // Ensure user can only delete their own notifications
+      if (notification.userId !== userId) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      await storage.deleteNotification(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      res.status(500).json({ message: 'Failed to delete notification' });
     }
   });
 
