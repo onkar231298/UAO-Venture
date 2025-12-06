@@ -65,6 +65,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     sampleSize: "50g",
     purpose: "",
     expectedOrderQuantity: "",
+    priceType: "ex_warehouse",
     message: "",
     shippingAddress: "",
     city: "",
@@ -464,21 +465,25 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   // Initialize sample form with lead data
   const initializeSampleForm = (selectedProductId?: number) => {
+    const phone = lead?.contactPerson?.phone 
+      ? `${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}` 
+      : "";
     setSampleFormData({
-      contactName: lead?.contactPerson || "",
-      companyName: lead?.companyName || "",
-      phoneNumber: lead?.phoneNumber || "",
-      emailAddress: lead?.email || "",
+      contactName: lead?.contactPerson?.contactName || "",
+      companyName: lead?.company?.companyName || "",
+      phoneNumber: phone,
+      emailAddress: lead?.contactPerson?.email || "",
       productId: selectedProductId || (products.length === 1 ? products[0].id : 0),
       sampleSize: "50g",
       purpose: "",
       expectedOrderQuantity: lead?.requiredQuantity?.toString() || "",
+      priceType: "ex_warehouse",
       message: "",
-      shippingAddress: lead?.address || "",
-      city: lead?.city || "",
-      state: lead?.region || "",
-      postalCode: lead?.postalCode || "",
-      country: lead?.country || "United States",
+      shippingAddress: lead?.company?.address || "",
+      city: lead?.company?.city || "",
+      state: lead?.company?.state || "",
+      postalCode: lead?.company?.postalCode || "",
+      country: lead?.company?.country || "United States",
     });
     setShowSampleRequestForm(true);
   };
@@ -493,6 +498,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       sampleSize: "50g",
       purpose: "",
       expectedOrderQuantity: "",
+      priceType: "ex_warehouse",
       message: "",
       shippingAddress: "",
       city: "",
@@ -565,9 +571,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       unit: lead?.unit || "kg",
       unitPrice: "",
       priceType: "ex_warehouse",
-      currency: lead?.preferredCurrency || "USD",
+      currency: lead?.currency || "USD",
       validDays: "30",
-      terms: "Payment due within 30 days of invoice. FOB shipping.",
+      terms: `Payment Terms: 30 days net
+Delivery: Ex-works
+Validity: 30 days from quotation date
+Quality: As per specifications
+Packaging: Standard export packaging`,
       notes: "",
     });
     setShowQuoteForm(true);
@@ -1328,6 +1338,29 @@ Best regards`,
                           />
                         </div>
                         
+                        <div>
+                          <Label htmlFor="price-type">Price Type / Incoterms</Label>
+                          <Select
+                            value={sampleFormData.priceType}
+                            onValueChange={(value) => setSampleFormData({...sampleFormData, priceType: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ex_warehouse">Ex-Warehouse</SelectItem>
+                              <SelectItem value="ex_works">Ex-Works</SelectItem>
+                              <SelectItem value="fob">FOB (Free on Board)</SelectItem>
+                              <SelectItem value="cif">CIF (Cost, Insurance & Freight)</SelectItem>
+                              <SelectItem value="cfr">CFR (Cost & Freight)</SelectItem>
+                              <SelectItem value="dap">DAP (Delivered at Place)</SelectItem>
+                              <SelectItem value="ddp">DDP (Delivered Duty Paid)</SelectItem>
+                              <SelectItem value="cpt">CPT (Carriage Paid To)</SelectItem>
+                              <SelectItem value="cip">CIP (Carriage & Insurance Paid)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
                         {/* Contact Information */}
                         <div className="md:col-span-2 border-t pt-4 mt-2">
                           <h5 className="font-medium mb-3">Contact Information</h5>
@@ -1626,7 +1659,7 @@ Best regards`,
                         </div>
                         
                         <div>
-                          <Label htmlFor="quote-price-type">Price Type</Label>
+                          <Label htmlFor="quote-price-type">Price Type / Incoterms</Label>
                           <Select
                             value={quoteFormData.priceType}
                             onValueChange={(value) => setQuoteFormData({...quoteFormData, priceType: value})}
@@ -1638,7 +1671,12 @@ Best regards`,
                               <SelectItem value="ex_warehouse">Ex-Warehouse</SelectItem>
                               <SelectItem value="ex_works">Ex-Works</SelectItem>
                               <SelectItem value="fob">FOB (Free on Board)</SelectItem>
-                              <SelectItem value="cif">CIF (Cost, Insurance, Freight)</SelectItem>
+                              <SelectItem value="cif">CIF (Cost, Insurance & Freight)</SelectItem>
+                              <SelectItem value="cfr">CFR (Cost & Freight)</SelectItem>
+                              <SelectItem value="dap">DAP (Delivered at Place)</SelectItem>
+                              <SelectItem value="ddp">DDP (Delivered Duty Paid)</SelectItem>
+                              <SelectItem value="cpt">CPT (Carriage Paid To)</SelectItem>
+                              <SelectItem value="cip">CIP (Carriage & Insurance Paid)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
