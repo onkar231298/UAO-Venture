@@ -644,6 +644,7 @@ export const sampleRequests = pgTable("sample_requests", {
   processedAt: timestamp("processed_at"),
   processedBy: varchar("processed_by").references(() => users.id),
   assignedTo: varchar("assigned_to").references(() => users.id),
+  leadId: integer("lead_id"), // Optional link to CRM lead
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -696,6 +697,11 @@ export const quotations = pgTable("quotations", {
   customerCounterPrice: decimal("customer_counter_price", { precision: 10, scale: 2 }), // Customer's proposed price
   counterOfferNotes: text("counter_offer_notes"), // Customer's reasoning/notes
   negotiationHistory: jsonb("negotiation_history").default("[]"), // Array of {type, amount, notes, createdAt, createdBy}
+  
+  // CRM Lead Link
+  leadId: integer("lead_id"), // Optional link to CRM lead
+  sentAt: timestamp("sent_at"), // When quote was sent to customer via email
+  sentBy: varchar("sent_by").references(() => users.id), // Who sent the quote
 });
 
 // Quotation items
@@ -836,12 +842,15 @@ export const sampleRequestsRelations = relations(sampleRequests, ({ one }) => ({
   customer: one(users, { fields: [sampleRequests.customerId], references: [users.id] }),
   product: one(products, { fields: [sampleRequests.productId], references: [products.id] }),
   assignedUser: one(users, { fields: [sampleRequests.assignedTo], references: [users.id] }),
+  lead: one(leads, { fields: [sampleRequests.leadId], references: [leads.id] }),
 }));
 
 export const quotationsRelations = relations(quotations, ({ one, many }) => ({
   inquiry: one(inquiries, { fields: [quotations.inquiryId], references: [inquiries.id] }),
   customer: one(users, { fields: [quotations.customerId], references: [users.id] }),
   createdByUser: one(users, { fields: [quotations.createdBy], references: [users.id] }),
+  sentByUser: one(users, { fields: [quotations.sentBy], references: [users.id] }),
+  lead: one(leads, { fields: [quotations.leadId], references: [leads.id] }),
   items: many(quotationItems),
   salesOrders: many(salesOrders),
 }));
@@ -1346,6 +1355,8 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
   manager: one(users, { fields: [leads.salesManager], references: [users.id] }),
   activities: many(leadActivities),
   tasks: many(leadTasks),
+  sampleRequests: many(sampleRequests),
+  quotations: many(quotations),
   creator: one(users, { fields: [leads.createdBy], references: [users.id] }),
 }));
 
