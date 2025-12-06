@@ -39,7 +39,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+
+const COMPANY_STAGES = [
+  { id: "new", label: "New", color: "bg-gray-100 text-gray-800" },
+  { id: "contacted", label: "Contacted", color: "bg-blue-100 text-blue-800" },
+  { id: "qualified", label: "Qualified", color: "bg-cyan-100 text-cyan-800" },
+  { id: "active", label: "Active Customer", color: "bg-green-100 text-green-800" },
+  { id: "inactive", label: "Inactive", color: "bg-slate-100 text-slate-800" },
+  { id: "churned", label: "Churned", color: "bg-red-100 text-red-800" },
+];
 
 const companySchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
@@ -84,12 +103,26 @@ interface Company {
   industryType?: string | null;
   companySize?: string | null;
   website?: string | null;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
   addressCity?: string | null;
   addressState?: string | null;
   addressCountry?: string | null;
   assignedTo?: string | null;
   createdBy?: string | null;
   createdAt: string;
+  origin?: string | null;
+  status?: string | null;
+  companyStage?: string | null;
+  priority?: string | null;
+  linkedUserId?: string | null;
+}
+
+interface SalesRep {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 export default function CompanyManagement() {
@@ -98,10 +131,17 @@ export default function CompanyManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [industryFilter, setIndustryFilter] = useState<string>("all");
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [assignedToFilter, setAssignedToFilter] = useState<string>("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -155,15 +195,30 @@ export default function CompanyManagement() {
     },
   });
 
+  // Fetch sales reps for assignment
+  const { data: salesReps = [] } = useQuery<SalesRep[]>({
+    queryKey: ["/api/users/sales-reps"],
+  });
+
   // Fetch companies with RBAC filtering
+  const buildCompaniesUrl = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    if (industryFilter && industryFilter !== "all") params.append("industryType", industryFilter);
+    if (originFilter && originFilter !== "all") params.append("origin", originFilter);
+    if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+    if (stageFilter && stageFilter !== "all") params.append("companyStage", stageFilter);
+    if (priorityFilter && priorityFilter !== "all") params.append("priority", priorityFilter);
+    if (assignedToFilter && assignedToFilter !== "all") params.append("assignedTo", assignedToFilter);
+    return `/api/crm/companies?${params.toString()}`;
+  };
+
+  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter];
+
   const { data: companiesData, isLoading } = useQuery<{ companies: Company[]; total: number }>({
-    queryKey: ["/api/crm/companies", { search: searchTerm, industryType: industryFilter }],
+    queryKey: companiesQueryKey,
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
-      if (industryFilter && industryFilter !== "all") params.append("industryType", industryFilter);
-      
-      const response = await fetch(`/api/crm/companies?${params.toString()}`, {
+      const response = await fetch(buildCompaniesUrl(), {
         credentials: "include"
       });
       
@@ -174,6 +229,74 @@ export default function CompanyManagement() {
 
   const companies = companiesData?.companies || [];
   const total = companiesData?.total || 0;
+
+  // Company assignment mutation
+  const assignCompanyMutation = useMutation({
+    mutationFn: async ({ companyId, assignedTo }: { companyId: number; assignedTo: string }) => {
+      const response = await apiRequest(`/api/crm/companies/${companyId}/assign`, {
+        method: "POST",
+        body: JSON.stringify({ assignedTo }),
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      toast({
+        title: "Company Assigned",
+        description: "Company has been successfully assigned",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Assignment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAssignCompany = (companyId: number, assignedTo: string) => {
+    assignCompanyMutation.mutate({ companyId, assignedTo });
+  };
+
+  // Stage update mutation
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ companyId, stage }: { companyId: number; stage: string }) => {
+      const response = await apiRequest(`/api/crm/companies/${companyId}/stage`, {
+        method: "POST",
+        body: JSON.stringify({ stage }),
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      toast({
+        title: "Stage Updated",
+        description: "Company stage has been updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getStageColor = (stage: string | null | undefined) => {
+    const stageInfo = COMPANY_STAGES.find(s => s.id === stage);
+    return stageInfo?.color || "bg-gray-100 text-gray-800";
+  };
+
+  const getPriorityColor = (priority: string | null | undefined) => {
+    switch (priority) {
+      case "hot": return "bg-red-100 text-red-800";
+      case "warm": return "bg-orange-100 text-orange-800";
+      case "cold": return "bg-blue-100 text-blue-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   const adminRoles = ['admin', 'super_admin', 'sales_manager'];
   const isAdmin = user && (user as any).role ? adminRoles.includes((user as any).role) : false;
@@ -205,15 +328,35 @@ export default function CompanyManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-company-management">
-            {isAdmin ? "Customer Management" : "My Companies"}
+            {isAdmin ? "Company Management" : "My Companies"}
           </h1>
           <p className="text-muted-foreground">
             {isAdmin
-              ? "Manage all registered customers and company details"
+              ? "Manage all companies - both website customers and manually added"
               : "View companies assigned to you or created by you"}
           </p>
         </div>
         <div className="flex gap-2">
+          {/* View Toggle */}
+          <div className="flex border rounded-lg">
+            <Button 
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              data-testid="button-view-list"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              data-testid="button-view-kanban"
+            >
+              <Kanban className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <Button 
             variant="outline" 
             size="icon"
@@ -223,30 +366,70 @@ export default function CompanyManagement() {
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            data-testid="button-toggle-filters"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+          
           <Button data-testid="button-create-company" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            New Company
+            Add Company
           </Button>
         </div>
       </div>
+      
+      {/* Stage Filter Tabs */}
+      <Tabs value={stageFilter} onValueChange={setStageFilter} className="w-full">
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1">
+          <TabsTrigger value="all" className="text-xs" data-testid="tab-all-stages">All</TabsTrigger>
+          {COMPANY_STAGES.map(stage => (
+            <TabsTrigger 
+              key={stage.id} 
+              value={stage.id} 
+              className="text-xs"
+              data-testid={`tab-stage-${stage.id}`}
+            >
+              {stage.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search companies by name, GST, or website..."
+                placeholder="Search companies by name, GST, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
                 data-testid="input-search-companies"
               />
             </div>
+            
+            <Select value={originFilter} onValueChange={setOriginFilter}>
+              <SelectTrigger className="w-[150px]" data-testid="select-origin-filter">
+                <SelectValue placeholder="Origin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Origins</SelectItem>
+                <SelectItem value="website">Website</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="import">Imported</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <Select value={industryFilter} onValueChange={setIndustryFilter}>
-              <SelectTrigger className="w-[200px]" data-testid="select-industry-filter">
-                <SelectValue placeholder="All Industries" />
+              <SelectTrigger className="w-[180px]" data-testid="select-industry-filter">
+                <SelectValue placeholder="Industry" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Industries</SelectItem>
@@ -258,16 +441,62 @@ export default function CompanyManagement() {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[150px]" data-testid="select-priority-filter">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="hot">Hot</SelectItem>
+                  <SelectItem value="warm">Warm</SelectItem>
+                  <SelectItem value="cold">Cold</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {isAdmin && (
+                <Select value={assignedToFilter} onValueChange={setAssignedToFilter}>
+                  <SelectTrigger className="w-[180px]" data-testid="select-assigned-filter">
+                    <SelectValue placeholder="Assigned To" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Assignments</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {salesReps.map((rep) => (
+                      <SelectItem key={rep.id} value={rep.id}>
+                        {rep.firstName} {rep.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Companies</p>
+                <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold" data-testid="text-total-companies">{total}</p>
               </div>
               <Building2 className="h-8 w-8 text-muted-foreground" />
@@ -278,12 +507,25 @@ export default function CompanyManagement() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Website</p>
+                <p className="text-2xl font-bold text-blue-600" data-testid="text-website-companies">
+                  {companies.filter(c => c.origin === 'website').length}
+                </p>
+              </div>
+              <Globe className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Assigned</p>
-                <p className="text-2xl font-bold" data-testid="text-assigned-companies">
+                <p className="text-2xl font-bold text-green-600" data-testid="text-assigned-companies">
                   {companies.filter(c => c.assignedTo).length}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-muted-foreground" />
+              <Users className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -292,7 +534,7 @@ export default function CompanyManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Unassigned</p>
-                <p className="text-2xl font-bold" data-testid="text-unassigned-companies">
+                <p className="text-2xl font-bold text-amber-600" data-testid="text-unassigned-companies">
                   {companies.filter(c => !c.assignedTo).length}
                 </p>
               </div>
@@ -318,86 +560,135 @@ export default function CompanyManagement() {
             <div className="overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="inline-block min-w-full align-middle">
                 <div className="overflow-hidden sm:rounded-lg">
-                  <Table className="min-w-[800px]">
+                  <Table className="min-w-[1000px]">
                     <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
                       <TableRow>
-                        <TableHead>Company Name</TableHead>
-                        <TableHead>Industry</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Origin</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead>Priority</TableHead>
                         <TableHead>Location</TableHead>
-                        <TableHead>Size</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {companies.map((company) => (
-                        <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium" data-testid={`text-company-name-${company.id}`}>
-                                  {company.companyName}
-                                </p>
-                                {company.website && (
-                                  <a 
-                                    href={company.website} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                                  >
-                                    <Globe className="h-3 w-3" />
-                                    {company.website}
-                                  </a>
+                      {companies.map((company) => {
+                        const assignedRep = salesReps.find(r => r.id === company.assignedTo);
+                        return (
+                          <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
+                            <TableCell>
+                              <div className="flex items-start gap-2">
+                                <Building2 className="h-4 w-4 mt-1 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium" data-testid={`text-company-name-${company.id}`}>
+                                    {company.companyName}
+                                  </p>
+                                  {company.primaryEmail && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <Mail className="h-3 w-3" />
+                                      {company.primaryEmail}
+                                    </p>
+                                  )}
+                                  {company.industryType && (
+                                    <Badge variant="outline" className="mt-1 text-[10px]">
+                                      {company.industryType}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={company.origin === 'website' 
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                  : 'bg-gray-50 text-gray-700 border-gray-200'
+                                }
+                              >
+                                {company.origin === 'website' ? 'Website' : company.origin || 'Manual'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStageColor(company.companyStage)}>
+                                {COMPANY_STAGES.find(s => s.id === company.companyStage)?.label || 'New'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getPriorityColor(company.priority)}>
+                                {company.priority || 'warm'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {company.addressCity && (
+                                  <>
+                                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-sm">
+                                      {company.addressCity}
+                                      {company.addressState && `, ${company.addressState}`}
+                                    </span>
+                                  </>
                                 )}
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {company.industryType || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {company.addressCity && (
-                                <>
-                                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-sm">
-                                    {company.addressCity}
-                                    {company.addressState && `, ${company.addressState}`}
-                                  </span>
-                                </>
+                            </TableCell>
+                            <TableCell>
+                              {assignedRep ? (
+                                <span className="text-sm font-medium">
+                                  {assignedRep.firstName} {assignedRep.lastName}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-amber-600">Unassigned</span>
                               )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {company.companySize || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {company.assignedTo || (
-                                <span className="text-amber-600">Unassigned</span>
-                              )}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedCompany(company);
-                                setViewDetailsOpen(true);
-                              }}
-                              data-testid={`button-view-company-${company.id}`}
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedCompany(company);
+                                    setViewDetailsOpen(true);
+                                  }}
+                                  data-testid={`button-view-company-${company.id}`}
+                                >
+                                  View
+                                </Button>
+                                
+                                {isAdmin && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 w-8 p-0"
+                                        data-testid={`button-menu-${company.id}`}
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      {salesReps.map((rep) => (
+                                        <DropdownMenuItem 
+                                          key={rep.id}
+                                          onClick={() => handleAssignCompany(company.id, rep.id)}
+                                          data-testid={`menu-assign-${rep.id}`}
+                                        >
+                                          <UserPlus className="h-3 w-3 mr-2" />
+                                          {rep.firstName} {rep.lastName}
+                                          {company.assignedTo === rep.id && " (current)"}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
