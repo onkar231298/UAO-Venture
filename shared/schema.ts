@@ -1546,6 +1546,8 @@ export const emailThreads = pgTable("email_threads", {
 export const emailMessages = pgTable("email_messages", {
   id: serial("id").primaryKey(),
   messageId: varchar("message_id", { length: 255 }).unique(), // External Gmail message ID
+  messageIdHeader: varchar("message_id_header", { length: 500 }), // RFC Message-ID header for proper threading
+  referencesHeader: text("references_header"), // References header chain for threading
   threadId: integer("thread_id").references(() => emailThreads.id),
   leadId: integer("lead_id").references(() => leads.id),
   direction: varchar("direction", { length: 20 }).notNull(), // inbound, outbound
