@@ -3098,28 +3098,36 @@ Best regards`,
                   </div>
 
                   <div>
-                    <Label htmlFor="thread-select" className="mb-2 block">
-                      Email Thread (Optional)
+                    <Label htmlFor="thread-select" className="mb-2 block font-semibold text-red-600">
+                      Select Email Thread *
                     </Label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Select a thread to continue an existing conversation, or leave empty to start a new thread.
+                    <p className="text-xs text-gray-600 mb-2">
+                      Choose an existing conversation thread to send this quotation as a reply.
                     </p>
-                    <Select
-                      value={selectedThreadForQuote}
-                      onValueChange={setSelectedThreadForQuote}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Start new email thread" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="new_thread">Start new email thread</SelectItem>
-                        {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
-                          <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId}>
-                            {thread.subject || 'No subject'} - {format(new Date(thread.date || thread.createdAt), 'MMM d')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).length > 0 ? (
+                      <Select
+                        value={selectedThreadForQuote}
+                        onValueChange={setSelectedThreadForQuote}
+                      >
+                        <SelectTrigger className="border-2 border-blue-300">
+                          <SelectValue placeholder="-- Select a thread --" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
+                            <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{thread.subject || 'No subject'}</span>
+                                <span className="text-xs text-gray-500">{format(new Date(thread.date || thread.createdAt), 'MMM d, yyyy')}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="p-3 bg-yellow-50 border border-yellow-300 rounded text-sm text-yellow-800">
+                        No email threads found for this lead. Please send an initial email first to create a thread.
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2 justify-end pt-4">
@@ -3135,7 +3143,7 @@ Best regards`,
                     </Button>
                     <Button
                       onClick={confirmSendQuotation}
-                      disabled={sendQuotationMutation.isPending}
+                      disabled={sendQuotationMutation.isPending || !selectedThreadForQuote}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {sendQuotationMutation.isPending ? (
