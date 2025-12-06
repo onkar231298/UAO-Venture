@@ -5791,7 +5791,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.post('/api/email-attachments/upload-url', isAuthenticated, async (req: any, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getPrivateObjectUploadURL();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       
       res.json({ 
         uploadURL, 
