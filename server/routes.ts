@@ -7056,7 +7056,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Get email configuration for the sender
-      const emailConfig = await storage.getEmailConfigByUserId(userId);
+      const emailConfig = await storage.getUserEmailConfig(userId);
       if (!emailConfig?.accessToken) {
         return res.status(400).json({ 
           message: 'Gmail not connected. Please connect your Gmail account in Email Settings.',
@@ -7065,7 +7065,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Get company contact email for the lead
-      const { email, subject, body, attachPdf } = req.body;
+      const { email, subject, body, attachPdf, threadId } = req.body;
       
       if (!email) {
         return res.status(400).json({ message: 'Recipient email is required' });
@@ -7074,18 +7074,43 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // TODO: Generate PDF and attach if attachPdf is true
       // For now, send the email with body content
       
-      const emailSendResult = await sendEmail(
-        emailConfig.accessToken,
-        emailConfig.refreshToken || '',
-        {
-          to: email,
-          subject: subject || `Quotation ${quotation.quotationId}`,
-          body: body || `Please find attached the quotation ${quotation.quotationId}.`,
-          attachments: [],
-          cc: [],
-          bcc: [],
-        }
-      );
+      let emailSendResult: { messageId: string; threadId: string };
+      
+      const emailSubject = subject || `Quotation ${quotation.quotationId}`;
+      const emailBody = body || `Please find attached the quotation ${quotation.quotationId}.`;
+      
+      // If threadId is provided, use replyToEmail to continue the thread
+      // Otherwise, start a new email thread
+      if (threadId) {
+        emailSendResult = await gmailApi.replyToEmail(
+          emailConfig.accessToken,
+          threadId,
+          {
+            to: Array.isArray(email) ? email : [email],
+            cc: [],
+            bcc: [],
+            subject: emailSubject,
+            bodyHtml: emailBody,
+            bodyText: emailBody.replace(/<[^>]*>/g, ''),
+            fromName: emailConfig.displayName || undefined,
+            fromEmail: emailConfig.companyEmail,
+          }
+        );
+      } else {
+        emailSendResult = await gmailApi.sendEmail(
+          emailConfig.accessToken,
+          {
+            to: Array.isArray(email) ? email : [email],
+            cc: [],
+            bcc: [],
+            subject: emailSubject,
+            bodyHtml: emailBody,
+            bodyText: emailBody.replace(/<[^>]*>/g, ''),
+            fromName: emailConfig.displayName || undefined,
+            fromEmail: emailConfig.companyEmail,
+          }
+        );
+      }
 
       // Update quotation with sent status
       await storage.updateQuotation(quotationId, {
@@ -7097,16 +7122,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Log activity
       await storage.createLeadActivity({
         leadId,
-        type: 'quote_sent',
-        title: 'Quotation Sent',
+        activityType: 'quote_sent',
+        subject: 'Quotation Sent',
         description: `Quotation ${quotation.quotationId} sent to ${email}`,
         createdBy: userId,
       });
 
-      // Store email message
+      // Store email message - use the threadId from request or from the send result
       await storage.storeEmailMessage({
         leadId,
-        threadId: null,
+        threadId: emailSendResult.threadId || threadId || null,
         direction: 'outbound',
         fromEmail: emailConfig.email,
         toEmails: [email],
@@ -7117,7 +7142,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         bodyText: body || '',
         sentAt: new Date(),
         gmailMessageId: emailSendResult.messageId || null,
-        gmailThreadId: emailSendResult.threadId || null,
+        gmailThreadId: emailSendResult.threadId || threadId || null,
         isRead: true,
       });
 

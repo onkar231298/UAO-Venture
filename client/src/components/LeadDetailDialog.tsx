@@ -74,6 +74,9 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     country: "United States",
   });
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showSendQuoteDialog, setShowSendQuoteDialog] = useState(false);
+  const [selectedQuoteToSend, setSelectedQuoteToSend] = useState<any>(null);
+  const [selectedThreadForQuote, setSelectedThreadForQuote] = useState<string>("");
   const [quoteFormData, setQuoteFormData] = useState({
     productId: 0,
     quantity: "",
@@ -673,7 +676,7 @@ Packaging: Standard export packaging`,
 
   // Send quotation via email mutation
   const sendQuotationMutation = useMutation({
-    mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string }) => {
+    mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string; threadId?: string }) => {
       const contactName = lead?.contactPerson?.contactName || 'Customer';
       return apiRequest(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
         method: 'POST',
@@ -689,6 +692,7 @@ Quotation: ${data.quotationInfo}
 We look forward to your favorable response.
 
 Best regards`,
+          threadId: data.threadId,
         }),
       });
     },
@@ -728,12 +732,28 @@ Best regards`,
       });
       return;
     }
-    const quotationInfo = `${quote.quotationId} - ${quote.currency || 'USD'} ${parseFloat(quote.totalAmount || 0).toLocaleString()}`;
+    // Show the send dialog for thread selection
+    setSelectedQuoteToSend(quote);
+    setSelectedThreadForQuote("");
+    setShowSendQuoteDialog(true);
+  };
+
+  const confirmSendQuotation = () => {
+    if (!selectedQuoteToSend) return;
+    
+    const customerEmail = lead?.contactPerson?.email;
+    if (!customerEmail) return;
+    
+    const quotationInfo = `${selectedQuoteToSend.quotationId} - ${selectedQuoteToSend.currency || 'USD'} ${parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}`;
     sendQuotationMutation.mutate({
-      quotationId: quote.id,
+      quotationId: selectedQuoteToSend.id,
       email: customerEmail,
       quotationInfo,
+      threadId: selectedThreadForQuote || undefined,
     });
+    setShowSendQuoteDialog(false);
+    setSelectedQuoteToSend(null);
+    setSelectedThreadForQuote("");
   };
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
@@ -3051,6 +3071,84 @@ Best regards`,
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Send Quotation Dialog with Thread Selection */}
+        {showSendQuoteDialog && selectedQuoteToSend && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <Card className="w-full max-w-md mx-4 bg-white">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Send className="h-5 w-5 text-green-600" />
+                  Send Quotation
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="p-3 bg-gray-50 rounded border">
+                    <div className="text-sm">
+                      <strong>Quotation:</strong> {selectedQuoteToSend.quotationId}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Amount:</strong> {selectedQuoteToSend.currency || 'USD'} {parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}
+                    </div>
+                    <div className="text-sm">
+                      <strong>To:</strong> {lead?.contactPerson?.email}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="thread-select" className="mb-2 block">
+                      Email Thread (Optional)
+                    </Label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Select a thread to continue an existing conversation, or leave empty to start a new thread.
+                    </p>
+                    <Select
+                      value={selectedThreadForQuote}
+                      onValueChange={setSelectedThreadForQuote}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Start new email thread" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Start new email thread</SelectItem>
+                        {emailThreads.map((thread: any) => (
+                          <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId || ''}>
+                            {thread.subject || 'No subject'} - {format(new Date(thread.date || thread.createdAt), 'MMM d')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-2 justify-end pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowSendQuoteDialog(false);
+                        setSelectedQuoteToSend(null);
+                        setSelectedThreadForQuote("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={confirmSendQuotation}
+                      disabled={sendQuotationMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {sendQuotationMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Send Quotation
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
