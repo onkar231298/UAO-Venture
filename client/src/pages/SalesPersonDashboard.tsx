@@ -130,7 +130,16 @@ export default function SalesPersonDashboard() {
   }
 
   const userRole = (user as any).role || '';
-  const isSalesRole = userRole.includes('sales') || userRole.includes('admin');
+  
+  // Admin and Super Admin should use Admin Dashboard, not Sales Dashboard
+  const isAdminRole = userRole === 'admin' || userRole === 'super_admin';
+  if (isAdminRole) {
+    window.location.href = '/admin';
+    return null;
+  }
+  
+  // Only sales_executive and sales_manager should access this dashboard
+  const isSalesRole = userRole === 'sales_executive' || userRole === 'sales_manager';
 
   if (!isSalesRole) {
     return (

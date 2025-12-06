@@ -147,8 +147,8 @@ function Router() {
           {/* Customer dashboard - accessible without admin auth */}
           <Route path="/customer/*" component={CustomerDashboard} />
           
-          {/* Sales person dashboard - for sales roles */}
-          {((user as any).role?.includes('sales') || (user as any).role === 'admin' || (user as any).role === 'super_admin') ? (
+          {/* Sales person dashboard - only for sales_executive and sales_manager */}
+          {((user as any).role === 'sales_executive' || (user as any).role === 'sales_manager') ? (
             <>
               <Route path="/sales" component={SalesPersonDashboard} />
               <Route path="/sales/leads" component={SalesLeadManagement} />
