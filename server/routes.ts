@@ -4447,6 +4447,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
       
+      console.log('[Companies API] User:', userId, 'Role:', userRole, 'Origin filter:', origin);
+      
       const filters: any = {
         search,
         industryType,
@@ -4466,6 +4468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (dateTo) filters.dateTo = dateTo;
       
       const result = await storage.getCompanies(filters);
+      console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));
       res.json(result);
     } catch (error) {
       console.error('Error fetching companies:', error);
