@@ -7010,8 +7010,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Log activity
       await storage.createLeadActivity({
         leadId,
-        type: 'quote_created',
-        title: 'Quotation Created',
+        activityType: 'quote_created',
+        subject: 'Quotation Created',
         description: `Quotation ${quotation.quotationId} created with value ${req.body.currency || 'USD'} ${req.body.totalAmount || 0}`,
         createdBy: userId,
       });
