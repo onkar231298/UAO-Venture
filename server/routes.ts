@@ -2690,10 +2690,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fallbackQuantity: quotation.quantity
       });
 
-      // Get customer details
-      const customer = await storage.getUser(quotation.customerId);
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
+      // Try to get customer details from users table, or fall back to lead data
+      let customerData: any = null;
+      
+      if (quotation.customerId) {
+        const customer = await storage.getUser(quotation.customerId);
+        if (customer) {
+          customerData = {
+            name: customer.firstName && customer.lastName ? `${customer.firstName} ${customer.lastName}` : customer.email || '',
+            email: customer.email || '',
+            companyName: customer.companyName || '',
+            phone: customer.phoneNumber || '',
+            address: customer.address || '',
+            city: '',
+            state: '',
+            country: customer.country || '',
+            postalCode: '',
+          };
+        }
+      }
+      
+      // If no customer found and we have a leadId, try to get lead data
+      if (!customerData && quotation.leadId) {
+        const lead = await storage.getLead(quotation.leadId);
+        if (lead) {
+          customerData = {
+            name: lead.contactPerson || lead.companyName || '',
+            email: lead.email || '',
+            companyName: lead.companyName || '',
+            phone: lead.phone || '',
+            address: lead.address || '',
+            city: lead.city || '',
+            state: lead.state || '',
+            country: lead.country || '',
+            postalCode: lead.postalCode || '',
+          };
+        }
+      }
+      
+      // Use quotation's own customer data if still not found (stored in quotation itself)
+      if (!customerData) {
+        customerData = {
+          name: quotation.customerCompanyName || 'Customer',
+          email: '',
+          companyName: quotation.customerCompanyName || '',
+          phone: '',
+          address: quotation.customerAddress || '',
+          city: quotation.customerCity || '',
+          state: quotation.customerState || '',
+          country: quotation.customerCountry || '',
+          postalCode: quotation.customerPostalCode || '',
+        };
       }
 
       // Import PDF generator
@@ -2734,18 +2781,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerPostalCode: quotation.customerPostalCode,
         placeOfSupply: quotation.placeOfSupply,
         countryOfSupply: quotation.countryOfSupply,
-      };
-
-      const customerData = {
-        name: customer.firstName && customer.lastName ? `${customer.firstName} ${customer.lastName}` : customer.email || '',
-        email: customer.email || '',
-        companyName: customer.companyName || '',
-        phone: customer.phoneNumber || '',
-        address: customer.address || '',
-        city: '',
-        state: '',
-        country: customer.country || '',
-        postalCode: '',
       };
 
       // Generate PDF
