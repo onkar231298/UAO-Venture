@@ -6994,11 +6994,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Create quotation with lead link
-      const quotation = await storage.createQuotation({
+      // Convert validUntil from string to Date if present
+      const quotationData = {
         ...req.body,
         leadId,
         createdBy: userId,
-      });
+      };
+      
+      if (quotationData.validUntil && typeof quotationData.validUntil === 'string') {
+        quotationData.validUntil = new Date(quotationData.validUntil);
+      }
+      
+      const quotation = await storage.createQuotation(quotationData);
 
       // Log activity
       await storage.createLeadActivity({
