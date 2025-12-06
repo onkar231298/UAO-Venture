@@ -4407,20 +4407,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/crm/companies', isAuthenticated, async (req: any, res) => {
     try {
-      const { search, industryType, needsEnrichment, limit = '50', offset = '0' } = req.query;
+      const { 
+        search, industryType, needsEnrichment, origin, status, 
+        companyStage, priority, assignedTo, createdFrom,
+        limit = '50', offset = '0' 
+      } = req.query;
       
-      // Get user info for RBAC
       const userId = req.user.claims.sub;
       const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
       
-      const filters = {
+      const filters: any = {
         search,
         industryType,
-        needsEnrichment: needsEnrichment === 'true',
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
-        user: { id: userId, role: userRole } // Pass user for RBAC filtering
+        user: { id: userId, role: userRole }
       };
+      
+      if (needsEnrichment !== undefined) filters.needsEnrichment = needsEnrichment === 'true';
+      if (origin) filters.origin = origin;
+      if (status) filters.status = status;
+      if (companyStage) filters.companyStage = companyStage;
+      if (priority) filters.priority = priority;
+      if (assignedTo) filters.assignedTo = assignedTo;
+      if (createdFrom) filters.createdFrom = createdFrom;
+      
       const result = await storage.getCompanies(filters);
       res.json(result);
     } catch (error) {
@@ -4439,6 +4450,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching company:', error);
       res.status(500).json({ message: "Failed to fetch company" });
+    }
+  });
+
+  app.get('/api/crm/companies/:id/details', isAuthenticated, async (req: any, res) => {
+    try {
+      const company = await storage.getCompanyWithDetails(parseInt(req.params.id));
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error('Error fetching company details:', error);
+      res.status(500).json({ message: "Failed to fetch company details" });
     }
   });
 
@@ -4524,6 +4548,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting company:', error);
       res.status(500).json({ message: "Failed to delete company" });
+    }
+  });
+
+  // Company Assignment
+  app.post('/api/crm/companies/:id/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      if (!adminRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Only managers can assign companies" });
+      }
+      
+      const { assignedTo } = req.body;
+      if (!assignedTo) {
+        return res.status(400).json({ message: "assignedTo is required" });
+      }
+      
+      const company = await storage.assignCompany(parseInt(req.params.id), assignedTo, userId);
+      
+      // Create notification for the assigned sales rep
+      try {
+        const companyDetails = await storage.getCompany(company.id);
+        await storage.createNotification({
+          type: 'company_assigned',
+          title: 'Company Assigned to You',
+          message: `You have been assigned to manage ${companyDetails?.companyName || 'a company'}`,
+          targetUserId: assignedTo,
+          targetRoles: null,
+          entityType: 'company',
+          entityId: company.id,
+        });
+      } catch (notificationError) {
+        console.error('Error creating assignment notification:', notificationError);
+      }
+      
+      res.json(company);
+    } catch (error) {
+      console.error('Error assigning company:', error);
+      res.status(500).json({ message: "Failed to assign company" });
+    }
+  });
+
+  app.post('/api/crm/companies/bulk-assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      if (!adminRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Only managers can assign companies" });
+      }
+      
+      const { companyIds, assignedTo } = req.body;
+      if (!companyIds || !Array.isArray(companyIds) || companyIds.length === 0) {
+        return res.status(400).json({ message: "companyIds array is required" });
+      }
+      if (!assignedTo) {
+        return res.status(400).json({ message: "assignedTo is required" });
+      }
+      
+      const result = await storage.bulkAssignCompanies(companyIds, assignedTo, userId);
+      
+      if (result.success > 0) {
+        try {
+          await storage.createNotification({
+            type: 'company_assigned',
+            title: 'Companies Assigned to You',
+            message: `You have been assigned ${result.success} new compan${result.success === 1 ? 'y' : 'ies'} to manage`,
+            targetUserId: assignedTo,
+            targetRoles: null,
+            entityType: 'company',
+            entityId: companyIds[0],
+          });
+        } catch (notificationError) {
+          console.error('Error creating bulk assignment notification:', notificationError);
+        }
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error bulk assigning companies:', error);
+      res.status(500).json({ message: "Failed to bulk assign companies" });
+    }
+  });
+
+  // Company Stage Update
+  app.post('/api/crm/companies/:id/stage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { stage } = req.body;
+      
+      if (!stage) {
+        return res.status(400).json({ message: "stage is required" });
+      }
+      
+      const company = await storage.updateCompanyStage(parseInt(req.params.id), stage, userId);
+      res.json(company);
+    } catch (error) {
+      console.error('Error updating company stage:', error);
+      res.status(500).json({ message: "Failed to update company stage" });
+    }
+  });
+
+  // ========================================
+  // CRM - COMPANY ACTIVITY ROUTES
+  // ========================================
+
+  app.get('/api/crm/companies/:id/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const activities = await storage.getCompanyActivities(parseInt(req.params.id));
+      res.json(activities);
+    } catch (error) {
+      console.error('Error fetching company activities:', error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.post('/api/crm/companies/:id/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activityData = {
+        ...req.body,
+        companyId: parseInt(req.params.id),
+        createdBy: userId,
+      };
+      const activity = await storage.createCompanyActivity(activityData);
+      res.json(activity);
+    } catch (error) {
+      console.error('Error creating company activity:', error);
+      res.status(500).json({ message: "Failed to create activity" });
+    }
+  });
+
+  // ========================================
+  // CRM - COMPANY TASK ROUTES
+  // ========================================
+
+  app.get('/api/crm/companies/:id/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const tasks = await storage.getCompanyTasks({ companyId: parseInt(req.params.id) });
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error fetching company tasks:', error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post('/api/crm/companies/:id/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const taskData = {
+        ...req.body,
+        companyId: parseInt(req.params.id),
+        createdBy: userId,
+      };
+      const task = await storage.createCompanyTask(taskData);
+      res.json(task);
+    } catch (error) {
+      console.error('Error creating company task:', error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch('/api/crm/company-tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const task = await storage.updateCompanyTask(parseInt(req.params.id), req.body);
+      res.json(task);
+    } catch (error) {
+      console.error('Error updating company task:', error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.post('/api/crm/company-tasks/:id/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.completeCompanyTask(parseInt(req.params.id), userId);
+      res.json(task);
+    } catch (error) {
+      console.error('Error completing company task:', error);
+      res.status(500).json({ message: "Failed to complete task" });
+    }
+  });
+
+  // User tasks endpoint
+  app.get('/api/crm/my-company-tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { status } = req.query;
+      const tasks = await storage.getCompanyTasks({ assignedTo: userId, status });
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error fetching user tasks:', error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
     }
   });
 
