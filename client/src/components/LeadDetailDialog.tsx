@@ -368,51 +368,25 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
     try {
-      console.log('[Upload] Starting upload for file:', file.name, 'size:', file.size, 'type:', file.type);
+      // Upload file through server (avoids CORS issues with direct GCS upload)
+      const formData = new FormData();
+      formData.append('file', file);
       
-      // Get upload URL
-      const urlResponse = await apiRequest('/api/email-attachments/upload-url', {
+      const response = await fetch('/api/email-attachments/upload', {
         method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
       
-      console.log('[Upload] Got URL response:', urlResponse);
-      
-      if (!urlResponse.uploadURL) {
-        throw new Error('Failed to get upload URL');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
       }
       
-      // Upload file to object storage
-      console.log('[Upload] Uploading to storage URL...');
-      const uploadResponse = await fetch(urlResponse.uploadURL, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-      });
-      
-      console.log('[Upload] Storage response:', uploadResponse.status, uploadResponse.statusText);
-      
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('[Upload] Storage error response:', errorText);
-        throw new Error(`Failed to upload file: ${uploadResponse.status} ${uploadResponse.statusText}`);
-      }
-      
-      // Get the file URL from the response location or construct it
-      const fileUrl = uploadResponse.headers.get('Location') || urlResponse.uploadURL.split('?')[0];
-      console.log('[Upload] File URL:', fileUrl);
-      
-      // Finalize the upload
-      const finalizeResponse = await apiRequest('/api/email-attachments/finalize', {
-        method: 'POST',
-        body: JSON.stringify({ fileUrl, fileName: file.name }),
-      });
-      
-      console.log('[Upload] Finalize response:', finalizeResponse);
-      return finalizeResponse.fileUrl;
+      const result = await response.json();
+      return result.fileUrl;
     } catch (error) {
-      console.error('[Upload] Error uploading attachment:', error);
+      console.error('Error uploading attachment:', error);
       return null;
     }
   };

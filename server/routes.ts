@@ -5787,35 +5787,42 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Get upload URL for email attachments
-  app.post('/api/email-attachments/upload-url', isAuthenticated, async (req: any, res) => {
+  // Upload email attachment through server (proxy to avoid CORS)
+  const emailAttachmentUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
+  });
+  
+  app.post('/api/email-attachments/upload', isAuthenticated, emailAttachmentUpload.single('file'), async (req: any, res) => {
     try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: 'No file provided' });
+      }
+      
       const objectStorageService = new ObjectStorageService();
+      
+      // Get a signed upload URL
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       
-      res.json({ 
-        uploadURL, 
-        provider: 'replit-object-storage',
+      // Upload the file to object storage
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file.buffer,
+        headers: {
+          'Content-Type': file.mimetype || 'application/octet-stream',
+        },
       });
-    } catch (error) {
-      console.error('Error generating attachment upload URL:', error);
-      res.status(500).json({ message: 'Failed to generate upload URL' });
-    }
-  });
-
-  // Finalize email attachment upload (set ACL)
-  app.post('/api/email-attachments/finalize', isAuthenticated, async (req: any, res) => {
-    try {
-      const { fileUrl, fileName } = req.body;
       
-      if (!fileUrl) {
-        return res.status(400).json({ message: 'File URL is required' });
+      if (!uploadResponse.ok) {
+        console.error('Object storage upload failed:', uploadResponse.status, uploadResponse.statusText);
+        return res.status(500).json({ message: 'Failed to upload to object storage' });
       }
-
-      const userId = req.user.claims.sub;
-      const objectStorageService = new ObjectStorageService();
       
-      // Normalize and store the path
+      // Get the file URL from the signed URL (remove query params)
+      const fileUrl = uploadURL.split('?')[0];
+      
+      // Normalize the path
       const objectPath = objectStorageService.normalizeObjectEntityPath(fileUrl);
       const cleanPath = objectPath.startsWith('/objects/') 
         ? objectPath 
@@ -5824,11 +5831,13 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       res.json({ 
         success: true, 
         fileUrl: cleanPath,
-        fileName: fileName || 'attachment',
+        fileName: file.originalname,
+        size: file.size,
+        contentType: file.mimetype,
       });
     } catch (error) {
-      console.error('Error finalizing attachment upload:', error);
-      res.status(500).json({ message: 'Failed to finalize attachment upload' });
+      console.error('Error uploading attachment:', error);
+      res.status(500).json({ message: 'Failed to upload attachment' });
     }
   });
 
