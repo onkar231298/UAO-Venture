@@ -4752,6 +4752,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send email to a company
+  app.post('/api/crm/companies/:id/emails/send', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestThreadId, isReply } = req.body;
+
+      console.log('[Company Email Send] Starting - companyId:', companyId, 'threadId:', requestThreadId, 'isReply:', isReply);
+
+      if (!to || !subject || !bodyHtml) {
+        return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
+      }
+
+      // Get sender's email config
+      const emailConfig = await storage.getUserEmailConfig(userId);
+      if (!emailConfig) {
+        return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
+      }
+
+      // Check if Gmail is connected
+      if (!emailConfig.isConnected || (!emailConfig.accessToken && !emailConfig.refreshToken)) {
+        return res.status(400).json({ 
+          message: 'Gmail is not connected. Please connect your Gmail account in Settings → Email Configuration to send emails.',
+          requiresGmailConnect: true,
+        });
+      }
+
+      // Get company details for context
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ message: 'Company not found' });
+      }
+
+      // Thread handling
+      let thread: any = null;
+      
+      if (requestThreadId && isReply) {
+        thread = await storage.getEmailThread(requestThreadId);
+        console.log('[Company Email Send] Using existing thread for reply:', thread?.id);
+      }
+      
+      if (!thread) {
+        thread = await storage.createEmailThread({
+          leadId: null,
+          companyId,
+          subject,
+          messageCount: 0,
+          isRead: true,
+          labels: [],
+        });
+        console.log('[Company Email Send] Created new thread:', thread.id);
+      }
+
+      // Prepare email content with optional signature
+      let finalBodyHtml = bodyHtml;
+      if (emailConfig.signatureImageUrl) {
+        const signatureSeparator = '<br><br>---<br>';
+        const signatureHtml = `<img src="${emailConfig.signatureImageUrl}" alt="Signature" style="max-width: 300px; height: auto;" />`;
+        finalBodyHtml = bodyHtml + signatureSeparator + signatureHtml;
+      }
+
+      // Build References and In-Reply-To headers for proper threading
+      let referencesHeader = '';
+      let inReplyToHeader = '';
+      
+      if (isReply && thread) {
+        const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
+        const messageIds = existingMessages
+          .filter((m: any) => m.gmailMessageId)
+          .map((m: any) => `<${m.gmailMessageId}@mail.gmail.com>`);
+        
+        if (messageIds.length > 0) {
+          referencesHeader = messageIds.join(' ');
+          inReplyToHeader = messageIds[messageIds.length - 1];
+        }
+      }
+
+      // Send email via Gmail API
+      const { google } = await import('googleapis');
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET
+      );
+      
+      oauth2Client.setCredentials({
+        access_token: emailConfig.accessToken,
+        refresh_token: emailConfig.refreshToken,
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+      // Build email message
+      const toAddresses = Array.isArray(to) ? to : [to];
+      const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
+      const bccAddresses = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : [];
+
+      let emailHeaders = `From: ${emailConfig.emailAddress}\r\n`;
+      emailHeaders += `To: ${toAddresses.join(', ')}\r\n`;
+      if (ccAddresses.length > 0) emailHeaders += `Cc: ${ccAddresses.join(', ')}\r\n`;
+      if (bccAddresses.length > 0) emailHeaders += `Bcc: ${bccAddresses.join(', ')}\r\n`;
+      emailHeaders += `Subject: ${subject}\r\n`;
+      emailHeaders += 'MIME-Version: 1.0\r\n';
+      if (referencesHeader) emailHeaders += `References: ${referencesHeader}\r\n`;
+      if (inReplyToHeader) emailHeaders += `In-Reply-To: ${inReplyToHeader}\r\n`;
+      emailHeaders += 'Content-Type: text/html; charset=utf-8\r\n\r\n';
+
+      const emailMessage = emailHeaders + finalBodyHtml;
+      const encodedMessage = Buffer.from(emailMessage)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      const gmailResponse = await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage,
+          threadId: thread.gmailThreadId || undefined,
+        },
+      });
+
+      console.log('[Company Email Send] Gmail API response:', gmailResponse.data);
+
+      // Update thread with Gmail thread ID if new
+      if (!thread.gmailThreadId && gmailResponse.data.threadId) {
+        await storage.updateEmailThread(thread.id, {
+          gmailThreadId: gmailResponse.data.threadId,
+        });
+      }
+
+      // Create email message record
+      const emailMessage2 = await storage.createEmailMessage({
+        threadId: thread.id,
+        gmailMessageId: gmailResponse.data.id || null,
+        direction: 'outbound',
+        fromEmail: emailConfig.emailAddress,
+        fromName: null,
+        toEmails: toAddresses,
+        ccEmails: ccAddresses.length > 0 ? ccAddresses : null,
+        subject,
+        bodyHtml: finalBodyHtml,
+        bodyText: bodyText || null,
+        sentAt: new Date(),
+        receivedAt: null,
+        status: 'sent',
+        labels: [],
+        hasAttachments: (attachments && attachments.length > 0) || false,
+      });
+
+      // Update thread
+      await storage.updateEmailThread(thread.id, {
+        lastMessageAt: new Date(),
+        messageCount: (thread.messageCount || 0) + 1,
+      });
+
+      // Log activity
+      await storage.createCompanyActivity({
+        companyId,
+        createdBy: userId,
+        activityType: 'email_sent',
+        subject: `Email sent: ${subject}`,
+        description: `Email sent to ${toAddresses.join(', ')}`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Email sent successfully',
+        threadId: thread.id,
+        messageId: emailMessage2.id,
+      });
+    } catch (error: any) {
+      console.error('[Company Email Send] Error:', error);
+      
+      if (error.code === 401 || (error.message && error.message.includes('invalid_grant'))) {
+        return res.status(401).json({ 
+          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
+          requiresGmailConnect: true,
+        });
+      }
+      
+      res.status(500).json({ message: 'Failed to send email: ' + (error.message || 'Unknown error') });
+    }
+  });
+
   // Get call activities for a company (filtered from activities)
   app.get('/api/crm/companies/:id/calls', isAuthenticated, async (req: any, res) => {
     try {
