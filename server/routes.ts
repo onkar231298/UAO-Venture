@@ -7196,15 +7196,40 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.get('/api/crm/leads/:leadId/emails', isAuthenticated, async (req: any, res) => {
     try {
       const leadId = parseInt(req.params.leadId);
-      const threads = await storage.getEmailThreads({ leadId });
+      
+      // Get lead-specific threads
+      const leadThreads = await storage.getEmailThreads({ leadId });
+      
+      // Also get company-level threads if the lead has a company
+      const lead = await storage.getLead(leadId);
+      let companyThreads: any[] = [];
+      if (lead?.companyId) {
+        // Get company threads that don't have a leadId (company-level emails)
+        const allCompanyThreads = await storage.getEmailThreads({ companyId: lead.companyId });
+        companyThreads = allCompanyThreads.filter(t => !t.leadId);
+      }
+      
+      // Combine both sets of threads
+      const allThreads = [...leadThreads, ...companyThreads];
       
       // Get messages for each thread
       const threadsWithMessages = await Promise.all(
-        threads.map(async (thread) => {
+        allThreads.map(async (thread) => {
           const messages = await storage.getEmailMessages({ threadId: thread.id });
-          return { ...thread, messages };
+          return { 
+            ...thread, 
+            messages,
+            source: thread.leadId ? 'lead' : 'company' // Mark the source for UI context
+          };
         })
       );
+      
+      // Sort by lastMessageAt descending
+      threadsWithMessages.sort((a, b) => {
+        const dateA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const dateB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return dateB - dateA;
+      });
       
       res.json(threadsWithMessages);
     } catch (error) {

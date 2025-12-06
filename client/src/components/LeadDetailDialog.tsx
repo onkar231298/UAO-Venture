@@ -2351,6 +2351,11 @@ Packaging: Standard export packaging`,
                               <Badge className={`text-xs ${statusColor} border-0`}>
                                 {statusLabel}
                               </Badge>
+                              {thread.source === 'company' && (
+                                <Badge className="text-xs bg-purple-100 text-purple-700 border-0">
+                                  Company Email
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-500">
