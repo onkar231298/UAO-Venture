@@ -3,6 +3,16 @@
 ## Overview
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
+## Recent Changes (December 6, 2025)
+- **RFC Email Threading for Recipients**: Fixed critical issue where email replies from CRM appeared as new emails in recipients' inboxes instead of threading properly. Solution:
+  - Added `messageIdHeader` and `referencesHeader` columns to `email_messages` table to store RFC Message-ID headers
+  - Updated `parseEmailMessage` in gmail.ts to extract Message-ID and References headers from Gmail API responses
+  - When syncing inbound emails, now stores the RFC Message-ID and References headers
+  - When sending replies, fetches parent message's Message-ID header and passes it as `In-Reply-To` header
+  - Builds proper `References` chain (parent's references + parent's Message-ID) for correct threading
+  - After sending, re-fetches sent message from Gmail to capture and store its Message-ID for future replies
+  - Recipients now see CRM replies threaded in their existing email conversations
+
 ## Recent Changes (December 5, 2025)
 - **Email Thread Separation Fix**: Fixed critical bug where all emails for a lead were incorrectly grouped into a single thread. Now each new email creates a separate thread, while replies properly append to existing threads. Backend distinguishes between new emails and replies using `isReply` flag from frontend.
 
