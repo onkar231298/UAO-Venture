@@ -22,6 +22,8 @@ import {
   bidNegotiations,
   companies,
   companyContacts,
+  companyActivities,
+  companyTasks,
   leads,
   leadActivities,
   leadTasks,
@@ -97,6 +99,11 @@ import {
   type InsertCompany,
   type CompanyContact,
   type InsertCompanyContact,
+  type CompanyActivity,
+  type InsertCompanyActivity,
+  type CompanyTask,
+  type InsertCompanyTask,
+  type CompanyWithDetails,
   type Lead,
   type InsertLead,
   type LeadActivity,
@@ -403,12 +410,39 @@ export interface IStorage {
   getNewsletterSubscriptions(filters?: { isActive?: boolean; limit?: number; offset?: number }): Promise<{ subscriptions: NewsletterSubscription[]; total: number }>;
 
   // CRM - Company methods
-  getCompanies(filters?: { search?: string; industryType?: string; needsEnrichment?: boolean; limit?: number; offset?: number }): Promise<{ companies: Company[]; total: number }>;
+  getCompanies(filters?: { 
+    search?: string; 
+    industryType?: string; 
+    needsEnrichment?: boolean; 
+    origin?: string;
+    status?: string;
+    companyStage?: string;
+    priority?: string;
+    assignedTo?: string;
+    createdFrom?: string;
+    limit?: number; 
+    offset?: number;
+    user?: { id: string; role: string };
+  }): Promise<{ companies: Company[]; total: number }>;
   getCompany(id: number): Promise<Company | undefined>;
+  getCompanyWithDetails(id: number): Promise<CompanyWithDetails | undefined>;
   createCompany(company: InsertCompany): Promise<Company>;
   updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company>;
   deleteCompany(id: number): Promise<void>;
   getCompanyByGST(gstNumber: string): Promise<Company | undefined>;
+  assignCompany(companyId: number, assignedTo: string, assignedBy: string): Promise<Company>;
+  bulkAssignCompanies(companyIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number; errors: { companyId: number; error: string }[] }>;
+  updateCompanyStage(companyId: number, stage: string, userId: string): Promise<Company>;
+  
+  // CRM - Company activity methods
+  getCompanyActivities(companyId: number): Promise<CompanyActivity[]>;
+  createCompanyActivity(activity: InsertCompanyActivity): Promise<CompanyActivity>;
+  
+  // CRM - Company task methods
+  getCompanyTasks(filters?: { companyId?: number; assignedTo?: string; status?: string }): Promise<CompanyTask[]>;
+  createCompanyTask(task: InsertCompanyTask): Promise<CompanyTask>;
+  updateCompanyTask(id: number, task: Partial<InsertCompanyTask>): Promise<CompanyTask>;
+  completeCompanyTask(id: number, completedBy: string): Promise<CompanyTask>;
 
   // CRM - Company contact methods
   getCompanyContacts(companyId: number): Promise<CompanyContact[]>;
@@ -4471,9 +4505,15 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     industryType?: string;
     needsEnrichment?: boolean;
+    origin?: string;
+    status?: string;
+    companyStage?: string;
+    priority?: string;
+    assignedTo?: string;
+    createdFrom?: string;
     limit?: number;
     offset?: number;
-    user?: { id: string; role: string }; // For RBAC filtering
+    user?: { id: string; role: string };
   }): Promise<{ companies: Company[]; total: number }> {
     const conditions = [];
 
@@ -4483,7 +4523,6 @@ export class DatabaseStorage implements IStorage {
       const isAdmin = adminRoles.includes(filters.user.role);
       
       if (!isAdmin) {
-        // Sales reps see only companies assigned to them OR companies they created
         conditions.push(
           or(
             eq(companies.assignedTo, filters.user.id),
@@ -4498,7 +4537,8 @@ export class DatabaseStorage implements IStorage {
         or(
           like(companies.companyName, `%${filters.search}%`),
           like(companies.gstNumber, `%${filters.search}%`),
-          like(companies.website, `%${filters.search}%`)
+          like(companies.website, `%${filters.search}%`),
+          like(companies.primaryEmail, `%${filters.search}%`)
         )
       );
     }
@@ -4509,6 +4549,30 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.needsEnrichment !== undefined) {
       conditions.push(eq(companies.needsEnrichment, filters.needsEnrichment));
+    }
+
+    if (filters?.origin) {
+      conditions.push(eq(companies.origin, filters.origin));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(companies.status, filters.status));
+    }
+
+    if (filters?.companyStage) {
+      conditions.push(eq(companies.companyStage, filters.companyStage));
+    }
+
+    if (filters?.priority) {
+      conditions.push(eq(companies.priority, filters.priority));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(companies.assignedTo, filters.assignedTo));
+    }
+
+    if (filters?.createdFrom) {
+      conditions.push(eq(companies.createdFrom, filters.createdFrom));
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
@@ -4558,6 +4622,164 @@ export class DatabaseStorage implements IStorage {
   async getCompanyByGST(gstNumber: string): Promise<Company | undefined> {
     const [company] = await db.select().from(companies).where(eq(companies.gstNumber, gstNumber));
     return company;
+  }
+
+  async getCompanyWithDetails(id: number): Promise<CompanyWithDetails | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    if (!company) return undefined;
+
+    const contacts = await this.getCompanyContacts(id);
+    const primaryContact = contacts.find(c => c.isPrimary) || contacts[0];
+    const activities = await this.getCompanyActivities(id);
+    const tasks = await this.getCompanyTasks({ companyId: id });
+    
+    let salesRep: User | undefined;
+    if (company.assignedTo) {
+      salesRep = await this.getUser(company.assignedTo);
+    }
+
+    let linkedUser: User | undefined;
+    if (company.linkedUserId) {
+      linkedUser = await this.getUser(company.linkedUserId);
+    }
+
+    return {
+      ...company,
+      contacts,
+      primaryContact,
+      activities,
+      tasks,
+      salesRep,
+      linkedUser,
+    };
+  }
+
+  async assignCompany(companyId: number, assignedTo: string, assignedBy: string): Promise<Company> {
+    const [company] = await db.update(companies)
+      .set({ 
+        assignedTo, 
+        assignedBy, 
+        assignedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(companies.id, companyId))
+      .returning();
+    
+    await this.createCompanyActivity({
+      companyId,
+      activityType: 'assignment',
+      subject: 'Company Assigned',
+      description: `Company assigned to sales representative`,
+      createdBy: assignedBy,
+    });
+    
+    return company;
+  }
+
+  async bulkAssignCompanies(companyIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number; errors: { companyId: number; error: string }[] }> {
+    const errors: { companyId: number; error: string }[] = [];
+    let successCount = 0;
+
+    for (const companyId of companyIds) {
+      try {
+        await this.assignCompany(companyId, assignedTo, assignedBy);
+        successCount++;
+      } catch (error) {
+        errors.push({ companyId, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    }
+
+    return { success: successCount, errors };
+  }
+
+  async updateCompanyStage(companyId: number, stage: string, userId: string): Promise<Company> {
+    const company = await this.getCompany(companyId);
+    const previousStage = company?.companyStage || 'new';
+    
+    const [updated] = await db.update(companies)
+      .set({ 
+        companyStage: stage,
+        updatedAt: new Date() 
+      })
+      .where(eq(companies.id, companyId))
+      .returning();
+    
+    await this.createCompanyActivity({
+      companyId,
+      activityType: 'stage_change',
+      subject: 'Stage Changed',
+      description: `Stage changed from ${previousStage} to ${stage}`,
+      fromStage: previousStage,
+      toStage: stage,
+      createdBy: userId,
+    });
+    
+    return updated;
+  }
+
+  // ========================================
+  // CRM - COMPANY ACTIVITY METHODS
+  // ========================================
+
+  async getCompanyActivities(companyId: number): Promise<CompanyActivity[]> {
+    return await db.select().from(companyActivities)
+      .where(eq(companyActivities.companyId, companyId))
+      .orderBy(desc(companyActivities.activityDate));
+  }
+
+  async createCompanyActivity(activity: InsertCompanyActivity): Promise<CompanyActivity> {
+    const [created] = await db.insert(companyActivities).values(activity).returning();
+    return created;
+  }
+
+  // ========================================
+  // CRM - COMPANY TASK METHODS
+  // ========================================
+
+  async getCompanyTasks(filters?: { companyId?: number; assignedTo?: string; status?: string }): Promise<CompanyTask[]> {
+    const conditions = [];
+    
+    if (filters?.companyId) {
+      conditions.push(eq(companyTasks.companyId, filters.companyId));
+    }
+    if (filters?.assignedTo) {
+      conditions.push(eq(companyTasks.assignedTo, filters.assignedTo));
+    }
+    if (filters?.status) {
+      conditions.push(eq(companyTasks.status, filters.status));
+    }
+    
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    return await db.select().from(companyTasks)
+      .where(whereCondition)
+      .orderBy(desc(companyTasks.dueDate));
+  }
+
+  async createCompanyTask(task: InsertCompanyTask): Promise<CompanyTask> {
+    const [created] = await db.insert(companyTasks).values(task).returning();
+    return created;
+  }
+
+  async updateCompanyTask(id: number, task: Partial<InsertCompanyTask>): Promise<CompanyTask> {
+    const [updated] = await db.update(companyTasks)
+      .set({ ...task, updatedAt: new Date() })
+      .where(eq(companyTasks.id, id))
+      .returning();
+    return updated;
+  }
+
+  async completeCompanyTask(id: number, completedBy: string): Promise<CompanyTask> {
+    const [updated] = await db.update(companyTasks)
+      .set({ 
+        status: 'completed',
+        completedAt: new Date(),
+        completedBy,
+        updatedAt: new Date() 
+      })
+      .where(eq(companyTasks.id, id))
+      .returning();
+    return updated;
   }
 
   // ========================================
