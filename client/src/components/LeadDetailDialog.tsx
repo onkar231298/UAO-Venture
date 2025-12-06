@@ -168,6 +168,30 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     enabled: open && !!lead?.id,
   });
 
+  // Fetch sample requests for the lead
+  const { data: sampleRequestsData, isLoading: samplesLoading } = useQuery<{ requests: any[]; total: number }>({
+    queryKey: ['/api/crm/leads', lead?.id, 'sample-requests'],
+    queryFn: async () => {
+      if (!lead?.id) return { requests: [], total: 0 };
+      const response = await fetch(`/api/crm/leads/${lead.id}/sample-requests`);
+      if (!response.ok) throw new Error('Failed to fetch sample requests');
+      return response.json();
+    },
+    enabled: open && !!lead?.id,
+  });
+
+  // Fetch quotations for the lead
+  const { data: quotationsData, isLoading: quotationsLoading } = useQuery<{ quotations: any[]; total: number }>({
+    queryKey: ['/api/crm/leads', lead?.id, 'quotations'],
+    queryFn: async () => {
+      if (!lead?.id) return { quotations: [], total: 0 };
+      const response = await fetch(`/api/crm/leads/${lead.id}/quotations`);
+      if (!response.ok) throw new Error('Failed to fetch quotations');
+      return response.json();
+    },
+    enabled: open && !!lead?.id,
+  });
+
   // Fetch user's email config
   const { data: emailConfig } = useQuery<any>({
     queryKey: ['/api/email/config'],
@@ -566,10 +590,18 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
             <TabsTrigger value="products" className="text-xs sm:text-sm py-2">Products</TabsTrigger>
+            <TabsTrigger value="samples" className="text-xs sm:text-sm py-2">
+              <Package className="h-3 w-3 mr-1" />
+              Samples
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="text-xs sm:text-sm py-2">
+              <FileText className="h-3 w-3 mr-1" />
+              Quotes
+            </TabsTrigger>
             <TabsTrigger value="emails" className="text-xs sm:text-sm py-2">
               <Mail className="h-3 w-3 mr-1" />
               Emails
@@ -896,6 +928,180 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                 )}
               </>
             )}
+          </TabsContent>
+
+          {/* Samples Tab */}
+          <TabsContent value="samples" className="space-y-4">
+            <Card>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Sample Requests
+                  </h3>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    data-testid="button-create-sample-request"
+                    onClick={() => {
+                      toast({
+                        title: "Coming Soon",
+                        description: "Sample request creation form will be available soon.",
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Sample Request
+                  </Button>
+                </div>
+
+                {samplesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    <span className="ml-2 text-gray-500">Loading sample requests...</span>
+                  </div>
+                ) : sampleRequestsData?.requests && sampleRequestsData.requests.length > 0 ? (
+                  <div className="space-y-3">
+                    {sampleRequestsData.requests.map((sample: any) => (
+                      <div key={sample.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">{sample.requestId}</span>
+                              <Badge variant={sample.status === 'pending' ? 'secondary' : sample.status === 'approved' ? 'default' : sample.status === 'shipped' ? 'outline' : 'destructive'}>
+                                {sample.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {sample.productName || 'Unknown Product'} - {sample.sampleSize}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Purpose: {sample.purpose}
+                            </p>
+                          </div>
+                          <div className="text-right text-xs text-gray-500">
+                            {sample.createdAt && format(new Date(sample.createdAt), 'MMM d, yyyy')}
+                          </div>
+                        </div>
+                        {sample.trackingNumber && (
+                          <div className="mt-2 text-sm">
+                            <span className="text-gray-500">Tracking:</span>{' '}
+                            <span className="font-medium">{sample.trackingNumber}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No sample requests yet</p>
+                    <p className="text-sm">Click "Create Sample Request" to add one</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Quotes Tab */}
+          <TabsContent value="quotes" className="space-y-4">
+            <Card>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Quotations
+                  </h3>
+                  <Button 
+                    size="sm" 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    data-testid="button-create-quotation"
+                    onClick={() => {
+                      toast({
+                        title: "Coming Soon",
+                        description: "Quotation creation form will be available soon.",
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Quote
+                  </Button>
+                </div>
+
+                {quotationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                    <span className="ml-2 text-gray-500">Loading quotations...</span>
+                  </div>
+                ) : quotationsData?.quotations && quotationsData.quotations.length > 0 ? (
+                  <div className="space-y-3">
+                    {quotationsData.quotations.map((quote: any) => (
+                      <div key={quote.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">{quote.quotationId}</span>
+                              <Badge variant={
+                                quote.status === 'draft' ? 'secondary' : 
+                                quote.status === 'sent' ? 'default' : 
+                                quote.status === 'accepted' ? 'outline' : 
+                                quote.status === 'rejected' ? 'destructive' : 'secondary'
+                              }>
+                                {quote.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {quote.productName || 'Multiple Products'}
+                            </p>
+                            <p className="text-lg font-semibold text-green-700 mt-1">
+                              {quote.currency || 'USD'} {parseFloat(quote.totalAmount || 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">
+                              {quote.createdAt && format(new Date(quote.createdAt), 'MMM d, yyyy')}
+                            </div>
+                            {quote.validUntil && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Valid until: {format(new Date(quote.validUntil), 'MMM d, yyyy')}
+                              </div>
+                            )}
+                            {quote.status === 'draft' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="mt-2"
+                                onClick={() => {
+                                  toast({
+                                    title: "Coming Soon",
+                                    description: "Send quotation feature will be available soon.",
+                                  });
+                                }}
+                                data-testid="button-send-quotation"
+                              >
+                                <Send className="h-3 w-3 mr-1" />
+                                Send to Customer
+                              </Button>
+                            )}
+                            {quote.sentAt && (
+                              <div className="text-xs text-green-600 mt-1">
+                                Sent: {format(new Date(quote.sentAt), 'MMM d, yyyy h:mm a')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No quotations yet</p>
+                    <p className="text-sm">Click "Create Quote" to add one</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Emails Tab */}
