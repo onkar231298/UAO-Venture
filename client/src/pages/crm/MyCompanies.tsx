@@ -13,8 +13,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
-  Globe, Calendar, ExternalLink, User, Clock
+  Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -783,6 +789,118 @@ export default function MyCompanies() {
                           ) : "N/A"}
                         </p>
                       </div>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    <div className="mt-4 pt-4 border-t flex gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-1">
+                            <Mail className="h-4 w-4" />
+                            Email
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              if (selectedCompany.primaryEmail) {
+                                window.open(`mailto:${selectedCompany.primaryEmail}`, '_blank');
+                                logActivityMutation.mutate({
+                                  companyId: selectedCompany.id,
+                                  activityType: 'email',
+                                  subject: 'Opened email client',
+                                  description: `Opened email to ${selectedCompany.primaryEmail}`,
+                                });
+                              }
+                            }}
+                            disabled={!selectedCompany.primaryEmail}
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Open Email Client
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              logActivityMutation.mutate({
+                                companyId: selectedCompany.id,
+                                activityType: 'email',
+                                subject: 'Email sent',
+                                description: `Sent email to company`,
+                              });
+                              toast({
+                                title: "Activity Logged",
+                                description: "Email activity has been recorded",
+                              });
+                            }}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Log Email Sent
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-1">
+                            <Phone className="h-4 w-4" />
+                            Call
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              if (selectedCompany.primaryPhone) {
+                                window.open(`tel:${selectedCompany.primaryPhone}`, '_blank');
+                                logActivityMutation.mutate({
+                                  companyId: selectedCompany.id,
+                                  activityType: 'call',
+                                  subject: 'Made phone call',
+                                  description: `Called ${selectedCompany.primaryPhone}`,
+                                });
+                              }
+                            }}
+                            disabled={!selectedCompany.primaryPhone}
+                          >
+                            <Phone className="h-4 w-4 mr-2" />
+                            Dial Number
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              logActivityMutation.mutate({
+                                companyId: selectedCompany.id,
+                                activityType: 'call',
+                                subject: 'Phone call completed',
+                                description: `Logged call with company`,
+                              });
+                              toast({
+                                title: "Activity Logged",
+                                description: "Call activity has been recorded",
+                              });
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Log Call Completed
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              logActivityMutation.mutate({
+                                companyId: selectedCompany.id,
+                                activityType: 'call',
+                                subject: 'No answer',
+                                description: `Called but no answer`,
+                              });
+                              toast({
+                                title: "Activity Logged",
+                                description: "Call attempt recorded",
+                              });
+                            }}
+                          >
+                            <PhoneMissed className="h-4 w-4 mr-2" />
+                            Log No Answer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>
