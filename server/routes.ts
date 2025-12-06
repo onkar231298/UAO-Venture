@@ -4589,10 +4589,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/companies/:id/assign', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
+      // Get user from database to check actual role
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       
       const adminRoles = ['admin', 'super_admin', 'sales_manager'];
-      if (!adminRoles.includes(userRole)) {
+      if (!adminRoles.includes(user.role)) {
         return res.status(403).json({ message: "Only managers can assign companies" });
       }
       
@@ -4629,10 +4634,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/companies/bulk-assign', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      
+      // Get user from database to check actual role
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       
       const adminRoles = ['admin', 'super_admin', 'sales_manager'];
-      if (!adminRoles.includes(userRole)) {
+      if (!adminRoles.includes(user.role)) {
         return res.status(403).json({ message: "Only managers can assign companies" });
       }
       
