@@ -1568,18 +1568,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const inquiry = await storage.createInquiry(inquiryData);
       
-      // Create notification for admins and sales managers about new enquiry
+      // Create notification for admins and sales managers about new enquiry or high volume bid
       try {
         const productName = req.body.productName || 'Unknown Product';
         const companyName = req.body.companyName || req.body.customerName || 'Unknown';
+        const isHighVolumeBid = req.body.inquiryType === 'high_volume_bid';
+        
         await storage.createNotificationsForRole({
-          type: 'new_enquiry',
-          title: 'New Enquiry Received',
-          message: `New enquiry for "${productName}" from ${companyName}`,
+          type: isHighVolumeBid ? 'new_high_volume_bid' : 'new_enquiry',
+          title: isHighVolumeBid ? 'New High Volume Bid' : 'New Enquiry Received',
+          message: isHighVolumeBid 
+            ? `New high volume bid for "${productName}" from ${companyName}` 
+            : `New enquiry for "${productName}" from ${companyName}`,
           entityType: 'inquiry',
           entityId: inquiry.id,
           isRead: false,
-          link: '/admin/sales/inquiries',
+          link: isHighVolumeBid ? '/admin/sales/high-volume-bids' : '/admin/sales/inquiries',
         }, ['super_admin', 'admin', 'sales_manager']);
       } catch (notifError) {
         console.error('Failed to create notification for enquiry:', notifError);
