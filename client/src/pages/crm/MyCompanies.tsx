@@ -14,8 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus
+  Reply, X, Plus, Eye
 } from "lucide-react";
+import EmailViewDialog from "@/components/EmailViewDialog";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "@/components/RichTextEditor";
 import {
@@ -169,6 +170,10 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [replyToThread, setReplyToThread] = useState<EmailThread | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
+  const [showEmailView, setShowEmailView] = useState(false);
+  const [showThreadView, setShowThreadView] = useState(false);
 
   const { data: emailThreads = [], isLoading, refetch } = useQuery<EmailThread[]>({
     queryKey: ['/api/crm/companies', companyId, 'emails'],
@@ -253,6 +258,28 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
     setEmailSubject('');
     setEmailBody('');
     setShowCompose(true);
+  };
+
+  const handleViewEmail = (email: EmailMessage, closeThreadFirst: boolean = false) => {
+    if (closeThreadFirst) {
+      setShowThreadView(false);
+    }
+    setSelectedEmail(email);
+    setShowEmailView(true);
+  };
+
+  const handleViewThread = (thread: EmailThread) => {
+    setSelectedThread(thread);
+    setShowThreadView(true);
+  };
+
+  const handleReplyFromView = (email: EmailMessage) => {
+    setShowEmailView(false);
+    setShowThreadView(false);
+    const thread = emailThreads.find(t => t.messages.some(m => m.id === email.id));
+    if (thread) {
+      handleReply(thread);
+    }
   };
 
   if (isLoading) {
@@ -372,12 +399,32 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
                 {emailThreads.map((thread) => (
                   <div key={thread.id} className="border rounded-lg p-4 hover:bg-gray-50">
                     <div className="flex justify-between items-start mb-2">
-                      <p className="font-medium text-sm">{thread.subject || 'No Subject'}</p>
+                      <p 
+                        className="font-medium text-sm cursor-pointer hover:text-primary hover:underline"
+                        onClick={() => handleViewThread(thread)}
+                      >
+                        {thread.subject || 'No Subject'}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
                           {thread.messageCount} message{thread.messageCount !== 1 ? 's' : ''}
                         </Badge>
-                        <Button variant="ghost" size="sm" onClick={() => handleReply(thread)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleViewThread(thread)}
+                          title="View Thread"
+                          data-testid={`btn-view-thread-${thread.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleReply(thread)} 
+                          title="Reply"
+                          data-testid={`btn-reply-thread-${thread.id}`}
+                        >
                           <Reply className="h-4 w-4" />
                         </Button>
                       </div>
@@ -390,7 +437,12 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
                     {thread.messages && thread.messages.length > 0 && (
                       <div className="mt-3 space-y-2 border-t pt-3">
                         {thread.messages.slice(0, 3).map((email) => (
-                          <div key={email.id} className="text-sm flex items-start gap-2">
+                          <div 
+                            key={email.id} 
+                            className="text-sm flex items-start gap-2 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
+                            onClick={() => handleViewEmail(email)}
+                            data-testid={`email-preview-${email.id}`}
+                          >
                             <Badge 
                               variant={email.direction === 'outbound' ? 'default' : 'secondary'}
                               className="text-xs shrink-0"
@@ -410,9 +462,15 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
                           </div>
                         ))}
                         {thread.messages.length > 3 && (
-                          <p className="text-xs text-gray-500 text-center">
-                            +{thread.messages.length - 3} more messages
-                          </p>
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="w-full text-xs text-gray-500"
+                            onClick={() => handleViewThread(thread)}
+                            data-testid={`btn-view-all-messages-${thread.id}`}
+                          >
+                            View all {thread.messages.length} messages
+                          </Button>
                         )}
                       </div>
                     )}
@@ -423,6 +481,101 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
           </CardContent>
         </Card>
       )}
+
+      {/* Email View Dialog */}
+      <EmailViewDialog
+        email={selectedEmail as any}
+        open={showEmailView}
+        onOpenChange={setShowEmailView}
+        onReply={handleReplyFromView as any}
+      />
+
+      {/* Thread View Dialog */}
+      <Dialog open={showThreadView} onOpenChange={setShowThreadView}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Thread: {selectedThread?.subject || 'No Subject'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-4 mt-4">
+            {selectedThread?.messages?.map((email, index) => (
+              <div 
+                key={email.id} 
+                className={`border rounded-lg p-4 ${email.direction === 'outbound' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={email.direction === 'outbound' ? 'default' : 'secondary'}>
+                      {email.direction === 'outbound' ? 'Sent' : 'Received'}
+                    </Badge>
+                    <span className="text-sm font-medium">{email.fromEmail}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                      {email.sentAt 
+                        ? format(new Date(email.sentAt), 'MMM d, yyyy h:mm a')
+                        : email.receivedAt 
+                          ? format(new Date(email.receivedAt), 'MMM d, yyyy h:mm a')
+                          : ''}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewEmail(email, true)}
+                      title="View Full Email"
+                      data-testid={`btn-view-email-${email.id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                {email.toEmails && email.toEmails.length > 0 && (
+                  <p className="text-xs text-gray-500 mb-2">
+                    To: {email.toEmails.join(', ')}
+                  </p>
+                )}
+                <div className="text-sm mt-2">
+                  {email.bodyHtml ? (
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: email.bodyHtml.substring(0, 500) + (email.bodyHtml.length > 500 ? '...' : '') }}
+                    />
+                  ) : (
+                    <p className="text-gray-600 whitespace-pre-wrap">
+                      {email.bodyText?.substring(0, 500) || 'No content'}
+                      {(email.bodyText?.length || 0) > 500 ? '...' : ''}
+                    </p>
+                  )}
+                </div>
+                {((email.bodyHtml?.length || 0) > 500 || (email.bodyText?.length || 0) > 500) && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="mt-2 p-0 h-auto"
+                    onClick={() => handleViewEmail(email, true)}
+                    data-testid={`btn-read-full-email-${email.id}`}
+                  >
+                    Read full email
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowThreadView(false)} data-testid="btn-close-thread-dialog">
+              Close
+            </Button>
+            {selectedThread && (
+              <Button onClick={() => { setShowThreadView(false); handleReply(selectedThread); }} data-testid="btn-reply-from-thread-dialog">
+                <Reply className="h-4 w-4 mr-2" />
+                Reply
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
