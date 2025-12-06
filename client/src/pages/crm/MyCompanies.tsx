@@ -850,7 +850,7 @@ export default function MyCompanies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
