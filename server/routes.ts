@@ -6245,19 +6245,45 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
             );
             const parentMessage = sortedMessages[0];
             
-            if (parentMessage.messageIdHeader) {
-              inReplyTo = parentMessage.messageIdHeader;
+            // Check if we have the Message-ID header stored
+            let parentMessageIdHeader = parentMessage.messageIdHeader;
+            let parentReferencesHeader = parentMessage.referencesHeader;
+            
+            // If not stored, try to fetch it from Gmail on-demand
+            if (!parentMessageIdHeader && parentMessage.messageId) {
+              console.log('[Email Send] Parent message missing Message-ID header, fetching from Gmail...');
+              try {
+                const parentGmailMessage = await gmailApi.getEmail(validAccessToken, parentMessage.messageId);
+                const parsedParent = gmailApi.parseEmailMessage(parentGmailMessage);
+                parentMessageIdHeader = parsedParent.messageIdHeader || undefined;
+                parentReferencesHeader = parsedParent.referencesHeader || undefined;
+                
+                // Store the fetched headers for future use
+                if (parentMessageIdHeader) {
+                  await storage.updateEmailMessage(parentMessage.id, {
+                    messageIdHeader: parentMessageIdHeader,
+                    referencesHeader: parentReferencesHeader || undefined,
+                  });
+                  console.log('[Email Send] Fetched and stored Message-ID header:', parentMessageIdHeader);
+                }
+              } catch (fetchErr) {
+                console.error('[Email Send] Failed to fetch parent Message-ID from Gmail:', fetchErr);
+              }
+            }
+            
+            if (parentMessageIdHeader) {
+              inReplyTo = parentMessageIdHeader;
               console.log('[Email Send] Using parent Message-ID for In-Reply-To:', inReplyTo);
               
               // Build References chain from parent's references + parent's Message-ID
-              if (parentMessage.referencesHeader) {
-                references = `${parentMessage.referencesHeader} ${parentMessage.messageIdHeader}`;
+              if (parentReferencesHeader) {
+                references = `${parentReferencesHeader} ${parentMessageIdHeader}`;
               } else {
-                references = parentMessage.messageIdHeader;
+                references = parentMessageIdHeader;
               }
               console.log('[Email Send] Using References chain:', references);
             } else {
-              console.log('[Email Send] Parent message has no Message-ID header stored - threading may not work for recipients');
+              console.log('[Email Send] Could not obtain Message-ID header - threading may not work for recipients');
             }
           }
           
