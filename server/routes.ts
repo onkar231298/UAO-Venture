@@ -4779,6 +4779,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Get sender email - try multiple sources
+      let senderEmail = emailConfig.emailAddress;
+      if (!senderEmail) {
+        // Try to get email from Gmail API profile
+        const { google } = await import('googleapis');
+        const tempOauth2Client = new google.auth.OAuth2(
+          process.env.GMAIL_CLIENT_ID,
+          process.env.GMAIL_CLIENT_SECRET
+        );
+        tempOauth2Client.setCredentials({
+          access_token: emailConfig.accessToken,
+          refresh_token: emailConfig.refreshToken,
+        });
+        const gmail = google.gmail({ version: 'v1', auth: tempOauth2Client });
+        try {
+          const profile = await gmail.users.getProfile({ userId: 'me' });
+          senderEmail = profile.data.emailAddress;
+          // Update the config with the email address for future use
+          if (senderEmail) {
+            await storage.updateUserEmailConfig(userId, { emailAddress: senderEmail });
+          }
+        } catch (profileError) {
+          console.error('[Company Email Send] Failed to get Gmail profile:', profileError);
+        }
+      }
+
+      if (!senderEmail) {
+        return res.status(400).json({ 
+          message: 'Unable to determine sender email address. Please reconnect your Gmail account.',
+          requiresGmailConnect: true,
+        });
+      }
+
+      console.log('[Company Email Send] Using sender email:', senderEmail);
+
       // Get company details for context
       const company = await storage.getCompany(companyId);
       if (!company) {
@@ -4805,12 +4840,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[Company Email Send] Created new thread:', thread.id);
       }
 
-      // Prepare email content with optional signature
+      // Build final email body with signature if configured
       let finalBodyHtml = bodyHtml;
+      let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
+      let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
+      
+      // Fetch signature image and prepare as inline attachment (same as Lead email)
       if (emailConfig.signatureImageUrl) {
-        const signatureSeparator = '<br><br>---<br>';
-        const signatureHtml = `<img src="${emailConfig.signatureImageUrl}" alt="Signature" style="max-width: 300px; height: auto;" />`;
-        finalBodyHtml = bodyHtml + signatureSeparator + signatureHtml;
+        try {
+          console.log('[Company Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
+          const objectStorageService = new ObjectStorageService();
+          
+          // Ensure the signature URL starts with /objects/
+          let signaturePath = emailConfig.signatureImageUrl;
+          if (!signaturePath.startsWith('/objects/')) {
+            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
+            console.log('[Company Email] Normalized signature path:', signaturePath);
+          }
+          
+          if (!signaturePath.startsWith('/objects/')) {
+            console.error('[Company Email] Invalid signature path format:', signaturePath);
+            throw new Error('Invalid signature path format');
+          }
+          
+          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
+          
+          // Download file content as buffer
+          const [fileContent] = await signatureFile.download();
+          const base64Data = fileContent.toString('base64');
+          
+          // Get file metadata for mime type
+          const [metadata] = await signatureFile.getMetadata();
+          const mimeType = metadata.contentType || 'image/png';
+          
+          // Add to inline attachments
+          inlineAttachments.push({
+            contentId: 'signature_image',
+            base64Data,
+            mimeType,
+            filename: 'signature.png',
+          });
+          
+          // Append signature to HTML body using CID reference
+          finalBodyHtml = `${bodyHtml}
+            <br><br>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+              <tr>
+                <td>
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                </td>
+              </tr>
+            </table>`;
+          
+          finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
+          
+          console.log('[Company Email] Signature image loaded successfully');
+        } catch (signatureError: any) {
+          console.error('[Company Email] Failed to load signature image:', signatureError?.message || signatureError);
+          // Continue without signature if loading fails
+        }
       }
 
       // Build References and In-Reply-To headers for proper threading
@@ -4848,18 +4936,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
       const bccAddresses = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : [];
 
-      let emailHeaders = `From: ${emailConfig.emailAddress}\r\n`;
-      emailHeaders += `To: ${toAddresses.join(', ')}\r\n`;
-      if (ccAddresses.length > 0) emailHeaders += `Cc: ${ccAddresses.join(', ')}\r\n`;
-      if (bccAddresses.length > 0) emailHeaders += `Bcc: ${bccAddresses.join(', ')}\r\n`;
-      emailHeaders += `Subject: ${subject}\r\n`;
-      emailHeaders += 'MIME-Version: 1.0\r\n';
-      if (referencesHeader) emailHeaders += `References: ${referencesHeader}\r\n`;
-      if (inReplyToHeader) emailHeaders += `In-Reply-To: ${inReplyToHeader}\r\n`;
-      emailHeaders += 'Content-Type: text/html; charset=utf-8\r\n\r\n';
+      // Build multipart email with inline attachments if present
+      const boundary = '----=_Part_' + Date.now();
+      let emailRaw = '';
+      
+      emailRaw += `From: ${senderEmail}\r\n`;
+      emailRaw += `To: ${toAddresses.join(', ')}\r\n`;
+      if (ccAddresses.length > 0) emailRaw += `Cc: ${ccAddresses.join(', ')}\r\n`;
+      if (bccAddresses.length > 0) emailRaw += `Bcc: ${bccAddresses.join(', ')}\r\n`;
+      emailRaw += `Subject: ${subject}\r\n`;
+      emailRaw += 'MIME-Version: 1.0\r\n';
+      if (referencesHeader) emailRaw += `References: ${referencesHeader}\r\n`;
+      if (inReplyToHeader) emailRaw += `In-Reply-To: ${inReplyToHeader}\r\n`;
+      
+      if (inlineAttachments.length > 0) {
+        // Multipart related for inline images
+        emailRaw += `Content-Type: multipart/related; boundary="${boundary}"\r\n\r\n`;
+        
+        // HTML body part
+        emailRaw += `--${boundary}\r\n`;
+        emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
+        emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
+        emailRaw += finalBodyHtml + '\r\n';
+        
+        // Inline attachments
+        for (const att of inlineAttachments) {
+          emailRaw += `--${boundary}\r\n`;
+          emailRaw += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
+          emailRaw += 'Content-Transfer-Encoding: base64\r\n';
+          emailRaw += `Content-ID: <${att.contentId}>\r\n`;
+          emailRaw += 'Content-Disposition: inline\r\n\r\n';
+          emailRaw += att.base64Data + '\r\n';
+        }
+        
+        emailRaw += `--${boundary}--`;
+      } else {
+        // Simple HTML email
+        emailRaw += 'Content-Type: text/html; charset=utf-8\r\n\r\n';
+        emailRaw += finalBodyHtml;
+      }
 
-      const emailMessage = emailHeaders + finalBodyHtml;
-      const encodedMessage = Buffer.from(emailMessage)
+      const encodedMessage = Buffer.from(emailRaw)
         .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
@@ -4887,7 +5004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         threadId: thread.id,
         gmailMessageId: gmailResponse.data.id || null,
         direction: 'outbound',
-        fromEmail: emailConfig.emailAddress,
+        fromEmail: senderEmail,
         fromName: null,
         toEmails: toAddresses,
         ccEmails: ccAddresses.length > 0 ? ccAddresses : null,

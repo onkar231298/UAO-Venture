@@ -17,6 +17,7 @@ import {
   Reply, X, Plus
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -311,12 +312,14 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
             </div>
             <div>
               <label className="text-sm font-medium">Message</label>
-              <Textarea
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                placeholder="Type your message here..."
-                className="mt-1 min-h-[150px]"
-              />
+              <div className="mt-1 border rounded-md">
+                <RichTextEditor
+                  content={emailBody}
+                  onChange={setEmailBody}
+                  placeholder="Type your message here..."
+                  minHeight="150px"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowCompose(false)}>
