@@ -501,6 +501,7 @@ export interface IStorage {
   getEmailMessageByExternalId(messageId: string): Promise<EmailMessage | undefined>;
   createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
   updateEmailMessage(id: number, message: Partial<InsertEmailMessage>): Promise<EmailMessage>;
+  markLeadEmailsAsRead(leadId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5482,6 +5483,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emailMessages.id, id))
       .returning();
     return updated;
+  }
+
+  async markLeadEmailsAsRead(leadId: number): Promise<number> {
+    const result = await db
+      .update(emailMessages)
+      .set({ isRead: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(emailMessages.leadId, leadId),
+          eq(emailMessages.direction, 'inbound'),
+          eq(emailMessages.isRead, false)
+        )
+      )
+      .returning();
+    return result.length;
   }
 }
 

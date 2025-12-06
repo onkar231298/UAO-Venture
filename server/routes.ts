@@ -6843,6 +6843,36 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Mark all unread emails for a lead as read
+  app.post('/api/crm/leads/:leadId/emails/mark-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Verify lead exists
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Mark all unread inbound emails for this lead as read
+      const markedCount = await storage.markLeadEmailsAsRead(leadId);
+
+      res.json({ 
+        success: true, 
+        message: `Marked ${markedCount} email(s) as read`,
+        markedCount,
+      });
+    } catch (error: any) {
+      console.error('Error marking emails as read:', error);
+      res.status(500).json({ message: 'Failed to mark emails as read' });
+    }
+  });
+
   // Sitemap.xml route - simplified for maximum reliability
   app.get('/sitemap.xml', async (req, res) => {
     // Always set XML headers first

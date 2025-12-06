@@ -350,11 +350,27 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     },
   });
 
+  // Mutation to mark emails as read
+  const markEmailsReadMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/emails/mark-read`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+    },
+  });
+
   // Auto-sync emails when switching to email tab (once per dialog open)
   useEffect(() => {
     if (activeTab === 'emails' && emailConfig?.isConnected && !hasAutoSynced && lead?.id && emailThreads.length > 0) {
       setHasAutoSynced(true);
       syncEmailsMutation.mutate();
+    }
+    // Mark emails as read when viewing the email tab
+    if (activeTab === 'emails' && lead?.id) {
+      markEmailsReadMutation.mutate();
     }
   }, [activeTab, emailConfig?.isConnected, hasAutoSynced, lead?.id, emailThreads.length]);
 
