@@ -1157,16 +1157,32 @@ export const companies = pgTable("companies", {
   factoryAddressCountry: varchar("factory_address_country", { length: 100 }),
   factoryAddressZip: varchar("factory_address_zip", { length: 20 }),
   
+  // Origin and Status for Company Management
+  origin: varchar("origin", { length: 20 }).default("manual"), // website, manual
+  status: varchar("status", { length: 20 }).default("active"), // active, inactive, blocked
+  companyStage: varchar("company_stage", { length: 50 }).default("new"), // new, contacted, engaged, qualified, customer, churned
+  priority: varchar("priority", { length: 20 }).default("normal"), // hot, warm, cold, normal
+  
+  // Linked website user (for website-registered customers)
+  linkedUserId: varchar("linked_user_id").references(() => users.id),
+  
   // Data completeness tracking
   dataCompleteness: varchar("data_completeness", { length: 20 }).default("complete"), // complete, partial
   needsEnrichment: boolean("needs_enrichment").default(false),
   
   // Assignment and ownership
   assignedTo: varchar("assigned_to").references(() => users.id), // Sales rep assigned to this company
+  assignedBy: varchar("assigned_by").references(() => users.id), // Who assigned this company
+  assignedAt: timestamp("assigned_at"), // When was this company assigned
+  
+  // Tracking
+  lastContactDate: timestamp("last_contact_date"),
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  notes: text("notes"), // General notes about the company
   
   // Metadata
   createdBy: varchar("created_by").references(() => users.id),
-  createdFrom: varchar("created_from", { length: 50 }).default("manual"), // manual, bulk_upload, inquiry_conversion
+  createdFrom: varchar("created_from", { length: 50 }).default("manual"), // manual, bulk_upload, website_registration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1188,6 +1204,54 @@ export const companyContacts = pgTable("company_contacts", {
   role: varchar("role", { length: 50 }).default("user"), // decision_maker, influencer, user
   isActive: boolean("is_active").default(true),
   
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Company activities table - Activity timeline for company management
+export const companyActivities = pgTable("company_activities", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  
+  activityType: varchar("activity_type", { length: 50 }).notNull(),
+  // Types: call, email, whatsapp, meeting, note, task, stage_change, assignment
+  
+  activityDate: timestamp("activity_date").defaultNow(),
+  subject: varchar("subject", { length: 255 }),
+  description: text("description"),
+  outcome: text("outcome"),
+  
+  // Type-specific fields
+  duration: integer("duration"), // For calls/meetings in minutes
+  direction: varchar("direction", { length: 20 }), // incoming, outgoing (for calls/emails)
+  attendees: jsonb("attendees").default("[]"), // For meetings
+  attachments: jsonb("attachments").default("[]"), // File URLs
+  
+  // Stage change specific
+  fromStage: varchar("from_stage", { length: 50 }),
+  toStage: varchar("to_stage", { length: 50 }),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Company tasks and reminders table
+export const companyTasks = pgTable("company_tasks", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  
+  taskType: varchar("task_type", { length: 50 }).notNull(), // follow_up, reminder, meeting, call, email
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  priority: varchar("priority", { length: 20 }).default("medium"), // high, medium, low
+  status: varchar("status", { length: 20 }).default("pending"), // pending, in_progress, completed, cancelled
+  
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  completedAt: timestamp("completed_at"),
+  completedBy: varchar("completed_by").references(() => users.id),
+  
+  createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1384,6 +1448,17 @@ export const insertCompanyContactSchema = createInsertSchema(companyContacts).om
   updatedAt: true,
 });
 
+export const insertCompanyActivitySchema = createInsertSchema(companyActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCompanyTaskSchema = createInsertSchema(companyTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   leadId: true,
@@ -1413,6 +1488,10 @@ export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type CompanyContact = typeof companyContacts.$inferSelect;
 export type InsertCompanyContact = z.infer<typeof insertCompanyContactSchema>;
+export type CompanyActivity = typeof companyActivities.$inferSelect;
+export type InsertCompanyActivity = z.infer<typeof insertCompanyActivitySchema>;
+export type CompanyTask = typeof companyTasks.$inferSelect;
+export type InsertCompanyTask = z.infer<typeof insertCompanyTaskSchema>;
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type LeadActivity = typeof leadActivities.$inferSelect;
@@ -1436,6 +1515,17 @@ export type LeadWithDetails = Lead & {
 export type CompanyWithContacts = Company & {
   contacts: CompanyContact[];
   leads?: Lead[];
+};
+
+export type CompanyWithDetails = Company & {
+  contacts: CompanyContact[];
+  primaryContact?: CompanyContact;
+  salesRep?: User;
+  activities?: CompanyActivity[];
+  tasks?: CompanyTask[];
+  linkedUser?: User;
+  unreadEmailCount?: number;
+  latestUnreadEmailAt?: Date | string | null;
 };
 
 // User types and schemas
