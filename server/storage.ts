@@ -4715,12 +4715,50 @@ export class DatabaseStorage implements IStorage {
       .limit(filters?.limit || 50)
       .offset(filters?.offset || 0);
 
-    const leadsWithDetails: LeadWithDetails[] = leadsData.map(row => ({
-      ...row.lead,
-      company: row.company!,
-      contactPerson: row.contactPerson || undefined,
-      salesRep: row.salesRep || undefined,
-    }));
+    // Fetch unread email counts for all leads in one query
+    const leadIds = leadsData.map(row => row.lead.id);
+    
+    let unreadEmailData: { leadId: number; unreadCount: number; latestUnreadAt: Date | null }[] = [];
+    if (leadIds.length > 0) {
+      const unreadEmailResults = await db
+        .select({
+          leadId: emailMessages.leadId,
+          unreadCount: count(),
+          latestUnreadAt: sql<Date | null>`MAX(${emailMessages.receivedAt})`,
+        })
+        .from(emailMessages)
+        .where(
+          and(
+            sql`${emailMessages.leadId} IN (${sql.raw(leadIds.join(','))})`,
+            eq(emailMessages.direction, 'inbound'),
+            eq(emailMessages.isRead, false)
+          )
+        )
+        .groupBy(emailMessages.leadId);
+      
+      unreadEmailData = unreadEmailResults.map(r => ({
+        leadId: r.leadId!,
+        unreadCount: Number(r.unreadCount) || 0,
+        latestUnreadAt: r.latestUnreadAt,
+      }));
+    }
+    
+    // Create a map for quick lookup
+    const unreadEmailMap = new Map(
+      unreadEmailData.map(item => [item.leadId, item])
+    );
+
+    const leadsWithDetails: LeadWithDetails[] = leadsData.map(row => {
+      const unreadInfo = unreadEmailMap.get(row.lead.id);
+      return {
+        ...row.lead,
+        company: row.company!,
+        contactPerson: row.contactPerson || undefined,
+        salesRep: row.salesRep || undefined,
+        unreadEmailCount: unreadInfo?.unreadCount || 0,
+        latestUnreadEmailAt: unreadInfo?.latestUnreadAt || null,
+      };
+    });
 
     return {
       leads: leadsWithDetails,
