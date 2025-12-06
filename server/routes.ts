@@ -7272,8 +7272,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Build proper email template
       const emailSubject = subject || `Quotation ${quotation.quotationId} - ${productName}`;
       
-      // Use provided body or generate a proper professional template
-      const emailBody = body || `
+      // Use provided body or generate a proper professional template (without signature - will be added via image)
+      let emailBodyContent = body || `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <p>Dear ${contactName},</p>
   
@@ -7286,16 +7286,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   <p>If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.</p>
   
   <p>We look forward to hearing from you.</p>
-  
-  <p>Best Regards,<br/>
-  <strong>${salesRepName}</strong><br/>
-  Bright Fame Organic Pvt. Ltd.<br/>
-  Email: ${emailConfig.companyEmail}<br/>
-  Phone: +91-7249847439</p>
 </div>
 `;
       
-      const emailBodyText = `Dear ${contactName},
+      let emailBodyTextContent = `Dear ${contactName},
 
 Greetings from Bright Fame Organic!
 
@@ -7305,13 +7299,84 @@ Please find the quotation attached to this email for your reference.
 
 If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.
 
-We look forward to hearing from you.
+We look forward to hearing from you.`;
 
-Best Regards,
-${salesRepName}
-Bright Fame Organic Pvt. Ltd.
-Email: ${emailConfig.companyEmail}
-Phone: +91-7249847439`;
+      // Prepare inline attachments for signature image
+      let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
+      
+      // Fetch signature image and prepare as inline attachment (same as regular email)
+      if (emailConfig.signatureImageUrl) {
+        try {
+          console.log('[Quotation Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
+          const objectStorageService = new ObjectStorageService();
+          
+          // Ensure the signature URL starts with /objects/
+          let signaturePath = emailConfig.signatureImageUrl;
+          if (!signaturePath.startsWith('/objects/')) {
+            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
+            console.log('[Quotation Email] Normalized signature path:', signaturePath);
+          }
+          
+          if (!signaturePath.startsWith('/objects/')) {
+            console.error('[Quotation Email] Invalid signature path format:', signaturePath);
+            throw new Error('Invalid signature path format');
+          }
+          
+          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
+          
+          // Download file content as buffer
+          const [fileContent] = await signatureFile.download();
+          const base64Data = fileContent.toString('base64');
+          
+          // Get file metadata for mime type
+          const [metadata] = await signatureFile.getMetadata();
+          const mimeType = metadata.contentType || 'image/png';
+          
+          // Add to inline attachments
+          inlineAttachments.push({
+            contentId: 'signature_image',
+            base64Data,
+            mimeType,
+            filename: 'signature.png',
+          });
+          
+          // Append signature image to HTML body using CID reference
+          emailBodyContent = `${emailBodyContent}
+            <br><br>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+              <tr>
+                <td>
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                </td>
+              </tr>
+            </table>`;
+          
+          // Add text signature placeholder
+          emailBodyTextContent = `${emailBodyTextContent}\n\n---\n${emailConfig.displayName || salesRepName}\nBright Fame Organic Pvt. Ltd.`;
+          
+          console.log('[Quotation Email] Signature image loaded successfully, size:', fileContent.length, 'bytes');
+        } catch (signatureError: any) {
+          console.error('[Quotation Email] Failed to load signature image:', signatureError?.message || signatureError);
+          // Fallback to text signature if image loading fails
+          emailBodyContent = `${emailBodyContent}
+  <p>Best Regards,<br/>
+  <strong>${salesRepName}</strong><br/>
+  Bright Fame Organic Pvt. Ltd.<br/>
+  Email: ${emailConfig.companyEmail}<br/>
+  Phone: +91-7249847439</p>`;
+          emailBodyTextContent = `${emailBodyTextContent}\n\nBest Regards,\n${salesRepName}\nBright Fame Organic Pvt. Ltd.\nEmail: ${emailConfig.companyEmail}\nPhone: +91-7249847439`;
+        }
+      } else {
+        // No signature image configured - use text fallback
+        console.log('[Quotation Email] No signature configured, using text fallback');
+        emailBodyContent = `${emailBodyContent}
+  <p>Best Regards,<br/>
+  <strong>${salesRepName}</strong><br/>
+  Bright Fame Organic Pvt. Ltd.<br/>
+  Email: ${emailConfig.companyEmail}<br/>
+  Phone: +91-7249847439</p>`;
+        emailBodyTextContent = `${emailBodyTextContent}\n\nBest Regards,\n${salesRepName}\nBright Fame Organic Pvt. Ltd.\nEmail: ${emailConfig.companyEmail}\nPhone: +91-7249847439`;
+      }
 
       let emailSendResult: { messageId: string; threadId: string };
       
@@ -7320,11 +7385,16 @@ Phone: +91-7249847439`;
         cc: [],
         bcc: [],
         subject: emailSubject,
-        bodyHtml: emailBody,
-        bodyText: emailBodyText,
+        bodyHtml: emailBodyContent,
+        bodyText: emailBodyTextContent,
         fromName: emailConfig.displayName || undefined,
         fromEmail: emailConfig.companyEmail,
       };
+      
+      // Add inline attachments (signature image)
+      if (inlineAttachments.length > 0) {
+        emailOptions.inlineAttachments = inlineAttachments;
+      }
       
       // Add PDF attachment if generated
       if (pdfAttachment) {
@@ -7464,8 +7534,8 @@ Phone: +91-7249847439`;
           ccEmails: [],
           bccEmails: [],
           subject: emailOptions.subject || `Quotation ${quotation.quotationId}`,
-          bodyHtml: emailBody,
-          bodyText: emailBodyText,
+          bodyHtml: emailBodyContent,
+          bodyText: emailBodyTextContent,
           sentAt: new Date(),
           messageId: emailSendResult.messageId || null,
           gmailThreadId: emailSendResult.threadId || null,
