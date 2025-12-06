@@ -5795,15 +5795,27 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   
   app.post('/api/email-attachments/upload', isAuthenticated, emailAttachmentUpload.single('file'), async (req: any, res) => {
     try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      console.log('[Attachment Upload] Request from user:', userId);
+      
       const file = req.file;
       if (!file) {
+        console.log('[Attachment Upload] No file in request');
         return res.status(400).json({ message: 'No file provided' });
       }
+      
+      console.log('[Attachment Upload] File received:', {
+        name: file.originalname,
+        size: file.size,
+        type: file.mimetype,
+      });
       
       const objectStorageService = new ObjectStorageService();
       
       // Get a signed upload URL
+      console.log('[Attachment Upload] Getting signed upload URL...');
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      console.log('[Attachment Upload] Got signed URL, uploading...');
       
       // Upload the file to object storage
       const uploadResponse = await fetch(uploadURL, {
@@ -5815,9 +5827,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       });
       
       if (!uploadResponse.ok) {
-        console.error('Object storage upload failed:', uploadResponse.status, uploadResponse.statusText);
+        const errorText = await uploadResponse.text().catch(() => 'Unknown error');
+        console.error('[Attachment Upload] Object storage upload failed:', {
+          status: uploadResponse.status,
+          statusText: uploadResponse.statusText,
+          error: errorText,
+        });
         return res.status(500).json({ message: 'Failed to upload to object storage' });
       }
+      
+      console.log('[Attachment Upload] Upload successful');
       
       // Get the file URL from the signed URL (remove query params)
       const fileUrl = uploadURL.split('?')[0];
@@ -5828,6 +5847,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         ? objectPath 
         : `/objects/${objectPath}`;
       
+      console.log('[Attachment Upload] Returning path:', cleanPath);
+      
       res.json({ 
         success: true, 
         fileUrl: cleanPath,
@@ -5835,9 +5856,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         size: file.size,
         contentType: file.mimetype,
       });
-    } catch (error) {
-      console.error('Error uploading attachment:', error);
-      res.status(500).json({ message: 'Failed to upload attachment' });
+    } catch (error: any) {
+      console.error('[Attachment Upload] Error:', error.message || error);
+      console.error('[Attachment Upload] Stack:', error.stack);
+      res.status(500).json({ message: 'Failed to upload attachment: ' + (error.message || 'Unknown error') });
     }
   });
 
@@ -6238,52 +6260,102 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           
           const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
           if (existingMessages.length > 0) {
-            // Get the most recent message in this thread to reply to
+            // Sort messages by date (most recent first)
             const sortedMessages = existingMessages.sort((a, b) => 
               (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
               (a.sentAt || a.receivedAt || new Date(0)).getTime()
             );
-            const parentMessage = sortedMessages[0];
             
-            // Check if we have the Message-ID header stored
-            let parentMessageIdHeader = parentMessage.messageIdHeader;
-            let parentReferencesHeader = parentMessage.referencesHeader;
+            // For proper email threading, we need to reply to the correct message:
+            // 1. First priority: the most recent INBOUND message (customer's reply)
+            // 2. Second priority: any outbound message we sent
+            // 3. Fallback: any message in the thread
+            const inboundMessages = sortedMessages.filter(m => m.direction === 'inbound');
+            const outboundMessages = sortedMessages.filter(m => m.direction === 'outbound');
             
-            // If not stored, try to fetch it from Gmail on-demand
-            if (!parentMessageIdHeader && parentMessage.messageId) {
-              console.log('[Email Send] Parent message missing Message-ID header, fetching from Gmail...');
-              try {
-                const parentGmailMessage = await gmailApi.getEmail(validAccessToken, parentMessage.messageId);
-                const parsedParent = gmailApi.parseEmailMessage(parentGmailMessage);
-                parentMessageIdHeader = parsedParent.messageIdHeader || undefined;
-                parentReferencesHeader = parsedParent.referencesHeader || undefined;
-                
-                // Store the fetched headers for future use
-                if (parentMessageIdHeader) {
-                  await storage.updateEmailMessage(parentMessage.id, {
-                    messageIdHeader: parentMessageIdHeader,
-                    referencesHeader: parentReferencesHeader || undefined,
-                  });
-                  console.log('[Email Send] Fetched and stored Message-ID header:', parentMessageIdHeader);
+            // Build a prioritized list of candidate messages to try
+            const candidateMessages = [
+              ...inboundMessages,  // Prefer inbound messages first
+              ...outboundMessages, // Then outbound messages
+              ...sortedMessages,   // Then any message as fallback
+            ];
+            
+            // Remove duplicates while preserving order
+            const seenIds = new Set<number>();
+            const uniqueCandidates = candidateMessages.filter(m => {
+              if (seenIds.has(m.id)) return false;
+              seenIds.add(m.id);
+              return true;
+            });
+            
+            console.log('[Email Send] Candidate messages for threading:', uniqueCandidates.map(m => ({
+              id: m.id,
+              direction: m.direction,
+              hasMessageIdHeader: !!m.messageIdHeader,
+              hasGmailId: !!m.messageId,
+            })));
+            
+            let parentMessageIdHeader: string | undefined;
+            let parentReferencesHeader: string | undefined;
+            
+            // Try each candidate message until we find one with a valid Message-ID header
+            for (const candidate of uniqueCandidates) {
+              // First, check if we already have the Message-ID header stored
+              if (candidate.messageIdHeader) {
+                parentMessageIdHeader = candidate.messageIdHeader;
+                parentReferencesHeader = candidate.referencesHeader || undefined;
+                console.log('[Email Send] Found stored Message-ID header from message', candidate.id, ':', parentMessageIdHeader);
+                break;
+              }
+              
+              // If not stored but we have a Gmail message ID, try to fetch it
+              if (candidate.messageId) {
+                console.log('[Email Send] Fetching Message-ID header from Gmail for message', candidate.id, ', Gmail ID:', candidate.messageId);
+                try {
+                  const gmailMessage = await gmailApi.getEmail(validAccessToken, candidate.messageId);
+                  const parsed = gmailApi.parseEmailMessage(gmailMessage);
+                  
+                  if (parsed.messageIdHeader) {
+                    parentMessageIdHeader = parsed.messageIdHeader;
+                    parentReferencesHeader = parsed.referencesHeader || undefined;
+                    
+                    // Store for future use
+                    await storage.updateEmailMessage(candidate.id, {
+                      messageIdHeader: parentMessageIdHeader,
+                      referencesHeader: parentReferencesHeader || undefined,
+                    });
+                    console.log('[Email Send] Fetched and stored Message-ID header:', parentMessageIdHeader);
+                    break;
+                  } else {
+                    console.log('[Email Send] Gmail message', candidate.messageId, 'has no Message-ID header');
+                  }
+                } catch (fetchErr) {
+                  console.error('[Email Send] Failed to fetch Message-ID from Gmail for message', candidate.id, ':', fetchErr);
+                  // Continue to next candidate
                 }
-              } catch (fetchErr) {
-                console.error('[Email Send] Failed to fetch parent Message-ID from Gmail:', fetchErr);
               }
             }
             
             if (parentMessageIdHeader) {
               inReplyTo = parentMessageIdHeader;
-              console.log('[Email Send] Using parent Message-ID for In-Reply-To:', inReplyTo);
+              console.log('[Email Send] Using In-Reply-To:', inReplyTo);
               
               // Build References chain from parent's references + parent's Message-ID
+              // Deduplicate Message-IDs to avoid repetition
               if (parentReferencesHeader) {
-                references = `${parentReferencesHeader} ${parentMessageIdHeader}`;
+                // Parse existing references and add parent Message-ID if not already present
+                const existingRefs = parentReferencesHeader.split(/\s+/).filter(ref => ref.trim());
+                if (!existingRefs.includes(parentMessageIdHeader)) {
+                  existingRefs.push(parentMessageIdHeader);
+                }
+                references = existingRefs.join(' ');
               } else {
                 references = parentMessageIdHeader;
               }
-              console.log('[Email Send] Using References chain:', references);
+              console.log('[Email Send] Using References:', references);
+              console.log('[Email Send] Final threading headers - In-Reply-To:', inReplyTo, 'References:', references);
             } else {
-              console.log('[Email Send] Could not obtain Message-ID header - threading may not work for recipients');
+              console.log('[Email Send] WARNING: Could not obtain any Message-ID header from any message - threading may not work for recipients');
             }
           }
           
