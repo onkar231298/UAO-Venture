@@ -127,7 +127,7 @@ import {
   type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, asc, count, sql, or, inArray } from "drizzle-orm";
+import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -420,6 +420,8 @@ export interface IStorage {
     priority?: string;
     assignedTo?: string;
     createdFrom?: string;
+    dateFrom?: string;
+    dateTo?: string;
     limit?: number; 
     offset?: number;
     user?: { id: string; role: string };
@@ -4511,6 +4513,8 @@ export class DatabaseStorage implements IStorage {
     priority?: string;
     assignedTo?: string;
     createdFrom?: string;
+    dateFrom?: string;
+    dateTo?: string;
     limit?: number;
     offset?: number;
     user?: { id: string; role: string };
@@ -4573,6 +4577,17 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.createdFrom) {
       conditions.push(eq(companies.createdFrom, filters.createdFrom));
+    }
+
+    if (filters?.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      conditions.push(gte(companies.createdAt, fromDate));
+    }
+
+    if (filters?.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      conditions.push(lte(companies.createdAt, toDate));
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;

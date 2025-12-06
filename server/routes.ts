@@ -237,6 +237,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registrationIp: clientIp,
       });
 
+      // Also create a company record for CRM with origin='website'
+      if (userData.companyName) {
+        try {
+          await storage.createCompany({
+            companyName: userData.companyName,
+            primaryEmail: userData.email,
+            primaryPhone: userData.phone || null,
+            addressStreet: userData.addressStreet || null,
+            addressCity: userData.addressCity || null,
+            addressState: userData.addressState || null,
+            addressCountry: userData.addressCountry || null,
+            addressZip: userData.addressZip || null,
+            gstNumber: userData.gstNumber || null,
+            industryType: userData.industryType || null,
+            companySize: userData.companySize || null,
+            annualTurnover: userData.annualTurnover || null,
+            website: userData.website || null,
+            origin: 'website',
+            status: 'active',
+            companyStage: 'prospect',
+            linkedUserId: user.id,
+            createdBy: 'system',
+          });
+        } catch (companyError) {
+          console.error('Error creating company record for website customer:', companyError);
+          // Continue even if company creation fails - customer registration is still successful
+        }
+      }
+
       res.status(201).json({ 
         message: "Account created successfully",
         user: {
@@ -4410,6 +4439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { 
         search, industryType, needsEnrichment, origin, status, 
         companyStage, priority, assignedTo, createdFrom,
+        dateFrom, dateTo,
         limit = '50', offset = '0' 
       } = req.query;
       
@@ -4431,6 +4461,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (priority) filters.priority = priority;
       if (assignedTo) filters.assignedTo = assignedTo;
       if (createdFrom) filters.createdFrom = createdFrom;
+      if (dateFrom) filters.dateFrom = dateFrom;
+      if (dateTo) filters.dateTo = dateTo;
       
       const result = await storage.getCompanies(filters);
       res.json(result);
@@ -4473,6 +4505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const companyData = insertCompanySchema.parse({
         ...companyFields,
+        origin: companyFields.origin || 'manual',
         createdBy: userId
       });
       const company = await storage.createCompany(companyData);

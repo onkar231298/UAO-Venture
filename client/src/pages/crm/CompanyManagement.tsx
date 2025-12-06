@@ -39,7 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -142,6 +146,10 @@ export default function CompanyManagement() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
+  const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -210,10 +218,12 @@ export default function CompanyManagement() {
     if (stageFilter && stageFilter !== "all") params.append("companyStage", stageFilter);
     if (priorityFilter && priorityFilter !== "all") params.append("priority", priorityFilter);
     if (assignedToFilter && assignedToFilter !== "all") params.append("assignedTo", assignedToFilter);
+    if (dateFrom) params.append("dateFrom", dateFrom.toISOString());
+    if (dateTo) params.append("dateTo", dateTo.toISOString());
     return `/api/crm/companies?${params.toString()}`;
   };
 
-  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter];
+  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, dateFrom?.toISOString(), dateTo?.toISOString()];
 
   const { data: companiesData, isLoading } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: companiesQueryKey,
@@ -257,6 +267,58 @@ export default function CompanyManagement() {
 
   const handleAssignCompany = (companyId: number, assignedTo: string) => {
     assignCompanyMutation.mutate({ companyId, assignedTo });
+  };
+
+  // Bulk assignment mutation
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ companyIds, assignedTo }: { companyIds: number[]; assignedTo: string }) => {
+      const response = await apiRequest(`/api/crm/companies/bulk-assign`, {
+        method: "POST",
+        body: JSON.stringify({ companyIds, assignedTo }),
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setSelectedCompanies([]);
+      setBulkAssignDialogOpen(false);
+      toast({
+        title: "Companies Assigned",
+        description: `${selectedCompanies.length} companies have been assigned successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Bulk Assignment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSelectCompany = (companyId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedCompanies(prev => [...prev, companyId]);
+    } else {
+      setSelectedCompanies(prev => prev.filter(id => id !== companyId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedCompanies(companies.map(c => c.id));
+    } else {
+      setSelectedCompanies([]);
+    }
+  };
+
+  const handleBulkAssign = (assignedTo: string) => {
+    bulkAssignMutation.mutate({ companyIds: selectedCompanies, assignedTo });
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
   };
 
   // Stage update mutation
@@ -485,6 +547,51 @@ export default function CompanyManagement() {
                   </SelectContent>
                 </Select>
               )}
+              
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[130px]" data-testid="button-date-from">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {dateFrom ? format(dateFrom, "MMM d, yyyy") : "From Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={setDateFrom}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <span className="text-muted-foreground">to</span>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[130px]" data-testid="button-date-to">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {dateTo ? format(dateTo, "MMM d, yyyy") : "To Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={setDateTo}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                {(dateFrom || dateTo) && (
+                  <Button variant="ghost" size="sm" onClick={clearDateFilter} data-testid="button-clear-dates">
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -544,6 +651,55 @@ export default function CompanyManagement() {
         </Card>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedCompanies.length > 0 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-blue-600" />
+                <span className="font-medium text-blue-900">
+                  {selectedCompanies.length} companies selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="button-bulk-assign">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Assign to
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Assign selected companies to</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {salesReps.map((rep) => (
+                      <DropdownMenuItem 
+                        key={rep.id}
+                        onClick={() => handleBulkAssign(rep.id)}
+                        data-testid={`bulk-assign-${rep.id}`}
+                      >
+                        <UserPlus className="h-3 w-3 mr-2" />
+                        {rep.firstName} {rep.lastName}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedCompanies([])}
+                  data-testid="button-clear-selection"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Companies Table */}
       <Card>
         <CardContent className="p-0">
@@ -563,6 +719,13 @@ export default function CompanyManagement() {
                   <Table className="min-w-[1000px]">
                     <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
                       <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox 
+                            checked={selectedCompanies.length === companies.length && companies.length > 0}
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                            data-testid="checkbox-select-all"
+                          />
+                        </TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead>Origin</TableHead>
                         <TableHead>Stage</TableHead>
@@ -575,8 +738,20 @@ export default function CompanyManagement() {
                     <TableBody>
                       {companies.map((company) => {
                         const assignedRep = salesReps.find(r => r.id === company.assignedTo);
+                        const isSelected = selectedCompanies.includes(company.id);
                         return (
-                          <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
+                          <TableRow 
+                            key={company.id} 
+                            data-testid={`row-company-${company.id}`}
+                            className={isSelected ? "bg-blue-50" : ""}
+                          >
+                            <TableCell>
+                              <Checkbox 
+                                checked={isSelected}
+                                onCheckedChange={(checked) => handleSelectCompany(company.id, !!checked)}
+                                data-testid={`checkbox-company-${company.id}`}
+                              />
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-start gap-2">
                                 <Building2 className="h-4 w-4 mt-1 text-muted-foreground" />
