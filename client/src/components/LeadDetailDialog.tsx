@@ -635,12 +635,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   // Send quotation via email mutation
   const sendQuotationMutation = useMutation({
     mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string }) => {
+      const contactName = lead?.contactPerson?.contactName || 'Customer';
       return apiRequest(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
         method: 'POST',
         body: JSON.stringify({
           email: data.email,
           subject: `Quotation for ${lead?.companyName || 'Your Order'} - ${data.quotationInfo}`,
-          body: `Dear ${lead?.contactPerson || 'Customer'},
+          body: `Dear ${contactName},
 
 Thank you for your interest in our products. Please find below the quotation details.
 
@@ -679,10 +680,11 @@ Best regards`,
       });
       return;
     }
-    if (!lead?.email) {
+    const customerEmail = lead?.contactPerson?.email;
+    if (!customerEmail) {
       toast({
         title: "No Email Address",
-        description: "This lead doesn't have an email address configured.",
+        description: "This lead doesn't have a contact email address configured.",
         variant: "destructive",
       });
       return;
@@ -690,7 +692,7 @@ Best regards`,
     const quotationInfo = `${quote.quotationId} - ${quote.currency || 'USD'} ${parseFloat(quote.totalAmount || 0).toLocaleString()}`;
     sendQuotationMutation.mutate({
       quotationId: quote.id,
-      email: lead.email,
+      email: customerEmail,
       quotationInfo,
     });
   };
