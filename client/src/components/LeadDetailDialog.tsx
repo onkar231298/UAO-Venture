@@ -55,6 +55,24 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [activeTab, setActiveTab] = useState("overview");
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [hasAutoSynced, setHasAutoSynced] = useState(false);
+  const [showSampleRequestForm, setShowSampleRequestForm] = useState(false);
+  const [sampleFormData, setSampleFormData] = useState({
+    contactName: "",
+    companyName: "",
+    phoneNumber: "",
+    emailAddress: "",
+    productId: 0,
+    sampleSize: "50g",
+    purpose: "",
+    expectedOrderQuantity: "",
+    message: "",
+    shippingAddress: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "United States",
+  });
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -405,6 +423,98 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       setLastSyncTime(null);
     }
   }, [open]);
+
+  // Sample Request creation mutation
+  const createSampleRequestMutation = useMutation({
+    mutationFn: async (data: typeof sampleFormData) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/sample-requests`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'sample-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      setShowSampleRequestForm(false);
+      resetSampleFormData();
+      toast({
+        title: "Sample Request Created",
+        description: "The sample request has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create sample request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize sample form with lead data
+  const initializeSampleForm = (selectedProductId?: number) => {
+    setSampleFormData({
+      contactName: lead?.contactPerson || "",
+      companyName: lead?.companyName || "",
+      phoneNumber: lead?.phoneNumber || "",
+      emailAddress: lead?.email || "",
+      productId: selectedProductId || (products.length === 1 ? products[0].id : 0),
+      sampleSize: "50g",
+      purpose: "",
+      expectedOrderQuantity: lead?.requiredQuantity?.toString() || "",
+      message: "",
+      shippingAddress: lead?.address || "",
+      city: lead?.city || "",
+      state: lead?.region || "",
+      postalCode: lead?.postalCode || "",
+      country: lead?.country || "United States",
+    });
+    setShowSampleRequestForm(true);
+  };
+
+  const resetSampleFormData = () => {
+    setSampleFormData({
+      contactName: "",
+      companyName: "",
+      phoneNumber: "",
+      emailAddress: "",
+      productId: 0,
+      sampleSize: "50g",
+      purpose: "",
+      expectedOrderQuantity: "",
+      message: "",
+      shippingAddress: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "United States",
+    });
+  };
+
+  const handleSampleFormSubmit = () => {
+    const requiredFields = ['contactName', 'companyName', 'phoneNumber', 'emailAddress', 'purpose', 'shippingAddress', 'city', 'state', 'postalCode', 'country'];
+    const missingFields = requiredFields.filter(field => !sampleFormData[field as keyof typeof sampleFormData]);
+    
+    if (missingFields.length > 0) {
+      toast({
+        title: "Missing Required Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!sampleFormData.productId) {
+      toast({
+        title: "Product Required",
+        description: "Please select a product for the sample request.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    createSampleRequestMutation.mutate(sampleFormData);
+  };
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
     try {
@@ -943,17 +1053,229 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                     size="sm" 
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     data-testid="button-create-sample-request"
-                    onClick={() => {
-                      toast({
-                        title: "Coming Soon",
-                        description: "Sample request creation form will be available soon.",
-                      });
-                    }}
+                    onClick={() => initializeSampleForm()}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Create Sample Request
                   </Button>
                 </div>
+
+                {/* Sample Request Form */}
+                {showSampleRequestForm && (
+                  <Card className="mb-4 border-2 border-blue-200 bg-blue-50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-medium flex items-center gap-2 text-blue-800">
+                          <Package className="h-4 w-4" />
+                          New Sample Request
+                        </h4>
+                        <Button variant="ghost" size="sm" onClick={() => setShowSampleRequestForm(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Product Selection */}
+                        <div className="md:col-span-2">
+                          <Label htmlFor="sample-product">Product *</Label>
+                          <Select
+                            value={sampleFormData.productId.toString()}
+                            onValueChange={(value) => setSampleFormData({...sampleFormData, productId: parseInt(value)})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.length > 0 ? (
+                                products.map((product) => (
+                                  <SelectItem key={product.id} value={product.id.toString()}>
+                                    {product.name} ({product.productId})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="0" disabled>No products available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Sample Details */}
+                        <div>
+                          <Label htmlFor="sample-size">Sample Size</Label>
+                          <Select
+                            value={sampleFormData.sampleSize}
+                            onValueChange={(value) => setSampleFormData({...sampleFormData, sampleSize: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="25g">25 grams (Small)</SelectItem>
+                              <SelectItem value="50g">50 grams (Standard)</SelectItem>
+                              <SelectItem value="100g">100 grams (Large)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="sample-purpose">Purpose *</Label>
+                          <Select
+                            value={sampleFormData.purpose}
+                            onValueChange={(value) => setSampleFormData({...sampleFormData, purpose: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select purpose" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="testing">Quality Testing</SelectItem>
+                              <SelectItem value="analysis">Lab Analysis</SelectItem>
+                              <SelectItem value="product_development">Product Development</SelectItem>
+                              <SelectItem value="evaluation">Product Evaluation</SelectItem>
+                              <SelectItem value="bulk_order">Bulk Order Consideration</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="expected-qty">Expected Order Quantity</Label>
+                          <Input
+                            id="expected-qty"
+                            value={sampleFormData.expectedOrderQuantity}
+                            onChange={(e) => setSampleFormData({...sampleFormData, expectedOrderQuantity: e.target.value})}
+                            placeholder="e.g., 500 kg"
+                          />
+                        </div>
+                        
+                        {/* Contact Information */}
+                        <div className="md:col-span-2 border-t pt-4 mt-2">
+                          <h5 className="font-medium mb-3">Contact Information</h5>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="contact-name">Contact Name *</Label>
+                          <Input
+                            id="contact-name"
+                            value={sampleFormData.contactName}
+                            onChange={(e) => setSampleFormData({...sampleFormData, contactName: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="company-name">Company Name *</Label>
+                          <Input
+                            id="company-name"
+                            value={sampleFormData.companyName}
+                            onChange={(e) => setSampleFormData({...sampleFormData, companyName: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="phone">Phone Number *</Label>
+                          <Input
+                            id="phone"
+                            value={sampleFormData.phoneNumber}
+                            onChange={(e) => setSampleFormData({...sampleFormData, phoneNumber: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="email">Email Address *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={sampleFormData.emailAddress}
+                            onChange={(e) => setSampleFormData({...sampleFormData, emailAddress: e.target.value})}
+                          />
+                        </div>
+                        
+                        {/* Shipping Details */}
+                        <div className="md:col-span-2 border-t pt-4 mt-2">
+                          <h5 className="font-medium mb-3">Shipping Address</h5>
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <Label htmlFor="shipping-address">Street Address *</Label>
+                          <Input
+                            id="shipping-address"
+                            value={sampleFormData.shippingAddress}
+                            onChange={(e) => setSampleFormData({...sampleFormData, shippingAddress: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="city">City *</Label>
+                          <Input
+                            id="city"
+                            value={sampleFormData.city}
+                            onChange={(e) => setSampleFormData({...sampleFormData, city: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="state">State/Province *</Label>
+                          <Input
+                            id="state"
+                            value={sampleFormData.state}
+                            onChange={(e) => setSampleFormData({...sampleFormData, state: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="postal-code">Postal Code *</Label>
+                          <Input
+                            id="postal-code"
+                            value={sampleFormData.postalCode}
+                            onChange={(e) => setSampleFormData({...sampleFormData, postalCode: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="country">Country *</Label>
+                          <Input
+                            id="country"
+                            value={sampleFormData.country}
+                            onChange={(e) => setSampleFormData({...sampleFormData, country: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <Label htmlFor="message">Additional Notes</Label>
+                          <Textarea
+                            id="message"
+                            value={sampleFormData.message}
+                            onChange={(e) => setSampleFormData({...sampleFormData, message: e.target.value})}
+                            placeholder="Any special requirements or notes..."
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setShowSampleRequestForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSampleFormSubmit}
+                          disabled={createSampleRequestMutation.isPending}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {createSampleRequestMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <Package className="h-4 w-4 mr-2" />
+                              Create Sample Request
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {samplesLoading ? (
                   <div className="flex items-center justify-center py-8">
