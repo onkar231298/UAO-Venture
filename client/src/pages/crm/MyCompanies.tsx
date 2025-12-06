@@ -567,7 +567,7 @@ export default function MyCompanies() {
 
               <TabsContent value="info" className="space-y-4 mt-4">
                 {/* Quick Action Buttons */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 items-center">
                   {selectedCompany.primaryEmail && (
                     <Button
                       variant="outline"
