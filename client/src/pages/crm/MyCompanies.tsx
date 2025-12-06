@@ -138,6 +138,254 @@ function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { company
   );
 }
 
+interface EmailThread {
+  id: number;
+  subject: string | null;
+  lastMessageAt: string | null;
+  messageCount: number;
+  messages: EmailMessage[];
+}
+
+interface EmailMessage {
+  id: number;
+  direction: string;
+  fromEmail: string;
+  toEmails: string[];
+  subject: string | null;
+  bodyHtml: string | null;
+  bodyText: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+}
+
+function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; companyEmail: string | null }) {
+  const { data: emailThreads = [], isLoading } = useQuery<EmailThread[]>({
+    queryKey: ['/api/crm/companies', companyId, 'emails'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${companyId}/emails`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch emails');
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-center py-6">
+            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (emailThreads.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="text-center py-8 text-muted-foreground">
+            <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">No email history yet</p>
+            <p className="text-sm mt-1">Emails sent to this company will appear here</p>
+            {companyEmail && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4"
+                onClick={() => window.open(`mailto:${companyEmail}`, '_blank')}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Email to {companyEmail}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email History
+          </h3>
+          <Badge variant="outline">{emailThreads.length} thread{emailThreads.length !== 1 ? 's' : ''}</Badge>
+        </div>
+        <div className="space-y-4">
+          {emailThreads.map((thread) => (
+            <div key={thread.id} className="border rounded-lg p-4 hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-2">
+                <p className="font-medium text-sm">{thread.subject || 'No Subject'}</p>
+                <Badge variant="outline" className="text-xs">
+                  {thread.messageCount} message{thread.messageCount !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+              {thread.lastMessageAt && (
+                <p className="text-xs text-gray-500">
+                  Last message: {format(new Date(thread.lastMessageAt), 'MMM d, yyyy h:mm a')}
+                </p>
+              )}
+              {thread.messages && thread.messages.length > 0 && (
+                <div className="mt-3 space-y-2 border-t pt-3">
+                  {thread.messages.slice(0, 3).map((email) => (
+                    <div key={email.id} className="text-sm flex items-start gap-2">
+                      <Badge 
+                        variant={email.direction === 'outbound' ? 'default' : 'secondary'}
+                        className="text-xs shrink-0"
+                      >
+                        {email.direction === 'outbound' ? 'Sent' : 'Received'}
+                      </Badge>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-gray-600">{email.subject}</p>
+                        <p className="text-xs text-gray-400">
+                          {email.sentAt 
+                            ? format(new Date(email.sentAt), 'MMM d, h:mm a')
+                            : email.receivedAt 
+                              ? format(new Date(email.receivedAt), 'MMM d, h:mm a')
+                              : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {thread.messages.length > 3 && (
+                    <p className="text-xs text-gray-500 text-center">
+                      +{thread.messages.length - 3} more messages
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CompanyCallsTab({ companyId }: { companyId: number }) {
+  const { toast } = useToast();
+  const { data: callActivities = [], isLoading } = useQuery<CompanyActivity[]>({
+    queryKey: ['/api/crm/companies', companyId, 'calls'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${companyId}/calls`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch calls');
+      return response.json();
+    },
+  });
+
+  const logCallMutation = useMutation({
+    mutationFn: async (data: { subject: string; description: string }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/activities`, {
+        method: 'POST',
+        body: JSON.stringify({
+          activityType: 'call',
+          subject: data.subject,
+          description: data.description,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'calls'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'activities'] });
+      toast({
+        title: "Call Logged",
+        description: "Call activity has been recorded",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-center py-6">
+            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            Call History
+          </h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Phone className="h-4 w-4 mr-1" />
+                Log Call
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'Call completed', 
+                description: 'Successfully connected with contact' 
+              })}>
+                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                Call Completed
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'No answer', 
+                description: 'Call attempted but no answer' 
+              })}>
+                <PhoneMissed className="h-4 w-4 mr-2 text-orange-600" />
+                No Answer
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'Left voicemail', 
+                description: 'Left voicemail message' 
+              })}>
+                <Phone className="h-4 w-4 mr-2 text-blue-600" />
+                Left Voicemail
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {callActivities.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Phone className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">No call history yet</p>
+            <p className="text-sm mt-1">Use the "Log Call" button to record calls</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {callActivities.map((call) => (
+              <div key={call.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
+                <div className="p-2 rounded-full bg-green-100">
+                  <Phone className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{call.subject}</p>
+                  {call.description && (
+                    <p className="text-sm text-gray-600">{call.description}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {format(new Date(call.createdAt), 'MMM d, yyyy h:mm a')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 interface Company {
   id: number;
   companyName: string;
@@ -728,8 +976,16 @@ export default function MyCompanies() {
 
           {selectedCompany && (
             <Tabs value={dialogTab} onValueChange={setDialogTab} className="w-full">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="info">Info</TabsTrigger>
+                <TabsTrigger value="emails" className="flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  Emails
+                </TabsTrigger>
+                <TabsTrigger value="calls" className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  Calls
+                </TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
               </TabsList>
@@ -999,6 +1255,14 @@ export default function MyCompanies() {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="emails" className="mt-4">
+                <CompanyEmailsTab companyId={selectedCompany.id} companyEmail={selectedCompany.primaryEmail} />
+              </TabsContent>
+
+              <TabsContent value="calls" className="mt-4">
+                <CompanyCallsTab companyId={selectedCompany.id} />
               </TabsContent>
 
               <TabsContent value="notes" className="mt-4">

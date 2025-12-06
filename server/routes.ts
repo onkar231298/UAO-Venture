@@ -4728,6 +4728,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================================
+  // CRM - COMPANY EMAIL ROUTES
+  // ========================================
+
+  // Get email threads for a company
+  app.get('/api/crm/companies/:id/emails', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const threads = await storage.getEmailThreads({ companyId });
+      
+      // Get messages for each thread
+      const threadsWithMessages = await Promise.all(
+        threads.map(async (thread) => {
+          const messages = await storage.getEmailMessages({ threadId: thread.id });
+          return { ...thread, messages };
+        })
+      );
+      
+      res.json(threadsWithMessages);
+    } catch (error) {
+      console.error('Error fetching company emails:', error);
+      res.status(500).json({ message: 'Failed to fetch emails' });
+    }
+  });
+
+  // Get call activities for a company (filtered from activities)
+  app.get('/api/crm/companies/:id/calls', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const activities = await storage.getCompanyActivities(companyId);
+      const callActivities = activities.filter((a: any) => a.activityType === 'call');
+      res.json(callActivities);
+    } catch (error) {
+      console.error('Error fetching company calls:', error);
+      res.status(500).json({ message: 'Failed to fetch calls' });
+    }
+  });
+
+  // ========================================
   // CRM - COMPANY TASK ROUTES
   // ========================================
 
