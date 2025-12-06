@@ -7167,13 +7167,179 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: 'Recipient email is required' });
       }
 
-      // TODO: Generate PDF and attach if attachPdf is true
-      // For now, send the email with body content
+      // Get product name from lead's products interested
+      let productName = 'your inquiry';
+      if (lead.productsInterested && lead.productsInterested.length > 0) {
+        const productIds = lead.productsInterested;
+        const productsResult = await db.select({ name: products.name }).from(products).where(inArray(products.id, productIds));
+        productName = productsResult.map(p => p.name).join(', ') || 'your inquiry';
+      }
       
+      // Get customer/contact name for greeting
+      const contactName = lead.contactPerson?.name || lead.company?.companyName || 'Valued Customer';
+      const companyName = lead.company?.companyName || '';
+      
+      // Get sales person name for signature
+      const salesRepName = user?.firstName && user?.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : emailConfig.displayName || 'Sales Team';
+      
+      // Generate PDF if attachPdf is true (default to true)
+      let pdfAttachment: { base64Data: string; mimeType: string; filename: string } | null = null;
+      if (attachPdf !== false) {
+        try {
+          const { generateQuotationPDF } = await import('./pdf-generator');
+          
+          // Fetch quotation items
+          const quotationItemsResult = await db
+            .select()
+            .from(quotationItems)
+            .where(eq(quotationItems.quotationId, quotationId));
+          
+          const firstItem = quotationItemsResult.length > 0 ? quotationItemsResult[0] : null;
+          
+          // Prepare customer data
+          const customerData = {
+            name: companyName,
+            contactPerson: lead.contactPerson?.name || '',
+            email: lead.contactPerson?.email || lead.company?.primaryEmail || email,
+            companyName: companyName,
+            phone: lead.contactPerson?.phone || lead.company?.primaryPhone || '',
+            address: lead.company?.addressStreet || '',
+            city: lead.company?.addressCity || '',
+            state: lead.company?.addressState || '',
+            country: lead.company?.addressCountry || '',
+            postalCode: lead.company?.addressZip || '',
+            salesPersonName: salesRepName,
+          };
+          
+          // Get quantity and unit from lead
+          const quantity = firstItem?.quantity || lead.requiredQuantity || '1';
+          const unit = firstItem?.unit || lead.unit || 'units';
+          const totalAmount = quotation.totalAmount || '0';
+          const qty = parseFloat(String(quantity));
+          const unitPrice = firstItem?.unitPrice || (qty > 0 ? (parseFloat(totalAmount) / qty).toFixed(2) : '0');
+          
+          // Prepare quotation data
+          const quotationData = {
+            id: quotation.id,
+            quotationId: quotation.quotationId,
+            quotationDate: quotation.createdAt,
+            validUntil: quotation.validUntil,
+            productName: productName,
+            quantity: String(quantity),
+            unit: unit,
+            unitPrice: String(unitPrice),
+            totalAmount: totalAmount,
+            currency: quotation.currency || 'USD',
+            terms: quotation.terms || '',
+            notes: quotation.notes || '',
+            paymentTerms: 'As per agreement',
+            deliveryTerms: quotation.priceType || 'Ex-Works',
+            subtotal: quotation.subtotal,
+            discountPercent: quotation.discountPercent,
+            discountAmount: quotation.discountAmount,
+            includeGst: quotation.includeGst,
+            gstNumber: quotation.gstNumber,
+            gstPercentage: quotation.gstPercentage,
+            gstAmount: quotation.gstAmount,
+            sellerGstin: quotation.sellerGstin,
+            sellerPan: quotation.sellerPan,
+            buyerGstin: quotation.buyerGstin,
+            buyerPan: quotation.buyerPan,
+            customerCompanyName: quotation.customerCompanyName,
+            customerAddress: quotation.customerAddress,
+            customerCity: quotation.customerCity,
+            customerState: quotation.customerState,
+            customerCountry: quotation.customerCountry,
+            customerPostalCode: quotation.customerPostalCode,
+            placeOfSupply: quotation.placeOfSupply,
+            countryOfSupply: quotation.countryOfSupply,
+          };
+          
+          const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
+          pdfAttachment = {
+            base64Data: pdfBuffer.toString('base64'),
+            mimeType: 'application/pdf',
+            filename: `Quotation-${quotation.quotationId}.pdf`,
+          };
+        } catch (pdfError) {
+          console.error('Error generating PDF for email attachment:', pdfError);
+          // Continue without attachment if PDF generation fails
+        }
+      }
+      
+      // Build proper email template
+      const emailSubject = subject || `Quotation ${quotation.quotationId} - ${productName}`;
+      
+      // Use provided body or generate a proper template
+      const emailBody = body || `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <p>Dear ${contactName},</p>
+  
+  <p>Greetings from Bright Fame Organic!</p>
+  
+  <p>Thank you for your interest in <strong>${productName}</strong>. Please find attached our quotation (${quotation.quotationId}) for your reference.</p>
+  
+  <p>Quotation Details:</p>
+  <ul style="list-style-type: none; padding-left: 0;">
+    <li><strong>Product:</strong> ${productName}</li>
+    <li><strong>Quotation ID:</strong> ${quotation.quotationId}</li>
+    <li><strong>Total Amount:</strong> ${quotation.currency || 'USD'} ${parseFloat(quotation.totalAmount || '0').toLocaleString()}</li>
+    <li><strong>Valid Until:</strong> ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-GB') : 'As per terms'}</li>
+  </ul>
+  
+  <p>Please review the attached quotation and feel free to reach out if you have any questions or require any clarification.</p>
+  
+  <p>We look forward to doing business with you.</p>
+  
+  <p>Best Regards,<br/>
+  <strong>${salesRepName}</strong><br/>
+  Bright Fame Organic Pvt. Ltd.<br/>
+  Email: ${emailConfig.companyEmail}<br/>
+  Phone: +91-7249847439</p>
+</div>
+`;
+      
+      const emailBodyText = `Dear ${contactName},
+
+Greetings from Bright Fame Organic!
+
+Thank you for your interest in ${productName}. Please find attached our quotation (${quotation.quotationId}) for your reference.
+
+Quotation Details:
+- Product: ${productName}
+- Quotation ID: ${quotation.quotationId}
+- Total Amount: ${quotation.currency || 'USD'} ${parseFloat(quotation.totalAmount || '0').toLocaleString()}
+- Valid Until: ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-GB') : 'As per terms'}
+
+Please review the attached quotation and feel free to reach out if you have any questions or require any clarification.
+
+We look forward to doing business with you.
+
+Best Regards,
+${salesRepName}
+Bright Fame Organic Pvt. Ltd.
+Email: ${emailConfig.companyEmail}
+Phone: +91-7249847439`;
+
       let emailSendResult: { messageId: string; threadId: string };
       
-      const emailSubject = subject || `Quotation ${quotation.quotationId}`;
-      const emailBody = body || `Please find attached the quotation ${quotation.quotationId}.`;
+      const emailOptions: any = {
+        to: Array.isArray(email) ? email : [email],
+        cc: [],
+        bcc: [],
+        subject: emailSubject,
+        bodyHtml: emailBody,
+        bodyText: emailBodyText,
+        fromName: emailConfig.displayName || undefined,
+        fromEmail: emailConfig.companyEmail,
+      };
+      
+      // Add PDF attachment if generated
+      if (pdfAttachment) {
+        emailOptions.fileAttachments = [pdfAttachment];
+      }
       
       // If threadId is provided, try to use replyToEmail to continue the thread
       // If thread not found, fall back to sending as new email
@@ -7182,52 +7348,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           emailSendResult = await gmailApi.replyToEmail(
             emailConfig.accessToken,
             threadId,
-            {
-              to: Array.isArray(email) ? email : [email],
-              cc: [],
-              bcc: [],
-              subject: emailSubject,
-              bodyHtml: emailBody,
-              bodyText: emailBody.replace(/<[^>]*>/g, ''),
-              fromName: emailConfig.displayName || undefined,
-              fromEmail: emailConfig.companyEmail,
-            }
+            emailOptions
           );
         } catch (replyError: any) {
           // If thread not found (404), fall back to sending as new email
           if (replyError.status === 404 || replyError.code === 404) {
             console.log('Thread not found in Gmail, sending as new email');
-            emailSendResult = await gmailApi.sendEmail(
-              emailConfig.accessToken,
-              {
-                to: Array.isArray(email) ? email : [email],
-                cc: [],
-                bcc: [],
-                subject: emailSubject,
-                bodyHtml: emailBody,
-                bodyText: emailBody.replace(/<[^>]*>/g, ''),
-                fromName: emailConfig.displayName || undefined,
-                fromEmail: emailConfig.companyEmail,
-              }
-            );
+            emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
           } else {
             throw replyError;
           }
         }
       } else {
-        emailSendResult = await gmailApi.sendEmail(
-          emailConfig.accessToken,
-          {
-            to: Array.isArray(email) ? email : [email],
-            cc: [],
-            bcc: [],
-            subject: emailSubject,
-            bodyHtml: emailBody,
-            bodyText: emailBody.replace(/<[^>]*>/g, ''),
-            fromName: emailConfig.displayName || undefined,
-            fromEmail: emailConfig.companyEmail,
-          }
-        );
+        emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
       }
 
       // Update quotation with sent status
