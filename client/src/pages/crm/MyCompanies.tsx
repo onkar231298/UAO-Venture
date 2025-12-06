@@ -566,20 +566,68 @@ export default function MyCompanies() {
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
+                {/* Quick Action Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {selectedCompany.primaryEmail && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => window.open(`mailto:${selectedCompany.primaryEmail}`, '_blank')}
+                      data-testid="button-email-company"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Send Email
+                    </Button>
+                  )}
+                  {selectedCompany.primaryPhone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => window.open(`tel:${selectedCompany.primaryPhone}`, '_blank')}
+                      data-testid="button-call-company"
+                    >
+                      <Phone className="h-4 w-4" />
+                      Call
+                    </Button>
+                  )}
+                  {selectedCompany.website && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => window.open(selectedCompany.website!, '_blank')}
+                      data-testid="button-visit-website"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Visit Website
+                    </Button>
+                  )}
+                </div>
+
                 <Card>
                   <CardContent className="pt-4 grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-muted-foreground">Email</label>
                       <p className="font-medium flex items-center gap-1">
                         <Mail className="h-4 w-4" />
-                        {selectedCompany.primaryEmail || '-'}
+                        {selectedCompany.primaryEmail ? (
+                          <a href={`mailto:${selectedCompany.primaryEmail}`} className="text-blue-600 hover:underline">
+                            {selectedCompany.primaryEmail}
+                          </a>
+                        ) : '-'}
                       </p>
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Phone</label>
                       <p className="font-medium flex items-center gap-1">
                         <Phone className="h-4 w-4" />
-                        {selectedCompany.primaryPhone || '-'}
+                        {selectedCompany.primaryPhone ? (
+                          <a href={`tel:${selectedCompany.primaryPhone}`} className="text-blue-600 hover:underline">
+                            {selectedCompany.primaryPhone}
+                          </a>
+                        ) : '-'}
                       </p>
                     </div>
                     <div>
