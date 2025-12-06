@@ -1138,129 +1138,269 @@ export default function CompanyManagement() {
 
       {/* View Company Details Dialog */}
       <Dialog open={viewDetailsOpen} onOpenChange={setViewDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Company Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {selectedCompany?.companyName}
+            </DialogTitle>
             <DialogDescription>
-              View complete company information
+              View and manage company details
             </DialogDescription>
           </DialogHeader>
 
           {selectedCompany && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Basic Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Company Name</p>
-                    <p className="font-medium">{selectedCompany.companyName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">GST Number</p>
-                    <p className="font-medium">{selectedCompany.gstNumber || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Primary Email</p>
-                    <p className="font-medium">{(selectedCompany as any).primaryEmail || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Primary Phone</p>
-                    <p className="font-medium">{(selectedCompany as any).primaryPhone || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Industry Type</p>
-                    <p className="font-medium">{selectedCompany.industryType || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Company Size</p>
-                    <p className="font-medium">{selectedCompany.companySize || "-"}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Website</p>
-                    {selectedCompany.website ? (
-                      <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {selectedCompany.website}
-                      </a>
-                    ) : (
-                      <p className="font-medium">-</p>
-                    )}
-                  </div>
-                </div>
+            <div className="space-y-4">
+              {/* Status Badges Row */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <Badge 
+                  variant="outline" 
+                  className={selectedCompany.origin === 'website' 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                    : 'bg-gray-50 text-gray-700 border-gray-200'
+                  }
+                >
+                  {selectedCompany.origin === 'website' ? 'Website Customer' : 'Manually Added'}
+                </Badge>
+                <Badge className={getStageColor(selectedCompany.companyStage)}>
+                  {COMPANY_STAGES.find(s => s.id === selectedCompany.companyStage)?.label || 'Prospect'}
+                </Badge>
+                <Badge className={getPriorityColor(selectedCompany.priority)}>
+                  {selectedCompany.priority || 'warm'}
+                </Badge>
               </div>
+              
+              {/* Quick Actions */}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedCompany.companyStage || 'prospect'}
+                    onValueChange={(value) => {
+                      updateStageMutation.mutate({ companyId: selectedCompany.id, stage: value });
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]" data-testid="select-change-stage">
+                      <SelectValue placeholder="Change Stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPANY_STAGES.map(stage => (
+                        <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={selectedCompany.assignedTo || ""}
+                    onValueChange={(value) => handleAssignCompany(selectedCompany.id, value)}
+                  >
+                    <SelectTrigger className="w-[180px]" data-testid="select-assign-rep">
+                      <SelectValue placeholder="Assign to Rep" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salesReps.map(rep => (
+                        <SelectItem key={rep.id} value={rep.id}>
+                          {rep.firstName} {rep.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <Tabs defaultValue="info" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  <TabsTrigger value="contacts" data-testid="tab-contacts">Contacts</TabsTrigger>
+                  <TabsTrigger value="address" data-testid="tab-address">Addresses</TabsTrigger>
+                  <TabsTrigger value="activity" data-testid="tab-activity">Activity</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="info" className="space-y-4 mt-4">
+                  {/* Basic Information */}
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Company Name</p>
+                          <p className="font-medium">{selectedCompany.companyName}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">GST Number</p>
+                          <p className="font-medium">{selectedCompany.gstNumber || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Primary Email</p>
+                          <p className="font-medium flex items-center gap-1">
+                            {selectedCompany.primaryEmail ? (
+                              <a href={`mailto:${selectedCompany.primaryEmail}`} className="text-blue-600 hover:underline flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {selectedCompany.primaryEmail}
+                              </a>
+                            ) : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Primary Phone</p>
+                          <p className="font-medium flex items-center gap-1">
+                            {selectedCompany.primaryPhone ? (
+                              <a href={`tel:${selectedCompany.primaryPhone}`} className="text-blue-600 hover:underline flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {selectedCompany.primaryPhone}
+                              </a>
+                            ) : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Industry Type</p>
+                          <p className="font-medium">{selectedCompany.industryType || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Company Size</p>
+                          <p className="font-medium">{selectedCompany.companySize || "-"}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground">Website</p>
+                          {selectedCompany.website ? (
+                            <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                              <Globe className="h-3 w-3" />
+                              {selectedCompany.website}
+                            </a>
+                          ) : (
+                            <p className="font-medium">-</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Assignment & Metadata */}
+                  <Card>
+                    <CardContent className="pt-4">
+                      <h4 className="font-semibold mb-3">Assignment & Metadata</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Assigned To</p>
+                          <p className="font-medium flex items-center gap-1">
+                            <UserPlus className="h-3 w-3" />
+                            {salesReps.find(r => r.id === selectedCompany.assignedTo)
+                              ? `${salesReps.find(r => r.id === selectedCompany.assignedTo)?.firstName} ${salesReps.find(r => r.id === selectedCompany.assignedTo)?.lastName}`
+                              : <span className="text-amber-600">Unassigned</span>
+                            }
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Created By</p>
+                          <p className="font-medium">{selectedCompany.createdBy || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Origin</p>
+                          <p className="font-medium">{selectedCompany.origin || "manual"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Created At</p>
+                          <p className="font-medium">{new Date(selectedCompany.createdAt).toLocaleString()}</p>
+                        </div>
+                        {selectedCompany.linkedUserId && (
+                          <div className="col-span-2">
+                            <p className="text-sm text-muted-foreground">Linked User ID</p>
+                            <p className="font-medium">{selectedCompany.linkedUserId}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="contacts" className="mt-4">
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No contacts linked to this company yet</p>
+                        <p className="text-sm">Contacts will appear here when linked through registrations</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="address" className="space-y-4 mt-4">
+                  {/* Primary Address */}
+                  <Card>
+                    <CardContent className="pt-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Primary Address
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground">Street Address</p>
+                          <p className="font-medium">{(selectedCompany as any).addressStreet || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">City</p>
+                          <p className="font-medium">{selectedCompany.addressCity || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">State</p>
+                          <p className="font-medium">{selectedCompany.addressState || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Country</p>
+                          <p className="font-medium">{selectedCompany.addressCountry || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">ZIP Code</p>
+                          <p className="font-medium">{(selectedCompany as any).addressZip || "-"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              {/* Primary Address */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Primary Address</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Street Address</p>
-                    <p className="font-medium">{(selectedCompany as any).addressStreet || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">City</p>
-                    <p className="font-medium">{selectedCompany.addressCity || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">State</p>
-                    <p className="font-medium">{selectedCompany.addressState || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Country</p>
-                    <p className="font-medium">{selectedCompany.addressCountry || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">ZIP Code</p>
-                    <p className="font-medium">{(selectedCompany as any).addressZip || "-"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Factory/Warehouse Address */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Factory/Warehouse Address</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Street Address</p>
-                    <p className="font-medium">{(selectedCompany as any).factoryAddressStreet || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">City</p>
-                    <p className="font-medium">{(selectedCompany as any).factoryAddressCity || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">State</p>
-                    <p className="font-medium">{(selectedCompany as any).factoryAddressState || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Country</p>
-                    <p className="font-medium">{(selectedCompany as any).factoryAddressCountry || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">ZIP Code</p>
-                    <p className="font-medium">{(selectedCompany as any).factoryAddressZip || "-"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assignment & Metadata */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">Assignment & Metadata</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Assigned To</p>
-                    <p className="font-medium">{selectedCompany.assignedTo || <span className="text-amber-600">Unassigned</span>}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Created By</p>
-                    <p className="font-medium">{selectedCompany.createdBy || "-"}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">Created At</p>
-                    <p className="font-medium">{new Date(selectedCompany.createdAt).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
+                  {/* Factory/Warehouse Address */}
+                  <Card>
+                    <CardContent className="pt-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Factory/Warehouse Address
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground">Street Address</p>
+                          <p className="font-medium">{(selectedCompany as any).factoryAddressStreet || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">City</p>
+                          <p className="font-medium">{(selectedCompany as any).factoryAddressCity || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">State</p>
+                          <p className="font-medium">{(selectedCompany as any).factoryAddressState || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Country</p>
+                          <p className="font-medium">{(selectedCompany as any).factoryAddressCountry || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">ZIP Code</p>
+                          <p className="font-medium">{(selectedCompany as any).factoryAddressZip || "-"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="activity" className="mt-4">
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="text-center py-6 text-muted-foreground">
+                        <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Activity timeline coming soon</p>
+                        <p className="text-sm">Track all interactions and updates with this company</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
 
               <div className="flex justify-end pt-4">
                 <Button onClick={() => setViewDetailsOpen(false)} data-testid="button-close-details">
