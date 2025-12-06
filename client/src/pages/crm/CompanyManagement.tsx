@@ -731,6 +731,7 @@ export default function CompanyManagement() {
                         <TableHead>Stage</TableHead>
                         <TableHead>Priority</TableHead>
                         <TableHead>Location</TableHead>
+                        <TableHead>Date Added</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -806,6 +807,11 @@ export default function CompanyManagement() {
                                   </>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {company.createdAt ? format(new Date(company.createdAt), 'MMM dd, yyyy') : '-'}
+                              </span>
                             </TableCell>
                             <TableCell>
                               {assignedRep ? (
