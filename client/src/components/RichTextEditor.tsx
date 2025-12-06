@@ -7,6 +7,8 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import Image from '@tiptap/extension-image';
+import { Extension } from '@tiptap/core';
 import { 
   Bold, 
   Italic, 
@@ -26,14 +28,64 @@ import {
   Minus,
   Type,
   Palette,
-  ChevronDown
+  ChevronDown,
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { useState, useCallback, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addCommands() {
+    return {
+      setFontSize: (fontSize: string) => ({ chain }: any) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run();
+      },
+      unsetFontSize: () => ({ chain }: any) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run();
+      },
+    };
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -41,7 +93,17 @@ interface RichTextEditorProps {
   placeholder?: string;
   minHeight?: string;
   className?: string;
+  onImageDrop?: (file: File) => Promise<string | null>;
 }
+
+const FONT_SIZES = [
+  { label: 'Small', value: '12px' },
+  { label: 'Normal', value: '14px' },
+  { label: 'Medium', value: '16px' },
+  { label: 'Large', value: '18px' },
+  { label: 'XL', value: '20px' },
+  { label: '2XL', value: '24px' },
+];
 
 const HIGHLIGHT_COLORS = [
   { name: 'Yellow', color: '#fef08a' },
@@ -68,10 +130,35 @@ export default function RichTextEditor({
   onChange, 
   placeholder = "Write your email here...",
   minHeight = "200px",
-  className = ""
+  className = "",
+  onImageDrop
 }: RichTextEditorProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<any>(null);
+  const onImageDropRef = useRef(onImageDrop);
+  
+  useEffect(() => {
+    onImageDropRef.current = onImageDrop;
+  }, [onImageDrop]);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!onImageDropRef.current) return;
+    
+    setUploadingImage(true);
+    try {
+      const imageUrl = await onImageDropRef.current(file);
+      if (imageUrl && editorRef.current) {
+        editorRef.current.chain().focus().setImage({ src: imageUrl }).run();
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+    } finally {
+      setUploadingImage(false);
+    }
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -98,6 +185,12 @@ export default function RichTextEditor({
       }),
       TextStyle,
       Color,
+      FontSize,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded',
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -107,8 +200,34 @@ export default function RichTextEditor({
       attributes: {
         class: `prose prose-sm max-w-none focus:outline-none min-h-[${minHeight}] px-3 py-2`,
       },
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handlePaste: (view, event, slice) => {
+        if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+          const file = event.clipboardData.files[0];
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
     },
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
@@ -176,6 +295,34 @@ export default function RichTextEditor({
           >
             <Strikethrough className="h-4 w-4" />
           </Toggle>
+        </div>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Font Size Selector */}
+        <div className="flex items-center">
+          <Select
+            onValueChange={(value) => {
+              if (value === 'default') {
+                (editor.chain().focus() as any).unsetFontSize().run();
+              } else {
+                (editor.chain().focus() as any).setFontSize(value).run();
+              }
+            }}
+          >
+            <SelectTrigger className="h-8 w-[90px] text-xs" data-testid="editor-font-size">
+              <Type className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="Size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default</SelectItem>
+              {FONT_SIZES.map((size) => (
+                <SelectItem key={size.value} value={size.value}>
+                  {size.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
@@ -377,6 +524,43 @@ export default function RichTextEditor({
         </div>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Image upload button */}
+        {onImageDrop && (
+          <>
+            <div className="flex items-center">
+              <input
+                type="file"
+                ref={imageInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImageUpload(file);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+                data-testid="editor-image"
+                title="Insert image (or drag & drop)"
+              >
+                {uploadingImage ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                ) : (
+                  <ImageIcon className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+          </>
+        )}
 
         <div className="flex items-center">
           <Button

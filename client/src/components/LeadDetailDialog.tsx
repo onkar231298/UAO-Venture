@@ -256,8 +256,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     // Pre-fill recipients - use reply recipients if provided, otherwise use lead contact email
     if (replyToEmails && replyToEmails.length > 0) {
       setEmailTo(replyToEmails);
-    } else if (lead?.contactPerson?.contactEmail) {
-      setEmailTo([lead.contactPerson.contactEmail]);
+    } else if (lead?.contactPerson?.email) {
+      setEmailTo([lead.contactPerson.email]);
     } else {
       setEmailTo([]);
     }
@@ -310,8 +310,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     replyCc = (email.ccEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
     
     // If no recipients found, fall back to lead contact email
-    if (replyTo.length === 0 && lead?.contactPerson?.contactEmail) {
-      replyTo = [lead.contactPerson.contactEmail];
+    if (replyTo.length === 0 && lead?.contactPerson?.email) {
+      replyTo = [lead.contactPerson.email];
     }
     
     initializeComposeEmail(thread?.id, email.subject, replyTo, replyCc);
@@ -979,8 +979,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                 // Switching to new thread mode - clear recipients
                                 setReplyToThreadId(null);
                                 setEmailSubject("");
-                                if (lead?.contactPerson?.contactEmail) {
-                                  setEmailTo([lead.contactPerson.contactEmail]);
+                                if (lead?.contactPerson?.email) {
+                                  setEmailTo([lead.contactPerson.email]);
                                 } else {
                                   setEmailTo([]);
                                 }
@@ -1033,6 +1033,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                             onChange={setEmailBody}
                             placeholder="Write your email here... Use the toolbar above for formatting."
                             minHeight="180px"
+                            onImageDrop={async (file) => {
+                              const imageUrl = await uploadAttachment(file);
+                              return imageUrl;
+                            }}
                           />
                         </div>
 
