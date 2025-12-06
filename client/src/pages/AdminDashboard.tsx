@@ -47,7 +47,8 @@ import {
   LayoutDashboard,
   Send,
   Mail,
-  LogOut
+  LogOut,
+  Building2
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -156,7 +157,7 @@ export default function AdminDashboard() {
       case 'sample-requests': return 'Sample Requests';
       case 'high-volume-bids': return 'High Volume Bids';
       case 'quotation-negotiations': return 'Quote Negotiations';
-      case 'company-management': return 'Customer Management';
+      case 'company-management': return 'Company Management';
       case 'purchase': return 'Purchase Management';
       case 'logistics': return 'Logistics Management';
       case 'accounts': return 'Accounts & Finance';
@@ -306,8 +307,8 @@ export default function AdminDashboard() {
                         className="w-full"
                         data-testid="nav-company-management"
                       >
-                        <Users className="mr-3 h-4 w-4" />
-                        <span>Customer Management</span>
+                        <Building2 className="mr-3 h-4 w-4" />
+                        <span>Company Management</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </div>
