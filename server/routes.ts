@@ -5135,6 +5135,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const lead = await storage.assignLead(leadId, assignedTo, userId, reason);
       
+      // Also assign the company to the same sales rep if the lead has a companyId
+      if (lead.companyId && assignedTo) {
+        try {
+          await storage.updateCompany(lead.companyId, { 
+            assignedTo: assignedTo,
+            assignedBy: userId 
+          });
+        } catch (companyError) {
+          console.error('Failed to update company assignment:', companyError);
+          // Continue even if company update fails
+        }
+      }
+      
       // Create notification for the assigned sales rep
       try {
         if (assignedTo && assignedTo !== userId) {
@@ -5180,6 +5193,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await storage.bulkAssignLeads(leadIds, assignedTo, userId);
+      
+      // Also assign companies to the same sales rep for all successfully assigned leads
+      if (assignedTo) {
+        try {
+          // Get companyIds from the leads that were successfully assigned
+          const leads = await Promise.all(
+            leadIds.map(async (id: number) => await storage.getLead(id))
+          );
+          const companyIds = [...new Set(
+            leads
+              .filter((lead: any) => lead?.companyId)
+              .map((lead: any) => lead.companyId)
+          )];
+          
+          for (const companyId of companyIds) {
+            try {
+              await storage.updateCompany(companyId, { 
+                assignedTo: assignedTo,
+                assignedBy: userId 
+              });
+            } catch (companyError) {
+              console.error(`Failed to update company ${companyId} assignment:`, companyError);
+            }
+          }
+        } catch (companyError) {
+          console.error('Failed to update company assignments for bulk lead assignment:', companyError);
+        }
+      }
       
       // Create notification for the assigned sales rep about bulk assignment
       try {
