@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Building2, Search, Filter, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
-  Globe, Calendar, StickyNote, Users, MoreVertical, ExternalLink, ChevronLeft, ChevronRight
+  Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
+  Globe, Calendar, ExternalLink
 } from "lucide-react";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -281,57 +282,52 @@ export default function MyCompanies() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
+      <SalesLayout title="My Companies" subtitle="Manage companies assigned to you">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </SalesLayout>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            My Companies
-          </h1>
-          <p className="text-muted-foreground">Manage companies assigned to you</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            data-testid="button-refresh"
-          >
-            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-
-          <div className="flex rounded-md border">
+    <SalesLayout title="My Companies" subtitle="Manage companies assigned to you">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
+          <div className="flex items-center gap-2">
             <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              variant="outline"
               size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-r-none"
-              data-testid="button-view-list"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              data-testid="button-refresh"
             >
-              <List className="h-4 w-4" />
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('kanban')}
-              className="rounded-l-none"
-              data-testid="button-view-kanban"
-            >
-              <Kanban className="h-4 w-4" />
-            </Button>
+
+            <div className="flex rounded-md border">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-r-none"
+                data-testid="button-view-list"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="rounded-l-none"
+                data-testid="button-view-kanban"
+              >
+                <Kanban className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -664,6 +660,7 @@ export default function MyCompanies() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </SalesLayout>
   );
 }

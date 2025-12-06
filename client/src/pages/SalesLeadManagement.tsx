@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Search, Plus, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, 
-  UserPlus, List, Kanban, RefreshCw, ArrowLeft, Calendar, Home
+  Search, Filter, TrendingUp, Users, Building, DollarSign, MoreVertical, 
+  UserPlus, List, Kanban, RefreshCw
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { type LeadWithDetails } from "@shared/schema";
@@ -19,7 +20,6 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
 import LeadListView from "@/components/LeadListView";
-import { Link } from "wouter";
 
 const PIPELINE_STAGES = [
   { id: "new_lead", label: "New Lead", color: "bg-gray-100 text-gray-800" },
@@ -327,59 +327,40 @@ export default function SalesLeadManagement() {
   const totalValue = leads.reduce((sum: number, l: any) => sum + (parseFloat(l.expectedOrderValue) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/sales">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Lead Management</h1>
-                <p className="text-gray-500 text-sm">
-                  {isSalesManager ? "Manage your team's B2B sales pipeline" : "Manage your B2B sales pipeline"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className={viewMode === 'list' ? 'bg-green-600 hover:bg-green-700' : ''}
-              >
-                <List className="w-4 h-4 mr-1" />
-                List
-              </Button>
-              <Button
-                variant={viewMode === 'kanban' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('kanban')}
-                className={viewMode === 'kanban' ? 'bg-green-600 hover:bg-green-700' : ''}
-              >
-                <Kanban className="w-4 h-4 mr-1" />
-                Board
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
+    <SalesLayout 
+      title="Lead Management" 
+      subtitle={isSalesManager ? "Manage your team's B2B sales pipeline" : "Manage your B2B sales pipeline"}
+    >
+      <div className="space-y-6">
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className={viewMode === 'list' ? 'bg-green-600 hover:bg-green-700' : ''}
+          >
+            <List className="w-4 h-4 mr-1" />
+            List
+          </Button>
+          <Button
+            variant={viewMode === 'kanban' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('kanban')}
+            className={viewMode === 'kanban' ? 'bg-green-600 hover:bg-green-700' : ''}
+          >
+            <Kanban className="w-4 h-4 mr-1" />
+            Board
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
@@ -586,6 +567,6 @@ export default function SalesLeadManagement() {
           onOpenChange={(open) => !open && setSelectedLead(null)}
         />
       )}
-    </div>
+    </SalesLayout>
   );
 }
