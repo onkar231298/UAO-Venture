@@ -745,11 +745,13 @@ Best regards`,
     if (!customerEmail) return;
     
     const quotationInfo = `${selectedQuoteToSend.quotationId} - ${selectedQuoteToSend.currency || 'USD'} ${parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}`;
+    // If "new_thread" is selected, don't send a threadId (start a new thread)
+    const threadId = selectedThreadForQuote && selectedThreadForQuote !== "new_thread" ? selectedThreadForQuote : undefined;
     sendQuotationMutation.mutate({
       quotationId: selectedQuoteToSend.id,
       email: customerEmail,
       quotationInfo,
-      threadId: selectedThreadForQuote || undefined,
+      threadId,
     });
     setShowSendQuoteDialog(false);
     setSelectedQuoteToSend(null);
@@ -3110,9 +3112,9 @@ Best regards`,
                         <SelectValue placeholder="Start new email thread" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Start new email thread</SelectItem>
-                        {emailThreads.map((thread: any) => (
-                          <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId || ''}>
+                        <SelectItem value="new_thread">Start new email thread</SelectItem>
+                        {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
+                          <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId}>
                             {thread.subject || 'No subject'} - {format(new Date(thread.date || thread.createdAt), 'MMM d')}
                           </SelectItem>
                         ))}
