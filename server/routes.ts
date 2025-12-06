@@ -45,7 +45,7 @@ import {
   bidRevisions,
   products,
 } from "@shared/schema";
-import { eq, and, isNotNull, desc } from "drizzle-orm";
+import { eq, and, isNotNull, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -2690,6 +2690,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fallbackQuantity: quotation.quantity
       });
 
+      // Fetch lead data if leadId exists (needed for both customer and product info)
+      let leadData: any = null;
+      if (quotation.leadId) {
+        leadData = await storage.getLead(quotation.leadId);
+      }
+      
       // Try to get customer details from users table, or fall back to lead data
       let customerData: any = null;
       
@@ -2710,22 +2716,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If no customer found and we have a leadId, try to get lead data
-      if (!customerData && quotation.leadId) {
-        const lead = await storage.getLead(quotation.leadId);
-        if (lead) {
-          customerData = {
-            name: lead.contactPerson || lead.companyName || '',
-            email: lead.email || '',
-            companyName: lead.companyName || '',
-            phone: lead.phone || '',
-            address: lead.address || '',
-            city: lead.city || '',
-            state: lead.state || '',
-            country: lead.country || '',
-            postalCode: lead.postalCode || '',
-          };
-        }
+      // If no customer found and we have lead data, use lead for customer info
+      if (!customerData && leadData) {
+        // Lead has nested company and contactPerson objects
+        const contactName = leadData.contactPerson?.name || '';
+        const companyName = leadData.company?.companyName || '';
+        const contactEmail = leadData.contactPerson?.email || leadData.company?.primaryEmail || '';
+        const contactPhone = leadData.contactPerson?.phone || leadData.company?.primaryPhone || '';
+        const companyAddress = leadData.company?.addressStreet || '';
+        const companyCity = leadData.company?.addressCity || '';
+        const companyState = leadData.company?.addressState || '';
+        const companyCountry = leadData.company?.addressCountry || '';
+        const companyPostalCode = leadData.company?.addressZip || '';
+        
+        customerData = {
+          name: contactName || companyName,
+          email: contactEmail,
+          companyName: companyName,
+          phone: contactPhone,
+          address: companyAddress,
+          city: companyCity,
+          state: companyState,
+          country: companyCountry,
+          postalCode: companyPostalCode,
+        };
       }
       
       // Use quotation's own customer data if still not found (stored in quotation itself)
@@ -2746,22 +2760,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import PDF generator
       const { generateQuotationPDF } = await import('./pdf-generator');
       
-      // Prepare quotation data for PDF (use item data if available, fallback to inquiry data)
+      // Determine product data from quotation items, inquiry, or lead
+      let productName = quotation.productName || 'Product';
+      let quantity = firstItem?.quantity || quotation.quantity;
+      let unit = firstItem?.unit || quotation.unit || 'units';
+      let unitPrice = firstItem?.unitPrice || quotation.unitPrice || '0';
+      
+      // If no product data from items/inquiry and we have lead data, get from lead
+      if ((!productName || productName === 'Product') && leadData) {
+        // Try to get product name from lead's products interested
+        if (leadData.productsInterested && leadData.productsInterested.length > 0) {
+          // Get product names for the IDs
+          const productIds = leadData.productsInterested;
+          const productsResult = await db.select({ name: products.name }).from(products).where(inArray(products.id, productIds));
+          productName = productsResult.map(p => p.name).join(', ') || 'Product';
+        }
+      }
+      
+      // Get quantity and unit from lead if not available
+      if ((!quantity || quantity === '0' || quantity === null) && leadData) {
+        quantity = leadData.requiredQuantity || '1';
+        unit = leadData.unit || 'units';
+      }
+      
+      // Calculate unit price if we have total amount and quantity but no unit price
+      if ((!unitPrice || unitPrice === '0') && quotation.totalAmount && quantity) {
+        const total = parseFloat(quotation.totalAmount);
+        const qty = parseFloat(quantity);
+        if (qty > 0) {
+          unitPrice = (total / qty).toFixed(2);
+        }
+      }
+      
+      // Prepare quotation data for PDF
       const quotationData = {
         id: quotation.id,
         quotationId: quotation.quotationId,
         quotationDate: quotation.createdAt,
         validUntil: quotation.validUntil,
-        productName: quotation.productName,
-        quantity: firstItem ? firstItem.quantity : quotation.quantity,
-        unit: firstItem ? firstItem.unit : quotation.unit,
-        unitPrice: firstItem ? firstItem.unitPrice : quotation.unitPrice,
+        productName: productName,
+        quantity: quantity || '1',
+        unit: unit || 'units',
+        unitPrice: unitPrice || '0',
         totalAmount: quotation.totalAmount,
         currency: quotation.currency,
         terms: quotation.terms,
         notes: quotation.notes,
-        paymentTerms: quotation.paymentTerms,
-        deliveryTerms: quotation.deliveryTerms,
+        paymentTerms: quotation.paymentTerms || 'As per agreement',
+        deliveryTerms: quotation.deliveryTerms || quotation.priceType || 'Ex-Works',
         subtotal: quotation.subtotal,
         discountPercent: quotation.discountPercent,
         discountAmount: quotation.discountAmount,
