@@ -549,6 +549,8 @@ export function parseEmailMessage(message: gmail_v1.Schema$Message): {
   bodyHtml: string;
   bodyText: string;
   labelIds: string[];
+  messageIdHeader: string; // RFC Message-ID header for proper threading
+  referencesHeader: string; // RFC References header for threading chain
 } {
   const headers = message.payload?.headers || [];
   
@@ -563,6 +565,10 @@ export function parseEmailMessage(message: gmail_v1.Schema$Message): {
   
   const ccHeader = getHeader('Cc');
   const ccEmails = ccHeader ? ccHeader.split(',').map((e: string) => e.trim()).filter((e: string) => e) : [];
+  
+  // Extract RFC Message-ID and References headers for proper email threading
+  const messageIdHeader = getHeader('Message-ID') || getHeader('Message-Id');
+  const referencesHeader = getHeader('References');
 
   // Extract body content
   let bodyHtml = '';
@@ -599,6 +605,8 @@ export function parseEmailMessage(message: gmail_v1.Schema$Message): {
     bodyHtml,
     bodyText,
     labelIds: message.labelIds || [],
+    messageIdHeader,
+    referencesHeader,
   };
 }
 

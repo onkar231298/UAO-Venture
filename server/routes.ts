@@ -6229,6 +6229,38 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         // Otherwise, send a new email
         if (isReply && thread.threadId) {
           console.log('[Email Send] Replying to existing Gmail thread:', thread.threadId);
+          
+          // Get the parent message's RFC Message-ID header for proper threading
+          // This is critical - recipients will only see the reply in the same thread
+          // if we include the correct In-Reply-To and References headers
+          let inReplyTo: string | undefined;
+          let references: string | undefined;
+          
+          const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
+          if (existingMessages.length > 0) {
+            // Get the most recent message in this thread to reply to
+            const sortedMessages = existingMessages.sort((a, b) => 
+              (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
+              (a.sentAt || a.receivedAt || new Date(0)).getTime()
+            );
+            const parentMessage = sortedMessages[0];
+            
+            if (parentMessage.messageIdHeader) {
+              inReplyTo = parentMessage.messageIdHeader;
+              console.log('[Email Send] Using parent Message-ID for In-Reply-To:', inReplyTo);
+              
+              // Build References chain from parent's references + parent's Message-ID
+              if (parentMessage.referencesHeader) {
+                references = `${parentMessage.referencesHeader} ${parentMessage.messageIdHeader}`;
+              } else {
+                references = parentMessage.messageIdHeader;
+              }
+              console.log('[Email Send] Using References chain:', references);
+            } else {
+              console.log('[Email Send] Parent message has no Message-ID header stored - threading may not work for recipients');
+            }
+          }
+          
           gmailResult = await gmailApi.replyToEmail(validAccessToken, thread.threadId, {
             to: Array.isArray(to) ? to : [to],
             cc: cc || [],
@@ -6238,6 +6270,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
             bodyText: finalBodyText,
             fromName: emailConfig.displayName || undefined,
             fromEmail: emailConfig.companyEmail,
+            inReplyTo,
+            references,
             inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
             fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
           });
@@ -6283,9 +6317,44 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
 
-      // Store email message in database (with signature if appended)
+      // After sending, fetch the sent message to get its RFC Message-ID header
+      // This is essential for proper email threading with recipients
+      let sentMessageIdHeader: string | undefined;
+      let sentReferencesHeader: string | undefined;
+      
+      if (gmailResult?.messageId) {
+        try {
+          const validAccessTokenForFetch = await gmailApi.ensureValidAccessToken(
+            {
+              id: emailConfig.id,
+              accessToken: emailConfig.accessToken,
+              refreshToken: emailConfig.refreshToken,
+              tokenExpiresAt: emailConfig.tokenExpiresAt,
+            },
+            async (configId, tokens) => {
+              await storage.updateUserEmailConfig(configId, {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                tokenExpiresAt: tokens.tokenExpiresAt,
+              });
+            }
+          );
+          
+          const sentGmailMessage = await gmailApi.getEmail(validAccessTokenForFetch, gmailResult.messageId);
+          const parsedSentMessage = gmailApi.parseEmailMessage(sentGmailMessage);
+          sentMessageIdHeader = parsedSentMessage.messageIdHeader || undefined;
+          sentReferencesHeader = parsedSentMessage.referencesHeader || undefined;
+          console.log('[Email Send] Captured sent message Message-ID header:', sentMessageIdHeader);
+        } catch (fetchError) {
+          console.error('[Email Send] Could not fetch sent message for Message-ID header:', fetchError);
+        }
+      }
+      
+      // Store email message in database with Message-ID header for threading
       const message = await storage.createEmailMessage({
         messageId: gmailResult?.messageId || undefined,
+        messageIdHeader: sentMessageIdHeader,
+        referencesHeader: sentReferencesHeader,
         threadId: thread.id,
         leadId,
         direction: 'outbound',
@@ -6469,6 +6538,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
             // This is an inbound reply from customer
             await storage.createEmailMessage({
               messageId: gmailMessage.id,
+              messageIdHeader: parsedMessage.messageIdHeader || undefined,
+              referencesHeader: parsedMessage.referencesHeader || undefined,
               threadId: thread.id,
               leadId,
               direction: 'inbound',
