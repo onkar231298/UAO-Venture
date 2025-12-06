@@ -1943,7 +1943,7 @@ Best regards`,
                                 <Download className="h-3 w-3 mr-1" />
                                 Download PDF
                               </Button>
-                              {quote.status === 'draft' && (
+                              {quote.status === 'draft' ? (
                                 <Button 
                                   size="sm" 
                                   variant="outline"
@@ -1959,7 +1959,23 @@ Best regards`,
                                   )}
                                   Send to Customer
                                 </Button>
-                              )}
+                              ) : quote.status === 'sent' ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="bg-blue-50 hover:bg-blue-100 border-blue-300"
+                                  onClick={() => handleSendQuotation(quote)}
+                                  disabled={sendQuotationMutation.isPending}
+                                  data-testid="button-resend-quotation"
+                                >
+                                  {sendQuotationMutation.isPending ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3 w-3 mr-1" />
+                                  )}
+                                  Resend Quote
+                                </Button>
+                              ) : null}
                             </div>
                             {quote.sentAt && (
                               <div className="text-xs text-green-600 mt-1">
