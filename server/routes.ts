@@ -2729,8 +2729,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const companyCountry = leadData.company?.addressCountry || '';
         const companyPostalCode = leadData.company?.addressZip || '';
         
+        // Get sales person name from the lead's assigned sales rep
+        const salesRepName = leadData.salesRep ? 
+          `${leadData.salesRep.firstName || ''} ${leadData.salesRep.lastName || ''}`.trim() || leadData.salesRep.email : 
+          '';
+        
         customerData = {
-          name: contactName || companyName,
+          name: companyName, // Company name as the main name
+          contactPerson: contactName, // Separate contact person field
           email: contactEmail,
           companyName: companyName,
           phone: contactPhone,
@@ -2739,6 +2745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           state: companyState,
           country: companyCountry,
           postalCode: companyPostalCode,
+          salesPersonName: salesRepName,
         };
       }
       
@@ -2755,6 +2762,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           country: quotation.customerCountry || '',
           postalCode: quotation.customerPostalCode || '',
         };
+      }
+      
+      // If we still don't have sales person name, try to get from quotation's createdBy
+      if (!customerData.salesPersonName && quotation.createdBy) {
+        const creator = await storage.getUser(quotation.createdBy);
+        if (creator) {
+          customerData.salesPersonName = `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email;
+        }
       }
 
       // Import PDF generator

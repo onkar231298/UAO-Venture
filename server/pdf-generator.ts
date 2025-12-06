@@ -41,6 +41,7 @@ interface QuotationData {
 
 interface CustomerData {
   name: string;
+  contactPerson?: string;
   email: string;
   companyName?: string;
   phone?: string;
@@ -49,6 +50,7 @@ interface CustomerData {
   state?: string;
   country?: string;
   postalCode?: string;
+  salesPersonName?: string;
 }
 
 const companyDetails = {
@@ -150,7 +152,13 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
      .text(`Quotation Date: ${new Date(quotation.quotationDate).toLocaleDateString('en-GB')}`, 400, yPos + 15)
      .text(`Valid Until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 400, yPos + 30);
   
-  yPos += 65;
+  // Add sales person info if available
+  if (customer.salesPersonName) {
+    doc.text(`Sales Executive: ${customer.salesPersonName}`, 400, yPos + 45);
+    yPos += 75;
+  } else {
+    yPos += 65;
+  }
   
   // Company Info Box (Left) - compact with proper spacing
   doc.fillColor('#f8f9fa').rect(40, yPos, 250, 145).fill()
@@ -180,13 +188,21 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   doc.moveTo(310, yPos + 25).lineTo(540, yPos + 25).strokeColor(orangeColor).stroke();
   
   let customerYPos = yPos + 32;
-  doc.fontSize(9).fillColor('black')
-     .text(`Contact Person: ${customer.name}`, 310, customerYPos, { width: 230 });
   
-  customerYPos += 13;
-  if (customer.companyName || quotation.customerCompanyName) {
-    const companyName = customer.companyName || quotation.customerCompanyName;
-    doc.text(`Company: ${companyName}`, 310, customerYPos, { width: 230 });
+  // Use contactPerson if available, otherwise use name but only if different from company
+  const contactPersonName = customer.contactPerson || customer.name;
+  const companyName = customer.companyName || quotation.customerCompanyName || '';
+  
+  // Only show contact person if it's different from company name
+  if (contactPersonName && contactPersonName !== companyName) {
+    doc.fontSize(9).fillColor('black')
+       .text(`Contact Person: ${contactPersonName}`, 310, customerYPos, { width: 230 });
+    customerYPos += 13;
+  }
+  
+  if (companyName) {
+    doc.fontSize(9).fillColor('black')
+       .text(`Company: ${companyName}`, 310, customerYPos, { width: 230 });
     customerYPos += 13;
   }
   
@@ -239,7 +255,7 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
      .text('1', 50, yPos + 10, { width: 20 })
      .text(quotation.productName, 75, yPos + 10, { width: 220 })
      .text(`${parseFloat(quotation.quantity).toLocaleString()} ${quotation.unit}`, 300, yPos + 10, { width: 70 })
-     .text(`${quotation.currency} ${parseFloat(quotation.unitPrice).toFixed(2)}`, 375, yPos + 10, { width: 70 })
+     .text(`${quotation.currency} ${parseFloat(quotation.unitPrice).toFixed(2)}/${quotation.unit}`, 375, yPos + 10, { width: 70 })
      .text(`${quotation.currency}\n${parseFloat(quotation.totalAmount).toLocaleString()}`, 450, yPos + 10, { width: 90 });
   
   yPos += 45;
