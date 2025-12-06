@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -1933,23 +1933,34 @@ Best regards`,
                                 Valid until: {format(new Date(quote.validUntil), 'MMM d, yyyy')}
                               </div>
                             )}
-                            {quote.status === 'draft' && (
+                            <div className="flex gap-2 mt-2 flex-wrap">
                               <Button 
                                 size="sm" 
-                                variant="outline" 
-                                className="mt-2"
-                                onClick={() => handleSendQuotation(quote)}
-                                disabled={sendQuotationMutation.isPending}
-                                data-testid="button-send-quotation"
+                                variant="outline"
+                                onClick={() => window.open(`/api/quotations/${quote.id}/pdf`, '_blank')}
+                                data-testid="button-download-quotation-pdf"
                               >
-                                {sendQuotationMutation.isPending ? (
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                ) : (
-                                  <Send className="h-3 w-3 mr-1" />
-                                )}
-                                Send to Customer
+                                <Download className="h-3 w-3 mr-1" />
+                                Download PDF
                               </Button>
-                            )}
+                              {quote.status === 'draft' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="bg-green-50 hover:bg-green-100 border-green-300"
+                                  onClick={() => handleSendQuotation(quote)}
+                                  disabled={sendQuotationMutation.isPending}
+                                  data-testid="button-send-quotation"
+                                >
+                                  {sendQuotationMutation.isPending ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3 w-3 mr-1" />
+                                  )}
+                                  Send to Customer
+                                </Button>
+                              )}
+                            </div>
                             {quote.sentAt && (
                               <div className="text-xs text-green-600 mt-1">
                                 Sent: {format(new Date(quote.sentAt), 'MMM d, yyyy h:mm a')}

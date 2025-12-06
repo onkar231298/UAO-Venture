@@ -7079,23 +7079,45 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const emailSubject = subject || `Quotation ${quotation.quotationId}`;
       const emailBody = body || `Please find attached the quotation ${quotation.quotationId}.`;
       
-      // If threadId is provided, use replyToEmail to continue the thread
-      // Otherwise, start a new email thread
+      // If threadId is provided, try to use replyToEmail to continue the thread
+      // If thread not found, fall back to sending as new email
       if (threadId) {
-        emailSendResult = await gmailApi.replyToEmail(
-          emailConfig.accessToken,
-          threadId,
-          {
-            to: Array.isArray(email) ? email : [email],
-            cc: [],
-            bcc: [],
-            subject: emailSubject,
-            bodyHtml: emailBody,
-            bodyText: emailBody.replace(/<[^>]*>/g, ''),
-            fromName: emailConfig.displayName || undefined,
-            fromEmail: emailConfig.companyEmail,
+        try {
+          emailSendResult = await gmailApi.replyToEmail(
+            emailConfig.accessToken,
+            threadId,
+            {
+              to: Array.isArray(email) ? email : [email],
+              cc: [],
+              bcc: [],
+              subject: emailSubject,
+              bodyHtml: emailBody,
+              bodyText: emailBody.replace(/<[^>]*>/g, ''),
+              fromName: emailConfig.displayName || undefined,
+              fromEmail: emailConfig.companyEmail,
+            }
+          );
+        } catch (replyError: any) {
+          // If thread not found (404), fall back to sending as new email
+          if (replyError.status === 404 || replyError.code === 404) {
+            console.log('Thread not found in Gmail, sending as new email');
+            emailSendResult = await gmailApi.sendEmail(
+              emailConfig.accessToken,
+              {
+                to: Array.isArray(email) ? email : [email],
+                cc: [],
+                bcc: [],
+                subject: emailSubject,
+                bodyHtml: emailBody,
+                bodyText: emailBody.replace(/<[^>]*>/g, ''),
+                fromName: emailConfig.displayName || undefined,
+                fromEmail: emailConfig.companyEmail,
+              }
+            );
+          } else {
+            throw replyError;
           }
-        );
+        }
       } else {
         emailSendResult = await gmailApi.sendEmail(
           emailConfig.accessToken,
