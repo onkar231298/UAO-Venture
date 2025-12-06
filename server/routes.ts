@@ -27,6 +27,7 @@ import {
   customerRegistrationSchema,
   insertCompanySchema,
   insertCompanyContactSchema,
+  insertCompanyNoteSchema,
   insertLeadSchema,
   insertLeadActivitySchema,
   insertLeadTaskSchema,
@@ -4838,6 +4839,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error setting primary contact:', error);
       res.status(500).json({ message: "Failed to set primary contact" });
+    }
+  });
+
+  // ========================================
+  // CRM - COMPANY NOTES ROUTES
+  // ========================================
+
+  app.get('/api/crm/companies/:companyId/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notes = await storage.getCompanyNotes(parseInt(req.params.companyId), userId);
+      res.json(notes);
+    } catch (error) {
+      console.error('Error fetching company notes:', error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  app.post('/api/crm/companies/:companyId/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const noteData = insertCompanyNoteSchema.parse({
+        ...req.body,
+        companyId: parseInt(req.params.companyId),
+        createdBy: userId
+      });
+      const note = await storage.createCompanyNote(noteData);
+      res.json(note);
+    } catch (error: any) {
+      console.error('Error creating company note:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid note data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  app.patch('/api/crm/notes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const noteId = parseInt(req.params.id);
+      
+      // Check if user owns the note or is admin
+      const existingNote = await storage.getCompanyNote(noteId);
+      if (!existingNote) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      
+      if (!isAdmin && existingNote.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only edit your own notes" });
+      }
+      
+      const note = await storage.updateCompanyNote(noteId, req.body);
+      res.json(note);
+    } catch (error) {
+      console.error('Error updating company note:', error);
+      res.status(500).json({ message: "Failed to update note" });
+    }
+  });
+
+  app.delete('/api/crm/notes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const noteId = parseInt(req.params.id);
+      
+      // Check if user owns the note or is admin
+      const existingNote = await storage.getCompanyNote(noteId);
+      if (!existingNote) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      
+      if (!isAdmin && existingNote.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only delete your own notes" });
+      }
+      
+      await storage.deleteCompanyNote(noteId);
+      res.json({ message: "Note deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting company note:', error);
+      res.status(500).json({ message: "Failed to delete note" });
     }
   });
 

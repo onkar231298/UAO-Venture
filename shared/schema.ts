@@ -1256,6 +1256,30 @@ export const companyTasks = pgTable("company_tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Company notes table - Special notes by sales agents about company interactions
+export const companyNotes = pgTable("company_notes", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  
+  noteType: varchar("note_type", { length: 50 }).notNull().default("general"),
+  // Types: general, product_discussion, communication_denied, follow_up, important, warning
+  
+  title: varchar("title", { length: 255 }),
+  content: text("content").notNull(),
+  
+  // For product discussions
+  productsDiscussed: jsonb("products_discussed").$type<number[]>().default(sql`'[]'::jsonb`),
+  
+  // Visibility and importance
+  isPinned: boolean("is_pinned").default(false),
+  isPrivate: boolean("is_private").default(false), // Only visible to the creator
+  priority: varchar("priority", { length: 20 }).default("normal"), // high, normal, low
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Leads/Deals table - Deal-specific information
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
@@ -1412,6 +1436,11 @@ export const companyContactsRelations = relations(companyContacts, ({ one }) => 
   company: one(companies, { fields: [companyContacts.companyId], references: [companies.id] }),
 }));
 
+export const companyNotesRelations = relations(companyNotes, ({ one }) => ({
+  company: one(companies, { fields: [companyNotes.companyId], references: [companies.id] }),
+  creator: one(users, { fields: [companyNotes.createdBy], references: [users.id] }),
+}));
+
 export const leadsRelations = relations(leads, ({ one, many }) => ({
   company: one(companies, { fields: [leads.companyId], references: [companies.id] }),
   contactPerson: one(companyContacts, { fields: [leads.contactPersonId], references: [companyContacts.id] }),
@@ -1459,6 +1488,12 @@ export const insertCompanyTaskSchema = createInsertSchema(companyTasks).omit({
   updatedAt: true,
 });
 
+export const insertCompanyNoteSchema = createInsertSchema(companyNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   leadId: true,
@@ -1492,6 +1527,8 @@ export type CompanyActivity = typeof companyActivities.$inferSelect;
 export type InsertCompanyActivity = z.infer<typeof insertCompanyActivitySchema>;
 export type CompanyTask = typeof companyTasks.$inferSelect;
 export type InsertCompanyTask = z.infer<typeof insertCompanyTaskSchema>;
+export type CompanyNote = typeof companyNotes.$inferSelect;
+export type InsertCompanyNote = z.infer<typeof insertCompanyNoteSchema>;
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type LeadActivity = typeof leadActivities.$inferSelect;

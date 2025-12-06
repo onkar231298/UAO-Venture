@@ -24,6 +24,7 @@ import {
   companyContacts,
   companyActivities,
   companyTasks,
+  companyNotes,
   leads,
   leadActivities,
   leadTasks,
@@ -103,6 +104,8 @@ import {
   type InsertCompanyActivity,
   type CompanyTask,
   type InsertCompanyTask,
+  type CompanyNote,
+  type InsertCompanyNote,
   type CompanyWithDetails,
   type Lead,
   type InsertLead,
@@ -445,6 +448,13 @@ export interface IStorage {
   createCompanyTask(task: InsertCompanyTask): Promise<CompanyTask>;
   updateCompanyTask(id: number, task: Partial<InsertCompanyTask>): Promise<CompanyTask>;
   completeCompanyTask(id: number, completedBy: string): Promise<CompanyTask>;
+
+  // CRM - Company notes methods
+  getCompanyNotes(companyId: number, userId?: string): Promise<CompanyNote[]>;
+  getCompanyNote(id: number): Promise<CompanyNote | undefined>;
+  createCompanyNote(note: InsertCompanyNote): Promise<CompanyNote>;
+  updateCompanyNote(id: number, note: Partial<InsertCompanyNote>): Promise<CompanyNote>;
+  deleteCompanyNote(id: number): Promise<void>;
 
   // CRM - Company contact methods
   getCompanyContacts(companyId: number): Promise<CompanyContact[]>;
@@ -4795,6 +4805,51 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companyTasks.id, id))
       .returning();
     return updated;
+  }
+
+  // ========================================
+  // CRM - COMPANY NOTES METHODS
+  // ========================================
+
+  async getCompanyNotes(companyId: number, userId?: string): Promise<CompanyNote[]> {
+    const conditions = [eq(companyNotes.companyId, companyId)];
+    
+    if (userId) {
+      conditions.push(
+        or(
+          eq(companyNotes.isPrivate, false),
+          eq(companyNotes.createdBy, userId)
+        )!
+      );
+    } else {
+      conditions.push(eq(companyNotes.isPrivate, false));
+    }
+    
+    return await db.select().from(companyNotes)
+      .where(and(...conditions))
+      .orderBy(desc(companyNotes.isPinned), desc(companyNotes.createdAt));
+  }
+
+  async getCompanyNote(id: number): Promise<CompanyNote | undefined> {
+    const [note] = await db.select().from(companyNotes).where(eq(companyNotes.id, id));
+    return note;
+  }
+
+  async createCompanyNote(note: InsertCompanyNote): Promise<CompanyNote> {
+    const [created] = await db.insert(companyNotes).values(note).returning();
+    return created;
+  }
+
+  async updateCompanyNote(id: number, note: Partial<InsertCompanyNote>): Promise<CompanyNote> {
+    const [updated] = await db.update(companyNotes)
+      .set({ ...note, updatedAt: new Date() })
+      .where(eq(companyNotes.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCompanyNote(id: number): Promise<void> {
+    await db.delete(companyNotes).where(eq(companyNotes.id, id));
   }
 
   // ========================================
