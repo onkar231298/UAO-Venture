@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface DashboardData {
   summary: {
@@ -307,11 +308,14 @@ export default function SalesPersonDashboard() {
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome back, {dashboardData?.user?.firstName || 'Sales Rep'}!
-            </h1>
-            <p className="text-gray-600">Here's what's happening with your sales pipeline today.</p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome back, {dashboardData?.user?.firstName || 'Sales Rep'}!
+              </h1>
+              <p className="text-gray-600">Here's what's happening with your sales pipeline today.</p>
+            </div>
+            <NotificationBell />
           </div>
 
           {activeTab === 'overview' && (
