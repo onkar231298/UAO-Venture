@@ -37,7 +37,7 @@ interface CompanyActivity {
   createdAt: string;
 }
 
-function CompanyActivityTimeline({ companyId }: { companyId: number }) {
+function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { companyId: number; filter?: 'email' | 'call' | null; onClearFilter?: () => void }) {
   const { data: activities, isLoading } = useQuery<CompanyActivity[]>({
     queryKey: ['/api/crm/companies', companyId, 'activities'],
     queryFn: async () => {
@@ -62,6 +62,10 @@ function CompanyActivityTimeline({ companyId }: { companyId: number }) {
     }
   };
 
+  const filteredActivities = filter 
+    ? activities?.filter(a => a.activityType === filter) 
+    : activities;
+
   if (isLoading) {
     return (
       <Card>
@@ -74,13 +78,23 @@ function CompanyActivityTimeline({ companyId }: { companyId: number }) {
     );
   }
 
-  if (!activities || activities.length === 0) {
+  if (!filteredActivities || filteredActivities.length === 0) {
     return (
       <Card>
         <CardContent className="pt-4">
+          {filter && onClearFilter && (
+            <div className="flex items-center justify-between mb-4 pb-2 border-b">
+              <Badge variant="outline" className={filter === 'email' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}>
+                {filter === 'email' ? 'Email History' : 'Call History'}
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={onClearFilter}>
+                Show All
+              </Button>
+            </div>
+          )}
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No activities recorded yet</p>
+            <p>No {filter ? `${filter} ` : ''}activities recorded yet</p>
             <p className="text-sm">Click email or phone to log activities</p>
           </div>
         </CardContent>
@@ -91,8 +105,18 @@ function CompanyActivityTimeline({ companyId }: { companyId: number }) {
   return (
     <Card>
       <CardContent className="pt-4">
+        {filter && onClearFilter && (
+          <div className="flex items-center justify-between mb-4 pb-2 border-b">
+            <Badge variant="outline" className={filter === 'email' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}>
+              {filter === 'email' ? 'Email History' : 'Call History'}
+            </Badge>
+            <Button variant="ghost" size="sm" onClick={onClearFilter}>
+              Show All
+            </Button>
+          </div>
+        )}
         <div className="space-y-4">
-          {activities.map((activity) => (
+          {filteredActivities.map((activity) => (
             <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
               <div className="flex-shrink-0 mt-1">
                 {getActivityIcon(activity.activityType)}
@@ -270,6 +294,8 @@ export default function MyCompanies() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dialogTab, setDialogTab] = useState<string>("info");
+  const [activityFilter, setActivityFilter] = useState<'email' | 'call' | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -685,7 +711,13 @@ export default function MyCompanies() {
         </Card>
       )}
 
-      <Dialog open={!!selectedCompany} onOpenChange={(open) => !open && setSelectedCompany(null)}>
+      <Dialog open={!!selectedCompany} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedCompany(null);
+          setDialogTab("info");
+          setActivityFilter(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -695,7 +727,7 @@ export default function MyCompanies() {
           </DialogHeader>
 
           {selectedCompany && (
-            <Tabs defaultValue="info" className="w-full">
+            <Tabs value={dialogTab} onValueChange={setDialogTab} className="w-full">
               <TabsList>
                 <TabsTrigger value="info">Info</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -836,6 +868,15 @@ export default function MyCompanies() {
                             <Send className="h-4 w-4 mr-2" />
                             Log Email Sent
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setActivityFilter('email');
+                              setDialogTab('activity');
+                            }}
+                          >
+                            <Clock className="h-4 w-4 mr-2" />
+                            View Email History
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
 
@@ -899,6 +940,15 @@ export default function MyCompanies() {
                             <PhoneMissed className="h-4 w-4 mr-2" />
                             Log No Answer
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setActivityFilter('call');
+                              setDialogTab('activity');
+                            }}
+                          >
+                            <Clock className="h-4 w-4 mr-2" />
+                            View Call History
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -959,7 +1009,11 @@ export default function MyCompanies() {
               </TabsContent>
 
               <TabsContent value="activity" className="mt-4">
-                <CompanyActivityTimeline companyId={selectedCompany.id} />
+                <CompanyActivityTimeline 
+                  companyId={selectedCompany.id} 
+                  filter={activityFilter}
+                  onClearFilter={() => setActivityFilter(null)}
+                />
               </TabsContent>
             </Tabs>
           )}
