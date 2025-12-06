@@ -13,13 +13,100 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
-  Globe, Calendar, ExternalLink
+  Globe, Calendar, ExternalLink, User, Clock
 } from "lucide-react";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
+
+interface CompanyActivity {
+  id: number;
+  companyId: number;
+  activityType: string;
+  subject: string;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+function CompanyActivityTimeline({ companyId }: { companyId: number }) {
+  const { data: activities, isLoading } = useQuery<CompanyActivity[]>({
+    queryKey: ['/api/crm/companies', companyId, 'activities'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${companyId}/activities`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch activities');
+      return response.json();
+    },
+  });
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'email':
+        return <Mail className="h-4 w-4 text-blue-600" />;
+      case 'call':
+        return <Phone className="h-4 w-4 text-green-600" />;
+      case 'stage_change':
+        return <RefreshCw className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-center py-6">
+            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="text-center py-6 text-muted-foreground">
+            <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No activities recorded yet</p>
+            <p className="text-sm">Click email or phone to log activities</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="space-y-4">
+          {activities.map((activity) => (
+            <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
+              <div className="flex-shrink-0 mt-1">
+                {getActivityIcon(activity.activityType)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{activity.subject}</p>
+                {activity.description && (
+                  <p className="text-sm text-gray-600">{activity.description}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  {format(new Date(activity.createdAt), 'MMM d, yyyy h:mm a')}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Company {
   id: number;
@@ -232,6 +319,50 @@ export default function MyCompanies() {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
     },
   });
+
+  // Activity logging mutation
+  const logActivityMutation = useMutation({
+    mutationFn: async ({ companyId, activityType, subject, description }: { 
+      companyId: number; 
+      activityType: string; 
+      subject: string; 
+      description: string;
+    }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/activities`, {
+        method: 'POST',
+        body: JSON.stringify({ activityType, subject, description }),
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', variables.companyId, 'activities'] });
+    },
+  });
+
+  // Handler for email action
+  const handleEmailAction = (company: Company) => {
+    if (company.primaryEmail) {
+      logActivityMutation.mutate({
+        companyId: company.id,
+        activityType: 'email',
+        subject: 'Email Sent',
+        description: `Initiated email to ${company.primaryEmail}`,
+      });
+      window.open(`mailto:${company.primaryEmail}`, '_blank');
+    }
+  };
+
+  // Handler for call action
+  const handleCallAction = (company: Company) => {
+    if (company.primaryPhone) {
+      logActivityMutation.mutate({
+        companyId: company.id,
+        activityType: 'call',
+        subject: 'Call Made',
+        description: `Initiated call to ${company.primaryPhone}`,
+      });
+      window.open(`tel:${company.primaryPhone}`, '_blank');
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -566,121 +697,137 @@ export default function MyCompanies() {
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
-                {/* Quick Action Buttons */}
-                <div className="flex gap-2 items-center">
-                  {selectedCompany.primaryEmail && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => window.open(`mailto:${selectedCompany.primaryEmail}`, '_blank')}
-                      data-testid="button-email-company"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Send Email
-                    </Button>
-                  )}
-                  {selectedCompany.primaryPhone && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => window.open(`tel:${selectedCompany.primaryPhone}`, '_blank')}
-                      data-testid="button-call-company"
-                    >
-                      <Phone className="h-4 w-4" />
-                      Call
-                    </Button>
-                  )}
-                  {selectedCompany.website && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => window.open(selectedCompany.website!, '_blank')}
-                      data-testid="button-visit-website"
-                    >
-                      <Globe className="h-4 w-4" />
-                      Visit Website
-                    </Button>
-                  )}
-                </div>
-
+                {/* Company Information Section */}
                 <Card>
-                  <CardContent className="pt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Email</label>
-                      <p className="font-medium flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        {selectedCompany.primaryEmail ? (
-                          <a href={`mailto:${selectedCompany.primaryEmail}`} className="text-blue-600 hover:underline">
-                            {selectedCompany.primaryEmail}
-                          </a>
-                        ) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Phone</label>
-                      <p className="font-medium flex items-center gap-1">
-                        <Phone className="h-4 w-4" />
-                        {selectedCompany.primaryPhone ? (
-                          <a href={`tel:${selectedCompany.primaryPhone}`} className="text-blue-600 hover:underline">
-                            {selectedCompany.primaryPhone}
-                          </a>
-                        ) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Location</label>
-                      <p className="font-medium flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {[selectedCompany.addressCity, selectedCompany.addressCountry].filter(Boolean).join(", ") || '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Website</label>
-                      <p className="font-medium flex items-center gap-1">
-                        <Globe className="h-4 w-4" />
-                        {selectedCompany.website ? (
-                          <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                            {selectedCompany.website}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        ) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Stage</label>
-                      <div className="mt-1">
-                        <Select 
-                          value={selectedCompany.companyStage || 'new'}
-                          onValueChange={(value) => {
-                            updateStageMutation.mutate({ companyId: selectedCompany.id, stage: value });
-                            setSelectedCompany({ ...selectedCompany, companyStage: value });
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {COMPANY_STAGES.map(stage => (
-                              <SelectItem key={stage.id} value={stage.id}>
-                                {stage.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Company Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Company Name</p>
+                        <p className="font-medium">{selectedCompany.companyName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Industry</p>
+                        <p className="font-medium">N/A</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Website</p>
+                        <p className="font-medium">
+                          {selectedCompany.website ? (
+                            <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              {selectedCompany.website}
+                            </a>
+                          ) : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Location</p>
+                        <p className="font-medium">
+                          {[selectedCompany.addressCity, selectedCompany.addressCountry].filter(Boolean).join(", ") || "N/A"}
+                        </p>
                       </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Origin</label>
-                      <p className="font-medium">
-                        {selectedCompany.origin === 'website' ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700">Website Registration</Badge>
-                        ) : (
-                          <Badge variant="outline">Manual Entry</Badge>
-                        )}
-                      </p>
+                  </CardContent>
+                </Card>
+
+                {/* Primary Contact Section */}
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Primary Contact
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Contact Name</p>
+                        <p className="font-medium">N/A</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Designation</p>
+                        <p className="font-medium">N/A</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium">
+                          {selectedCompany.primaryEmail ? (
+                            <a 
+                              href={`mailto:${selectedCompany.primaryEmail}`} 
+                              className="text-blue-600 hover:underline"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleEmailAction(selectedCompany);
+                              }}
+                            >
+                              {selectedCompany.primaryEmail}
+                            </a>
+                          ) : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Phone</p>
+                        <p className="font-medium">
+                          {selectedCompany.primaryPhone ? (
+                            <a 
+                              href={`tel:${selectedCompany.primaryPhone}`} 
+                              className="text-blue-600 hover:underline"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleCallAction(selectedCompany);
+                              }}
+                            >
+                              {selectedCompany.primaryPhone}
+                            </a>
+                          ) : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Stage & Origin Section */}
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Status Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Stage</p>
+                        <div className="mt-1">
+                          <Select 
+                            value={selectedCompany.companyStage || 'new'}
+                            onValueChange={(value) => {
+                              updateStageMutation.mutate({ companyId: selectedCompany.id, stage: value });
+                              setSelectedCompany({ ...selectedCompany, companyStage: value });
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COMPANY_STAGES.map(stage => (
+                                <SelectItem key={stage.id} value={stage.id}>
+                                  {stage.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Origin</p>
+                        <p className="font-medium mt-1">
+                          {selectedCompany.origin === 'website' ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700">Website Registration</Badge>
+                          ) : (
+                            <Badge variant="outline">Manual Entry</Badge>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -694,15 +841,7 @@ export default function MyCompanies() {
               </TabsContent>
 
               <TabsContent value="activity" className="mt-4">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="text-center py-6 text-muted-foreground">
-                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Activity timeline coming soon</p>
-                      <p className="text-sm">Track all interactions with this company</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CompanyActivityTimeline companyId={selectedCompany.id} />
               </TabsContent>
             </Tabs>
           )}
