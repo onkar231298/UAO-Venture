@@ -632,6 +632,69 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     });
   };
 
+  // Send quotation via email mutation
+  const sendQuotationMutation = useMutation({
+    mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string }) => {
+      return apiRequest(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
+        method: 'POST',
+        body: JSON.stringify({
+          email: data.email,
+          subject: `Quotation for ${lead?.companyName || 'Your Order'} - ${data.quotationInfo}`,
+          body: `Dear ${lead?.contactPerson || 'Customer'},
+
+Thank you for your interest in our products. Please find below the quotation details.
+
+Quotation: ${data.quotationInfo}
+
+We look forward to your favorable response.
+
+Best regards`,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
+      toast({
+        title: "Quotation Sent",
+        description: "The quotation has been sent to the customer via email.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send quotation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendQuotation = (quote: any) => {
+    if (!emailConfig) {
+      toast({
+        title: "Email Not Configured",
+        description: "Please configure your email settings before sending quotations.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!lead?.email) {
+      toast({
+        title: "No Email Address",
+        description: "This lead doesn't have an email address configured.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const quotationInfo = `${quote.quotationId} - ${quote.currency || 'USD'} ${parseFloat(quote.totalAmount || 0).toLocaleString()}`;
+    sendQuotationMutation.mutate({
+      quotationId: quote.id,
+      email: lead.email,
+      quotationInfo,
+    });
+  };
+
   const uploadAttachment = async (file: File): Promise<string | null> => {
     try {
       // Upload file through server (avoids CORS issues with direct GCS upload)
@@ -1701,15 +1764,15 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
                                 size="sm" 
                                 variant="outline" 
                                 className="mt-2"
-                                onClick={() => {
-                                  toast({
-                                    title: "Coming Soon",
-                                    description: "Send quotation feature will be available soon.",
-                                  });
-                                }}
+                                onClick={() => handleSendQuotation(quote)}
+                                disabled={sendQuotationMutation.isPending}
                                 data-testid="button-send-quotation"
                               >
-                                <Send className="h-3 w-3 mr-1" />
+                                {sendQuotationMutation.isPending ? (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Send className="h-3 w-3 mr-1" />
+                                )}
                                 Send to Customer
                               </Button>
                             )}
