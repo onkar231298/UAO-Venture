@@ -39,11 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { CompanyNotes } from "@/components/crm/CompanyNotes";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1391,6 +1392,7 @@ export default function CompanyManagement() {
               <Tabs defaultValue="info" className="w-full">
                 <TabsList>
                   <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  <TabsTrigger value="notes" data-testid="tab-notes">Notes</TabsTrigger>
                   <TabsTrigger value="contacts" data-testid="tab-contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="address" data-testid="tab-address">Addresses</TabsTrigger>
                   <TabsTrigger value="activity" data-testid="tab-activity">Activity</TabsTrigger>
@@ -1488,6 +1490,17 @@ export default function CompanyManagement() {
                           </div>
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="notes" className="mt-4">
+                  <Card>
+                    <CardContent className="pt-4">
+                      <CompanyNotes 
+                        companyId={selectedCompany.id} 
+                        currentUserId={user?.id || ''} 
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
