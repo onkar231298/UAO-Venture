@@ -7272,26 +7272,20 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Build proper email template
       const emailSubject = subject || `Quotation ${quotation.quotationId} - ${productName}`;
       
-      // Use provided body or generate a proper template
+      // Use provided body or generate a proper professional template
       const emailBody = body || `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <p>Dear ${contactName},</p>
   
   <p>Greetings from Bright Fame Organic!</p>
   
-  <p>Thank you for your interest in <strong>${productName}</strong>. Please find attached our quotation (${quotation.quotationId}) for your reference.</p>
+  <p>Thank you for your interest in <strong>${productName}</strong>. We are pleased to send you the quotation as requested.</p>
   
-  <p>Quotation Details:</p>
-  <ul style="list-style-type: none; padding-left: 0;">
-    <li><strong>Product:</strong> ${productName}</li>
-    <li><strong>Quotation ID:</strong> ${quotation.quotationId}</li>
-    <li><strong>Total Amount:</strong> ${quotation.currency || 'USD'} ${parseFloat(quotation.totalAmount || '0').toLocaleString()}</li>
-    <li><strong>Valid Until:</strong> ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-GB') : 'As per terms'}</li>
-  </ul>
+  <p>Please find the quotation attached to this email for your reference.</p>
   
-  <p>Please review the attached quotation and feel free to reach out if you have any questions or require any clarification.</p>
+  <p>If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.</p>
   
-  <p>We look forward to doing business with you.</p>
+  <p>We look forward to hearing from you.</p>
   
   <p>Best Regards,<br/>
   <strong>${salesRepName}</strong><br/>
@@ -7305,17 +7299,13 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
 Greetings from Bright Fame Organic!
 
-Thank you for your interest in ${productName}. Please find attached our quotation (${quotation.quotationId}) for your reference.
+Thank you for your interest in ${productName}. We are pleased to send you the quotation as requested.
 
-Quotation Details:
-- Product: ${productName}
-- Quotation ID: ${quotation.quotationId}
-- Total Amount: ${quotation.currency || 'USD'} ${parseFloat(quotation.totalAmount || '0').toLocaleString()}
-- Valid Until: ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('en-GB') : 'As per terms'}
+Please find the quotation attached to this email for your reference.
 
-Please review the attached quotation and feel free to reach out if you have any questions or require any clarification.
+If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.
 
-We look forward to doing business with you.
+We look forward to hearing from you.
 
 Best Regards,
 ${salesRepName}
@@ -7341,11 +7331,37 @@ Phone: +91-7249847439`;
         emailOptions.fileAttachments = [pdfAttachment];
       }
       
-      // If threadId is provided, try to use replyToEmail to continue the thread
-      // If thread not found, fall back to sending as new email
+      // If threadId is provided, try to get the original message for proper threading
       if (threadId) {
         try {
-          emailSendResult = await gmailApi.replyToEmail(
+          // First, get the thread to find the last message for proper In-Reply-To headers
+          const gmail = await import('./gmail');
+          try {
+            const thread = await gmail.getEmailThread(emailConfig.accessToken, threadId);
+            if (thread && thread.messages && thread.messages.length > 0) {
+              // Get the last message in the thread for proper reply headers
+              const lastMessage = thread.messages[thread.messages.length - 1];
+              if (lastMessage) {
+                // Find Message-ID header from the last message
+                const messageIdHeader = lastMessage.headers?.find((h: any) => h.name?.toLowerCase() === 'message-id');
+                const referencesHeader = lastMessage.headers?.find((h: any) => h.name?.toLowerCase() === 'references');
+                
+                if (messageIdHeader?.value) {
+                  emailOptions.inReplyTo = messageIdHeader.value;
+                  // Build references chain
+                  if (referencesHeader?.value) {
+                    emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
+                  } else {
+                    emailOptions.references = messageIdHeader.value;
+                  }
+                }
+              }
+            }
+          } catch (threadFetchError) {
+            console.log('Could not fetch thread for reply headers, continuing without:', threadFetchError);
+          }
+          
+          emailSendResult = await gmail.replyToEmail(
             emailConfig.accessToken,
             threadId,
             emailOptions

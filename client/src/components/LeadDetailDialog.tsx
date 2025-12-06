@@ -677,24 +677,25 @@ Packaging: Standard export packaging`,
   // Send quotation via email mutation
   const sendQuotationMutation = useMutation({
     mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string; threadId?: string }) => {
-      const contactName = lead?.contactPerson?.contactName || 'Customer';
-      return apiRequest(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
+      const response = await fetch(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           email: data.email,
-          subject: `Quotation for ${lead?.companyName || 'Your Order'} - ${data.quotationInfo}`,
-          body: `Dear ${contactName},
-
-Thank you for your interest in our products. Please find below the quotation details.
-
-Quotation: ${data.quotationInfo}
-
-We look forward to your favorable response.
-
-Best regards`,
           threadId: data.threadId,
+          attachPdf: true,
         }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to send quotation');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
