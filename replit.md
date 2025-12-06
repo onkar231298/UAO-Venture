@@ -4,6 +4,16 @@
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products.
 
 ## Recent Changes (December 6, 2025)
+- **Per-User Gmail OAuth Authentication**: Fixed critical architecture issue where all CRM emails were being sent from the admin's Gmail account instead of individual sales agents' accounts. Changes:
+  - Each sales agent must now authenticate their own Gmail account through self-service OAuth
+  - New self-service API endpoints: GET /api/email/connect, POST /api/email/disconnect, GET /api/email/status
+  - New EmailSettings page at /crm/email-settings for sales agents to connect their Gmail
+  - Navigation link added to SalesPersonDashboard sidebar under "Settings" section
+  - OAuth callback now enforces email matching for self-service connections (rejects if authenticated Gmail doesn't match configured email)
+  - Admin can still create email configurations (assign email addresses to users), but sales agents must connect their own Gmail
+  - Informational alert added to admin EmailConfigManagement page explaining the new process
+  - This ensures emails appear in the correct sales agent's Gmail Sent folder
+
 - **RFC Email Threading for Recipients**: Fixed critical issue where email replies from CRM appeared as new emails in recipients' inboxes instead of threading properly. Solution:
   - Added `messageIdHeader` and `referencesHeader` columns to `email_messages` table to store RFC Message-ID headers
   - Updated `parseEmailMessage` in gmail.ts to extract Message-ID and References headers from Gmail API responses

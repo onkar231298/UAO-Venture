@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle, Link2, Unlink, ExternalLink, Upload, Image, X, Pen } from "lucide-react";
+import { Mail, Plus, Trash2, Edit2, User, Building, Loader2, CheckCircle, Link2, Unlink, ExternalLink, Upload, Image, X, Pen, AlertTriangle, Info } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -393,6 +394,29 @@ export default function EmailConfigManagement() {
 
   return (
     <div className="space-y-6">
+      <Alert className="border-blue-200 bg-blue-50">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-800">Important: Gmail Connection Process</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          <p className="mb-2">
+            Each sales agent must connect their <strong>own Gmail account</strong> to send emails. 
+            As an admin, you can only set up the email configuration (assign email address to user).
+          </p>
+          <p className="mb-2">
+            <strong>Process:</strong>
+          </p>
+          <ol className="list-decimal list-inside space-y-1 ml-2">
+            <li>Create email configuration here (assign email to sales agent)</li>
+            <li>Sales agent logs into CRM with their account</li>
+            <li>Sales agent goes to <strong>Sales Dashboard → Email Settings</strong></li>
+            <li>Sales agent clicks "Connect Your Gmail Account" and authenticates with their own Gmail</li>
+          </ol>
+          <p className="mt-2 text-sm">
+            This ensures emails are sent from the agent's Gmail and appear in their Sent folder.
+          </p>
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -5619,6 +5619,117 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Self-service: Start Gmail OAuth for current user's email configuration
+  // This allows sales agents to connect their own Gmail account
+  app.get('/api/email/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const config = await storage.getUserEmailConfig(userId);
+      
+      if (!config) {
+        return res.status(404).json({ 
+          message: 'No email configuration found. Please contact admin to set up your email address first.' 
+        });
+      }
+
+      console.log('[Gmail OAuth] Starting self-service connect for user:', userId, 'config:', config.id);
+      
+      // Store the config ID and user ID in session for the callback
+      // Using a different session key to distinguish from admin-initiated connects
+      (req as any).session.gmailOAuthConfigId = config.id;
+      (req as any).session.gmailOAuthUserId = userId;
+      (req as any).session.gmailOAuthSource = 'self-service';
+      (req as any).session.save();
+      
+      const authUrl = gmailApi.getAuthUrl();
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Error starting Gmail OAuth:', error);
+      res.status(500).json({ message: 'Failed to start Gmail connection' });
+    }
+  });
+
+  // Self-service: Disconnect Gmail from current user's email configuration
+  app.post('/api/email/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const config = await storage.getUserEmailConfig(userId);
+      
+      if (!config) {
+        return res.status(404).json({ message: 'No email configuration found' });
+      }
+      
+      await storage.updateUserEmailConfig(config.id, {
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
+        isConnected: false,
+      });
+
+      console.log('[Gmail OAuth] User disconnected Gmail:', userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error disconnecting Gmail:', error);
+      res.status(500).json({ message: 'Failed to disconnect Gmail' });
+    }
+  });
+
+  // Self-service: Check Gmail connection status for current user
+  app.get('/api/email/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const config = await storage.getUserEmailConfig(userId);
+      
+      if (!config) {
+        return res.json({ hasConfig: false, connected: false });
+      }
+
+      if (!config.isConnected || (!config.accessToken && !config.refreshToken)) {
+        return res.json({ hasConfig: true, connected: false, email: config.companyEmail });
+      }
+
+      // Try to verify connection is still valid
+      try {
+        const validAccessToken = await gmailApi.ensureValidAccessToken(
+          {
+            id: config.id,
+            accessToken: config.accessToken,
+            refreshToken: config.refreshToken,
+            tokenExpiresAt: config.tokenExpiresAt,
+          },
+          async (configId, tokens) => {
+            await storage.updateUserEmailConfig(configId, {
+              accessToken: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              tokenExpiresAt: tokens.tokenExpiresAt,
+            });
+          }
+        );
+
+        const profile = await gmailApi.getProfile(validAccessToken);
+        res.json({ 
+          hasConfig: true, 
+          connected: true, 
+          email: config.companyEmail,
+          gmailAddress: profile.emailAddress,
+          tokensValid: true 
+        });
+      } catch (error) {
+        console.error('[Gmail OAuth] Failed to verify connection:', error);
+        res.json({ 
+          hasConfig: true, 
+          connected: false, 
+          email: config.companyEmail,
+          tokensValid: false,
+          error: 'Gmail connection expired. Please reconnect.'
+        });
+      }
+    } catch (error) {
+      console.error('Error checking Gmail status:', error);
+      res.status(500).json({ message: 'Failed to check Gmail status' });
+    }
+  });
+
   // Admin: Get all email configurations
   app.get('/api/admin/email-configs', isAuthenticated, async (req: any, res) => {
     try {
@@ -5889,30 +6000,69 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Gmail OAuth callback
+  // Gmail OAuth callback - handles both admin-initiated and self-service connections
   app.get('/api/auth/gmail/callback', async (req: any, res) => {
     try {
       const { code, error } = req.query;
       
+      // Determine redirect URL based on source (self-service vs admin)
+      const oauthSource = req.session?.gmailOAuthSource;
+      const redirectBase = oauthSource === 'self-service' ? '/crm/email-settings' : '/admin';
+      
+      console.log('[Gmail OAuth Callback] Source:', oauthSource, 'Redirect base:', redirectBase);
+      
       if (error) {
         console.error('Gmail OAuth error:', error);
-        return res.redirect('/admin?error=gmail_oauth_denied');
+        return res.redirect(`${redirectBase}?error=gmail_oauth_denied`);
       }
 
       if (!code) {
-        return res.redirect('/admin?error=gmail_oauth_no_code');
+        return res.redirect(`${redirectBase}?error=gmail_oauth_no_code`);
       }
 
       const configId = req.session?.gmailOAuthConfigId;
       if (!configId) {
-        return res.redirect('/admin?error=gmail_oauth_session_expired');
+        return res.redirect(`${redirectBase}?error=gmail_oauth_session_expired`);
       }
 
       // Exchange code for tokens
       const tokens = await gmailApi.getTokensFromCode(code as string);
       
       if (!tokens.access_token) {
-        return res.redirect('/admin?error=gmail_oauth_no_token');
+        return res.redirect(`${redirectBase}?error=gmail_oauth_no_token`);
+      }
+
+      // Verify the Gmail account matches the expected email (for security)
+      // This is critical to prevent agents from accidentally connecting the wrong Gmail
+      try {
+        const profile = await gmailApi.getProfile(tokens.access_token);
+        const config = await storage.getEmailConfigById(configId);
+        
+        if (config) {
+          console.log('[Gmail OAuth Callback] Authenticated Gmail:', profile.emailAddress, 'Expected email:', config.companyEmail);
+          
+          // Check if the authenticated Gmail matches the configured email
+          const authenticatedEmail = profile.emailAddress.toLowerCase();
+          const configuredEmail = config.companyEmail.toLowerCase();
+          
+          if (authenticatedEmail !== configuredEmail) {
+            // Strictly enforce email matching for ALL connections
+            // This prevents admin from accidentally connecting their Gmail to an agent's config
+            console.error('[Gmail OAuth Callback] REJECTED: Email mismatch! Authenticated:', profile.emailAddress, 'Expected:', config.companyEmail);
+            // Clear session and reject
+            delete req.session.gmailOAuthConfigId;
+            delete req.session.gmailOAuthUserId;
+            delete req.session.gmailOAuthSource;
+            return res.redirect(`${redirectBase}?error=gmail_email_mismatch&expected=${encodeURIComponent(config.companyEmail)}&got=${encodeURIComponent(profile.emailAddress)}`);
+          }
+        }
+      } catch (profileError) {
+        console.error('[Gmail OAuth Callback] Failed to get Gmail profile:', profileError);
+        // We need to verify the email, so reject if we can't get profile
+        delete req.session.gmailOAuthConfigId;
+        delete req.session.gmailOAuthUserId;
+        delete req.session.gmailOAuthSource;
+        return res.redirect(`${redirectBase}?error=gmail_oauth_verification_failed`);
       }
 
       // Update the email configuration with the tokens
@@ -5923,13 +6073,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         isConnected: true,
       });
 
-      // Clear the session variable
-      delete req.session.gmailOAuthConfigId;
+      console.log('[Gmail OAuth Callback] Successfully connected Gmail for config:', configId);
 
-      res.redirect('/admin?success=gmail_connected');
+      // Clear the session variables
+      delete req.session.gmailOAuthConfigId;
+      delete req.session.gmailOAuthUserId;
+      delete req.session.gmailOAuthSource;
+
+      res.redirect(`${redirectBase}?success=gmail_connected`);
     } catch (error) {
       console.error('Error in Gmail OAuth callback:', error);
-      res.redirect('/admin?error=gmail_oauth_failed');
+      const redirectBase = req.session?.gmailOAuthSource === 'self-service' ? '/crm/email-settings' : '/admin';
+      res.redirect(`${redirectBase}?error=gmail_oauth_failed`);
     }
   });
 

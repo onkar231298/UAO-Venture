@@ -38,7 +38,8 @@ import {
   Home,
   Briefcase,
   ClipboardList,
-  Truck
+  Truck,
+  Settings
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
@@ -268,6 +269,20 @@ export default function SalesPersonDashboard() {
                 <Badge className="ml-auto bg-orange-100 text-orange-800">{summary.pendingBids}</Badge>
               )}
             </Button>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">Settings</p>
+            <Link href="/crm/email-settings">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                data-testid="nav-email-settings"
+              >
+                <Mail className="w-4 h-4 mr-3" />
+                Email Settings
+              </Button>
+            </Link>
           </div>
         </nav>
 

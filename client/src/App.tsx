@@ -58,6 +58,7 @@ import Industries from "@/pages/Industries";
 import FoodIngredients from "@/pages/FoodIngredients";
 import OrganicHerbs from "@/pages/OrganicHerbs";
 import EUOrganicSpices from "@/pages/EUOrganicSpices";
+import EmailSettings from "@/pages/crm/EmailSettings";
 
 // Helper component for product URL redirect
 function ProductRedirect({ params }: { params: { slug: string } }) {
@@ -152,6 +153,7 @@ function Router() {
               <Route path="/sales" component={SalesPersonDashboard} />
               <Route path="/sales/leads" component={SalesLeadManagement} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
+              <Route path="/crm/email-settings" component={EmailSettings} />
             </>
           ) : null}
           
