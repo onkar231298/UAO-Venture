@@ -7335,16 +7335,17 @@ Phone: +91-7249847439`;
       if (threadId) {
         try {
           // First, get the thread to find the last message for proper In-Reply-To headers
-          const gmail = await import('./gmail');
           try {
-            const thread = await gmail.getEmailThread(emailConfig.accessToken, threadId);
+            const thread = await gmailApi.getThread(emailConfig.accessToken, threadId);
             if (thread && thread.messages && thread.messages.length > 0) {
               // Get the last message in the thread for proper reply headers
               const lastMessage = thread.messages[thread.messages.length - 1];
-              if (lastMessage) {
+              if (lastMessage && lastMessage.payload?.headers) {
                 // Find Message-ID header from the last message
-                const messageIdHeader = lastMessage.headers?.find((h: any) => h.name?.toLowerCase() === 'message-id');
-                const referencesHeader = lastMessage.headers?.find((h: any) => h.name?.toLowerCase() === 'references');
+                const headers = lastMessage.payload.headers;
+                const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
+                const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
+                const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
                 
                 if (messageIdHeader?.value) {
                   emailOptions.inReplyTo = messageIdHeader.value;
@@ -7355,13 +7356,24 @@ Phone: +91-7249847439`;
                     emailOptions.references = messageIdHeader.value;
                   }
                 }
+                
+                // Also ensure subject starts with "Re:" if it's a reply to maintain thread
+                if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
+                  const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
+                  emailOptions.subject = `Re: ${originalSubject}`;
+                }
               }
             }
+            console.log('Thread reply headers set:', { 
+              inReplyTo: emailOptions.inReplyTo ? 'set' : 'not set', 
+              references: emailOptions.references ? 'set' : 'not set',
+              subject: emailOptions.subject 
+            });
           } catch (threadFetchError) {
             console.log('Could not fetch thread for reply headers, continuing without:', threadFetchError);
           }
           
-          emailSendResult = await gmail.replyToEmail(
+          emailSendResult = await gmailApi.replyToEmail(
             emailConfig.accessToken,
             threadId,
             emailOptions
