@@ -109,12 +109,15 @@ import {
   userEmailConfigs,
   emailThreads,
   emailMessages,
+  notifications,
   type UserEmailConfig,
   type InsertUserEmailConfig,
   type EmailThread,
   type InsertEmailThread,
   type EmailMessage,
   type InsertEmailMessage,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray } from "drizzle-orm";
@@ -504,6 +507,16 @@ export interface IStorage {
   createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
   updateEmailMessage(id: number, message: Partial<InsertEmailMessage>): Promise<EmailMessage>;
   markLeadEmailsAsRead(leadId: number): Promise<number>;
+
+  // Notification methods
+  getNotifications(userId: string, filters?: { isRead?: boolean; limit?: number; offset?: number }): Promise<Notification[]>;
+  getNotification(id: number): Promise<Notification | undefined>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<Notification>;
+  markAllNotificationsAsRead(userId: string): Promise<number>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  deleteNotification(id: number): Promise<void>;
+  createNotificationsForRole(notification: Omit<InsertNotification, 'userId'>, roles: string[]): Promise<Notification[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5511,6 +5524,106 @@ export class DatabaseStorage implements IStorage {
       )
       .returning();
     return result.length;
+  }
+
+  // Notification methods
+  async getNotifications(userId: string, filters?: { isRead?: boolean; limit?: number; offset?: number }): Promise<Notification[]> {
+    const conditions: any[] = [eq(notifications.userId, userId)];
+    
+    if (filters?.isRead !== undefined) {
+      conditions.push(eq(notifications.isRead, filters.isRead));
+    }
+    
+    let query = db
+      .select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+    
+    return await query;
+  }
+
+  async getNotification(id: number): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(notification).returning();
+    return created;
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification> {
+    const [updated] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<number> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      )
+      .returning();
+    return result.length;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+    return result?.count || 0;
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
+  async createNotificationsForRole(notification: Omit<InsertNotification, 'userId'>, roles: string[]): Promise<Notification[]> {
+    // Get all users with the specified roles
+    const targetUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          inArray(users.role, roles),
+          eq(users.isActive, true)
+        )
+      );
+    
+    if (targetUsers.length === 0) {
+      return [];
+    }
+    
+    // Create notifications for all target users
+    const notificationsToInsert = targetUsers.map(user => ({
+      ...notification,
+      userId: user.id,
+    }));
+    
+    const created = await db.insert(notifications).values(notificationsToInsert).returning();
+    return created;
   }
 }
 

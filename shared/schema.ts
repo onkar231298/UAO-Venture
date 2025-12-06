@@ -1638,3 +1638,53 @@ export type EmailMessageWithDetails = EmailMessage & {
   thread?: EmailThread;
   sender?: User;
 };
+
+// Notification types for in-app notifications
+export const NOTIFICATION_TYPES = [
+  'new_enquiry',           // New enquiry from website
+  'new_sample_request',    // New sample request
+  'new_high_volume_bid',   // New high volume bid
+  'lead_assigned',         // Lead assigned to user
+  'lead_converted',        // Lead converted to customer
+  'quote_sent',            // Quotation sent
+  'quote_accepted',        // Quote accepted by customer
+  'quote_rejected',        // Quote rejected by customer
+  'new_lead',              // New lead created
+  'task_reminder',         // Task reminder
+  'general',               // General notification
+] as const;
+
+export type NotificationType = typeof NOTIFICATION_TYPES[number];
+
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // Recipient
+  type: varchar("type", { length: 50 }).notNull(), // Notification type
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  entityType: varchar("entity_type", { length: 50 }), // lead, enquiry, sample_request, high_volume_bid, quotation, etc.
+  entityId: integer("entity_id"), // ID of the related entity
+  isRead: boolean("is_read").default(false),
+  link: varchar("link", { length: 500 }), // URL to navigate to when clicking the notification
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_notifications_user").on(table.userId),
+  index("idx_notifications_user_unread").on(table.userId, table.isRead),
+  index("idx_notifications_created").on(table.createdAt),
+]);
+
+// Notification relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));
+
+// Notification schema
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Notification types
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
