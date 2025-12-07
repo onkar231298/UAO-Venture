@@ -8954,7 +8954,7 @@ We look forward to hearing from you.`;
           recordingStatus: 'available',
         });
 
-        // Update activity with recording URL
+        // Update activity with recording URL for leads
         if (callLog.leadId) {
           const activities = await storage.getLeadActivities(callLog.leadId);
           const callActivity = activities.find(a => {
@@ -8972,6 +8972,29 @@ We look forward to hearing from you.`;
               return att;
             });
             await storage.updateLeadActivity(callActivity.id, {
+              attachments: updatedAttachments,
+            });
+          }
+        }
+
+        // Update activity with recording URL for companies
+        if (callLog.companyId) {
+          const activities = await storage.getCompanyActivities(callLog.companyId);
+          const callActivity = activities.find(a => {
+            if (a.activityType !== 'call' || !a.attachments) return false;
+            const attachments = a.attachments as any[];
+            return attachments.some(att => att.type === 'call_log' && att.callLogId === callLog!.id);
+          });
+          
+          if (callActivity) {
+            const existingAttachments = (callActivity.attachments as any[]) || [];
+            const updatedAttachments = existingAttachments.map(att => {
+              if (att.type === 'call_log' && att.callLogId === callLog!.id) {
+                return { ...att, recordingUrl: RecordUrl, recordingDuration: RecordingDuration };
+              }
+              return att;
+            });
+            await storage.updateCompanyActivity(callActivity.id, {
               attachments: updatedAttachments,
             });
           }

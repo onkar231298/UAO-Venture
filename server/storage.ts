@@ -445,6 +445,7 @@ export interface IStorage {
   // CRM - Company activity methods
   getCompanyActivities(companyId: number): Promise<CompanyActivity[]>;
   createCompanyActivity(activity: InsertCompanyActivity): Promise<CompanyActivity>;
+  updateCompanyActivity(id: number, activity: Partial<InsertCompanyActivity>): Promise<CompanyActivity>;
   
   // CRM - Company task methods
   getCompanyTasks(filters?: { companyId?: number; assignedTo?: string; status?: string }): Promise<CompanyTask[]>;
@@ -4782,6 +4783,14 @@ export class DatabaseStorage implements IStorage {
   async createCompanyActivity(activity: InsertCompanyActivity): Promise<CompanyActivity> {
     const [created] = await db.insert(companyActivities).values(activity).returning();
     return created;
+  }
+
+  async updateCompanyActivity(id: number, activity: Partial<InsertCompanyActivity>): Promise<CompanyActivity> {
+    const [updated] = await db.update(companyActivities)
+      .set(activity)
+      .where(eq(companyActivities.id, id))
+      .returning();
+    return updated;
   }
 
   // ========================================

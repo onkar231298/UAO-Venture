@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown
+  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown, PlayCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -45,6 +45,7 @@ interface CompanyActivity {
   description: string | null;
   createdBy: string;
   createdAt: string;
+  attachments?: any[];
 }
 
 function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { companyId: number; filter?: 'email' | 'call' | null; onClearFilter?: () => void }) {
@@ -126,22 +127,54 @@ function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { company
           </div>
         )}
         <div className="space-y-4">
-          {filteredActivities.map((activity) => (
-            <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
-              <div className="flex-shrink-0 mt-1">
-                {getActivityIcon(activity.activityType)}
+          {filteredActivities.map((activity) => {
+            const callAttachment = activity.activityType === 'call' && activity.attachments
+              ? activity.attachments.find((a: any) => a.type === 'call_log' && a.recordingUrl)
+              : null;
+            
+            const formatDuration = (seconds: number) => {
+              const mins = Math.floor(seconds / 60);
+              const secs = seconds % 60;
+              return `${mins}:${secs.toString().padStart(2, "0")}`;
+            };
+            
+            return (
+              <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
+                <div className="flex-shrink-0 mt-1">
+                  {getActivityIcon(activity.activityType)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{activity.subject}</p>
+                  {activity.description && (
+                    <p className="text-sm text-gray-600">{activity.description}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {format(new Date(activity.createdAt), 'MMM d, yyyy h:mm a')}
+                  </p>
+                  
+                  {callAttachment && (
+                    <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <PlayCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-xs font-medium text-green-800">Call Recording</span>
+                        {callAttachment.recordingDuration && (
+                          <span className="text-xs text-green-600">
+                            ({formatDuration(callAttachment.recordingDuration)})
+                          </span>
+                        )}
+                      </div>
+                      <audio
+                        controls
+                        className="w-full h-8"
+                        src={callAttachment.recordingUrl}
+                        data-testid={`audio-recording-${activity.id}`}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{activity.subject}</p>
-                {activity.description && (
-                  <p className="text-sm text-gray-600">{activity.description}</p>
-                )}
-                <p className="text-xs text-gray-400 mt-1">
-                  {format(new Date(activity.createdAt), 'MMM d, yyyy h:mm a')}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
