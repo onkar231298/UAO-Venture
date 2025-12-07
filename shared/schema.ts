@@ -1289,6 +1289,8 @@ export const leads = pgTable("leads", {
   
   // Product requirements
   productsInterested: jsonb("products_interested").$type<number[]>().default(sql`'[]'::jsonb`), // Array of product IDs
+  productName: varchar("product_name", { length: 255 }), // Manually entered product name for enquiries
+  productDescription: text("product_description"), // Manually entered product description
   requiredQuantity: decimal("required_quantity", { precision: 10, scale: 2 }),
   unit: varchar("unit", { length: 50 }),
   frequency: varchar("frequency", { length: 50 }), // one_time, monthly, quarterly, annual
