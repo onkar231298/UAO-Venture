@@ -4536,13 +4536,29 @@ export class DatabaseStorage implements IStorage {
       const adminRoles = ['admin', 'super_admin', 'sales_manager'];
       const isAdmin = adminRoles.includes(filters.user.role);
       
+      // CRM roles that can see website-origin companies for intake/triage
+      const crmIntakeRoles = ['admin', 'super_admin', 'sales_manager', 'sales_executive', 'sales'];
+      const canSeeWebsiteCompanies = crmIntakeRoles.includes(filters.user.role);
+      
       if (!isAdmin) {
-        conditions.push(
-          or(
-            eq(companies.assignedTo, filters.user.id),
-            eq(companies.createdBy, filters.user.id)
-          )
-        );
+        if (canSeeWebsiteCompanies) {
+          // CRM intake roles can see: their assigned/created companies OR website-origin companies
+          conditions.push(
+            or(
+              eq(companies.assignedTo, filters.user.id),
+              eq(companies.createdBy, filters.user.id),
+              eq(companies.origin, 'website')
+            )
+          );
+        } else {
+          // Other roles only see their own companies
+          conditions.push(
+            or(
+              eq(companies.assignedTo, filters.user.id),
+              eq(companies.createdBy, filters.user.id)
+            )
+          );
+        }
       }
     }
 
