@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown, PlayCircle
+  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -34,8 +34,6 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
-import ClickToCall from "@/components/ClickToCall";
-import CallHistory from "@/components/CallHistory";
 
 interface CompanyActivity {
   id: number;
@@ -45,7 +43,6 @@ interface CompanyActivity {
   description: string | null;
   createdBy: string;
   createdAt: string;
-  attachments?: any[];
 }
 
 function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { companyId: number; filter?: 'email' | 'call' | null; onClearFilter?: () => void }) {
@@ -127,54 +124,22 @@ function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { company
           </div>
         )}
         <div className="space-y-4">
-          {filteredActivities.map((activity) => {
-            const callAttachment = activity.activityType === 'call' && activity.attachments
-              ? activity.attachments.find((a: any) => a.type === 'call_log' && a.recordingUrl)
-              : null;
-            
-            const formatDuration = (seconds: number) => {
-              const mins = Math.floor(seconds / 60);
-              const secs = seconds % 60;
-              return `${mins}:${secs.toString().padStart(2, "0")}`;
-            };
-            
-            return (
-              <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
-                <div className="flex-shrink-0 mt-1">
-                  {getActivityIcon(activity.activityType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{activity.subject}</p>
-                  {activity.description && (
-                    <p className="text-sm text-gray-600">{activity.description}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    {format(new Date(activity.createdAt), 'MMM d, yyyy h:mm a')}
-                  </p>
-                  
-                  {callAttachment && (
-                    <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 mb-1">
-                        <PlayCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-xs font-medium text-green-800">Call Recording</span>
-                        {callAttachment.recordingDuration && (
-                          <span className="text-xs text-green-600">
-                            ({formatDuration(callAttachment.recordingDuration)})
-                          </span>
-                        )}
-                      </div>
-                      <audio
-                        controls
-                        className="w-full h-8"
-                        src={callAttachment.recordingUrl}
-                        data-testid={`audio-recording-${activity.id}`}
-                      />
-                    </div>
-                  )}
-                </div>
+          {filteredActivities.map((activity) => (
+            <div key={activity.id} className="flex gap-3 border-b last:border-b-0 pb-3 last:pb-0">
+              <div className="flex-shrink-0 mt-1">
+                {getActivityIcon(activity.activityType)}
               </div>
-            );
-          })}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{activity.subject}</p>
+                {activity.description && (
+                  <p className="text-sm text-gray-600">{activity.description}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  {format(new Date(activity.createdAt), 'MMM d, yyyy h:mm a')}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -666,49 +631,47 @@ function CompanyCallsTab({ companyId }: { companyId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      <CallHistory companyId={companyId} />
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Manual Call Logs
-            </h3>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Phone className="h-4 w-4 mr-1" />
-                  Log Call
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
-                  subject: 'Call completed', 
-                  description: 'Successfully connected with contact' 
-                })}>
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                  Call Completed
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
-                  subject: 'No answer', 
-                  description: 'Call attempted but no answer' 
-                })}>
-                  <PhoneMissed className="h-4 w-4 mr-2 text-orange-600" />
-                  No Answer
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
-                  subject: 'Left voicemail', 
-                  description: 'Left voicemail message' 
-                })}>
-                  <Phone className="h-4 w-4 mr-2 text-blue-600" />
-                  Left Voicemail
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+    <Card>
+      <CardContent className="pt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            Call History
+          </h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Phone className="h-4 w-4 mr-1" />
+                Log Call
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'Call completed', 
+                description: 'Successfully connected with contact' 
+              })}>
+                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                Call Completed
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'No answer', 
+                description: 'Call attempted but no answer' 
+              })}>
+                <PhoneMissed className="h-4 w-4 mr-2 text-orange-600" />
+                No Answer
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logCallMutation.mutate({ 
+                subject: 'Left voicemail', 
+                description: 'Left voicemail message' 
+              })}>
+                <Phone className="h-4 w-4 mr-2 text-blue-600" />
+                Left Voicemail
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          {callActivities.length === 0 ? (
+        {callActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Phone className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="font-medium">No call history yet</p>
@@ -734,9 +697,8 @@ function CompanyCallsTab({ companyId }: { companyId: number }) {
             ))}
           </div>
         )}
-        </CardContent>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1489,31 +1451,20 @@ export default function MyCompanies() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
-                            {selectedCompany.primaryPhone ? (
-                              <a 
-                                href={`tel:${selectedCompany.primaryPhone}`} 
-                                className="text-blue-600 hover:underline"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleCallAction(selectedCompany);
-                                }}
-                              >
-                                {selectedCompany.primaryPhone}
-                              </a>
-                            ) : "N/A"}
-                          </p>
-                          {selectedCompany.primaryPhone && (
-                            <ClickToCall
-                              phoneNumber={selectedCompany.primaryPhone}
-                              recipientName={selectedCompany.companyName}
-                              companyId={selectedCompany.id}
-                              variant="icon"
-                              data-testid="button-call-company"
-                            />
-                          )}
-                        </div>
+                        <p className="font-medium">
+                          {selectedCompany.primaryPhone ? (
+                            <a 
+                              href={`tel:${selectedCompany.primaryPhone}`} 
+                              className="text-blue-600 hover:underline"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleCallAction(selectedCompany);
+                              }}
+                            >
+                              {selectedCompany.primaryPhone}
+                            </a>
+                          ) : "N/A"}
+                        </p>
                       </div>
                     </div>
 

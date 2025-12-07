@@ -128,9 +128,6 @@ import {
   type InsertEmailMessage,
   type Notification,
   type InsertNotification,
-  callLogs,
-  type CallLog,
-  type InsertCallLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte } from "drizzle-orm";
@@ -445,7 +442,6 @@ export interface IStorage {
   // CRM - Company activity methods
   getCompanyActivities(companyId: number): Promise<CompanyActivity[]>;
   createCompanyActivity(activity: InsertCompanyActivity): Promise<CompanyActivity>;
-  updateCompanyActivity(id: number, activity: Partial<InsertCompanyActivity>): Promise<CompanyActivity>;
   
   // CRM - Company task methods
   getCompanyTasks(filters?: { companyId?: number; assignedTo?: string; status?: string }): Promise<CompanyTask[]>;
@@ -567,14 +563,6 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   deleteNotification(id: number): Promise<void>;
   createNotificationsForRole(notification: Omit<InsertNotification, 'userId'>, roles: string[]): Promise<Notification[]>;
-
-  // Call log methods (Plivo integration)
-  getCallLogs(filters?: { leadId?: number; companyId?: number; callerUserId?: string; status?: string; limit?: number; offset?: number }): Promise<CallLog[]>;
-  getCallLog(id: number): Promise<CallLog | undefined>;
-  getCallLogByPlivoUuid(plivoCallUuid: string): Promise<CallLog | undefined>;
-  createCallLog(callLog: InsertCallLog): Promise<CallLog>;
-  updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog>;
-  updateCallLogByPlivoUuid(plivoCallUuid: string, callLog: Partial<InsertCallLog>): Promise<CallLog | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4785,14 +4773,6 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateCompanyActivity(id: number, activity: Partial<InsertCompanyActivity>): Promise<CompanyActivity> {
-    const [updated] = await db.update(companyActivities)
-      .set(activity)
-      .where(eq(companyActivities.id, id))
-      .returning();
-    return updated;
-  }
-
   // ========================================
   // CRM - COMPANY TASK METHODS
   // ========================================
@@ -5979,91 +5959,6 @@ export class DatabaseStorage implements IStorage {
     
     const created = await db.insert(notifications).values(notificationsToInsert).returning();
     return created;
-  }
-
-  // ========================================
-  // CALL LOG METHODS (PLIVO INTEGRATION)
-  // ========================================
-
-  async getCallLogs(filters?: {
-    leadId?: number;
-    companyId?: number;
-    callerUserId?: string;
-    status?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<CallLog[]> {
-    const conditions = [];
-    
-    if (filters?.leadId !== undefined) {
-      conditions.push(eq(callLogs.leadId, filters.leadId));
-    }
-    if (filters?.companyId !== undefined) {
-      conditions.push(eq(callLogs.companyId, filters.companyId));
-    }
-    if (filters?.callerUserId) {
-      conditions.push(eq(callLogs.callerUserId, filters.callerUserId));
-    }
-    if (filters?.status) {
-      conditions.push(eq(callLogs.status, filters.status));
-    }
-
-    const query = db
-      .select()
-      .from(callLogs)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(callLogs.initiatedAt));
-
-    if (filters?.limit) {
-      query.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      query.offset(filters.offset);
-    }
-
-    return await query;
-  }
-
-  async getCallLog(id: number): Promise<CallLog | undefined> {
-    const [result] = await db
-      .select()
-      .from(callLogs)
-      .where(eq(callLogs.id, id));
-    return result;
-  }
-
-  async getCallLogByPlivoUuid(plivoCallUuid: string): Promise<CallLog | undefined> {
-    const [result] = await db
-      .select()
-      .from(callLogs)
-      .where(eq(callLogs.plivoCallUuid, plivoCallUuid));
-    return result;
-  }
-
-  async createCallLog(callLog: InsertCallLog): Promise<CallLog> {
-    const [created] = await db
-      .insert(callLogs)
-      .values(callLog)
-      .returning();
-    return created;
-  }
-
-  async updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog> {
-    const [updated] = await db
-      .update(callLogs)
-      .set({ ...callLog, updatedAt: new Date() })
-      .where(eq(callLogs.id, id))
-      .returning();
-    return updated;
-  }
-
-  async updateCallLogByPlivoUuid(plivoCallUuid: string, callLog: Partial<InsertCallLog>): Promise<CallLog | undefined> {
-    const [updated] = await db
-      .update(callLogs)
-      .set({ ...callLog, updatedAt: new Date() })
-      .where(eq(callLogs.plivoCallUuid, plivoCallUuid))
-      .returning();
-    return updated;
   }
 }
 

@@ -1,17 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Clock, User, ArrowRight, MessageSquare, Phone, Mail, FileText, CheckCircle, Eye, PlayCircle } from "lucide-react";
+import { Clock, User, ArrowRight, MessageSquare, Phone, Mail, FileText, CheckCircle, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-interface CallLogAttachment {
-  type: 'call_log';
-  callLogId: number;
-  plivoCallUuid?: string;
-  recordingUrl?: string;
-  recordingDuration?: number;
-}
 
 interface Activity {
   id: number;
@@ -27,7 +19,6 @@ interface Activity {
   toStage: string | null;
   createdBy: string | null;
   createdAt: string;
-  attachments?: (CallLogAttachment | any)[];
 }
 
 interface ActivityTimelineProps {
@@ -155,42 +146,6 @@ export default function ActivityTimeline({ leadId, onViewEmail }: ActivityTimeli
                       <p className="text-xs text-gray-500 mt-1">
                         Duration: {activity.duration} minutes
                       </p>
-                    )}
-                    
-                    {/* Call recording player */}
-                    {activity.activityType === 'call' && activity.attachments && (
-                      (() => {
-                        const callAttachment = activity.attachments.find(
-                          (a: any) => a.type === 'call_log' && a.recordingUrl
-                        );
-                        if (callAttachment) {
-                          const formatDuration = (seconds: number) => {
-                            const mins = Math.floor(seconds / 60);
-                            const secs = seconds % 60;
-                            return `${mins}:${secs.toString().padStart(2, '0')}`;
-                          };
-                          return (
-                            <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                              <div className="flex items-center gap-2 mb-1">
-                                <PlayCircle className="h-4 w-4 text-green-600" />
-                                <span className="text-xs font-medium text-green-800">Call Recording</span>
-                                {callAttachment.recordingDuration && (
-                                  <span className="text-xs text-green-600">
-                                    ({formatDuration(callAttachment.recordingDuration)})
-                                  </span>
-                                )}
-                              </div>
-                              <audio
-                                controls
-                                className="w-full h-8"
-                                src={callAttachment.recordingUrl}
-                                data-testid={`audio-recording-${activity.id}`}
-                              />
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()
                     )}
                     
                     {/* View Full Email button for received email activities */}
