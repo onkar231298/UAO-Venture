@@ -34,7 +34,6 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
-import ClickToCallButton from "@/components/ClickToCallButton";
 
 interface CompanyActivity {
   id: number;
@@ -587,41 +586,13 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
 
 function CompanyCallsTab({ companyId }: { companyId: number }) {
   const { toast } = useToast();
-  const [playingCallId, setPlayingCallId] = useState<number | null>(null);
-  const [audioElements, setAudioElements] = useState<Record<number, HTMLAudioElement>>({});
-
-  const { data: callActivities = [], isLoading: activitiesLoading } = useQuery<CompanyActivity[]>({
+  const { data: callActivities = [], isLoading } = useQuery<CompanyActivity[]>({
     queryKey: ['/api/crm/companies', companyId, 'calls'],
     queryFn: async () => {
       const response = await fetch(`/api/crm/companies/${companyId}/calls`, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch calls');
-      return response.json();
-    },
-  });
-
-  interface CallLog {
-    id: number;
-    recipientPhone: string;
-    recipientName: string | null;
-    direction: string;
-    status: string;
-    initiatedAt: string | null;
-    durationSeconds: number;
-    recordingUrl: string | null;
-    recordingDuration: number | null;
-    notes: string | null;
-    outcome: string | null;
-  }
-
-  const { data: callLogs = [], isLoading: callLogsLoading } = useQuery<CallLog[]>({
-    queryKey: ['/api/crm/companies', companyId, 'call-logs'],
-    queryFn: async () => {
-      const response = await fetch(`/api/crm/companies/${companyId}/call-logs`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch call logs');
       return response.json();
     },
   });
@@ -647,47 +618,6 @@ function CompanyCallsTab({ companyId }: { companyId: number }) {
     },
   });
 
-  const formatDuration = (seconds: number) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const togglePlayRecording = (call: CallLog) => {
-    if (!call.recordingUrl) return;
-
-    if (playingCallId === call.id) {
-      audioElements[call.id]?.pause();
-      setPlayingCallId(null);
-    } else {
-      if (playingCallId && audioElements[playingCallId]) {
-        audioElements[playingCallId].pause();
-      }
-
-      let audio = audioElements[call.id];
-      if (!audio) {
-        audio = new Audio(call.recordingUrl);
-        audio.onended = () => setPlayingCallId(null);
-        setAudioElements(prev => ({ ...prev, [call.id]: audio }));
-      }
-      audio.play();
-      setPlayingCallId(call.id);
-    }
-  };
-
-  const STATUS_COLORS: Record<string, string> = {
-    'completed': 'bg-green-100 text-green-800',
-    'in-progress': 'bg-blue-100 text-blue-800',
-    'ringing': 'bg-yellow-100 text-yellow-800',
-    'initiated': 'bg-gray-100 text-gray-800',
-    'failed': 'bg-red-100 text-red-800',
-    'busy': 'bg-orange-100 text-orange-800',
-    'no-answer': 'bg-gray-100 text-gray-600',
-  };
-
-  const isLoading = activitiesLoading || callLogsLoading;
-
   if (isLoading) {
     return (
       <Card>
@@ -699,8 +629,6 @@ function CompanyCallsTab({ companyId }: { companyId: number }) {
       </Card>
     );
   }
-
-  const hasAnyCalls = callActivities.length > 0 || callLogs.length > 0;
 
   return (
     <Card>
@@ -743,57 +671,16 @@ function CompanyCallsTab({ companyId }: { companyId: number }) {
           </DropdownMenu>
         </div>
 
-        {!hasAnyCalls ? (
+        {callActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Phone className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="font-medium">No call history yet</p>
-            <p className="text-sm mt-1">Use click-to-call or "Log Call" to record calls</p>
+            <p className="text-sm mt-1">Use the "Log Call" button to record calls</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {callLogs.map((call) => (
-              <div key={`log-${call.id}`} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
-                <div className={`p-2 rounded-full ${call.direction === 'outgoing' ? 'bg-blue-100' : 'bg-green-100'}`}>
-                  <Phone className={`h-4 w-4 ${call.direction === 'outgoing' ? 'text-blue-600' : 'text-green-600'}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm">{call.recipientName || 'Unknown'}</p>
-                    <Badge className={STATUS_COLORS[call.status] || 'bg-gray-100'} variant="secondary">
-                      {call.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">{call.recipientPhone}</p>
-                  {call.durationSeconds > 0 && (
-                    <p className="text-xs text-gray-500">Duration: {formatDuration(call.durationSeconds)}</p>
-                  )}
-                  {call.notes && (
-                    <p className="text-sm text-gray-600 mt-1 bg-gray-50 p-2 rounded">{call.notes}</p>
-                  )}
-                  {call.initiatedAt && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {format(new Date(call.initiatedAt), 'MMM d, yyyy h:mm a')}
-                    </p>
-                  )}
-                </div>
-                {call.recordingUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => togglePlayRecording(call)}
-                    data-testid={`button-play-recording-${call.id}`}
-                  >
-                    {playingCallId === call.id ? (
-                      <><X className="h-4 w-4 mr-1" /> Pause</>
-                    ) : (
-                      <><ExternalLink className="h-4 w-4 mr-1" /> Play</>
-                    )}
-                  </Button>
-                )}
-              </div>
-            ))}
             {callActivities.map((call) => (
-              <div key={`activity-${call.id}`} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
+              <div key={call.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                 <div className="p-2 rounded-full bg-green-100">
                   <Phone className="h-4 w-4 text-green-600" />
                 </div>
@@ -1564,31 +1451,20 @@ export default function MyCompanies() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
-                            {selectedCompany.primaryPhone ? (
-                              <a 
-                                href={`tel:${selectedCompany.primaryPhone}`} 
-                                className="text-blue-600 hover:underline"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleCallAction(selectedCompany);
-                                }}
-                              >
-                                {selectedCompany.primaryPhone}
-                              </a>
-                            ) : "N/A"}
-                          </p>
-                          {selectedCompany.primaryPhone && (
-                            <ClickToCallButton
-                              recipientPhone={selectedCompany.primaryPhone}
-                              recipientName={selectedCompany.companyName}
-                              companyId={selectedCompany.id}
-                              size="sm"
-                              variant="outline"
-                            />
-                          )}
-                        </div>
+                        <p className="font-medium">
+                          {selectedCompany.primaryPhone ? (
+                            <a 
+                              href={`tel:${selectedCompany.primaryPhone}`} 
+                              className="text-blue-600 hover:underline"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleCallAction(selectedCompany);
+                              }}
+                            >
+                              {selectedCompany.primaryPhone}
+                            </a>
+                          ) : "N/A"}
+                        </p>
                       </div>
                     </div>
 

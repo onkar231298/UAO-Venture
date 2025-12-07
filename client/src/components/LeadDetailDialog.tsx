@@ -17,8 +17,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import RichTextEditor from "./RichTextEditor";
 import EmailViewDialog from "./EmailViewDialog";
-import ClickToCallButton from "./ClickToCallButton";
-import CallHistoryTab from "./CallHistoryTab";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -973,7 +971,7 @@ Packaging: Standard export packaging`,
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-8' : 'grid-cols-7'}`}>
+          <TabsList className={`grid w-full h-auto ${isFromInquiry ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs sm:text-sm py-2">Activity</TabsTrigger>
             <TabsTrigger value="products" className="text-xs sm:text-sm py-2">Products</TabsTrigger>
@@ -988,10 +986,6 @@ Packaging: Standard export packaging`,
             <TabsTrigger value="emails" className="text-xs sm:text-sm py-2">
               <Mail className="h-3 w-3 mr-1" />
               Emails
-            </TabsTrigger>
-            <TabsTrigger value="calls" className="text-xs sm:text-sm py-2">
-              <Phone className="h-3 w-3 mr-1" />
-              Calls
             </TabsTrigger>
             {isFromInquiry && (
               <TabsTrigger value="bid-details" className="text-xs sm:text-sm py-2">
@@ -1063,26 +1057,13 @@ Packaging: Standard export packaging`,
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone</p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
-                        {lead.contactPerson?.phone ? (
-                          <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
-                            {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
-                          </a>
-                        ) : "N/A"}
-                      </p>
-                      {lead.contactPerson?.phone && (
-                        <ClickToCallButton
-                          recipientPhone={`${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}`}
-                          recipientName={lead.contactPerson.contactName || undefined}
-                          leadId={lead.id}
-                          companyId={lead.companyId || undefined}
-                          contactId={lead.contactPersonId || undefined}
-                          size="sm"
-                          variant="outline"
-                        />
-                      )}
-                    </div>
+                    <p className="font-medium">
+                      {lead.contactPerson?.phone ? (
+                        <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
+                          {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
+                        </a>
+                      ) : "N/A"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -2633,11 +2614,6 @@ Packaging: Standard export packaging`,
               </div>
             </DialogContent>
           </Dialog>
-
-          {/* Calls Tab */}
-          <TabsContent value="calls" className="space-y-4">
-            <CallHistoryTab leadId={lead.id} />
-          </TabsContent>
 
           {/* Bid/Inquiry Details Tab */}
           {isFromInquiry && (

@@ -128,9 +128,6 @@ import {
   type InsertEmailMessage,
   type Notification,
   type InsertNotification,
-  callLogs,
-  type CallLog,
-  type InsertCallLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte } from "drizzle-orm";
@@ -566,14 +563,6 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   deleteNotification(id: number): Promise<void>;
   createNotificationsForRole(notification: Omit<InsertNotification, 'userId'>, roles: string[]): Promise<Notification[]>;
-
-  // Call log methods
-  getCallLogs(filters?: { leadId?: number; companyId?: number; userId?: string; limit?: number; offset?: number }): Promise<CallLog[]>;
-  getCallLog(id: number): Promise<CallLog | undefined>;
-  getCallLogByCallUuid(callUuid: string): Promise<CallLog | undefined>;
-  createCallLog(callLog: InsertCallLog): Promise<CallLog>;
-  updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog>;
-  deleteCallLog(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5970,64 +5959,6 @@ export class DatabaseStorage implements IStorage {
     
     const created = await db.insert(notifications).values(notificationsToInsert).returning();
     return created;
-  }
-
-  // Call log methods
-  async getCallLogs(filters?: { leadId?: number; companyId?: number; userId?: string; limit?: number; offset?: number }): Promise<CallLog[]> {
-    const conditions: any[] = [];
-    
-    if (filters?.leadId) {
-      conditions.push(eq(callLogs.leadId, filters.leadId));
-    }
-    if (filters?.companyId) {
-      conditions.push(eq(callLogs.companyId, filters.companyId));
-    }
-    if (filters?.userId) {
-      conditions.push(eq(callLogs.callerUserId, filters.userId));
-    }
-    
-    let query = db
-      .select()
-      .from(callLogs)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(callLogs.initiatedAt));
-    
-    if (filters?.limit) {
-      query = query.limit(filters.limit) as any;
-    }
-    if (filters?.offset) {
-      query = query.offset(filters.offset) as any;
-    }
-    
-    return await query;
-  }
-
-  async getCallLog(id: number): Promise<CallLog | undefined> {
-    const [callLog] = await db.select().from(callLogs).where(eq(callLogs.id, id));
-    return callLog;
-  }
-
-  async getCallLogByCallUuid(callUuid: string): Promise<CallLog | undefined> {
-    const [callLog] = await db.select().from(callLogs).where(eq(callLogs.plivoCallUuid, callUuid));
-    return callLog;
-  }
-
-  async createCallLog(callLog: InsertCallLog): Promise<CallLog> {
-    const [created] = await db.insert(callLogs).values(callLog).returning();
-    return created;
-  }
-
-  async updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog> {
-    const [updated] = await db
-      .update(callLogs)
-      .set({ ...callLog, updatedAt: new Date() })
-      .where(eq(callLogs.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteCallLog(id: number): Promise<void> {
-    await db.delete(callLogs).where(eq(callLogs.id, id));
   }
 }
 

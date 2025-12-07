@@ -1407,50 +1407,6 @@ export const leadTasks = pgTable("lead_tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Call Logs table - Plivo VoIP call tracking with recordings
-export const callLogs = pgTable("call_logs", {
-  id: serial("id").primaryKey(),
-  plivoCallUuid: varchar("plivo_call_uuid", { length: 100 }).unique(),
-  
-  // Links to Lead or Company (at least one should be present)
-  leadId: integer("lead_id").references(() => leads.id, { onDelete: "set null" }),
-  companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
-  contactId: integer("contact_id").references(() => companyContacts.id, { onDelete: "set null" }),
-  
-  // Caller (sales rep) info
-  callerUserId: varchar("caller_user_id").references(() => users.id),
-  callerPhone: varchar("caller_phone", { length: 50 }),
-  
-  // Recipient info
-  recipientPhone: varchar("recipient_phone", { length: 50 }).notNull(),
-  recipientName: varchar("recipient_name", { length: 255 }),
-  
-  // Call details
-  direction: varchar("direction", { length: 20 }).default("outgoing"), // outgoing, incoming
-  status: varchar("status", { length: 50 }).default("initiated"), // initiated, ringing, in-progress, completed, failed, busy, no-answer
-  
-  // Timing
-  initiatedAt: timestamp("initiated_at").defaultNow(),
-  answeredAt: timestamp("answered_at"),
-  endedAt: timestamp("ended_at"),
-  durationSeconds: integer("duration_seconds").default(0),
-  
-  // Recording
-  recordingUrl: text("recording_url"),
-  recordingDuration: integer("recording_duration"), // in seconds
-  recordingStatus: varchar("recording_status", { length: 50 }), // pending, completed, failed
-  
-  // Notes and outcome
-  notes: text("notes"),
-  outcome: varchar("outcome", { length: 100 }), // connected, voicemail, no-answer, busy, wrong-number, follow-up-needed
-  
-  // Raw Plivo webhook payload for debugging
-  rawPayload: jsonb("raw_payload").default("{}"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 // Assignment rules table - Auto-assignment configuration
 export const assignmentRules = pgTable("assignment_rules", {
   id: serial("id").primaryKey(),
@@ -1564,12 +1520,6 @@ export const insertAssignmentRuleSchema = createInsertSchema(assignmentRules).om
   updatedAt: true,
 });
 
-export const insertCallLogSchema = createInsertSchema(callLogs).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 // CRM Types
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
@@ -1589,8 +1539,6 @@ export type LeadTask = typeof leadTasks.$inferSelect;
 export type InsertLeadTask = z.infer<typeof insertLeadTaskSchema>;
 export type AssignmentRule = typeof assignmentRules.$inferSelect;
 export type InsertAssignmentRule = z.infer<typeof insertAssignmentRuleSchema>;
-export type CallLog = typeof callLogs.$inferSelect;
-export type InsertCallLog = z.infer<typeof insertCallLogSchema>;
 
 // Extended CRM types with relations
 export type LeadWithDetails = Lead & {
