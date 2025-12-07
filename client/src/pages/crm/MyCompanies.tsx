@@ -14,10 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus, Eye
+  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package
 } from "lucide-react";
 import EmailViewDialog from "@/components/EmailViewDialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import RichTextEditor from "@/components/RichTextEditor";
 import {
   DropdownMenu,
@@ -856,6 +857,17 @@ export default function MyCompanies() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dialogTab, setDialogTab] = useState<string>("info");
   const [activityFilter, setActivityFilter] = useState<'email' | 'call' | null>(null);
+  
+  // Convert to Lead state
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertFormData, setConvertFormData] = useState({
+    productName: '',
+    productDescription: '',
+    quantity: '',
+    unit: 'kg',
+    expectedDealValue: '',
+    currency: 'USD',
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -927,6 +939,51 @@ export default function MyCompanies() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', variables.companyId, 'activities'] });
+    },
+  });
+
+  // Convert company to lead mutation
+  const convertToLeadMutation = useMutation({
+    mutationFn: async ({ companyId, data }: { 
+      companyId: number; 
+      data: {
+        productName: string;
+        productDescription: string;
+        quantity: string;
+        unit: string;
+        expectedDealValue: string;
+        currency: string;
+      };
+    }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/convert-to-lead`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      setShowConvertDialog(false);
+      setSelectedCompany(null);
+      setConvertFormData({
+        productName: '',
+        productDescription: '',
+        quantity: '',
+        unit: 'kg',
+        expectedDealValue: '',
+        currency: 'USD',
+      });
+      toast({ 
+        title: "Lead Created Successfully", 
+        description: `Lead ${result.lead?.leadId || ''} has been created from this company enquiry.` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create lead", 
+        description: error.message || "Please try again", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -1280,10 +1337,23 @@ export default function MyCompanies() {
       }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              {selectedCompany?.companyName}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                {selectedCompany?.companyName}
+              </DialogTitle>
+              {selectedCompany && (
+                <Button 
+                  onClick={() => setShowConvertDialog(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                  data-testid="button-convert-to-lead"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Convert to Lead
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {selectedCompany && (
@@ -1593,6 +1663,180 @@ export default function MyCompanies() {
               </TabsContent>
             </Tabs>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Lead Dialog */}
+      <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRight className="h-5 w-5 text-green-600" />
+              Convert Company to Lead
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Converting:</strong> {selectedCompany?.companyName}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                A new lead will be created with the company details and the enquiry information you provide below.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="productName" className="text-sm font-medium">
+                  Product Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="productName"
+                  placeholder="Enter product name"
+                  value={convertFormData.productName}
+                  onChange={(e) => setConvertFormData({ ...convertFormData, productName: e.target.value })}
+                  className="mt-1"
+                  data-testid="input-product-name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="productDescription" className="text-sm font-medium">
+                  Product Description
+                </Label>
+                <Textarea
+                  id="productDescription"
+                  placeholder="Enter product description and specifications"
+                  value={convertFormData.productDescription}
+                  onChange={(e) => setConvertFormData({ ...convertFormData, productDescription: e.target.value })}
+                  className="mt-1"
+                  rows={3}
+                  data-testid="input-product-description"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="quantity" className="text-sm font-medium">
+                    Quantity <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      id="quantity"
+                      type="number"
+                      placeholder="Enter quantity"
+                      value={convertFormData.quantity}
+                      onChange={(e) => setConvertFormData({ ...convertFormData, quantity: e.target.value })}
+                      className="flex-1"
+                      data-testid="input-quantity"
+                    />
+                    <Select 
+                      value={convertFormData.unit} 
+                      onValueChange={(value) => setConvertFormData({ ...convertFormData, unit: value })}
+                    >
+                      <SelectTrigger className="w-24" data-testid="select-unit">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">kg</SelectItem>
+                        <SelectItem value="mt">MT</SelectItem>
+                        <SelectItem value="lb">lb</SelectItem>
+                        <SelectItem value="ton">Ton</SelectItem>
+                        <SelectItem value="units">Units</SelectItem>
+                        <SelectItem value="liters">Liters</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="expectedDealValue" className="text-sm font-medium">
+                    Expected Deal Value <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Select 
+                      value={convertFormData.currency} 
+                      onValueChange={(value) => setConvertFormData({ ...convertFormData, currency: value })}
+                    >
+                      <SelectTrigger className="w-20" data-testid="select-currency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="INR">INR</SelectItem>
+                        <SelectItem value="AED">AED</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="expectedDealValue"
+                      type="number"
+                      placeholder="Amount"
+                      value={convertFormData.expectedDealValue}
+                      onChange={(e) => setConvertFormData({ ...convertFormData, expectedDealValue: e.target.value })}
+                      className="flex-1"
+                      data-testid="input-expected-deal-value"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowConvertDialog(false);
+                  setConvertFormData({
+                    productName: '',
+                    productDescription: '',
+                    quantity: '',
+                    unit: 'kg',
+                    expectedDealValue: '',
+                    currency: 'USD',
+                  });
+                }}
+                data-testid="button-cancel-convert"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!convertFormData.productName || !convertFormData.quantity || !convertFormData.expectedDealValue) {
+                    toast({
+                      title: "Required Fields Missing",
+                      description: "Please fill in Product Name, Quantity, and Expected Deal Value",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  if (selectedCompany) {
+                    convertToLeadMutation.mutate({
+                      companyId: selectedCompany.id,
+                      data: convertFormData
+                    });
+                  }
+                }}
+                disabled={convertToLeadMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-confirm-convert"
+              >
+                {convertToLeadMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Lead...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Create Lead
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
       </div>
