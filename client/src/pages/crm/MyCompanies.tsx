@@ -956,6 +956,7 @@ export default function MyCompanies() {
     mutationFn: async ({ companyId, data }: { 
       companyId: number; 
       data: {
+        productId: number | null;
         productName: string;
         productDescription: string;
         quantity: string;
@@ -1835,6 +1836,7 @@ export default function MyCompanies() {
                     convertToLeadMutation.mutate({
                       companyId: selectedCompany.id,
                       data: {
+                        productId: convertFormData.selectedProductId,
                         productName: convertFormData.productName,
                         productDescription: convertFormData.productDescription,
                         quantity: convertFormData.quantity,

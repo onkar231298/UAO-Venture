@@ -102,6 +102,15 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     enabled: productIds.length > 0 && open && !!lead,
   });
   
+  // Fetch all products when productsInterested is empty (for quotation/sample forms)
+  const { data: allProductsData } = useQuery<{ products: Product[] }>({
+    queryKey: ['/api/products', { limit: 500 }],
+    enabled: productIds.length === 0 && open && !!lead,
+  });
+  
+  // Use specific products if available, otherwise fall back to all products
+  const availableProducts = productIds.length > 0 ? products : (allProductsData?.products || []);
+  
   // Fetch original inquiry/bid data for leads from inquiries
   const isFromInquiry = lead?.leadSource === 'high_volume_bid' || lead?.leadSource === 'product_inquiry';
   const { data: inquiryData, isLoading: inquiryLoading } = useQuery<{
@@ -475,12 +484,14 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     const phone = lead?.contactPerson?.phone 
       ? `${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}` 
       : "";
+    // Pre-select product from productsInterested if available
+    const defaultProductId = selectedProductId || (availableProducts.length === 1 ? availableProducts[0].id : (productIds.length > 0 && availableProducts.length > 0 ? availableProducts[0].id : 0));
     setSampleFormData({
       contactName: lead?.contactPerson?.contactName || "",
       companyName: lead?.company?.companyName || "",
       phoneNumber: phone,
       emailAddress: lead?.contactPerson?.email || "",
-      productId: selectedProductId || (products.length === 1 ? products[0].id : 0),
+      productId: defaultProductId,
       sampleSize: "50g",
       purpose: "",
       expectedOrderQuantity: lead?.requiredQuantity?.toString() || "",
@@ -568,9 +579,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   });
 
   const initializeQuoteForm = (selectedProductId?: number) => {
+    // Pre-select product from productsInterested if available
     const product = selectedProductId 
-      ? products.find(p => p.id === selectedProductId)
-      : products.length === 1 ? products[0] : null;
+      ? availableProducts.find(p => p.id === selectedProductId)
+      : availableProducts.length === 1 ? availableProducts[0] : (productIds.length > 0 && availableProducts.length > 0 ? availableProducts[0] : null);
     
     setQuoteFormData({
       productId: product?.id || 0,
@@ -1144,10 +1156,40 @@ Packaging: Standard export packaging`,
                   <p className="text-gray-500">Loading products...</p>
                 </CardContent>
               </Card>
-            ) : productIds.length === 0 ? (
+            ) : productIds.length === 0 && !lead?.productName ? (
               <Card>
                 <CardContent className="p-4 sm:p-6">
                   <p className="text-gray-500">No products associated with this lead</p>
+                </CardContent>
+              </Card>
+            ) : productIds.length === 0 && lead?.productName ? (
+              <Card>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Package className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg" data-testid="product-name-manual">
+                        {lead.productName}
+                      </h4>
+                      {lead.productDescription && (
+                        <p className="text-sm text-gray-600 mt-1" data-testid="product-description-manual">
+                          {lead.productDescription}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-3 mt-3">
+                        {lead.requiredQuantity && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            Quantity: {lead.requiredQuantity} {lead.unit || 'kg'}
+                          </Badge>
+                        )}
+                        <Badge variant="secondary">
+                          Product Enquiry
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -1329,8 +1371,8 @@ Packaging: Standard export packaging`,
                               <SelectValue placeholder="Select a product" />
                             </SelectTrigger>
                             <SelectContent>
-                              {products.length > 0 ? (
-                                products.map((product) => (
+                              {availableProducts.length > 0 ? (
+                                availableProducts.map((product) => (
                                   <SelectItem key={product.id} value={product.id.toString()}>
                                     {product.name} ({product.productId})
                                   </SelectItem>
@@ -1637,8 +1679,8 @@ Packaging: Standard export packaging`,
                               <SelectValue placeholder="Select a product" />
                             </SelectTrigger>
                             <SelectContent>
-                              {products.length > 0 ? (
-                                products.map((product) => (
+                              {availableProducts.length > 0 ? (
+                                availableProducts.map((product) => (
                                   <SelectItem key={product.id} value={product.id.toString()}>
                                     {product.name} ({product.productId})
                                   </SelectItem>
