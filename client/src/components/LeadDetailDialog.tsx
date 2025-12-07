@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download } from "lucide-react";
+import ClickToCall from "./ClickToCall";
+import CallHistory from "./CallHistory";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -1057,13 +1059,24 @@ Packaging: Standard export packaging`,
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">
-                      {lead.contactPerson?.phone ? (
-                        <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
-                          {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
-                        </a>
-                      ) : "N/A"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">
+                        {lead.contactPerson?.phone ? (
+                          <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
+                            {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
+                          </a>
+                        ) : "N/A"}
+                      </p>
+                      {lead.contactPerson?.phone && (
+                        <ClickToCall
+                          phoneNumber={`${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}`}
+                          recipientName={lead.contactPerson.contactName || undefined}
+                          leadId={lead.id}
+                          variant="icon"
+                          data-testid="button-call-lead"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1159,6 +1172,7 @@ Packaging: Standard export packaging`,
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
+            <CallHistory leadId={lead.id} />
             <ActivityTimeline 
               leadId={lead.id} 
               onViewEmail={() => setActiveTab("email")} 
