@@ -1549,6 +1549,7 @@ export type LeadWithDetails = Lead & {
   tasks?: LeadTask[];
   unreadEmailCount?: number;
   latestUnreadEmailAt?: Date | string | null;
+  quoteValue?: string | null;
 };
 
 export type CompanyWithContacts = Company & {
