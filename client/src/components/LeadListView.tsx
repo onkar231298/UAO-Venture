@@ -137,8 +137,12 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
         bVal = priorityOrder[b.priority || 'cold'] || 0;
         break;
       case 'expectedOrderValue':
-        aVal = a.expectedOrderValue ? parseFloat(a.expectedOrderValue.toString()) : 0;
-        bVal = b.expectedOrderValue ? parseFloat(b.expectedOrderValue.toString()) : 0;
+        aVal = a.quoteValue !== null && a.quoteValue !== undefined 
+          ? parseFloat(a.quoteValue.toString()) 
+          : (a.expectedOrderValue ? parseFloat(a.expectedOrderValue.toString()) : 0);
+        bVal = b.quoteValue !== null && b.quoteValue !== undefined 
+          ? parseFloat(b.quoteValue.toString()) 
+          : (b.expectedOrderValue ? parseFloat(b.expectedOrderValue.toString()) : 0);
         break;
       case 'createdAt':
         aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -384,7 +388,15 @@ export default function LeadListView({ leads, onViewDetails, salesReps, canAssig
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {formatCurrency(lead.expectedOrderValue)}
+                    {lead.quoteValue !== null && lead.quoteValue !== undefined ? (
+                      <span className="text-green-600" title="Quote value">
+                        {formatCurrency(lead.quoteValue)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400" title="No quotation yet">
+                        {formatCurrency(lead.expectedOrderValue)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {lead.salesRep ? (
