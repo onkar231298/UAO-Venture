@@ -43,6 +43,13 @@ Preferred communication style: Simple, everyday language.
 - **Admin Dashboard**: APIs for analytics and data aggregation.
 - **Website Navigation & Filtering**: Advanced multi-faceted product filtering with URL parameter support and dynamic ingredients navigation.
 - **Security & Verification**: Google reCAPTCHA v3 integration for customer registration.
+- **Click-to-Call Integration**: Twilio Voice API integration for outbound calling with:
+    - One-click calling from Lead and Company views
+    - Call recording with 90+ day retention
+    - Call history tabs showing all past calls with playable recordings
+    - Real-time call status tracking (initiated → ringing → in-progress → completed/failed)
+    - Activity logging for all calls
+    - Secure webhook endpoints with X-Twilio-Signature validation to prevent spoofing
 
 ### Business Logic
 - **B2B Platform**: Designed for comprehensive B2B operations.
