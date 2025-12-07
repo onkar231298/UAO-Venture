@@ -5083,8 +5083,34 @@ export class DatabaseStorage implements IStorage {
       unreadEmailData.map(item => [item.leadId, item])
     );
 
+    // Fetch quote values for all leads (get the latest/total quote amount per lead)
+    let quoteValueData: { leadId: number; totalQuoteValue: string | null }[] = [];
+    if (leadIds.length > 0) {
+      const quoteValueResults = await db
+        .select({
+          leadId: quotations.leadId,
+          totalQuoteValue: sql<string | null>`MAX(${quotations.totalAmount})`,
+        })
+        .from(quotations)
+        .where(
+          sql`${quotations.leadId} IN (${sql.raw(leadIds.join(','))})`
+        )
+        .groupBy(quotations.leadId);
+      
+      quoteValueData = quoteValueResults.map(r => ({
+        leadId: r.leadId!,
+        totalQuoteValue: r.totalQuoteValue,
+      }));
+    }
+    
+    // Create a map for quote values
+    const quoteValueMap = new Map(
+      quoteValueData.map(item => [item.leadId, item.totalQuoteValue])
+    );
+
     const leadsWithDetails: LeadWithDetails[] = leadsData.map(row => {
       const unreadInfo = unreadEmailMap.get(row.lead.id);
+      const quoteValue = quoteValueMap.get(row.lead.id);
       return {
         ...row.lead,
         company: row.company!,
@@ -5092,6 +5118,7 @@ export class DatabaseStorage implements IStorage {
         salesRep: row.salesRep || undefined,
         unreadEmailCount: unreadInfo?.unreadCount || 0,
         latestUnreadEmailAt: unreadInfo?.latestUnreadAt || null,
+        quoteValue: quoteValue || null,
       };
     });
 
