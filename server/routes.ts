@@ -4744,6 +4744,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!quantity) {
         return res.status(400).json({ message: "Quantity is required" });
       }
+      if (!productId) {
+        return res.status(400).json({ message: "Product selection is required. Please select a product from the catalog." });
+      }
       
       // Get company details with contacts
       const companyWithDetails = await storage.getCompanyWithDetails(companyId);
@@ -4800,7 +4803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         leadId: lead.id,
         activityType: 'note',
         subject: 'Company conversion details',
-        description: `Lead created by converting company "${company.companyName}" for product enquiry: ${productName}`,
+        description: `Lead created by converting company "${companyWithDetails.companyName}" for product enquiry: ${productName}`,
         createdBy: userId,
       });
       

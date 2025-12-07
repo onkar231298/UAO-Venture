@@ -485,7 +485,14 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       ? `${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}` 
       : "";
     // Pre-select product from productsInterested if available
-    const defaultProductId = selectedProductId || (availableProducts.length === 1 ? availableProducts[0].id : (productIds.length > 0 && availableProducts.length > 0 ? availableProducts[0].id : 0));
+    // If productsInterested is empty but lead has productName, try to find matching product
+    let defaultProductId = selectedProductId || 0;
+    if (!defaultProductId && productIds.length > 0 && availableProducts.length > 0) {
+      defaultProductId = availableProducts[0].id;
+    } else if (!defaultProductId && lead?.productName && availableProducts.length > 0) {
+      const matchedProduct = availableProducts.find(p => p.name === lead.productName);
+      defaultProductId = matchedProduct?.id || 0;
+    }
     setSampleFormData({
       contactName: lead?.contactPerson?.contactName || "",
       companyName: lead?.company?.companyName || "",
@@ -580,9 +587,18 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   const initializeQuoteForm = (selectedProductId?: number) => {
     // Pre-select product from productsInterested if available
-    const product = selectedProductId 
+    // If productsInterested is empty but lead has productName, try to find matching product
+    let product = selectedProductId 
       ? availableProducts.find(p => p.id === selectedProductId)
-      : availableProducts.length === 1 ? availableProducts[0] : (productIds.length > 0 && availableProducts.length > 0 ? availableProducts[0] : null);
+      : null;
+    
+    if (!product && productIds.length > 0 && availableProducts.length > 0) {
+      // Use first product from productsInterested
+      product = availableProducts[0];
+    } else if (!product && lead?.productName && availableProducts.length > 0) {
+      // Try to find product by name match (for company-converted leads)
+      product = availableProducts.find(p => p.name === lead.productName) || null;
+    }
     
     setQuoteFormData({
       productId: product?.id || 0,
