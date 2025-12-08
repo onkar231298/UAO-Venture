@@ -109,8 +109,10 @@ export default function UnifiedLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-500 to-yellow-400 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-500 to-yellow-400 flex flex-col">
+      {/* Main content area with centered card */}
+      <div className="flex-1 flex items-center justify-center p-4 pb-8">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
@@ -232,8 +234,13 @@ export default function UnifiedLogin() {
           </Tabs>
 
         </CardContent>
-      </Card>
-      <Footer />
+        </Card>
+      </div>
+      
+      {/* Footer at the bottom - hidden on mobile to prevent overlap */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }
