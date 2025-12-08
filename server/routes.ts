@@ -4699,6 +4699,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk Company Import - Template Download
+  app.get('/api/crm/companies/import/template', isAuthenticated, async (req: any, res) => {
+    try {
+      const headers = [
+        'companyName*',
+        'primaryEmail',
+        'primaryPhone',
+        'gstNumber',
+        'industryType',
+        'companySize',
+        'website',
+        'addressStreet',
+        'addressCity',
+        'addressState',
+        'addressCountry',
+        'addressZip',
+        'factoryAddressStreet',
+        'factoryAddressCity',
+        'factoryAddressState',
+        'factoryAddressCountry',
+        'factoryAddressZip',
+        'priority',
+        'notes'
+      ];
+      
+      const sampleRow = [
+        'Example Company Ltd',
+        'contact@example.com',
+        '+1-555-123-4567',
+        '22AAAAA0000A1Z5',
+        'food',
+        'medium',
+        'https://example.com',
+        '123 Main Street',
+        'New York',
+        'NY',
+        'USA',
+        '10001',
+        '456 Factory Lane',
+        'Chicago',
+        'IL',
+        'USA',
+        '60601',
+        'normal',
+        'Sample company notes'
+      ];
+      
+      const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=company_import_template.csv');
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Error generating template:', error);
+      res.status(500).json({ message: 'Failed to generate template' });
+    }
+  });
+
+  // Bulk Company Import - Validate
+  app.post('/api/crm/companies/import/validate', isAuthenticated, multer({ storage: multer.memoryStorage() }).single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const fileBuffer = req.file.buffer;
+      const fileName = req.file.originalname.toLowerCase();
+      let parsedData: any[] = [];
+
+      if (fileName.endsWith('.csv')) {
+        const csvContent = fileBuffer.toString('utf-8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+          return res.status(400).json({ message: 'File must contain headers and at least one data row' });
+        }
+        
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^\*/, '').replace(/\*$/, ''));
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          const row: any = {};
+          headers.forEach((header, idx) => {
+            const cleanHeader = header.replace('*', '');
+            if (values[idx]) {
+              row[cleanHeader] = values[idx];
+            }
+          });
+          if (row.companyName) {
+            parsedData.push(row);
+          }
+        }
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        const xlsx = await import('xlsx');
+        const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = xlsx.utils.sheet_to_json(sheet);
+        
+        parsedData = jsonData.map((row: any) => {
+          const cleanRow: any = {};
+          Object.keys(row).forEach(key => {
+            const cleanKey = key.replace('*', '').trim();
+            cleanRow[cleanKey] = row[key];
+          });
+          return cleanRow;
+        }).filter((row: any) => row.companyName);
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format. Use CSV or Excel files.' });
+      }
+
+      if (parsedData.length === 0) {
+        return res.status(400).json({ message: 'No valid company data found in file' });
+      }
+
+      const errors: Array<{ row: number; field: string; message: string }> = [];
+      const { checkForDuplicates } = await import('./duplicateDetection');
+
+      const validatedCompanies = await Promise.all(parsedData.map(async (company, index) => {
+        const rowNum = index + 2;
+        
+        if (!company.companyName || company.companyName.trim().length === 0) {
+          errors.push({ row: rowNum, field: 'companyName', message: 'Company name is required' });
+        }
+
+        if (company.primaryEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(company.primaryEmail)) {
+          errors.push({ row: rowNum, field: 'primaryEmail', message: 'Invalid email format' });
+        }
+
+        if (company.website && !/^https?:\/\//.test(company.website)) {
+          company.website = 'https://' + company.website;
+        }
+
+        let duplicateWarning = null;
+        try {
+          const duplicateCheck = await checkForDuplicates(
+            company.companyName,
+            company.primaryEmail,
+            company.primaryPhone
+          );
+          if (duplicateCheck.hasPotentialDuplicates && duplicateCheck.highestConfidence >= 70) {
+            duplicateWarning = duplicateCheck.matches[0];
+          }
+        } catch (e) {
+          console.error('Error checking duplicates for row', rowNum, e);
+        }
+
+        return {
+          ...company,
+          rowNumber: rowNum,
+          duplicateWarning,
+        };
+      }));
+
+      res.json({
+        companies: validatedCompanies,
+        errors,
+        totalRows: parsedData.length,
+      });
+    } catch (error) {
+      console.error('Error validating import file:', error);
+      res.status(500).json({ message: 'Failed to validate file' });
+    }
+  });
+
+  // Bulk Company Import - Confirm
+  app.post('/api/crm/companies/import/confirm', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { companies } = req.body;
+
+      if (!companies || !Array.isArray(companies) || companies.length === 0) {
+        return res.status(400).json({ message: 'No companies to import' });
+      }
+
+      let success = 0;
+      let failed = 0;
+      const importErrors: string[] = [];
+
+      for (const companyData of companies) {
+        try {
+          const cleanData = { ...companyData };
+          delete cleanData.rowNumber;
+          delete cleanData.duplicateWarning;
+
+          await storage.createCompany({
+            ...cleanData,
+            origin: 'import',
+            createdBy: userId,
+            status: 'active',
+            companyStage: 'new',
+            priority: cleanData.priority || 'normal',
+          });
+          success++;
+        } catch (error: any) {
+          failed++;
+          const errorMsg = error.message || 'Unknown error';
+          importErrors.push(`${companyData.companyName}: ${errorMsg}`);
+        }
+      }
+
+      res.json({
+        success,
+        failed,
+        errors: importErrors,
+      });
+    } catch (error) {
+      console.error('Error importing companies:', error);
+      res.status(500).json({ message: 'Failed to import companies' });
+    }
+  });
+
   app.delete('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
       await storage.deleteCompany(parseInt(req.params.id));

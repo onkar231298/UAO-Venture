@@ -163,6 +163,16 @@ export default function CompanyManagement() {
     highestConfidence: number;
   } | null>(null);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  
+  // Bulk upload state
+  const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkUploadPreview, setBulkUploadPreview] = useState<any[]>([]);
+  const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; field: string; message: string }>>([]);
+  const [bulkUploadStep, setBulkUploadStep] = useState<'upload' | 'preview' | 'importing'>('upload');
+  const [isValidatingBulk, setIsValidatingBulk] = useState(false);
+  const [isImportingBulk, setIsImportingBulk] = useState(false);
+  const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -494,6 +504,22 @@ export default function CompanyManagement() {
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
+          </Button>
+          
+          <Button 
+            variant="outline"
+            data-testid="button-bulk-upload" 
+            onClick={() => {
+              setBulkUploadDialogOpen(true);
+              setBulkUploadStep('upload');
+              setBulkUploadFile(null);
+              setBulkUploadPreview([]);
+              setBulkUploadErrors([]);
+              setImportResults(null);
+            }}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Upload
           </Button>
           
           <Button data-testid="button-create-company" onClick={() => setCreateDialogOpen(true)}>
@@ -1714,6 +1740,262 @@ export default function CompanyManagement() {
                   Close
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={bulkUploadDialogOpen} onOpenChange={setBulkUploadDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-bulk-upload">
+          <DialogHeader>
+            <DialogTitle>Bulk Company Upload</DialogTitle>
+            <DialogDescription>
+              Upload a CSV or Excel file to import multiple companies at once.
+            </DialogDescription>
+          </DialogHeader>
+
+          {bulkUploadStep === 'upload' && (
+            <div className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/crm/companies/import/template');
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'company_import_template.csv';
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                    } catch (error) {
+                      toast({ title: "Error", description: "Failed to download template", variant: "destructive" });
+                    }
+                  }}
+                  data-testid="button-download-template"
+                >
+                  Download Template
+                </Button>
+              </div>
+
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-medium mb-2">Drop your file here or click to browse</p>
+                <p className="text-sm text-muted-foreground mb-4">Supports CSV and Excel files (.csv, .xlsx, .xls)</p>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setBulkUploadFile(file);
+                      setIsValidatingBulk(true);
+                      setBulkUploadErrors([]);
+
+                      const formData = new FormData();
+                      formData.append('file', file);
+
+                      try {
+                        const response = await fetch('/api/crm/companies/import/validate', {
+                          method: 'POST',
+                          body: formData,
+                        });
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                          setBulkUploadPreview(result.companies || []);
+                          setBulkUploadErrors(result.errors || []);
+                          setBulkUploadStep('preview');
+                        } else {
+                          toast({ title: "Error", description: result.message || "Failed to validate file", variant: "destructive" });
+                        }
+                      } catch (error) {
+                        toast({ title: "Error", description: "Failed to validate file", variant: "destructive" });
+                      } finally {
+                        setIsValidatingBulk(false);
+                      }
+                    }
+                  }}
+                  className="hidden"
+                  id="bulk-upload-input"
+                  data-testid="input-bulk-upload-file"
+                />
+                <label htmlFor="bulk-upload-input">
+                  <Button variant="secondary" asChild>
+                    <span>Select File</span>
+                  </Button>
+                </label>
+                {bulkUploadFile && (
+                  <p className="mt-2 text-sm text-muted-foreground">Selected: {bulkUploadFile.name}</p>
+                )}
+              </div>
+
+              {isValidatingBulk && (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Validating file...</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {bulkUploadStep === 'preview' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{bulkUploadPreview.length} companies ready to import</p>
+                  {bulkUploadErrors.length > 0 && (
+                    <p className="text-sm text-orange-600">{bulkUploadErrors.length} validation warnings</p>
+                  )}
+                </div>
+                <Button variant="outline" onClick={() => setBulkUploadStep('upload')} data-testid="button-back-to-upload">
+                  Back
+                </Button>
+              </div>
+
+              {bulkUploadErrors.length > 0 && (
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-orange-800">Validation Warnings</p>
+                        <ul className="text-sm text-orange-700 mt-1 space-y-1">
+                          {bulkUploadErrors.slice(0, 5).map((error, i) => (
+                            <li key={i}>Row {error.row}: {error.field} - {error.message}</li>
+                          ))}
+                          {bulkUploadErrors.length > 5 && (
+                            <li>...and {bulkUploadErrors.length - 5} more warnings</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[400px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="sticky top-0 bg-background">Company Name</TableHead>
+                        <TableHead className="sticky top-0 bg-background">Email</TableHead>
+                        <TableHead className="sticky top-0 bg-background">Phone</TableHead>
+                        <TableHead className="sticky top-0 bg-background">Industry</TableHead>
+                        <TableHead className="sticky top-0 bg-background">City</TableHead>
+                        <TableHead className="sticky top-0 bg-background">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bulkUploadPreview.slice(0, 50).map((company, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{company.companyName}</TableCell>
+                          <TableCell>{company.primaryEmail || '-'}</TableCell>
+                          <TableCell>{company.primaryPhone || '-'}</TableCell>
+                          <TableCell>{company.industryType || '-'}</TableCell>
+                          <TableCell>{company.addressCity || '-'}</TableCell>
+                          <TableCell>
+                            {company.duplicateWarning ? (
+                              <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                Potential Duplicate
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-green-600 border-green-300">
+                                Ready
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {bulkUploadPreview.length > 50 && (
+                  <p className="text-sm text-muted-foreground p-2 bg-muted text-center">
+                    Showing first 50 of {bulkUploadPreview.length} companies
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setBulkUploadDialogOpen(false)} data-testid="button-cancel-import">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setIsImportingBulk(true);
+                    setBulkUploadStep('importing');
+                    
+                    try {
+                      const response = await fetch('/api/crm/companies/import/confirm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ companies: bulkUploadPreview }),
+                      });
+                      const result = await response.json();
+                      
+                      if (response.ok) {
+                        setImportResults(result);
+                        queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+                        toast({
+                          title: "Import Complete",
+                          description: `Successfully imported ${result.success} companies${result.failed > 0 ? `, ${result.failed} failed` : ''}`,
+                        });
+                      } else {
+                        toast({ title: "Error", description: result.message || "Failed to import companies", variant: "destructive" });
+                        setBulkUploadStep('preview');
+                      }
+                    } catch (error) {
+                      toast({ title: "Error", description: "Failed to import companies", variant: "destructive" });
+                      setBulkUploadStep('preview');
+                    } finally {
+                      setIsImportingBulk(false);
+                    }
+                  }}
+                  disabled={bulkUploadPreview.length === 0 || isImportingBulk}
+                  data-testid="button-confirm-import"
+                >
+                  {isImportingBulk ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>Import {bulkUploadPreview.length} Companies</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {bulkUploadStep === 'importing' && importResults && (
+            <div className="space-y-4 text-center py-8">
+              <CheckSquare className="h-16 w-16 mx-auto text-green-600" />
+              <h3 className="text-xl font-semibold">Import Complete</h3>
+              <p className="text-muted-foreground">
+                Successfully imported {importResults.success} companies
+                {importResults.failed > 0 && `, ${importResults.failed} failed`}
+              </p>
+              
+              {importResults.errors && importResults.errors.length > 0 && (
+                <Card className="text-left border-red-200 bg-red-50">
+                  <CardContent className="pt-4">
+                    <p className="font-medium text-red-800 mb-2">Failed Imports:</p>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {importResults.errors.slice(0, 10).map((error, i) => (
+                        <li key={i}>{error}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Button onClick={() => setBulkUploadDialogOpen(false)} data-testid="button-close-import">
+                Close
+              </Button>
             </div>
           )}
         </DialogContent>
