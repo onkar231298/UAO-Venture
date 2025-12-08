@@ -4574,7 +4574,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (needsEnrichment !== undefined) filters.needsEnrichment = needsEnrichment === 'true';
       if (origin) filters.origin = origin;
-      if (status) filters.status = status;
+      if (status === 'merged') {
+        filters.duplicateStatus = 'merged';
+      } else if (status) {
+        filters.status = status;
+      }
       if (companyStage) filters.companyStage = companyStage;
       if (priority) filters.priority = priority;
       if (assignedTo) filters.assignedTo = assignedTo;

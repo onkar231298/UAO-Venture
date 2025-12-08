@@ -586,6 +586,7 @@ export default function CompanyManagement() {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="merged">Merged (Duplicates)</SelectItem>
                 </SelectContent>
               </Select>
               

@@ -4640,6 +4640,10 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(companies.status, filters.status));
     }
 
+    if (filters?.duplicateStatus) {
+      conditions.push(eq(companies.duplicateStatus, filters.duplicateStatus));
+    }
+
     if (filters?.companyStage) {
       conditions.push(eq(companies.companyStage, filters.companyStage));
     }
