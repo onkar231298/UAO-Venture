@@ -4767,10 +4767,8 @@ export class DatabaseStorage implements IStorage {
       await db.delete(emailThreads).where(eq(emailThreads.companyId, id));
     }
     
-    // 4. Update leads to remove company reference (set to null)
-    await db.update(leads)
-      .set({ companyId: null, updatedAt: new Date() })
-      .where(eq(leads.companyId, id));
+    // 4. Delete leads associated with this company (lead activities and tasks will cascade)
+    await db.delete(leads).where(eq(leads.companyId, id));
     
     // 5. Delete call logs associated with this company
     await db.delete(callLogs).where(eq(callLogs.companyId, id));
