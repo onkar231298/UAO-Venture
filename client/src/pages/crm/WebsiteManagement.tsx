@@ -373,7 +373,7 @@ export default function WebsiteManagement() {
                             Bulk Upload
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                        <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Bulk Product Upload</DialogTitle>
                           </DialogHeader>
@@ -387,7 +387,7 @@ export default function WebsiteManagement() {
                             Add Product
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
+                        <DialogContent className="w-[95vw] max-w-4xl">
                           <DialogHeader>
                             <DialogTitle>Add New Product</DialogTitle>
                           </DialogHeader>
@@ -609,7 +609,7 @@ export default function WebsiteManagement() {
                                           <Edit className="w-4 h-4" />
                                         </Button>
                                       </DialogTrigger>
-                                      <DialogContent className="max-w-4xl">
+                                      <DialogContent className="w-[95vw] max-w-4xl">
                                         <DialogHeader>
                                           <DialogTitle>Edit Product: {product.name}</DialogTitle>
                                         </DialogHeader>
@@ -1328,7 +1328,7 @@ function SchemaValidatorInterface() {
 
           {/* Scan Results Summary */}
           {scanResults && (
-            <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <div className="text-2xl font-bold text-green-600">{scanResults.valid}</div>
                 <div className="text-sm text-green-700">Valid Pages</div>
@@ -1697,7 +1697,7 @@ function TagForm({ tag, onSubmit, onCancel, isLoading }: any) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"

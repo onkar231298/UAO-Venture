@@ -501,7 +501,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                   Create Quote
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Create Quotation for INQ-{inquiry.id}</DialogTitle>
                                 </DialogHeader>

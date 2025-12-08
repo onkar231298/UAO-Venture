@@ -418,7 +418,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={companyForm.control}
                       name="gstNumber"
@@ -460,7 +460,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={companyForm.control}
                       name="companySize"
@@ -501,7 +501,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <FormField
                       control={companyForm.control}
                       name="addressCity"
@@ -579,7 +579,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                   <h3 className="font-semibold">Contact Person</h3>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={leadForm.control}
                     name="contactPersonName"
@@ -697,7 +697,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={leadForm.control}
                           name={`additionalContacts.${index}.contactName`}
@@ -725,7 +725,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                           )}
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={leadForm.control}
                           name={`additionalContacts.${index}.email`}
@@ -964,7 +964,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                   <h3 className="font-semibold">Business Details</h3>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={leadForm.control}
                     name="buyingTimeline"
@@ -990,7 +990,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={leadForm.control}
                     name="priority"
@@ -1068,7 +1068,7 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={leadForm.control}
                     name="currentSupplier"
