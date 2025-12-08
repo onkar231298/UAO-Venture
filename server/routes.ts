@@ -4860,7 +4860,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         search, industryType, needsEnrichment, origin, status, 
         companyStage, priority, assignedTo, createdFrom,
         dateFrom, dateTo,
-        limit = '50', offset = '0' 
+        limit = '1000', offset = '0' 
       } = req.query;
       
       const userId = req.user.claims.sub;
