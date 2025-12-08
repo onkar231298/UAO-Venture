@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import InquiryForm from "./InquiryForm";
 import OptimizedImage from "./OptimizedImage";
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
 import { Shield, Leaf, Award, Star, Heart, MessageSquare } from "lucide-react";
 import type { Product, ProductType } from "@shared/schema";
@@ -20,6 +21,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { currency } = useCurrency();
+  const { customer, isCustomerAuthenticated } = useCustomerAuth();
   
   // Get the product image - prioritize WebP fields over legacy fields
   const galleryImages = product.galleryImages as string[] | null;
@@ -130,7 +132,11 @@ export default function ProductCard({ product }: ProductCardProps) {
               <DialogHeader>
                 <DialogTitle>Request Quote for {product.name}</DialogTitle>
               </DialogHeader>
-              <InquiryForm product={product} />
+              <InquiryForm 
+                product={product} 
+                isCustomerAuthenticated={isCustomerAuthenticated}
+                customerData={customer}
+              />
             </DialogContent>
           </Dialog>
           
