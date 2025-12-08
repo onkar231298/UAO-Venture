@@ -131,6 +131,7 @@ import {
   callLogs,
   smsMessages,
   voicemails,
+  passwordResetTokens,
   type CallLog,
   type InsertCallLog,
   type SmsMessage,
@@ -614,6 +615,13 @@ export interface IStorage {
   createVoicemail(voicemail: InsertVoicemail): Promise<Voicemail>;
   updateVoicemail(id: number, voicemail: Partial<InsertVoicemail>): Promise<Voicemail>;
   markVoicemailAsListened(id: number): Promise<Voicemail>;
+
+  // Password reset token methods
+  createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<{ id: number }>;
+  getPasswordResetToken(tokenHash: string): Promise<{ id: number; userId: string; tokenHash: string; expiresAt: Date; usedAt: Date | null; createdAt: Date | null } | undefined>;
+  markPasswordResetTokenUsed(id: number): Promise<void>;
+  invalidateUserPasswordResetTokens(userId: string): Promise<void>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -6268,6 +6276,47 @@ export class DatabaseStorage implements IStorage {
       .where(eq(voicemails.id, id))
       .returning();
     return updated;
+  }
+
+  // Password reset token methods
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<{ id: number }> {
+    const [created] = await db
+      .insert(passwordResetTokens)
+      .values({ userId, tokenHash, expiresAt })
+      .returning({ id: passwordResetTokens.id });
+    return created;
+  }
+
+  async getPasswordResetToken(tokenHash: string): Promise<{ id: number; userId: string; tokenHash: string; expiresAt: Date; usedAt: Date | null; createdAt: Date | null } | undefined> {
+    const [token] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.tokenHash, tokenHash));
+    return token;
+  }
+
+  async markPasswordResetTokenUsed(id: number): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, id));
+  }
+
+  async invalidateUserPasswordResetTokens(userId: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(and(
+        eq(passwordResetTokens.userId, userId),
+        isNull(passwordResetTokens.usedAt)
+      ));
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 }
 
