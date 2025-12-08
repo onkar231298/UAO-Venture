@@ -4699,6 +4699,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get company contacts
+  app.get('/api/crm/companies/:id/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const contacts = await storage.getCompanyContacts(companyId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching company contacts:', error);
+      res.status(500).json({ message: "Failed to fetch contacts" });
+    }
+  });
+
   // Bulk Company Import - Template Download
   app.get('/api/crm/companies/import/template', isAuthenticated, async (req: any, res) => {
     try {

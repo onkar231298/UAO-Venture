@@ -140,6 +140,102 @@ interface SalesRep {
   email: string;
 }
 
+interface CompanyContact {
+  id: number;
+  companyId: number;
+  contactName: string;
+  designation?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  isPrimary: boolean;
+  role?: string | null;
+  isActive: boolean;
+}
+
+function CompanyContactsTab({ companyId }: { companyId: number }) {
+  const { data: contacts, isLoading } = useQuery<CompanyContact[]>({
+    queryKey: ['/api/crm/companies', companyId, 'contacts'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${companyId}/contacts`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch contacts');
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="text-center py-6 text-muted-foreground">
+            <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+            <p>Loading contacts...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!contacts || contacts.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <div className="text-center py-6 text-muted-foreground">
+            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No contacts linked to this company yet</p>
+            <p className="text-sm">Contacts will appear here when linked through registrations</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="space-y-4">
+          {contacts.map((contact) => (
+            <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold">{contact.contactName}</p>
+                  {contact.isPrimary && (
+                    <Badge variant="secondary" className="text-xs">Primary</Badge>
+                  )}
+                  {contact.designation && (
+                    <Badge variant="outline" className="text-xs">{contact.designation}</Badge>
+                  )}
+                </div>
+                {contact.email && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-3 w-3" />
+                    <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                      {contact.email}
+                    </a>
+                  </div>
+                )}
+                {contact.phone && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-3 w-3" />
+                    <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
+                      {contact.phone}
+                    </a>
+                  </div>
+                )}
+              </div>
+              {!contact.isActive && (
+                <Badge variant="outline" className="text-orange-600">Inactive</Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CompanyManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1699,15 +1795,7 @@ export default function CompanyManagement() {
                 </TabsContent>
                 
                 <TabsContent value="contacts" className="mt-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No contacts linked to this company yet</p>
-                        <p className="text-sm">Contacts will appear here when linked through registrations</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CompanyContactsTab companyId={selectedCompany.id} />
                 </TabsContent>
                 
                 <TabsContent value="address" className="space-y-4 mt-4">
