@@ -1605,21 +1605,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If productName not provided, fetch from database using productId
         if (!productName && req.body.productId) {
-          const product = await storage.getProduct(parseInt(req.body.productId));
-          productName = product?.name || 'Product';
+          try {
+            const parsedId = parseInt(req.body.productId);
+            if (!isNaN(parsedId)) {
+              const product = await storage.getProduct(parsedId);
+              productName = product?.name || null;
+            }
+          } catch (e) {
+            console.log('Failed to fetch product for notification:', e);
+          }
         }
         
         // If still no product name, try to get from inquiry's products array
-        if (!productName && inquiry.products && inquiry.products.length > 0) {
-          const productNames = [];
-          for (const productItem of inquiry.products) {
-            const pid = typeof productItem === 'number' ? productItem : productItem.productId;
-            if (pid) {
-              const prod = await storage.getProduct(pid);
-              if (prod?.name) productNames.push(prod.name);
+        if (!productName && inquiry.products && Array.isArray(inquiry.products) && inquiry.products.length > 0) {
+          try {
+            const productNames = [];
+            for (const productItem of inquiry.products) {
+              const pid = typeof productItem === 'number' ? productItem : productItem?.productId;
+              if (pid && !isNaN(Number(pid))) {
+                const prod = await storage.getProduct(Number(pid));
+                if (prod?.name) productNames.push(prod.name);
+              }
             }
+            if (productNames.length > 0) {
+              productName = productNames.join(', ');
+            }
+          } catch (e) {
+            console.log('Failed to fetch products array for notification:', e);
           }
-          productName = productNames.length > 0 ? productNames.join(', ') : 'Product';
         }
         
         productName = productName || 'Product';
@@ -2232,8 +2245,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If productName not provided, fetch from database using productId
         if (!productName && req.body.productId) {
-          const product = await storage.getProduct(parseInt(req.body.productId));
-          productName = product?.name || 'Product';
+          try {
+            const parsedId = parseInt(req.body.productId);
+            if (!isNaN(parsedId)) {
+              const product = await storage.getProduct(parsedId);
+              productName = product?.name || null;
+            }
+          } catch (e) {
+            console.log('Failed to fetch product for sample request notification:', e);
+          }
         }
         
         productName = productName || 'Product';
