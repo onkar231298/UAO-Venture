@@ -1170,6 +1170,15 @@ export const companies = pgTable("companies", {
   dataCompleteness: varchar("data_completeness", { length: 20 }).default("complete"), // complete, partial
   needsEnrichment: boolean("needs_enrichment").default(false),
   
+  // Duplicate detection fields
+  normalizedName: varchar("normalized_name", { length: 255 }), // Lowercase, trimmed, special chars removed
+  normalizedDomain: varchar("normalized_domain", { length: 255 }), // Email domain extracted and normalized
+  duplicateStatus: varchar("duplicate_status", { length: 20 }).default("unique"), // unique, suspected, confirmed, merged
+  duplicateOf: integer("duplicate_of"), // Points to the master company ID if this is a duplicate
+  duplicateConfidence: decimal("duplicate_confidence", { precision: 5, scale: 2 }), // 0-100 confidence score
+  duplicateReviewedAt: timestamp("duplicate_reviewed_at"), // When was duplicate status last reviewed
+  duplicateReviewedBy: varchar("duplicate_reviewed_by").references(() => users.id), // Who reviewed the duplicate status
+  
   // Assignment and ownership
   assignedTo: varchar("assigned_to").references(() => users.id), // Sales rep assigned to this company
   assignedBy: varchar("assigned_by").references(() => users.id), // Who assigned this company
