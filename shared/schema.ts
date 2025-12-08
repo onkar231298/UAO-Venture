@@ -716,25 +716,166 @@ export const quotationItems = pgTable("quotation_items", {
   specifications: text("specifications"),
 });
 
+// Sales Order Status Types
+export const SALES_ORDER_STATUSES = [
+  'draft',              // Initial state when created
+  'pending_approval',   // Awaiting internal approval
+  'confirmed',          // Customer confirmed, ready for processing
+  'processing',         // In production/fulfillment
+  'ready_to_ship',      // Goods ready for dispatch
+  'shipped',            // Goods dispatched
+  'delivered',          // Goods delivered to customer
+  'completed',          // Order fully completed and closed
+  'cancelled',          // Order cancelled
+  'on_hold',            // Order on hold
+] as const;
+
+export type SalesOrderStatus = typeof SALES_ORDER_STATUSES[number];
+
+// Sales Order Payment Status Types
+export const SALES_ORDER_PAYMENT_STATUSES = [
+  'pending',            // No payment received
+  'advance_received',   // Advance payment received
+  'partial',            // Partial payment received
+  'paid',               // Full payment received
+  'refunded',           // Payment refunded
+] as const;
+
+export type SalesOrderPaymentStatus = typeof SALES_ORDER_PAYMENT_STATUSES[number];
+
 // Sales orders
 export const salesOrders = pgTable("sales_orders", {
   id: serial("id").primaryKey(),
-  orderId: varchar("order_id", { length: 50 }).notNull().unique(),
+  soNumber: varchar("so_number", { length: 50 }).notNull().unique(), // SO-2024-0001 format
+  
+  // References
   quotationId: integer("quotation_id").references(() => quotations.id),
+  companyId: integer("company_id").references(() => companies.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  emailThreadId: integer("email_thread_id").references(() => emailThreads.id),
   customerId: varchar("customer_id").references(() => users.id),
+  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
+  
+  // Dates
   orderDate: timestamp("order_date").defaultNow(),
-  expectedDelivery: timestamp("expected_delivery"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
-  status: varchar("status", { length: 50 }).default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled
-  paymentStatus: varchar("payment_status", { length: 50 }).default("pending"), // pending, partial, paid
-  paymentTerms: varchar("payment_terms", { length: 100 }),
+  expectedDeliveryDate: timestamp("expected_delivery_date"),
+  confirmedAt: timestamp("confirmed_at"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  
+  // Amount and Currency
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).default("0.00"),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0.00"),
+  taxPercent: decimal("tax_percent", { precision: 5, scale: 2 }),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 5 }).default("USD"),
+  priceType: varchar("price_type", { length: 50 }).default("ex_warehouse"),
+  
+  // Payment Terms
+  paymentTermsAdvancePercent: decimal("payment_terms_advance_percent", { precision: 5, scale: 2 }).default("0.00"),
+  paymentTermsCreditDays: integer("payment_terms_credit_days").default(0),
+  paymentTermsNotes: text("payment_terms_notes"),
+  advanceAmountDue: decimal("advance_amount_due", { precision: 12, scale: 2 }),
+  advanceAmountReceived: decimal("advance_amount_received", { precision: 12, scale: 2 }).default("0.00"),
+  balanceAmountDue: decimal("balance_amount_due", { precision: 12, scale: 2 }),
+  balanceAmountReceived: decimal("balance_amount_received", { precision: 12, scale: 2 }).default("0.00"),
+  
+  // Status
+  status: varchar("status", { length: 50 }).default("draft"),
+  paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
+  
+  // Shipping Details
   shippingAddress: text("shipping_address"),
+  shippingCity: varchar("shipping_city", { length: 100 }),
+  shippingState: varchar("shipping_state", { length: 100 }),
+  shippingPostalCode: varchar("shipping_postal_code", { length: 20 }),
+  shippingCountry: varchar("shipping_country", { length: 100 }),
+  shippingMethod: varchar("shipping_method", { length: 100 }),
+  
+  // Billing Details
   billingAddress: text("billing_address"),
-  notes: text("notes"),
+  billingCity: varchar("billing_city", { length: 100 }),
+  billingState: varchar("billing_state", { length: 100 }),
+  billingPostalCode: varchar("billing_postal_code", { length: 20 }),
+  billingCountry: varchar("billing_country", { length: 100 }),
+  
+  // Customer Details (snapshot at time of order)
+  customerCompanyName: varchar("customer_company_name", { length: 255 }),
+  customerContactName: varchar("customer_contact_name", { length: 255 }),
+  customerEmail: varchar("customer_email", { length: 255 }),
+  customerPhone: varchar("customer_phone", { length: 50 }),
+  
+  // Tax Details
+  includeGst: boolean("include_gst").default(false),
+  gstNumber: varchar("gst_number", { length: 15 }),
+  gstPercentage: decimal("gst_percentage", { precision: 5, scale: 2 }),
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  customerNotes: text("customer_notes"),
+  termsAndConditions: text("terms_and_conditions"),
+  
+  // Audit
   createdBy: varchar("created_by").references(() => users.id),
+  confirmedBy: varchar("confirmed_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_sales_orders_company").on(table.companyId),
+  index("idx_sales_orders_lead").on(table.leadId),
+  index("idx_sales_orders_status").on(table.status),
+  index("idx_sales_orders_assigned").on(table.assignedToUserId),
+  index("idx_sales_orders_created").on(table.createdAt),
+]);
+
+// Sales Order Items
+export const salesOrderItems = pgTable("sales_order_items", {
+  id: serial("id").primaryKey(),
+  salesOrderId: integer("sales_order_id").references(() => salesOrders.id).notNull(),
+  productId: integer("product_id").references(() => products.id),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  productSku: varchar("product_sku", { length: 100 }),
+  description: text("description"),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }),
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 12, scale: 2 }).notNull(),
+  specifications: text("specifications"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Sales Order Status History - tracks all status changes
+export const salesOrderStatusHistory = pgTable("sales_order_status_history", {
+  id: serial("id").primaryKey(),
+  salesOrderId: integer("sales_order_id").references(() => salesOrders.id).notNull(),
+  fromStatus: varchar("from_status", { length: 50 }),
+  toStatus: varchar("to_status", { length: 50 }).notNull(),
+  changedBy: varchar("changed_by").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_so_status_history_order").on(table.salesOrderId),
+  index("idx_so_status_history_created").on(table.createdAt),
+]);
+
+// Sales Order Activity Log - tracks all activities including emails sent
+export const salesOrderActivities = pgTable("sales_order_activities", {
+  id: serial("id").primaryKey(),
+  salesOrderId: integer("sales_order_id").references(() => salesOrders.id).notNull(),
+  activityType: varchar("activity_type", { length: 50 }).notNull(), // created, status_changed, email_sent, payment_received, note_added, document_attached
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  emailMessageId: integer("email_message_id").references(() => emailMessages.id),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  performedBy: varchar("performed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_so_activities_order").on(table.salesOrderId),
+  index("idx_so_activities_created").on(table.createdAt),
+]);
 
 // Purchase orders
 export const purchaseOrders = pgTable("purchase_orders", {
@@ -855,6 +996,37 @@ export const quotationsRelations = relations(quotations, ({ one, many }) => ({
   salesOrders: many(salesOrders),
 }));
 
+// Sales Order Relations
+export const salesOrdersRelations = relations(salesOrders, ({ one, many }) => ({
+  quotation: one(quotations, { fields: [salesOrders.quotationId], references: [quotations.id] }),
+  company: one(companies, { fields: [salesOrders.companyId], references: [companies.id] }),
+  lead: one(leads, { fields: [salesOrders.leadId], references: [leads.id] }),
+  emailThread: one(emailThreads, { fields: [salesOrders.emailThreadId], references: [emailThreads.id] }),
+  customer: one(users, { fields: [salesOrders.customerId], references: [users.id] }),
+  assignedTo: one(users, { fields: [salesOrders.assignedToUserId], references: [users.id] }),
+  createdByUser: one(users, { fields: [salesOrders.createdBy], references: [users.id] }),
+  confirmedByUser: one(users, { fields: [salesOrders.confirmedBy], references: [users.id] }),
+  items: many(salesOrderItems),
+  statusHistory: many(salesOrderStatusHistory),
+  activities: many(salesOrderActivities),
+}));
+
+export const salesOrderItemsRelations = relations(salesOrderItems, ({ one }) => ({
+  salesOrder: one(salesOrders, { fields: [salesOrderItems.salesOrderId], references: [salesOrders.id] }),
+  product: one(products, { fields: [salesOrderItems.productId], references: [products.id] }),
+}));
+
+export const salesOrderStatusHistoryRelations = relations(salesOrderStatusHistory, ({ one }) => ({
+  salesOrder: one(salesOrders, { fields: [salesOrderStatusHistory.salesOrderId], references: [salesOrders.id] }),
+  changedByUser: one(users, { fields: [salesOrderStatusHistory.changedBy], references: [users.id] }),
+}));
+
+export const salesOrderActivitiesRelations = relations(salesOrderActivities, ({ one }) => ({
+  salesOrder: one(salesOrders, { fields: [salesOrderActivities.salesOrderId], references: [salesOrders.id] }),
+  performedByUser: one(users, { fields: [salesOrderActivities.performedBy], references: [users.id] }),
+  emailMessage: one(emailMessages, { fields: [salesOrderActivities.emailMessageId], references: [emailMessages.id] }),
+}));
+
 // Insert schemas
 
 export const insertProductSchema = createInsertSchema(products).omit({
@@ -969,6 +1141,34 @@ export const insertQuotationSchema = createInsertSchema(quotations).omit({
   updatedAt: true,
 });
 
+// Sales Order schemas
+export const insertSalesOrderSchema = createInsertSchema(salesOrders).omit({
+  id: true,
+  soNumber: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  expectedDeliveryDate: z.coerce.date().nullable().optional(),
+  confirmedAt: z.coerce.date().nullable().optional(),
+  shippedAt: z.coerce.date().nullable().optional(),
+  deliveredAt: z.coerce.date().nullable().optional(),
+});
+
+export const insertSalesOrderItemSchema = createInsertSchema(salesOrderItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSalesOrderStatusHistorySchema = createInsertSchema(salesOrderStatusHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSalesOrderActivitySchema = createInsertSchema(salesOrderActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
@@ -1034,7 +1234,29 @@ export type SampleRequest = typeof sampleRequests.$inferSelect;
 export type InsertSampleRequest = z.infer<typeof insertSampleRequestSchema>;
 export type Inventory = typeof inventory.$inferSelect;
 export type SalesOrder = typeof salesOrders.$inferSelect;
+export type InsertSalesOrder = z.infer<typeof insertSalesOrderSchema>;
+export type SalesOrderItem = typeof salesOrderItems.$inferSelect;
+export type InsertSalesOrderItem = z.infer<typeof insertSalesOrderItemSchema>;
+export type SalesOrderStatusHistory = typeof salesOrderStatusHistory.$inferSelect;
+export type InsertSalesOrderStatusHistory = z.infer<typeof insertSalesOrderStatusHistorySchema>;
+export type SalesOrderActivity = typeof salesOrderActivities.$inferSelect;
+export type InsertSalesOrderActivity = z.infer<typeof insertSalesOrderActivitySchema>;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+
+// Extended Sales Order types with relations
+export type SalesOrderWithDetails = SalesOrder & {
+  quotation?: Quotation;
+  company?: Company;
+  lead?: Lead;
+  emailThread?: EmailThread;
+  customer?: User;
+  assignedTo?: User;
+  createdByUser?: User;
+  confirmedByUser?: User;
+  items?: SalesOrderItem[];
+  statusHistory?: SalesOrderStatusHistory[];
+  activities?: SalesOrderActivity[];
+};
 
 // Blog post schemas
 export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
