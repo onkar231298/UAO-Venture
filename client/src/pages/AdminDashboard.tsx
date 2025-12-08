@@ -12,6 +12,7 @@ import SalesManagement from "@/pages/crm/SalesManagement";
 import SampleRequestsPage from "@/pages/crm/SampleRequestsPage";
 import HighVolumeBidsPage from "@/pages/crm/HighVolumeBidsPage";
 import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
+import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -157,6 +158,7 @@ export default function AdminDashboard() {
       case 'sample-requests': return 'Sample Requests';
       case 'high-volume-bids': return 'High Volume Bids';
       case 'quotation-negotiations': return 'Quote Negotiations';
+      case 'sales-orders': return 'Sales Orders';
       case 'company-management': return 'Company Management';
       case 'purchase': return 'Purchase Management';
       case 'logistics': return 'Logistics Management';
@@ -230,7 +232,7 @@ export default function AdminDashboard() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => setActiveSection('sales')}
-                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection)}
+                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection)}
                     className="w-full"
                   >
                     <TrendingUp className="mr-3 h-5 w-5" />
@@ -239,7 +241,7 @@ export default function AdminDashboard() {
                 </SidebarMenuItem>
                 
                 {/* Sales Management Sub-items */}
-                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection) && (
+                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection) && (
                   <div className="ml-6 mt-1 space-y-1">
                     <SidebarMenuItem>
                       <SidebarMenuButton
@@ -286,6 +288,18 @@ export default function AdminDashboard() {
                       >
                         <DollarSign className="mr-3 h-4 w-4" />
                         <span>Quote Negotiations</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('sales-orders')}
+                        isActive={activeSection === 'sales-orders'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-sales-orders"
+                      >
+                        <ShoppingCart className="mr-3 h-4 w-4" />
+                        <span>Sales Orders</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
@@ -622,6 +636,10 @@ export default function AdminDashboard() {
 
           {activeSection === 'quotation-negotiations' && (
             <QuotationNegotiationsPage />
+          )}
+
+          {activeSection === 'sales-orders' && (
+            <SalesOrdersPage />
           )}
 
           {activeSection === 'newsletter' && (

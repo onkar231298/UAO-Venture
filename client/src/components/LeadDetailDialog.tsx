@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -78,6 +78,20 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [showSendQuoteDialog, setShowSendQuoteDialog] = useState(false);
   const [selectedQuoteToSend, setSelectedQuoteToSend] = useState<any>(null);
   const [selectedThreadForQuote, setSelectedThreadForQuote] = useState<string>("");
+  const [showConvertToSODialog, setShowConvertToSODialog] = useState(false);
+  const [selectedQuoteForSO, setSelectedQuoteForSO] = useState<any>(null);
+  const [soFormData, setSOFormData] = useState({
+    paymentTermsAdvancePercent: "",
+    paymentTermsCreditDays: "30",
+    expectedDeliveryDate: "",
+    shippingAddress: "",
+    shippingCity: "",
+    shippingState: "",
+    shippingPostalCode: "",
+    shippingCountry: "",
+    shippingMethod: "",
+    internalNotes: "",
+  });
   const [quoteFormData, setQuoteFormData] = useState({
     productId: 0,
     quantity: "",
@@ -585,6 +599,78 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       });
     },
   });
+
+  // Convert quotation to sales order mutation
+  const convertToSOMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('/api/sales-orders/convert-from-quotation', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-orders'] });
+      setShowConvertToSODialog(false);
+      setSelectedQuoteForSO(null);
+      resetSOFormData();
+      toast({
+        title: "Sales Order Created",
+        description: `Sales Order ${result.soNumber} has been created successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert quotation to sales order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const initializeSOForm = (quote: any) => {
+    // Pre-fill from company address if available
+    const company = lead?.company;
+    setSOFormData({
+      paymentTermsAdvancePercent: "",
+      paymentTermsCreditDays: "30",
+      expectedDeliveryDate: "",
+      shippingAddress: company?.address || "",
+      shippingCity: company?.city || "",
+      shippingState: company?.state || "",
+      shippingPostalCode: company?.postalCode || "",
+      shippingCountry: company?.country || "",
+      shippingMethod: "",
+      internalNotes: "",
+    });
+    setSelectedQuoteForSO(quote);
+    setShowConvertToSODialog(true);
+  };
+
+  const resetSOFormData = () => {
+    setSOFormData({
+      paymentTermsAdvancePercent: "",
+      paymentTermsCreditDays: "30",
+      expectedDeliveryDate: "",
+      shippingAddress: "",
+      shippingCity: "",
+      shippingState: "",
+      shippingPostalCode: "",
+      shippingCountry: "",
+      shippingMethod: "",
+      internalNotes: "",
+    });
+  };
+
+  const handleConvertToSO = () => {
+    if (!selectedQuoteForSO) return;
+    
+    convertToSOMutation.mutate({
+      quotationId: selectedQuoteForSO.id,
+      ...soFormData,
+    });
+  };
 
   const initializeQuoteForm = (selectedProductId?: number) => {
     // Pre-select product from productsInterested if available
@@ -2057,6 +2143,28 @@ Packaging: Standard export packaging`,
                                   Resend Quote
                                 </Button>
                               ) : null}
+                              {(quote.status === 'accepted' || quote.status === 'sent') && !quote.salesOrderId && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700"
+                                  onClick={() => initializeSOForm(quote)}
+                                  disabled={convertToSOMutation.isPending}
+                                  data-testid="button-convert-to-so"
+                                >
+                                  {convertToSOMutation.isPending ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <ShoppingCart className="h-3 w-3 mr-1" />
+                                  )}
+                                  Create Sales Order
+                                </Button>
+                              )}
+                              {quote.salesOrderId && (
+                                <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                                  SO Created
+                                </Badge>
+                              )}
                             </div>
                             {quote.sentAt && (
                               <div className="text-xs text-green-600 mt-1">
@@ -3265,6 +3373,180 @@ Packaging: Standard export packaging`,
                         <Send className="h-4 w-4 mr-2" />
                       )}
                       Send Quotation
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Convert to Sales Order Dialog */}
+        {showConvertToSODialog && selectedQuoteForSO && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <Card className="w-full max-w-lg mx-4 bg-white max-h-[90vh] overflow-y-auto">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-purple-600" />
+                  Create Sales Order
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="p-3 bg-gray-50 rounded border">
+                    <div className="text-sm">
+                      <strong>From Quotation:</strong> {selectedQuoteForSO.quotationId}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Amount:</strong> {selectedQuoteForSO.currency || 'USD'} {parseFloat(selectedQuoteForSO.totalAmount || 0).toLocaleString()}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Company:</strong> {lead?.company?.companyName}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="advance-percent">Advance Payment (%)</Label>
+                      <Input
+                        id="advance-percent"
+                        type="number"
+                        placeholder="e.g. 30"
+                        value={soFormData.paymentTermsAdvancePercent}
+                        onChange={(e) => setSOFormData({...soFormData, paymentTermsAdvancePercent: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credit-days">Credit Days</Label>
+                      <Input
+                        id="credit-days"
+                        type="number"
+                        placeholder="e.g. 30"
+                        value={soFormData.paymentTermsCreditDays}
+                        onChange={(e) => setSOFormData({...soFormData, paymentTermsCreditDays: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="expected-delivery">Expected Delivery Date</Label>
+                    <Input
+                      id="expected-delivery"
+                      type="date"
+                      value={soFormData.expectedDeliveryDate}
+                      onChange={(e) => setSOFormData({...soFormData, expectedDeliveryDate: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Shipping Address
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="shipping-address">Address</Label>
+                        <Textarea
+                          id="shipping-address"
+                          placeholder="Street address"
+                          value={soFormData.shippingAddress}
+                          onChange={(e) => setSOFormData({...soFormData, shippingAddress: e.target.value})}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="shipping-city">City</Label>
+                          <Input
+                            id="shipping-city"
+                            placeholder="City"
+                            value={soFormData.shippingCity}
+                            onChange={(e) => setSOFormData({...soFormData, shippingCity: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="shipping-state">State/Province</Label>
+                          <Input
+                            id="shipping-state"
+                            placeholder="State"
+                            value={soFormData.shippingState}
+                            onChange={(e) => setSOFormData({...soFormData, shippingState: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="shipping-postal">Postal Code</Label>
+                          <Input
+                            id="shipping-postal"
+                            placeholder="Postal code"
+                            value={soFormData.shippingPostalCode}
+                            onChange={(e) => setSOFormData({...soFormData, shippingPostalCode: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="shipping-country">Country</Label>
+                          <Input
+                            id="shipping-country"
+                            placeholder="Country"
+                            value={soFormData.shippingCountry}
+                            onChange={(e) => setSOFormData({...soFormData, shippingCountry: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="shipping-method">Shipping Method</Label>
+                        <Select
+                          value={soFormData.shippingMethod}
+                          onValueChange={(value) => setSOFormData({...soFormData, shippingMethod: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select shipping method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ex_works">Ex Works (EXW)</SelectItem>
+                            <SelectItem value="fob">Free on Board (FOB)</SelectItem>
+                            <SelectItem value="cif">Cost, Insurance & Freight (CIF)</SelectItem>
+                            <SelectItem value="dap">Delivered at Place (DAP)</SelectItem>
+                            <SelectItem value="ddp">Delivered Duty Paid (DDP)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="internal-notes">Internal Notes</Label>
+                    <Textarea
+                      id="internal-notes"
+                      placeholder="Notes for internal reference (not visible to customer)"
+                      value={soFormData.internalNotes}
+                      onChange={(e) => setSOFormData({...soFormData, internalNotes: e.target.value})}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 justify-end pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowConvertToSODialog(false);
+                        setSelectedQuoteForSO(null);
+                        resetSOFormData();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleConvertToSO}
+                      disabled={convertToSOMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {convertToSOMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                      )}
+                      Create Sales Order
                     </Button>
                   </div>
                 </div>
