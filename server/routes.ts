@@ -5727,7 +5727,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create notification for the assigned sales rep
       try {
         if (assignedTo && assignedTo !== userId) {
-          const companyName = lead.company?.companyName || 'Unknown Company';
+          // Fetch the full lead with company details for the notification
+          let companyName = 'New Company';
+          try {
+            if (lead.companyId) {
+              const company = await storage.getCompany(lead.companyId);
+              if (company?.companyName) {
+                companyName = company.companyName;
+              }
+            }
+          } catch (e) {
+            console.log('Failed to fetch company for lead notification:', e);
+          }
+          
           await storage.createNotification({
             userId: assignedTo,
             type: 'lead_assigned',
