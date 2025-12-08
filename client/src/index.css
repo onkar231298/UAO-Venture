@@ -228,14 +228,14 @@ body {
   --info: hsl(200, 85%, 55%);
   
   /* Sidebar Colors - Essential for mobile sidebar visibility */
-  --sidebar-background: 0 0% 100%;
-  --sidebar-foreground: 210 10% 23%;
-  --sidebar-border: 140 15% 92%;
-  --sidebar-accent: 140 25% 94%;
-  --sidebar-accent-foreground: 210 10% 23%;
-  --sidebar-primary: 140 70% 35%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-ring: 140 70% 35%;
+  --sidebar-background: hsl(0, 0%, 100%);
+  --sidebar-foreground: hsl(210, 10%, 23%);
+  --sidebar-border: hsl(140, 15%, 92%);
+  --sidebar-accent: hsl(140, 25%, 94%);
+  --sidebar-accent-foreground: hsl(210, 10%, 23%);
+  --sidebar-primary: hsl(140, 70%, 35%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-ring: hsl(140, 70%, 35%);
 }
 
 .dark {
@@ -261,14 +261,14 @@ body {
   --radius: 0.5rem;
   
   /* Sidebar Colors - Dark Mode */
-  --sidebar-background: 210 12% 10%;
-  --sidebar-foreground: 0 0% 95%;
-  --sidebar-border: 140 10% 18%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-primary: 142 76% 30%;
-  --sidebar-primary-foreground: 211 100% 99%;
-  --sidebar-ring: 240 4.9% 83.9%;
+  --sidebar-background: hsl(210, 12%, 10%);
+  --sidebar-foreground: hsl(0, 0%, 95%);
+  --sidebar-border: hsl(140, 10%, 18%);
+  --sidebar-accent: hsl(240, 3.7%, 15.9%);
+  --sidebar-accent-foreground: hsl(0, 0%, 98%);
+  --sidebar-primary: hsl(142, 76%, 30%);
+  --sidebar-primary-foreground: hsl(211, 100%, 99%);
+  --sidebar-ring: hsl(240, 4.9%, 83.9%);
 }
 
 @layer base {
