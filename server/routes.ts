@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -50,7 +51,7 @@ import {
   products,
   smsMessages,
 } from "@shared/schema";
-import { eq, and, isNotNull, desc, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, desc, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -385,6 +386,309 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error during customer login:", error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Helper function to get the base URL for password reset links
+  // Uses production domain when deployed, falls back to development domain
+  function getBaseUrl(): string {
+    // REPLIT_DOMAINS contains the production domain(s)
+    const replitDomains = process.env.REPLIT_DOMAINS;
+    const devDomain = process.env.REPLIT_DEV_DOMAIN;
+    
+    // Prefer production domain if available and we're in production mode
+    if (replitDomains && process.env.NODE_ENV === 'production') {
+      const primaryDomain = replitDomains.split(',')[0];
+      return `https://${primaryDomain}`;
+    }
+    
+    // In development, use the dev domain
+    if (devDomain) {
+      return `https://${devDomain}`;
+    }
+    
+    // Fallback for local development
+    return 'http://localhost:5000';
+  }
+
+  // Customer forgot password - request password reset
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Find customer by email
+      const customer = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration attacks
+      // but only actually send email if customer exists
+      if (!customer || customer.userType !== 'customer') {
+        console.log(`Password reset requested for non-existent email: ${email}`);
+        return res.json({ 
+          message: 'If an account exists with this email, you will receive a password reset link.' 
+        });
+      }
+
+      // Generate a secure random token (32 bytes = 64 hex characters)
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Hash the token before storing (so even if DB is compromised, tokens can't be used)
+      const tokenHash = await bcrypt.hash(resetToken, 10);
+      
+      // Set token expiration to 1 hour from now
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      
+      // Invalidate any existing tokens for this user
+      await storage.invalidateUserPasswordResetTokens(customer.id);
+      
+      // Store the hashed token
+      await storage.createPasswordResetToken(customer.id, tokenHash, expiresAt);
+      
+      // Build the reset URL
+      const baseUrl = getBaseUrl();
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+      
+      console.log(`Password reset requested for ${email}, URL: ${resetUrl}`);
+      
+      // Try to send email using first available connected admin email config
+      try {
+        const emailConfigs = await storage.getUserEmailConfigs();
+        const connectedConfig = emailConfigs.find(config => config.isConnected && config.accessToken);
+        
+        if (connectedConfig) {
+          // Get valid access token
+          const accessToken = await gmailApi.ensureValidAccessToken(
+            {
+              id: connectedConfig.id,
+              accessToken: connectedConfig.accessToken,
+              refreshToken: connectedConfig.refreshToken,
+              tokenExpiresAt: connectedConfig.tokenExpiresAt,
+            },
+            async (configId, tokens) => {
+              await storage.updateUserEmailConfig(configId, {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                tokenExpiresAt: tokens.tokenExpiresAt,
+              });
+            }
+          );
+          
+          // Send password reset email
+          await gmailApi.sendEmail(accessToken, {
+            to: [email],
+            subject: 'Reset Your Password - Bright Fame Organic',
+            fromName: 'Bright Fame Organic',
+            fromEmail: connectedConfig.companyEmail || 'noreply@brightfameorganic.com',
+            bodyHtml: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <h1 style="color: #16a34a; margin-bottom: 10px;">Bright Fame Organic</h1>
+                </div>
+                
+                <h2 style="color: #333;">Reset Your Password</h2>
+                
+                <p>Hello ${customer.firstName || 'Customer'},</p>
+                
+                <p>We received a request to reset the password for your account associated with ${email}.</p>
+                
+                <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetUrl}" 
+                     style="background-color: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                    Reset Password
+                  </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">
+                  If the button above doesn't work, copy and paste this link into your browser:<br>
+                  <a href="${resetUrl}" style="color: #16a34a;">${resetUrl}</a>
+                </p>
+                
+                <p style="color: #666; font-size: 14px;">
+                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                  &copy; ${new Date().getFullYear()} Bright Fame Organic. All rights reserved.<br>
+                  This is an automated message, please do not reply.
+                </p>
+              </body>
+              </html>
+            `,
+            bodyText: `
+Reset Your Password - Bright Fame Organic
+
+Hello ${customer.firstName || 'Customer'},
+
+We received a request to reset the password for your account associated with ${email}.
+
+Click the link below to reset your password. This link will expire in 1 hour.
+
+${resetUrl}
+
+If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+
+© ${new Date().getFullYear()} Bright Fame Organic. All rights reserved.
+            `,
+          });
+          
+          console.log(`Password reset email sent successfully to ${email}`);
+        } else {
+          console.warn('No connected email configuration found to send password reset email');
+          // Log the reset URL for manual testing/debugging
+          console.log(`Password reset URL (email not sent): ${resetUrl}`);
+        }
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Don't fail the request - the token was created, user can try again
+        console.log(`Password reset URL (email failed): ${resetUrl}`);
+      }
+      
+      res.json({ 
+        message: 'If an account exists with this email, you will receive a password reset link.' 
+      });
+    } catch (error) {
+      console.error('Error requesting password reset:', error);
+      res.status(500).json({ message: 'Failed to process password reset request' });
+    }
+  });
+
+  // Validate password reset token
+  app.get('/api/auth/reset-password/validate', async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ valid: false, message: 'Token is required' });
+      }
+
+      // Get all password reset tokens from database
+      // We'll need to iterate through and check bcrypt matches
+      // First, get all valid (non-expired, non-used) tokens
+      const result = await db.execute(
+        sql`SELECT id, user_id, token_hash, expires_at, used_at 
+            FROM password_reset_tokens 
+            WHERE used_at IS NULL 
+            AND expires_at > NOW()
+            ORDER BY created_at DESC
+            LIMIT 100`
+      );
+      
+      let matchingToken: any = null;
+      
+      for (const row of result.rows as any[]) {
+        const isMatch = await bcrypt.compare(token, row.token_hash);
+        if (isMatch) {
+          matchingToken = row;
+          break;
+        }
+      }
+      
+      if (!matchingToken) {
+        return res.json({ 
+          valid: false, 
+          message: 'This password reset link is invalid or has expired.' 
+        });
+      }
+      
+      // Get user info to show masked email
+      const user = await storage.getUser(matchingToken.user_id);
+      let maskedEmail = '';
+      if (user?.email) {
+        const [localPart, domain] = user.email.split('@');
+        const maskedLocal = localPart.substring(0, 2) + '***';
+        maskedEmail = `${maskedLocal}@${domain}`;
+      }
+      
+      res.json({ 
+        valid: true, 
+        email: maskedEmail 
+      });
+    } catch (error) {
+      console.error('Error validating reset token:', error);
+      res.status(500).json({ valid: false, message: 'Failed to validate token' });
+    }
+  });
+
+  // Reset password with token
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword, confirmPassword } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Reset token is required' });
+      }
+      
+      if (!newPassword || !confirmPassword) {
+        return res.status(400).json({ message: 'New password and confirmation are required' });
+      }
+      
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: 'Passwords do not match' });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      }
+
+      // Find matching token
+      const result = await db.execute(
+        sql`SELECT id, user_id, token_hash, expires_at, used_at 
+            FROM password_reset_tokens 
+            WHERE used_at IS NULL 
+            AND expires_at > NOW()
+            ORDER BY created_at DESC
+            LIMIT 100`
+      );
+      
+      let matchingToken: any = null;
+      
+      for (const row of result.rows as any[]) {
+        const isMatch = await bcrypt.compare(token, row.token_hash);
+        if (isMatch) {
+          matchingToken = row;
+          break;
+        }
+      }
+      
+      if (!matchingToken) {
+        return res.status(400).json({ 
+          message: 'This password reset link is invalid or has expired. Please request a new one.' 
+        });
+      }
+      
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Update user password
+      await storage.updateUserPassword(matchingToken.user_id, hashedPassword);
+      
+      // Mark token as used
+      await storage.markPasswordResetTokenUsed(matchingToken.id);
+      
+      // Invalidate any other tokens for this user
+      await storage.invalidateUserPasswordResetTokens(matchingToken.user_id);
+      
+      console.log(`Password reset successful for user ${matchingToken.user_id}`);
+      
+      res.json({ 
+        message: 'Your password has been reset successfully. You can now log in with your new password.' 
+      });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      res.status(500).json({ message: 'Failed to reset password' });
     }
   });
 
