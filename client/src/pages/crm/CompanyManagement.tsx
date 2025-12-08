@@ -49,12 +49,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle, ArrowRight, ChevronDown, Send, Eye, Reply, CheckCircle, PhoneMissed, Clock, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
+import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
+import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
+import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
+import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
+import { Label } from "@/components/ui/label";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1934,80 +1940,151 @@ export default function CompanyManagement() {
               </div>
               
               <Tabs defaultValue="info" className="w-full">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  <TabsTrigger value="emails" data-testid="tab-emails" className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Emails
+                  </TabsTrigger>
+                  <TabsTrigger value="calls" data-testid="tab-calls" className="flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Calls
+                  </TabsTrigger>
                   <TabsTrigger value="notes" data-testid="tab-notes">Notes</TabsTrigger>
-                  <TabsTrigger value="contacts" data-testid="tab-contacts">Contacts</TabsTrigger>
-                  <TabsTrigger value="address" data-testid="tab-address">Addresses</TabsTrigger>
                   <TabsTrigger value="activity" data-testid="tab-activity">Activity</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="info" className="space-y-4 mt-4">
-                  {/* Basic Information */}
+                  {/* Company Information Section */}
                   <Card>
-                    <CardContent className="pt-4">
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Company Information
+                      </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-muted-foreground">Company Name</p>
+                          <p className="text-sm text-gray-500">Company Name</p>
                           <p className="font-medium">{selectedCompany.companyName}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">GST Number</p>
-                          <p className="font-medium">{selectedCompany.gstNumber || "-"}</p>
+                          <p className="text-sm text-gray-500">Industry</p>
+                          <p className="font-medium">{selectedCompany.industryType || "N/A"}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Primary Email</p>
-                          <p className="font-medium flex items-center gap-1">
-                            {selectedCompany.primaryEmail ? (
-                              <a href={`mailto:${selectedCompany.primaryEmail}`} className="text-blue-600 hover:underline flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {selectedCompany.primaryEmail}
+                          <p className="text-sm text-gray-500">Website</p>
+                          <p className="font-medium">
+                            {selectedCompany.website ? (
+                              <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                {selectedCompany.website}
                               </a>
-                            ) : "-"}
+                            ) : "N/A"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Primary Phone</p>
-                          <p className="font-medium flex items-center gap-1">
-                            {selectedCompany.primaryPhone ? (
-                              <a href={`tel:${selectedCompany.primaryPhone}`} className="text-blue-600 hover:underline flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {selectedCompany.primaryPhone}
-                              </a>
-                            ) : "-"}
+                          <p className="text-sm text-gray-500">Location</p>
+                          <p className="font-medium">
+                            {[selectedCompany.addressCity, selectedCompany.addressCountry].filter(Boolean).join(", ") || "N/A"}
                           </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Industry Type</p>
-                          <p className="font-medium">{selectedCompany.industryType || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Company Size</p>
-                          <p className="font-medium">{selectedCompany.companySize || "-"}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">Website</p>
-                          {selectedCompany.website ? (
-                            <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                              <Globe className="h-3 w-3" />
-                              {selectedCompany.website}
-                            </a>
-                          ) : (
-                            <p className="font-medium">-</p>
-                          )}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                  
-                  {/* Assignment & Metadata */}
+
+                  {/* Primary Contact Section */}
                   <Card>
-                    <CardContent className="pt-4">
-                      <h4 className="font-semibold mb-3">Assignment & Metadata</h4>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Primary Contact
+                      </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-muted-foreground">Assigned To</p>
-                          <p className="font-medium flex items-center gap-1">
+                          <p className="text-sm text-gray-500">Contact Name</p>
+                          <p className="font-medium">N/A</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Designation</p>
+                          <p className="font-medium">N/A</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Email</p>
+                          <p className="font-medium">
+                            {selectedCompany.primaryEmail ? (
+                              <a 
+                                href={`mailto:${selectedCompany.primaryEmail}`} 
+                                className="text-blue-600 hover:underline"
+                              >
+                                {selectedCompany.primaryEmail}
+                              </a>
+                            ) : "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Phone</p>
+                          <div className="font-medium flex items-center gap-2">
+                            {selectedCompany.primaryPhone ? (
+                              <>
+                                <ClickToCall
+                                  phoneNumber={selectedCompany.primaryPhone}
+                                  contactName={selectedCompany.companyName}
+                                  companyId={selectedCompany.id}
+                                />
+                                <SendSmsButton
+                                  phoneNumber={selectedCompany.primaryPhone}
+                                  contactName={selectedCompany.companyName}
+                                  companyId={selectedCompany.id}
+                                />
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">N/A</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dialer Integration */}
+                      {selectedCompany.primaryPhone && (
+                        <div className="mt-4 pt-4 border-t">
+                          <Dialer
+                            companyId={selectedCompany.id}
+                            contactName={selectedCompany.companyName}
+                            phoneNumber={selectedCompany.primaryPhone}
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Stage & Status Section */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Status Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Stage</p>
+                          <div className="mt-1">
+                            <Badge className={getStageColor(selectedCompany.companyStage)}>
+                              {COMPANY_STAGES.find(s => s.id === selectedCompany.companyStage)?.label || 'New'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Origin</p>
+                          <p className="font-medium mt-1">
+                            {selectedCompany.origin === 'website' ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700">Website Registration</Badge>
+                            ) : (
+                              <Badge variant="outline">Manual Entry</Badge>
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Assigned To</p>
+                          <p className="font-medium flex items-center gap-1 mt-1">
                             <UserPlus className="h-3 w-3" />
                             {salesReps.find(r => r.id === selectedCompany.assignedTo)
                               ? `${salesReps.find(r => r.id === selectedCompany.assignedTo)?.firstName} ${salesReps.find(r => r.id === selectedCompany.assignedTo)?.lastName}`
@@ -2016,127 +2093,31 @@ export default function CompanyManagement() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Created By</p>
-                          <p className="font-medium">{selectedCompany.createdBy || "-"}</p>
+                          <p className="text-sm text-gray-500">Created At</p>
+                          <p className="font-medium mt-1">{new Date(selectedCompany.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Origin</p>
-                          <p className="font-medium">{selectedCompany.origin || "manual"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Created At</p>
-                          <p className="font-medium">{new Date(selectedCompany.createdAt).toLocaleString()}</p>
-                        </div>
-                        {selectedCompany.linkedUserId && (
-                          <div className="col-span-2">
-                            <p className="text-sm text-muted-foreground">Linked User ID</p>
-                            <p className="font-medium">{selectedCompany.linkedUserId}</p>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="emails" className="mt-4">
+                  <CompanyEmailsTab companyId={selectedCompany.id} companyEmail={selectedCompany.primaryEmail || null} />
+                </TabsContent>
+
+                <TabsContent value="calls" className="mt-4">
+                  <CompanyCallsTab companyId={selectedCompany.id} />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <CompanyNotes 
-                        companyId={selectedCompany.id} 
-                        currentUserId={user?.id || ''} 
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="contacts" className="mt-4">
-                  <CompanyContactsTab 
+                  <CompanyNotes 
                     companyId={selectedCompany.id} 
-                    companyDetails={{
-                      id: selectedCompany.id,
-                      companyName: selectedCompany.companyName,
-                      primaryEmail: selectedCompany.primaryEmail,
-                      primaryPhone: selectedCompany.primaryPhone
-                    }}
+                    currentUserId={user?.id || ''} 
                   />
                 </TabsContent>
                 
-                <TabsContent value="address" className="space-y-4 mt-4">
-                  {/* Primary Address */}
-                  <Card>
-                    <CardContent className="pt-4">
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        Primary Address
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">Street Address</p>
-                          <p className="font-medium">{selectedCompany.addressStreet || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">City</p>
-                          <p className="font-medium">{selectedCompany.addressCity || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">State</p>
-                          <p className="font-medium">{selectedCompany.addressState || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Country</p>
-                          <p className="font-medium">{selectedCompany.addressCountry || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">ZIP Code</p>
-                          <p className="font-medium">{selectedCompany.addressZip || "-"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Factory/Warehouse Address */}
-                  <Card>
-                    <CardContent className="pt-4">
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        Factory/Warehouse Address
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">Street Address</p>
-                          <p className="font-medium">{selectedCompany.factoryAddressStreet || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">City</p>
-                          <p className="font-medium">{selectedCompany.factoryAddressCity || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">State</p>
-                          <p className="font-medium">{selectedCompany.factoryAddressState || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Country</p>
-                          <p className="font-medium">{selectedCompany.factoryAddressCountry || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">ZIP Code</p>
-                          <p className="font-medium">{selectedCompany.factoryAddressZip || "-"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
                 <TabsContent value="activity" className="mt-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="text-center py-6 text-muted-foreground">
-                        <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>Activity timeline coming soon</p>
-                        <p className="text-sm">Track all interactions and updates with this company</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CompanyActivityTimeline companyId={selectedCompany.id} />
                 </TabsContent>
               </Tabs>
 

@@ -35,8 +35,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
 import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
+import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
+import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
+import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 
-interface CompanyActivity {
+interface CompanyActivityLocal {
   id: number;
   companyId: number;
   activityType: string;
@@ -46,8 +49,8 @@ interface CompanyActivity {
   createdAt: string;
 }
 
-function CompanyActivityTimeline({ companyId, filter, onClearFilter }: { companyId: number; filter?: 'email' | 'call' | null; onClearFilter?: () => void }) {
-  const { data: activities, isLoading } = useQuery<CompanyActivity[]>({
+function CompanyActivityTimelineLocal({ companyId, filter, onClearFilter }: { companyId: number; filter?: 'email' | 'call' | null; onClearFilter?: () => void }) {
+  const { data: activities, isLoading } = useQuery<CompanyActivityLocal[]>({
     queryKey: ['/api/crm/companies', companyId, 'activities'],
     queryFn: async () => {
       const response = await fetch(`/api/crm/companies/${companyId}/activities`, {
@@ -167,7 +170,7 @@ interface EmailMessage {
   receivedAt: string | null;
 }
 
-function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; companyEmail: string | null }) {
+function CompanyEmailsTabLocal({ companyId, companyEmail }: { companyId: number; companyEmail: string | null }) {
   const { toast } = useToast();
   const [showCompose, setShowCompose] = useState(false);
   const [emailTo, setEmailTo] = useState(companyEmail || '');
@@ -585,9 +588,9 @@ function CompanyEmailsTab({ companyId, companyEmail }: { companyId: number; comp
   );
 }
 
-function CompanyCallsTab({ companyId }: { companyId: number }) {
+function CompanyCallsTabLocal({ companyId }: { companyId: number }) {
   const { toast } = useToast();
-  const { data: callActivities = [], isLoading } = useQuery<CompanyActivity[]>({
+  const { data: callActivities = [], isLoading } = useQuery<CompanyActivityLocal[]>({
     queryKey: ['/api/crm/companies', companyId, 'calls'],
     queryFn: async () => {
       const response = await fetch(`/api/crm/companies/${companyId}/calls`, {
