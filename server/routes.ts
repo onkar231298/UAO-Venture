@@ -5109,7 +5109,23 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       let parsedData: any[] = [];
 
       if (fileName.endsWith('.csv')) {
-        const csvContent = fileBuffer.toString('utf-8');
+        // Try to detect and handle different character encodings
+        let csvContent: string;
+        
+        // Check for UTF-8 BOM
+        if (fileBuffer[0] === 0xEF && fileBuffer[1] === 0xBB && fileBuffer[2] === 0xBF) {
+          csvContent = fileBuffer.toString('utf-8').slice(1); // Remove BOM
+        } else {
+          // Try UTF-8 first
+          csvContent = fileBuffer.toString('utf-8');
+          
+          // Check if there are replacement characters (indicates encoding issue)
+          if (csvContent.includes('\uFFFD')) {
+            // Try Latin-1 (ISO-8859-1) which is common for European files
+            csvContent = fileBuffer.toString('latin1');
+          }
+        }
+        
         const lines = csvContent.split('\n').filter(line => line.trim());
         if (lines.length < 2) {
           return res.status(400).json({ message: 'File must contain headers and at least one data row' });
