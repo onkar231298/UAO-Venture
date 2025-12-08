@@ -34,6 +34,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
+import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
 
 interface CompanyActivity {
   id: number;
@@ -1451,22 +1452,37 @@ export default function MyCompanies() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
-                        <p className="font-medium">
+                        <div className="font-medium flex items-center gap-2">
                           {selectedCompany.primaryPhone ? (
-                            <a 
-                              href={`tel:${selectedCompany.primaryPhone}`} 
-                              className="text-blue-600 hover:underline"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleCallAction(selectedCompany);
-                              }}
-                            >
-                              {selectedCompany.primaryPhone}
-                            </a>
-                          ) : "N/A"}
-                        </p>
+                            <>
+                              <ClickToCall
+                                phoneNumber={selectedCompany.primaryPhone}
+                                contactName={selectedCompany.companyName}
+                                companyId={selectedCompany.id}
+                              />
+                              <SendSmsButton
+                                phoneNumber={selectedCompany.primaryPhone}
+                                contactName={selectedCompany.companyName}
+                                companyId={selectedCompany.id}
+                              />
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Dialer Integration */}
+                    {selectedCompany.primaryPhone && (
+                      <div className="mt-4 pt-4 border-t">
+                        <Dialer
+                          companyId={selectedCompany.id}
+                          contactName={selectedCompany.companyName}
+                          phoneNumber={selectedCompany.primaryPhone}
+                        />
+                      </div>
+                    )}
 
                     {/* Quick Action Buttons */}
                     <div className="mt-4 pt-4 border-t flex gap-2">

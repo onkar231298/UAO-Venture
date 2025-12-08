@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import RichTextEditor from "./RichTextEditor";
 import EmailViewDialog from "./EmailViewDialog";
+import { ClickToCall, SendSmsButton, Dialer } from "./crm/Dialer";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -959,13 +960,21 @@ Packaging: Standard export packaging`,
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge className={`text-xs ${getPriorityColor(lead.priority || "warm")}`}>
                 {lead.priority || "warm"}
               </Badge>
               <Badge variant="outline" className="text-xs">
                 {lead.currentStage ? formatStageName(lead.currentStage) : 'N/A'}
               </Badge>
+              {lead.contactPerson?.phone && (
+                <Dialer
+                  leadId={lead.id}
+                  companyId={lead.companyId || undefined}
+                  contactName={lead.contactPerson?.contactName}
+                  phoneNumber={`${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}`}
+                />
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -1057,13 +1066,26 @@ Packaging: Standard export packaging`,
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">
+                    <div className="font-medium flex items-center gap-2">
                       {lead.contactPerson?.phone ? (
-                        <a href={`tel:${lead.contactPerson.countryCode}${lead.contactPerson.phone}`} className="text-blue-600">
-                          {lead.contactPerson.countryCode && !lead.contactPerson.countryCode.startsWith('+') ? '+' : ''}{lead.contactPerson.countryCode} {lead.contactPerson.phone}
-                        </a>
-                      ) : "N/A"}
-                    </p>
+                        <>
+                          <ClickToCall
+                            phoneNumber={`${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}`}
+                            contactName={lead.contactPerson.contactName}
+                            leadId={lead.id}
+                            companyId={lead.companyId || undefined}
+                          />
+                          <SendSmsButton
+                            phoneNumber={`${lead.contactPerson.countryCode || ''}${lead.contactPerson.phone}`}
+                            contactName={lead.contactPerson.contactName}
+                            leadId={lead.id}
+                            companyId={lead.companyId || undefined}
+                          />
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
