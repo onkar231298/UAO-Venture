@@ -29,6 +29,8 @@ import SearchResults from "@/pages/SearchResults";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import UnifiedLogin from "@/pages/UnifiedLogin";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -97,6 +99,8 @@ function Router() {
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/search/:query" component={SearchResults} />
       <Route path="/login" component={UnifiedLogin} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
 
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/customer/profile" component={CustomerProfile} />

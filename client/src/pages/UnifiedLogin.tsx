@@ -169,6 +169,16 @@ export default function UnifiedLogin() {
                 <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isCustomerLoading}>
                   {isCustomerLoading ? "Signing in..." : "Customer Login"}
                 </Button>
+                
+                <div className="text-center">
+                  <a 
+                    href="/forgot-password" 
+                    className="text-sm text-green-600 hover:text-green-700 hover:underline"
+                    data-testid="link-forgot-password"
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
               </form>
               
               <div className="text-center text-sm text-gray-600">
