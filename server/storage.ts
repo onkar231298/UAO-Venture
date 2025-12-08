@@ -128,6 +128,15 @@ import {
   type InsertEmailMessage,
   type Notification,
   type InsertNotification,
+  callLogs,
+  smsMessages,
+  voicemails,
+  type CallLog,
+  type InsertCallLog,
+  type SmsMessage,
+  type InsertSmsMessage,
+  type Voicemail,
+  type InsertVoicemail,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte } from "drizzle-orm";
@@ -563,6 +572,48 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   deleteNotification(id: number): Promise<void>;
   createNotificationsForRole(notification: Omit<InsertNotification, 'userId'>, roles: string[]): Promise<Notification[]>;
+
+  // Call log methods (net2phone integration)
+  getCallLogs(filters?: { 
+    callerUserId?: string; 
+    leadId?: number; 
+    companyId?: number; 
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ callLogs: CallLog[]; total: number }>;
+  getCallLog(id: number): Promise<CallLog | undefined>;
+  getCallLogByUuid(callUuid: string): Promise<CallLog | undefined>;
+  createCallLog(callLog: InsertCallLog): Promise<CallLog>;
+  updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog>;
+  updateCallLogByUuid(callUuid: string, callLog: Partial<InsertCallLog>): Promise<CallLog | undefined>;
+
+  // SMS message methods
+  getSmsMessages(filters?: {
+    senderUserId?: string;
+    leadId?: number;
+    companyId?: number;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ messages: SmsMessage[]; total: number }>;
+  getSmsMessage(id: number): Promise<SmsMessage | undefined>;
+  createSmsMessage(message: InsertSmsMessage): Promise<SmsMessage>;
+  updateSmsMessage(id: number, message: Partial<InsertSmsMessage>): Promise<SmsMessage>;
+
+  // Voicemail methods
+  getVoicemails(filters?: {
+    userId?: string;
+    leadId?: number;
+    companyId?: number;
+    isListened?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ voicemails: Voicemail[]; total: number }>;
+  getVoicemail(id: number): Promise<Voicemail | undefined>;
+  createVoicemail(voicemail: InsertVoicemail): Promise<Voicemail>;
+  updateVoicemail(id: number, voicemail: Partial<InsertVoicemail>): Promise<Voicemail>;
+  markVoicemailAsListened(id: number): Promise<Voicemail>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5959,6 +6010,230 @@ export class DatabaseStorage implements IStorage {
     
     const created = await db.insert(notifications).values(notificationsToInsert).returning();
     return created;
+  }
+
+  // Call log methods (net2phone integration)
+  async getCallLogs(filters?: { 
+    callerUserId?: string; 
+    leadId?: number; 
+    companyId?: number; 
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ callLogs: CallLog[]; total: number }> {
+    const conditions: any[] = [];
+    
+    if (filters?.callerUserId) {
+      conditions.push(eq(callLogs.callerUserId, filters.callerUserId));
+    }
+    if (filters?.leadId) {
+      conditions.push(eq(callLogs.leadId, filters.leadId));
+    }
+    if (filters?.companyId) {
+      conditions.push(eq(callLogs.companyId, filters.companyId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(callLogs.status, filters.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(callLogs)
+      .where(whereClause);
+
+    let query = db
+      .select()
+      .from(callLogs)
+      .where(whereClause)
+      .orderBy(desc(callLogs.initiatedAt));
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+
+    const logs = await query;
+    return { callLogs: logs, total: totalResult?.count || 0 };
+  }
+
+  async getCallLog(id: number): Promise<CallLog | undefined> {
+    const [log] = await db.select().from(callLogs).where(eq(callLogs.id, id));
+    return log;
+  }
+
+  async getCallLogByUuid(callUuid: string): Promise<CallLog | undefined> {
+    const [log] = await db.select().from(callLogs).where(eq(callLogs.callUuid, callUuid));
+    return log;
+  }
+
+  async createCallLog(callLog: InsertCallLog): Promise<CallLog> {
+    const [created] = await db.insert(callLogs).values(callLog).returning();
+    return created;
+  }
+
+  async updateCallLog(id: number, callLog: Partial<InsertCallLog>): Promise<CallLog> {
+    const [updated] = await db
+      .update(callLogs)
+      .set({ ...callLog, updatedAt: new Date() })
+      .where(eq(callLogs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateCallLogByUuid(callUuid: string, callLog: Partial<InsertCallLog>): Promise<CallLog | undefined> {
+    const [updated] = await db
+      .update(callLogs)
+      .set({ ...callLog, updatedAt: new Date() })
+      .where(eq(callLogs.callUuid, callUuid))
+      .returning();
+    return updated;
+  }
+
+  // SMS message methods
+  async getSmsMessages(filters?: {
+    senderUserId?: string;
+    leadId?: number;
+    companyId?: number;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ messages: SmsMessage[]; total: number }> {
+    const conditions: any[] = [];
+    
+    if (filters?.senderUserId) {
+      conditions.push(eq(smsMessages.senderUserId, filters.senderUserId));
+    }
+    if (filters?.leadId) {
+      conditions.push(eq(smsMessages.leadId, filters.leadId));
+    }
+    if (filters?.companyId) {
+      conditions.push(eq(smsMessages.companyId, filters.companyId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(smsMessages.status, filters.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(smsMessages)
+      .where(whereClause);
+
+    let query = db
+      .select()
+      .from(smsMessages)
+      .where(whereClause)
+      .orderBy(desc(smsMessages.createdAt));
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+
+    const messages = await query;
+    return { messages, total: totalResult?.count || 0 };
+  }
+
+  async getSmsMessage(id: number): Promise<SmsMessage | undefined> {
+    const [message] = await db.select().from(smsMessages).where(eq(smsMessages.id, id));
+    return message;
+  }
+
+  async createSmsMessage(message: InsertSmsMessage): Promise<SmsMessage> {
+    const [created] = await db.insert(smsMessages).values(message).returning();
+    return created;
+  }
+
+  async updateSmsMessage(id: number, message: Partial<InsertSmsMessage>): Promise<SmsMessage> {
+    const [updated] = await db
+      .update(smsMessages)
+      .set(message)
+      .where(eq(smsMessages.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Voicemail methods
+  async getVoicemails(filters?: {
+    userId?: string;
+    leadId?: number;
+    companyId?: number;
+    isListened?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ voicemails: Voicemail[]; total: number }> {
+    const conditions: any[] = [];
+    
+    if (filters?.userId) {
+      conditions.push(eq(voicemails.userId, filters.userId));
+    }
+    if (filters?.leadId) {
+      conditions.push(eq(voicemails.leadId, filters.leadId));
+    }
+    if (filters?.companyId) {
+      conditions.push(eq(voicemails.companyId, filters.companyId));
+    }
+    if (filters?.isListened !== undefined) {
+      conditions.push(eq(voicemails.isListened, filters.isListened));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(voicemails)
+      .where(whereClause);
+
+    let query = db
+      .select()
+      .from(voicemails)
+      .where(whereClause)
+      .orderBy(desc(voicemails.receivedAt));
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+
+    const vms = await query;
+    return { voicemails: vms, total: totalResult?.count || 0 };
+  }
+
+  async getVoicemail(id: number): Promise<Voicemail | undefined> {
+    const [vm] = await db.select().from(voicemails).where(eq(voicemails.id, id));
+    return vm;
+  }
+
+  async createVoicemail(voicemail: InsertVoicemail): Promise<Voicemail> {
+    const [created] = await db.insert(voicemails).values(voicemail).returning();
+    return created;
+  }
+
+  async updateVoicemail(id: number, voicemail: Partial<InsertVoicemail>): Promise<Voicemail> {
+    const [updated] = await db
+      .update(voicemails)
+      .set(voicemail)
+      .where(eq(voicemails.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markVoicemailAsListened(id: number): Promise<Voicemail> {
+    const [updated] = await db
+      .update(voicemails)
+      .set({ isListened: true })
+      .where(eq(voicemails.id, id))
+      .returning();
+    return updated;
   }
 }
 
