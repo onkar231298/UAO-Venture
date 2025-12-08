@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => setActiveSection('sales')}
-                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management'].includes(activeSection)}
+                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection)}
                     className="w-full"
                   >
                     <TrendingUp className="mr-3 h-5 w-5" />
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
                 </SidebarMenuItem>
                 
                 {/* Sales Management Sub-items */}
-                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management'].includes(activeSection) && (
+                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection) && (
                   <div className="ml-6 mt-1 space-y-1">
                     <SidebarMenuItem>
                       <SidebarMenuButton
@@ -309,6 +309,18 @@ export default function AdminDashboard() {
                       >
                         <Building2 className="mr-3 h-4 w-4" />
                         <span>Company Management</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection('duplicate-review')}
+                        isActive={activeSection === 'duplicate-review'}
+                        size="sm"
+                        className="w-full"
+                        data-testid="nav-duplicate-review"
+                      >
+                        <Activity className="mr-3 h-4 w-4" />
+                        <span>Duplicate Review</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </div>
@@ -596,7 +608,7 @@ export default function AdminDashboard() {
             <WebsiteManagement />
           )}
 
-          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sales-crm' || activeSection === 'company-management') && (
+          {(activeSection === 'sales' || activeSection === 'enquiry-sample' || activeSection === 'bidding-requests' || activeSection === 'sales-crm' || activeSection === 'company-management' || activeSection === 'duplicate-review') && (
             <SalesManagement activeSubSection={activeSection} />
           )}
 
@@ -628,7 +640,7 @@ export default function AdminDashboard() {
             <EmailConfigManagement />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

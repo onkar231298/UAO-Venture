@@ -151,6 +151,18 @@ export default function CompanyManagement() {
   const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    hasPotentialDuplicates: boolean;
+    matches: Array<{
+      companyId: number;
+      companyName: string;
+      matchType: string;
+      confidence: number;
+      matchedFields: string[];
+    }>;
+    highestConfidence: number;
+  } | null>(null);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -178,6 +190,50 @@ export default function CompanyManagement() {
     },
   });
 
+  // Check for duplicates when company details change
+  const checkForDuplicates = async (companyName: string, email?: string, phone?: string) => {
+    if (!companyName || companyName.length < 3) {
+      setDuplicateWarning(null);
+      return;
+    }
+    
+    setIsCheckingDuplicates(true);
+    try {
+      const response = await fetch('/api/check-duplicate-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName, email: email || undefined, phone: phone || undefined }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setDuplicateWarning(result);
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
+  };
+
+  // Debounce duplicate check
+  useEffect(() => {
+    const companyName = form.watch('companyName');
+    const email = form.watch('primaryEmail');
+    const phone = form.watch('primaryPhone');
+    
+    if (!createDialogOpen) {
+      setDuplicateWarning(null);
+      return;
+    }
+    
+    const timeoutId = setTimeout(() => {
+      checkForDuplicates(companyName, email, phone);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [form.watch('companyName'), form.watch('primaryEmail'), form.watch('primaryPhone'), createDialogOpen]);
+
   // Create company mutation
   const createCompanyMutation = useMutation({
     mutationFn: async (data: z.infer<typeof companySchema>) => {
@@ -190,6 +246,7 @@ export default function CompanyManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
       setCreateDialogOpen(false);
       form.reset();
+      setDuplicateWarning(null);
       toast({
         title: "Success",
         description: "Company created successfully",
@@ -892,15 +949,70 @@ export default function CompanyManagement() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => createCompanyMutation.mutate(data))} className="space-y-4">
+              {/* Duplicate Warning Alert */}
+              {duplicateWarning && duplicateWarning.hasPotentialDuplicates && (
+                <div 
+                  className={`p-4 rounded-lg border ${
+                    duplicateWarning.highestConfidence >= 80 
+                      ? 'bg-red-50 border-red-200 text-red-800' 
+                      : duplicateWarning.highestConfidence >= 60 
+                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                        : 'bg-blue-50 border-blue-200 text-blue-800'
+                  }`}
+                  data-testid="alert-duplicate-warning"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-medium">
+                        {duplicateWarning.highestConfidence >= 80 
+                          ? 'Possible Duplicate Detected!' 
+                          : 'Similar Companies Found'}
+                      </h4>
+                      <p className="text-sm mt-1">
+                        {duplicateWarning.highestConfidence >= 80 
+                          ? 'This company may already exist in the system. Please review before creating.'
+                          : 'Similar companies exist. You may want to verify this is a new company.'}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {duplicateWarning.matches.slice(0, 3).map((match) => (
+                          <div 
+                            key={match.companyId} 
+                            className="text-sm flex items-center gap-2"
+                            data-testid={`duplicate-match-${match.companyId}`}
+                          >
+                            <Building2 className="h-3 w-3" />
+                            <span className="font-medium">{match.companyName}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {match.confidence}% match
+                            </Badge>
+                            <span className="text-xs opacity-75">
+                              ({match.matchedFields.join(', ')})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
+                      </FormControl>
+                      {isCheckingDuplicates && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -20,6 +20,7 @@ import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 
 import LeadManagement from "./LeadManagement";
 import CompanyManagement from "./CompanyManagement";
+import DuplicateReview from "./DuplicateReview";
 
 export default function SalesManagement({ activeSubSection }: { activeSubSection?: string } = {}) {
   const { user, isLoading: authLoading } = useAuth();
@@ -265,6 +266,15 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     return (
       <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
         <CompanyManagement />
+      </RoleBasedRoute>
+    );
+  }
+  
+  // Route to Duplicate Review
+  if (activeSubSection === 'duplicate-review') {
+    return (
+      <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager']}>
+        <DuplicateReview />
       </RoleBasedRoute>
     );
   }
