@@ -3349,7 +3349,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Get sales orders
+  // Get sales orders with enhanced filtering
   app.get('/api/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -3359,7 +3359,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { status, limit = '50', offset = '0' } = req.query;
+      const { status, companyId, leadId, assignedToUserId, startDate, endDate, search, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -3374,12 +3374,277 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (status) {
         filters.status = status as string;
       }
+      
+      if (companyId) {
+        filters.companyId = parseInt(companyId as string);
+      }
+      
+      if (leadId) {
+        filters.leadId = parseInt(leadId as string);
+      }
+      
+      if (assignedToUserId) {
+        filters.assignedToUserId = assignedToUserId as string;
+      }
+      
+      if (startDate) {
+        filters.startDate = new Date(startDate as string);
+      }
+      
+      if (endDate) {
+        filters.endDate = new Date(endDate as string);
+      }
+      
+      if (search) {
+        filters.search = search as string;
+      }
 
       const result = await storage.getSalesOrders(filters);
       res.json(result);
     } catch (error) {
       console.error("Error fetching sales orders:", error);
       res.status(500).json({ message: "Failed to fetch sales orders" });
+    }
+  });
+
+  // Get next sales order number - Must be BEFORE :id route
+  app.get('/api/sales-orders/next-number', isAuthenticated, async (req: any, res) => {
+    try {
+      const nextNumber = await storage.getNextSalesOrderNumber();
+      res.json({ soNumber: nextNumber });
+    } catch (error) {
+      console.error("Error getting next sales order number:", error);
+      res.status(500).json({ message: "Failed to get next sales order number" });
+    }
+  });
+
+  // Get single sales order with details
+  app.get('/api/sales-orders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const order = await storage.getSalesOrderWithDetails(parseInt(id));
+      
+      if (!order) {
+        return res.status(404).json({ message: "Sales order not found" });
+      }
+
+      // Check access for customers
+      if (user.role === 'customer' && order.customerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(order);
+    } catch (error) {
+      console.error("Error fetching sales order:", error);
+      res.status(500).json({ message: "Failed to fetch sales order" });
+    }
+  });
+
+  // Convert quotation to sales order
+  app.post('/api/sales-orders/convert-from-quotation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission (sales roles or admin)
+      const hasPermission = user.role?.includes('sales') || user.role?.includes('admin') || user.role === 'super_admin';
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const { 
+        quotationId,
+        paymentTermsAdvancePercent,
+        paymentTermsCreditDays,
+        expectedDeliveryDate,
+        shippingAddress,
+        shippingCity,
+        shippingState,
+        shippingPostalCode,
+        shippingCountry,
+        shippingMethod,
+        internalNotes
+      } = req.body;
+
+      if (!quotationId) {
+        return res.status(400).json({ message: "Quotation ID is required" });
+      }
+
+      // Verify quotation exists and is in accepted status
+      const quotation = await storage.getQuotation(quotationId);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      if (quotation.status !== 'accepted' && quotation.status !== 'sent') {
+        return res.status(400).json({ message: "Only accepted or sent quotations can be converted to sales orders" });
+      }
+
+      const salesOrder = await storage.createSalesOrderFromQuotation(quotationId, {
+        paymentTermsAdvancePercent: paymentTermsAdvancePercent ? parseFloat(paymentTermsAdvancePercent) : undefined,
+        paymentTermsCreditDays: paymentTermsCreditDays ? parseInt(paymentTermsCreditDays) : undefined,
+        expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : undefined,
+        shippingAddress,
+        shippingCity,
+        shippingState,
+        shippingPostalCode,
+        shippingCountry,
+        shippingMethod,
+        internalNotes,
+        createdBy: userId,
+      });
+
+      res.status(201).json(salesOrder);
+    } catch (error) {
+      console.error("Error converting quotation to sales order:", error);
+      res.status(500).json({ message: "Failed to convert quotation to sales order", error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // Update sales order
+  app.patch('/api/sales-orders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission
+      const hasPermission = user.role?.includes('sales') || user.role?.includes('admin') || user.role === 'super_admin';
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const order = await storage.getSalesOrder(parseInt(id));
+      if (!order) {
+        return res.status(404).json({ message: "Sales order not found" });
+      }
+
+      const updatedOrder = await storage.updateSalesOrder(parseInt(id), req.body);
+      
+      // Log activity
+      await storage.addSalesOrderActivity({
+        salesOrderId: parseInt(id),
+        activityType: 'updated',
+        title: 'Order Updated',
+        description: 'Sales order details were updated',
+        performedBy: userId,
+        createdAt: new Date(),
+      });
+
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating sales order:", error);
+      res.status(500).json({ message: "Failed to update sales order" });
+    }
+  });
+
+  // Update sales order status
+  app.patch('/api/sales-orders/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { status, notes } = req.body;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission
+      const hasPermission = user.role?.includes('sales') || user.role?.includes('admin') || user.role === 'super_admin';
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+
+      const order = await storage.getSalesOrder(parseInt(id));
+      if (!order) {
+        return res.status(404).json({ message: "Sales order not found" });
+      }
+
+      const updatedOrder = await storage.updateSalesOrderStatus(parseInt(id), status, userId, notes);
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating sales order status:", error);
+      res.status(500).json({ message: "Failed to update sales order status" });
+    }
+  });
+
+  // Get sales order items
+  app.get('/api/sales-orders/:id/items', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const items = await storage.getSalesOrderItems(parseInt(id));
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching sales order items:", error);
+      res.status(500).json({ message: "Failed to fetch sales order items" });
+    }
+  });
+
+  // Get sales order status history
+  app.get('/api/sales-orders/:id/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const history = await storage.getSalesOrderStatusHistory(parseInt(id));
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching sales order history:", error);
+      res.status(500).json({ message: "Failed to fetch sales order history" });
+    }
+  });
+
+  // Get sales order activities
+  app.get('/api/sales-orders/:id/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const activities = await storage.getSalesOrderActivities(parseInt(id));
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching sales order activities:", error);
+      res.status(500).json({ message: "Failed to fetch sales order activities" });
+    }
+  });
+
+  // Get sales orders by company
+  app.get('/api/companies/:companyId/sales-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const { companyId } = req.params;
+      const orders = await storage.getSalesOrdersByCompany(parseInt(companyId));
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching company sales orders:", error);
+      res.status(500).json({ message: "Failed to fetch company sales orders" });
+    }
+  });
+
+  // Get sales orders by lead
+  app.get('/api/leads/:leadId/sales-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const { leadId } = req.params;
+      const orders = await storage.getSalesOrdersByLead(parseInt(leadId));
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching lead sales orders:", error);
+      res.status(500).json({ message: "Failed to fetch lead sales orders" });
     }
   });
 
