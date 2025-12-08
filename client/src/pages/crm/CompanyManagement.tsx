@@ -281,6 +281,10 @@ export default function CompanyManagement() {
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -441,6 +445,18 @@ export default function CompanyManagement() {
   const companies = companiesData?.companies || [];
   const total = companiesData?.total || 0;
 
+  // Calculate paginated companies
+  const totalPages = Math.ceil(companies.length / itemsPerPage);
+  const paginatedCompanies = companies.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, dateFrom, dateTo]);
+
   // Company assignment mutation
   const assignCompanyMutation = useMutation({
     mutationFn: async ({ companyId, assignedTo }: { companyId: number; assignedTo: string }) => {
@@ -507,7 +523,7 @@ export default function CompanyManagement() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCompanies(companies.map(c => c.id));
+      setSelectedCompanies(paginatedCompanies.map(c => c.id));
     } else {
       setSelectedCompanies([]);
     }
@@ -940,7 +956,7 @@ export default function CompanyManagement() {
                       <TableRow>
                         <TableHead className="w-[50px]">
                           <Checkbox 
-                            checked={selectedCompanies.length === companies.length && companies.length > 0}
+                            checked={selectedCompanies.length === paginatedCompanies.length && paginatedCompanies.length > 0}
                             onCheckedChange={(checked) => handleSelectAll(!!checked)}
                             data-testid="checkbox-select-all"
                           />
@@ -956,7 +972,7 @@ export default function CompanyManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {companies.map((company) => {
+                      {paginatedCompanies.map((company) => {
                         const assignedRep = salesReps.find(r => r.id === company.assignedTo);
                         const isSelected = selectedCompanies.includes(company.id);
                         return (
@@ -1108,6 +1124,81 @@ export default function CompanyManagement() {
                     </TableBody>
                   </Table>
                 </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {companies.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Companies per page:</span>
+                <Select 
+                  value={itemsPerPage.toString()} 
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[80px]" data-testid="select-items-per-page">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value={companies.length.toString()}>All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, companies.length)} of {companies.length} companies
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  data-testid="button-first-page"
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-prev-page"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-last-page"
+                >
+                  Last
+                </Button>
               </div>
             </div>
           )}
