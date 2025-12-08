@@ -63,7 +63,8 @@ interface PotentialMatch {
   companyName: string;
   matchType: string;
   confidence: number;
-  matchedFields: string[];
+  matchedFields?: string[];
+  matchDetails?: string;
 }
 
 interface DuplicateCompany {
@@ -343,7 +344,7 @@ export default function DuplicateReview() {
                                   {match.companyName}
                                 </span>
                                 <div className="text-xs text-muted-foreground" data-testid={`text-match-fields-${match.companyId}`}>
-                                  Matched on: {match.matchedFields.join(', ')}
+                                  {match.matchedFields ? `Matched on: ${match.matchedFields.join(', ')}` : match.matchDetails || match.matchType}
                                 </div>
                               </div>
                             </div>
