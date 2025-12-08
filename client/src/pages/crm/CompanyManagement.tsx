@@ -49,9 +49,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle, ArrowRight, ChevronDown, Send, Eye, Reply, CheckCircle, PhoneMissed, Clock, User } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle, ArrowRight, ChevronDown, Send, Eye, Reply, CheckCircle, PhoneMissed, Clock, User, ChevronsUpDown, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
@@ -341,6 +344,18 @@ export default function CompanyManagement() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
   
+  // Convert to Lead state
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [convertFormData, setConvertFormData] = useState({
+    selectedProductId: null as number | null,
+    productName: '',
+    productDescription: '',
+    quantity: '',
+    unit: 'kg',
+  });
+  const [activityFilter, setActivityFilter] = useState<'email' | 'call' | null>(null);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
@@ -564,6 +579,56 @@ export default function CompanyManagement() {
   // Fetch sales reps for assignment
   const { data: salesReps = [] } = useQuery<SalesRep[]>({
     queryKey: ["/api/users/sales-reps"],
+  });
+
+  // Fetch products for the Convert to Lead dropdown
+  const { data: productsData } = useQuery<{ products: Array<{ id: number; productId: string; name: string; description: string | null }> }>({
+    queryKey: ['/api/products', { limit: 1000 }],
+    enabled: showConvertDialog,
+  });
+
+  // Convert company to lead mutation
+  const convertToLeadMutation = useMutation({
+    mutationFn: async ({ companyId, data }: { 
+      companyId: number; 
+      data: {
+        productId: number | null;
+        productName: string;
+        productDescription: string;
+        quantity: string;
+        unit: string;
+      };
+    }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/convert-to-lead`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      setShowConvertDialog(false);
+      setViewDetailsOpen(false);
+      setSelectedCompany(null);
+      setConvertFormData({
+        selectedProductId: null,
+        productName: '',
+        productDescription: '',
+        quantity: '',
+        unit: 'kg',
+      });
+      toast({ 
+        title: "Lead Created Successfully", 
+        description: `Lead ${result.lead?.leadId || ''} has been created from this company enquiry.` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create lead", 
+        description: error.message || "Please try again", 
+        variant: "destructive" 
+      });
+    },
   });
 
   // Fetch companies with RBAC filtering
@@ -1902,6 +1967,18 @@ export default function CompanyManagement() {
                   </Button>
                 )}
                 
+                {/* Convert to Lead button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => setShowConvertDialog(true)}
+                  data-testid="button-convert-to-lead"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Convert to Lead
+                </Button>
+                
                 {isAdmin && (
                   <>
                     <Select 
@@ -2704,6 +2781,199 @@ export default function CompanyManagement() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Lead Dialog */}
+      <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRight className="h-5 w-5 text-green-600" />
+              Convert Company to Lead
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Converting:</strong> {selectedCompany?.companyName}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                A new lead will be created with the company details and the product enquiry information you provide below.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">
+                  Select Product <span className="text-red-500">*</span>
+                </Label>
+                <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={productSearchOpen}
+                      className="w-full justify-between mt-1"
+                      data-testid="button-product-select"
+                    >
+                      {convertFormData.productName 
+                        ? convertFormData.productName 
+                        : "Search and select a product..."
+                      }
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search products..." />
+                      <CommandList>
+                        <CommandEmpty>No products found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-auto">
+                          {productsData?.products?.map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={`${product.name} ${product.productId}`}
+                              onSelect={() => {
+                                setConvertFormData({
+                                  ...convertFormData,
+                                  selectedProductId: product.id,
+                                  productName: `${product.name} (${product.productId})`,
+                                  productDescription: product.description || '',
+                                });
+                                setProductSearchOpen(false);
+                              }}
+                              data-testid={`product-option-${product.id}`}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  convertFormData.selectedProductId === product.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{product.name}</span>
+                                <span className="text-xs text-muted-foreground">{product.productId}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label htmlFor="productDescription" className="text-sm font-medium">
+                  Product Description
+                </Label>
+                <Textarea
+                  id="productDescription"
+                  placeholder="Product description will be auto-filled when you select a product"
+                  value={convertFormData.productDescription}
+                  onChange={(e) => setConvertFormData({ ...convertFormData, productDescription: e.target.value })}
+                  className="mt-1 bg-gray-50"
+                  rows={3}
+                  readOnly
+                  data-testid="input-product-description"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Auto-filled from product catalog</p>
+              </div>
+
+              <div>
+                <Label htmlFor="quantity" className="text-sm font-medium">
+                  Required Quantity <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="quantity"
+                    type="number"
+                    placeholder="Enter quantity"
+                    value={convertFormData.quantity}
+                    onChange={(e) => setConvertFormData({ ...convertFormData, quantity: e.target.value })}
+                    className="flex-1"
+                    data-testid="input-quantity"
+                  />
+                  <Select 
+                    value={convertFormData.unit} 
+                    onValueChange={(value) => setConvertFormData({ ...convertFormData, unit: value })}
+                  >
+                    <SelectTrigger className="w-24" data-testid="select-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kg">kg</SelectItem>
+                      <SelectItem value="mt">MT</SelectItem>
+                      <SelectItem value="lb">lb</SelectItem>
+                      <SelectItem value="ton">Ton</SelectItem>
+                      <SelectItem value="units">Units</SelectItem>
+                      <SelectItem value="liters">Liters</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowConvertDialog(false);
+                  setConvertFormData({
+                    selectedProductId: null,
+                    productName: '',
+                    productDescription: '',
+                    quantity: '',
+                    unit: 'kg',
+                  });
+                }}
+                data-testid="button-cancel-convert"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!convertFormData.productName || !convertFormData.quantity) {
+                    toast({
+                      title: "Required Fields Missing",
+                      description: "Please select a Product and enter the Quantity",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  if (selectedCompany) {
+                    convertToLeadMutation.mutate({
+                      companyId: selectedCompany.id,
+                      data: {
+                        productId: convertFormData.selectedProductId,
+                        productName: convertFormData.productName,
+                        productDescription: convertFormData.productDescription,
+                        quantity: convertFormData.quantity,
+                        unit: convertFormData.unit,
+                      }
+                    });
+                  }
+                }}
+                disabled={convertToLeadMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-confirm-convert"
+              >
+                {convertToLeadMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Lead...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Create Lead
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
