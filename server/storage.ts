@@ -139,7 +139,7 @@ import {
   type InsertVoicemail,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte } from "drizzle-orm";
+import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -4642,6 +4642,14 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.duplicateStatus) {
       conditions.push(eq(companies.duplicateStatus, filters.duplicateStatus));
+    } else {
+      // By default, exclude merged companies unless explicitly requested
+      conditions.push(
+        or(
+          ne(companies.duplicateStatus, 'merged'),
+          isNull(companies.duplicateStatus)
+        )
+      );
     }
 
     if (filters?.companyStage) {
