@@ -4994,6 +4994,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      
+      // Only super_admin can delete companies
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can delete companies" });
+      }
+      
       await storage.deleteCompany(parseInt(req.params.id));
       res.json({ message: "Company deleted successfully" });
     } catch (error) {

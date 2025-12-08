@@ -24,6 +24,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -173,6 +183,8 @@ export default function CompanyManagement() {
   const [isValidatingBulk, setIsValidatingBulk] = useState(false);
   const [isImportingBulk, setIsImportingBulk] = useState(false);
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
 
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
@@ -266,6 +278,31 @@ export default function CompanyManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to create company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete company mutation (super_admin only)
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async (companyId: number) => {
+      return await apiRequest(`/api/crm/companies/${companyId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setDeleteDialogOpen(false);
+      setCompanyToDelete(null);
+      toast({
+        title: "Success",
+        description: "Company deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete company",
         variant: "destructive",
       });
     },
@@ -430,6 +467,7 @@ export default function CompanyManagement() {
 
   const adminRoles = ['admin', 'super_admin', 'sales_manager'];
   const isAdmin = user && (user as any).role ? adminRoles.includes((user as any).role) : false;
+  const isSuperAdmin = user && (user as any).role === 'super_admin';
 
   // Manual refresh function
   const handleRefresh = async () => {
@@ -947,6 +985,22 @@ export default function CompanyManagement() {
                                           {company.assignedTo === rep.id && " (current)"}
                                         </DropdownMenuItem>
                                       ))}
+                                      {isSuperAdmin && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem 
+                                            onClick={() => {
+                                              setCompanyToDelete(company);
+                                              setDeleteDialogOpen(true);
+                                            }}
+                                            className="text-red-600 focus:text-red-600"
+                                            data-testid={`menu-delete-${company.id}`}
+                                          >
+                                            <Trash2 className="h-3 w-3 mr-2" />
+                                            Delete Company
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
@@ -2010,6 +2064,29 @@ export default function CompanyManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog - Super Admin Only */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-company">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Company</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{companyToDelete?.companyName}</strong>? 
+              This action cannot be undone and will permanently remove all associated data including contacts, activities, and notes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => companyToDelete && deleteCompanyMutation.mutate(companyToDelete.id)}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-delete"
+            >
+              {deleteCompanyMutation.isPending ? "Deleting..." : "Delete Company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
