@@ -1601,7 +1601,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create notification for admins and sales managers about new enquiry or high volume bid
       try {
-        const productName = req.body.productName || 'Unknown Product';
+        let productName = req.body.productName || null;
+        
+        // If productName not provided, fetch from database using productId
+        if (!productName && req.body.productId) {
+          const product = await storage.getProduct(parseInt(req.body.productId));
+          productName = product?.name || 'Product';
+        }
+        
+        // If still no product name, try to get from inquiry's products array
+        if (!productName && inquiry.products && inquiry.products.length > 0) {
+          const productNames = [];
+          for (const productItem of inquiry.products) {
+            const pid = typeof productItem === 'number' ? productItem : productItem.productId;
+            if (pid) {
+              const prod = await storage.getProduct(pid);
+              if (prod?.name) productNames.push(prod.name);
+            }
+          }
+          productName = productNames.length > 0 ? productNames.join(', ') : 'Product';
+        }
+        
+        productName = productName || 'Product';
         const companyName = req.body.companyName || req.body.customerName || 'Unknown';
         const isHighVolumeBid = req.body.inquiryType === 'high_volume_bid';
         
@@ -2207,7 +2228,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create notification for admins and sales managers about new sample request
       try {
-        const productName = req.body.productName || 'Unknown Product';
+        let productName = req.body.productName || null;
+        
+        // If productName not provided, fetch from database using productId
+        if (!productName && req.body.productId) {
+          const product = await storage.getProduct(parseInt(req.body.productId));
+          productName = product?.name || 'Product';
+        }
+        
+        productName = productName || 'Product';
         const companyName = req.body.companyName || req.body.customerName || 'Unknown';
         await storage.createNotificationsForRole({
           type: 'new_sample_request',

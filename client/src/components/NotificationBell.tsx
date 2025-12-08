@@ -43,7 +43,7 @@ export function NotificationBell() {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      await apiRequest('POST', `/api/notifications/${notificationId}/read`);
+      await apiRequest(`/api/notifications/${notificationId}/read`, { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -53,7 +53,7 @@ export function NotificationBell() {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('POST', '/api/notifications/mark-all-read');
+      await apiRequest('/api/notifications/mark-all-read', { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -66,7 +66,7 @@ export function NotificationBell() {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      await apiRequest('DELETE', `/api/notifications/${notificationId}`);
+      await apiRequest(`/api/notifications/${notificationId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -79,11 +79,6 @@ export function NotificationBell() {
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
-    }
-    
-    if (notification.link) {
-      setIsOpen(false);
-      window.location.href = notification.link;
     }
   };
 
