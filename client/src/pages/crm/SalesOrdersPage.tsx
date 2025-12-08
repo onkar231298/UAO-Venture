@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Search, Filter, ShoppingCart, Building, Calendar, DollarSign, User, ChevronRight, Package, FileText, Eye, Truck, Clock, CheckCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Search, Filter, ShoppingCart, Building, Calendar, DollarSign, User, ChevronRight, Package, FileText, Eye, Truck, Clock, CheckCircle, History, Activity } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 const SO_STATUSES = [
@@ -27,15 +28,48 @@ const SO_STATUSES = [
 export default function SalesOrdersPage() {
   const { user } = useAuth() as { user: any };
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (statusFilter !== "all") params.append("status", statusFilter);
+    if (debouncedSearch) params.append("search", debouncedSearch);
+    return params.toString();
+  }, [statusFilter, debouncedSearch]);
+
+  const queryUrl = queryParams ? `/api/sales-orders?${queryParams}` : "/api/sales-orders";
+
   const { data: ordersData, isLoading } = useQuery<{ orders: any[]; total: number }>({
-    queryKey: ["/api/sales-orders", { status: statusFilter !== "all" ? statusFilter : undefined, search: searchTerm || undefined }],
+    queryKey: ["/api/sales-orders", statusFilter, debouncedSearch],
+    queryFn: async () => {
+      const response = await fetch(queryUrl);
+      if (!response.ok) throw new Error("Failed to fetch orders");
+      return response.json();
+    },
+  });
+
+  const { data: orderDetail, isLoading: isLoadingDetail, refetch: refetchDetail } = useQuery({
+    queryKey: ["/api/sales-orders", selectedOrderId],
+    queryFn: async () => {
+      if (!selectedOrderId) return null;
+      const response = await fetch(`/api/sales-orders/${selectedOrderId}`);
+      if (!response.ok) throw new Error("Failed to fetch order detail");
+      return response.json();
+    },
+    enabled: !!selectedOrderId && showDetailDialog,
   });
 
   const orders = ordersData?.orders || [];
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    const timeout = setTimeout(() => setDebouncedSearch(value), 300);
+    return () => clearTimeout(timeout);
+  };
 
   const getStatusBadge = (status: string) => {
     const statusInfo = SO_STATUSES.find(s => s.id === status);
@@ -49,17 +83,14 @@ export default function SalesOrdersPage() {
   };
 
   const handleViewOrder = (order: any) => {
-    setSelectedOrder(order);
+    setSelectedOrderId(order.id);
     setShowDetailDialog(true);
   };
 
-  const filteredOrders = orders.filter((order: any) => {
-    const matchesSearch = !searchTerm || 
-      order.soNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.company?.companyName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const handleCloseDetail = () => {
+    setShowDetailDialog(false);
+    setSelectedOrderId(null);
+  };
 
   if (isLoading) {
     return (
@@ -87,7 +118,7 @@ export default function SalesOrdersPage() {
           <Input
             placeholder="Search by SO number or company..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="pl-10"
             data-testid="input-search-so"
           />
@@ -167,7 +198,7 @@ export default function SalesOrdersPage() {
         </Card>
       </div>
 
-      {filteredOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <Card>
           <CardContent className="p-6 sm:p-12 text-center">
             <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -196,7 +227,7 @@ export default function SalesOrdersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order: any) => {
+                  {orders.map((order: any) => {
                     const statusInfo = getStatusBadge(order.status);
                     return (
                       <TableRow 
@@ -257,29 +288,34 @@ export default function SalesOrdersPage() {
         </Card>
       )}
 
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-so-detail">
-          {selectedOrder && (
+      <Dialog open={showDetailDialog} onOpenChange={(open) => !open && handleCloseDetail()}>
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-so-detail">
+          {isLoadingDetail ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+              <span className="ml-2 text-gray-600">Loading order details...</span>
+            </div>
+          ) : orderDetail ? (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <ShoppingCart className="h-5 w-5 text-purple-600" />
-                  {selectedOrder.soNumber}
+                  {orderDetail.soNumber}
                 </DialogTitle>
                 <DialogDescription>
-                  Created {selectedOrder.createdAt && formatDistanceToNow(new Date(selectedOrder.createdAt), { addSuffix: true })}
+                  Created {orderDetail.createdAt && formatDistanceToNow(new Date(orderDetail.createdAt), { addSuffix: true })}
                 </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
-                  <Badge className={getStatusBadge(selectedOrder.status).color}>
-                    {getStatusBadge(selectedOrder.status).label}
+                  <Badge className={getStatusBadge(orderDetail.status).color}>
+                    {getStatusBadge(orderDetail.status).label}
                   </Badge>
-                  {selectedOrder.quotation?.quotationId && (
+                  {orderDetail.quotation?.quotationId && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <FileText className="h-3 w-3" />
-                      {selectedOrder.quotation.quotationId}
+                      {orderDetail.quotation.quotationId}
                     </Badge>
                   )}
                 </div>
@@ -292,10 +328,10 @@ export default function SalesOrdersPage() {
                         Customer
                       </h4>
                       <div className="space-y-2 text-sm">
-                        <p className="font-medium">{selectedOrder.company?.companyName}</p>
-                        {selectedOrder.contactPerson && (
+                        <p className="font-medium">{orderDetail.company?.companyName}</p>
+                        {orderDetail.contactPerson && (
                           <p className="text-gray-600">
-                            Contact: {selectedOrder.contactPerson.contactName}
+                            Contact: {orderDetail.contactPerson.contactName}
                           </p>
                         )}
                       </div>
@@ -311,11 +347,11 @@ export default function SalesOrdersPage() {
                       <div className="space-y-2 text-sm">
                         <p>
                           <span className="text-gray-600">Advance:</span>{" "}
-                          <span className="font-medium">{selectedOrder.paymentTermsAdvancePercent || 0}%</span>
+                          <span className="font-medium">{orderDetail.paymentTermsAdvancePercent || 0}%</span>
                         </p>
                         <p>
                           <span className="text-gray-600">Credit Days:</span>{" "}
-                          <span className="font-medium">{selectedOrder.paymentTermsCreditDays || 30} days</span>
+                          <span className="font-medium">{orderDetail.paymentTermsCreditDays || 30} days</span>
                         </p>
                       </div>
                     </CardContent>
@@ -329,32 +365,32 @@ export default function SalesOrdersPage() {
                       Order Items
                     </h4>
                     <div className="space-y-2">
-                      {selectedOrder.items?.map((item: any, index: number) => (
+                      {orderDetail.items?.length > 0 ? orderDetail.items.map((item: any, index: number) => (
                         <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded border">
                           <div>
                             <p className="font-medium">{item.productName}</p>
                             <p className="text-sm text-gray-600">
-                              {item.quantity} {item.unit} @ {formatCurrency(item.unitPrice, selectedOrder.currency)} per {item.unit}
+                              {item.quantity} {item.unit} @ {formatCurrency(item.unitPrice, orderDetail.currency)} per {item.unit}
                             </p>
                           </div>
                           <p className="font-semibold text-green-700">
-                            {formatCurrency(item.totalPrice, selectedOrder.currency)}
+                            {formatCurrency(item.totalPrice, orderDetail.currency)}
                           </p>
                         </div>
-                      )) || (
-                        <p className="text-gray-500 text-sm">No items loaded</p>
+                      )) : (
+                        <p className="text-gray-500 text-sm">No items in this order</p>
                       )}
                     </div>
                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
                       <span className="font-semibold">Total Amount:</span>
                       <span className="text-xl font-bold text-green-700">
-                        {formatCurrency(selectedOrder.totalAmount, selectedOrder.currency)}
+                        {formatCurrency(orderDetail.totalAmount, orderDetail.currency)}
                       </span>
                     </div>
                   </CardContent>
                 </Card>
 
-                {selectedOrder.shippingAddress && (
+                {orderDetail.shippingAddress && (
                   <Card>
                     <CardContent className="p-4">
                       <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -362,12 +398,12 @@ export default function SalesOrdersPage() {
                         Shipping Address
                       </h4>
                       <div className="text-sm text-gray-700">
-                        <p>{selectedOrder.shippingAddress}</p>
-                        <p>{[selectedOrder.shippingCity, selectedOrder.shippingState, selectedOrder.shippingPostalCode].filter(Boolean).join(", ")}</p>
-                        <p>{selectedOrder.shippingCountry}</p>
-                        {selectedOrder.shippingMethod && (
+                        <p>{orderDetail.shippingAddress}</p>
+                        <p>{[orderDetail.shippingCity, orderDetail.shippingState, orderDetail.shippingPostalCode].filter(Boolean).join(", ")}</p>
+                        <p>{orderDetail.shippingCountry}</p>
+                        {orderDetail.shippingMethod && (
                           <p className="mt-2">
-                            <span className="text-gray-600">Method:</span> {selectedOrder.shippingMethod.toUpperCase().replace(/_/g, " ")}
+                            <span className="text-gray-600">Method:</span> {orderDetail.shippingMethod.toUpperCase().replace(/_/g, " ")}
                           </p>
                         )}
                       </div>
@@ -375,29 +411,99 @@ export default function SalesOrdersPage() {
                   </Card>
                 )}
 
-                {selectedOrder.expectedDeliveryDate && (
+                {orderDetail.expectedDeliveryDate && (
                   <div className="flex items-center gap-2 text-sm bg-blue-50 p-3 rounded border border-blue-200">
                     <Calendar className="h-4 w-4 text-blue-600" />
                     <span className="text-blue-800">
-                      Expected Delivery: {format(new Date(selectedOrder.expectedDeliveryDate), "MMMM d, yyyy")}
+                      Expected Delivery: {format(new Date(orderDetail.expectedDeliveryDate), "MMMM d, yyyy")}
                     </span>
                   </div>
                 )}
 
-                {selectedOrder.internalNotes && (
+                {orderDetail.internalNotes && (
                   <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
                     <h4 className="text-sm font-semibold text-yellow-800 mb-1">Internal Notes</h4>
-                    <p className="text-sm text-gray-700">{selectedOrder.internalNotes}</p>
+                    <p className="text-sm text-gray-700">{orderDetail.internalNotes}</p>
                   </div>
+                )}
+
+                <Separator />
+
+                {orderDetail.statusHistory && orderDetail.statusHistory.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        Status History
+                      </h4>
+                      <div className="space-y-3">
+                        {orderDetail.statusHistory.map((history: any, index: number) => (
+                          <div key={index} className="flex items-start gap-3 text-sm">
+                            <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-purple-500" />
+                            <div className="flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge className={getStatusBadge(history.toStatus).color} variant="outline">
+                                  {getStatusBadge(history.toStatus).label}
+                                </Badge>
+                                {history.fromStatus && (
+                                  <span className="text-gray-500 text-xs">
+                                    from {getStatusBadge(history.fromStatus).label}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-600 text-xs mt-1">
+                                {history.createdAt && format(new Date(history.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                {history.changedByName && <span> by {history.changedByName}</span>}
+                              </p>
+                              {history.notes && (
+                                <p className="text-gray-700 text-xs mt-1">{history.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {orderDetail.activities && orderDetail.activities.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Activity Timeline
+                      </h4>
+                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                        {orderDetail.activities.map((activity: any, index: number) => (
+                          <div key={index} className="flex items-start gap-3 text-sm border-l-2 border-gray-200 pl-3">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800">{activity.activityType?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
+                              {activity.description && (
+                                <p className="text-gray-600 text-xs mt-1">{activity.description}</p>
+                              )}
+                              <p className="text-gray-500 text-xs mt-1">
+                                {activity.createdAt && format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                {activity.createdByName && <span> by {activity.createdByName}</span>}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
 
               <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
-                <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+                <Button variant="outline" onClick={handleCloseDetail}>
                   Close
                 </Button>
               </DialogFooter>
             </>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Unable to load order details</p>
+            </div>
           )}
         </DialogContent>
       </Dialog>
