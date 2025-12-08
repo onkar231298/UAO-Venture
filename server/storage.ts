@@ -4750,6 +4750,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCompany(id: number): Promise<void> {
+    // Delete related records that don't have cascade delete
+    
+    // 1. First get all email threads for this company
+    const threads = await db.select({ id: emailThreads.id })
+      .from(emailThreads)
+      .where(eq(emailThreads.companyId, id));
+    
+    // 2. Delete email messages for those threads
+    if (threads.length > 0) {
+      const threadIds = threads.map(t => t.id);
+      for (const threadId of threadIds) {
+        await db.delete(emailMessages).where(eq(emailMessages.threadId, threadId));
+      }
+      // 3. Delete the email threads
+      await db.delete(emailThreads).where(eq(emailThreads.companyId, id));
+    }
+    
+    // 4. Update leads to remove company reference (set to null)
+    await db.update(leads)
+      .set({ companyId: null, updatedAt: new Date() })
+      .where(eq(leads.companyId, id));
+    
+    // 5. Delete call logs associated with this company
+    await db.delete(callLogs).where(eq(callLogs.companyId, id));
+    
+    // 6. Delete SMS messages associated with this company
+    await db.delete(smsMessages).where(eq(smsMessages.companyId, id));
+    
+    // 7. Delete voicemails associated with this company
+    await db.delete(voicemails).where(eq(voicemails.companyId, id));
+    
+    // 8. Finally delete the company (cascade will handle contacts, notes, activities, tasks)
     await db.delete(companies).where(eq(companies.id, id));
   }
 
