@@ -120,9 +120,16 @@ interface Company {
   website?: string | null;
   primaryEmail?: string | null;
   primaryPhone?: string | null;
+  addressStreet?: string | null;
   addressCity?: string | null;
   addressState?: string | null;
   addressCountry?: string | null;
+  addressZip?: string | null;
+  factoryAddressStreet?: string | null;
+  factoryAddressCity?: string | null;
+  factoryAddressState?: string | null;
+  factoryAddressCountry?: string | null;
+  factoryAddressZip?: string | null;
   assignedTo?: string | null;
   createdBy?: string | null;
   createdAt: string;
@@ -153,7 +160,14 @@ interface CompanyContact {
   isActive: boolean;
 }
 
-function CompanyContactsTab({ companyId }: { companyId: number }) {
+interface CompanyDetails {
+  id: number;
+  companyName: string;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
+}
+
+function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; companyDetails?: CompanyDetails | null }) {
   const { data: contacts, isLoading } = useQuery<CompanyContact[]>({
     queryKey: ['/api/crm/companies', companyId, 'contacts'],
     queryFn: async () => {
@@ -178,14 +192,17 @@ function CompanyContactsTab({ companyId }: { companyId: number }) {
     );
   }
 
-  if (!contacts || contacts.length === 0) {
+  const hasPrimaryInfo = companyDetails?.primaryEmail || companyDetails?.primaryPhone;
+  const hasContacts = contacts && contacts.length > 0;
+
+  if (!hasPrimaryInfo && !hasContacts) {
     return (
       <Card>
         <CardContent className="pt-4">
           <div className="text-center py-6 text-muted-foreground">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No contacts linked to this company yet</p>
-            <p className="text-sm">Contacts will appear here when linked through registrations</p>
+            <p className="text-sm">Add contacts or update company details</p>
           </div>
         </CardContent>
       </Card>
@@ -196,40 +213,74 @@ function CompanyContactsTab({ companyId }: { companyId: number }) {
     <Card>
       <CardContent className="pt-4">
         <div className="space-y-4">
-          {contacts.map((contact) => (
-            <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg">
+          {/* Primary Contact Info from Company */}
+          {hasPrimaryInfo && (
+            <div className="p-4 border rounded-lg bg-green-50 border-green-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold">{contact.contactName}</p>
-                  {contact.isPrimary && (
-                    <Badge variant="secondary" className="text-xs">Primary</Badge>
-                  )}
-                  {contact.designation && (
-                    <Badge variant="outline" className="text-xs">{contact.designation}</Badge>
-                  )}
+                  <p className="font-semibold">Primary Contact</p>
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">Company Primary</Badge>
                 </div>
-                {contact.email && (
+                {companyDetails?.primaryEmail && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="h-3 w-3" />
-                    <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
-                      {contact.email}
+                    <a href={`mailto:${companyDetails.primaryEmail}`} className="text-blue-600 hover:underline">
+                      {companyDetails.primaryEmail}
                     </a>
                   </div>
                 )}
-                {contact.phone && (
+                {companyDetails?.primaryPhone && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="h-3 w-3" />
-                    <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
-                      {contact.phone}
+                    <a href={`tel:${companyDetails.primaryPhone}`} className="text-blue-600 hover:underline">
+                      {companyDetails.primaryPhone}
                     </a>
                   </div>
                 )}
               </div>
-              {!contact.isActive && (
-                <Badge variant="outline" className="text-orange-600">Inactive</Badge>
-              )}
             </div>
-          ))}
+          )}
+          
+          {/* Department Contacts */}
+          {hasContacts && (
+            <>
+              <h4 className="font-medium text-sm text-muted-foreground pt-2">Department Contacts</h4>
+              {contacts!.map((contact) => (
+                <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{contact.contactName}</p>
+                      {contact.isPrimary && (
+                        <Badge variant="secondary" className="text-xs">Primary</Badge>
+                      )}
+                      {contact.designation && (
+                        <Badge variant="outline" className="text-xs">{contact.designation}</Badge>
+                      )}
+                    </div>
+                    {contact.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                          {contact.email}
+                        </a>
+                      </div>
+                    )}
+                    {contact.phone && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
+                          {contact.phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  {!contact.isActive && (
+                    <Badge variant="outline" className="text-orange-600">Inactive</Badge>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -281,6 +332,8 @@ export default function CompanyManagement() {
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -407,6 +460,100 @@ export default function CompanyManagement() {
       });
     },
   });
+
+  // Edit company mutation
+  const editCompanyMutation = useMutation({
+    mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companySchema> }) => {
+      // Exclude departmentPhones and additionalEmails from the payload to prevent data loss
+      const { departmentPhones, additionalEmails, ...updateData } = data;
+      return await apiRequest(`/api/crm/companies/${companyId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setEditDialogOpen(false);
+      setCompanyToEdit(null);
+      editForm.reset();
+      toast({
+        title: "Success",
+        description: "Company updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit form
+  const editForm = useForm<z.infer<typeof companySchema>>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      companyName: "",
+      primaryEmail: "",
+      primaryPhone: "",
+      gstNumber: "",
+      industryType: "",
+      companySize: "",
+      website: "",
+      addressStreet: "",
+      addressCity: "",
+      addressState: "",
+      addressCountry: "",
+      addressZip: "",
+      factoryAddressStreet: "",
+      factoryAddressCity: "",
+      factoryAddressState: "",
+      factoryAddressCountry: "",
+      factoryAddressZip: "",
+      departmentPhones: [],
+      additionalEmails: [],
+    },
+  });
+
+  // Open edit dialog with company data
+  const handleOpenEditDialog = (company: Company) => {
+    setCompanyToEdit(company);
+    editForm.reset({
+      companyName: company.companyName || "",
+      primaryEmail: company.primaryEmail || "",
+      primaryPhone: company.primaryPhone || "",
+      gstNumber: company.gstNumber || "",
+      industryType: company.industryType || "",
+      companySize: company.companySize || "",
+      website: company.website || "",
+      addressStreet: company.addressStreet || "",
+      addressCity: company.addressCity || "",
+      addressState: company.addressState || "",
+      addressCountry: company.addressCountry || "",
+      addressZip: company.addressZip || "",
+      factoryAddressStreet: company.factoryAddressStreet || "",
+      factoryAddressCity: company.factoryAddressCity || "",
+      factoryAddressState: company.factoryAddressState || "",
+      factoryAddressCountry: company.factoryAddressCountry || "",
+      factoryAddressZip: company.factoryAddressZip || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  // Check if user can edit company (admin/sales_manager or assigned sales agent)
+  const canEditCompany = (company: Company) => {
+    if (!user) return false;
+    const userRole = (user as any).role;
+    const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+    const salesRoles = ['sales', 'sales_executive'];
+    
+    // Admins and sales managers can edit any company
+    if (adminRoles.includes(userRole)) return true;
+    // Sales agents can only edit companies assigned to them
+    if (salesRoles.includes(userRole) && company.assignedTo === (user as any).id) return true;
+    return false;
+  };
 
   // Fetch sales reps for assignment
   const { data: salesReps = [] } = useQuery<SalesRep[]>({
@@ -1733,41 +1880,58 @@ export default function CompanyManagement() {
               </div>
               
               {/* Quick Actions */}
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <Select 
-                    value={selectedCompany.companyStage || 'prospect'}
-                    onValueChange={(value) => {
-                      updateStageMutation.mutate({ companyId: selectedCompany.id, stage: value });
+              <div className="flex gap-2 flex-wrap">
+                {canEditCompany(selectedCompany) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setViewDetailsOpen(false);
+                      handleOpenEditDialog(selectedCompany);
                     }}
+                    data-testid="button-edit-company"
                   >
-                    <SelectTrigger className="w-[180px]" data-testid="select-change-stage">
-                      <SelectValue placeholder="Change Stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COMPANY_STAGES.map(stage => (
-                        <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Select
-                    value={selectedCompany.assignedTo || ""}
-                    onValueChange={(value) => handleAssignCompany(selectedCompany.id, value)}
-                  >
-                    <SelectTrigger className="w-[180px]" data-testid="select-assign-rep">
-                      <SelectValue placeholder="Assign to Rep" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {salesReps.map(rep => (
-                        <SelectItem key={rep.id} value={rep.id}>
-                          {rep.firstName} {rep.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Company
+                  </Button>
+                )}
+                
+                {isAdmin && (
+                  <>
+                    <Select 
+                      value={selectedCompany.companyStage || 'prospect'}
+                      onValueChange={(value) => {
+                        updateStageMutation.mutate({ companyId: selectedCompany.id, stage: value });
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px]" data-testid="select-change-stage">
+                        <SelectValue placeholder="Change Stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMPANY_STAGES.map(stage => (
+                          <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select
+                      value={selectedCompany.assignedTo || ""}
+                      onValueChange={(value) => handleAssignCompany(selectedCompany.id, value)}
+                    >
+                      <SelectTrigger className="w-[180px]" data-testid="select-assign-rep">
+                        <SelectValue placeholder="Assign to Rep" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {salesReps.map(rep => (
+                          <SelectItem key={rep.id} value={rep.id}>
+                            {rep.firstName} {rep.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
               
               <Tabs defaultValue="info" className="w-full">
                 <TabsList>
@@ -1886,7 +2050,15 @@ export default function CompanyManagement() {
                 </TabsContent>
                 
                 <TabsContent value="contacts" className="mt-4">
-                  <CompanyContactsTab companyId={selectedCompany.id} />
+                  <CompanyContactsTab 
+                    companyId={selectedCompany.id} 
+                    companyDetails={{
+                      id: selectedCompany.id,
+                      companyName: selectedCompany.companyName,
+                      primaryEmail: selectedCompany.primaryEmail,
+                      primaryPhone: selectedCompany.primaryPhone
+                    }}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="address" className="space-y-4 mt-4">
@@ -1900,7 +2072,7 @@ export default function CompanyManagement() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
                           <p className="text-sm text-muted-foreground">Street Address</p>
-                          <p className="font-medium">{(selectedCompany as any).addressStreet || "-"}</p>
+                          <p className="font-medium">{selectedCompany.addressStreet || "-"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">City</p>
@@ -1916,7 +2088,7 @@ export default function CompanyManagement() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">ZIP Code</p>
-                          <p className="font-medium">{(selectedCompany as any).addressZip || "-"}</p>
+                          <p className="font-medium">{selectedCompany.addressZip || "-"}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1932,23 +2104,23 @@ export default function CompanyManagement() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
                           <p className="text-sm text-muted-foreground">Street Address</p>
-                          <p className="font-medium">{(selectedCompany as any).factoryAddressStreet || "-"}</p>
+                          <p className="font-medium">{selectedCompany.factoryAddressStreet || "-"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">City</p>
-                          <p className="font-medium">{(selectedCompany as any).factoryAddressCity || "-"}</p>
+                          <p className="font-medium">{selectedCompany.factoryAddressCity || "-"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">State</p>
-                          <p className="font-medium">{(selectedCompany as any).factoryAddressState || "-"}</p>
+                          <p className="font-medium">{selectedCompany.factoryAddressState || "-"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Country</p>
-                          <p className="font-medium">{(selectedCompany as any).factoryAddressCountry || "-"}</p>
+                          <p className="font-medium">{selectedCompany.factoryAddressCountry || "-"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">ZIP Code</p>
-                          <p className="font-medium">{(selectedCompany as any).factoryAddressZip || "-"}</p>
+                          <p className="font-medium">{selectedCompany.factoryAddressZip || "-"}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -2241,6 +2413,316 @@ export default function CompanyManagement() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Company Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-5 w-5" />
+              Edit Company
+            </DialogTitle>
+            <DialogDescription>
+              Update company information
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit((data) => {
+              if (companyToEdit) {
+                editCompanyMutation.mutate({ companyId: companyToEdit.id, data });
+              }
+            })} className="space-y-4">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name *</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-company-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="gstNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GST Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-gst" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="primaryEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} data-testid="input-edit-email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="primaryPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-phone" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="industryType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Industry Type</FormLabel>
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-industry">
+                              <SelectValue placeholder="Select industry" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="manufacturer">Manufacturer</SelectItem>
+                            <SelectItem value="distributor">Distributor</SelectItem>
+                            <SelectItem value="retailer">Retailer</SelectItem>
+                            <SelectItem value="supplier">Supplier</SelectItem>
+                            <SelectItem value="exporter">Exporter</SelectItem>
+                            <SelectItem value="importer">Importer</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="companySize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Size</FormLabel>
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-size">
+                              <SelectValue placeholder="Select size" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1-10">1-10 employees</SelectItem>
+                            <SelectItem value="11-50">11-50 employees</SelectItem>
+                            <SelectItem value="51-200">51-200 employees</SelectItem>
+                            <SelectItem value="201-500">201-500 employees</SelectItem>
+                            <SelectItem value="500+">500+ employees</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="website"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Website</FormLabel>
+                        <FormControl>
+                          <Input type="url" placeholder="https://example.com" {...field} data-testid="input-edit-website" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Primary Address */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Primary Address</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="addressStreet"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-street" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-city" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-state" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-zip" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Factory/Warehouse Address */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Factory/Warehouse Address</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="factoryAddressStreet"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-factory-street" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="factoryAddressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-factory-city" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="factoryAddressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-factory-state" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="factoryAddressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-factory-country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="factoryAddressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-edit-factory-zip" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditDialogOpen(false);
+                    setCompanyToEdit(null);
+                  }}
+                  data-testid="button-cancel-edit"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editCompanyMutation.isPending}
+                  data-testid="button-submit-edit"
+                >
+                  {editCompanyMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
