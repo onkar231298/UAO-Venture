@@ -240,28 +240,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Also create a company record for CRM with origin='website'
+      // First check for potential duplicates
       if (userData.companyName) {
         try {
-          await storage.createCompany({
-            companyName: userData.companyName,
-            primaryEmail: userData.email,
-            primaryPhone: userData.phone || null,
-            addressStreet: userData.addressStreet || null,
-            addressCity: userData.addressCity || null,
-            addressState: userData.addressState || null,
-            addressCountry: userData.addressCountry || null,
-            addressZip: userData.addressZip || null,
-            gstNumber: userData.gstNumber || null,
-            industryType: userData.industryType || null,
-            companySize: userData.companySize || null,
-            annualTurnover: userData.annualTurnover || null,
-            website: userData.website || null,
-            origin: 'website',
-            status: 'active',
-            companyStage: 'prospect',
-            linkedUserId: user.id,
-            createdBy: 'system',
-          });
+          const { checkForDuplicates } = await import('./duplicateDetection');
+          const duplicateCheck = await checkForDuplicates(
+            userData.companyName,
+            userData.email,
+            userData.phone || undefined
+          );
+          
+          if (duplicateCheck.hasPotentialDuplicates && duplicateCheck.highestConfidence >= 80) {
+            // Link to existing company instead of creating duplicate
+            const existingCompanyId = duplicateCheck.matches[0].companyId;
+            const existingCompany = await storage.getCompany(existingCompanyId);
+            
+            if (existingCompany) {
+              // Update user to link to existing company
+              await storage.updateUser(user.id, {
+                companyName: existingCompany.companyName
+              });
+              
+              // Create a contact for this new user under the existing company
+              await storage.createCompanyContact({
+                companyId: existingCompanyId,
+                contactName: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Contact',
+                email: userData.email,
+                phone: userData.phone || null,
+                isPrimary: false,
+                role: 'user',
+              });
+              
+              // Log activity
+              await storage.createCompanyActivity({
+                companyId: existingCompanyId,
+                activityType: 'note',
+                subject: 'New Contact Registered',
+                description: `New user ${userData.email} registered from website and was linked to this existing company`,
+                createdBy: 'system',
+              });
+              
+              console.log(`Linked new registration to existing company ${existingCompany.companyName} (ID: ${existingCompanyId})`);
+            }
+          } else {
+            // Create new company - no high-confidence duplicates found
+            const newCompany = await storage.createCompany({
+              companyName: userData.companyName,
+              primaryEmail: userData.email,
+              primaryPhone: userData.phone || null,
+              addressStreet: userData.addressStreet || null,
+              addressCity: userData.addressCity || null,
+              addressState: userData.addressState || null,
+              addressCountry: userData.addressCountry || null,
+              addressZip: userData.addressZip || null,
+              gstNumber: userData.gstNumber || null,
+              industryType: userData.industryType || null,
+              companySize: userData.companySize || null,
+              annualTurnover: userData.annualTurnover || null,
+              website: userData.website || null,
+              origin: 'website',
+              status: 'active',
+              companyStage: 'prospect',
+              linkedUserId: user.id,
+              createdBy: 'system',
+              duplicateStatus: duplicateCheck.hasPotentialDuplicates ? 'suspected' : 'unique',
+              duplicateConfidence: duplicateCheck.highestConfidence > 0 ? duplicateCheck.highestConfidence.toString() : null,
+            });
+            
+            // If there are low-confidence potential duplicates, create notification for review
+            if (duplicateCheck.hasPotentialDuplicates && duplicateCheck.matches.length > 0) {
+              try {
+                await storage.createNotificationsForRole({
+                  type: 'duplicate_suspected',
+                  title: 'Potential Duplicate Company',
+                  message: `New company "${userData.companyName}" may be a duplicate of "${duplicateCheck.matches[0].companyName}" (${duplicateCheck.matches[0].confidence}% match)`,
+                  entityType: 'company',
+                  entityId: newCompany.id,
+                  isRead: false,
+                  link: '/admin/sales/companies?duplicate=suspected',
+                }, ['super_admin', 'admin', 'sales_manager']);
+              } catch (notifError) {
+                console.error('Failed to create duplicate notification:', notifError);
+              }
+            }
+          }
         } catch (companyError) {
           console.error('Error creating company record for website customer:', companyError);
           // Continue even if company creation fails - customer registration is still successful
@@ -9230,6 +9292,231 @@ We look forward to hearing from you.`;
   });
 
   // Static routes removed from here - they're now handled as fallback in server/index.ts
+
+  // ========================================
+  // DUPLICATE DETECTION API ROUTES
+  // ========================================
+
+  // Check for potential duplicate companies (for registration form)
+  app.post('/api/check-duplicate-company', async (req, res) => {
+    try {
+      const { companyName, email, phone, excludeCompanyId } = req.body;
+      
+      if (!companyName) {
+        return res.status(400).json({ message: 'Company name is required' });
+      }
+      
+      const { checkForDuplicates } = await import('./duplicateDetection');
+      const result = await checkForDuplicates(companyName, email, phone, excludeCompanyId);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      res.status(500).json({ message: 'Failed to check for duplicates' });
+    }
+  });
+
+  // Get companies with suspected duplicate status (for admin review queue)
+  app.get('/api/admin/companies/duplicates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+      
+      const { getSuspectedDuplicates } = await import('./duplicateDetection');
+      const duplicates = await getSuspectedDuplicates();
+      
+      // For each suspected duplicate, find potential matches
+      const enrichedDuplicates = await Promise.all(duplicates.map(async (company) => {
+        const { checkForDuplicates } = await import('./duplicateDetection');
+        const matches = await checkForDuplicates(
+          company.companyName, 
+          company.primaryEmail || undefined,
+          company.primaryPhone || undefined,
+          company.id
+        );
+        
+        return {
+          ...company,
+          potentialMatches: matches.matches
+        };
+      }));
+      
+      res.json(enrichedDuplicates);
+    } catch (error) {
+      console.error('Error fetching duplicate companies:', error);
+      res.status(500).json({ message: 'Failed to fetch duplicate companies' });
+    }
+  });
+
+  // Mark company as duplicate of another
+  app.post('/api/admin/companies/:id/mark-duplicate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+      
+      const companyId = parseInt(req.params.id);
+      const { masterCompanyId, confidence } = req.body;
+      
+      if (!masterCompanyId) {
+        return res.status(400).json({ message: 'Master company ID is required' });
+      }
+      
+      const { markAsDuplicate } = await import('./duplicateDetection');
+      await markAsDuplicate(companyId, masterCompanyId, confidence || 100, userId);
+      
+      res.json({ success: true, message: 'Company marked as duplicate' });
+    } catch (error) {
+      console.error('Error marking company as duplicate:', error);
+      res.status(500).json({ message: 'Failed to mark company as duplicate' });
+    }
+  });
+
+  // Mark company as unique (not a duplicate)
+  app.post('/api/admin/companies/:id/mark-unique', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+      
+      const companyId = parseInt(req.params.id);
+      
+      const { markAsUnique } = await import('./duplicateDetection');
+      await markAsUnique(companyId, userId);
+      
+      res.json({ success: true, message: 'Company marked as unique' });
+    } catch (error) {
+      console.error('Error marking company as unique:', error);
+      res.status(500).json({ message: 'Failed to mark company as unique' });
+    }
+  });
+
+  // Merge two companies (master absorbs duplicate)
+  app.post('/api/admin/companies/merge', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('super_admin'))) {
+        return res.status(403).json({ message: 'Only admins can merge companies' });
+      }
+      
+      const { masterCompanyId, duplicateCompanyId } = req.body;
+      
+      if (!masterCompanyId || !duplicateCompanyId) {
+        return res.status(400).json({ message: 'Both master and duplicate company IDs are required' });
+      }
+      
+      if (masterCompanyId === duplicateCompanyId) {
+        return res.status(400).json({ message: 'Cannot merge a company with itself' });
+      }
+      
+      // Get both companies
+      const masterCompany = await storage.getCompany(masterCompanyId);
+      const duplicateCompany = await storage.getCompany(duplicateCompanyId);
+      
+      if (!masterCompany || !duplicateCompany) {
+        return res.status(404).json({ message: 'One or both companies not found' });
+      }
+      
+      // Move contacts from duplicate to master
+      const duplicateContacts = await storage.getCompanyContacts(duplicateCompanyId);
+      for (const contact of duplicateContacts) {
+        await db.update(companyContacts)
+          .set({ companyId: masterCompanyId, isPrimary: false })
+          .where(eq(companyContacts.id, contact.id));
+      }
+      
+      // Move leads from duplicate to master
+      await db.update(leads)
+        .set({ companyId: masterCompanyId, updatedAt: new Date() })
+        .where(eq(leads.companyId, duplicateCompanyId));
+      
+      // Move activities from duplicate to master
+      await db.update(companyActivities)
+        .set({ companyId: masterCompanyId })
+        .where(eq(companyActivities.companyId, duplicateCompanyId));
+      
+      // Move tasks from duplicate to master
+      await db.update(companyTasks)
+        .set({ companyId: masterCompanyId })
+        .where(eq(companyTasks.companyId, duplicateCompanyId));
+      
+      // Move notes from duplicate to master
+      await db.update(companyNotes)
+        .set({ companyId: masterCompanyId })
+        .where(eq(companyNotes.companyId, duplicateCompanyId));
+      
+      // Update linked user if exists
+      if (duplicateCompany.linkedUserId && !masterCompany.linkedUserId) {
+        await storage.updateCompany(masterCompanyId, {
+          linkedUserId: duplicateCompany.linkedUserId
+        });
+      }
+      
+      // Mark duplicate company as merged
+      await storage.updateCompany(duplicateCompanyId, {
+        status: 'inactive',
+        duplicateStatus: 'merged',
+        duplicateOf: masterCompanyId,
+        duplicateReviewedAt: new Date(),
+        duplicateReviewedBy: userId,
+        notes: `${duplicateCompany.notes || ''}\n\n[MERGED] This company was merged into ${masterCompany.companyName} (ID: ${masterCompanyId}) on ${new Date().toISOString()} by user ${userId}`.trim()
+      });
+      
+      // Log activity on master company
+      await storage.createCompanyActivity({
+        companyId: masterCompanyId,
+        activityType: 'note',
+        subject: 'Company Merged',
+        description: `Company "${duplicateCompany.companyName}" (ID: ${duplicateCompanyId}) was merged into this company. ${duplicateContacts.length} contacts were transferred.`,
+        createdBy: userId,
+      });
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully merged "${duplicateCompany.companyName}" into "${masterCompany.companyName}"`,
+        mergedContacts: duplicateContacts.length
+      });
+    } catch (error) {
+      console.error('Error merging companies:', error);
+      res.status(500).json({ message: 'Failed to merge companies' });
+    }
+  });
+
+  // Backfill normalized fields for existing companies
+  app.post('/api/admin/companies/backfill-normalized', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: 'Only super admins can run backfill' });
+      }
+      
+      const { backfillNormalizedFields } = await import('./duplicateDetection');
+      const result = await backfillNormalizedFields();
+      
+      res.json({ 
+        success: true, 
+        message: `Backfill completed: ${result.updated} companies updated, ${result.errors} errors`,
+        ...result
+      });
+    } catch (error) {
+      console.error('Error backfilling normalized fields:', error);
+      res.status(500).json({ message: 'Failed to backfill normalized fields' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
