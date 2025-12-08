@@ -4560,7 +4560,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.query;
       
       const userId = req.user.claims.sub;
-      const userRole = req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
+      // Get role from user record in database, fallback to claims
+      const user = await storage.getUser(userId);
+      const userRole = user?.role || req.user.claims.role || req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
       
       console.log('[Companies API] User:', userId, 'Role:', userRole, 'Origin filter:', origin);
       
