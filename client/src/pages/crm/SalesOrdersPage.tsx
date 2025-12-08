@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -64,12 +64,12 @@ export default function SalesOrdersPage() {
 
   const orders = ordersData?.orders || [];
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    const timeout = setTimeout(() => setDebouncedSearch(value), 300);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
     return () => clearTimeout(timeout);
-  };
+  }, [searchTerm]);
 
   const getStatusBadge = (status: string) => {
     const statusInfo = SO_STATUSES.find(s => s.id === status);
@@ -118,7 +118,7 @@ export default function SalesOrdersPage() {
           <Input
             placeholder="Search by SO number or company..."
             value={searchTerm}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
             data-testid="input-search-so"
           />
