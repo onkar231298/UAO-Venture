@@ -4721,7 +4721,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'factoryAddressCountry',
         'factoryAddressZip',
         'priority',
-        'notes'
+        'notes',
+        'additionalEmail1',
+        'additionalEmail1Designation',
+        'additionalEmail2',
+        'additionalEmail2Designation',
+        'additionalEmail3',
+        'additionalEmail3Designation',
+        'departmentPhone1',
+        'departmentPhone1Name',
+        'departmentPhone2',
+        'departmentPhone2Name',
+        'departmentPhone3',
+        'departmentPhone3Name'
       ];
       
       const sampleRow = [
@@ -4743,7 +4755,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'USA',
         '60601',
         'normal',
-        'Sample company notes'
+        'Sample company notes',
+        'sales@example.com',
+        'Sales Manager',
+        'support@example.com',
+        'Customer Support',
+        'hr@example.com',
+        'HR Department',
+        '+1-555-111-2222',
+        'Sales Department',
+        '+1-555-333-4444',
+        'Customer Support',
+        '+1-555-555-6666',
+        'Accounts'
       ];
       
       const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
@@ -4883,8 +4907,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delete cleanData.rowNumber;
           delete cleanData.duplicateWarning;
 
+          // Process additional emails into array format
+          const additionalEmails: Array<{ email: string; designation: string }> = [];
+          if (cleanData.additionalEmail1) {
+            additionalEmails.push({
+              email: cleanData.additionalEmail1,
+              designation: cleanData.additionalEmail1Designation || ''
+            });
+          }
+          if (cleanData.additionalEmail2) {
+            additionalEmails.push({
+              email: cleanData.additionalEmail2,
+              designation: cleanData.additionalEmail2Designation || ''
+            });
+          }
+          if (cleanData.additionalEmail3) {
+            additionalEmails.push({
+              email: cleanData.additionalEmail3,
+              designation: cleanData.additionalEmail3Designation || ''
+            });
+          }
+
+          // Process department phones into array format
+          const departmentPhones: Array<{ phone: string; department: string }> = [];
+          if (cleanData.departmentPhone1) {
+            departmentPhones.push({
+              phone: cleanData.departmentPhone1,
+              department: cleanData.departmentPhone1Name || ''
+            });
+          }
+          if (cleanData.departmentPhone2) {
+            departmentPhones.push({
+              phone: cleanData.departmentPhone2,
+              department: cleanData.departmentPhone2Name || ''
+            });
+          }
+          if (cleanData.departmentPhone3) {
+            departmentPhones.push({
+              phone: cleanData.departmentPhone3,
+              department: cleanData.departmentPhone3Name || ''
+            });
+          }
+
+          // Remove individual fields
+          delete cleanData.additionalEmail1;
+          delete cleanData.additionalEmail1Designation;
+          delete cleanData.additionalEmail2;
+          delete cleanData.additionalEmail2Designation;
+          delete cleanData.additionalEmail3;
+          delete cleanData.additionalEmail3Designation;
+          delete cleanData.departmentPhone1;
+          delete cleanData.departmentPhone1Name;
+          delete cleanData.departmentPhone2;
+          delete cleanData.departmentPhone2Name;
+          delete cleanData.departmentPhone3;
+          delete cleanData.departmentPhone3Name;
+
           await storage.createCompany({
             ...cleanData,
+            additionalEmails: additionalEmails.length > 0 ? additionalEmails : undefined,
+            departmentPhones: departmentPhones.length > 0 ? departmentPhones : undefined,
             origin: 'import',
             createdBy: userId,
             status: 'active',

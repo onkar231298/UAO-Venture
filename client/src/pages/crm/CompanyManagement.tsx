@@ -1884,32 +1884,42 @@ export default function CompanyManagement() {
                         <TableHead className="sticky top-0 bg-background">Company Name</TableHead>
                         <TableHead className="sticky top-0 bg-background">Email</TableHead>
                         <TableHead className="sticky top-0 bg-background">Phone</TableHead>
+                        <TableHead className="sticky top-0 bg-background">Additional Contacts</TableHead>
                         <TableHead className="sticky top-0 bg-background">Industry</TableHead>
                         <TableHead className="sticky top-0 bg-background">City</TableHead>
                         <TableHead className="sticky top-0 bg-background">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {bulkUploadPreview.slice(0, 50).map((company, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{company.companyName}</TableCell>
-                          <TableCell>{company.primaryEmail || '-'}</TableCell>
-                          <TableCell>{company.primaryPhone || '-'}</TableCell>
-                          <TableCell>{company.industryType || '-'}</TableCell>
-                          <TableCell>{company.addressCity || '-'}</TableCell>
-                          <TableCell>
-                            {company.duplicateWarning ? (
-                              <Badge variant="outline" className="text-orange-600 border-orange-300">
-                                Potential Duplicate
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-green-600 border-green-300">
-                                Ready
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {bulkUploadPreview.slice(0, 50).map((company, index) => {
+                        const extraEmails = [company.additionalEmail1, company.additionalEmail2, company.additionalEmail3].filter(Boolean).length;
+                        const extraPhones = [company.departmentPhone1, company.departmentPhone2, company.departmentPhone3].filter(Boolean).length;
+                        return (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{company.companyName}</TableCell>
+                            <TableCell>{company.primaryEmail || '-'}</TableCell>
+                            <TableCell>{company.primaryPhone || '-'}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {extraEmails > 0 && <span className="block">+{extraEmails} emails</span>}
+                              {extraPhones > 0 && <span className="block">+{extraPhones} phones</span>}
+                              {extraEmails === 0 && extraPhones === 0 && '-'}
+                            </TableCell>
+                            <TableCell>{company.industryType || '-'}</TableCell>
+                            <TableCell>{company.addressCity || '-'}</TableCell>
+                            <TableCell>
+                              {company.duplicateWarning ? (
+                                <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                  Potential Duplicate
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-green-600 border-green-300">
+                                  Ready
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
