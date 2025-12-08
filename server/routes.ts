@@ -8947,16 +8947,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(403).json({ message: 'Not authorized to create sample requests for this lead' });
       }
 
-      // Create sample request with lead link
+      // Create sample request with lead link and assign to the creating user
       const sampleRequest = await storage.createSampleRequest({
         ...req.body,
         leadId,
+        assignedTo: userId,
+        createdBy: userId,
       });
 
       // Log activity
       await storage.createLeadActivity({
         leadId,
-        type: 'sample_request',
+        activityType: 'sample_request',
         title: 'Sample Request Created',
         description: `Sample request ${sampleRequest.requestId} created for product`,
         createdBy: userId,
