@@ -4695,13 +4695,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCompany(companyData: InsertCompany): Promise<Company> {
-    const [company] = await db.insert(companies).values(companyData).returning();
+    const { normalizeCompanyName, extractEmailDomain } = await import('./duplicateDetection');
+    
+    const normalizedName = normalizeCompanyName(companyData.companyName);
+    const normalizedDomain = companyData.primaryEmail ? extractEmailDomain(companyData.primaryEmail) : null;
+    
+    const [company] = await db.insert(companies).values({
+      ...companyData,
+      normalizedName,
+      normalizedDomain,
+    }).returning();
     return company;
   }
 
   async updateCompany(id: number, companyData: Partial<InsertCompany>): Promise<Company> {
+    const updateData: any = { ...companyData, updatedAt: new Date() };
+    
+    if (companyData.companyName || companyData.primaryEmail) {
+      const { normalizeCompanyName, extractEmailDomain } = await import('./duplicateDetection');
+      
+      if (companyData.companyName) {
+        updateData.normalizedName = normalizeCompanyName(companyData.companyName);
+      }
+      if (companyData.primaryEmail) {
+        updateData.normalizedDomain = extractEmailDomain(companyData.primaryEmail);
+      }
+    }
+    
     const [company] = await db.update(companies)
-      .set({ ...companyData, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(companies.id, id))
       .returning();
     return company;
