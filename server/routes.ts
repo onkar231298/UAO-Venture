@@ -45,6 +45,7 @@ import {
   inquiries,
   bidRevisions,
   products,
+  smsMessages,
 } from "@shared/schema";
 import { eq, and, isNotNull, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -7009,6 +7010,442 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     } catch (error) {
       console.error('Error deleting notification:', error);
       res.status(500).json({ message: 'Failed to delete notification' });
+    }
+  });
+
+  // ========================================
+  // NET2PHONE VOICE/SMS INTEGRATION ROUTES
+  // ========================================
+
+  // Check net2phone configuration status
+  app.get('/api/voice/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { net2phoneService } = await import('./net2phoneService');
+      const status = net2phoneService.getConfigStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Error checking net2phone status:', error);
+      res.status(500).json({ message: 'Failed to check voice service status' });
+    }
+  });
+
+  // Initiate a voice call
+  app.post('/api/voice/call', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { phoneNumber, leadId, companyId, contactName } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: 'Phone number is required' });
+      }
+
+      const { net2phoneService } = await import('./net2phoneService');
+      
+      // Create call log in database first
+      const callLog = await storage.createCallLog({
+        callerUserId: userId,
+        recipientPhone: phoneNumber,
+        recipientName: contactName,
+        direction: 'outbound',
+        status: 'initiating',
+        leadId: leadId || null,
+        companyId: companyId || null,
+      });
+
+      // Initiate call via net2phone
+      const result = await net2phoneService.initiateCall({
+        to: phoneNumber,
+        recordCall: true,
+      });
+
+      if (result.success && result.callId) {
+        // Update call log with net2phone call ID
+        await storage.updateCallLog(callLog.id, {
+          callUuid: result.callId,
+          status: 'ringing',
+          ringingAt: new Date(),
+        });
+
+        res.json({ 
+          success: true, 
+          callLogId: callLog.id,
+          callId: result.callId,
+          status: 'ringing',
+        });
+      } else {
+        // Update call log as failed
+        await storage.updateCallLog(callLog.id, {
+          status: 'failed',
+          endedAt: new Date(),
+          notes: result.error,
+        });
+
+        res.status(400).json({ 
+          success: false, 
+          message: result.error || 'Failed to initiate call',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error initiating call:', error);
+      res.status(500).json({ message: 'Failed to initiate call' });
+    }
+  });
+
+  // End a call
+  app.post('/api/voice/call/:callId/end', isAuthenticated, async (req: any, res) => {
+    try {
+      const { callId } = req.params;
+      const { net2phoneService } = await import('./net2phoneService');
+      
+      const result = await net2phoneService.endCall(callId);
+      
+      if (result.success) {
+        // Update call log
+        await storage.updateCallLogByUuid(callId, {
+          status: 'completed',
+          endedAt: new Date(),
+        });
+        res.json({ success: true });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error) {
+      console.error('Error ending call:', error);
+      res.status(500).json({ message: 'Failed to end call' });
+    }
+  });
+
+  // Get call logs for current user
+  app.get('/api/voice/call-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { leadId, companyId, status, limit, offset } = req.query;
+
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'sales_manager';
+
+      const filters: any = {
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0,
+      };
+
+      // Non-admins can only see their own call logs
+      if (!isAdmin) {
+        filters.callerUserId = userId;
+      }
+
+      if (leadId) filters.leadId = parseInt(leadId as string);
+      if (companyId) filters.companyId = parseInt(companyId as string);
+      if (status) filters.status = status as string;
+
+      const result = await storage.getCallLogs(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching call logs:', error);
+      res.status(500).json({ message: 'Failed to fetch call logs' });
+    }
+  });
+
+  // Get call logs for a specific lead
+  app.get('/api/crm/leads/:id/call-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const result = await storage.getCallLogs({ leadId, limit: 100 });
+      res.json(result.callLogs);
+    } catch (error) {
+      console.error('Error fetching lead call logs:', error);
+      res.status(500).json({ message: 'Failed to fetch call logs' });
+    }
+  });
+
+  // Get call logs for a specific company
+  app.get('/api/crm/companies/:id/call-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const result = await storage.getCallLogs({ companyId, limit: 100 });
+      res.json(result.callLogs);
+    } catch (error) {
+      console.error('Error fetching company call logs:', error);
+      res.status(500).json({ message: 'Failed to fetch call logs' });
+    }
+  });
+
+  // Get a single call log with recording
+  app.get('/api/voice/call-logs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const callLog = await storage.getCallLog(parseInt(req.params.id));
+      if (!callLog) {
+        return res.status(404).json({ message: 'Call log not found' });
+      }
+      res.json(callLog);
+    } catch (error) {
+      console.error('Error fetching call log:', error);
+      res.status(500).json({ message: 'Failed to fetch call log' });
+    }
+  });
+
+  // Update call log notes/disposition
+  app.patch('/api/voice/call-logs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { notes, disposition } = req.body;
+      const updated = await storage.updateCallLog(parseInt(req.params.id), {
+        notes,
+        disposition,
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating call log:', error);
+      res.status(500).json({ message: 'Failed to update call log' });
+    }
+  });
+
+  // Send SMS
+  app.post('/api/voice/sms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { phoneNumber, message, leadId, companyId, contactName } = req.body;
+      
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ message: 'Phone number and message are required' });
+      }
+
+      const { net2phoneService } = await import('./net2phoneService');
+
+      // Create SMS record in database
+      const smsRecord = await storage.createSmsMessage({
+        senderUserId: userId,
+        recipientPhone: phoneNumber,
+        recipientName: contactName,
+        direction: 'outbound',
+        content: message,
+        status: 'pending',
+        leadId: leadId || null,
+        companyId: companyId || null,
+      });
+
+      // Send SMS via net2phone
+      const result = await net2phoneService.sendSms({
+        to: phoneNumber,
+        message,
+      });
+
+      if (result.success && result.messageId) {
+        await storage.updateSmsMessage(smsRecord.id, {
+          messageUuid: result.messageId,
+          status: 'sent',
+          sentAt: new Date(),
+        });
+
+        res.json({ 
+          success: true, 
+          messageId: smsRecord.id,
+          externalId: result.messageId,
+        });
+      } else {
+        await storage.updateSmsMessage(smsRecord.id, {
+          status: 'failed',
+          failedAt: new Date(),
+          failureReason: result.error,
+        });
+
+        res.status(400).json({ 
+          success: false, 
+          message: result.error || 'Failed to send SMS',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error sending SMS:', error);
+      res.status(500).json({ message: 'Failed to send SMS' });
+    }
+  });
+
+  // Get SMS messages for a lead
+  app.get('/api/crm/leads/:id/sms', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const result = await storage.getSmsMessages({ leadId, limit: 100 });
+      res.json(result.messages);
+    } catch (error) {
+      console.error('Error fetching lead SMS messages:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS messages' });
+    }
+  });
+
+  // Get SMS messages for a company
+  app.get('/api/crm/companies/:id/sms', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const result = await storage.getSmsMessages({ companyId, limit: 100 });
+      res.json(result.messages);
+    } catch (error) {
+      console.error('Error fetching company SMS messages:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS messages' });
+    }
+  });
+
+  // Get voicemails for current user
+  app.get('/api/voice/voicemails', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { leadId, companyId, isListened, limit, offset } = req.query;
+
+      const filters: any = {
+        userId,
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0,
+      };
+
+      if (leadId) filters.leadId = parseInt(leadId as string);
+      if (companyId) filters.companyId = parseInt(companyId as string);
+      if (isListened !== undefined) filters.isListened = isListened === 'true';
+
+      const result = await storage.getVoicemails(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching voicemails:', error);
+      res.status(500).json({ message: 'Failed to fetch voicemails' });
+    }
+  });
+
+  // Mark voicemail as listened
+  app.post('/api/voice/voicemails/:id/listened', isAuthenticated, async (req: any, res) => {
+    try {
+      const updated = await storage.markVoicemailAsListened(parseInt(req.params.id));
+      res.json(updated);
+    } catch (error) {
+      console.error('Error marking voicemail as listened:', error);
+      res.status(500).json({ message: 'Failed to update voicemail' });
+    }
+  });
+
+  // Webhook for net2phone call events
+  app.post('/api/voice/webhook/status', async (req, res) => {
+    try {
+      const { net2phoneService } = await import('./net2phoneService');
+      const event = net2phoneService.processWebhook(req.body);
+      
+      console.log('net2phone webhook received:', event.type, event.data);
+
+      const callId = event.data.call_id || event.data.callId;
+      if (!callId) {
+        return res.status(200).json({ received: true });
+      }
+
+      switch (event.type) {
+        case 'call_ringing':
+          await storage.updateCallLogByUuid(callId, {
+            status: 'ringing',
+            ringingAt: new Date(),
+          });
+          break;
+        case 'call_answered':
+          await storage.updateCallLogByUuid(callId, {
+            status: 'answered',
+            answeredAt: new Date(),
+          });
+          break;
+        case 'call_completed':
+          const duration = event.data.duration || event.data.duration_seconds || 0;
+          await storage.updateCallLogByUuid(callId, {
+            status: 'completed',
+            endedAt: new Date(),
+            durationSeconds: duration,
+            recordingUrl: event.data.recording_url || event.data.recordingUrl,
+            recordingDuration: event.data.recording_duration,
+          });
+          break;
+        case 'call_missed':
+          await storage.updateCallLogByUuid(callId, {
+            status: 'missed',
+            endedAt: new Date(),
+          });
+          break;
+        case 'voicemail':
+          const callLog = await storage.getCallLogByUuid(callId);
+          if (callLog) {
+            await storage.createVoicemail({
+              voicemailUuid: event.data.voicemail_id || event.data.id,
+              userId: callLog.callerUserId,
+              callerPhone: event.data.caller_phone || callLog.recipientPhone,
+              callerName: event.data.caller_name,
+              recordingUrl: event.data.recording_url || event.data.url,
+              transcription: event.data.transcription,
+              durationSeconds: event.data.duration,
+              leadId: callLog.leadId,
+              companyId: callLog.companyId,
+              callLogId: callLog.id,
+            });
+
+            await storage.updateCallLog(callLog.id, {
+              status: 'voicemail',
+              voicemailUrl: event.data.recording_url || event.data.url,
+            });
+          }
+          break;
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ message: 'Webhook processing failed' });
+    }
+  });
+
+  // Webhook for SMS events
+  app.post('/api/voice/webhook/sms', async (req, res) => {
+    try {
+      const { net2phoneService } = await import('./net2phoneService');
+      const event = net2phoneService.processWebhook(req.body);
+      
+      console.log('net2phone SMS webhook received:', event.type, event.data);
+
+      if (event.type === 'sms_received') {
+        // Handle incoming SMS - could be linked to a lead/company by phone number
+        const fromPhone = event.data.from || event.data.sender_phone;
+        const toPhone = event.data.to || event.data.recipient_phone;
+        const content = event.data.message || event.data.content || event.data.body;
+
+        // Create inbound SMS record
+        await storage.createSmsMessage({
+          messageUuid: event.data.message_id || event.data.id,
+          recipientPhone: toPhone,
+          senderPhone: fromPhone,
+          direction: 'inbound',
+          content: content,
+          status: 'received',
+          sentAt: new Date(),
+        });
+      } else if (event.type === 'sms_delivered') {
+        const messageId = event.data.message_id || event.data.id;
+        if (messageId) {
+          // Update existing SMS record
+          const existingMessage = await db
+            .select()
+            .from(smsMessages)
+            .where(eq(smsMessages.messageUuid, messageId))
+            .limit(1);
+          
+          if (existingMessage.length > 0) {
+            await storage.updateSmsMessage(existingMessage[0].id, {
+              status: 'delivered',
+              deliveredAt: new Date(),
+            });
+          }
+        }
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('Error processing SMS webhook:', error);
+      res.status(500).json({ message: 'Webhook processing failed' });
     }
   });
 
