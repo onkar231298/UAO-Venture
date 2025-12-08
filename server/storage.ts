@@ -68,6 +68,17 @@ import {
   type InsertSampleRequest,
   type Inventory,
   type SalesOrder,
+  type InsertSalesOrder,
+  type SalesOrderItem,
+  type InsertSalesOrderItem,
+  type SalesOrderStatusHistory,
+  type InsertSalesOrderStatusHistory,
+  type SalesOrderActivity,
+  type InsertSalesOrderActivity,
+  type SalesOrderWithDetails,
+  salesOrderItems,
+  salesOrderStatusHistory,
+  salesOrderActivities,
   type PurchaseOrder,
   productFaqs,
   blogPosts,
@@ -345,11 +356,53 @@ export interface IStorage {
   // Sales order operations
   getSalesOrders(filters?: {
     customerId?: string;
+    companyId?: number;
+    leadId?: number;
     status?: string;
+    assignedToUserId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ orders: SalesOrder[]; total: number }>;
   getSalesOrder(id: number): Promise<SalesOrder | undefined>;
+  getSalesOrderWithDetails(id: number): Promise<SalesOrderWithDetails | undefined>;
+  createSalesOrder(order: InsertSalesOrder): Promise<SalesOrder>;
+  createSalesOrderFromQuotation(quotationId: number, options: {
+    paymentTermsAdvancePercent?: number;
+    paymentTermsCreditDays?: number;
+    expectedDeliveryDate?: Date;
+    shippingAddress?: string;
+    shippingCity?: string;
+    shippingState?: string;
+    shippingPostalCode?: string;
+    shippingCountry?: string;
+    shippingMethod?: string;
+    internalNotes?: string;
+    createdBy: string;
+  }): Promise<SalesOrder>;
+  updateSalesOrder(id: number, order: Partial<InsertSalesOrder>): Promise<SalesOrder>;
+  updateSalesOrderStatus(id: number, status: string, changedBy: string, notes?: string): Promise<SalesOrder>;
+  
+  // Sales order items
+  getSalesOrderItems(salesOrderId: number): Promise<SalesOrderItem[]>;
+  createSalesOrderItem(item: InsertSalesOrderItem): Promise<SalesOrderItem>;
+  updateSalesOrderItem(id: number, item: Partial<InsertSalesOrderItem>): Promise<SalesOrderItem>;
+  deleteSalesOrderItem(id: number): Promise<void>;
+  
+  // Sales order status history
+  getSalesOrderStatusHistory(salesOrderId: number): Promise<SalesOrderStatusHistory[]>;
+  addSalesOrderStatusHistory(history: InsertSalesOrderStatusHistory): Promise<SalesOrderStatusHistory>;
+  
+  // Sales order activities
+  getSalesOrderActivities(salesOrderId: number): Promise<SalesOrderActivity[]>;
+  addSalesOrderActivity(activity: InsertSalesOrderActivity): Promise<SalesOrderActivity>;
+  
+  // Sales order utilities
+  getNextSalesOrderNumber(): Promise<string>;
+  getSalesOrdersByCompany(companyId: number): Promise<SalesOrder[]>;
+  getSalesOrdersByLead(leadId: number): Promise<SalesOrder[]>;
 
   // Purchase order operations
   getPurchaseOrders(filters?: {
@@ -3184,7 +3237,13 @@ export class DatabaseStorage implements IStorage {
   // Sales order operations
   async getSalesOrders(filters?: {
     customerId?: string;
+    companyId?: number;
+    leadId?: number;
     status?: string;
+    assignedToUserId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ orders: SalesOrder[]; total: number }> {
@@ -3194,8 +3253,38 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(salesOrders.customerId, filters.customerId));
     }
     
+    if (filters?.companyId) {
+      conditions.push(eq(salesOrders.companyId, filters.companyId));
+    }
+    
+    if (filters?.leadId) {
+      conditions.push(eq(salesOrders.leadId, filters.leadId));
+    }
+    
     if (filters?.status) {
       conditions.push(eq(salesOrders.status, filters.status));
+    }
+    
+    if (filters?.assignedToUserId) {
+      conditions.push(eq(salesOrders.assignedToUserId, filters.assignedToUserId));
+    }
+    
+    if (filters?.startDate) {
+      conditions.push(gte(salesOrders.createdAt, filters.startDate));
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(lte(salesOrders.createdAt, filters.endDate));
+    }
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(salesOrders.soNumber, `%${filters.search}%`),
+          like(salesOrders.customerCompanyName, `%${filters.search}%`),
+          like(salesOrders.customerContactName, `%${filters.search}%`)
+        )
+      );
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -3223,6 +3312,364 @@ export class DatabaseStorage implements IStorage {
   async getSalesOrder(id: number): Promise<SalesOrder | undefined> {
     const [order] = await db.select().from(salesOrders).where(eq(salesOrders.id, id));
     return order;
+  }
+
+  async getSalesOrderWithDetails(id: number): Promise<SalesOrderWithDetails | undefined> {
+    const [order] = await db.select().from(salesOrders).where(eq(salesOrders.id, id));
+    if (!order) return undefined;
+
+    const [items, statusHistoryList, activitiesList] = await Promise.all([
+      db.select().from(salesOrderItems).where(eq(salesOrderItems.salesOrderId, id)),
+      db.select().from(salesOrderStatusHistory).where(eq(salesOrderStatusHistory.salesOrderId, id)).orderBy(desc(salesOrderStatusHistory.createdAt)),
+      db.select().from(salesOrderActivities).where(eq(salesOrderActivities.salesOrderId, id)).orderBy(desc(salesOrderActivities.createdAt)),
+    ]);
+
+    let quotation = undefined;
+    if (order.quotationId) {
+      const [q] = await db.select().from(quotations).where(eq(quotations.id, order.quotationId));
+      quotation = q;
+    }
+
+    let company = undefined;
+    if (order.companyId) {
+      const [c] = await db.select().from(companies).where(eq(companies.id, order.companyId));
+      company = c;
+    }
+
+    let lead = undefined;
+    if (order.leadId) {
+      const [l] = await db.select().from(leads).where(eq(leads.id, order.leadId));
+      lead = l;
+    }
+
+    let assignedTo = undefined;
+    if (order.assignedToUserId) {
+      const [u] = await db.select().from(users).where(eq(users.id, order.assignedToUserId));
+      assignedTo = u;
+    }
+
+    return {
+      ...order,
+      items,
+      statusHistory: statusHistoryList,
+      activities: activitiesList,
+      quotation,
+      company,
+      lead,
+      assignedTo,
+    } as SalesOrderWithDetails;
+  }
+
+  async createSalesOrder(order: InsertSalesOrder): Promise<SalesOrder> {
+    const [newOrder] = await db.insert(salesOrders).values(order).returning();
+    
+    // Add creation activity
+    await db.insert(salesOrderActivities).values({
+      salesOrderId: newOrder.id,
+      activityType: 'created',
+      title: 'Sales Order Created',
+      description: `Sales order ${newOrder.soNumber} was created`,
+      performedBy: order.createdBy,
+      createdAt: new Date(),
+    });
+    
+    // Add initial status history
+    await db.insert(salesOrderStatusHistory).values({
+      salesOrderId: newOrder.id,
+      fromStatus: null,
+      toStatus: newOrder.status || 'draft',
+      changedBy: order.createdBy,
+      notes: 'Order created',
+      createdAt: new Date(),
+    });
+    
+    return newOrder;
+  }
+
+  async createSalesOrderFromQuotation(quotationId: number, options: {
+    paymentTermsAdvancePercent?: number;
+    paymentTermsCreditDays?: number;
+    expectedDeliveryDate?: Date;
+    shippingAddress?: string;
+    shippingCity?: string;
+    shippingState?: string;
+    shippingPostalCode?: string;
+    shippingCountry?: string;
+    shippingMethod?: string;
+    internalNotes?: string;
+    createdBy: string;
+  }): Promise<SalesOrder> {
+    // Get the quotation with items
+    const [quotation] = await db.select().from(quotations).where(eq(quotations.id, quotationId));
+    if (!quotation) {
+      throw new Error('Quotation not found');
+    }
+
+    // Get quotation items
+    const quotationItemsList = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, quotationId));
+
+    // Get company info if available
+    let companyData: Company | undefined;
+    if (quotation.companyId) {
+      const [c] = await db.select().from(companies).where(eq(companies.id, quotation.companyId));
+      companyData = c;
+    }
+
+    // Generate SO number
+    const soNumber = await this.getNextSalesOrderNumber();
+
+    // Calculate advance and balance amounts
+    const totalAmount = parseFloat(quotation.totalAmount?.toString() || '0');
+    const advancePercent = options.paymentTermsAdvancePercent || 0;
+    const advanceAmountDue = (totalAmount * advancePercent) / 100;
+    const balanceAmountDue = totalAmount - advanceAmountDue;
+
+    // Create sales order
+    const orderData: InsertSalesOrder = {
+      soNumber,
+      quotationId: quotation.id,
+      companyId: quotation.companyId,
+      leadId: quotation.leadId,
+      emailThreadId: quotation.emailThreadId,
+      customerId: quotation.customerId,
+      assignedToUserId: quotation.createdBy,
+      orderDate: new Date(),
+      expectedDeliveryDate: options.expectedDeliveryDate,
+      subtotal: quotation.subtotal?.toString(),
+      discountPercent: quotation.discountPercent?.toString(),
+      discountAmount: quotation.discountAmount?.toString(),
+      taxPercent: quotation.taxPercent?.toString(),
+      taxAmount: quotation.taxAmount?.toString(),
+      totalAmount: quotation.totalAmount?.toString(),
+      currency: quotation.currency || 'USD',
+      priceType: quotation.priceType || 'ex_warehouse',
+      paymentTermsAdvancePercent: advancePercent.toString(),
+      paymentTermsCreditDays: options.paymentTermsCreditDays || 0,
+      advanceAmountDue: advanceAmountDue.toString(),
+      advanceAmountReceived: '0',
+      balanceAmountDue: balanceAmountDue.toString(),
+      balanceAmountReceived: '0',
+      status: 'draft',
+      paymentStatus: 'pending',
+      shippingAddress: options.shippingAddress || companyData?.address,
+      shippingCity: options.shippingCity || companyData?.city,
+      shippingState: options.shippingState || companyData?.state,
+      shippingPostalCode: options.shippingPostalCode || companyData?.postalCode,
+      shippingCountry: options.shippingCountry || companyData?.country,
+      shippingMethod: options.shippingMethod,
+      billingAddress: companyData?.address,
+      billingCity: companyData?.city,
+      billingState: companyData?.state,
+      billingPostalCode: companyData?.postalCode,
+      billingCountry: companyData?.country,
+      customerCompanyName: companyData?.name || quotation.customerName,
+      customerContactName: companyData?.primaryContactName,
+      customerEmail: companyData?.email || quotation.customerEmail,
+      customerPhone: companyData?.phone,
+      includeGst: quotation.includeGst || false,
+      gstNumber: quotation.gstNumber,
+      gstPercentage: quotation.gstPercentage?.toString(),
+      internalNotes: options.internalNotes,
+      termsAndConditions: quotation.termsAndConditions,
+      createdBy: options.createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const [newOrder] = await db.insert(salesOrders).values(orderData).returning();
+
+    // Create sales order items from quotation items
+    for (const item of quotationItemsList) {
+      await db.insert(salesOrderItems).values({
+        salesOrderId: newOrder.id,
+        productId: item.productId,
+        productName: item.productName,
+        productSku: item.productSku,
+        description: item.description,
+        quantity: item.quantity?.toString(),
+        unit: item.unit,
+        unitPrice: item.unitPrice?.toString(),
+        totalPrice: item.totalPrice?.toString(),
+        specifications: item.specifications,
+        notes: item.notes,
+        createdAt: new Date(),
+      });
+    }
+
+    // Add creation activity
+    await db.insert(salesOrderActivities).values({
+      salesOrderId: newOrder.id,
+      activityType: 'created',
+      title: 'Sales Order Created from Quotation',
+      description: `Sales order ${newOrder.soNumber} was created from quotation ${quotation.quotationNumber}`,
+      performedBy: options.createdBy,
+      metadata: { quotationId, quotationNumber: quotation.quotationNumber },
+      createdAt: new Date(),
+    });
+
+    // Add initial status history
+    await db.insert(salesOrderStatusHistory).values({
+      salesOrderId: newOrder.id,
+      fromStatus: null,
+      toStatus: 'draft',
+      changedBy: options.createdBy,
+      notes: `Created from quotation ${quotation.quotationNumber}`,
+      createdAt: new Date(),
+    });
+
+    // Update quotation to mark it as converted
+    await db.update(quotations).set({
+      status: 'converted',
+      updatedAt: new Date(),
+    }).where(eq(quotations.id, quotationId));
+
+    return newOrder;
+  }
+
+  async updateSalesOrder(id: number, order: Partial<InsertSalesOrder>): Promise<SalesOrder> {
+    const [updatedOrder] = await db
+      .update(salesOrders)
+      .set({ ...order, updatedAt: new Date() })
+      .where(eq(salesOrders.id, id))
+      .returning();
+    return updatedOrder;
+  }
+
+  async updateSalesOrderStatus(id: number, status: string, changedBy: string, notes?: string): Promise<SalesOrder> {
+    const [currentOrder] = await db.select().from(salesOrders).where(eq(salesOrders.id, id));
+    if (!currentOrder) {
+      throw new Error('Sales order not found');
+    }
+
+    const updateData: Partial<InsertSalesOrder> = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    // Update specific timestamps based on status
+    if (status === 'confirmed') {
+      updateData.confirmedAt = new Date();
+      updateData.confirmedBy = changedBy;
+    } else if (status === 'shipped') {
+      updateData.shippedAt = new Date();
+    } else if (status === 'delivered') {
+      updateData.deliveredAt = new Date();
+    }
+
+    const [updatedOrder] = await db
+      .update(salesOrders)
+      .set(updateData)
+      .where(eq(salesOrders.id, id))
+      .returning();
+
+    // Add status history
+    await db.insert(salesOrderStatusHistory).values({
+      salesOrderId: id,
+      fromStatus: currentOrder.status,
+      toStatus: status,
+      changedBy,
+      notes,
+      createdAt: new Date(),
+    });
+
+    // Add activity
+    await db.insert(salesOrderActivities).values({
+      salesOrderId: id,
+      activityType: 'status_changed',
+      title: `Status Changed to ${status}`,
+      description: notes || `Order status changed from ${currentOrder.status} to ${status}`,
+      performedBy: changedBy,
+      metadata: { fromStatus: currentOrder.status, toStatus: status },
+      createdAt: new Date(),
+    });
+
+    return updatedOrder;
+  }
+
+  // Sales order items
+  async getSalesOrderItems(salesOrderId: number): Promise<SalesOrderItem[]> {
+    return await db.select().from(salesOrderItems).where(eq(salesOrderItems.salesOrderId, salesOrderId));
+  }
+
+  async createSalesOrderItem(item: InsertSalesOrderItem): Promise<SalesOrderItem> {
+    const [newItem] = await db.insert(salesOrderItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateSalesOrderItem(id: number, item: Partial<InsertSalesOrderItem>): Promise<SalesOrderItem> {
+    const [updatedItem] = await db.update(salesOrderItems).set(item).where(eq(salesOrderItems.id, id)).returning();
+    return updatedItem;
+  }
+
+  async deleteSalesOrderItem(id: number): Promise<void> {
+    await db.delete(salesOrderItems).where(eq(salesOrderItems.id, id));
+  }
+
+  // Sales order status history
+  async getSalesOrderStatusHistory(salesOrderId: number): Promise<SalesOrderStatusHistory[]> {
+    return await db
+      .select()
+      .from(salesOrderStatusHistory)
+      .where(eq(salesOrderStatusHistory.salesOrderId, salesOrderId))
+      .orderBy(desc(salesOrderStatusHistory.createdAt));
+  }
+
+  async addSalesOrderStatusHistory(history: InsertSalesOrderStatusHistory): Promise<SalesOrderStatusHistory> {
+    const [newHistory] = await db.insert(salesOrderStatusHistory).values(history).returning();
+    return newHistory;
+  }
+
+  // Sales order activities
+  async getSalesOrderActivities(salesOrderId: number): Promise<SalesOrderActivity[]> {
+    return await db
+      .select()
+      .from(salesOrderActivities)
+      .where(eq(salesOrderActivities.salesOrderId, salesOrderId))
+      .orderBy(desc(salesOrderActivities.createdAt));
+  }
+
+  async addSalesOrderActivity(activity: InsertSalesOrderActivity): Promise<SalesOrderActivity> {
+    const [newActivity] = await db.insert(salesOrderActivities).values(activity).returning();
+    return newActivity;
+  }
+
+  // Sales order utilities
+  async getNextSalesOrderNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `SO-${year}-`;
+    
+    const [lastOrder] = await db
+      .select()
+      .from(salesOrders)
+      .where(like(salesOrders.soNumber, `${prefix}%`))
+      .orderBy(desc(salesOrders.id))
+      .limit(1);
+
+    let nextNumber = 1;
+    if (lastOrder && lastOrder.soNumber) {
+      const lastNumber = parseInt(lastOrder.soNumber.replace(prefix, ''), 10);
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+  }
+
+  async getSalesOrdersByCompany(companyId: number): Promise<SalesOrder[]> {
+    return await db
+      .select()
+      .from(salesOrders)
+      .where(eq(salesOrders.companyId, companyId))
+      .orderBy(desc(salesOrders.createdAt));
+  }
+
+  async getSalesOrdersByLead(leadId: number): Promise<SalesOrder[]> {
+    return await db
+      .select()
+      .from(salesOrders)
+      .where(eq(salesOrders.leadId, leadId))
+      .orderBy(desc(salesOrders.createdAt));
   }
 
   // Purchase order operations
