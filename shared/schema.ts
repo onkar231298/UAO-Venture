@@ -1818,3 +1818,186 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 // Notification types
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// ========================================
+// NET2PHONE INTEGRATION TABLES
+// ========================================
+
+// Call status types
+export const CALL_STATUSES = [
+  'initiating',
+  'ringing',
+  'answered',
+  'completed',
+  'missed',
+  'voicemail',
+  'failed',
+  'busy',
+  'no_answer',
+] as const;
+
+export type CallStatus = typeof CALL_STATUSES[number];
+
+// Call direction types
+export const CALL_DIRECTIONS = ['inbound', 'outbound'] as const;
+export type CallDirection = typeof CALL_DIRECTIONS[number];
+
+// Call logs table
+export const callLogs = pgTable("call_logs", {
+  id: serial("id").primaryKey(),
+  callUuid: varchar("call_uuid", { length: 255 }).unique(), // net2phone call ID
+  callerUserId: varchar("caller_user_id").references(() => users.id), // Sales rep making the call
+  callerPhone: varchar("caller_phone", { length: 50 }), // net2phone number used
+  recipientPhone: varchar("recipient_phone", { length: 50 }).notNull(), // Customer phone
+  recipientName: varchar("recipient_name", { length: 255 }), // Contact name
+  direction: varchar("direction", { length: 20 }).default("outbound"), // inbound, outbound
+  status: varchar("status", { length: 50 }).default("initiating"), // Call status
+  leadId: integer("lead_id").references(() => leads.id), // Associated lead
+  companyId: integer("company_id").references(() => companies.id), // Associated company
+  initiatedAt: timestamp("initiated_at").defaultNow(),
+  ringingAt: timestamp("ringing_at"),
+  answeredAt: timestamp("answered_at"),
+  endedAt: timestamp("ended_at"),
+  durationSeconds: integer("duration_seconds").default(0),
+  recordingUrl: varchar("recording_url", { length: 1000 }), // Recording URL from net2phone
+  recordingDuration: integer("recording_duration"), // Recording duration in seconds
+  voicemailUrl: varchar("voicemail_url", { length: 1000 }), // Voicemail URL if applicable
+  notes: text("notes"), // Agent notes about the call
+  disposition: varchar("disposition", { length: 100 }), // Call outcome: interested, callback, not_interested, etc.
+  metadata: jsonb("metadata").$type<Record<string, any>>(), // Additional net2phone data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_call_logs_caller").on(table.callerUserId),
+  index("idx_call_logs_lead").on(table.leadId),
+  index("idx_call_logs_company").on(table.companyId),
+  index("idx_call_logs_status").on(table.status),
+  index("idx_call_logs_initiated").on(table.initiatedAt),
+]);
+
+// SMS message types
+export const SMS_STATUSES = [
+  'pending',
+  'sent',
+  'delivered',
+  'failed',
+  'received',
+] as const;
+
+export type SmsStatus = typeof SMS_STATUSES[number];
+
+// SMS messages table
+export const smsMessages = pgTable("sms_messages", {
+  id: serial("id").primaryKey(),
+  messageUuid: varchar("message_uuid", { length: 255 }).unique(), // net2phone message ID
+  senderUserId: varchar("sender_user_id").references(() => users.id), // Staff who sent
+  senderPhone: varchar("sender_phone", { length: 50 }), // net2phone number used
+  recipientPhone: varchar("recipient_phone", { length: 50 }).notNull(),
+  recipientName: varchar("recipient_name", { length: 255 }),
+  direction: varchar("direction", { length: 20 }).default("outbound"), // inbound, outbound
+  content: text("content").notNull(), // Message content
+  status: varchar("status", { length: 50 }).default("pending"), // Message status
+  leadId: integer("lead_id").references(() => leads.id),
+  companyId: integer("company_id").references(() => companies.id),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  failedAt: timestamp("failed_at"),
+  failureReason: text("failure_reason"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_sms_sender").on(table.senderUserId),
+  index("idx_sms_lead").on(table.leadId),
+  index("idx_sms_company").on(table.companyId),
+  index("idx_sms_status").on(table.status),
+]);
+
+// Voicemail messages table
+export const voicemails = pgTable("voicemails", {
+  id: serial("id").primaryKey(),
+  voicemailUuid: varchar("voicemail_uuid", { length: 255 }).unique(),
+  userId: varchar("user_id").references(() => users.id), // User who received voicemail
+  callerPhone: varchar("caller_phone", { length: 50 }).notNull(),
+  callerName: varchar("caller_name", { length: 255 }),
+  recordingUrl: varchar("recording_url", { length: 1000 }),
+  transcription: text("transcription"), // Voicemail transcription if available
+  durationSeconds: integer("duration_seconds"),
+  leadId: integer("lead_id").references(() => leads.id),
+  companyId: integer("company_id").references(() => companies.id),
+  isListened: boolean("is_listened").default(false),
+  callLogId: integer("call_log_id").references(() => callLogs.id), // Link to call log
+  receivedAt: timestamp("received_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_voicemail_user").on(table.userId),
+  index("idx_voicemail_lead").on(table.leadId),
+  index("idx_voicemail_company").on(table.companyId),
+  index("idx_voicemail_listened").on(table.isListened),
+]);
+
+// Call logs relations
+export const callLogsRelations = relations(callLogs, ({ one }) => ({
+  caller: one(users, { fields: [callLogs.callerUserId], references: [users.id] }),
+  lead: one(leads, { fields: [callLogs.leadId], references: [leads.id] }),
+  company: one(companies, { fields: [callLogs.companyId], references: [companies.id] }),
+}));
+
+// SMS messages relations
+export const smsMessagesRelations = relations(smsMessages, ({ one }) => ({
+  sender: one(users, { fields: [smsMessages.senderUserId], references: [users.id] }),
+  lead: one(leads, { fields: [smsMessages.leadId], references: [leads.id] }),
+  company: one(companies, { fields: [smsMessages.companyId], references: [companies.id] }),
+}));
+
+// Voicemail relations
+export const voicemailsRelations = relations(voicemails, ({ one }) => ({
+  user: one(users, { fields: [voicemails.userId], references: [users.id] }),
+  lead: one(leads, { fields: [voicemails.leadId], references: [leads.id] }),
+  company: one(companies, { fields: [voicemails.companyId], references: [companies.id] }),
+  callLog: one(callLogs, { fields: [voicemails.callLogId], references: [callLogs.id] }),
+}));
+
+// Call log schemas
+export const insertCallLogSchema = createInsertSchema(callLogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmsMessageSchema = createInsertSchema(smsMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertVoicemailSchema = createInsertSchema(voicemails).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Call log types
+export type CallLog = typeof callLogs.$inferSelect;
+export type InsertCallLog = z.infer<typeof insertCallLogSchema>;
+export type SmsMessage = typeof smsMessages.$inferSelect;
+export type InsertSmsMessage = z.infer<typeof insertSmsMessageSchema>;
+export type Voicemail = typeof voicemails.$inferSelect;
+export type InsertVoicemail = z.infer<typeof insertVoicemailSchema>;
+
+// Extended types with relations
+export type CallLogWithDetails = CallLog & {
+  caller?: User;
+  lead?: Lead;
+  company?: Company;
+};
+
+export type SmsMessageWithDetails = SmsMessage & {
+  sender?: User;
+  lead?: Lead;
+  company?: Company;
+};
+
+export type VoicemailWithDetails = Voicemail & {
+  user?: User;
+  lead?: Lead;
+  company?: Company;
+  callLog?: CallLog;
+};
