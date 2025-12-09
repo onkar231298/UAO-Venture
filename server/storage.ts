@@ -3415,6 +3415,7 @@ export class DatabaseStorage implements IStorage {
     portOfLoading?: string;
     portOfDischarge?: string;
     batchNumber?: string;
+    creditPeriod?: string;
     internalNotes?: string;
     createdBy: string;
   }): Promise<SalesOrder> {
@@ -3499,6 +3500,7 @@ export class DatabaseStorage implements IStorage {
       billingCountry: options.billingCountry || companyData?.factoryAddressCountry,
       portOfLoading: options.portOfLoading,
       portOfDischarge: options.portOfDischarge,
+      creditPeriod: options.creditPeriod,
       customerCompanyName: companyData?.companyName || quotation.customerCompanyName,
       customerContactName: companyData?.primaryContactName,
       customerEmail: companyData?.primaryEmail || quotation.customerEmail,

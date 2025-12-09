@@ -103,6 +103,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     portOfLoading: "",
     portOfDischarge: "",
     batchNumber: "",
+    creditPeriod: "",
     internalNotes: "",
   });
   const [quoteFormData, setQuoteFormData] = useState({
@@ -781,6 +782,7 @@ The BFI Organic Team`);
       portOfLoading: "",
       portOfDischarge: "",
       batchNumber: "",
+      creditPeriod: "",
       internalNotes: "",
     });
   };
@@ -3762,14 +3764,25 @@ Packaging: Standard export packaging`,
                     <Package className="h-4 w-4" />
                     Product Details
                   </h4>
-                  <div>
-                    <Label htmlFor="batch-number">Batch Number</Label>
-                    <Input
-                      id="batch-number"
-                      placeholder="e.g. BATCH-2025-001"
-                      value={soFormData.batchNumber}
-                      onChange={(e) => setSOFormData({...soFormData, batchNumber: e.target.value})}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="batch-number">Batch Number</Label>
+                      <Input
+                        id="batch-number"
+                        placeholder="e.g. BATCH-2025-001"
+                        value={soFormData.batchNumber}
+                        onChange={(e) => setSOFormData({...soFormData, batchNumber: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credit-period">Credit Period / Payment Terms</Label>
+                      <Input
+                        id="credit-period"
+                        placeholder="e.g. Against BL, After Delivery, 30 Days"
+                        value={soFormData.creditPeriod}
+                        onChange={(e) => setSOFormData({...soFormData, creditPeriod: e.target.value})}
+                      />
+                    </div>
                   </div>
                 </div>
 

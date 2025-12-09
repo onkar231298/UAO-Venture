@@ -388,6 +388,7 @@ interface SalesOrderData {
   paymentTermsCreditDays?: number;
   advanceAmountDue?: string;
   balanceAmountDue?: string;
+  creditPeriod?: string;
   shippingAddress?: string;
   shippingCity?: string;
   shippingState?: string;
@@ -461,17 +462,18 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   const darkGray = '#333';
   let yPos = 15;
   
-  // Header with company logo - centered above header bar, maintain natural aspect ratio
+  // Header with company logo - matching quotation PDF size and style
   try {
+    const logoWidth = 140;
     const pageWidth = 595; // A4 page width in points
-    // Let pdfkit determine natural dimensions from the image itself
-    doc.image(logoPath, (pageWidth / 2) - 80, yPos, { fit: [160, 60], align: 'center', valign: 'center' });
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
   } catch (error) {
     console.log('Logo not found at', logoPath, ', continuing without logo');
   }
   
-  // Header bar with title - positioned after logo with clear spacing
-  yPos += 70;
+  // Header bar with title - positioned after logo with proper spacing like quotation
+  yPos += 80;
   doc.fillColor(orangeColor).rect(40, yPos, 510, 40).fill();
   doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 10, { align: 'left' });
   doc.fontSize(9).fillColor('white').text(companyDetails.name, 50, yPos + 28);
@@ -538,39 +540,40 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
     doc.text([billPostal, billCountry].filter(Boolean).join(', '), 50, billYPos, { width: 230 });
   }
   
-  // SHIP TO section
+  // SHIP TO section - with proper text wrapping to prevent overlap
   doc.fontSize(10).fillColor(orangeColor).text('SHIP TO', 310, yPos + 8);
-  doc.fontSize(8).fillColor(darkGray);
+  doc.fontSize(7).fillColor(darkGray);
   
   let shipYPos = yPos + 22;
   // Show company name
   if (companyName && companyName !== 'Customer') {
-    doc.text(companyName, 310, shipYPos, { width: 220 });
-    shipYPos += 11;
+    doc.text(companyName.slice(0, 35), 310, shipYPos, { width: 230, lineBreak: false });
+    shipYPos += 10;
   }
-  // Shipping address - each field on its own line to prevent overlap
+  // Shipping address - truncate and wrap properly
   if (order.shippingAddress) {
-    doc.text(order.shippingAddress, 310, shipYPos, { width: 220 });
-    shipYPos += 11;
+    const addr = order.shippingAddress.slice(0, 50);
+    doc.text(addr, 310, shipYPos, { width: 230, lineBreak: false });
+    shipYPos += 10;
   }
   // City on its own line
   if (order.shippingCity) {
-    doc.text(order.shippingCity, 310, shipYPos, { width: 220 });
-    shipYPos += 11;
+    doc.text(order.shippingCity.slice(0, 30), 310, shipYPos, { width: 230, lineBreak: false });
+    shipYPos += 10;
   }
   // State on its own line
   if (order.shippingState) {
-    doc.text(order.shippingState, 310, shipYPos, { width: 220 });
-    shipYPos += 11;
+    doc.text(order.shippingState.slice(0, 30), 310, shipYPos, { width: 230, lineBreak: false });
+    shipYPos += 10;
   }
   // Postal and country
   if (order.shippingPostalCode || order.shippingCountry) {
-    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', '), 310, shipYPos, { width: 220 });
-    shipYPos += 11;
+    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', ').slice(0, 35), 310, shipYPos, { width: 230, lineBreak: false });
+    shipYPos += 10;
   }
   // Shipping method
   if (order.shippingMethod) {
-    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 220 });
+    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 230, lineBreak: false });
   }
   
   yPos += boxHeight + 10;
@@ -648,6 +651,11 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   yPos += 12;
   doc.text(`Credit Days: ${order.paymentTermsCreditDays ?? 0} days`, 50, yPos);
   yPos += 12;
+  // Credit Period / Payment Terms Detail
+  if (order.creditPeriod) {
+    doc.text(`Credit Period: ${order.creditPeriod}`, 50, yPos);
+    yPos += 12;
+  }
   if (order.balanceAmountDue) {
     doc.text(`Balance Due: ${order.currency} ${parseFloat(order.balanceAmountDue).toLocaleString()}`, 50, yPos);
   }

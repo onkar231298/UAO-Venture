@@ -820,6 +820,9 @@ export const salesOrders = pgTable("sales_orders", {
   portOfLoading: varchar("port_of_loading", { length: 255 }),
   portOfDischarge: varchar("port_of_discharge", { length: 255 }),
   
+  // Credit Period / Payment Terms Detail
+  creditPeriod: varchar("credit_period", { length: 255 }),
+  
   // Notes
   internalNotes: text("internal_notes"),
   customerNotes: text("customer_notes"),

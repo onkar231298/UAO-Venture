@@ -3516,6 +3516,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         portOfLoading,
         portOfDischarge,
         batchNumber,
+        creditPeriod,
         internalNotes
       } = req.body;
 
@@ -3551,6 +3552,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         portOfLoading,
         portOfDischarge,
         batchNumber,
+        creditPeriod,
         internalNotes,
         createdBy: userId,
       });
