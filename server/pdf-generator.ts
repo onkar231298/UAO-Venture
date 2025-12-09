@@ -459,21 +459,21 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   const orangeColor = '#ff8c00';
   const darkGray = '#333';
-  let yPos = 25;
+  let yPos = 20;
   
-  // Header with company logo - centered above header bar with more top margin
+  // Header with company logo - centered above header bar, maintain aspect ratio
   try {
-    const logoWidth = 120;
-    const logoHeight = 50;
+    const logoWidth = 160;
     const pageWidth = 595; // A4 page width in points
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.image(logoPath, logoX, yPos, { width: logoWidth, height: logoHeight });
+    // Use fit to maintain aspect ratio instead of forcing height
+    doc.image(logoPath, logoX, yPos, { width: logoWidth });
   } catch (error) {
     console.log('Logo not found at', logoPath, ', continuing without logo');
   }
   
   // Header bar with title - positioned after logo with clear spacing
-  yPos += 65;
+  yPos += 55;
   doc.fillColor(orangeColor).rect(40, yPos, 510, 40).fill();
   doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 10, { align: 'left' });
   doc.fontSize(9).fillColor('white').text(companyDetails.name, 50, yPos + 28);
