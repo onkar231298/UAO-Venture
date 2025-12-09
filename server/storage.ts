@@ -3423,8 +3423,23 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Quotation not found');
     }
 
-    // Get quotation items
-    const quotationItemsList = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, quotationId));
+    // Get quotation items with product names
+    const quotationItemsList = await db
+      .select({
+        id: quotationItems.id,
+        quotationId: quotationItems.quotationId,
+        productId: quotationItems.productId,
+        quantity: quotationItems.quantity,
+        unit: quotationItems.unit,
+        unitPrice: quotationItems.unitPrice,
+        totalPrice: quotationItems.totalPrice,
+        specifications: quotationItems.specifications,
+        productName: products.name,
+        productSku: products.productId,
+      })
+      .from(quotationItems)
+      .leftJoin(products, eq(quotationItems.productId, products.id))
+      .where(eq(quotationItems.quotationId, quotationId));
 
     // Get company info if available
     let companyData: Company | undefined;
@@ -3504,15 +3519,14 @@ export class DatabaseStorage implements IStorage {
       await db.insert(salesOrderItems).values({
         salesOrderId: newOrder.id,
         productId: item.productId,
-        productName: item.productName,
-        productSku: item.productSku,
-        description: item.description,
+        productName: item.productName || 'Product',
+        productSku: item.productSku || undefined,
+        description: item.specifications || undefined,
         quantity: item.quantity?.toString(),
         unit: item.unit,
         unitPrice: item.unitPrice?.toString(),
         totalPrice: item.totalPrice?.toString(),
         specifications: item.specifications,
-        notes: item.notes,
         createdAt: new Date(),
       });
     }
