@@ -3568,7 +3568,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.post('/api/sales-orders/:id/send', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { emailThreadId, subject, body } = req.body;
+      const { emailThreadId, subject, body, to, cc } = req.body;
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
@@ -3593,18 +3593,27 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(400).json({ message: "Please configure your Gmail account to send emails" });
       }
 
-      // Get email thread to find recipient
-      let toEmail = order.customerEmail;
-      if (emailThreadId) {
+      // Use provided 'to' array first, then fallback to thread/order email
+      let toEmails: string[] = [];
+      if (to && Array.isArray(to) && to.length > 0) {
+        toEmails = to;
+      } else if (emailThreadId) {
         const thread = await storage.getEmailThread(emailThreadId);
-        if (thread) {
-          toEmail = thread.customerEmail || toEmail;
+        if (thread?.customerEmail) {
+          toEmails = [thread.customerEmail];
         }
       }
-
-      if (!toEmail) {
-        return res.status(400).json({ message: "No customer email address found" });
+      
+      // Fallback to order's customer email
+      if (toEmails.length === 0 && order.customerEmail) {
+        toEmails = [order.customerEmail];
       }
+
+      if (toEmails.length === 0) {
+        return res.status(400).json({ message: "No customer email address found. Please enter a recipient email." });
+      }
+      
+      const ccEmails: string[] = cc && Array.isArray(cc) ? cc : [];
 
       // Generate Sales Order PDF
       const pdfBuffer = await storage.generateSalesOrderPdf(parseInt(id));
@@ -3625,8 +3634,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Create email with attachment
       const boundary = 'boundary_' + Date.now();
       const emailLines = [
-        `To: ${toEmail}`,
+        `To: ${toEmails.join(', ')}`,
         `From: ${emailConfig.emailAddress}`,
+        ...(ccEmails.length > 0 ? [`Cc: ${ccEmails.join(', ')}`] : []),
         `Subject: ${subject}`,
         'MIME-Version: 1.0',
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
@@ -3634,7 +3644,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         `--${boundary}`,
         'Content-Type: text/html; charset=UTF-8',
         '',
-        body.replace(/\n/g, '<br>'),
+        body,
         '',
         `--${boundary}`,
         `Content-Type: application/pdf; name="${order.soNumber}.pdf"`,
@@ -3672,9 +3682,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         salesOrderId: parseInt(id),
         activityType: 'email_sent',
         title: 'Sales Order Sent to Customer',
-        description: `Sales order ${order.soNumber} was sent to ${toEmail}`,
+        description: `Sales order ${order.soNumber} was sent to ${toEmails.join(', ')}`,
         performedBy: userId,
-        metadata: { toEmail, subject },
+        metadata: { toEmails, ccEmails, subject },
         createdAt: new Date(),
       });
 

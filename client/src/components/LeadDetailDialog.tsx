@@ -84,6 +84,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [selectedSOToSend, setSelectedSOToSend] = useState<any>(null);
   const [soEmailSubject, setSOEmailSubject] = useState("");
   const [soEmailBody, setSOEmailBody] = useState("");
+  const [soEmailTo, setSOEmailTo] = useState<string[]>([]);
+  const [soEmailCc, setSOEmailCc] = useState<string[]>([]);
   const [selectedThreadForSO, setSelectedThreadForSO] = useState<string>("");
   const [soFormData, setSOFormData] = useState({
     paymentTermsAdvancePercent: "",
@@ -655,13 +657,15 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   // Send Sales Order to customer mutation
   const sendSalesOrderMutation = useMutation({
-    mutationFn: async (data: { salesOrderId: number; emailThreadId: number; subject: string; body: string }) => {
+    mutationFn: async (data: { salesOrderId: number; emailThreadId?: number; subject: string; body: string; to?: string[]; cc?: string[] }) => {
       return apiRequest(`/api/sales-orders/${data.salesOrderId}/send`, {
         method: 'POST',
         body: JSON.stringify({
           emailThreadId: data.emailThreadId,
           subject: data.subject,
           body: data.body,
+          to: data.to,
+          cc: data.cc,
         }),
       });
     },
@@ -690,28 +694,46 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
   const initializeSendSOForm = (salesOrder: any) => {
     const companyName = lead?.company?.companyName || lead?.companyName || 'Valued Customer';
+    const customerEmail = salesOrder.customerEmail || lead?.contactPerson?.email || lead?.company?.primaryEmail || '';
+    
     setSOEmailSubject(`Sales Order ${salesOrder.soNumber} - ${companyName}`);
-    setSOEmailBody(`Dear ${lead?.contactName || companyName},
+    setSOEmailTo(customerEmail ? [customerEmail] : []);
+    setSOEmailCc([]);
+    setSOEmailBody(`<p>Dear ${lead?.contactName || companyName},</p>
 
-Please find attached your Sales Order ${salesOrder.soNumber} for your recent order.
+<p>Please find attached your Sales Order <strong>${salesOrder.soNumber}</strong> for your recent order.</p>
 
-Order Details:
-- Order Number: ${salesOrder.soNumber}
-- Total Amount: ${salesOrder.currency || 'USD'} ${parseFloat(salesOrder.totalAmount || 0).toLocaleString()}
-- Expected Delivery: ${salesOrder.expectedDeliveryDate ? format(new Date(salesOrder.expectedDeliveryDate), 'MMMM d, yyyy') : 'To be confirmed'}
+<p><strong>Order Details:</strong></p>
+<ul>
+<li>Order Number: ${salesOrder.soNumber}</li>
+<li>Total Amount: ${salesOrder.currency || 'USD'} ${parseFloat(salesOrder.totalAmount || 0).toLocaleString()}</li>
+<li>Expected Delivery: ${salesOrder.expectedDeliveryDate ? format(new Date(salesOrder.expectedDeliveryDate), 'MMMM d, yyyy') : 'To be confirmed'}</li>
+</ul>
 
-Payment Terms:
-- Advance Payment: ${salesOrder.paymentTermsAdvancePercent || 0}%
-- Credit Days: ${salesOrder.paymentTermsCreditDays || 30} days
+<p><strong>Payment Terms:</strong></p>
+<ul>
+<li>Advance Payment: ${salesOrder.paymentTermsAdvancePercent || 0}%</li>
+<li>Credit Days: ${salesOrder.paymentTermsCreditDays || 30} days</li>
+</ul>
 
-Please review the order details and let us know if you have any questions.
+<p>Please review the order details and let us know if you have any questions.</p>
 
-Best regards,
-The BFI Organic Team`);
+<p>Best regards,<br/>The BFI Organic Team</p>`);
+    setSelectedThreadForSO("");
   };
 
   const handleSendSO = () => {
     if (!selectedSOToSend) return;
+    
+    // Validate recipients
+    if (soEmailTo.length === 0) {
+      toast({
+        title: "Missing Recipient",
+        description: "Please enter at least one email recipient",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // If "new_thread" is selected, don't send emailThreadId (starts new conversation)
     const emailThreadId = selectedThreadForSO && selectedThreadForSO !== "new_thread" 
@@ -723,6 +745,8 @@ The BFI Organic Team`);
       emailThreadId,
       subject: soEmailSubject,
       body: soEmailBody,
+      to: soEmailTo,
+      cc: soEmailCc.length > 0 ? soEmailCc : undefined,
     });
   };
 
@@ -3859,7 +3883,36 @@ Packaging: Standard export packaging`,
                   <Label htmlFor="so-thread">Email Thread</Label>
                   <Select
                     value={selectedThreadForSO}
-                    onValueChange={setSelectedThreadForSO}
+                    onValueChange={(value) => {
+                      setSelectedThreadForSO(value);
+                      // Auto-populate recipients when selecting a thread
+                      if (value && value !== "new_thread") {
+                        const thread = emailThreads?.find((t: any) => t.id.toString() === value);
+                        if (thread) {
+                          const lastMessage = thread.messages?.[thread.messages.length - 1];
+                          if (lastMessage) {
+                            const ourEmail = emailConfig?.companyEmail?.toLowerCase();
+                            if (lastMessage.direction === 'outbound') {
+                              const toEmails = (lastMessage.toEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                              if (toEmails.length > 0) setSOEmailTo(toEmails);
+                            } else {
+                              if (lastMessage.fromEmail) setSOEmailTo([lastMessage.fromEmail]);
+                            }
+                            const ccEmails = (lastMessage.ccEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                            setSOEmailCc(ccEmails);
+                          }
+                          // Auto-set subject with Re: prefix for replies
+                          setSOEmailSubject(`Re: ${thread.subject || 'Sales Order'}`);
+                        }
+                      } else {
+                        // Reset for new thread
+                        const customerEmail = selectedSOToSend?.customerEmail || lead?.contactPerson?.email || lead?.company?.primaryEmail || '';
+                        setSOEmailTo(customerEmail ? [customerEmail] : []);
+                        setSOEmailCc([]);
+                        const companyName = lead?.company?.companyName || lead?.companyName || 'Valued Customer';
+                        setSOEmailSubject(`Sales Order ${selectedSOToSend?.soNumber} - ${companyName}`);
+                      }
+                    }}
                   >
                     <SelectTrigger data-testid="select-so-thread">
                       <SelectValue placeholder="Select thread or start new" />
@@ -3879,31 +3932,57 @@ Packaging: Standard export packaging`,
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500 mt-1">
-                    {selectedThreadForSO === "new_thread" 
-                      ? "A new email conversation will be started with the customer"
-                      : "The sales order PDF will be sent as a reply to this thread"}
+                    {selectedThreadForSO && selectedThreadForSO !== "new_thread" 
+                      ? "The sales order PDF will be sent as a reply to this thread"
+                      : "A new email conversation will be started with the customer"}
                   </p>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="so-email-to">To</Label>
+                    <Input
+                      id="so-email-to"
+                      value={soEmailTo.join(', ')}
+                      onChange={(e) => setSOEmailTo(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                      placeholder="recipient@example.com"
+                      data-testid="input-so-email-to"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="so-email-cc">CC (optional)</Label>
+                    <Input
+                      id="so-email-cc"
+                      value={soEmailCc.join(', ')}
+                      onChange={(e) => setSOEmailCc(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                      placeholder="cc@example.com"
+                      data-testid="input-so-email-cc"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="so-subject">Email Subject</Label>
+                  <Label htmlFor="so-subject">Subject</Label>
                   <Input
                     id="so-subject"
                     value={soEmailSubject}
                     onChange={(e) => setSOEmailSubject(e.target.value)}
                     placeholder="Enter email subject"
+                    disabled={selectedThreadForSO && selectedThreadForSO !== "new_thread"}
+                    className={selectedThreadForSO && selectedThreadForSO !== "new_thread" ? "bg-gray-100" : ""}
                   />
+                  {selectedThreadForSO && selectedThreadForSO !== "new_thread" && (
+                    <p className="text-xs text-gray-500 mt-1">Subject is auto-set when replying to a thread</p>
+                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="so-body">Email Message</Label>
-                  <Textarea
-                    id="so-body"
-                    value={soEmailBody}
-                    onChange={(e) => setSOEmailBody(e.target.value)}
-                    placeholder="Write your message to the customer..."
-                    rows={12}
-                    className="font-mono text-sm"
+                  <Label>Message</Label>
+                  <RichTextEditor
+                    content={soEmailBody}
+                    onChange={setSOEmailBody}
+                    placeholder="Write your email here... Use the toolbar above for formatting."
+                    minHeight="200px"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     The Sales Order PDF will be automatically attached to this email
@@ -3918,6 +3997,8 @@ Packaging: Standard export packaging`,
                       setSelectedSOToSend(null);
                       setSOEmailSubject("");
                       setSOEmailBody("");
+                      setSOEmailTo([]);
+                      setSOEmailCc([]);
                       setSelectedThreadForSO("");
                     }}
                   >
