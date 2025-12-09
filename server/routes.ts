@@ -3722,7 +3722,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       if (threadIdToUse) {
         // Add the sent message to the thread
-        await storage.addEmailMessage({
+        await storage.createEmailMessage({
           threadId: threadIdToUse,
           gmailMessageId: sentMessageId || undefined,
           direction: 'outbound',
