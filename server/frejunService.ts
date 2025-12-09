@@ -149,21 +149,35 @@ class FrejunService {
       // Use form-urlencoded format as per OAuth 2.0 standard
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
-      params.append('client_id', FREJUN_CLIENT_ID!);
-      params.append('client_secret', FREJUN_CLIENT_SECRET!);
       params.append('code', code);
       params.append('redirect_uri', FREJUN_CALLBACK_URL!);
 
-      console.log('Frejun token exchange request to:', `${FREJUN_PRODUCT_URL}/oauth/token/`);
+      // Create Basic Auth header (some OAuth providers require this)
+      const basicAuth = Buffer.from(`${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`).toString('base64');
+
+      // Try the API endpoint first (without trailing slash to avoid redirects)
+      const tokenUrl = `${FREJUN_PRODUCT_URL}/api/v1/oauth/token`;
+      console.log('Frejun token exchange request to:', tokenUrl);
       console.log('Frejun token exchange redirect_uri:', FREJUN_CALLBACK_URL);
       
-      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token/`, params, {
+      const response = await axios.post(tokenUrl, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${basicAuth}`,
         },
+        maxRedirects: 0, // Prevent redirects that lose POST method
+        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
       });
 
+      console.log('Frejun token exchange response status:', response.status);
       console.log('Frejun token exchange response:', response.data);
+
+      if (response.status >= 400) {
+        return {
+          success: false,
+          error: response.data?.error_description || response.data?.error || response.data?.message || `HTTP ${response.status}`,
+        };
+      }
 
       return {
         success: true,
@@ -192,14 +206,18 @@ class FrejunService {
     try {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
-      params.append('client_id', FREJUN_CLIENT_ID!);
-      params.append('client_secret', FREJUN_CLIENT_SECRET!);
       params.append('refresh_token', refreshToken);
 
-      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token/`, params, {
+      const basicAuth = Buffer.from(`${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`).toString('base64');
+      const tokenUrl = `${FREJUN_PRODUCT_URL}/api/v1/oauth/token`;
+
+      const response = await axios.post(tokenUrl, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${basicAuth}`,
         },
+        maxRedirects: 0,
+        validateStatus: (status) => status < 500,
       });
 
       return {
