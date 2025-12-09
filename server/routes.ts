@@ -8523,14 +8523,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const { code, email, state } = req.query;
       const { frejunService } = await import('./frejunService');
       
+      console.log('Frejun OAuth callback received - code:', code ? 'present' : 'missing', 'email:', email, 'state:', state);
+      
       if (!code) {
         return res.redirect('/admin/settings?frejun=error&reason=no_code');
       }
       
       const tokenResult = await frejunService.exchangeCodeForTokens(code as string);
       
+      console.log('Frejun token exchange result:', tokenResult.success ? 'success' : 'failed', tokenResult.error || '');
+      
       if (!tokenResult.success || !tokenResult.accessToken) {
-        return res.redirect('/admin/settings?frejun=error&reason=token_exchange_failed');
+        const errorReason = encodeURIComponent(tokenResult.error || 'token_exchange_failed');
+        return res.redirect(`/admin/settings?frejun=error&reason=${errorReason}`);
       }
       
       // Store the token for this user (state contains userId)

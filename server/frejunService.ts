@@ -154,9 +154,10 @@ class FrejunService {
       params.append('code', code);
       params.append('redirect_uri', FREJUN_CALLBACK_URL!);
 
-      console.log('Frejun token exchange request to:', `${FREJUN_PRODUCT_URL}/oauth/token`);
+      console.log('Frejun token exchange request to:', `${FREJUN_PRODUCT_URL}/oauth/token/`);
+      console.log('Frejun token exchange redirect_uri:', FREJUN_CALLBACK_URL);
       
-      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token`, params, {
+      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token/`, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -195,7 +196,7 @@ class FrejunService {
       params.append('client_secret', FREJUN_CLIENT_SECRET!);
       params.append('refresh_token', refreshToken);
 
-      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token`, params, {
+      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token/`, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
