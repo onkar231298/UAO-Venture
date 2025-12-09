@@ -3791,6 +3791,7 @@ export class DatabaseStorage implements IStorage {
       termsAndConditions: order.termsAndConditions || undefined,
       portOfLoading: order.portOfLoading || undefined,
       portOfDischarge: order.portOfDischarge || undefined,
+      creditPeriod: order.creditPeriod || undefined,
     };
 
     // Build customer data with proper fallbacks - prioritize contact name, then company name
