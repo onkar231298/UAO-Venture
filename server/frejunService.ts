@@ -146,13 +146,23 @@ class FrejunService {
     }
 
     try {
-      const response = await axios.post(`${FREJUN_API_URL}/oauth/token/`, {
-        grant_type: 'authorization_code',
-        client_id: FREJUN_CLIENT_ID,
-        client_secret: FREJUN_CLIENT_SECRET,
-        code,
-        redirect_uri: FREJUN_CALLBACK_URL,
+      // Use form-urlencoded format as per OAuth 2.0 standard
+      const params = new URLSearchParams();
+      params.append('grant_type', 'authorization_code');
+      params.append('client_id', FREJUN_CLIENT_ID!);
+      params.append('client_secret', FREJUN_CLIENT_SECRET!);
+      params.append('code', code);
+      params.append('redirect_uri', FREJUN_CALLBACK_URL!);
+
+      console.log('Frejun token exchange request to:', `${FREJUN_PRODUCT_URL}/oauth/token`);
+      
+      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token`, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       });
+
+      console.log('Frejun token exchange response:', response.data);
 
       return {
         success: true,
@@ -162,9 +172,10 @@ class FrejunService {
       };
     } catch (error: any) {
       console.error('Frejun token exchange error:', error.response?.data || error.message);
+      console.error('Frejun token exchange full error:', error.response?.status, error.response?.statusText);
       return {
         success: false,
-        error: error.response?.data?.error_description || error.message || 'Failed to exchange code for tokens',
+        error: error.response?.data?.error_description || error.response?.data?.error || error.message || 'Failed to exchange code for tokens',
       };
     }
   }
@@ -178,11 +189,16 @@ class FrejunService {
     }
 
     try {
-      const response = await axios.post(`${FREJUN_API_URL}/oauth/token/`, {
-        grant_type: 'refresh_token',
-        client_id: FREJUN_CLIENT_ID,
-        client_secret: FREJUN_CLIENT_SECRET,
-        refresh_token: refreshToken,
+      const params = new URLSearchParams();
+      params.append('grant_type', 'refresh_token');
+      params.append('client_id', FREJUN_CLIENT_ID!);
+      params.append('client_secret', FREJUN_CLIENT_SECRET!);
+      params.append('refresh_token', refreshToken);
+
+      const response = await axios.post(`${FREJUN_PRODUCT_URL}/oauth/token`, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       });
 
       return {
