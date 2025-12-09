@@ -3447,6 +3447,40 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Download Sales Order PDF
+  app.get('/api/sales-orders/:id/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const order = await storage.getSalesOrderWithDetails(parseInt(id));
+      
+      if (!order) {
+        return res.status(404).json({ message: "Sales order not found" });
+      }
+
+      // Check access for customers
+      if (user.role === 'customer' && order.customerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Generate PDF
+      const pdfBuffer = await storage.generateSalesOrderPdf(parseInt(id));
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${order.soNumber}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating sales order PDF:", error);
+      res.status(500).json({ message: "Failed to generate sales order PDF" });
+    }
+  });
+
   // Convert quotation to sales order
   app.post('/api/sales-orders/convert-from-quotation', isAuthenticated, async (req: any, res) => {
     try {

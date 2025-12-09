@@ -702,11 +702,16 @@ The BFI Organic Team`);
   };
 
   const handleSendSO = () => {
-    if (!selectedSOToSend || !selectedThreadForSO) return;
+    if (!selectedSOToSend) return;
+    
+    // If "new_thread" is selected, don't send emailThreadId (starts new conversation)
+    const emailThreadId = selectedThreadForSO && selectedThreadForSO !== "new_thread" 
+      ? parseInt(selectedThreadForSO) 
+      : undefined;
     
     sendSalesOrderMutation.mutate({
       salesOrderId: selectedSOToSend.id,
-      emailThreadId: parseInt(selectedThreadForSO),
+      emailThreadId,
       subject: soEmailSubject,
       body: soEmailBody,
     });
@@ -3712,16 +3717,22 @@ Packaging: Standard export packaging`,
                 </div>
 
                 <div>
-                  <Label htmlFor="so-thread">Select Email Thread *</Label>
+                  <Label htmlFor="so-thread">Email Thread</Label>
                   <Select
                     value={selectedThreadForSO}
                     onValueChange={setSelectedThreadForSO}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an email thread" />
+                    <SelectTrigger data-testid="select-so-thread">
+                      <SelectValue placeholder="Select thread or start new" />
                     </SelectTrigger>
                     <SelectContent>
-                      {emailThreads?.map((thread: any) => (
+                      <SelectItem value="new_thread">
+                        <span className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Start New Email Thread
+                        </span>
+                      </SelectItem>
+                      {emailThreads?.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
                         <SelectItem key={thread.id} value={thread.id.toString()}>
                           {thread.subject || 'No Subject'} - {thread.customerEmail}
                         </SelectItem>
@@ -3729,7 +3740,9 @@ Packaging: Standard export packaging`,
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500 mt-1">
-                    The sales order PDF will be sent as a reply to this thread
+                    {selectedThreadForSO === "new_thread" 
+                      ? "A new email conversation will be started with the customer"
+                      : "The sales order PDF will be sent as a reply to this thread"}
                   </p>
                 </div>
 
@@ -3785,8 +3798,9 @@ Packaging: Standard export packaging`,
                   </Button>
                   <Button
                     onClick={handleSendSO}
-                    disabled={sendSalesOrderMutation.isPending || !selectedThreadForSO}
+                    disabled={sendSalesOrderMutation.isPending}
                     className="bg-purple-600 hover:bg-purple-700"
+                    data-testid="button-send-so"
                   >
                     {sendSalesOrderMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
