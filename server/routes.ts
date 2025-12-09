@@ -3639,7 +3639,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       if (emailThreadId) {
         existingThread = await storage.getEmailThread(emailThreadId);
-        gmailThreadId = existingThread?.gmailThreadId;
+        gmailThreadId = existingThread?.threadId; // threadId is the Gmail thread ID in the schema
         console.log('[SO Send] Thread found:', existingThread?.id, 'Gmail threadId:', gmailThreadId);
         
         // Fetch the messages for this thread (getEmailThread doesn't include messages)
