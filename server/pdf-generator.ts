@@ -459,20 +459,21 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   const orangeColor = '#ff8c00';
   const darkGray = '#333';
-  let yPos = 15;
+  let yPos = 25;
   
-  // Header with company logo - centered above header bar
+  // Header with company logo - centered above header bar with more top margin
   try {
-    const logoWidth = 140;
+    const logoWidth = 120;
+    const logoHeight = 50;
     const pageWidth = 595; // A4 page width in points
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 60] });
+    doc.image(logoPath, logoX, yPos, { width: logoWidth, height: logoHeight });
   } catch (error) {
     console.log('Logo not found at', logoPath, ', continuing without logo');
   }
   
   // Header bar with title - positioned after logo with clear spacing
-  yPos += 80;
+  yPos += 65;
   doc.fillColor(orangeColor).rect(40, yPos, 510, 40).fill();
   doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 10, { align: 'left' });
   doc.fontSize(9).fillColor('white').text(companyDetails.name, 50, yPos + 28);
@@ -490,7 +491,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   yPos += 20;
   
   // Customer and Shipping Details - increased height for better spacing
-  const boxHeight = 120;
+  const boxHeight = 130;
   doc.fillColor('#f8f9fa').rect(40, yPos, 250, boxHeight).fill();
   doc.fillColor('#f8f9fa').rect(300, yPos, 250, boxHeight).fill();
   
@@ -541,44 +542,50 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   // SHIP TO section
   doc.fontSize(10).fillColor(orangeColor).text('SHIP TO', 310, yPos + 8);
-  doc.fontSize(9).fillColor(darkGray);
+  doc.fontSize(8).fillColor(darkGray);
   
   let shipYPos = yPos + 22;
   // Show company name
   if (companyName && companyName !== 'Customer') {
-    doc.text(companyName, 310, shipYPos, { width: 230 });
-    shipYPos += 12;
+    doc.text(companyName, 310, shipYPos, { width: 220 });
+    shipYPos += 11;
   }
-  // Shipping address
+  // Shipping address - each field on its own line to prevent overlap
   if (order.shippingAddress) {
-    doc.text(order.shippingAddress.slice(0, 40), 310, shipYPos, { width: 230 });
-    shipYPos += 12;
+    doc.text(order.shippingAddress, 310, shipYPos, { width: 220 });
+    shipYPos += 11;
   }
-  // City and state with proper spacing
-  if (order.shippingCity || order.shippingState) {
-    doc.text([order.shippingCity, order.shippingState].filter(Boolean).join(', '), 310, shipYPos, { width: 230 });
-    shipYPos += 12;
+  // City on its own line
+  if (order.shippingCity) {
+    doc.text(order.shippingCity, 310, shipYPos, { width: 220 });
+    shipYPos += 11;
+  }
+  // State on its own line
+  if (order.shippingState) {
+    doc.text(order.shippingState, 310, shipYPos, { width: 220 });
+    shipYPos += 11;
   }
   // Postal and country
   if (order.shippingPostalCode || order.shippingCountry) {
-    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', '), 310, shipYPos, { width: 230 });
-    shipYPos += 12;
+    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', '), 310, shipYPos, { width: 220 });
+    shipYPos += 11;
   }
   // Shipping method
   if (order.shippingMethod) {
-    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 230 });
+    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 220 });
   }
   
   yPos += boxHeight + 10;
   
-  // Items Table Header
+  // Items Table Header with Batch Number column
   doc.fillColor(orangeColor).rect(40, yPos, 510, 22).fill();
-  doc.fontSize(9).fillColor('white');
-  doc.text('#', 50, yPos + 6);
-  doc.text('Product', 70, yPos + 6);
-  doc.text('SKU', 240, yPos + 6);
-  doc.text('Qty', 320, yPos + 6);
-  doc.text('Unit Price', 370, yPos + 6);
+  doc.fontSize(8).fillColor('white');
+  doc.text('#', 45, yPos + 6);
+  doc.text('Product', 60, yPos + 6);
+  doc.text('SKU', 175, yPos + 6);
+  doc.text('Batch', 235, yPos + 6);
+  doc.text('Qty', 295, yPos + 6);
+  doc.text('Unit Price', 350, yPos + 6);
   doc.text('Total', 470, yPos + 6, { align: 'right', width: 70 });
   
   yPos += 22;
@@ -589,12 +596,13 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
     order.items.forEach((item, index) => {
       const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
       doc.fillColor(bgColor).rect(40, yPos, 510, 20).fill();
-      doc.fillColor(darkGray).fontSize(9);
-      doc.text((index + 1).toString(), 50, yPos + 5);
-      doc.text((item.productName || 'Product').slice(0, 30), 70, yPos + 5);
-      doc.text(item.productSku || '-', 240, yPos + 5);
-      doc.text(`${item.quantity || '0'} ${item.unit || 'units'}`, 320, yPos + 5);
-      doc.text(`${order.currency} ${parseFloat(item.unitPrice || '0').toLocaleString()}`, 370, yPos + 5);
+      doc.fillColor(darkGray).fontSize(8);
+      doc.text((index + 1).toString(), 45, yPos + 5);
+      doc.text((item.productName || 'Product').slice(0, 22), 60, yPos + 5);
+      doc.text(item.productSku || '-', 175, yPos + 5);
+      doc.text(item.batchNumber || '-', 235, yPos + 5);
+      doc.text(`${item.quantity || '0'} ${item.unit || 'units'}`, 295, yPos + 5);
+      doc.text(`${order.currency} ${parseFloat(item.unitPrice || '0').toLocaleString()}`, 350, yPos + 5);
       doc.text(`${order.currency} ${parseFloat(item.totalPrice || '0').toLocaleString()}`, 470, yPos + 5, { align: 'right', width: 70 });
       yPos += 20;
     });
