@@ -2484,27 +2484,82 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         .where(eq(companies.companyName, companyName))
         .limit(1);
       
+      // Get customer registration details if available
+      let customerDetails: any = null;
+      if (inquiryDetails.customerId) {
+        customerDetails = await storage.getUser(inquiryDetails.customerId);
+      }
+      
       let companyId: number;
       if (company.length === 0) {
-        // Create new company
+        // Create new company with customer registration details
+        const companyData: any = {
+          companyName,
+          primaryEmail: inquiryDetails.emailAddress,
+          primaryPhone: inquiryDetails.phoneNumber || customerDetails?.phoneNumber,
+          dataCompleteness: customerDetails ? 'complete' : 'partial',
+          needsEnrichment: !customerDetails,
+          assignedTo: userId,
+          createdBy: userId,
+          origin: 'website', // From customer inquiry
+        };
+        
+        // Copy customer registration details to company
+        if (customerDetails) {
+          companyData.industryType = customerDetails.industryType || null;
+          companyData.addressStreet = customerDetails.streetAddress || customerDetails.address || null;
+          companyData.addressCity = customerDetails.city || null;
+          companyData.addressState = customerDetails.state || null;
+          companyData.addressCountry = customerDetails.country || null;
+          companyData.addressZip = customerDetails.postalCode || null;
+          companyData.linkedUserId = customerDetails.id;
+        }
+        
         const [newCompany] = await db.insert(companies)
-          .values({
-            companyName,
-            primaryEmail: inquiryDetails.emailAddress,
-            primaryPhone: inquiryDetails.phoneNumber,
-            dataCompleteness: 'partial',
-            needsEnrichment: true,
-            assignedTo: userId,
-            createdBy: userId,
-          })
+          .values(companyData)
           .returning();
         companyId = newCompany.id;
       } else {
         companyId = company[0].id;
+        
+        // Update existing company with missing customer details if available
+        if (customerDetails) {
+          const existingCompany = company[0];
+          const updateData: any = {};
+          
+          if (!existingCompany.industryType && customerDetails.industryType) {
+            updateData.industryType = customerDetails.industryType;
+          }
+          if (!existingCompany.addressStreet && (customerDetails.streetAddress || customerDetails.address)) {
+            updateData.addressStreet = customerDetails.streetAddress || customerDetails.address;
+          }
+          if (!existingCompany.addressCity && customerDetails.city) {
+            updateData.addressCity = customerDetails.city;
+          }
+          if (!existingCompany.addressState && customerDetails.state) {
+            updateData.addressState = customerDetails.state;
+          }
+          if (!existingCompany.addressCountry && customerDetails.country) {
+            updateData.addressCountry = customerDetails.country;
+          }
+          if (!existingCompany.addressZip && customerDetails.postalCode) {
+            updateData.addressZip = customerDetails.postalCode;
+          }
+          if (!existingCompany.linkedUserId) {
+            updateData.linkedUserId = customerDetails.id;
+          }
+          
+          // Only update if there are changes
+          if (Object.keys(updateData).length > 0) {
+            await db.update(companies)
+              .set(updateData)
+              .where(eq(companies.id, companyId));
+          }
+        }
       }
 
       // Step 2: Find or create contact person record
-      const contactName = inquiryDetails.contactName;
+      const contactName = inquiryDetails.contactName || (customerDetails ? `${customerDetails.firstName || ''} ${customerDetails.lastName || ''}`.trim() : null);
       let contactPersonId: number | null = null;
       if (contactName) {
         let contact = await db.select().from(companyContacts)
@@ -2515,13 +2570,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           .limit(1);
         
         if (contact.length === 0) {
-          // Create new contact
+          // Create new contact with customer details
           const [newContact] = await db.insert(companyContacts)
             .values({
               companyId,
               contactName: contactName,
-              email: inquiryDetails.emailAddress,
-              phone: inquiryDetails.phoneNumber,
+              email: inquiryDetails.emailAddress || customerDetails?.email,
+              phone: inquiryDetails.phoneNumber || customerDetails?.phoneNumber,
               isPrimary: true,
             })
             .returning();
