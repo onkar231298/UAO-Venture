@@ -3764,7 +3764,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       // Log lead activity
       if (order.leadId) {
-        await storage.addLeadActivity({
+        await storage.createLeadActivity({
           leadId: order.leadId,
           activityType: 'sales_order_sent',
           title: 'Sales Order Sent',
