@@ -3414,6 +3414,7 @@ export class DatabaseStorage implements IStorage {
     billingCountry?: string;
     portOfLoading?: string;
     portOfDischarge?: string;
+    batchNumber?: string;
     internalNotes?: string;
     createdBy: string;
   }): Promise<SalesOrder> {
@@ -3527,6 +3528,7 @@ export class DatabaseStorage implements IStorage {
         unitPrice: item.unitPrice?.toString(),
         totalPrice: item.totalPrice?.toString(),
         specifications: item.specifications,
+        batchNumber: options.batchNumber || undefined,
         createdAt: new Date(),
       });
     }

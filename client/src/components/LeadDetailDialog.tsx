@@ -102,6 +102,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     billingCountry: "",
     portOfLoading: "",
     portOfDischarge: "",
+    batchNumber: "",
     internalNotes: "",
   });
   const [quoteFormData, setQuoteFormData] = useState({
@@ -779,6 +780,7 @@ The BFI Organic Team`);
       billingCountry: "",
       portOfLoading: "",
       portOfDischarge: "",
+      batchNumber: "",
       internalNotes: "",
     });
   };
@@ -3752,6 +3754,22 @@ Packaging: Standard export packaging`,
                         onChange={(e) => setSOFormData({...soFormData, portOfDischarge: e.target.value})}
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Product Details
+                  </h4>
+                  <div>
+                    <Label htmlFor="batch-number">Batch Number</Label>
+                    <Input
+                      id="batch-number"
+                      placeholder="e.g. BATCH-2025-001"
+                      value={soFormData.batchNumber}
+                      onChange={(e) => setSOFormData({...soFormData, batchNumber: e.target.value})}
+                    />
                   </div>
                 </div>
 

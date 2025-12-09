@@ -3508,6 +3508,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         shippingPostalCode,
         shippingCountry,
         shippingMethod,
+        billingAddress,
+        billingCity,
+        billingState,
+        billingPostalCode,
+        billingCountry,
+        portOfLoading,
+        portOfDischarge,
+        batchNumber,
         internalNotes
       } = req.body;
 
@@ -3535,6 +3543,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         shippingPostalCode,
         shippingCountry,
         shippingMethod,
+        billingAddress,
+        billingCity,
+        billingState,
+        billingPostalCode,
+        billingCountry,
+        portOfLoading,
+        portOfDischarge,
+        batchNumber,
         internalNotes,
         createdBy: userId,
       });
