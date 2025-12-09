@@ -146,68 +146,47 @@ class FrejunService {
       };
     }
 
-    // Try multiple token endpoint variations
-    const tokenEndpoints = [
-      `${FREJUN_PRODUCT_URL}/oauth/token`,
-      `${FREJUN_PRODUCT_URL}/api/v1/integrations/oauth/token`,
-      `https://api.frejun.com/oauth/token`,
-    ];
+    // Use the correct endpoint from Frejun docs: api.frejun.com
+    const tokenUrl = 'https://api.frejun.com/oauth/token';
+    
+    try {
+      console.log('Frejun token exchange to:', tokenUrl);
+      
+      // Use JSON body as per Frejun documentation
+      const response = await axios.post(tokenUrl, {
+        grant_type: 'authorization_code',
+        client_id: FREJUN_CLIENT_ID,
+        client_secret: FREJUN_CLIENT_SECRET,
+        code: code,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) => status < 500,
+      });
 
-    for (const tokenUrl of tokenEndpoints) {
-      try {
-        console.log('Frejun token exchange trying:', tokenUrl);
-        
-        // Try with credentials in body (standard OAuth)
-        const params = new URLSearchParams();
-        params.append('grant_type', 'authorization_code');
-        params.append('client_id', FREJUN_CLIENT_ID!);
-        params.append('client_secret', FREJUN_CLIENT_SECRET!);
-        params.append('code', code);
-        params.append('redirect_uri', FREJUN_CALLBACK_URL!);
-        
-        const response = await axios.post(tokenUrl, params, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          maxRedirects: 5,
-          validateStatus: (status) => status < 500,
-        });
+      console.log('Frejun token exchange response:', response.status, JSON.stringify(response.data));
 
-        console.log('Frejun token exchange response from', tokenUrl, ':', response.status, response.data);
-
-        if (response.status === 200 && response.data?.access_token) {
-          return {
-            success: true,
-            accessToken: response.data.access_token,
-            refreshToken: response.data.refresh_token,
-            expiresIn: response.data.expires_in,
-          };
-        }
-
-        // If 404 or 405, try next endpoint
-        if (response.status === 404 || response.status === 405) {
-          console.log('Endpoint', tokenUrl, 'returned', response.status, '- trying next');
-          continue;
-        }
-
-        // For other errors, return the error
-        if (response.status >= 400) {
-          return {
-            success: false,
-            error: response.data?.error_description || response.data?.error || response.data?.message || `HTTP ${response.status}`,
-          };
-        }
-      } catch (error: any) {
-        console.error('Frejun token exchange error for', tokenUrl, ':', error.message);
-        // Continue to next endpoint
-        continue;
+      if (response.status === 200 && response.data?.access_token) {
+        return {
+          success: true,
+          accessToken: response.data.access_token,
+          refreshToken: response.data.refresh_token,
+          expiresIn: response.data.expires_in,
+        };
       }
-    }
 
-    return {
-      success: false,
-      error: 'All token endpoints failed - please contact Frejun support for correct API endpoint',
-    };
+      return {
+        success: false,
+        error: response.data?.error_description || response.data?.error || response.data?.message || `HTTP ${response.status}`,
+      };
+    } catch (error: any) {
+      console.error('Frejun token exchange error:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.error_description || error.response?.data?.error || error.message || 'Token exchange failed',
+      };
+    }
   }
 
   async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
