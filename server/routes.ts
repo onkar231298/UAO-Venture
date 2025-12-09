@@ -8517,7 +8517,61 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Frejun OAuth callback
+  // Frejun OAuth callback (supports both URL patterns)
+  app.get('/api/voice/frejun/oauth/callback', async (req, res) => {
+    try {
+      const { code, email, state } = req.query;
+      const { frejunService } = await import('./frejunService');
+      
+      if (!code) {
+        return res.redirect('/admin/settings?frejun=error&reason=no_code');
+      }
+      
+      const tokenResult = await frejunService.exchangeCodeForTokens(code as string);
+      
+      if (!tokenResult.success || !tokenResult.accessToken) {
+        return res.redirect('/admin/settings?frejun=error&reason=token_exchange_failed');
+      }
+      
+      // Store the token for this user (state contains userId)
+      const userId = state as string;
+      if (userId) {
+        const expiresAt = new Date();
+        expiresAt.setSeconds(expiresAt.getSeconds() + (tokenResult.expiresIn || 3600));
+        
+        frejunService.storeUserToken(userId, {
+          accessToken: tokenResult.accessToken,
+          refreshToken: tokenResult.refreshToken || '',
+          expiresAt,
+          userEmail: email as string || '',
+        });
+      }
+      
+      // Return HTML that closes the popup and notifies the parent window
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Frejun Connected</title></head>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'frejun-auth-success' }, '*');
+              window.close();
+            } else {
+              window.location.href = '/admin/settings?frejun=connected';
+            }
+          </script>
+          <p>Frejun connected successfully! This window will close automatically.</p>
+        </body>
+        </html>
+      `);
+    } catch (error) {
+      console.error('Error in Frejun OAuth callback:', error);
+      res.redirect('/admin/settings?frejun=error&reason=callback_failed');
+    }
+  });
+
+  // Legacy callback path (backward compatibility)
   app.get('/api/voice/frejun/callback', async (req, res) => {
     try {
       const { code, email, state } = req.query;
