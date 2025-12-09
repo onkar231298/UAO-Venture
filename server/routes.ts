@@ -3694,7 +3694,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         fromStatus: order.status,
         toStatus: 'confirmed',
         changedBy: userId,
-        notes: `Sent to customer at ${toEmail}`,
+        notes: `Sent to customer at ${toEmails.join(', ')}`,
         createdAt: new Date(),
       });
 
