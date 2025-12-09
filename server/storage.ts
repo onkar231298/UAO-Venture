@@ -3693,13 +3693,30 @@ export class DatabaseStorage implements IStorage {
 
     const { generateSalesOrderPDF } = await import('./pdf-generator');
     
+    // Get customer info from company, lead, or order - with proper fallbacks
+    const company = order.company;
+    const lead = order.lead;
+    
+    // Determine best customer info sources
+    const companyName = order.customerCompanyName || company?.companyName || lead?.companyName;
+    const contactName = order.customerContactName || lead?.contactName;
+    const customerEmail = order.customerEmail || lead?.email || company?.email;
+    const customerPhone = order.customerPhone || lead?.phone || company?.phone;
+    
+    // Billing address - prefer order, then company
+    const billingAddress = order.billingAddress || company?.address;
+    const billingCity = order.billingCity || company?.city;
+    const billingState = order.billingState || company?.state;
+    const billingCountry = order.billingCountry || company?.country;
+    const billingPostalCode = order.billingPostalCode || company?.postalCode;
+    
     const orderData = {
       id: order.id,
       soNumber: order.soNumber,
       orderDate: order.orderDate?.toISOString() || new Date().toISOString(),
       expectedDeliveryDate: order.expectedDeliveryDate?.toISOString(),
       items: order.items?.map(item => ({
-        productName: item.productName || '',
+        productName: item.productName || 'Product',
         productSku: item.productSku || undefined,
         quantity: item.quantity?.toString() || '0',
         unit: item.unit || 'units',
@@ -3724,15 +3741,15 @@ export class DatabaseStorage implements IStorage {
       shippingPostalCode: order.shippingPostalCode || undefined,
       shippingCountry: order.shippingCountry || undefined,
       shippingMethod: order.shippingMethod || undefined,
-      billingAddress: order.billingAddress || undefined,
-      billingCity: order.billingCity || undefined,
-      billingState: order.billingState || undefined,
-      billingPostalCode: order.billingPostalCode || undefined,
-      billingCountry: order.billingCountry || undefined,
-      customerCompanyName: order.customerCompanyName || undefined,
-      customerContactName: order.customerContactName || undefined,
-      customerEmail: order.customerEmail || undefined,
-      customerPhone: order.customerPhone || undefined,
+      billingAddress: billingAddress || undefined,
+      billingCity: billingCity || undefined,
+      billingState: billingState || undefined,
+      billingPostalCode: billingPostalCode || undefined,
+      billingCountry: billingCountry || undefined,
+      customerCompanyName: companyName || undefined,
+      customerContactName: contactName || undefined,
+      customerEmail: customerEmail || undefined,
+      customerPhone: customerPhone || undefined,
       includeGst: order.includeGst || false,
       gstNumber: order.gstNumber || undefined,
       gstPercentage: order.gstPercentage?.toString(),
@@ -3740,15 +3757,15 @@ export class DatabaseStorage implements IStorage {
     };
 
     const customerData = {
-      name: order.customerContactName || order.customerCompanyName || 'Customer',
-      companyName: order.customerCompanyName || undefined,
-      email: order.customerEmail || undefined,
-      phone: order.customerPhone || undefined,
-      address: order.billingAddress || undefined,
-      city: order.billingCity || undefined,
-      state: order.billingState || undefined,
-      country: order.billingCountry || undefined,
-      postalCode: order.billingPostalCode || undefined,
+      name: contactName || companyName || 'Customer',
+      companyName: companyName || undefined,
+      email: customerEmail || undefined,
+      phone: customerPhone || undefined,
+      address: billingAddress || undefined,
+      city: billingCity || undefined,
+      state: billingState || undefined,
+      country: billingCountry || undefined,
+      postalCode: billingPostalCode || undefined,
     };
 
     return await generateSalesOrderPDF(orderData, customerData);
