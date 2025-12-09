@@ -35,6 +35,7 @@ Preferred communication style: Simple, everyday language.
     - **Quotation Management**: Status badges, visibility of customer acceptance/rejection, PDF generation with "amount in words" functionality.
     - **Customer Notes**: Field for capturing additional customer notes.
     - **Detailed Customer Address**: Collection of complete address details during registration for accurate quotation.
+    - **Frejun Voice Integration**: VoIP calling via Frejun Dialer Widget (iframe-based), OAuth 2.0 authentication, network-based 2-legged calls, call logging, voicemail management, and webhook-based call status updates. Replaces previous Net2Phone integration.
 - **Purchase Management**: Purchase order system, vendor management, PO tracking.
 - **Inventory Management**: Stock tracking (batch/lot, expiry, location), stock level monitoring.
 - **Logistics Management**: Inventory visibility, dispatch tracking.

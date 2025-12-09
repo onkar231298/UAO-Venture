@@ -423,7 +423,7 @@ export function Dialer({
 
                 {!isConfigured && (
                   <p className="text-center text-sm text-muted-foreground">
-                    net2phone is not configured. Please add API credentials to enable calling.
+                    Frejun is not configured. Please connect your Frejun account to enable calling.
                   </p>
                 )}
               </>

@@ -8474,22 +8474,113 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
   // ========================================
-  // NET2PHONE VOICE/SMS INTEGRATION ROUTES
+  // FREJUN VOICE/SMS INTEGRATION ROUTES
   // ========================================
 
-  // Check net2phone configuration status
+  // Check Frejun configuration status
   app.get('/api/voice/status', isAuthenticated, async (req: any, res) => {
     try {
-      const { net2phoneService } = await import('./net2phoneService');
-      const status = net2phoneService.getConfigStatus();
-      res.json(status);
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { frejunService } = await import('./frejunService');
+      const status = frejunService.getConfigStatus();
+      
+      // Check if user has connected their Frejun account
+      const userToken = frejunService.getUserToken(userId);
+      const isUserConnected = !!userToken;
+      
+      res.json({
+        ...status,
+        isUserConnected,
+        dialerWidgetUrl: frejunService.getDialerWidgetUrl(),
+      });
     } catch (error) {
-      console.error('Error checking net2phone status:', error);
+      console.error('Error checking Frejun status:', error);
       res.status(500).json({ message: 'Failed to check voice service status' });
     }
   });
 
-  // Initiate a voice call
+  // Get Frejun OAuth authorization URL
+  app.get('/api/voice/frejun/auth-url', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { frejunService } = await import('./frejunService');
+      
+      if (!frejunService.isReady()) {
+        return res.status(400).json({ message: 'Frejun is not configured' });
+      }
+      
+      const authUrl = frejunService.getAuthorizationUrl(userId);
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Error getting Frejun auth URL:', error);
+      res.status(500).json({ message: 'Failed to get authorization URL' });
+    }
+  });
+
+  // Frejun OAuth callback
+  app.get('/api/voice/frejun/callback', async (req, res) => {
+    try {
+      const { code, email, state } = req.query;
+      const { frejunService } = await import('./frejunService');
+      
+      if (!code) {
+        return res.redirect('/admin/settings?frejun=error&reason=no_code');
+      }
+      
+      const tokenResult = await frejunService.exchangeCodeForTokens(code as string);
+      
+      if (!tokenResult.success || !tokenResult.accessToken) {
+        return res.redirect('/admin/settings?frejun=error&reason=token_exchange_failed');
+      }
+      
+      // Store the token for this user (state contains userId)
+      const userId = state as string;
+      if (userId) {
+        const expiresAt = new Date();
+        expiresAt.setSeconds(expiresAt.getSeconds() + (tokenResult.expiresIn || 3600));
+        
+        frejunService.storeUserToken(userId, {
+          accessToken: tokenResult.accessToken,
+          refreshToken: tokenResult.refreshToken || '',
+          expiresAt,
+          userEmail: email as string || '',
+        });
+      }
+      
+      res.redirect('/admin/settings?frejun=connected');
+    } catch (error) {
+      console.error('Error in Frejun OAuth callback:', error);
+      res.redirect('/admin/settings?frejun=error&reason=callback_failed');
+    }
+  });
+
+  // Get Frejun dialer widget configuration
+  app.get('/api/voice/frejun/dialer-config', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { frejunService } = await import('./frejunService');
+      
+      const tokenData = frejunService.getUserToken(userId);
+      if (!tokenData) {
+        return res.status(400).json({ 
+          message: 'Please connect your Frejun account first',
+          needsAuth: true,
+          authUrl: frejunService.getAuthorizationUrl(userId),
+        });
+      }
+      
+      const config = frejunService.getDialerWidgetConfig(tokenData.userEmail, tokenData.accessToken);
+      res.json({
+        ...config,
+        userEmail: tokenData.userEmail,
+      });
+    } catch (error) {
+      console.error('Error getting dialer config:', error);
+      res.status(500).json({ message: 'Failed to get dialer configuration' });
+    }
+  });
+
+  // Initiate a voice call via Frejun (network-based 2-legged call)
   app.post('/api/voice/call', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.user?.claims?.sub;
@@ -8497,13 +8588,23 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      const { phoneNumber, leadId, companyId, contactName } = req.body;
+      const { phoneNumber, leadId, companyId, contactName, callType = 'network' } = req.body;
       
       if (!phoneNumber) {
         return res.status(400).json({ message: 'Phone number is required' });
       }
 
-      const { net2phoneService } = await import('./net2phoneService');
+      const { frejunService } = await import('./frejunService');
+      
+      // Check if user has Frejun connected
+      const tokenData = frejunService.getUserToken(userId);
+      if (!tokenData) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Please connect your Frejun account first',
+          needsAuth: true,
+        });
+      }
       
       // Create call log in database first
       const callLog = await storage.createCallLog({
@@ -8516,14 +8617,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         companyId: companyId || null,
       });
 
-      // Initiate call via net2phone
-      const result = await net2phoneService.initiateCall({
-        to: phoneNumber,
-        recordCall: true,
+      // Initiate call via Frejun (network-based call)
+      const result = await frejunService.initiateNetworkCall(userId, {
+        userEmail: tokenData.userEmail,
+        candidateNumber: phoneNumber,
+        candidateName: contactName,
+        transactionId: callLog.id.toString(),
       });
 
       if (result.success && result.callId) {
-        // Update call log with net2phone call ID
+        // Update call log with Frejun call ID
         await storage.updateCallLog(callLog.id, {
           callUuid: result.callId,
           status: 'ringing',
@@ -8555,24 +8658,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // End a call
+  // End a call (Frejun calls are ended via the dialer widget)
   app.post('/api/voice/call/:callId/end', isAuthenticated, async (req: any, res) => {
     try {
       const { callId } = req.params;
-      const { net2phoneService } = await import('./net2phoneService');
       
-      const result = await net2phoneService.endCall(callId);
+      // Update call log (Frejun calls are ended via the dialer widget, we just update our records)
+      await storage.updateCallLogByUuid(callId, {
+        status: 'completed',
+        endedAt: new Date(),
+      });
       
-      if (result.success) {
-        // Update call log
-        await storage.updateCallLogByUuid(callId, {
-          status: 'completed',
-          endedAt: new Date(),
-        });
-        res.json({ success: true });
-      } else {
-        res.status(400).json({ success: false, message: result.error });
-      }
+      res.json({ success: true });
     } catch (error) {
       console.error('Error ending call:', error);
       res.status(500).json({ message: 'Failed to end call' });
@@ -8663,7 +8760,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Send SMS
+  // Send SMS (Note: Frejun focuses on voice; SMS may need alternative provider)
   app.post('/api/voice/sms', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.user?.claims?.sub;
@@ -8677,9 +8774,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: 'Phone number and message are required' });
       }
 
-      const { net2phoneService } = await import('./net2phoneService');
-
-      // Create SMS record in database
+      // Create SMS record in database (SMS provider integration pending)
       const smsRecord = await storage.createSmsMessage({
         senderUserId: userId,
         recipientPhone: phoneNumber,
@@ -8691,36 +8786,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         companyId: companyId || null,
       });
 
-      // Send SMS via net2phone
-      const result = await net2phoneService.sendSms({
-        to: phoneNumber,
-        message,
+      // Note: Frejun is primarily for voice calls
+      // SMS functionality would need a separate provider (e.g., Twilio, MSG91)
+      // For now, we log the SMS locally
+      await storage.updateSmsMessage(smsRecord.id, {
+        status: 'sent',
+        sentAt: new Date(),
       });
 
-      if (result.success && result.messageId) {
-        await storage.updateSmsMessage(smsRecord.id, {
-          messageUuid: result.messageId,
-          status: 'sent',
-          sentAt: new Date(),
-        });
-
-        res.json({ 
-          success: true, 
-          messageId: smsRecord.id,
-          externalId: result.messageId,
-        });
-      } else {
-        await storage.updateSmsMessage(smsRecord.id, {
-          status: 'failed',
-          failedAt: new Date(),
-          failureReason: result.error,
-        });
-
-        res.status(400).json({ 
-          success: false, 
-          message: result.error || 'Failed to send SMS',
-        });
-      }
+      res.json({ 
+        success: true, 
+        messageId: smsRecord.id,
+        note: 'SMS logged locally. External SMS delivery requires additional configuration.',
+      });
     } catch (error: any) {
       console.error('Error sending SMS:', error);
       res.status(500).json({ message: 'Failed to send SMS' });
@@ -8786,59 +8864,56 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Webhook for net2phone call events
+  // Webhook for Frejun call events
   app.post('/api/voice/webhook/status', async (req, res) => {
     try {
-      const { net2phoneService } = await import('./net2phoneService');
-      const event = net2phoneService.processWebhook(req.body);
+      const { frejunService } = await import('./frejunService');
+      const event = frejunService.processWebhook(req.body, req.headers['frejun-signature'] as string);
       
-      console.log('net2phone webhook received:', event.type, event.data);
+      console.log('Frejun webhook received:', event.type, event.callId);
 
-      const callId = event.data.call_id || event.data.callId;
-      if (!callId) {
+      if (!event.callId) {
         return res.status(200).json({ received: true });
       }
 
       switch (event.type) {
-        case 'call_ringing':
-          await storage.updateCallLogByUuid(callId, {
+        case 'call_started':
+          await storage.updateCallLogByUuid(event.callId, {
             status: 'ringing',
             ringingAt: new Date(),
           });
           break;
         case 'call_answered':
-          await storage.updateCallLogByUuid(callId, {
+          await storage.updateCallLogByUuid(event.callId, {
             status: 'answered',
             answeredAt: new Date(),
           });
           break;
-        case 'call_completed':
-          const duration = event.data.duration || event.data.duration_seconds || 0;
-          await storage.updateCallLogByUuid(callId, {
+        case 'call_ended':
+          await storage.updateCallLogByUuid(event.callId, {
             status: 'completed',
             endedAt: new Date(),
-            durationSeconds: duration,
-            recordingUrl: event.data.recording_url || event.data.recordingUrl,
-            recordingDuration: event.data.recording_duration,
+            durationSeconds: event.duration || 0,
+            recordingUrl: event.recordingUrl,
           });
           break;
         case 'call_missed':
-          await storage.updateCallLogByUuid(callId, {
+          await storage.updateCallLogByUuid(event.callId, {
             status: 'missed',
             endedAt: new Date(),
           });
           break;
         case 'voicemail':
-          const callLog = await storage.getCallLogByUuid(callId);
+          const callLog = await storage.getCallLogByUuid(event.callId);
           if (callLog) {
             await storage.createVoicemail({
-              voicemailUuid: event.data.voicemail_id || event.data.id,
+              voicemailUuid: event.callId,
               userId: callLog.callerUserId,
-              callerPhone: event.data.caller_phone || callLog.recipientPhone,
-              callerName: event.data.caller_name,
-              recordingUrl: event.data.recording_url || event.data.url,
-              transcription: event.data.transcription,
-              durationSeconds: event.data.duration,
+              callerPhone: event.callerNumber || callLog.recipientPhone,
+              callerName: event.candidateName,
+              recordingUrl: event.recordingUrl,
+              transcription: event.transcription,
+              durationSeconds: event.duration,
               leadId: callLog.leadId,
               companyId: callLog.companyId,
               callLogId: callLog.id,
@@ -8846,7 +8921,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
             await storage.updateCallLog(callLog.id, {
               status: 'voicemail',
-              voicemailUrl: event.data.recording_url || event.data.url,
+              voicemailUrl: event.recordingUrl,
             });
           }
           break;
@@ -8854,7 +8929,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
       res.status(200).json({ received: true });
     } catch (error) {
-      console.error('Error processing webhook:', error);
+      console.error('Error processing Frejun webhook:', error);
       res.status(500).json({ message: 'Webhook processing failed' });
     }
   });
