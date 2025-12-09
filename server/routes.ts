@@ -3631,13 +3631,42 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-      // Create email with attachment
+      // Get thread info for proper threading headers
+      let existingThread: any = null;
+      let lastMessageId: string | null = null;
+      let gmailThreadId: string | undefined;
+      
+      if (emailThreadId) {
+        existingThread = await storage.getEmailThread(emailThreadId);
+        gmailThreadId = existingThread?.gmailThreadId;
+        
+        // Get last message's Message-ID for proper threading
+        if (existingThread?.messages?.length > 0) {
+          const lastMsg = existingThread.messages[existingThread.messages.length - 1];
+          lastMessageId = lastMsg.gmailMessageId || lastMsg.messageId;
+        }
+      }
+
+      // Create email with attachment and proper threading headers
       const boundary = 'boundary_' + Date.now();
-      const emailLines = [
+      const messageId = `<${Date.now()}.${Math.random().toString(36).substr(2)}@${emailConfig.emailAddress?.split('@')[1] || 'mail.gmail.com'}>`;
+      
+      const emailHeaders = [
         `To: ${toEmails.join(', ')}`,
         `From: ${emailConfig.emailAddress}`,
         ...(ccEmails.length > 0 ? [`Cc: ${ccEmails.join(', ')}`] : []),
         `Subject: ${subject}`,
+        `Message-ID: ${messageId}`,
+      ];
+      
+      // Add threading headers for replies
+      if (lastMessageId && gmailThreadId) {
+        emailHeaders.push(`In-Reply-To: <${lastMessageId}>`);
+        emailHeaders.push(`References: <${lastMessageId}>`);
+      }
+      
+      const emailLines = [
+        ...emailHeaders,
         'MIME-Version: 1.0',
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
         '',
@@ -3663,13 +3692,58 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-      await gmail.users.messages.send({
+      const sentResponse = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
           raw: encodedEmail,
-          threadId: emailThreadId ? (await storage.getEmailThread(emailThreadId))?.gmailThreadId : undefined,
+          threadId: gmailThreadId,
         },
       });
+      
+      const sentMessageId = sentResponse.data.id;
+      const sentThreadId = sentResponse.data.threadId;
+
+      // Save the sent email message to the thread for tracking
+      let threadIdToUse = emailThreadId ? parseInt(emailThreadId) : null;
+      
+      if (!threadIdToUse && order.leadId) {
+        // Create a new thread for this SO email
+        const newThread = await storage.createEmailThread({
+          leadId: order.leadId,
+          subject: subject,
+          customerEmail: toEmails[0],
+          status: 'active',
+          gmailThreadId: sentThreadId || undefined,
+          lastMessageAt: new Date(),
+          createdAt: new Date(),
+        });
+        threadIdToUse = newThread.id;
+      }
+      
+      if (threadIdToUse) {
+        // Add the sent message to the thread
+        await storage.addEmailMessage({
+          threadId: threadIdToUse,
+          gmailMessageId: sentMessageId || undefined,
+          direction: 'outbound',
+          fromEmail: emailConfig.emailAddress || '',
+          toEmails: toEmails,
+          ccEmails: ccEmails,
+          subject: subject,
+          bodyHtml: body,
+          bodyText: body.replace(/<[^>]*>/g, ''),
+          hasAttachments: true,
+          attachments: [{ filename: `${order.soNumber}.pdf`, contentType: 'application/pdf' }],
+          sentAt: new Date(),
+          createdAt: new Date(),
+        });
+        
+        // Update thread's last message time
+        await storage.updateEmailThread(threadIdToUse, {
+          lastMessageAt: new Date(),
+          gmailThreadId: sentThreadId || undefined,
+        });
+      }
 
       // Update sales order status to confirmed
       await storage.updateSalesOrder(parseInt(id), {
@@ -3677,7 +3751,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         updatedAt: new Date(),
       });
 
-      // Log activity
+      // Log sales order activity
       await storage.addSalesOrderActivity({
         salesOrderId: parseInt(id),
         activityType: 'email_sent',
@@ -3687,6 +3761,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         metadata: { toEmails, ccEmails, subject },
         createdAt: new Date(),
       });
+
+      // Log lead activity
+      if (order.leadId) {
+        await storage.addLeadActivity({
+          leadId: order.leadId,
+          activityType: 'sales_order_sent',
+          title: 'Sales Order Sent',
+          description: `Sales Order ${order.soNumber} sent to ${toEmails.join(', ')}`,
+          performedBy: userId,
+          metadata: { salesOrderId: parseInt(id), soNumber: order.soNumber, toEmails, subject },
+          createdAt: new Date(),
+        });
+      }
 
       // Add status history
       await storage.addSalesOrderStatusHistory({
