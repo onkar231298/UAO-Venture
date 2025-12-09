@@ -1,5 +1,9 @@
 import PDFDocument from 'pdfkit';
 import converter from 'number-to-words';
+import path from 'path';
+
+// Resolved logo path for reliable loading in all environments
+const logoPath = path.resolve(__dirname, 'bfi-logo.png');
 
 interface QuotationData {
   id: number;
@@ -133,9 +137,9 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     const logoWidth = 140;
     const pageWidth = 595; // A4 page width in points
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.image('server/bfi-logo.png', logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
+    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
   } catch (error) {
-    console.log('Logo not found, skipping logo insertion');
+    console.log('Logo not found at', logoPath, ', skipping logo insertion');
   }
   
   yPos += 105; // Increased spacing to ensure no overlap with logo
@@ -452,9 +456,9 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   // Header with company logo (matching quotation style)
   try {
     const logoWidth = 120;
-    doc.image('server/bfi-logo.png', 40, yPos, { width: logoWidth, fit: [logoWidth, 50] });
+    doc.image(logoPath, 40, yPos, { width: logoWidth, fit: [logoWidth, 50] });
   } catch (error) {
-    console.log('Logo not found, continuing without logo');
+    console.log('Logo not found at', logoPath, ', continuing without logo');
   }
   
   // Header bar with title

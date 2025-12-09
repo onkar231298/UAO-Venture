@@ -3697,18 +3697,19 @@ export class DatabaseStorage implements IStorage {
     const company = order.company;
     const lead = order.lead;
     
-    // Determine best customer info sources
+    // Determine best customer info sources with proper priority:
+    // Order fields > Company fields > Lead fields
     const companyName = order.customerCompanyName || company?.companyName || lead?.companyName;
-    const contactName = order.customerContactName || lead?.contactName;
-    const customerEmail = order.customerEmail || lead?.email || company?.email;
-    const customerPhone = order.customerPhone || lead?.phone || company?.phone;
+    const contactName = order.customerContactName || company?.contactName || lead?.contactName;
+    const customerEmail = order.customerEmail || company?.email || lead?.email;
+    const customerPhone = order.customerPhone || company?.phone || lead?.phone;
     
-    // Billing address - prefer order, then company
-    const billingAddress = order.billingAddress || company?.address;
-    const billingCity = order.billingCity || company?.city;
-    const billingState = order.billingState || company?.state;
-    const billingCountry = order.billingCountry || company?.country;
-    const billingPostalCode = order.billingPostalCode || company?.postalCode;
+    // Billing address - prefer order, then company with normalized fields
+    const billingAddress = (order.billingAddress || company?.address || '').trim();
+    const billingCity = (order.billingCity || company?.city || '').trim();
+    const billingState = (order.billingState || company?.state || '').trim();
+    const billingCountry = (order.billingCountry || company?.country || '').trim();
+    const billingPostalCode = (order.billingPostalCode || company?.postalCode || '').trim();
     
     const orderData = {
       id: order.id,
@@ -3756,8 +3757,10 @@ export class DatabaseStorage implements IStorage {
       termsAndConditions: order.termsAndConditions || undefined,
     };
 
+    // Build customer data with proper fallbacks - prioritize contact name, then company name
+    const displayName = contactName || companyName;
     const customerData = {
-      name: contactName || companyName || 'Customer',
+      name: displayName || 'Customer',
       companyName: companyName || undefined,
       email: customerEmail || undefined,
       phone: customerPhone || undefined,
