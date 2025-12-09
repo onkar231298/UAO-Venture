@@ -3512,6 +3512,137 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Send Sales Order to customer via email
+  app.post('/api/sales-orders/:id/send', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { emailThreadId, subject, body } = req.body;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission
+      const hasPermission = user.role?.includes('sales') || user.role?.includes('admin') || user.role === 'super_admin';
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const order = await storage.getSalesOrderWithDetails(parseInt(id));
+      if (!order) {
+        return res.status(404).json({ message: "Sales order not found" });
+      }
+
+      // Get user's email configuration
+      const emailConfig = await storage.getUserEmailConfig(userId, 'gmail');
+      if (!emailConfig) {
+        return res.status(400).json({ message: "Please configure your Gmail account to send emails" });
+      }
+
+      // Get email thread to find recipient
+      let toEmail = order.customerEmail;
+      if (emailThreadId) {
+        const thread = await storage.getEmailThread(emailThreadId);
+        if (thread) {
+          toEmail = thread.customerEmail || toEmail;
+        }
+      }
+
+      if (!toEmail) {
+        return res.status(400).json({ message: "No customer email address found" });
+      }
+
+      // Generate Sales Order PDF
+      const pdfBuffer = await storage.generateSalesOrderPdf(parseInt(id));
+
+      // Send email with PDF attachment
+      const { google } = await import('googleapis');
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET
+      );
+      oauth2Client.setCredentials({
+        access_token: emailConfig.accessToken,
+        refresh_token: emailConfig.refreshToken,
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+      // Create email with attachment
+      const boundary = 'boundary_' + Date.now();
+      const emailLines = [
+        `To: ${toEmail}`,
+        `From: ${emailConfig.emailAddress}`,
+        `Subject: ${subject}`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset=UTF-8',
+        '',
+        body.replace(/\n/g, '<br>'),
+        '',
+        `--${boundary}`,
+        `Content-Type: application/pdf; name="${order.soNumber}.pdf"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${order.soNumber}.pdf"`,
+        '',
+        pdfBuffer.toString('base64'),
+        '',
+        `--${boundary}--`,
+      ];
+
+      const rawEmail = emailLines.join('\r\n');
+      const encodedEmail = Buffer.from(rawEmail)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedEmail,
+          threadId: emailThreadId ? (await storage.getEmailThread(emailThreadId))?.gmailThreadId : undefined,
+        },
+      });
+
+      // Update sales order status to confirmed
+      await storage.updateSalesOrder(parseInt(id), {
+        status: 'confirmed',
+        updatedAt: new Date(),
+      });
+
+      // Log activity
+      await storage.addSalesOrderActivity({
+        salesOrderId: parseInt(id),
+        activityType: 'email_sent',
+        title: 'Sales Order Sent to Customer',
+        description: `Sales order ${order.soNumber} was sent to ${toEmail}`,
+        performedBy: userId,
+        metadata: { toEmail, subject },
+        createdAt: new Date(),
+      });
+
+      // Add status history
+      await storage.addSalesOrderStatusHistory({
+        salesOrderId: parseInt(id),
+        fromStatus: order.status,
+        toStatus: 'confirmed',
+        changedBy: userId,
+        notes: `Sent to customer at ${toEmail}`,
+        createdAt: new Date(),
+      });
+
+      res.json({ success: true, message: "Sales order sent successfully" });
+    } catch (error) {
+      console.error("Error sending sales order:", error);
+      res.status(500).json({ message: "Failed to send sales order", error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Update sales order
   app.patch('/api/sales-orders/:id', isAuthenticated, async (req: any, res) => {
     try {

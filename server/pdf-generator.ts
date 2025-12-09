@@ -351,3 +351,266 @@ export async function generateQuotationPDF(quotation: QuotationData, customer: C
     }
   });
 }
+
+// Sales Order interfaces
+interface SalesOrderData {
+  id: number;
+  soNumber: string;
+  orderDate: string;
+  expectedDeliveryDate?: string;
+  items: Array<{
+    productName: string;
+    productSku?: string;
+    quantity: string;
+    unit: string;
+    unitPrice: string;
+    totalPrice: string;
+  }>;
+  subtotal: string;
+  discountPercent?: string;
+  discountAmount?: string;
+  taxPercent?: string;
+  taxAmount?: string;
+  totalAmount: string;
+  currency: string;
+  priceType?: string;
+  paymentTermsAdvancePercent?: string;
+  paymentTermsCreditDays?: number;
+  advanceAmountDue?: string;
+  balanceAmountDue?: string;
+  shippingAddress?: string;
+  shippingCity?: string;
+  shippingState?: string;
+  shippingPostalCode?: string;
+  shippingCountry?: string;
+  shippingMethod?: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingPostalCode?: string;
+  billingCountry?: string;
+  customerCompanyName?: string;
+  customerContactName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  includeGst?: boolean;
+  gstNumber?: string;
+  gstPercentage?: string;
+  termsAndConditions?: string;
+}
+
+interface SalesOrderCustomerData {
+  name: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomerData): PDFDocument {
+  const doc = new PDFDocument({ 
+    margin: 40,
+    size: 'A4',
+    bufferPages: true
+  });
+  
+  // Convert amount to words
+  let amountInWords = '';
+  try {
+    const amount = parseFloat(order.totalAmount);
+    if (isNaN(amount) || amount < 0) {
+      amountInWords = `${order.currency} Zero Only`;
+    } else {
+      const integerPart = Math.floor(amount);
+      const decimalPart = Math.round((amount - integerPart) * 100);
+      
+      const fractionalUnits: Record<string, string> = {
+        'INR': 'paise', 'USD': 'cents', 'EUR': 'cents', 'GBP': 'pence',
+        'AUD': 'cents', 'CAD': 'cents', 'SGD': 'cents', 'AED': 'fils', 'SAR': 'halalas',
+      };
+      const fractionalUnit = fractionalUnits[order.currency] || 'cents';
+      
+      amountInWords = `${order.currency} ${converter.toWords(integerPart)}`;
+      if (decimalPart > 0) {
+        amountInWords += ` and ${converter.toWords(decimalPart)} ${fractionalUnit}`;
+      }
+      amountInWords += ' Only';
+      amountInWords = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
+    }
+  } catch (error) {
+    amountInWords = `${order.currency} ${parseFloat(order.totalAmount || '0').toFixed(2)} Only`;
+  }
+  
+  const orangeColor = '#ff8c00';
+  const darkGray = '#333';
+  let yPos = 40;
+  
+  // Header with company logo area
+  doc.fillColor(orangeColor).rect(40, yPos, 510, 60).fill();
+  doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 15, { align: 'left' });
+  doc.fontSize(10).fillColor('white').text(companyDetails.name, 50, yPos + 40);
+  doc.fontSize(14).fillColor('white').text(order.soNumber, 400, yPos + 22, { align: 'right', width: 140 });
+  
+  yPos += 70;
+  
+  // Order Info Row
+  doc.fontSize(9).fillColor(darkGray);
+  doc.text('Order Date:', 50, yPos).text(new Date(order.orderDate).toLocaleDateString('en-GB'), 120, yPos);
+  if (order.expectedDeliveryDate) {
+    doc.text('Expected Delivery:', 300, yPos).text(new Date(order.expectedDeliveryDate).toLocaleDateString('en-GB'), 400, yPos);
+  }
+  
+  yPos += 25;
+  
+  // Customer and Shipping Details
+  doc.fillColor('#f8f9fa').rect(40, yPos, 250, 90).fill();
+  doc.fillColor('#f8f9fa').rect(300, yPos, 250, 90).fill();
+  
+  doc.strokeColor(orangeColor).lineWidth(3);
+  doc.moveTo(40, yPos).lineTo(40, yPos + 90).stroke();
+  doc.moveTo(300, yPos).lineTo(300, yPos + 90).stroke();
+  
+  doc.fontSize(10).fillColor(orangeColor).text('BILL TO', 50, yPos + 8);
+  doc.fontSize(9).fillColor(darkGray);
+  doc.text(order.customerCompanyName || customer.companyName || customer.name, 50, yPos + 22);
+  doc.text(order.customerContactName || customer.name, 50, yPos + 34);
+  if (order.billingAddress || customer.address) {
+    doc.text((order.billingAddress || customer.address)?.slice(0, 40) || '', 50, yPos + 46);
+  }
+  const billCity = [order.billingCity || customer.city, order.billingState || customer.state].filter(Boolean).join(', ');
+  if (billCity) doc.text(billCity, 50, yPos + 58);
+  doc.text([order.billingPostalCode || customer.postalCode, order.billingCountry || customer.country].filter(Boolean).join(', '), 50, yPos + 70);
+  
+  doc.fontSize(10).fillColor(orangeColor).text('SHIP TO', 310, yPos + 8);
+  doc.fontSize(9).fillColor(darkGray);
+  doc.text(order.customerCompanyName || customer.companyName || customer.name, 310, yPos + 22);
+  if (order.shippingAddress) doc.text(order.shippingAddress.slice(0, 40), 310, yPos + 34);
+  const shipCity = [order.shippingCity, order.shippingState].filter(Boolean).join(', ');
+  if (shipCity) doc.text(shipCity, 310, yPos + 46);
+  doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', '), 310, yPos + 58);
+  if (order.shippingMethod) doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, yPos + 70);
+  
+  yPos += 100;
+  
+  // Items Table Header
+  doc.fillColor(orangeColor).rect(40, yPos, 510, 22).fill();
+  doc.fontSize(9).fillColor('white');
+  doc.text('#', 50, yPos + 6);
+  doc.text('Product', 70, yPos + 6);
+  doc.text('SKU', 240, yPos + 6);
+  doc.text('Qty', 320, yPos + 6);
+  doc.text('Unit Price', 370, yPos + 6);
+  doc.text('Total', 470, yPos + 6, { align: 'right', width: 70 });
+  
+  yPos += 22;
+  
+  // Items
+  doc.fillColor(darkGray);
+  order.items.forEach((item, index) => {
+    const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+    doc.fillColor(bgColor).rect(40, yPos, 510, 20).fill();
+    doc.fillColor(darkGray).fontSize(9);
+    doc.text((index + 1).toString(), 50, yPos + 5);
+    doc.text(item.productName.slice(0, 30), 70, yPos + 5);
+    doc.text(item.productSku || '-', 240, yPos + 5);
+    doc.text(`${item.quantity} ${item.unit}`, 320, yPos + 5);
+    doc.text(`${order.currency} ${parseFloat(item.unitPrice).toLocaleString()}`, 370, yPos + 5);
+    doc.text(`${order.currency} ${parseFloat(item.totalPrice).toLocaleString()}`, 470, yPos + 5, { align: 'right', width: 70 });
+    yPos += 20;
+  });
+  
+  // Totals Section
+  yPos += 10;
+  doc.moveTo(350, yPos).lineTo(550, yPos).strokeColor('#ddd').stroke();
+  yPos += 5;
+  
+  doc.fontSize(9).fillColor(darkGray);
+  doc.text('Subtotal:', 370, yPos).text(`${order.currency} ${parseFloat(order.subtotal).toLocaleString()}`, 470, yPos, { align: 'right', width: 70 });
+  yPos += 15;
+  
+  if (order.discountAmount && parseFloat(order.discountAmount) > 0) {
+    doc.text(`Discount (${order.discountPercent || 0}%):`, 370, yPos).text(`- ${order.currency} ${parseFloat(order.discountAmount).toLocaleString()}`, 470, yPos, { align: 'right', width: 70 });
+    yPos += 15;
+  }
+  
+  if (order.taxAmount && parseFloat(order.taxAmount) > 0) {
+    doc.text(`Tax (${order.taxPercent || 0}%):`, 370, yPos).text(`${order.currency} ${parseFloat(order.taxAmount).toLocaleString()}`, 470, yPos, { align: 'right', width: 70 });
+    yPos += 15;
+  }
+  
+  doc.moveTo(350, yPos).lineTo(550, yPos).strokeColor('#ddd').stroke();
+  yPos += 5;
+  doc.fontSize(11).fillColor(orangeColor);
+  doc.text('TOTAL:', 370, yPos).text(`${order.currency} ${parseFloat(order.totalAmount).toLocaleString()}`, 440, yPos, { align: 'right', width: 100 });
+  
+  yPos += 30;
+  
+  // Payment Terms
+  doc.fontSize(10).fillColor(orangeColor).text('PAYMENT TERMS', 50, yPos);
+  yPos += 15;
+  doc.fontSize(9).fillColor(darkGray);
+  doc.text(`Advance Payment: ${order.paymentTermsAdvancePercent || 0}%`, 50, yPos);
+  if (order.advanceAmountDue) {
+    doc.text(`(${order.currency} ${parseFloat(order.advanceAmountDue).toLocaleString()})`, 200, yPos);
+  }
+  yPos += 12;
+  doc.text(`Credit Days: ${order.paymentTermsCreditDays || 30} days`, 50, yPos);
+  yPos += 12;
+  if (order.balanceAmountDue) {
+    doc.text(`Balance Due: ${order.currency} ${parseFloat(order.balanceAmountDue).toLocaleString()}`, 50, yPos);
+  }
+  
+  yPos += 25;
+  
+  // Amount in Words
+  doc.fillColor('#f8f9fa').rect(40, yPos, 510, 25).fill();
+  doc.strokeColor(orangeColor).lineWidth(3).moveTo(40, yPos).lineTo(40, yPos + 25).stroke();
+  doc.fontSize(9).fillColor('black');
+  doc.text('Total (in words):', 50, yPos + 4);
+  doc.text(amountInWords, 50, yPos + 15, { width: 450 });
+  
+  yPos += 40;
+  
+  // Contact & Signature
+  doc.moveTo(40, yPos).lineTo(550, yPos).strokeColor('#ddd').stroke();
+  doc.fontSize(8).fillColor('#666');
+  doc.text(`For enquiries: ${companyDetails.email} | ${companyDetails.phone}`, 40, yPos + 8, { align: 'center', width: 510 });
+  
+  yPos += 30;
+  doc.moveTo(400, yPos).lineTo(540, yPos).strokeColor('black').stroke();
+  doc.fontSize(9).fillColor('black');
+  doc.text('Computer generated sales order', 400, yPos + 8);
+  doc.text('No signature required', 400, yPos + 20);
+  
+  return doc;
+}
+
+export async function generateSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomerData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = createSalesOrderPDF(order, customer);
+      const chunks: Buffer[] = [];
+      
+      doc.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer);
+      });
+      
+      doc.on('error', (error: Error) => {
+        reject(error);
+      });
+      
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}

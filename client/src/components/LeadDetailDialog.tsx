@@ -80,6 +80,11 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [selectedThreadForQuote, setSelectedThreadForQuote] = useState<string>("");
   const [showConvertToSODialog, setShowConvertToSODialog] = useState(false);
   const [selectedQuoteForSO, setSelectedQuoteForSO] = useState<any>(null);
+  const [showSendSODialog, setShowSendSODialog] = useState(false);
+  const [selectedSOToSend, setSelectedSOToSend] = useState<any>(null);
+  const [soEmailSubject, setSOEmailSubject] = useState("");
+  const [soEmailBody, setSOEmailBody] = useState("");
+  const [selectedThreadForSO, setSelectedThreadForSO] = useState<string>("");
   const [soFormData, setSOFormData] = useState({
     paymentTermsAdvancePercent: "",
     paymentTermsCreditDays: "30",
@@ -603,10 +608,11 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   // Convert quotation to sales order mutation
   const convertToSOMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('/api/sales-orders/convert-from-quotation', {
+      const response = await apiRequest('/api/sales-orders/convert-from-quotation', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      return response;
     },
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
@@ -615,10 +621,19 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       setShowConvertToSODialog(false);
       setSelectedQuoteForSO(null);
       resetSOFormData();
+      
+      const soNumber = result?.soNumber || 'New Order';
       toast({
         title: "Sales Order Created",
-        description: `Sales Order ${result.soNumber} has been created successfully.`,
+        description: `Sales Order ${soNumber} has been created successfully.`,
       });
+      
+      // Offer to send the SO to customer
+      if (result && result.id) {
+        setSelectedSOToSend(result);
+        initializeSendSOForm(result);
+        setShowSendSODialog(true);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -628,6 +643,74 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       });
     },
   });
+
+  // Send Sales Order to customer mutation
+  const sendSalesOrderMutation = useMutation({
+    mutationFn: async (data: { salesOrderId: number; emailThreadId: number; subject: string; body: string }) => {
+      return apiRequest(`/api/sales-orders/${data.salesOrderId}/send`, {
+        method: 'POST',
+        body: JSON.stringify({
+          emailThreadId: data.emailThreadId,
+          subject: data.subject,
+          body: data.body,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email/threads', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-orders'] });
+      setShowSendSODialog(false);
+      setSelectedSOToSend(null);
+      setSOEmailSubject("");
+      setSOEmailBody("");
+      setSelectedThreadForSO("");
+      toast({
+        title: "Sales Order Sent",
+        description: "The sales order has been sent to the customer.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send sales order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const initializeSendSOForm = (salesOrder: any) => {
+    const companyName = lead?.company?.companyName || lead?.companyName || 'Valued Customer';
+    setSOEmailSubject(`Sales Order ${salesOrder.soNumber} - ${companyName}`);
+    setSOEmailBody(`Dear ${lead?.contactName || companyName},
+
+Please find attached your Sales Order ${salesOrder.soNumber} for your recent order.
+
+Order Details:
+- Order Number: ${salesOrder.soNumber}
+- Total Amount: ${salesOrder.currency || 'USD'} ${parseFloat(salesOrder.totalAmount || 0).toLocaleString()}
+- Expected Delivery: ${salesOrder.expectedDeliveryDate ? format(new Date(salesOrder.expectedDeliveryDate), 'MMMM d, yyyy') : 'To be confirmed'}
+
+Payment Terms:
+- Advance Payment: ${salesOrder.paymentTermsAdvancePercent || 0}%
+- Credit Days: ${salesOrder.paymentTermsCreditDays || 30} days
+
+Please review the order details and let us know if you have any questions.
+
+Best regards,
+The BFI Organic Team`);
+  };
+
+  const handleSendSO = () => {
+    if (!selectedSOToSend || !selectedThreadForSO) return;
+    
+    sendSalesOrderMutation.mutate({
+      salesOrderId: selectedSOToSend.id,
+      emailThreadId: parseInt(selectedThreadForSO),
+      subject: soEmailSubject,
+      body: soEmailBody,
+    });
+  };
 
   const initializeSOForm = (quote: any) => {
     // Pre-fill from company address if available
@@ -3383,176 +3466,298 @@ Packaging: Standard export packaging`,
 
         {/* Convert to Sales Order Dialog */}
         {showConvertToSODialog && selectedQuoteForSO && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <Card className="w-full max-w-lg mx-4 bg-white max-h-[85vh] overflow-y-auto shadow-2xl border-0" style={{ zIndex: 101 }}>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Dialog open={showConvertToSODialog} onOpenChange={setShowConvertToSODialog}>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-purple-600" />
                   Create Sales Order
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="p-3 bg-gray-50 rounded border">
-                    <div className="text-sm">
-                      <strong>From Quotation:</strong> {selectedQuoteForSO.quotationId}
-                    </div>
-                    <div className="text-sm">
-                      <strong>Amount:</strong> {selectedQuoteForSO.currency || 'USD'} {parseFloat(selectedQuoteForSO.totalAmount || 0).toLocaleString()}
-                    </div>
-                    <div className="text-sm">
-                      <strong>Company:</strong> {lead?.company?.companyName}
-                    </div>
+                </DialogTitle>
+                <DialogDescription>
+                  Convert quotation to a sales order
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="text-sm">
+                    <strong>From Quotation:</strong> {selectedQuoteForSO.quotationId || selectedQuoteForSO.quotationNumber}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="advance-percent">Advance Payment (%)</Label>
-                      <Input
-                        id="advance-percent"
-                        type="number"
-                        placeholder="e.g. 30"
-                        value={soFormData.paymentTermsAdvancePercent}
-                        onChange={(e) => setSOFormData({...soFormData, paymentTermsAdvancePercent: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="credit-days">Credit Days</Label>
-                      <Input
-                        id="credit-days"
-                        type="number"
-                        placeholder="e.g. 30"
-                        value={soFormData.paymentTermsCreditDays}
-                        onChange={(e) => setSOFormData({...soFormData, paymentTermsCreditDays: e.target.value})}
-                      />
-                    </div>
+                  <div className="text-sm">
+                    <strong>Amount:</strong> {selectedQuoteForSO.currency || 'USD'} {parseFloat(selectedQuoteForSO.totalAmount || 0).toLocaleString()}
                   </div>
-
-                  <div>
-                    <Label htmlFor="expected-delivery">Expected Delivery Date</Label>
-                    <Input
-                      id="expected-delivery"
-                      type="date"
-                      value={soFormData.expectedDeliveryDate}
-                      onChange={(e) => setSOFormData({...soFormData, expectedDeliveryDate: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      Shipping Address
-                    </h4>
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="shipping-address">Address</Label>
-                        <Textarea
-                          id="shipping-address"
-                          placeholder="Street address"
-                          value={soFormData.shippingAddress}
-                          onChange={(e) => setSOFormData({...soFormData, shippingAddress: e.target.value})}
-                          rows={2}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label htmlFor="shipping-city">City</Label>
-                          <Input
-                            id="shipping-city"
-                            placeholder="City"
-                            value={soFormData.shippingCity}
-                            onChange={(e) => setSOFormData({...soFormData, shippingCity: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="shipping-state">State/Province</Label>
-                          <Input
-                            id="shipping-state"
-                            placeholder="State"
-                            value={soFormData.shippingState}
-                            onChange={(e) => setSOFormData({...soFormData, shippingState: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label htmlFor="shipping-postal">Postal Code</Label>
-                          <Input
-                            id="shipping-postal"
-                            placeholder="Postal code"
-                            value={soFormData.shippingPostalCode}
-                            onChange={(e) => setSOFormData({...soFormData, shippingPostalCode: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="shipping-country">Country</Label>
-                          <Input
-                            id="shipping-country"
-                            placeholder="Country"
-                            value={soFormData.shippingCountry}
-                            onChange={(e) => setSOFormData({...soFormData, shippingCountry: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="shipping-method">Shipping Method</Label>
-                        <Select
-                          value={soFormData.shippingMethod}
-                          onValueChange={(value) => setSOFormData({...soFormData, shippingMethod: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select shipping method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ex_works">Ex Works (EXW)</SelectItem>
-                            <SelectItem value="fob">Free on Board (FOB)</SelectItem>
-                            <SelectItem value="cif">Cost, Insurance & Freight (CIF)</SelectItem>
-                            <SelectItem value="dap">Delivered at Place (DAP)</SelectItem>
-                            <SelectItem value="ddp">Delivered Duty Paid (DDP)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="internal-notes">Internal Notes</Label>
-                    <Textarea
-                      id="internal-notes"
-                      placeholder="Notes for internal reference (not visible to customer)"
-                      value={soFormData.internalNotes}
-                      onChange={(e) => setSOFormData({...soFormData, internalNotes: e.target.value})}
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 justify-end pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowConvertToSODialog(false);
-                        setSelectedQuoteForSO(null);
-                        resetSOFormData();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleConvertToSO}
-                      disabled={convertToSOMutation.isPending}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      {convertToSOMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                      )}
-                      Create Sales Order
-                    </Button>
+                  <div className="text-sm">
+                    <strong>Company:</strong> {lead?.company?.companyName}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="advance-percent">Advance Payment (%)</Label>
+                    <Input
+                      id="advance-percent"
+                      type="number"
+                      placeholder="e.g. 30"
+                      value={soFormData.paymentTermsAdvancePercent}
+                      onChange={(e) => setSOFormData({...soFormData, paymentTermsAdvancePercent: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="credit-days">Credit Days</Label>
+                    <Input
+                      id="credit-days"
+                      type="number"
+                      placeholder="e.g. 30"
+                      value={soFormData.paymentTermsCreditDays}
+                      onChange={(e) => setSOFormData({...soFormData, paymentTermsCreditDays: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="expected-delivery">Expected Delivery Date</Label>
+                  <Input
+                    id="expected-delivery"
+                    type="date"
+                    value={soFormData.expectedDeliveryDate}
+                    onChange={(e) => setSOFormData({...soFormData, expectedDeliveryDate: e.target.value})}
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Truck className="h-4 w-4" />
+                    Shipping Address
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="shipping-address">Address</Label>
+                      <Textarea
+                        id="shipping-address"
+                        placeholder="Street address"
+                        value={soFormData.shippingAddress}
+                        onChange={(e) => setSOFormData({...soFormData, shippingAddress: e.target.value})}
+                        rows={2}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="shipping-city">City</Label>
+                        <Input
+                          id="shipping-city"
+                          placeholder="City"
+                          value={soFormData.shippingCity}
+                          onChange={(e) => setSOFormData({...soFormData, shippingCity: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shipping-state">State/Province</Label>
+                        <Input
+                          id="shipping-state"
+                          placeholder="State"
+                          value={soFormData.shippingState}
+                          onChange={(e) => setSOFormData({...soFormData, shippingState: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="shipping-postal">Postal Code</Label>
+                        <Input
+                          id="shipping-postal"
+                          placeholder="Postal code"
+                          value={soFormData.shippingPostalCode}
+                          onChange={(e) => setSOFormData({...soFormData, shippingPostalCode: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shipping-country">Country</Label>
+                        <Input
+                          id="shipping-country"
+                          placeholder="Country"
+                          value={soFormData.shippingCountry}
+                          onChange={(e) => setSOFormData({...soFormData, shippingCountry: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="shipping-method">Shipping Method</Label>
+                      <Select
+                        value={soFormData.shippingMethod}
+                        onValueChange={(value) => setSOFormData({...soFormData, shippingMethod: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select shipping method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ex_works">Ex Works (EXW)</SelectItem>
+                          <SelectItem value="fob">Free on Board (FOB)</SelectItem>
+                          <SelectItem value="cif">Cost, Insurance & Freight (CIF)</SelectItem>
+                          <SelectItem value="dap">Delivered at Place (DAP)</SelectItem>
+                          <SelectItem value="ddp">Delivered Duty Paid (DDP)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="internal-notes">Internal Notes</Label>
+                  <Textarea
+                    id="internal-notes"
+                    placeholder="Notes for internal reference (not visible to customer)"
+                    value={soFormData.internalNotes}
+                    onChange={(e) => setSOFormData({...soFormData, internalNotes: e.target.value})}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowConvertToSODialog(false);
+                      setSelectedQuoteForSO(null);
+                      resetSOFormData();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleConvertToSO}
+                    disabled={convertToSOMutation.isPending}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {convertToSOMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                    )}
+                    Create Sales Order
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Send Sales Order Email Dialog */}
+        {showSendSODialog && selectedSOToSend && (
+          <Dialog open={showSendSODialog} onOpenChange={setShowSendSODialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Send className="h-5 w-5 text-purple-600" />
+                  Send Sales Order to Customer
+                </DialogTitle>
+                <DialogDescription>
+                  Compose an email to send Sales Order {selectedSOToSend.soNumber} to the customer
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-purple-900">{selectedSOToSend.soNumber}</div>
+                      <div className="text-sm text-purple-700">
+                        {selectedSOToSend.currency || 'USD'} {parseFloat(selectedSOToSend.totalAmount || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <Badge className="bg-purple-100 text-purple-800">
+                      PDF will be attached
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="so-thread">Select Email Thread *</Label>
+                  <Select
+                    value={selectedThreadForSO}
+                    onValueChange={setSelectedThreadForSO}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an email thread" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {emailThreads?.map((thread: any) => (
+                        <SelectItem key={thread.id} value={thread.id.toString()}>
+                          {thread.subject || 'No Subject'} - {thread.customerEmail}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    The sales order PDF will be sent as a reply to this thread
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="so-subject">Email Subject</Label>
+                  <Input
+                    id="so-subject"
+                    value={soEmailSubject}
+                    onChange={(e) => setSOEmailSubject(e.target.value)}
+                    placeholder="Enter email subject"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="so-body">Email Message</Label>
+                  <Textarea
+                    id="so-body"
+                    value={soEmailBody}
+                    onChange={(e) => setSOEmailBody(e.target.value)}
+                    placeholder="Write your message to the customer..."
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The Sales Order PDF will be automatically attached to this email
+                  </p>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSendSODialog(false);
+                      setSelectedSOToSend(null);
+                      setSOEmailSubject("");
+                      setSOEmailBody("");
+                      setSelectedThreadForSO("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSendSODialog(false);
+                      toast({
+                        title: "Sales Order Created",
+                        description: "You can send it later from the Sales Orders page.",
+                      });
+                    }}
+                  >
+                    Send Later
+                  </Button>
+                  <Button
+                    onClick={handleSendSO}
+                    disabled={sendSalesOrderMutation.isPending || !selectedThreadForSO}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {sendSalesOrderMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Send Sales Order
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </DialogContent>
     </Dialog>

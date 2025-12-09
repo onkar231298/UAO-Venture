@@ -403,6 +403,7 @@ export interface IStorage {
   getNextSalesOrderNumber(): Promise<string>;
   getSalesOrdersByCompany(companyId: number): Promise<SalesOrder[]>;
   getSalesOrdersByLead(leadId: number): Promise<SalesOrder[]>;
+  generateSalesOrderPdf(salesOrderId: number): Promise<Buffer>;
 
   // Purchase order operations
   getPurchaseOrders(filters?: {
@@ -3671,6 +3672,75 @@ export class DatabaseStorage implements IStorage {
       .from(salesOrders)
       .where(eq(salesOrders.leadId, leadId))
       .orderBy(desc(salesOrders.createdAt));
+  }
+
+  async generateSalesOrderPdf(salesOrderId: number): Promise<Buffer> {
+    const order = await this.getSalesOrderWithDetails(salesOrderId);
+    if (!order) {
+      throw new Error('Sales order not found');
+    }
+
+    const { generateSalesOrderPDF } = await import('./pdf-generator');
+    
+    const orderData = {
+      id: order.id,
+      soNumber: order.soNumber,
+      orderDate: order.orderDate?.toISOString() || new Date().toISOString(),
+      expectedDeliveryDate: order.expectedDeliveryDate?.toISOString(),
+      items: order.items?.map(item => ({
+        productName: item.productName || '',
+        productSku: item.productSku || undefined,
+        quantity: item.quantity?.toString() || '0',
+        unit: item.unit || 'units',
+        unitPrice: item.unitPrice?.toString() || '0',
+        totalPrice: item.totalPrice?.toString() || '0',
+      })) || [],
+      subtotal: order.subtotal?.toString() || '0',
+      discountPercent: order.discountPercent?.toString(),
+      discountAmount: order.discountAmount?.toString(),
+      taxPercent: order.taxPercent?.toString(),
+      taxAmount: order.taxAmount?.toString(),
+      totalAmount: order.totalAmount?.toString() || '0',
+      currency: order.currency || 'USD',
+      priceType: order.priceType,
+      paymentTermsAdvancePercent: order.paymentTermsAdvancePercent?.toString(),
+      paymentTermsCreditDays: order.paymentTermsCreditDays || undefined,
+      advanceAmountDue: order.advanceAmountDue?.toString(),
+      balanceAmountDue: order.balanceAmountDue?.toString(),
+      shippingAddress: order.shippingAddress || undefined,
+      shippingCity: order.shippingCity || undefined,
+      shippingState: order.shippingState || undefined,
+      shippingPostalCode: order.shippingPostalCode || undefined,
+      shippingCountry: order.shippingCountry || undefined,
+      shippingMethod: order.shippingMethod || undefined,
+      billingAddress: order.billingAddress || undefined,
+      billingCity: order.billingCity || undefined,
+      billingState: order.billingState || undefined,
+      billingPostalCode: order.billingPostalCode || undefined,
+      billingCountry: order.billingCountry || undefined,
+      customerCompanyName: order.customerCompanyName || undefined,
+      customerContactName: order.customerContactName || undefined,
+      customerEmail: order.customerEmail || undefined,
+      customerPhone: order.customerPhone || undefined,
+      includeGst: order.includeGst || false,
+      gstNumber: order.gstNumber || undefined,
+      gstPercentage: order.gstPercentage?.toString(),
+      termsAndConditions: order.termsAndConditions || undefined,
+    };
+
+    const customerData = {
+      name: order.customerContactName || order.customerCompanyName || 'Customer',
+      companyName: order.customerCompanyName || undefined,
+      email: order.customerEmail || undefined,
+      phone: order.customerPhone || undefined,
+      address: order.billingAddress || undefined,
+      city: order.billingCity || undefined,
+      state: order.billingState || undefined,
+      country: order.billingCountry || undefined,
+      postalCode: order.billingPostalCode || undefined,
+    };
+
+    return await generateSalesOrderPDF(orderData, customerData);
   }
 
   // Purchase order operations
