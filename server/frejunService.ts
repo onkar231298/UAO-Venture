@@ -5,6 +5,7 @@ const FREJUN_PRODUCT_URL = 'https://product.frejun.com';
 const FREJUN_CLIENT_ID = process.env.FREJUN_CLIENT_ID;
 const FREJUN_CLIENT_SECRET = process.env.FREJUN_CLIENT_SECRET;
 const FREJUN_CALLBACK_URL = process.env.FREJUN_CALLBACK_URL;
+const FREJUN_API_KEY = process.env.FREJUN_API_KEY;
 
 interface TokenData {
   accessToken: string;
@@ -90,34 +91,60 @@ interface WebhookEvent {
 class FrejunService {
   private apiClient: ReturnType<typeof axios.create>;
   private isConfigured: boolean;
+  private useApiKey: boolean;
   private tokenStore: Map<string, TokenData> = new Map();
 
   constructor() {
-    this.isConfigured = !!(FREJUN_CLIENT_ID && FREJUN_CLIENT_SECRET);
+    // Prefer API key if available, otherwise fall back to OAuth
+    this.useApiKey = !!FREJUN_API_KEY;
+    this.isConfigured = this.useApiKey || !!(FREJUN_CLIENT_ID && FREJUN_CLIENT_SECRET);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // If API key is available, use it for authentication
+    if (this.useApiKey && FREJUN_API_KEY) {
+      headers['Authorization'] = `Api-Key ${FREJUN_API_KEY}`;
+    }
     
     this.apiClient = axios.create({
       baseURL: FREJUN_API_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
+    
+    console.log(`Frejun service initialized - API Key: ${this.useApiKey ? 'YES' : 'NO'}, OAuth: ${!!(FREJUN_CLIENT_ID && FREJUN_CLIENT_SECRET) ? 'YES' : 'NO'}`);
   }
 
   isReady(): boolean {
     return this.isConfigured;
   }
+  
+  isUsingApiKey(): boolean {
+    return this.useApiKey;
+  }
 
-  getConfigStatus(): { configured: boolean; message: string; oauthUrl?: string } {
+  getConfigStatus(): { configured: boolean; message: string; oauthUrl?: string; authMethod?: string } {
     if (!this.isConfigured) {
       return {
         configured: false,
-        message: 'Frejun is not configured. Please set FREJUN_CLIENT_ID, FREJUN_CLIENT_SECRET, and FREJUN_CALLBACK_URL environment variables.',
+        message: 'Frejun is not configured. Please set FREJUN_API_KEY or OAuth credentials.',
       };
     }
+    
+    if (this.useApiKey) {
+      return {
+        configured: true,
+        message: 'Frejun is configured with API key authentication.',
+        authMethod: 'api_key',
+      };
+    }
+    
     return {
       configured: true,
-      message: 'Frejun is configured and ready.',
+      message: 'Frejun is configured with OAuth.',
       oauthUrl: this.getAuthorizationUrl(),
+      authMethod: 'oauth',
     };
   }
 
