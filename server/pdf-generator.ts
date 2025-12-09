@@ -374,6 +374,7 @@ interface SalesOrderData {
     unit: string;
     unitPrice: string;
     totalPrice: string;
+    batchNumber?: string;
   }>;
   subtotal: string;
   discountPercent?: string;
@@ -406,6 +407,8 @@ interface SalesOrderData {
   gstNumber?: string;
   gstPercentage?: string;
   termsAndConditions?: string;
+  portOfLoading?: string;
+  portOfDischarge?: string;
 }
 
 interface SalesOrderCustomerData {
@@ -637,7 +640,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
     doc.text(`(${order.currency} ${parseFloat(order.advanceAmountDue).toLocaleString()})`, 200, yPos);
   }
   yPos += 12;
-  doc.text(`Credit Days: ${order.paymentTermsCreditDays || 30} days`, 50, yPos);
+  doc.text(`Credit Days: ${order.paymentTermsCreditDays ?? 0} days`, 50, yPos);
   yPos += 12;
   if (order.balanceAmountDue) {
     doc.text(`Balance Due: ${order.currency} ${parseFloat(order.balanceAmountDue).toLocaleString()}`, 50, yPos);

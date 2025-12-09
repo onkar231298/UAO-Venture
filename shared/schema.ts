@@ -816,6 +816,10 @@ export const salesOrders = pgTable("sales_orders", {
   gstNumber: varchar("gst_number", { length: 15 }),
   gstPercentage: decimal("gst_percentage", { precision: 5, scale: 2 }),
   
+  // Shipping/Logistics Details
+  portOfLoading: varchar("port_of_loading", { length: 255 }),
+  portOfDischarge: varchar("port_of_discharge", { length: 255 }),
+  
   // Notes
   internalNotes: text("internal_notes"),
   customerNotes: text("customer_notes"),
@@ -846,6 +850,7 @@ export const salesOrderItems = pgTable("sales_order_items", {
   unit: varchar("unit", { length: 50 }),
   unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
   totalPrice: decimal("total_price", { precision: 12, scale: 2 }).notNull(),
+  batchNumber: varchar("batch_number", { length: 100 }),
   specifications: text("specifications"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),

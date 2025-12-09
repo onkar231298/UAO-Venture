@@ -3407,6 +3407,13 @@ export class DatabaseStorage implements IStorage {
     shippingPostalCode?: string;
     shippingCountry?: string;
     shippingMethod?: string;
+    billingAddress?: string;
+    billingCity?: string;
+    billingState?: string;
+    billingPostalCode?: string;
+    billingCountry?: string;
+    portOfLoading?: string;
+    portOfDischarge?: string;
     internalNotes?: string;
     createdBy: string;
   }): Promise<SalesOrder> {
@@ -3456,28 +3463,30 @@ export class DatabaseStorage implements IStorage {
       currency: quotation.currency || 'USD',
       priceType: quotation.priceType || 'ex_warehouse',
       paymentTermsAdvancePercent: advancePercent.toString(),
-      paymentTermsCreditDays: options.paymentTermsCreditDays || 0,
+      paymentTermsCreditDays: options.paymentTermsCreditDays ?? 0,
       advanceAmountDue: advanceAmountDue.toString(),
       advanceAmountReceived: '0',
       balanceAmountDue: balanceAmountDue.toString(),
       balanceAmountReceived: '0',
       status: 'draft',
       paymentStatus: 'pending',
-      shippingAddress: options.shippingAddress || companyData?.address,
-      shippingCity: options.shippingCity || companyData?.city,
-      shippingState: options.shippingState || companyData?.state,
-      shippingPostalCode: options.shippingPostalCode || companyData?.postalCode,
-      shippingCountry: options.shippingCountry || companyData?.country,
+      shippingAddress: options.shippingAddress || companyData?.factoryAddressStreet,
+      shippingCity: options.shippingCity || companyData?.factoryAddressCity,
+      shippingState: options.shippingState || companyData?.factoryAddressState,
+      shippingPostalCode: options.shippingPostalCode || companyData?.factoryAddressZip,
+      shippingCountry: options.shippingCountry || companyData?.factoryAddressCountry,
       shippingMethod: options.shippingMethod,
-      billingAddress: companyData?.address,
-      billingCity: companyData?.city,
-      billingState: companyData?.state,
-      billingPostalCode: companyData?.postalCode,
-      billingCountry: companyData?.country,
-      customerCompanyName: companyData?.name || quotation.customerName,
+      billingAddress: options.billingAddress || companyData?.factoryAddressStreet,
+      billingCity: options.billingCity || companyData?.factoryAddressCity,
+      billingState: options.billingState || companyData?.factoryAddressState,
+      billingPostalCode: options.billingPostalCode || companyData?.factoryAddressZip,
+      billingCountry: options.billingCountry || companyData?.factoryAddressCountry,
+      portOfLoading: options.portOfLoading,
+      portOfDischarge: options.portOfDischarge,
+      customerCompanyName: companyData?.companyName || quotation.customerCompanyName,
       customerContactName: companyData?.primaryContactName,
-      customerEmail: companyData?.email || quotation.customerEmail,
-      customerPhone: companyData?.phone,
+      customerEmail: companyData?.primaryEmail || quotation.customerEmail,
+      customerPhone: companyData?.primaryPhone,
       includeGst: quotation.includeGst || false,
       gstNumber: quotation.gstNumber,
       gstPercentage: quotation.gstPercentage?.toString(),
@@ -3729,6 +3738,7 @@ export class DatabaseStorage implements IStorage {
         unit: item.unit || 'units',
         unitPrice: item.unitPrice?.toString() || '0',
         totalPrice: item.totalPrice?.toString() || '0',
+        batchNumber: item.batchNumber || undefined,
       })) || [],
       subtotal: order.subtotal?.toString() || '0',
       discountPercent: order.discountPercent?.toString(),
@@ -3761,6 +3771,8 @@ export class DatabaseStorage implements IStorage {
       gstNumber: order.gstNumber || undefined,
       gstPercentage: order.gstPercentage?.toString(),
       termsAndConditions: order.termsAndConditions || undefined,
+      portOfLoading: order.portOfLoading || undefined,
+      portOfDischarge: order.portOfDischarge || undefined,
     };
 
     // Build customer data with proper fallbacks - prioritize contact name, then company name

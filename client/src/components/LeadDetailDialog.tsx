@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck, Ship } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
@@ -87,7 +87,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [selectedThreadForSO, setSelectedThreadForSO] = useState<string>("");
   const [soFormData, setSOFormData] = useState({
     paymentTermsAdvancePercent: "",
-    paymentTermsCreditDays: "30",
+    paymentTermsCreditDays: "0",
     expectedDeliveryDate: "",
     shippingAddress: "",
     shippingCity: "",
@@ -95,6 +95,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     shippingPostalCode: "",
     shippingCountry: "",
     shippingMethod: "",
+    billingAddress: "",
+    billingCity: "",
+    billingState: "",
+    billingPostalCode: "",
+    billingCountry: "",
+    portOfLoading: "",
+    portOfDischarge: "",
     internalNotes: "",
   });
   const [quoteFormData, setQuoteFormData] = useState({
@@ -757,7 +764,7 @@ The BFI Organic Team`);
   const resetSOFormData = () => {
     setSOFormData({
       paymentTermsAdvancePercent: "",
-      paymentTermsCreditDays: "30",
+      paymentTermsCreditDays: "0",
       expectedDeliveryDate: "",
       shippingAddress: "",
       shippingCity: "",
@@ -765,6 +772,13 @@ The BFI Organic Team`);
       shippingPostalCode: "",
       shippingCountry: "",
       shippingMethod: "",
+      billingAddress: "",
+      billingCity: "",
+      billingState: "",
+      billingPostalCode: "",
+      billingCountry: "",
+      portOfLoading: "",
+      portOfDischarge: "",
       internalNotes: "",
     });
   };
@@ -3513,7 +3527,7 @@ Packaging: Standard export packaging`,
         {/* Convert to Sales Order Dialog */}
         {showConvertToSODialog && selectedQuoteForSO && (
           <Dialog open={showConvertToSODialog} onOpenChange={setShowConvertToSODialog}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-purple-600" />
@@ -3643,6 +3657,92 @@ Packaging: Standard export packaging`,
                           <SelectItem value="ddp">Delivered Duty Paid (DDP)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Billing Address
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="billing-address">Address</Label>
+                      <Textarea
+                        id="billing-address"
+                        placeholder="Street address"
+                        value={soFormData.billingAddress}
+                        onChange={(e) => setSOFormData({...soFormData, billingAddress: e.target.value})}
+                        rows={2}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="billing-city">City</Label>
+                        <Input
+                          id="billing-city"
+                          placeholder="City"
+                          value={soFormData.billingCity}
+                          onChange={(e) => setSOFormData({...soFormData, billingCity: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="billing-state">State/Province</Label>
+                        <Input
+                          id="billing-state"
+                          placeholder="State"
+                          value={soFormData.billingState}
+                          onChange={(e) => setSOFormData({...soFormData, billingState: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="billing-postal">Postal Code</Label>
+                        <Input
+                          id="billing-postal"
+                          placeholder="Postal code"
+                          value={soFormData.billingPostalCode}
+                          onChange={(e) => setSOFormData({...soFormData, billingPostalCode: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="billing-country">Country</Label>
+                        <Input
+                          id="billing-country"
+                          placeholder="Country"
+                          value={soFormData.billingCountry}
+                          onChange={(e) => setSOFormData({...soFormData, billingCountry: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Ship className="h-4 w-4" />
+                    Port Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="port-of-loading">Port of Loading</Label>
+                      <Input
+                        id="port-of-loading"
+                        placeholder="e.g. Mumbai Port"
+                        value={soFormData.portOfLoading}
+                        onChange={(e) => setSOFormData({...soFormData, portOfLoading: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="port-of-discharge">Port of Discharge</Label>
+                      <Input
+                        id="port-of-discharge"
+                        placeholder="e.g. Rotterdam Port"
+                        value={soFormData.portOfDischarge}
+                        onChange={(e) => setSOFormData({...soFormData, portOfDischarge: e.target.value})}
+                      />
                     </div>
                   </div>
                 </div>
