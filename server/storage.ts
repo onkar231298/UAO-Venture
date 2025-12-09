@@ -2990,6 +2990,7 @@ export class DatabaseStorage implements IStorage {
           leadId: quotations.leadId,
           sentAt: quotations.sentAt,
           sentBy: quotations.sentBy,
+          salesOrderId: quotations.salesOrderId,
           // Product info from inquiry
           productName: products.name,
           productId: products.productId,
