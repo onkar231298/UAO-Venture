@@ -473,7 +473,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   }
   
   // Header bar with title - positioned after logo with proper spacing like quotation
-  yPos += 80;
+  yPos += 100;
   doc.fillColor(orangeColor).rect(40, yPos, 510, 40).fill();
   doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 10, { align: 'left' });
   doc.fontSize(9).fillColor('white').text(companyDetails.name, 50, yPos + 28);
