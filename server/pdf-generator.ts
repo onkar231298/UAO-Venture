@@ -490,7 +490,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   yPos += 20;
   
   // Customer and Shipping Details - increased height for better spacing
-  const boxHeight = 100;
+  const boxHeight = 120;
   doc.fillColor('#f8f9fa').rect(40, yPos, 250, boxHeight).fill();
   doc.fillColor('#f8f9fa').rect(300, yPos, 250, boxHeight).fill();
   

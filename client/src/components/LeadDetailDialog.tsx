@@ -906,6 +906,14 @@ Packaging: Standard export packaging`,
       terms: quoteFormData.terms,
       notes: quoteFormData.notes,
       status: "draft",
+      items: [{
+        productId: quoteFormData.productId,
+        quantity: quoteFormData.quantity,
+        unit: quoteFormData.unit,
+        unitPrice: quoteFormData.unitPrice,
+        totalPrice: subtotal.toFixed(2),
+        specifications: quoteFormData.notes || null,
+      }],
     });
   };
 
