@@ -3383,8 +3383,8 @@ Packaging: Standard export packaging`,
 
         {/* Convert to Sales Order Dialog */}
         {showConvertToSODialog && selectedQuoteForSO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <Card className="w-full max-w-lg mx-4 bg-white max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <Card className="w-full max-w-lg mx-4 bg-white max-h-[85vh] overflow-y-auto shadow-2xl border-0" style={{ zIndex: 101 }}>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-purple-600" />

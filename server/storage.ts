@@ -3426,6 +3426,7 @@ export class DatabaseStorage implements IStorage {
 
     // Create sales order
     const orderData: InsertSalesOrder = {
+      orderId: soNumber, // Set orderId same as soNumber for legacy column
       soNumber,
       quotationId: quotation.id,
       companyId: quotation.companyId,

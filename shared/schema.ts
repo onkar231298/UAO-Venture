@@ -746,6 +746,7 @@ export type SalesOrderPaymentStatus = typeof SALES_ORDER_PAYMENT_STATUSES[number
 // Sales orders
 export const salesOrders = pgTable("sales_orders", {
   id: serial("id").primaryKey(),
+  orderId: varchar("order_id", { length: 50 }).notNull(), // Legacy order_id column (same as soNumber)
   soNumber: varchar("so_number", { length: 50 }).notNull().unique(), // SO-2024-0001 format
   
   // References
