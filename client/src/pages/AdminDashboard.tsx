@@ -16,7 +16,7 @@ import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
-import EmailConfigManagement from "@/pages/admin/EmailConfigManagement";
+import SystemSettings from "@/pages/admin/SystemSettings";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   SidebarProvider,
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'settings' && (
-            <EmailConfigManagement />
+            <SystemSettings />
           )}
           
           {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && (
