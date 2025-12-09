@@ -126,13 +126,14 @@ class FrejunService {
       client_id: FREJUN_CLIENT_ID!,
     });
     
-    if (redirectUri || FREJUN_CALLBACK_URL) {
-      params.append('redirect_uri', redirectUri || FREJUN_CALLBACK_URL!);
-    }
+    // Don't send redirect_uri - let Frejun use the configured one
+    // This avoids URL encoding/matching issues
     
     if (state) {
       params.append('state', state);
     }
+    
+    console.log('Frejun authorization URL params:', params.toString());
     
     return `${FREJUN_PRODUCT_URL}/oauth/authorize/?${params.toString()}`;
   }
