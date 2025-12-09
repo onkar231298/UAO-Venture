@@ -5147,6 +5147,41 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Document Number Settings routes
+  app.get('/api/admin/document-number-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const settings = await storage.getDocumentNumberSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching document number settings:', error);
+      res.status(500).json({ message: "Failed to fetch document number settings" });
+    }
+  });
+
+  app.get('/api/admin/document-number-settings/:documentType', isAuthenticated, async (req: any, res) => {
+    try {
+      const setting = await storage.getDocumentNumberSetting(req.params.documentType);
+      if (!setting) {
+        return res.status(404).json({ message: "Document number setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error('Error fetching document number setting:', error);
+      res.status(500).json({ message: "Failed to fetch document number setting" });
+    }
+  });
+
+  app.put('/api/admin/document-number-settings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateDocumentNumberSettings(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating document number settings:', error);
+      res.status(500).json({ message: "Failed to update document number settings" });
+    }
+  });
+
   // SEO audit endpoint
   app.get('/api/admin/seo/audit', isAuthenticated, async (req: any, res) => {
     try {

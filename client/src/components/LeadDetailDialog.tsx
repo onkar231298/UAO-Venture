@@ -712,6 +712,24 @@ The BFI Organic Team`);
     });
   };
 
+  // Handle sending SO from quotation card - fetch SO details first
+  const handleSendSOFromQuote = async (salesOrderId: number) => {
+    try {
+      const response = await fetch(`/api/sales-orders/${salesOrderId}`);
+      if (!response.ok) throw new Error('Failed to fetch sales order');
+      const so = await response.json();
+      setSelectedSOToSend(so);
+      initializeSendSOForm(so);
+      setShowSendSODialog(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not load sales order details",
+        variant: "destructive",
+      });
+    }
+  };
+
   const initializeSOForm = (quote: any) => {
     // Pre-fill from company address if available
     const company = lead?.company;
@@ -2244,9 +2262,32 @@ Packaging: Standard export packaging`,
                                 </Button>
                               )}
                               {quote.salesOrderId && (
-                                <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
-                                  SO Created
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                                    <ShoppingCart className="h-3 w-3 mr-1" />
+                                    SO Created
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700"
+                                    onClick={() => window.open(`/api/sales-orders/${quote.salesOrderId}/pdf`, '_blank')}
+                                    data-testid="button-download-so-pdf"
+                                  >
+                                    <Download className="h-3 w-3 mr-1" />
+                                    SO PDF
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
+                                    onClick={() => handleSendSOFromQuote(quote.salesOrderId)}
+                                    data-testid="button-send-so-from-quote"
+                                  >
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Send SO
+                                  </Button>
+                                </div>
                               )}
                             </div>
                             {quote.sentAt && (

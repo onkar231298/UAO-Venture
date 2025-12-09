@@ -2257,3 +2257,31 @@ export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTo
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+
+// Document Numbering Settings (SO, Quotation, PO, Invoice, etc.)
+export const documentNumberSettings = pgTable("document_number_settings", {
+  id: serial("id").primaryKey(),
+  documentType: varchar("document_type", { length: 50 }).notNull().unique(), // sales_order, quotation, purchase_order, invoice
+  prefix: varchar("prefix", { length: 20 }).notNull().default("SO"), // SO, QUO, PO, INV
+  separator: varchar("separator", { length: 5 }).default("-"), // -, /, _
+  includeYear: boolean("include_year").default(true),
+  yearFormat: varchar("year_format", { length: 10 }).default("YYYY"), // YYYY, YY
+  includeMonth: boolean("include_month").default(false),
+  sequenceLength: integer("sequence_length").default(4), // Number of digits (0001, 00001, etc.)
+  currentSequence: integer("current_sequence").default(0), // Current counter value
+  resetPeriod: varchar("reset_period", { length: 20 }).default("yearly"), // yearly, monthly, never
+  lastResetDate: timestamp("last_reset_date"),
+  sampleFormat: varchar("sample_format", { length: 100 }), // Display sample: SO-2025-0001
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDocumentNumberSettingsSchema = createInsertSchema(documentNumberSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DocumentNumberSettings = typeof documentNumberSettings.$inferSelect;
+export type InsertDocumentNumberSettings = z.infer<typeof insertDocumentNumberSettingsSchema>;

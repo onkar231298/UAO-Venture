@@ -29,6 +29,9 @@ import {
   leadActivities,
   leadTasks,
   assignmentRules,
+  documentNumberSettings,
+  type DocumentNumberSettings,
+  type InsertDocumentNumberSettings,
   type User,
   type InsertUser,
   type Product,
@@ -469,6 +472,12 @@ export interface IStorage {
   // Global SEO Settings methods
   getGlobalSeoSettings(): Promise<GlobalSeoSettings | undefined>;
   updateGlobalSeoSettings(settings: Partial<InsertGlobalSeoSettings>): Promise<GlobalSeoSettings>;
+
+  // Document Number Settings methods
+  getDocumentNumberSettings(documentType?: string): Promise<DocumentNumberSettings[]>;
+  getDocumentNumberSetting(documentType: string): Promise<DocumentNumberSettings | undefined>;
+  updateDocumentNumberSettings(id: number, settings: Partial<InsertDocumentNumberSettings>): Promise<DocumentNumberSettings>;
+  generateNextDocumentNumber(documentType: string): Promise<string>;
 
   // Newsletter subscription methods
   subscribeToNewsletter(subscription: InsertNewsletterSubscription): Promise<NewsletterSubscription>;
@@ -3743,6 +3752,105 @@ export class DatabaseStorage implements IStorage {
     };
 
     return await generateSalesOrderPDF(orderData, customerData);
+  }
+
+  // Document Number Settings methods
+  async getDocumentNumberSettings(documentType?: string): Promise<DocumentNumberSettings[]> {
+    if (documentType) {
+      return await db.select().from(documentNumberSettings).where(eq(documentNumberSettings.documentType, documentType));
+    }
+    return await db.select().from(documentNumberSettings).orderBy(documentNumberSettings.documentType);
+  }
+
+  async getDocumentNumberSetting(documentType: string): Promise<DocumentNumberSettings | undefined> {
+    const [setting] = await db.select().from(documentNumberSettings).where(eq(documentNumberSettings.documentType, documentType));
+    return setting;
+  }
+
+  async updateDocumentNumberSettings(id: number, settings: Partial<InsertDocumentNumberSettings>): Promise<DocumentNumberSettings> {
+    // Generate sample format based on settings
+    const sampleFormat = this.buildSampleFormat(settings);
+    
+    const [updated] = await db
+      .update(documentNumberSettings)
+      .set({ ...settings, sampleFormat, updatedAt: new Date() })
+      .where(eq(documentNumberSettings.id, id))
+      .returning();
+    return updated;
+  }
+
+  private buildSampleFormat(settings: Partial<InsertDocumentNumberSettings>): string {
+    const prefix = settings.prefix || 'DOC';
+    const separator = settings.separator || '-';
+    const year = new Date().getFullYear();
+    const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
+    const sequenceLength = settings.sequenceLength || 4;
+    const sequence = '1'.padStart(sequenceLength, '0');
+    
+    let format = prefix;
+    if (settings.includeYear) {
+      format += separator + (settings.yearFormat === 'YY' ? year.toString().slice(-2) : year.toString());
+    }
+    if (settings.includeMonth) {
+      format += separator + month;
+    }
+    format += separator + sequence;
+    
+    return format;
+  }
+
+  async generateNextDocumentNumber(documentType: string): Promise<string> {
+    const setting = await this.getDocumentNumberSetting(documentType);
+    
+    if (!setting) {
+      // Fallback to default format if no settings exist
+      const year = new Date().getFullYear();
+      return `${documentType.toUpperCase()}-${year}-0001`;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    
+    // Check if sequence needs to be reset based on period
+    let currentSequence = setting.currentSequence || 0;
+    const lastReset = setting.lastResetDate ? new Date(setting.lastResetDate) : null;
+    
+    if (setting.resetPeriod === 'yearly' && lastReset && lastReset.getFullYear() !== year) {
+      currentSequence = 0;
+      await db.update(documentNumberSettings)
+        .set({ currentSequence: 0, lastResetDate: now })
+        .where(eq(documentNumberSettings.id, setting.id));
+    } else if (setting.resetPeriod === 'monthly' && lastReset && 
+              (lastReset.getFullYear() !== year || lastReset.getMonth() !== now.getMonth())) {
+      currentSequence = 0;
+      await db.update(documentNumberSettings)
+        .set({ currentSequence: 0, lastResetDate: now })
+        .where(eq(documentNumberSettings.id, setting.id));
+    }
+
+    // Increment sequence
+    const nextSequence = currentSequence + 1;
+    
+    // Update current sequence
+    await db.update(documentNumberSettings)
+      .set({ currentSequence: nextSequence, updatedAt: now })
+      .where(eq(documentNumberSettings.id, setting.id));
+
+    // Build the document number
+    let docNumber = setting.prefix || 'DOC';
+    const separator = setting.separator || '-';
+    
+    if (setting.includeYear) {
+      const yearStr = setting.yearFormat === 'YY' ? year.toString().slice(-2) : year.toString();
+      docNumber += separator + yearStr;
+    }
+    if (setting.includeMonth) {
+      docNumber += separator + month.toString().padStart(2, '0');
+    }
+    docNumber += separator + nextSequence.toString().padStart(setting.sequenceLength || 4, '0');
+
+    return docNumber;
   }
 
   // Purchase order operations
