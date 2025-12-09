@@ -26,6 +26,8 @@ import {
   PhoneMissed,
   PhoneIncoming,
   PhoneOutgoing,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 interface DialerProps {
@@ -310,6 +312,25 @@ export function Dialer({
   };
 
   const isConfigured = voiceStatus?.configured ?? false;
+  const isUserConnected = voiceStatus?.isUserConnected ?? false;
+  const oauthUrl = voiceStatus?.oauthUrl;
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectFrejun = () => {
+    if (oauthUrl) {
+      setIsConnecting(true);
+      const popup = window.open(oauthUrl, 'frejun-auth', 'width=600,height=700');
+      
+      // Check if popup was closed
+      const checkPopup = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkPopup);
+          setIsConnecting(false);
+          queryClient.invalidateQueries({ queryKey: ["/api/voice/status"] });
+        }
+      }, 500);
+    }
+  };
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -324,8 +345,19 @@ export function Dialer({
           <DialogTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5" />
             Phone Dialer
-            {!isConfigured && (
+            {isConfigured && isUserConnected && (
+              <Badge variant="outline" className="text-green-600 border-green-600">
+                Connected
+              </Badge>
+            )}
+            {isConfigured && !isUserConnected && (
               <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Not Connected
+              </Badge>
+            )}
+            {!isConfigured && (
+              <Badge variant="outline" className="text-red-600 border-red-600">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Not Configured
               </Badge>
@@ -414,16 +446,37 @@ export function Dialer({
                     size="lg"
                     className="rounded-full w-16 h-16 bg-green-500 hover:bg-green-600"
                     onClick={handleCall}
-                    disabled={!phoneNumber.trim() || initiateCallMutation.isPending || !isConfigured}
+                    disabled={!phoneNumber.trim() || initiateCallMutation.isPending || !isConfigured || !isUserConnected}
                     data-testid="btn-call"
                   >
                     <Phone className="h-6 w-6" />
                   </Button>
                 </div>
 
+                {isConfigured && !isUserConnected && (
+                  <div className="flex flex-col items-center gap-3 pt-4 border-t">
+                    <p className="text-center text-sm text-muted-foreground">
+                      Connect your Frejun account to enable calling
+                    </p>
+                    <Button
+                      onClick={handleConnectFrejun}
+                      disabled={isConnecting}
+                      className="gap-2"
+                      data-testid="btn-connect-frejun"
+                    >
+                      {isConnecting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="h-4 w-4" />
+                      )}
+                      {isConnecting ? "Connecting..." : "Connect Frejun"}
+                    </Button>
+                  </div>
+                )}
+
                 {!isConfigured && (
                   <p className="text-center text-sm text-muted-foreground">
-                    Frejun is not configured. Please connect your Frejun account to enable calling.
+                    Frejun is not configured. Please ask your administrator to set up the integration.
                   </p>
                 )}
               </>
@@ -447,12 +500,35 @@ export function Dialer({
             <Button
               className="w-full"
               onClick={handleSendSms}
-              disabled={!phoneNumber.trim() || !smsMessage.trim() || sendSmsMutation.isPending || !isConfigured}
+              disabled={!phoneNumber.trim() || !smsMessage.trim() || sendSmsMutation.isPending || !isConfigured || !isUserConnected}
               data-testid="btn-send-sms"
             >
               <Send className="h-4 w-4 mr-2" />
               Send SMS
             </Button>
+            
+            {isConfigured && !isUserConnected && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <p className="text-center text-sm text-muted-foreground">
+                  Connect your Frejun account to send SMS
+                </p>
+                <Button
+                  onClick={handleConnectFrejun}
+                  disabled={isConnecting}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  data-testid="btn-connect-frejun-sms"
+                >
+                  {isConnecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4" />
+                  )}
+                  Connect Frejun
+                </Button>
+              </div>
+            )}
 
             {smsMessages.length > 0 && (
               <ScrollArea className="h-48 border rounded-md p-2">
@@ -649,7 +725,7 @@ export function ClickToCall({
     if (!isConfigured) {
       toast({
         title: "Phone Not Configured",
-        description: "net2phone integration is not set up",
+        description: "Frejun integration is not set up",
         variant: "destructive",
       });
       return;
