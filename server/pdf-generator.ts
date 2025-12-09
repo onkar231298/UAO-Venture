@@ -460,7 +460,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   const orangeColor = '#ff8c00';
   const darkGray = '#333';
-  let yPos = 15;
+  let yPos = 40;
   
   // Header with company logo - matching quotation PDF size and style
   try {
