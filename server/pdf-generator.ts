@@ -1,6 +1,11 @@
 import PDFDocument from 'pdfkit';
 import converter from 'number-to-words';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Resolved logo path for reliable loading in all environments
 const logoPath = path.resolve(__dirname, 'bfi-logo.png');
