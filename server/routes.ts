@@ -3633,17 +3633,57 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       // Get thread info for proper threading headers
       let existingThread: any = null;
-      let lastMessageId: string | null = null;
+      let parentMessageIdHeader: string | null = null;
+      let parentReferencesHeader: string | null = null;
       let gmailThreadId: string | undefined;
       
       if (emailThreadId) {
         existingThread = await storage.getEmailThread(emailThreadId);
         gmailThreadId = existingThread?.gmailThreadId;
         
-        // Get last message's Message-ID for proper threading
+        // Get the proper RFC Message-ID header for threading (not Gmail's internal ID)
         if (existingThread?.messages?.length > 0) {
-          const lastMsg = existingThread.messages[existingThread.messages.length - 1];
-          lastMessageId = lastMsg.gmailMessageId || lastMsg.messageId;
+          // Sort messages by date (most recent first)
+          const sortedMessages = [...existingThread.messages].sort((a: any, b: any) => 
+            (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
+            (a.sentAt || a.receivedAt || new Date(0)).getTime()
+          );
+          
+          // Try to find a message with the Message-ID header stored
+          for (const msg of sortedMessages) {
+            if (msg.messageIdHeader) {
+              parentMessageIdHeader = msg.messageIdHeader;
+              parentReferencesHeader = msg.referencesHeader || null;
+              console.log('[SO Send] Found stored Message-ID header:', parentMessageIdHeader);
+              break;
+            }
+            
+            // If not stored but we have a Gmail message ID, try to fetch it
+            if (msg.gmailMessageId || msg.messageId) {
+              try {
+                const msgId = msg.gmailMessageId || msg.messageId;
+                const gmailMessage = await gmail.users.messages.get({
+                  userId: 'me',
+                  id: msgId,
+                  format: 'metadata',
+                  metadataHeaders: ['Message-ID', 'References'],
+                });
+                
+                const headers = gmailMessage.data.payload?.headers || [];
+                const messageIdH = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
+                const referencesH = headers.find((h: any) => h.name?.toLowerCase() === 'references');
+                
+                if (messageIdH?.value) {
+                  parentMessageIdHeader = messageIdH.value;
+                  parentReferencesHeader = referencesH?.value || null;
+                  console.log('[SO Send] Fetched Message-ID header from Gmail:', parentMessageIdHeader);
+                  break;
+                }
+              } catch (err) {
+                console.log('[SO Send] Could not fetch Message-ID from Gmail message:', err);
+              }
+            }
+          }
         }
       }
 
@@ -3659,10 +3699,21 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         `Message-ID: ${messageId}`,
       ];
       
-      // Add threading headers for replies
-      if (lastMessageId && gmailThreadId) {
-        emailHeaders.push(`In-Reply-To: <${lastMessageId}>`);
-        emailHeaders.push(`References: <${lastMessageId}>`);
+      // Add threading headers for replies using proper RFC Message-ID header
+      if (parentMessageIdHeader && gmailThreadId) {
+        // Use the Message-ID header as-is (it already includes angle brackets)
+        const inReplyTo = parentMessageIdHeader.startsWith('<') ? parentMessageIdHeader : `<${parentMessageIdHeader}>`;
+        emailHeaders.push(`In-Reply-To: ${inReplyTo}`);
+        
+        // Build References header
+        let references: string;
+        if (parentReferencesHeader) {
+          references = `${parentReferencesHeader} ${inReplyTo}`;
+        } else {
+          references = inReplyTo;
+        }
+        emailHeaders.push(`References: ${references}`);
+        console.log('[SO Send] Using threading headers - In-Reply-To:', inReplyTo, 'References:', references);
       }
       
       const emailLines = [
