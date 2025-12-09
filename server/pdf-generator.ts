@@ -458,22 +458,24 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   const darkGray = '#333';
   let yPos = 15;
   
-  // Header with company logo (matching quotation style)
+  // Header with company logo - centered above header bar
   try {
-    const logoWidth = 120;
-    doc.image(logoPath, 40, yPos, { width: logoWidth, fit: [logoWidth, 50] });
+    const logoWidth = 140;
+    const pageWidth = 595; // A4 page width in points
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 60] });
   } catch (error) {
     console.log('Logo not found at', logoPath, ', continuing without logo');
   }
   
-  // Header bar with title
-  yPos += 60;
-  doc.fillColor(orangeColor).rect(40, yPos, 510, 50).fill();
-  doc.fontSize(22).fillColor('white').text('SALES ORDER', 50, yPos + 12, { align: 'left' });
-  doc.fontSize(10).fillColor('white').text(companyDetails.name, 50, yPos + 35);
-  doc.fontSize(14).fillColor('white').text(order.soNumber, 400, yPos + 18, { align: 'right', width: 140 });
+  // Header bar with title - positioned after logo with clear spacing
+  yPos += 80;
+  doc.fillColor(orangeColor).rect(40, yPos, 510, 40).fill();
+  doc.fontSize(20).fillColor('white').text('SALES ORDER', 50, yPos + 10, { align: 'left' });
+  doc.fontSize(9).fillColor('white').text(companyDetails.name, 50, yPos + 28);
+  doc.fontSize(13).fillColor('white').text(order.soNumber, 400, yPos + 12, { align: 'right', width: 140 });
   
-  yPos += 60;
+  yPos += 50;
   
   // Order Info Row
   doc.fontSize(9).fillColor(darkGray);
@@ -482,7 +484,7 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
     doc.text('Expected Delivery:', 300, yPos).text(new Date(order.expectedDeliveryDate).toLocaleDateString('en-GB'), 410, yPos);
   }
   
-  yPos += 25;
+  yPos += 20;
   
   // Customer and Shipping Details - increased height for better spacing
   const boxHeight = 100;
@@ -580,18 +582,25 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   // Items
   doc.fillColor(darkGray);
-  order.items.forEach((item, index) => {
-    const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
-    doc.fillColor(bgColor).rect(40, yPos, 510, 20).fill();
-    doc.fillColor(darkGray).fontSize(9);
-    doc.text((index + 1).toString(), 50, yPos + 5);
-    doc.text(item.productName.slice(0, 30), 70, yPos + 5);
-    doc.text(item.productSku || '-', 240, yPos + 5);
-    doc.text(`${item.quantity} ${item.unit}`, 320, yPos + 5);
-    doc.text(`${order.currency} ${parseFloat(item.unitPrice).toLocaleString()}`, 370, yPos + 5);
-    doc.text(`${order.currency} ${parseFloat(item.totalPrice).toLocaleString()}`, 470, yPos + 5, { align: 'right', width: 70 });
-    yPos += 20;
-  });
+  if (order.items && order.items.length > 0) {
+    order.items.forEach((item, index) => {
+      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+      doc.fillColor(bgColor).rect(40, yPos, 510, 20).fill();
+      doc.fillColor(darkGray).fontSize(9);
+      doc.text((index + 1).toString(), 50, yPos + 5);
+      doc.text((item.productName || 'Product').slice(0, 30), 70, yPos + 5);
+      doc.text(item.productSku || '-', 240, yPos + 5);
+      doc.text(`${item.quantity || '0'} ${item.unit || 'units'}`, 320, yPos + 5);
+      doc.text(`${order.currency} ${parseFloat(item.unitPrice || '0').toLocaleString()}`, 370, yPos + 5);
+      doc.text(`${order.currency} ${parseFloat(item.totalPrice || '0').toLocaleString()}`, 470, yPos + 5, { align: 'right', width: 70 });
+      yPos += 20;
+    });
+  } else {
+    // No items - show placeholder
+    doc.fillColor('#f9f9f9').rect(40, yPos, 510, 25).fill();
+    doc.fillColor(darkGray).fontSize(9).text('No items in this order', 50, yPos + 8, { align: 'center', width: 500 });
+    yPos += 25;
+  }
   
   // Totals Section
   yPos += 10;

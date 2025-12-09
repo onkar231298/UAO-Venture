@@ -3693,23 +3693,29 @@ export class DatabaseStorage implements IStorage {
 
     const { generateSalesOrderPDF } = await import('./pdf-generator');
     
-    // Get customer info from company, lead, or order - with proper fallbacks
-    const company = order.company;
+    // Get company through lead if not directly available
+    let companyData = order.company;
     const lead = order.lead;
     
-    // Determine best customer info sources with proper priority:
-    // Order fields > Company fields > Lead fields
-    const companyName = order.customerCompanyName || company?.companyName || lead?.companyName;
-    const contactName = order.customerContactName || company?.contactName || lead?.contactName;
-    const customerEmail = order.customerEmail || company?.email || lead?.email;
-    const customerPhone = order.customerPhone || company?.phone || lead?.phone;
+    // If company not directly on order, get it through the lead
+    if (!companyData && lead?.companyId) {
+      const [c] = await db.select().from(companies).where(eq(companies.id, lead.companyId));
+      companyData = c;
+    }
     
-    // Billing address - prefer order, then company with normalized fields
-    const billingAddress = (order.billingAddress || company?.address || '').trim();
-    const billingCity = (order.billingCity || company?.city || '').trim();
-    const billingState = (order.billingState || company?.state || '').trim();
-    const billingCountry = (order.billingCountry || company?.country || '').trim();
-    const billingPostalCode = (order.billingPostalCode || company?.postalCode || '').trim();
+    // Determine best customer info sources with proper priority:
+    // Order fields > Company fields (using correct column names)
+    const companyName = order.customerCompanyName || companyData?.companyName;
+    const contactName = order.customerContactName || companyData?.primaryContactName;
+    const customerEmail = order.customerEmail || companyData?.primaryEmail;
+    const customerPhone = order.customerPhone || companyData?.primaryPhone;
+    
+    // Billing address - prefer order, then company with correct field names
+    const billingAddress = (order.billingAddress || companyData?.factoryAddressStreet || '').trim();
+    const billingCity = (order.billingCity || companyData?.factoryAddressCity || '').trim();
+    const billingState = (order.billingState || companyData?.factoryAddressState || '').trim();
+    const billingCountry = (order.billingCountry || companyData?.factoryAddressCountry || '').trim();
+    const billingPostalCode = (order.billingPostalCode || companyData?.factoryAddressZip || '').trim();
     
     const orderData = {
       id: order.id,
