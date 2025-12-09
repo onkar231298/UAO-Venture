@@ -702,6 +702,9 @@ export const quotations = pgTable("quotations", {
   leadId: integer("lead_id"), // Optional link to CRM lead
   sentAt: timestamp("sent_at"), // When quote was sent to customer via email
   sentBy: varchar("sent_by").references(() => users.id), // Who sent the quote
+  
+  // Sales Order Link (when quotation is converted to SO)
+  salesOrderId: integer("sales_order_id"), // Link to created sales order
 });
 
 // Quotation items

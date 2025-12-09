@@ -3519,9 +3519,10 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date(),
     });
 
-    // Update quotation to mark it as converted
+    // Update quotation to mark it as converted and link to sales order
     await db.update(quotations).set({
       status: 'converted',
+      salesOrderId: newOrder.id,
       updatedAt: new Date(),
     }).where(eq(quotations.id, quotationId));
 
