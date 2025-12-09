@@ -3640,11 +3640,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (emailThreadId) {
         existingThread = await storage.getEmailThread(emailThreadId);
         gmailThreadId = existingThread?.gmailThreadId;
+        console.log('[SO Send] Thread found:', existingThread?.id, 'Gmail threadId:', gmailThreadId);
+        
+        // Fetch the messages for this thread (getEmailThread doesn't include messages)
+        const threadMessages = existingThread ? await storage.getEmailMessages({ threadId: existingThread.id }) : [];
+        console.log('[SO Send] Thread messages count:', threadMessages.length);
         
         // Get the proper RFC Message-ID header for threading (not Gmail's internal ID)
-        if (existingThread?.messages?.length > 0) {
+        if (threadMessages.length > 0) {
           // Sort messages by date (most recent first)
-          const sortedMessages = [...existingThread.messages].sort((a: any, b: any) => 
+          const sortedMessages = [...threadMessages].sort((a: any, b: any) => 
             (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
             (a.sentAt || a.receivedAt || new Date(0)).getTime()
           );
