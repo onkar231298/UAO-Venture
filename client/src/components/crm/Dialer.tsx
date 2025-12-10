@@ -567,44 +567,68 @@ export function Dialer({
                   {allCallLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50"
+                      className="p-3 border rounded-lg hover:bg-muted/50 space-y-2"
                       data-testid={`call-log-${log.id}`}
                     >
-                      {getCallStatusIcon(log.status, log.direction)}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {log.recipientName || log.recipientPhone}
+                      <div className="flex items-center gap-3">
+                        {getCallStatusIcon(log.status, log.direction)}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {log.recipientName || log.recipientPhone}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(new Date(log.initiatedAt), { addSuffix: true })}
+                            {log.durationSeconds > 0 && (
+                              <span>• {formatDuration(log.durationSeconds)}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(log.initiatedAt), { addSuffix: true })}
-                          {log.durationSeconds > 0 && (
-                            <span>• {formatDuration(log.durationSeconds)}</span>
-                          )}
-                        </div>
+                        <Badge className={getStatusBadge(log.status)}>
+                          {log.status}
+                        </Badge>
+                        {log.recordingUrl && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (playingRecording === log.id) {
+                                setPlayingRecording(null);
+                              } else {
+                                setPlayingRecording(log.id);
+                              }
+                            }}
+                            data-testid={`play-recording-${log.id}`}
+                          >
+                            {playingRecording === log.id ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
-                      <Badge className={getStatusBadge(log.status)}>
-                        {log.status}
-                      </Badge>
-                      {log.recordingUrl && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (playingRecording === log.id) {
-                              setPlayingRecording(null);
-                            } else {
-                              setPlayingRecording(log.id);
-                            }
-                          }}
-                          data-testid={`play-recording-${log.id}`}
-                        >
-                          {playingRecording === log.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
+                      {log.recordingUrl && playingRecording === log.id && (
+                        <div className="pl-7 pt-2">
+                          <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Play className="h-4 w-4 text-blue-600" />
+                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                Call Recording
+                              </span>
+                            </div>
+                            <audio
+                              controls
+                              className="w-full h-8"
+                              autoPlay
+                              src={log.recordingUrl}
+                              onEnded={() => setPlayingRecording(null)}
+                              data-testid={`audio-player-${log.id}`}
+                            >
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
