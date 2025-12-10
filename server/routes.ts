@@ -8488,10 +8488,14 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const userToken = await frejunService.getUserToken(userId);
       const isUserConnected = !!userToken;
       
+      // Always include OAuth URL for Connect button functionality
+      const oauthUrl = frejunService.getAuthorizationUrl(userId);
+      
       res.json({
         ...status,
         isUserConnected,
         dialerWidgetUrl: frejunService.getDialerWidgetUrl(),
+        oauthUrl,
       });
     } catch (error) {
       console.error('Error checking Frejun status:', error);
