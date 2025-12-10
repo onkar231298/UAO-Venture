@@ -8484,17 +8484,13 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const { frejunService } = await import('./frejunService');
       const status = frejunService.getConfigStatus();
       
-      // If using API key, user is automatically "connected"
-      const isUsingApiKey = frejunService.isUsingApiKey();
-      
-      // Check if user has connected their Frejun account (only relevant for OAuth)
+      // Check if user has connected their Frejun account via OAuth
       const userToken = frejunService.getUserToken(userId);
-      const isUserConnected = isUsingApiKey || !!userToken;
+      const isUserConnected = !!userToken;
       
       res.json({
         ...status,
         isUserConnected,
-        isUsingApiKey,
         dialerWidgetUrl: frejunService.getDialerWidgetUrl(),
       });
     } catch (error) {
