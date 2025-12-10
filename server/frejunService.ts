@@ -174,27 +174,22 @@ class FrejunService {
       };
     }
 
-    // Correct endpoint: product.frejun.com/oauth/token (NOT api.frejun.com)
-    const tokenUrl = 'https://product.frejun.com/oauth/token';
+    // Correct endpoint from Frejun support: GET https://api.frejun.com/api/v1/oauth/token/
+    // Code is passed as query parameter, Authorization uses Base64(client_id:client_secret)
+    const tokenUrl = `https://api.frejun.com/api/v1/oauth/token/?code=${encodeURIComponent(code)}`;
     
     try {
+      // Create Base64 encoded authorization header
+      const credentials = `${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`;
+      const base64Credentials = Buffer.from(credentials).toString('base64');
+      
       console.log('Frejun token exchange to:', tokenUrl);
-      console.log('Using redirect_uri:', FREJUN_CALLBACK_URL);
+      console.log('Using Bearer auth with Base64 encoded credentials');
       
-      // Use x-www-form-urlencoded as per Frejun OAuth documentation
-      const params = new URLSearchParams();
-      params.append('grant_type', 'authorization_code');
-      params.append('code', code);
-      params.append('client_id', FREJUN_CLIENT_ID!);
-      params.append('client_secret', FREJUN_CLIENT_SECRET!);
-      // redirect_uri is required for token exchange
-      if (FREJUN_CALLBACK_URL) {
-        params.append('redirect_uri', FREJUN_CALLBACK_URL);
-      }
-      
-      const response = await axios.post(tokenUrl, params.toString(), {
+      // Use GET method with Bearer auth as per Frejun documentation
+      const response = await axios.get(tokenUrl, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${base64Credentials}`,
         },
         validateStatus: (status) => status < 500,
       });
