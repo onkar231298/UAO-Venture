@@ -179,6 +179,7 @@ class FrejunService {
     
     try {
       console.log('Frejun token exchange to:', tokenUrl);
+      console.log('Using redirect_uri:', FREJUN_CALLBACK_URL);
       
       // Use x-www-form-urlencoded as per Frejun OAuth documentation
       const params = new URLSearchParams();
@@ -186,6 +187,10 @@ class FrejunService {
       params.append('code', code);
       params.append('client_id', FREJUN_CLIENT_ID!);
       params.append('client_secret', FREJUN_CLIENT_SECRET!);
+      // redirect_uri is required for token exchange
+      if (FREJUN_CALLBACK_URL) {
+        params.append('redirect_uri', FREJUN_CALLBACK_URL);
+      }
       
       const response = await axios.post(tokenUrl, params.toString(), {
         headers: {
