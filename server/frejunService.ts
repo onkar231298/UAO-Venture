@@ -174,21 +174,22 @@ class FrejunService {
       };
     }
 
-    // Use the correct endpoint from Frejun docs: api.frejun.com
-    const tokenUrl = 'https://api.frejun.com/oauth/token';
+    // Correct endpoint: product.frejun.com/oauth/token (NOT api.frejun.com)
+    const tokenUrl = 'https://product.frejun.com/oauth/token';
     
     try {
       console.log('Frejun token exchange to:', tokenUrl);
       
-      // Use JSON body as per Frejun documentation
-      const response = await axios.post(tokenUrl, {
-        grant_type: 'authorization_code',
-        client_id: FREJUN_CLIENT_ID,
-        client_secret: FREJUN_CLIENT_SECRET,
-        code: code,
-      }, {
+      // Use x-www-form-urlencoded as per Frejun OAuth documentation
+      const params = new URLSearchParams();
+      params.append('grant_type', 'authorization_code');
+      params.append('code', code);
+      params.append('client_id', FREJUN_CLIENT_ID!);
+      params.append('client_secret', FREJUN_CLIENT_SECRET!);
+      
+      const response = await axios.post(tokenUrl, params.toString(), {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         validateStatus: (status) => status < 500,
       });
@@ -229,16 +230,16 @@ class FrejunService {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
       params.append('refresh_token', refreshToken);
+      params.append('client_id', FREJUN_CLIENT_ID!);
+      params.append('client_secret', FREJUN_CLIENT_SECRET!);
 
-      const basicAuth = Buffer.from(`${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`).toString('base64');
-      const tokenUrl = `${FREJUN_PRODUCT_URL}/api/v1/oauth/token`;
+      // Use same token endpoint for refresh
+      const tokenUrl = 'https://product.frejun.com/oauth/token';
 
-      const response = await axios.post(tokenUrl, params, {
+      const response = await axios.post(tokenUrl, params.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${basicAuth}`,
         },
-        maxRedirects: 0,
         validateStatus: (status) => status < 500,
       });
 
