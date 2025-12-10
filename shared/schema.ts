@@ -2293,3 +2293,26 @@ export const insertDocumentNumberSettingsSchema = createInsertSchema(documentNum
 
 export type DocumentNumberSettings = typeof documentNumberSettings.$inferSelect;
 export type InsertDocumentNumberSettings = z.infer<typeof insertDocumentNumberSettingsSchema>;
+
+// Frejun OAuth tokens for voice integration
+export const frejunTokens = pgTable("frejun_tokens", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  userEmail: varchar("user_email", { length: 255 }),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_frejun_tokens_user").on(table.userId),
+]);
+
+export const insertFrejunTokenSchema = createInsertSchema(frejunTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type FrejunToken = typeof frejunTokens.$inferSelect;
+export type InsertFrejunToken = z.infer<typeof insertFrejunTokenSchema>;

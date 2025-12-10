@@ -92,7 +92,8 @@ class FrejunService {
   private apiClient: ReturnType<typeof axios.create>;
   private isConfigured: boolean;
   private useApiKey: boolean;
-  private tokenStore: Map<string, TokenData> = new Map();
+  // In-memory cache for quick lookups, backed by database
+  private tokenCache: Map<string, TokenData> = new Map();
 
   constructor() {
     // Prefer API key if available, otherwise fall back to OAuth
@@ -256,20 +257,49 @@ class FrejunService {
     }
   }
 
-  storeUserToken(userId: string, tokenData: TokenData): void {
-    this.tokenStore.set(userId, tokenData);
+  async storeUserToken(userId: string, tokenData: TokenData): Promise<void> {
+    const { storage } = await import('./storage');
+    await storage.upsertFrejunToken({
+      userId,
+      accessToken: tokenData.accessToken,
+      refreshToken: tokenData.refreshToken,
+      userEmail: tokenData.userEmail,
+      expiresAt: tokenData.expiresAt,
+    });
+    // Also update cache
+    this.tokenCache.set(userId, tokenData);
   }
 
-  getUserToken(userId: string): TokenData | undefined {
-    return this.tokenStore.get(userId);
+  async getUserToken(userId: string): Promise<TokenData | undefined> {
+    // Check cache first
+    if (this.tokenCache.has(userId)) {
+      return this.tokenCache.get(userId);
+    }
+    
+    // Load from database
+    const { storage } = await import('./storage');
+    const dbToken = await storage.getFrejunToken(userId);
+    if (dbToken) {
+      const tokenData: TokenData = {
+        accessToken: dbToken.accessToken,
+        refreshToken: dbToken.refreshToken || '',
+        userEmail: dbToken.userEmail || '',
+        expiresAt: dbToken.expiresAt,
+      };
+      this.tokenCache.set(userId, tokenData);
+      return tokenData;
+    }
+    return undefined;
   }
 
-  removeUserToken(userId: string): void {
-    this.tokenStore.delete(userId);
+  async removeUserToken(userId: string): Promise<void> {
+    const { storage } = await import('./storage');
+    await storage.deleteFrejunToken(userId);
+    this.tokenCache.delete(userId);
   }
 
   private async getValidToken(userId: string): Promise<string | null> {
-    const tokenData = this.tokenStore.get(userId);
+    const tokenData = await this.getUserToken(userId);
     if (!tokenData) {
       return null;
     }
@@ -280,12 +310,14 @@ class FrejunService {
         const expiresAt = new Date();
         expiresAt.setSeconds(expiresAt.getSeconds() + (refreshResult.expiresIn || 3600));
         
-        this.tokenStore.set(userId, {
+        const updatedTokenData = {
           ...tokenData,
           accessToken: refreshResult.accessToken,
           refreshToken: refreshResult.refreshToken || tokenData.refreshToken,
           expiresAt,
-        });
+        };
+        
+        await this.storeUserToken(userId, updatedTokenData);
         
         return refreshResult.accessToken;
       }

@@ -145,6 +145,7 @@ import {
   callLogs,
   smsMessages,
   voicemails,
+  frejunTokens,
   passwordResetTokens,
   type CallLog,
   type InsertCallLog,
@@ -152,6 +153,8 @@ import {
   type InsertSmsMessage,
   type Voicemail,
   type InsertVoicemail,
+  type FrejunToken,
+  type InsertFrejunToken,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
@@ -685,6 +688,11 @@ export interface IStorage {
   markPasswordResetTokenUsed(id: number): Promise<void>;
   invalidateUserPasswordResetTokens(userId: string): Promise<void>;
   updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+
+  // Frejun token methods
+  getFrejunToken(userId: string): Promise<FrejunToken | undefined>;
+  upsertFrejunToken(token: InsertFrejunToken): Promise<FrejunToken>;
+  deleteFrejunToken(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7032,6 +7040,34 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ password: passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  // Frejun token methods
+  async getFrejunToken(userId: string): Promise<FrejunToken | undefined> {
+    const [token] = await db.select().from(frejunTokens).where(eq(frejunTokens.userId, userId));
+    return token;
+  }
+
+  async upsertFrejunToken(token: InsertFrejunToken): Promise<FrejunToken> {
+    const [upserted] = await db
+      .insert(frejunTokens)
+      .values(token)
+      .onConflictDoUpdate({
+        target: frejunTokens.userId,
+        set: {
+          accessToken: token.accessToken,
+          refreshToken: token.refreshToken,
+          userEmail: token.userEmail,
+          expiresAt: token.expiresAt,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return upserted;
+  }
+
+  async deleteFrejunToken(userId: string): Promise<void> {
+    await db.delete(frejunTokens).where(eq(frejunTokens.userId, userId));
   }
 }
 

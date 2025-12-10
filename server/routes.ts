@@ -8484,8 +8484,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const { frejunService } = await import('./frejunService');
       const status = frejunService.getConfigStatus();
       
-      // Check if user has connected their Frejun account via OAuth
-      const userToken = frejunService.getUserToken(userId);
+      // Check if user has connected their Frejun account via OAuth (now async)
+      const userToken = await frejunService.getUserToken(userId);
       const isUserConnected = !!userToken;
       
       res.json({
@@ -8544,7 +8544,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         const expiresAt = new Date();
         expiresAt.setSeconds(expiresAt.getSeconds() + (tokenResult.expiresIn || 3600));
         
-        frejunService.storeUserToken(userId, {
+        await frejunService.storeUserToken(userId, {
           accessToken: tokenResult.accessToken,
           refreshToken: tokenResult.refreshToken || '',
           expiresAt,
@@ -8598,7 +8598,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         const expiresAt = new Date();
         expiresAt.setSeconds(expiresAt.getSeconds() + (tokenResult.expiresIn || 3600));
         
-        frejunService.storeUserToken(userId, {
+        await frejunService.storeUserToken(userId, {
           accessToken: tokenResult.accessToken,
           refreshToken: tokenResult.refreshToken || '',
           expiresAt,
@@ -8619,7 +8619,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const userId = req.user?.id || req.user?.claims?.sub;
       const { frejunService } = await import('./frejunService');
       
-      const tokenData = frejunService.getUserToken(userId);
+      const tokenData = await frejunService.getUserToken(userId);
       if (!tokenData) {
         return res.status(400).json({ 
           message: 'Please connect your Frejun account first',
@@ -8655,8 +8655,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
       const { frejunService } = await import('./frejunService');
       
-      // Check if user has Frejun connected
-      const tokenData = frejunService.getUserToken(userId);
+      // Check if user has Frejun connected (now async)
+      const tokenData = await frejunService.getUserToken(userId);
       if (!tokenData) {
         return res.status(400).json({ 
           success: false,
