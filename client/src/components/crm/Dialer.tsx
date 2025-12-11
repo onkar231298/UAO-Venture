@@ -118,13 +118,97 @@ export function Dialer({
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [playingRecording, setPlayingRecording] = useState<number | null>(null);
-  const [callStatus, setCallStatus] = useState<'dialing' | 'ringing' | 'connected' | 'ended'>('dialing');
+  const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [showInCallKeypad, setShowInCallKeypad] = useState(false);
+  const [callingNumber, setCallingNumber] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Listen to Frejun postMessage events to track call state
+  const FREJUN_TARGET_ORIGIN = 'https://dialer.frejun.com';
+  
+  useEffect(() => {
+    const handleFrejunMessage = (event: MessageEvent) => {
+      // Accept events from Frejun dialer
+      if (event.origin !== FREJUN_TARGET_ORIGIN || !event.data) return;
+
+      const eventData = event.data;
+      console.log('Dialer received Frejun event:', eventData.eventName, eventData);
+
+      switch (eventData.eventName) {
+        case 'call-initiated':
+        case 'call-dialing':
+        case 'dialing':
+          setIsInCall(true);
+          setCallStatus('dialing');
+          setCallDuration(0);
+          setIsMuted(false);
+          setIsSpeaker(false);
+          setIsOnHold(false);
+          setShowInCallKeypad(false);
+          // Store the number being called
+          if (eventData.data?.phone_number || eventData.detail?.phone_number) {
+            setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
+          }
+          if (eventData.data?.call_id || eventData.detail?.call_id) {
+            setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
+          }
+          break;
+
+        case 'call-ringing':
+        case 'ringing':
+          setIsInCall(true);
+          setCallStatus('ringing');
+          break;
+
+        case 'call-connected':
+        case 'call-answered':
+        case 'connected':
+        case 'answered':
+          setIsInCall(true);
+          setCallStatus('connected');
+          setCallDuration(0);
+          break;
+
+        case 'call-ended':
+        case 'call-disconnected':
+        case 'ended':
+        case 'hangup':
+        case 'close':
+          setCallStatus('ended');
+          // Show ended state briefly then reset
+          setTimeout(() => {
+            setIsInCall(false);
+            setCallStatus('idle');
+            setCurrentCallId(null);
+            setCallDuration(0);
+            setIsMuted(false);
+            setIsSpeaker(false);
+            setIsOnHold(false);
+            setShowInCallKeypad(false);
+          }, 2000);
+          
+          // Refresh call logs
+          if (leadId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
+          }
+          if (companyId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
+          }
+          onCallComplete?.();
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('message', handleFrejunMessage);
+    return () => window.removeEventListener('message', handleFrejunMessage);
+  }, [leadId, companyId, queryClient, onCallComplete]);
 
   const { data: voiceStatus } = useQuery({
     queryKey: ["/api/voice/status"],
@@ -172,10 +256,12 @@ export function Dialer({
     },
     onSuccess: (data: any) => {
       if (data.success) {
+        // Set initial dialing state - Frejun events will update the actual call status
         setIsInCall(true);
         setCurrentCallId(data.callId);
         setCallDuration(0);
         setCallStatus('dialing');
+        setCallingNumber(phoneNumber);
         setIsMuted(false);
         setIsSpeaker(false);
         setIsOnHold(false);
@@ -184,9 +270,7 @@ export function Dialer({
           title: "Call Initiated",
           description: "Connecting your call...",
         });
-        // Simulate call status progression (in real integration, this comes from Frejun events)
-        setTimeout(() => setCallStatus('ringing'), 2000);
-        setTimeout(() => setCallStatus('connected'), 5000);
+        // Call state updates will come from Frejun postMessage events
       }
     },
     onError: (error: any) => {
@@ -269,6 +353,11 @@ export function Dialer({
   }, []);
 
   const handleCall = () => {
+    // Prevent calling while already in a call
+    if (isInCall || callStatus !== 'idle') {
+      return;
+    }
+    
     if (!phoneNumber.trim()) {
       toast({
         title: "Invalid Number",
@@ -290,7 +379,18 @@ export function Dialer({
     if (currentCallId) {
       endCallMutation.mutate(currentCallId);
     } else {
-      setIsInCall(false);
+      // No call ID - just reset state
+      setCallStatus('ended');
+      setTimeout(() => {
+        setIsInCall(false);
+        setCallStatus('idle');
+        setCurrentCallId(null);
+        setCallDuration(0);
+        setIsMuted(false);
+        setIsSpeaker(false);
+        setIsOnHold(false);
+        setShowInCallKeypad(false);
+      }, 1000);
     }
   };
 
@@ -436,7 +536,7 @@ export function Dialer({
                 </h3>
                 
                 {/* Phone Number */}
-                <p className="text-slate-400 text-sm mb-2">{phoneNumber}</p>
+                <p className="text-slate-400 text-sm mb-2">{callingNumber || phoneNumber}</p>
 
                 {/* Call Status */}
                 <div className="flex items-center gap-2 mb-4">
