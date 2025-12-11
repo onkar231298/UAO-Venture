@@ -138,6 +138,44 @@ export function Dialer({
       const eventData = event.data;
       console.log('Dialer received Frejun event:', eventData.eventName, eventData);
 
+      // Helper to reset call state
+      const resetCallState = (showEndedState: boolean = false) => {
+        if (showEndedState) {
+          setCallStatus('ended');
+          setTimeout(() => {
+            setIsInCall(false);
+            setCallStatus('idle');
+            setCurrentCallId(null);
+            setCallDuration(0);
+            setCallingNumber("");
+            setIsMuted(false);
+            setIsSpeaker(false);
+            setIsOnHold(false);
+            setShowInCallKeypad(false);
+          }, 2000);
+        } else {
+          // Immediate reset
+          setIsInCall(false);
+          setCallStatus('idle');
+          setCurrentCallId(null);
+          setCallDuration(0);
+          setCallingNumber("");
+          setIsMuted(false);
+          setIsSpeaker(false);
+          setIsOnHold(false);
+          setShowInCallKeypad(false);
+        }
+        
+        // Refresh call logs
+        if (leadId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
+        }
+        if (companyId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
+        }
+        onCallComplete?.();
+      };
+
       switch (eventData.eventName) {
         case 'call-initiated':
         case 'call-dialing':
@@ -158,6 +196,19 @@ export function Dialer({
           }
           break;
 
+        case 'incoming-call':
+          setIsInCall(true);
+          setCallStatus('ringing');
+          setCallDuration(0);
+          // Store incoming caller info
+          if (eventData.data?.phone_number || eventData.detail?.phone_number) {
+            setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
+          }
+          if (eventData.data?.call_id || eventData.detail?.call_id) {
+            setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
+          }
+          break;
+
         case 'call-ringing':
         case 'ringing':
           setIsInCall(true);
@@ -170,35 +221,20 @@ export function Dialer({
         case 'answered':
           setIsInCall(true);
           setCallStatus('connected');
-          setCallDuration(0);
+          setCallDuration(0); // Reset duration when connected so timer starts from 0
           break;
 
         case 'call-ended':
         case 'call-disconnected':
         case 'ended':
         case 'hangup':
+          // Call properly ended - show ended state briefly
+          resetCallState(true);
+          break;
+
         case 'close':
-          setCallStatus('ended');
-          // Show ended state briefly then reset
-          setTimeout(() => {
-            setIsInCall(false);
-            setCallStatus('idle');
-            setCurrentCallId(null);
-            setCallDuration(0);
-            setIsMuted(false);
-            setIsSpeaker(false);
-            setIsOnHold(false);
-            setShowInCallKeypad(false);
-          }, 2000);
-          
-          // Refresh call logs
-          if (leadId) {
-            queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
-          }
-          if (companyId) {
-            queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
-          }
-          onCallComplete?.();
+          // Widget closed - reset immediately without showing ended state
+          resetCallState(false);
           break;
 
         default:
@@ -235,9 +271,10 @@ export function Dialer({
 
   const allCallLogs = leadId ? callLogs : companyCallLogs;
 
+  // Only increment call duration when connected (not during dialing/ringing)
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isInCall) {
+    if (isInCall && callStatus === 'connected') {
       interval = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
@@ -245,7 +282,7 @@ export function Dialer({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isInCall]);
+  }, [isInCall, callStatus]);
 
   const initiateCallMutation = useMutation({
     mutationFn: async (data: { phoneNumber: string; leadId?: number; companyId?: number; contactName?: string }) => {
