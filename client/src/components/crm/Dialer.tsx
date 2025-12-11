@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useCallStateOptional, type CallEndInfo } from "@/contexts/CallStateContext";
 import { apiRequest } from "@/lib/queryClient";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -114,137 +115,92 @@ export function Dialer({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dialer");
   const [smsMessage, setSmsMessage] = useState("");
-  const [isInCall, setIsInCall] = useState(false);
-  const [currentCallId, setCurrentCallId] = useState<string | null>(null);
-  const [callDuration, setCallDuration] = useState(0);
   const [playingRecording, setPlayingRecording] = useState<number | null>(null);
-  const [callStatus, setCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaker, setIsSpeaker] = useState(false);
-  const [isOnHold, setIsOnHold] = useState(false);
   const [showInCallKeypad, setShowInCallKeypad] = useState(false);
-  const [callingNumber, setCallingNumber] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Listen to Frejun postMessage events to track call state
-  const FREJUN_TARGET_ORIGIN = 'https://dialer.frejun.com';
   
+  // Use shared call state from context (updated by FrejunDialerWidget)
+  const sharedCallState = useCallStateOptional();
+  
+  // Register callback to handle call end events (including remote hangups)
   useEffect(() => {
-    const handleFrejunMessage = (event: MessageEvent) => {
-      // Accept events from Frejun dialer
-      if (event.origin !== FREJUN_TARGET_ORIGIN || !event.data) return;
-
-      const eventData = event.data;
-      console.log('Dialer received Frejun event:', eventData.eventName, eventData);
-
-      // Helper to reset call state
-      const resetCallState = (showEndedState: boolean = false) => {
-        if (showEndedState) {
-          setCallStatus('ended');
-          setTimeout(() => {
-            setIsInCall(false);
-            setCallStatus('idle');
-            setCurrentCallId(null);
-            setCallDuration(0);
-            setCallingNumber("");
-            setIsMuted(false);
-            setIsSpeaker(false);
-            setIsOnHold(false);
-            setShowInCallKeypad(false);
-          }, 2000);
-        } else {
-          // Immediate reset
-          setIsInCall(false);
-          setCallStatus('idle');
-          setCurrentCallId(null);
-          setCallDuration(0);
-          setCallingNumber("");
-          setIsMuted(false);
-          setIsSpeaker(false);
-          setIsOnHold(false);
-          setShowInCallKeypad(false);
-        }
-        
-        // Refresh call logs
+    if (!sharedCallState?.registerOnCallEnd) return;
+    
+    const handleCallEnd = (info: CallEndInfo) => {
+      // Determine if this Dialer should handle this call end event
+      // Using strict matching to prevent cross-triggering between multiple Dialer instances
+      
+      // Lead-specific dialer: only match exact lead
+      const isLeadDialer = !!leadId;
+      const exactLeadMatch = isLeadDialer && info.leadId === leadId;
+      
+      // Company-specific dialer (without lead): only match exact company
+      // Important: This should NOT match if this is a lead-scoped dialer
+      const isCompanyOnlyDialer = !leadId && !!companyId;
+      const exactCompanyMatch = isCompanyOnlyDialer && info.companyId === companyId;
+      
+      // Generic dialer (no specific context) handles calls without metadata
+      const isGenericDialer = !leadId && !companyId;
+      const callHasNoContext = !info.leadId && !info.companyId;
+      const genericMatch = isGenericDialer && callHasNoContext;
+      
+      // This Dialer has context but call metadata is missing - 
+      // only match if this Dialer is for the call's context (checked via shared state)
+      const contextualFallback = (leadId || companyId) && callHasNoContext && 
+        ((isLeadDialer && sharedCallState?.leadId === leadId) || 
+         (isCompanyOnlyDialer && sharedCallState?.companyId === companyId));
+      
+      // Only react if this Dialer is relevant to the call
+      if (!exactLeadMatch && !exactCompanyMatch && !genericMatch && !contextualFallback) {
+        // This call end belongs to a different Dialer instance
+        return;
+      }
+      
+      // Invalidate call logs for matching lead/company
+      // Only invalidate for the specific match type that succeeded
+      if (exactLeadMatch || (contextualFallback && isLeadDialer)) {
         if (leadId) {
           queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
         }
+      }
+      if (exactCompanyMatch || (contextualFallback && isCompanyOnlyDialer)) {
         if (companyId) {
           queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
         }
-        onCallComplete?.();
-      };
-
-      switch (eventData.eventName) {
-        case 'call-initiated':
-        case 'call-dialing':
-        case 'dialing':
-          setIsInCall(true);
-          setCallStatus('dialing');
-          setCallDuration(0);
-          setIsMuted(false);
-          setIsSpeaker(false);
-          setIsOnHold(false);
-          setShowInCallKeypad(false);
-          // Store the number being called
-          if (eventData.data?.phone_number || eventData.detail?.phone_number) {
-            setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
-          }
-          if (eventData.data?.call_id || eventData.detail?.call_id) {
-            setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
-          }
-          break;
-
-        case 'incoming-call':
-          setIsInCall(true);
-          setCallStatus('ringing');
-          setCallDuration(0);
-          // Store incoming caller info
-          if (eventData.data?.phone_number || eventData.detail?.phone_number) {
-            setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
-          }
-          if (eventData.data?.call_id || eventData.detail?.call_id) {
-            setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
-          }
-          break;
-
-        case 'call-ringing':
-        case 'ringing':
-          setIsInCall(true);
-          setCallStatus('ringing');
-          break;
-
-        case 'call-connected':
-        case 'call-answered':
-        case 'connected':
-        case 'answered':
-          setIsInCall(true);
-          setCallStatus('connected');
-          setCallDuration(0); // Reset duration when connected so timer starts from 0
-          break;
-
-        case 'call-ended':
-        case 'call-disconnected':
-        case 'ended':
-        case 'hangup':
-          // Call properly ended - show ended state briefly
-          resetCallState(true);
-          break;
-
-        case 'close':
-          // Widget closed - reset immediately without showing ended state
-          resetCallState(false);
-          break;
-
-        default:
-          break;
+      }
+      // Generic dialer doesn't invalidate any specific queries - it has no context
+      
+      // Call the onCallComplete callback if provided
+      onCallComplete?.();
+      
+      // Show toast for remote hangups
+      if (info.wasRemoteHangup && info.duration > 0) {
+        toast({
+          title: "Call Ended",
+          description: `Call duration: ${Math.floor(info.duration / 60)}:${(info.duration % 60).toString().padStart(2, '0')}`,
+        });
       }
     };
-
-    window.addEventListener('message', handleFrejunMessage);
-    return () => window.removeEventListener('message', handleFrejunMessage);
-  }, [leadId, companyId, queryClient, onCallComplete]);
+    
+    const unsubscribe = sharedCallState.registerOnCallEnd(handleCallEnd);
+    return () => unsubscribe();
+  }, [sharedCallState, leadId, companyId, queryClient, onCallComplete, toast]);
+  
+  // Get call state from shared context or use defaults
+  const isInCall = sharedCallState?.isInCall ?? false;
+  const callStatus = sharedCallState?.callStatus ?? 'idle';
+  const callDuration = sharedCallState?.callDuration ?? 0;
+  const currentCallId = sharedCallState?.currentCallId ?? null;
+  const callingNumber = sharedCallState?.callingNumber ?? "";
+  const isMuted = sharedCallState?.isMuted ?? false;
+  const isSpeaker = sharedCallState?.isSpeaker ?? false;
+  const isOnHold = sharedCallState?.isOnHold ?? false;
+  
+  // Functions to update shared state
+  const setIsMuted = sharedCallState?.setMuted ?? (() => {});
+  const setIsSpeaker = sharedCallState?.setSpeaker ?? (() => {});
+  const setIsOnHold = sharedCallState?.setOnHold ?? (() => {});
 
   const { data: voiceStatus } = useQuery({
     queryKey: ["/api/voice/status"],
@@ -271,19 +227,6 @@ export function Dialer({
 
   const allCallLogs = leadId ? callLogs : companyCallLogs;
 
-  // Only increment call duration when connected (not during dialing/ringing)
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isInCall && callStatus === 'connected') {
-      interval = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isInCall, callStatus]);
-
   const initiateCallMutation = useMutation({
     mutationFn: async (data: { phoneNumber: string; leadId?: number; companyId?: number; contactName?: string }) => {
       return apiRequest("/api/voice/call", {
@@ -293,21 +236,19 @@ export function Dialer({
     },
     onSuccess: (data: any) => {
       if (data.success) {
-        // Set initial dialing state - Frejun events will update the actual call status
-        setIsInCall(true);
-        setCurrentCallId(data.callId);
-        setCallDuration(0);
-        setCallStatus('dialing');
-        setCallingNumber(phoneNumber);
-        setIsMuted(false);
-        setIsSpeaker(false);
-        setIsOnHold(false);
+        // Start call in shared context - Frejun events will update the actual call status
+        sharedCallState?.startCall({
+          phoneNumber: phoneNumber,
+          callId: data.callId,
+          contactName: contactName,
+          leadId: leadId,
+          companyId: companyId,
+        });
         setShowInCallKeypad(false);
         toast({
           title: "Call Initiated",
           description: "Connecting your call...",
         });
-        // Call state updates will come from Frejun postMessage events
       }
     },
     onError: (error: any) => {
@@ -326,16 +267,8 @@ export function Dialer({
       });
     },
     onSuccess: () => {
-      setCallStatus('ended');
-      setTimeout(() => {
-        setIsInCall(false);
-        setCurrentCallId(null);
-        setCallDuration(0);
-        setIsMuted(false);
-        setIsSpeaker(false);
-        setIsOnHold(false);
-        setShowInCallKeypad(false);
-      }, 1000);
+      sharedCallState?.endCall(true);
+      setShowInCallKeypad(false);
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
       toast({
@@ -416,18 +349,9 @@ export function Dialer({
     if (currentCallId) {
       endCallMutation.mutate(currentCallId);
     } else {
-      // No call ID - just reset state
-      setCallStatus('ended');
-      setTimeout(() => {
-        setIsInCall(false);
-        setCallStatus('idle');
-        setCurrentCallId(null);
-        setCallDuration(0);
-        setIsMuted(false);
-        setIsSpeaker(false);
-        setIsOnHold(false);
-        setShowInCallKeypad(false);
-      }, 1000);
+      // No call ID - just end call via shared context
+      sharedCallState?.endCall(true);
+      setShowInCallKeypad(false);
     }
   };
 

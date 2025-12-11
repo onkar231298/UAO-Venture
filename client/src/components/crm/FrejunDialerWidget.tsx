@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCallStateOptional } from "@/contexts/CallStateContext";
 import {
   Phone,
   PhoneOff,
@@ -60,6 +61,8 @@ export function FrejunDialerWidget({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  
+  const sharedCallState = useCallStateOptional();
 
   useEffect(() => {
     if (callState === 'connected') {
@@ -134,6 +137,7 @@ export function FrejunDialerWidget({
       case 'incoming-call':
         setIsVisible(true);
         setCallState('ringing');
+        // Note: CallStateProvider handles Frejun events directly, no need to call startCall here
         toast({
           title: "Incoming Call",
           description: "You have an incoming call",
@@ -147,6 +151,8 @@ export function FrejunDialerWidget({
         setIsVisible(true);
         if (eventData.data?.call_id || eventData.detail?.call_id) {
           setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
+          // Only update call ID, don't call startCall - CallStateProvider handles Frejun events
+          sharedCallState?.setCallId(eventData.data?.call_id || eventData.detail?.call_id);
         }
         break;
 
@@ -154,6 +160,7 @@ export function FrejunDialerWidget({
       case 'ringing':
         setCallState('ringing');
         setIsVisible(true);
+        // CallStateProvider handles status updates from Frejun events
         break;
 
       case 'call-connected':
@@ -163,6 +170,7 @@ export function FrejunDialerWidget({
         setCallState('connected');
         setCallDuration(0);
         setIsVisible(true);
+        // CallStateProvider handles status updates from Frejun events
         toast({
           title: "Call Connected",
           description: `Connected with ${contactName || phoneNumber}`,
@@ -173,6 +181,7 @@ export function FrejunDialerWidget({
         setIsVisible(false);
         setCallState('idle');
         setCurrentCallId(null);
+        // CallStateProvider handles this via postMessage
         onCallEnd?.();
         break;
 
@@ -191,6 +200,7 @@ export function FrejunDialerWidget({
           setCallState('idle');
           setCurrentCallId(null);
         }, 2000);
+        // CallStateProvider handles call end via postMessage
         onCallEnd?.();
         toast({
           title: "Call Ended",
@@ -209,7 +219,7 @@ export function FrejunDialerWidget({
       default:
         console.log('Frejun: unhandled event', eventData.eventName);
     }
-  }, [dialerConfig, toast, onCallEnd, contactName, phoneNumber, callDuration]);
+  }, [dialerConfig, toast, onCallEnd, contactName, phoneNumber, callDuration, sharedCallState, leadId, companyId]);
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);

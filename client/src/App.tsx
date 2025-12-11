@@ -9,6 +9,7 @@ import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { useAuth } from "@/hooks/useAuth";
 import ReCAPTCHAProvider from "@/components/ReCAPTCHAProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { CallStateProvider } from "@/contexts/CallStateContext";
 import { seoService } from "@/services/seoService";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -199,10 +200,12 @@ function App() {
       <ReCAPTCHAProvider>
         <CustomerAuthProvider>
           <CurrencyProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
+            <CallStateProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </CallStateProvider>
           </CurrencyProvider>
         </CustomerAuthProvider>
       </ReCAPTCHAProvider>
