@@ -246,6 +246,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     leadId?: number;
     companyId?: number;
   }) => {
+    console.log('📞 CallStateContext.startCall called with:', params);
     setIsInCall(true);
     setCallStatus('dialing');
     setCallDuration(0);
@@ -265,6 +266,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       companyId: params.companyId || null,
       duration: 0,
     };
+    console.log('📞 CallStateContext.startCall - isInCall set to true');
   }, []);
 
   const updateCallStatus = useCallback((status: CallStatus) => {

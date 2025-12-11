@@ -123,6 +123,9 @@ export function Dialer({
   // Use shared call state from context (updated by FrejunDialerWidget)
   const sharedCallState = useCallStateOptional();
   
+  // Debug: Log shared call state availability
+  console.log('📞 Dialer: sharedCallState available:', !!sharedCallState, 'isInCall:', sharedCallState?.isInCall, 'callStatus:', sharedCallState?.callStatus);
+  
   // Register callback to handle call end events (including remote hangups)
   useEffect(() => {
     if (!sharedCallState?.registerOnCallEnd) return;
