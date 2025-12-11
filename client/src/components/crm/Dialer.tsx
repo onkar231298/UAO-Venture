@@ -313,6 +313,7 @@ export function Dialer({
 
   const isConfigured = voiceStatus?.configured ?? false;
   const isUserConnected = voiceStatus?.isUserConnected ?? false;
+  const tokenExpired = voiceStatus?.tokenExpired ?? false;
   const oauthUrl = voiceStatus?.oauthUrl;
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -350,7 +351,13 @@ export function Dialer({
                 Connected
               </Badge>
             )}
-            {isConfigured && !isUserConnected && (
+            {isConfigured && !isUserConnected && tokenExpired && (
+              <Badge variant="outline" className="text-orange-600 border-orange-600">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Session Expired
+              </Badge>
+            )}
+            {isConfigured && !isUserConnected && !tokenExpired && (
               <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Not Connected
@@ -456,7 +463,9 @@ export function Dialer({
                 {isConfigured && !isUserConnected && (
                   <div className="flex flex-col items-center gap-3 pt-4 border-t">
                     <p className="text-center text-sm text-muted-foreground">
-                      Connect your Frejun account to enable calling
+                      {tokenExpired 
+                        ? "Your Frejun session has expired. Please reconnect to continue calling." 
+                        : "Connect your Frejun account to enable calling"}
                     </p>
                     <Button
                       onClick={handleConnectFrejun}
@@ -469,7 +478,7 @@ export function Dialer({
                       ) : (
                         <ExternalLink className="h-4 w-4" />
                       )}
-                      {isConnecting ? "Connecting..." : "Connect Frejun"}
+                      {isConnecting ? "Connecting..." : tokenExpired ? "Reconnect Frejun" : "Connect Frejun"}
                     </Button>
                   </div>
                 )}

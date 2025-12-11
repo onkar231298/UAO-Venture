@@ -227,27 +227,35 @@ class FrejunService {
     }
 
     try {
-      const params = new URLSearchParams();
-      params.append('grant_type', 'refresh_token');
-      params.append('refresh_token', refreshToken);
-      params.append('client_id', FREJUN_CLIENT_ID!);
-      params.append('client_secret', FREJUN_CLIENT_SECRET!);
+      // Use the Frejun API refresh endpoint
+      const credentials = `${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`;
+      const base64Credentials = Buffer.from(credentials).toString('base64');
+      
+      const tokenUrl = `https://api.frejun.com/api/v1/oauth/refresh/?refresh_token=${encodeURIComponent(refreshToken)}`;
+      
+      console.log('Attempting Frejun token refresh');
 
-      // Use same token endpoint for refresh
-      const tokenUrl = 'https://product.frejun.com/oauth/token';
-
-      const response = await axios.post(tokenUrl, params.toString(), {
+      const response = await axios.get(tokenUrl, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${base64Credentials}`,
         },
         validateStatus: (status) => status < 500,
       });
 
+      console.log('Frejun refresh response:', response.status, JSON.stringify(response.data));
+
+      if (response.status === 200 && response.data?.access_token) {
+        return {
+          success: true,
+          accessToken: response.data.access_token,
+          refreshToken: response.data.refresh_token || refreshToken,
+          expiresIn: response.data.expires_in || 7200,
+        };
+      }
+
       return {
-        success: true,
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresIn: response.data.expires_in,
+        success: false,
+        error: response.data?.error_description || response.data?.error || response.data?.message || `HTTP ${response.status}`,
       };
     } catch (error: any) {
       console.error('Frejun token refresh error:', error.response?.data || error.message);
@@ -302,14 +310,21 @@ class FrejunService {
   private async getValidToken(userId: string): Promise<string | null> {
     const tokenData = await this.getUserToken(userId);
     if (!tokenData) {
+      console.log('Frejun: No token found for user', userId);
       return null;
     }
 
-    if (new Date() >= tokenData.expiresAt) {
+    // Check if token is expired (with 5 minute buffer)
+    const bufferMs = 5 * 60 * 1000;
+    const isExpired = new Date().getTime() >= (tokenData.expiresAt.getTime() - bufferMs);
+    
+    if (isExpired) {
+      console.log('Frejun: Token expired for user', userId, '- attempting refresh');
       const refreshResult = await this.refreshAccessToken(tokenData.refreshToken);
+      
       if (refreshResult.success && refreshResult.accessToken) {
         const expiresAt = new Date();
-        expiresAt.setSeconds(expiresAt.getSeconds() + (refreshResult.expiresIn || 3600));
+        expiresAt.setSeconds(expiresAt.getSeconds() + (refreshResult.expiresIn || 7200));
         
         const updatedTokenData = {
           ...tokenData,
@@ -319,9 +334,14 @@ class FrejunService {
         };
         
         await this.storeUserToken(userId, updatedTokenData);
+        console.log('Frejun: Token refreshed successfully for user', userId);
         
         return refreshResult.accessToken;
       }
+      
+      // Token refresh failed - remove the expired token so user is prompted to re-authenticate
+      console.log('Frejun: Token refresh failed for user', userId, '- removing expired token');
+      await this.removeUserToken(userId);
       return null;
     }
 

@@ -8486,7 +8486,23 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       
       // Check if user has connected their Frejun account via OAuth (now async)
       const userToken = await frejunService.getUserToken(userId);
-      const isUserConnected = !!userToken;
+      
+      // Check if token exists and is not expired (with 5 minute buffer)
+      let isUserConnected = false;
+      let tokenExpired = false;
+      
+      if (userToken) {
+        const bufferMs = 5 * 60 * 1000;
+        const isExpired = new Date().getTime() >= (userToken.expiresAt.getTime() - bufferMs);
+        
+        if (isExpired) {
+          // Token is expired - try to refresh it silently
+          tokenExpired = true;
+          console.log('Frejun: Token expired for user', userId, '- needs re-authentication');
+        } else {
+          isUserConnected = true;
+        }
+      }
       
       // Always include OAuth URL for Connect button functionality
       const oauthUrl = frejunService.getAuthorizationUrl(userId);
@@ -8494,6 +8510,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       res.json({
         ...status,
         isUserConnected,
+        tokenExpired,
         dialerWidgetUrl: frejunService.getDialerWidgetUrl(),
         oauthUrl,
       });
