@@ -284,6 +284,22 @@ export function Dialer({
     queryKey: ["/api/voice/status"],
   });
 
+  // Get dialer config for VoIP calls via widget
+  const { data: dialerConfig } = useQuery<{
+    iframeSrc: string;
+    authorizeMessage: {
+      eventName: string;
+      data: {
+        access_token: string;
+        user_email: string;
+      };
+    };
+    userEmail: string;
+  }>({
+    queryKey: ["/api/voice/frejun/dialer-config"],
+    retry: false,
+  });
+
   const { data: callLogs = [] } = useQuery<CallLog[]>({
     queryKey: ["/api/crm/leads", leadId, "call-logs"],
     enabled: !!leadId,
@@ -305,48 +321,88 @@ export function Dialer({
 
   const allCallLogs = leadId ? callLogs : companyCallLogs;
 
-  const initiateCallMutation = useMutation({
+  // Mutation to create call log (lightweight - no network call initiation)
+  const createCallLogMutation = useMutation({
     mutationFn: async (data: { phoneNumber: string; leadId?: number; companyId?: number; contactName?: string }) => {
-      return apiRequest("/api/voice/call", {
+      return apiRequest("/api/voice/call-log", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
     onSuccess: (data: any) => {
       if (data.success) {
-        console.log('📞 initiateCallMutation onSuccess - setting call state');
-        // Start call in shared context - Frejun events will update the actual call status
-        sharedCallState?.startCall({
-          phoneNumber: phoneNumber,
-          callId: data.callId,
-          contactName: contactName,
-          leadId: leadId,
-          companyId: companyId,
-        });
-        // Also set local state as fallback
-        setLocalIsInCall(true);
-        setLocalCallStatus('dialing');
-        setLocalCallDuration(0);
-        setShowInCallKeypad(false);
-        toast({
-          title: "Call Initiated",
-          description: "Connecting your call...",
-        });
+        console.log('📞 Call log created:', data.callLogId);
       }
     },
-    onError: (error: any) => {
-      console.log('📞 initiateCallMutation onError - resetting local state');
-      // Reset local state on error
-      setLocalIsInCall(false);
-      setLocalCallStatus('idle');
-      setLocalCallDuration(0);
+  });
+  
+  // Helper to find and get the Frejun iframe
+  const getFrejunIframe = useCallback((): HTMLIFrameElement | null => {
+    // Try to find the Frejun iframe by ID first, then by src
+    const iframeById = document.getElementById('frejun-dialer-iframe') as HTMLIFrameElement;
+    if (iframeById) return iframeById;
+    
+    // Fallback: find by src attribute
+    const iframes = document.querySelectorAll('iframe');
+    for (const iframe of iframes) {
+      if (iframe.src.includes('dialer.frejun.com')) {
+        return iframe as HTMLIFrameElement;
+      }
+    }
+    return null;
+  }, []);
+
+  // Initiate VoIP call via Frejun widget (postMessage to iframe)
+  const initiateVoipCall = useCallback((numberToCall: string) => {
+    const iframe = getFrejunIframe();
+    if (!iframe || !dialerConfig) {
       toast({
-        title: "Call Failed",
-        description: error.message || "Failed to initiate call",
+        title: "Dialer Not Ready",
+        description: "Please wait for the dialer to load and authorize",
         variant: "destructive",
       });
-    },
-  });
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
+      return;
+    }
+
+    console.log('📞 Initiating VoIP call via widget postMessage to:', numberToCall);
+
+    // Send initiate-call message to Frejun widget
+    const message = {
+      eventName: 'initiate-call',
+      data: {
+        user_email: dialerConfig.userEmail,
+        candidate_number: numberToCall,
+        candidate_name: contactName,
+        access_token: dialerConfig.authorizeMessage.data.access_token,
+        transaction_id: leadId?.toString() || companyId?.toString(),
+      },
+    };
+
+    iframe.contentWindow?.postMessage(message, 'https://dialer.frejun.com');
+
+    // Update shared call state
+    sharedCallState?.startCall({
+      phoneNumber: numberToCall,
+      contactName: contactName,
+      leadId: leadId,
+      companyId: companyId,
+    });
+
+    // Create call log in backend (for record-keeping)
+    createCallLogMutation.mutate({
+      phoneNumber: numberToCall,
+      leadId,
+      companyId,
+      contactName,
+    });
+
+    toast({
+      title: "Calling...",
+      description: `Connecting to ${contactName || numberToCall}`,
+    });
+  }, [dialerConfig, contactName, leadId, companyId, sharedCallState, toast, getFrejunIframe, createCallLogMutation]);
 
   const endCallMutation = useMutation({
     mutationFn: async (callId: string) => {
@@ -416,8 +472,8 @@ export function Dialer({
 
   const handleCall = () => {
     // Prevent calling while already in a call or while mutation is pending
-    if (isInCall || callStatus !== 'idle' || initiateCallMutation.isPending) {
-      console.log('📞 handleCall blocked - isInCall:', isInCall, 'callStatus:', callStatus, 'isPending:', initiateCallMutation.isPending);
+    if (isInCall || callStatus !== 'idle' || createCallLogMutation.isPending) {
+      console.log('📞 handleCall blocked - isInCall:', isInCall, 'callStatus:', callStatus, 'isPending:', createCallLogMutation.isPending);
       return;
     }
     
@@ -430,32 +486,41 @@ export function Dialer({
       return;
     }
 
-    console.log('📞 handleCall - initiating call to:', phoneNumber);
+    console.log('📞 handleCall - initiating VoIP call to:', phoneNumber);
     
-    // IMMEDIATELY set local state to show in-call UI (don't wait for API response)
+    // IMMEDIATELY set local state to show in-call UI
     setLocalIsInCall(true);
     setLocalCallStatus('dialing');
     setLocalCallDuration(0);
     
-    initiateCallMutation.mutate({
-      phoneNumber: phoneNumber.trim(),
-      leadId,
-      companyId,
-      contactName,
-    });
+    // Use VoIP via widget postMessage (NOT network call via API)
+    initiateVoipCall(phoneNumber.trim());
   };
 
   const handleEndCall = () => {
-    if (currentCallId) {
-      endCallMutation.mutate(currentCallId);
-    } else {
-      // No call ID - just end call via shared context and local state
-      sharedCallState?.endCall(true);
-      setLocalIsInCall(false);
-      setLocalCallStatus('idle');
-      setLocalCallDuration(0);
-      setShowInCallKeypad(false);
+    // For VoIP calls, send end-call message to Frejun widget
+    const iframe = getFrejunIframe();
+    if (iframe) {
+      console.log('📞 Sending end-call postMessage to Frejun widget');
+      iframe.contentWindow?.postMessage({ eventName: 'end-call' }, 'https://dialer.frejun.com');
     }
+    
+    // End call in shared context and reset local state
+    sharedCallState?.endCall(true);
+    setLocalIsInCall(false);
+    setLocalCallStatus('idle');
+    setLocalCallDuration(0);
+    setShowInCallKeypad(false);
+    
+    // Invalidate call logs to refresh
+    queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
+    
+    toast({
+      title: "Call Ended",
+      description: callDuration > 0 ? `Duration: ${formatDuration(callDuration)}` : "Call ended",
+    });
+    onCallComplete?.();
   };
 
   const handleSendSms = () => {

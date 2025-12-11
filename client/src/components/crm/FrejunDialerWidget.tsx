@@ -60,6 +60,7 @@ export function FrejunDialerWidget({
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const authTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   
   const sharedCallState = useCallStateOptional();
@@ -100,24 +101,43 @@ export function FrejunDialerWidget({
     queryKey: ["/api/voice/status"],
   });
 
+  // Per Frejun documentation, only these events are sent via postMessage:
+  // ready, close, incoming-call, unauthorized, height-change, end-call-error, call-ended
+  // We do NOT receive real-time status events like "call-connected" or "call-ringing"
   const handleMessage = useCallback((event: MessageEvent) => {
     if (event.origin !== FREJUN_TARGET_ORIGIN || !event.data) return;
 
     const eventData = event.data;
-    console.log('Frejun dialer event:', eventData.eventName, eventData);
+    console.log('Frejun widget event:', eventData.eventName, eventData);
 
     switch (eventData.eventName) {
       case 'ready':
         setIsLoaded(true);
+        // Authorize immediately when widget is ready
         if (dialerConfig && iframeRef.current) {
           iframeRef.current.contentWindow?.postMessage(
             dialerConfig.authorizeMessage,
             FREJUN_TARGET_ORIGIN
           );
+          // Per docs, if we don't receive 'unauthorized', we're authorized
+          // Set a timeout to mark as authorized if no error comes back
+          // Clear any existing timer first
+          if (authTimerRef.current) {
+            clearTimeout(authTimerRef.current);
+          }
+          authTimerRef.current = setTimeout(() => {
+            setIsAuthorized(true);
+            authTimerRef.current = null;
+          }, 2000);
         }
         break;
 
       case 'unauthorized':
+        // Clear authorization timer to prevent false positive
+        if (authTimerRef.current) {
+          clearTimeout(authTimerRef.current);
+          authTimerRef.current = null;
+        }
         setIsAuthorized(false);
         toast({
           title: "Authorization Failed",
@@ -126,81 +146,38 @@ export function FrejunDialerWidget({
         });
         break;
 
-      case 'authorized':
-      case 'auth-success':
-      case 'authentication-success':
-      case 'authorization-success':
-        setIsAuthorized(true);
-        console.log('Frejun dialer authorized successfully');
-        break;
-
       case 'incoming-call':
+        // Documented event - incoming call notification
         setIsVisible(true);
         setCallState('ringing');
-        // Note: CallStateProvider handles Frejun events directly, no need to call startCall here
         toast({
           title: "Incoming Call",
           description: "You have an incoming call",
         });
         break;
 
-      case 'call-initiated':
-      case 'call-dialing':
-      case 'dialing':
-        setCallState('dialing');
-        setIsVisible(true);
-        if (eventData.data?.call_id || eventData.detail?.call_id) {
-          setCurrentCallId(eventData.data?.call_id || eventData.detail?.call_id);
-          // Only update call ID, don't call startCall - CallStateProvider handles Frejun events
-          sharedCallState?.setCallId(eventData.data?.call_id || eventData.detail?.call_id);
-        }
-        break;
-
-      case 'call-ringing':
-      case 'ringing':
-        setCallState('ringing');
-        setIsVisible(true);
-        // CallStateProvider handles status updates from Frejun events
-        break;
-
-      case 'call-connected':
-      case 'call-answered':
-      case 'connected':
-      case 'answered':
-        setCallState('connected');
-        setCallDuration(0);
-        setIsVisible(true);
-        // CallStateProvider handles status updates from Frejun events
-        toast({
-          title: "Call Connected",
-          description: `Connected with ${contactName || phoneNumber}`,
-        });
-        break;
-
       case 'close':
+        // Documented event - widget should be hidden
         setIsVisible(false);
         setCallState('idle');
         setCurrentCallId(null);
-        // CallStateProvider handles this via postMessage
         onCallEnd?.();
         break;
 
       case 'height-change':
+        // Documented event - iframe height changed
         if (eventData.detail) {
           setIframeHeight(parseInt(eventData.detail, 10));
         }
         break;
 
       case 'call-ended':
-      case 'call-disconnected':
-      case 'ended':
-      case 'hangup':
+        // Documented event - call has ended
         setCallState('ended');
         setTimeout(() => {
           setCallState('idle');
           setCurrentCallId(null);
         }, 2000);
-        // CallStateProvider handles call end via postMessage
         onCallEnd?.();
         toast({
           title: "Call Ended",
@@ -209,6 +186,7 @@ export function FrejunDialerWidget({
         break;
 
       case 'end-call-error':
+        // Documented event - error ending call
         toast({
           title: "Error",
           description: eventData.detail || "Failed to end call",
@@ -217,9 +195,11 @@ export function FrejunDialerWidget({
         break;
 
       default:
-        console.log('Frejun: unhandled event', eventData.eventName);
+        // Log but don't process undocumented events
+        // Per docs, we should NOT receive call-connected, call-ringing, etc.
+        console.log('Frejun: event received (not documented):', eventData.eventName);
     }
-  }, [dialerConfig, toast, onCallEnd, contactName, phoneNumber, callDuration, sharedCallState, leadId, companyId]);
+  }, [dialerConfig, toast, onCallEnd, callDuration]);
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);
@@ -248,11 +228,21 @@ export function FrejunDialerWidget({
 
     iframeRef.current.contentWindow?.postMessage(message, FREJUN_TARGET_ORIGIN);
 
+    // Update local state (optimistic UI)
     setIsVisible(true);
     setCallState('dialing');
     setCallDuration(0);
+    
+    // Update shared call state so Dialer and other components are aware
+    sharedCallState?.startCall({
+      phoneNumber: phoneNumber,
+      contactName: contactName,
+      leadId: leadId,
+      companyId: companyId,
+    });
+    
     onCallStart?.('pending');
-  }, [dialerConfig, phoneNumber, contactName, leadId, companyId, onCallStart]);
+  }, [dialerConfig, phoneNumber, contactName, leadId, companyId, onCallStart, sharedCallState]);
 
   const endCall = useCallback(() => {
     if (!iframeRef.current) return;
@@ -434,6 +424,7 @@ export function FrejunDialerWidget({
       >
         {dialerConfig && (
           <iframe
+            id="frejun-dialer-iframe"
             ref={iframeRef}
             src={dialerConfig.iframeSrc}
             allow="microphone"

@@ -8840,6 +8840,42 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Create call log (lightweight endpoint for VoIP calls - no network call initiation)
+  app.post('/api/voice/call-log', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { phoneNumber, leadId, companyId, contactName } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: 'Phone number is required' });
+      }
+
+      // Create call log in database (VoIP call initiated via widget, not via API)
+      const callLog = await storage.createCallLog({
+        callerUserId: userId,
+        recipientPhone: phoneNumber,
+        recipientName: contactName,
+        direction: 'outbound',
+        status: 'dialing',
+        leadId: leadId || null,
+        companyId: companyId || null,
+      });
+
+      res.json({ 
+        success: true, 
+        callLogId: callLog.id,
+        message: 'Call log created for VoIP call',
+      });
+    } catch (error) {
+      console.error('Error creating call log:', error);
+      res.status(500).json({ message: 'Failed to create call log' });
+    }
+  });
+
   // Send SMS (Note: Frejun focuses on voice; SMS may need alternative provider)
   app.post('/api/voice/sms', isAuthenticated, async (req: any, res) => {
     try {
