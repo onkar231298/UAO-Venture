@@ -299,9 +299,11 @@ export function Dialer({
       }
     },
     onError: (error: any) => {
+      console.log('📞 initiateCallMutation onError - resetting local state');
       // Reset local state on error
       setLocalIsInCall(false);
       setLocalCallStatus('idle');
+      setLocalCallDuration(0);
       toast({
         title: "Call Failed",
         description: error.message || "Failed to initiate call",
@@ -393,6 +395,12 @@ export function Dialer({
     }
 
     console.log('📞 handleCall - initiating call to:', phoneNumber);
+    
+    // IMMEDIATELY set local state to show in-call UI (don't wait for API response)
+    setLocalIsInCall(true);
+    setLocalCallStatus('dialing');
+    setLocalCallDuration(0);
+    
     initiateCallMutation.mutate({
       phoneNumber: phoneNumber.trim(),
       leadId,
@@ -537,6 +545,8 @@ export function Dialer({
           </TabsList>
 
           <TabsContent value="dialer" className="space-y-4">
+            {/* Debug: Log isInCall value on every render */}
+            {console.log('📞 Dialer RENDER - isInCall:', isInCall, 'localIsInCall:', localIsInCall, 'sharedCallState?.isInCall:', sharedCallState?.isInCall)}
             {isInCall ? (
               <div className="flex flex-col items-center bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl p-6 -mx-2 text-white min-h-[400px]">
                 {/* Contact Avatar */}
