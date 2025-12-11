@@ -102,27 +102,39 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   }, [isInCall, callStatus]);
 
   // Global Frejun event listener - works even when FrejunDialerWidget is not mounted
+  // Frejun sends events in format: { type: 'CALL_CONNECTED', payload: {...} }
+  // We normalize both formats to handle legacy and current Frejun event structures
   useEffect(() => {
     const handleFrejunMessage = (event: MessageEvent) => {
       if (event.origin !== FREJUN_TARGET_ORIGIN || !event.data) return;
 
       const eventData = event.data;
-      console.log('CallStateContext received Frejun event:', eventData.eventName, eventData);
+      
+      // Normalize event name - Frejun uses 'type' field with UPPERCASE values
+      // Also support legacy 'eventName' field for backwards compatibility
+      const rawEventName = eventData.type || eventData.eventName || '';
+      const eventName = rawEventName.toLowerCase().replace(/_/g, '-');
+      
+      // Normalize payload - Frejun uses 'payload', legacy uses 'data' or 'detail'
+      const payload = eventData.payload || eventData.data || eventData.detail || {};
+      
+      console.log('📞 CallStateContext received Frejun event:', rawEventName, '-> normalized:', eventName, payload);
 
-      switch (eventData.eventName) {
+      switch (eventName) {
         case 'call-initiated':
         case 'call-dialing':
         case 'dialing':
           // Only set metadata if we haven't already started the call optimistically
           if (!callStartedRef.current) {
+            console.log('📞 Setting isInCall=true (dialing)');
             setIsInCall(true);
             setCallStatus('dialing');
             setCallDuration(0);
-            if (eventData.data?.phone_number || eventData.detail?.phone_number) {
-              setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
+            if (payload.phone_number || payload.phoneNumber) {
+              setCallingNumber(payload.phone_number || payload.phoneNumber);
             }
-            if (eventData.data?.call_id || eventData.detail?.call_id) {
-              const newCallId = eventData.data?.call_id || eventData.detail?.call_id;
+            if (payload.call_id || payload.callId) {
+              const newCallId = payload.call_id || payload.callId;
               setCurrentCallId(newCallId);
               currentCallMetadataRef.current.callId = newCallId;
             }
@@ -130,49 +142,55 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           } else {
             // Just update status and callId (don't wipe metadata, but always sync callId)
             setCallStatus('dialing');
-            if (eventData.data?.call_id || eventData.detail?.call_id) {
-              const newCallId = eventData.data?.call_id || eventData.detail?.call_id;
+            if (payload.call_id || payload.callId) {
+              const newCallId = payload.call_id || payload.callId;
               setCurrentCallId(newCallId);
-              // Update metadata ref with authoritative callId from Frejun
               currentCallMetadataRef.current.callId = newCallId;
             }
           }
           break;
 
         case 'incoming-call':
-          setIsInCall(true);
-          setCallStatus('ringing');
-          setCallDuration(0);
-          if (eventData.data?.phone_number || eventData.detail?.phone_number) {
-            setCallingNumber(eventData.data?.phone_number || eventData.detail?.phone_number);
-          }
-          if (eventData.data?.call_id || eventData.detail?.call_id) {
-            const newCallId = eventData.data?.call_id || eventData.detail?.call_id;
-            setCurrentCallId(newCallId);
-            currentCallMetadataRef.current.callId = newCallId;
-          }
-          callStartedRef.current = true;
-          break;
-
         case 'call-ringing':
         case 'ringing':
+          console.log('📞 Setting isInCall=true (ringing)');
           setIsInCall(true);
           setCallStatus('ringing');
+          if (!callStartedRef.current) {
+            setCallDuration(0);
+            if (payload.phone_number || payload.phoneNumber) {
+              setCallingNumber(payload.phone_number || payload.phoneNumber);
+            }
+            if (payload.call_id || payload.callId) {
+              const newCallId = payload.call_id || payload.callId;
+              setCurrentCallId(newCallId);
+              currentCallMetadataRef.current.callId = newCallId;
+            }
+            callStartedRef.current = true;
+          }
           break;
 
         case 'call-connected':
         case 'call-answered':
         case 'connected':
         case 'answered':
+          console.log('📞 Setting isInCall=true, callStatus=connected');
           setIsInCall(true);
           setCallStatus('connected');
-          setCallDuration(0);
+          // Only reset duration if just connecting (not already in call)
+          if (!callStartedRef.current) {
+            setCallDuration(0);
+            callStartedRef.current = true;
+          }
           break;
 
         case 'call-ended':
         case 'call-disconnected':
+        case 'call-completed':
+        case 'call-failed':
         case 'ended':
         case 'hangup':
+          console.log('📞 Call ended - resetting state');
           setCallStatus('ended');
           // Notify all registered callbacks about call end (remote hangup)
           callEndCallbacksRef.current.forEach(callback => {
@@ -197,14 +215,13 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
             setIsSpeaker(false);
             setIsOnHold(false);
             callStartedRef.current = false;
-            // Reset metadata ref
             currentCallMetadataRef.current = { callId: null, leadId: null, companyId: null, duration: 0 };
           }, 2000);
           break;
 
         case 'close':
           // Widget closed - reset immediately
-          // Notify all registered callbacks about call end
+          console.log('📞 Widget closed - resetting state');
           callEndCallbacksRef.current.forEach(callback => {
             callback({
               callId: currentCallMetadataRef.current.callId,
@@ -226,11 +243,14 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           setIsSpeaker(false);
           setIsOnHold(false);
           callStartedRef.current = false;
-          // Reset metadata ref
           currentCallMetadataRef.current = { callId: null, leadId: null, companyId: null, duration: 0 };
           break;
 
         default:
+          // Log unknown events for debugging
+          if (eventName && eventName !== 'undefined') {
+            console.log('📞 Unknown Frejun event:', eventName);
+          }
           break;
       }
     };

@@ -134,15 +134,19 @@ export function Dialer({
   useEffect(() => {
     const handleFrejunMessage = (event: MessageEvent) => {
       if (event.origin !== 'https://dialer.frejun.com') return;
-      const { type, payload } = event.data || {};
+      const eventData = event.data || {};
       
-      console.log('📞 Dialer local handler - Frejun event:', type, payload);
+      // Normalize event name - Frejun uses 'type' field with UPPERCASE values
+      const rawEventName = eventData.type || eventData.eventName || '';
+      const eventName = rawEventName.toLowerCase().replace(/_/g, '-');
       
-      if (type === 'CALL_RINGING' || type === 'CALL_INITIATED') {
+      console.log('📞 Dialer local handler - Frejun event:', rawEventName, '-> normalized:', eventName);
+      
+      if (eventName === 'call-ringing' || eventName === 'call-initiated' || eventName === 'dialing') {
         setLocalCallStatus('ringing');
-      } else if (type === 'CALL_CONNECTED' || type === 'CALL_ANSWERED') {
+      } else if (eventName === 'call-connected' || eventName === 'call-answered' || eventName === 'connected') {
         setLocalCallStatus('connected');
-      } else if (type === 'CALL_ENDED' || type === 'CALL_COMPLETED' || type === 'CALL_FAILED') {
+      } else if (eventName === 'call-ended' || eventName === 'call-completed' || eventName === 'call-failed' || eventName === 'call-disconnected') {
         setLocalIsInCall(false);
         setLocalCallStatus('idle');
         setLocalCallDuration(0);
