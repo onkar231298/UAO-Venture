@@ -117,6 +117,10 @@ export function Dialer({
   const [smsMessage, setSmsMessage] = useState("");
   const [playingRecording, setPlayingRecording] = useState<number | null>(null);
   const [showInCallKeypad, setShowInCallKeypad] = useState(false);
+  // Local call state fallback - used when context is not available
+  const [localIsInCall, setLocalIsInCall] = useState(false);
+  const [localCallStatus, setLocalCallStatus] = useState<'idle' | 'dialing' | 'ringing' | 'connected' | 'ended'>('idle');
+  const [localCallDuration, setLocalCallDuration] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -124,7 +128,30 @@ export function Dialer({
   const sharedCallState = useCallStateOptional();
   
   // Debug: Log shared call state availability
-  console.log('📞 Dialer: sharedCallState available:', !!sharedCallState, 'isInCall:', sharedCallState?.isInCall, 'callStatus:', sharedCallState?.callStatus);
+  console.log('📞 Dialer: sharedCallState available:', !!sharedCallState, 'isInCall:', sharedCallState?.isInCall, 'localIsInCall:', localIsInCall);
+  
+  // Listen for Frejun events to update local state as fallback
+  useEffect(() => {
+    const handleFrejunMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://dialer.frejun.com') return;
+      const { type, payload } = event.data || {};
+      
+      console.log('📞 Dialer local handler - Frejun event:', type, payload);
+      
+      if (type === 'CALL_RINGING' || type === 'CALL_INITIATED') {
+        setLocalCallStatus('ringing');
+      } else if (type === 'CALL_CONNECTED' || type === 'CALL_ANSWERED') {
+        setLocalCallStatus('connected');
+      } else if (type === 'CALL_ENDED' || type === 'CALL_COMPLETED' || type === 'CALL_FAILED') {
+        setLocalIsInCall(false);
+        setLocalCallStatus('idle');
+        setLocalCallDuration(0);
+      }
+    };
+    
+    window.addEventListener('message', handleFrejunMessage);
+    return () => window.removeEventListener('message', handleFrejunMessage);
+  }, []);
   
   // Register callback to handle call end events (including remote hangups)
   useEffect(() => {
@@ -191,14 +218,26 @@ export function Dialer({
   }, [sharedCallState, leadId, companyId, queryClient, onCallComplete, toast]);
   
   // Get call state from shared context or use defaults
-  const isInCall = sharedCallState?.isInCall ?? false;
-  const callStatus = sharedCallState?.callStatus ?? 'idle';
-  const callDuration = sharedCallState?.callDuration ?? 0;
+  // Use context state with local fallback for reliability
+  const isInCall = sharedCallState?.isInCall ?? localIsInCall;
+  const callStatus = sharedCallState?.callStatus ?? localCallStatus;
+  const callDuration = sharedCallState?.callDuration ?? localCallDuration;
   const currentCallId = sharedCallState?.currentCallId ?? null;
   const callingNumber = sharedCallState?.callingNumber ?? "";
   const isMuted = sharedCallState?.isMuted ?? false;
   const isSpeaker = sharedCallState?.isSpeaker ?? false;
   const isOnHold = sharedCallState?.isOnHold ?? false;
+  
+  // Duration timer for local fallback
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (localIsInCall && localCallStatus === 'connected') {
+      timer = setInterval(() => {
+        setLocalCallDuration(d => d + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [localIsInCall, localCallStatus]);
   
   // Functions to update shared state
   const setIsMuted = sharedCallState?.setMuted ?? (() => {});
@@ -239,6 +278,7 @@ export function Dialer({
     },
     onSuccess: (data: any) => {
       if (data.success) {
+        console.log('📞 initiateCallMutation onSuccess - setting call state');
         // Start call in shared context - Frejun events will update the actual call status
         sharedCallState?.startCall({
           phoneNumber: phoneNumber,
@@ -247,6 +287,10 @@ export function Dialer({
           leadId: leadId,
           companyId: companyId,
         });
+        // Also set local state as fallback
+        setLocalIsInCall(true);
+        setLocalCallStatus('dialing');
+        setLocalCallDuration(0);
         setShowInCallKeypad(false);
         toast({
           title: "Call Initiated",
@@ -255,6 +299,9 @@ export function Dialer({
       }
     },
     onError: (error: any) => {
+      // Reset local state on error
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
       toast({
         title: "Call Failed",
         description: error.message || "Failed to initiate call",
@@ -271,6 +318,10 @@ export function Dialer({
     },
     onSuccess: () => {
       sharedCallState?.endCall(true);
+      // Also reset local state
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
+      setLocalCallDuration(0);
       setShowInCallKeypad(false);
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
@@ -326,8 +377,9 @@ export function Dialer({
   }, []);
 
   const handleCall = () => {
-    // Prevent calling while already in a call
-    if (isInCall || callStatus !== 'idle') {
+    // Prevent calling while already in a call or while mutation is pending
+    if (isInCall || callStatus !== 'idle' || initiateCallMutation.isPending) {
+      console.log('📞 handleCall blocked - isInCall:', isInCall, 'callStatus:', callStatus, 'isPending:', initiateCallMutation.isPending);
       return;
     }
     
@@ -340,6 +392,7 @@ export function Dialer({
       return;
     }
 
+    console.log('📞 handleCall - initiating call to:', phoneNumber);
     initiateCallMutation.mutate({
       phoneNumber: phoneNumber.trim(),
       leadId,
@@ -352,8 +405,11 @@ export function Dialer({
     if (currentCallId) {
       endCallMutation.mutate(currentCallId);
     } else {
-      // No call ID - just end call via shared context
+      // No call ID - just end call via shared context and local state
       sharedCallState?.endCall(true);
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
+      setLocalCallDuration(0);
       setShowInCallKeypad(false);
     }
   };
