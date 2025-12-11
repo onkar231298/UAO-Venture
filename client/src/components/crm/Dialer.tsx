@@ -130,32 +130,50 @@ export function Dialer({
   // Debug: Log shared call state availability
   console.log('📞 Dialer: sharedCallState available:', !!sharedCallState, 'isInCall:', sharedCallState?.isInCall, 'localIsInCall:', localIsInCall);
   
-  // Listen for Frejun events to update local state as fallback
+  // Listen for Frejun events to update local state
+  // Per Frejun docs, only these events are sent: ready, close, incoming-call, unauthorized, height-change, end-call-error, call-ended
+  // We DO NOT receive real-time call status events like "connected" or "ringing" - that's internal to the widget
   useEffect(() => {
     const handleFrejunMessage = (event: MessageEvent) => {
       if (event.origin !== 'https://dialer.frejun.com') return;
       const eventData = event.data || {};
+      const eventName = eventData.eventName || '';
       
-      // Normalize event name - Frejun uses 'type' field with UPPERCASE values
-      const rawEventName = eventData.type || eventData.eventName || '';
-      const eventName = rawEventName.toLowerCase().replace(/_/g, '-');
+      console.log('📞 Dialer - Frejun event received:', eventName, eventData);
       
-      console.log('📞 Dialer local handler - Frejun event:', rawEventName, '-> normalized:', eventName);
-      
-      if (eventName === 'call-ringing' || eventName === 'call-initiated' || eventName === 'dialing') {
-        setLocalCallStatus('ringing');
-      } else if (eventName === 'call-connected' || eventName === 'call-answered' || eventName === 'connected') {
-        setLocalCallStatus('connected');
-      } else if (eventName === 'call-ended' || eventName === 'call-completed' || eventName === 'call-failed' || eventName === 'call-disconnected') {
+      // Per documentation, only handle documented events
+      if (eventName === 'call-ended') {
+        // Call has ended - reset local state
+        console.log('📞 Dialer - call-ended received, resetting local state');
         setLocalIsInCall(false);
         setLocalCallStatus('idle');
+        setLocalCallDuration(0);
+        // Invalidate call logs
+        if (leadId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
+        }
+        if (companyId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
+        }
+        onCallComplete?.();
+      } else if (eventName === 'close') {
+        // Widget closed - reset state
+        console.log('📞 Dialer - close received, resetting local state');
+        setLocalIsInCall(false);
+        setLocalCallStatus('idle');
+        setLocalCallDuration(0);
+      } else if (eventName === 'incoming-call') {
+        // Incoming call - show in-call UI
+        console.log('📞 Dialer - incoming-call received');
+        setLocalIsInCall(true);
+        setLocalCallStatus('ringing');
         setLocalCallDuration(0);
       }
     };
     
     window.addEventListener('message', handleFrejunMessage);
     return () => window.removeEventListener('message', handleFrejunMessage);
-  }, []);
+  }, [leadId, companyId, queryClient, onCallComplete]);
   
   // Register callback to handle call end events (including remote hangups)
   useEffect(() => {
@@ -221,24 +239,38 @@ export function Dialer({
     return () => unsubscribe();
   }, [sharedCallState, leadId, companyId, queryClient, onCallComplete, toast]);
   
-  // Get call state from shared context or use defaults
-  // Use context state with local fallback for reliability
-  const isInCall = sharedCallState?.isInCall ?? localIsInCall;
-  const callStatus = sharedCallState?.callStatus ?? localCallStatus;
-  const callDuration = sharedCallState?.callDuration ?? localCallDuration;
+  // Get call state - prioritize local state for immediate UI response
+  // Per Frejun docs, we don't receive real-time status updates, so we use optimistic UI
+  const isInCall = localIsInCall || (sharedCallState?.isInCall ?? false);
+  const callStatus = localCallStatus !== 'idle' ? localCallStatus : (sharedCallState?.callStatus ?? 'idle');
+  const callDuration = localCallDuration > 0 ? localCallDuration : (sharedCallState?.callDuration ?? 0);
   const currentCallId = sharedCallState?.currentCallId ?? null;
   const callingNumber = sharedCallState?.callingNumber ?? "";
   const isMuted = sharedCallState?.isMuted ?? false;
   const isSpeaker = sharedCallState?.isSpeaker ?? false;
   const isOnHold = sharedCallState?.isOnHold ?? false;
   
-  // Duration timer for local fallback
+  // Duration timer for local state - starts immediately when call is initiated
+  // Since Frejun doesn't send "connected" events, we start timing from when user clicks call
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (localIsInCall && localCallStatus === 'connected') {
+    if (localIsInCall) {
+      // Start timer immediately when call is initiated (optimistic UI)
+      // After 3 seconds, assume connected and start counting
+      const startDelay = setTimeout(() => {
+        setLocalCallStatus('connected');
+      }, 3000);
+      
       timer = setInterval(() => {
-        setLocalCallDuration(d => d + 1);
+        if (localCallStatus === 'connected') {
+          setLocalCallDuration(d => d + 1);
+        }
       }, 1000);
+      
+      return () => {
+        clearTimeout(startDelay);
+        clearInterval(timer);
+      };
     }
     return () => clearInterval(timer);
   }, [localIsInCall, localCallStatus]);
@@ -549,8 +581,6 @@ export function Dialer({
           </TabsList>
 
           <TabsContent value="dialer" className="space-y-4">
-            {/* Debug: Log isInCall value on every render */}
-            {console.log('📞 Dialer RENDER - isInCall:', isInCall, 'localIsInCall:', localIsInCall, 'sharedCallState?.isInCall:', sharedCallState?.isInCall)}
             {isInCall ? (
               <div className="flex flex-col items-center bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl p-6 -mx-2 text-white min-h-[400px]">
                 {/* Contact Avatar */}

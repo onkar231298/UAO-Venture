@@ -102,97 +102,33 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   }, [isInCall, callStatus]);
 
   // Global Frejun event listener - works even when FrejunDialerWidget is not mounted
-  // Frejun sends events in format: { type: 'CALL_CONNECTED', payload: {...} }
-  // We normalize both formats to handle legacy and current Frejun event structures
+  // Per Frejun documentation, only these events are sent via postMessage:
+  // ready, close, incoming-call, unauthorized, height-change, end-call-error, call-ended
+  // We do NOT receive real-time call status events like "connected" or "ringing"
   useEffect(() => {
     const handleFrejunMessage = (event: MessageEvent) => {
       if (event.origin !== FREJUN_TARGET_ORIGIN || !event.data) return;
 
       const eventData = event.data;
+      const eventName = eventData.eventName || '';
       
-      // Normalize event name - Frejun uses 'type' field with UPPERCASE values
-      // Also support legacy 'eventName' field for backwards compatibility
-      const rawEventName = eventData.type || eventData.eventName || '';
-      const eventName = rawEventName.toLowerCase().replace(/_/g, '-');
-      
-      // Normalize payload - Frejun uses 'payload', legacy uses 'data' or 'detail'
-      const payload = eventData.payload || eventData.data || eventData.detail || {};
-      
-      console.log('📞 CallStateContext received Frejun event:', rawEventName, '-> normalized:', eventName, payload);
+      console.log('📞 CallStateContext received Frejun event:', eventName, eventData);
 
       switch (eventName) {
-        case 'call-initiated':
-        case 'call-dialing':
-        case 'dialing':
-          // Only set metadata if we haven't already started the call optimistically
-          if (!callStartedRef.current) {
-            console.log('📞 Setting isInCall=true (dialing)');
-            setIsInCall(true);
-            setCallStatus('dialing');
-            setCallDuration(0);
-            if (payload.phone_number || payload.phoneNumber) {
-              setCallingNumber(payload.phone_number || payload.phoneNumber);
-            }
-            if (payload.call_id || payload.callId) {
-              const newCallId = payload.call_id || payload.callId;
-              setCurrentCallId(newCallId);
-              currentCallMetadataRef.current.callId = newCallId;
-            }
-            callStartedRef.current = true;
-          } else {
-            // Just update status and callId (don't wipe metadata, but always sync callId)
-            setCallStatus('dialing');
-            if (payload.call_id || payload.callId) {
-              const newCallId = payload.call_id || payload.callId;
-              setCurrentCallId(newCallId);
-              currentCallMetadataRef.current.callId = newCallId;
-            }
-          }
-          break;
-
         case 'incoming-call':
-        case 'call-ringing':
-        case 'ringing':
-          console.log('📞 Setting isInCall=true (ringing)');
+          // Incoming call - set up call state
+          console.log('📞 Incoming call received');
           setIsInCall(true);
           setCallStatus('ringing');
-          if (!callStartedRef.current) {
-            setCallDuration(0);
-            if (payload.phone_number || payload.phoneNumber) {
-              setCallingNumber(payload.phone_number || payload.phoneNumber);
-            }
-            if (payload.call_id || payload.callId) {
-              const newCallId = payload.call_id || payload.callId;
-              setCurrentCallId(newCallId);
-              currentCallMetadataRef.current.callId = newCallId;
-            }
-            callStartedRef.current = true;
-          }
-          break;
-
-        case 'call-connected':
-        case 'call-answered':
-        case 'connected':
-        case 'answered':
-          console.log('📞 Setting isInCall=true, callStatus=connected');
-          setIsInCall(true);
-          setCallStatus('connected');
-          // Only reset duration if just connecting (not already in call)
-          if (!callStartedRef.current) {
-            setCallDuration(0);
-            callStartedRef.current = true;
-          }
+          setCallDuration(0);
+          callStartedRef.current = true;
           break;
 
         case 'call-ended':
-        case 'call-disconnected':
-        case 'call-completed':
-        case 'call-failed':
-        case 'ended':
-        case 'hangup':
-          console.log('📞 Call ended - resetting state');
+          // Call has ended
+          console.log('📞 Call ended - notifying callbacks and resetting state');
           setCallStatus('ended');
-          // Notify all registered callbacks about call end (remote hangup)
+          // Notify all registered callbacks about call end
           callEndCallbacksRef.current.forEach(callback => {
             callback({
               callId: currentCallMetadataRef.current.callId,
@@ -202,6 +138,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
               wasRemoteHangup: true,
             });
           });
+          // Reset state after a brief delay to show "ended" status
           setTimeout(() => {
             setIsInCall(false);
             setCallStatus('idle');
@@ -246,10 +183,18 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           currentCallMetadataRef.current = { callId: null, leadId: null, companyId: null, duration: 0 };
           break;
 
+        case 'ready':
+          console.log('📞 Frejun widget ready');
+          break;
+          
+        case 'unauthorized':
+          console.log('📞 Frejun authorization failed:', eventData.detail);
+          break;
+
         default:
-          // Log unknown events for debugging
-          if (eventName && eventName !== 'undefined') {
-            console.log('📞 Unknown Frejun event:', eventName);
+          // Log other events for debugging (height-change, end-call-error, etc.)
+          if (eventName) {
+            console.log('📞 Frejun event (not handled):', eventName);
           }
           break;
       }
