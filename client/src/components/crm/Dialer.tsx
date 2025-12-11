@@ -28,6 +28,14 @@ import {
   PhoneOutgoing,
   ExternalLink,
   Loader2,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Keyboard,
+  UserPlus,
+  PauseCircle,
+  User,
 } from "lucide-react";
 
 interface DialerProps {
@@ -110,6 +118,11 @@ export function Dialer({
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [playingRecording, setPlayingRecording] = useState<number | null>(null);
+  const [callStatus, setCallStatus] = useState<'dialing' | 'ringing' | 'connected' | 'ended'>('dialing');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isOnHold, setIsOnHold] = useState(false);
+  const [showInCallKeypad, setShowInCallKeypad] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -162,10 +175,18 @@ export function Dialer({
         setIsInCall(true);
         setCurrentCallId(data.callId);
         setCallDuration(0);
+        setCallStatus('dialing');
+        setIsMuted(false);
+        setIsSpeaker(false);
+        setIsOnHold(false);
+        setShowInCallKeypad(false);
         toast({
           title: "Call Initiated",
           description: "Connecting your call...",
         });
+        // Simulate call status progression (in real integration, this comes from Frejun events)
+        setTimeout(() => setCallStatus('ringing'), 2000);
+        setTimeout(() => setCallStatus('connected'), 5000);
       }
     },
     onError: (error: any) => {
@@ -184,9 +205,16 @@ export function Dialer({
       });
     },
     onSuccess: () => {
-      setIsInCall(false);
-      setCurrentCallId(null);
-      setCallDuration(0);
+      setCallStatus('ended');
+      setTimeout(() => {
+        setIsInCall(false);
+        setCurrentCallId(null);
+        setCallDuration(0);
+        setIsMuted(false);
+        setIsSpeaker(false);
+        setIsOnHold(false);
+        setShowInCallKeypad(false);
+      }, 1000);
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", leadId, "call-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "call-logs"] });
       toast({
@@ -390,22 +418,162 @@ export function Dialer({
 
           <TabsContent value="dialer" className="space-y-4">
             {isInCall ? (
-              <div className="text-center space-y-4 py-8">
-                <div className="animate-pulse">
-                  <PhoneCall className="h-16 w-16 mx-auto text-green-500" />
+              <div className="flex flex-col items-center bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl p-6 -mx-2 text-white min-h-[400px]">
+                {/* Contact Avatar */}
+                <div className="w-24 h-24 rounded-full bg-slate-700 flex items-center justify-center mb-4 ring-4 ring-slate-600">
+                  {contactName ? (
+                    <span className="text-3xl font-bold text-white">
+                      {contactName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </span>
+                  ) : (
+                    <User className="h-12 w-12 text-slate-400" />
+                  )}
                 </div>
-                <div className="text-2xl font-semibold">{formatDuration(callDuration)}</div>
-                <div className="text-muted-foreground">
-                  {contactName || phoneNumber}
+
+                {/* Contact Name */}
+                <h3 className="text-xl font-semibold text-white mb-1">
+                  {contactName || "Unknown"}
+                </h3>
+                
+                {/* Phone Number */}
+                <p className="text-slate-400 text-sm mb-2">{phoneNumber}</p>
+
+                {/* Call Status */}
+                <div className="flex items-center gap-2 mb-4">
+                  {callStatus === 'dialing' && (
+                    <>
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                      </div>
+                      <span className="text-blue-400 text-sm">Dialing...</span>
+                    </>
+                  )}
+                  {callStatus === 'ringing' && (
+                    <>
+                      <Phone className="h-4 w-4 text-yellow-400 animate-pulse" />
+                      <span className="text-yellow-400 text-sm">Ringing...</span>
+                    </>
+                  )}
+                  {callStatus === 'connected' && (
+                    <>
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-green-400 text-sm">Connected</span>
+                    </>
+                  )}
+                  {callStatus === 'ended' && (
+                    <span className="text-red-400 text-sm">Call Ended</span>
+                  )}
                 </div>
+
+                {/* Call Duration - Only show when connected */}
+                {callStatus === 'connected' && (
+                  <div className="text-4xl font-mono font-light text-white mb-6 tabular-nums">
+                    {formatDuration(callDuration)}
+                  </div>
+                )}
+
+                {/* On Hold Indicator */}
+                {isOnHold && (
+                  <div className="bg-orange-500/20 text-orange-400 px-4 py-2 rounded-full text-sm mb-4 flex items-center gap-2">
+                    <PauseCircle className="h-4 w-4" />
+                    On Hold
+                  </div>
+                )}
+
+                {/* In-Call Keypad */}
+                {showInCallKeypad && (
+                  <div className="grid grid-cols-3 gap-2 mb-4 w-full max-w-[240px]">
+                    {dialPadButtons.map((btn) => (
+                      <Button
+                        key={btn.digit}
+                        variant="ghost"
+                        className="h-12 flex flex-col text-white hover:bg-slate-700"
+                        onClick={() => handleDigitPress(btn.digit)}
+                        data-testid={`incall-dialpad-${btn.digit}`}
+                      >
+                        <span className="text-lg font-semibold">{btn.digit}</span>
+                        {btn.letters && (
+                          <span className="text-[8px] text-slate-400">{btn.letters}</span>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Control Buttons */}
+                <div className="grid grid-cols-3 gap-4 w-full max-w-[280px] mb-6">
+                  {/* Mute */}
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                      isMuted ? 'bg-white text-slate-900' : 'bg-slate-700/50 text-white hover:bg-slate-700'
+                    }`}
+                    data-testid="btn-mute"
+                  >
+                    {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                    <span className="text-xs">{isMuted ? 'Unmute' : 'Mute'}</span>
+                  </button>
+
+                  {/* Keypad */}
+                  <button
+                    onClick={() => setShowInCallKeypad(!showInCallKeypad)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                      showInCallKeypad ? 'bg-white text-slate-900' : 'bg-slate-700/50 text-white hover:bg-slate-700'
+                    }`}
+                    data-testid="btn-keypad"
+                  >
+                    <Keyboard className="h-6 w-6" />
+                    <span className="text-xs">Keypad</span>
+                  </button>
+
+                  {/* Speaker */}
+                  <button
+                    onClick={() => setIsSpeaker(!isSpeaker)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                      isSpeaker ? 'bg-white text-slate-900' : 'bg-slate-700/50 text-white hover:bg-slate-700'
+                    }`}
+                    data-testid="btn-speaker"
+                  >
+                    {isSpeaker ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+                    <span className="text-xs">{isSpeaker ? 'Speaker' : 'Speaker'}</span>
+                  </button>
+
+                  {/* Add Call */}
+                  <button
+                    className="flex flex-col items-center gap-1 p-3 rounded-xl bg-slate-700/50 text-white hover:bg-slate-700 transition-colors"
+                    data-testid="btn-add-call"
+                  >
+                    <UserPlus className="h-6 w-6" />
+                    <span className="text-xs">Add Call</span>
+                  </button>
+
+                  {/* Hold */}
+                  <button
+                    onClick={() => setIsOnHold(!isOnHold)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                      isOnHold ? 'bg-orange-500 text-white' : 'bg-slate-700/50 text-white hover:bg-slate-700'
+                    }`}
+                    data-testid="btn-hold"
+                  >
+                    <PauseCircle className="h-6 w-6" />
+                    <span className="text-xs">{isOnHold ? 'Resume' : 'Hold'}</span>
+                  </button>
+
+                  {/* Placeholder for symmetry */}
+                  <div className="p-3"></div>
+                </div>
+
+                {/* End Call Button */}
                 <Button
                   variant="destructive"
                   size="lg"
-                  className="rounded-full w-16 h-16"
+                  className="rounded-full w-16 h-16 bg-red-500 hover:bg-red-600 shadow-lg"
                   onClick={handleEndCall}
                   data-testid="btn-end-call"
                 >
-                  <PhoneOff className="h-6 w-6" />
+                  <PhoneOff className="h-7 w-7" />
                 </Button>
               </div>
             ) : (
