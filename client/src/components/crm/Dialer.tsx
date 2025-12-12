@@ -130,6 +130,9 @@ export function Dialer({
   // Debug: Log shared call state availability
   console.log('📞 Dialer: sharedCallState available:', !!sharedCallState, 'isInCall:', sharedCallState?.isInCall, 'localIsInCall:', localIsInCall);
   
+  // Ref to track authorization timer
+  const authTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Listen for Frejun events to update local state
   // Per Frejun docs, only these events are sent: ready, close, incoming-call, unauthorized, height-change, end-call-error, call-ended
   // We DO NOT receive real-time call status events like "connected" or "ringing" - that's internal to the widget
@@ -140,6 +143,34 @@ export function Dialer({
       const eventName = eventData.eventName || '';
       
       console.log('📞 Dialer - Frejun event received:', eventName, eventData);
+      
+      // Handle widget ready - send authorization message
+      if (eventName === 'ready' && dialerConfig) {
+        console.log('📞 Dialer - widget ready, sending authorization');
+        const iframe = document.getElementById('frejun-dialer-iframe') as HTMLIFrameElement;
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage(dialerConfig.authorizeMessage, 'https://dialer.frejun.com');
+          // Set authorization timer - mark ready after 2s if no unauthorized event
+          if (authTimerRef.current) {
+            clearTimeout(authTimerRef.current);
+          }
+          authTimerRef.current = setTimeout(() => {
+            console.log('📞 Dialer - widget authorized (no unauthorized event received)');
+            sharedCallState?.setWidgetReady(true);
+            authTimerRef.current = null;
+          }, 2000);
+        }
+      }
+      
+      // Handle unauthorized - clear timer and mark not ready
+      if (eventName === 'unauthorized') {
+        console.log('📞 Dialer - widget unauthorized');
+        if (authTimerRef.current) {
+          clearTimeout(authTimerRef.current);
+          authTimerRef.current = null;
+        }
+        sharedCallState?.setWidgetReady(false);
+      }
       
       // Per documentation, only handle documented events
       if (eventName === 'call-ended') {
@@ -172,8 +203,13 @@ export function Dialer({
     };
     
     window.addEventListener('message', handleFrejunMessage);
-    return () => window.removeEventListener('message', handleFrejunMessage);
-  }, [leadId, companyId, queryClient, onCallComplete]);
+    return () => {
+      window.removeEventListener('message', handleFrejunMessage);
+      if (authTimerRef.current) {
+        clearTimeout(authTimerRef.current);
+      }
+    };
+  }, [leadId, companyId, queryClient, onCallComplete, dialerConfig, sharedCallState]);
   
   // Register callback to handle call end events (including remote hangups)
   useEffect(() => {
@@ -1122,6 +1158,21 @@ export function Dialer({
           </TabsContent>
         </Tabs>
       </DialogContent>
+      
+      {/* Hidden Frejun iframe - loads widget in background for instant calling */}
+      {dialerConfig && (
+        <iframe
+          id="frejun-dialer-iframe"
+          src={dialerConfig.iframeSrc}
+          allow="microphone"
+          className="fixed -left-[9999px] -top-[9999px] w-[400px] h-[600px] pointer-events-none opacity-0"
+          title="Frejun Dialer"
+          data-testid="frejun-hidden-iframe"
+          onLoad={() => {
+            console.log('📞 Frejun hidden iframe loaded');
+          }}
+        />
+      )}
     </Dialog>
   );
 }
