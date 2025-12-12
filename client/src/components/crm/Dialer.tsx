@@ -133,6 +133,22 @@ export function Dialer({
   // Ref to track authorization timer
   const authTimerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Get dialer config for VoIP calls via widget (must be defined before useEffect that uses it)
+  const { data: dialerConfig } = useQuery<{
+    iframeSrc: string;
+    authorizeMessage: {
+      eventName: string;
+      data: {
+        access_token: string;
+        user_email: string;
+      };
+    };
+    userEmail: string;
+  }>({
+    queryKey: ["/api/voice/frejun/dialer-config"],
+    retry: false,
+  });
+  
   // Listen for Frejun events to update local state
   // Per Frejun docs, only these events are sent: ready, close, incoming-call, unauthorized, height-change, end-call-error, call-ended
   // We DO NOT receive real-time call status events like "connected" or "ringing" - that's internal to the widget
@@ -318,22 +334,6 @@ export function Dialer({
 
   const { data: voiceStatus } = useQuery({
     queryKey: ["/api/voice/status"],
-  });
-
-  // Get dialer config for VoIP calls via widget
-  const { data: dialerConfig } = useQuery<{
-    iframeSrc: string;
-    authorizeMessage: {
-      eventName: string;
-      data: {
-        access_token: string;
-        user_email: string;
-      };
-    };
-    userEmail: string;
-  }>({
-    queryKey: ["/api/voice/frejun/dialer-config"],
-    retry: false,
   });
 
   const { data: callLogs = [] } = useQuery<CallLog[]>({
