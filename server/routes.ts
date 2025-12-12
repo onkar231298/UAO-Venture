@@ -8854,6 +8854,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: 'Phone number is required' });
       }
 
+      // Get user info for activity logging
+      const user = await storage.getUser(userId);
+      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
+
       // Create call log in database (VoIP call initiated via widget, not via API)
       const callLog = await storage.createCallLog({
         callerUserId: userId,
@@ -8865,6 +8869,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         companyId: companyId || null,
       });
 
+      // Also create a lead activity if this is associated with a lead
+      if (leadId) {
+        await storage.createLeadActivity({
+          leadId: parseInt(leadId),
+          activityType: 'call',
+          subject: `Outbound call to ${contactName || phoneNumber}`,
+          description: `Call initiated to ${phoneNumber}${contactName ? ` (${contactName})` : ''}`,
+          direction: 'outbound',
+          createdBy: userName,
+        });
+      }
+
       res.json({ 
         success: true, 
         callLogId: callLog.id,
@@ -8873,6 +8889,56 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     } catch (error) {
       console.error('Error creating call log:', error);
       res.status(500).json({ message: 'Failed to create call log' });
+    }
+  });
+
+  // Update call log when call ends (with duration, recording, etc.)
+  app.post('/api/voice/call-log/:id/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const callLogId = parseInt(req.params.id);
+      const { duration, status, recordingUrl, transcription, notes, disposition } = req.body;
+      
+      const existingLog = await storage.getCallLog(callLogId);
+      if (!existingLog) {
+        return res.status(404).json({ message: 'Call log not found' });
+      }
+
+      // Update the call log with completion details
+      const updated = await storage.updateCallLog(callLogId, {
+        status: status || 'completed',
+        duration: duration || 0,
+        recordingUrl: recordingUrl || null,
+        transcription: transcription || null,
+        notes: notes || existingLog.notes,
+        disposition: disposition || existingLog.disposition,
+        endedAt: new Date(),
+      });
+
+      // Update the lead activity with call outcome if this was a lead call
+      if (existingLog.leadId && duration) {
+        const durationMinutes = Math.ceil(duration / 60);
+        const user = await storage.getUser(existingLog.callerUserId || '');
+        const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'System';
+        
+        // Create a follow-up activity showing call completion with recording
+        await storage.createLeadActivity({
+          leadId: existingLog.leadId,
+          activityType: 'call',
+          subject: `Call ${status === 'completed' ? 'completed' : status} with ${existingLog.recipientName || existingLog.recipientPhone}`,
+          description: recordingUrl 
+            ? `Call duration: ${durationMinutes} min. Recording available.`
+            : `Call duration: ${durationMinutes} min.`,
+          outcome: disposition || (status === 'completed' ? 'Connected' : 'Not connected'),
+          duration: durationMinutes,
+          direction: 'outbound',
+          createdBy: userName,
+        });
+      }
+
+      res.json({ success: true, callLog: updated });
+    } catch (error) {
+      console.error('Error completing call log:', error);
+      res.status(500).json({ message: 'Failed to complete call log' });
     }
   });
 
@@ -9006,12 +9072,34 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           });
           break;
         case 'call_ended':
+          const endedCallLog = await storage.getCallLogByUuid(event.callId);
           await storage.updateCallLogByUuid(event.callId, {
             status: 'completed',
             endedAt: new Date(),
             durationSeconds: event.duration || 0,
             recordingUrl: event.recordingUrl,
+            transcription: event.transcription,
           });
+          
+          // Create lead activity for call completion with recording info
+          if (endedCallLog?.leadId) {
+            const durationMinutes = Math.ceil((event.duration || 0) / 60);
+            const callerUser = endedCallLog.callerUserId ? await storage.getUser(endedCallLog.callerUserId) : null;
+            const userName = callerUser ? `${callerUser.firstName || ''} ${callerUser.lastName || ''}`.trim() || callerUser.email : 'System';
+            
+            await storage.createLeadActivity({
+              leadId: endedCallLog.leadId,
+              activityType: 'call',
+              subject: `Call completed with ${endedCallLog.recipientName || endedCallLog.recipientPhone}`,
+              description: event.recordingUrl 
+                ? `Call duration: ${durationMinutes} min. Recording available.`
+                : `Call duration: ${durationMinutes} min.`,
+              outcome: event.duration && event.duration > 0 ? 'Connected' : 'Not answered',
+              duration: durationMinutes,
+              direction: endedCallLog.direction || 'outbound',
+              createdBy: userName,
+            });
+          }
           break;
         case 'call_missed':
           await storage.updateCallLogByUuid(event.callId, {
