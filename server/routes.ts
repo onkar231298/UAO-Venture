@@ -8720,7 +8720,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
                 outcome: 'Recording Available',
                 duration: durationMinutes,
                 direction: existingLog.direction || 'outbound',
-                createdBy: 'System',
+                createdBy: existingLog.callerUserId || null,
               });
             }
           }
@@ -8986,9 +8986,9 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           leadId: parseInt(leadId),
           activityType: 'call',
           subject: `Outbound call to ${contactName || phoneNumber}`,
-          description: `Call initiated to ${phoneNumber}${contactName ? ` (${contactName})` : ''}`,
+          description: `Call initiated to ${phoneNumber}${contactName ? ` (${contactName})` : ''} by ${userName}`,
           direction: 'outbound',
-          createdBy: userName,
+          createdBy: userId,
         });
       }
 
@@ -9037,12 +9037,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           activityType: 'call',
           subject: `Call ${status === 'completed' ? 'completed' : status} with ${existingLog.recipientName || existingLog.recipientPhone}`,
           description: recordingUrl 
-            ? `Call duration: ${durationMinutes} min. Recording available.`
-            : `Call duration: ${durationMinutes} min.`,
+            ? `Call duration: ${durationMinutes} min. Recording available. (${userName})`
+            : `Call duration: ${durationMinutes} min. (${userName})`,
           outcome: disposition || (status === 'completed' ? 'Connected' : 'Not connected'),
           duration: durationMinutes,
           direction: 'outbound',
-          createdBy: userName,
+          createdBy: existingLog.callerUserId || null,
         });
       }
 
@@ -9203,12 +9203,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
               activityType: 'call',
               subject: `Call completed with ${endedCallLog.recipientName || endedCallLog.recipientPhone}`,
               description: event.recordingUrl 
-                ? `Call duration: ${durationMinutes} min. Recording available.`
-                : `Call duration: ${durationMinutes} min.`,
+                ? `Call duration: ${durationMinutes} min. Recording available. (${userName})`
+                : `Call duration: ${durationMinutes} min. (${userName})`,
               outcome: event.duration && event.duration > 0 ? 'Connected' : 'Not answered',
               duration: durationMinutes,
               direction: endedCallLog.direction || 'outbound',
-              createdBy: userName,
+              createdBy: endedCallLog.callerUserId || null,
             });
           }
           break;
