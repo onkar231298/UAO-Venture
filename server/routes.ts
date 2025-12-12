@@ -8660,6 +8660,117 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Sync call logs from Frejun API (to get recordings and updated call details)
+  app.post('/api/voice/frejun/sync-call-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { frejunService } = await import('./frejunService');
+      
+      // Get Frejun call logs from the last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+
+      const result = await frejunService.getCallLogs(userId, {
+        limit: 100,
+        startDate,
+        endDate,
+      });
+
+      if (!result.success || !result.data) {
+        return res.status(400).json({ 
+          success: false, 
+          message: result.error || 'Failed to fetch call logs from Frejun' 
+        });
+      }
+
+      let synced = 0;
+      let updated = 0;
+
+      // Process each call log from Frejun
+      for (const frejunCall of result.data.results) {
+        // Try to find matching call log by Frejun call ID
+        const existingLog = await storage.getCallLogByUuid(frejunCall.callId);
+        
+        if (existingLog) {
+          // Update existing call log with Frejun data (recording, duration, etc.)
+          const hasUpdates = !existingLog.recordingUrl && frejunCall.recordingUrl;
+          
+          if (hasUpdates || !existingLog.durationSeconds) {
+            await storage.updateCallLog(existingLog.id, {
+              recordingUrl: frejunCall.recordingUrl || existingLog.recordingUrl,
+              transcription: frejunCall.transcription || existingLog.transcription,
+              durationSeconds: frejunCall.duration || existingLog.durationSeconds,
+              status: frejunCall.status || existingLog.status,
+            });
+            updated++;
+
+            // Create activity if we just got a recording
+            if (hasUpdates && existingLog.leadId) {
+              const durationMinutes = Math.ceil((frejunCall.duration || 0) / 60);
+              await storage.createLeadActivity({
+                leadId: existingLog.leadId,
+                activityType: 'call',
+                subject: `Call recording available for ${existingLog.recipientName || existingLog.recipientPhone}`,
+                description: `Call duration: ${durationMinutes} min. Recording synced from Frejun.`,
+                outcome: 'Recording Available',
+                duration: durationMinutes,
+                direction: existingLog.direction || 'outbound',
+                createdBy: 'System',
+              });
+            }
+          }
+          synced++;
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Synced ${synced} calls, updated ${updated} with recordings`,
+        total: result.data.count,
+      });
+    } catch (error) {
+      console.error('Error syncing Frejun call logs:', error);
+      res.status(500).json({ message: 'Failed to sync call logs from Frejun' });
+    }
+  });
+
+  // Get call history from Frejun API
+  app.get('/api/voice/frejun/call-history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { limit, offset, startDate, endDate } = req.query;
+      const { frejunService } = await import('./frejunService');
+
+      const result = await frejunService.getCallLogs(userId, {
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ 
+          success: false, 
+          message: result.error || 'Failed to fetch call history' 
+        });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      console.error('Error fetching Frejun call history:', error);
+      res.status(500).json({ message: 'Failed to fetch call history' });
+    }
+  });
+
   // Initiate a voice call via Frejun (network-based 2-legged call)
   app.post('/api/voice/call', isAuthenticated, async (req: any, res) => {
     try {
