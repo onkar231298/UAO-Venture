@@ -850,7 +850,7 @@ export function Dialer({
                     size="lg"
                     className="rounded-full w-16 h-16 bg-green-500 hover:bg-green-600"
                     onClick={handleCall}
-                    disabled={!phoneNumber.trim() || initiateCallMutation.isPending || !isConfigured || !isUserConnected}
+                    disabled={!phoneNumber.trim() || createCallLogMutation.isPending || !isConfigured || !isUserConnected}
                     data-testid="btn-call"
                   >
                     <Phone className="h-6 w-6" />
