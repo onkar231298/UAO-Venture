@@ -26,6 +26,7 @@ interface CallStateContextType {
   isMuted: boolean;
   isSpeaker: boolean;
   isOnHold: boolean;
+  isWidgetReady: boolean;
   startCall: (params: {
     phoneNumber: string;
     callId?: string;
@@ -39,6 +40,7 @@ interface CallStateContextType {
   setSpeaker: (speaker: boolean) => void;
   setOnHold: (hold: boolean) => void;
   setCallId: (id: string) => void;
+  setWidgetReady: (ready: boolean) => void;
   registerOnCallEnd: (callback: CallEndCallback) => () => void;
 }
 
@@ -56,6 +58,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
+  const [isWidgetReady, setIsWidgetReady] = useState(false);
   
   // Track if call was started optimistically (to prevent metadata wipe)
   const callStartedRef = useRef(false);
@@ -306,6 +309,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         isMuted,
         isSpeaker,
         isOnHold,
+        isWidgetReady,
         startCall,
         updateCallStatus,
         endCall,
@@ -313,6 +317,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         setSpeaker: setIsSpeaker,
         setOnHold: setIsOnHold,
         setCallId,
+        setWidgetReady: setIsWidgetReady,
         registerOnCallEnd,
       }}
     >

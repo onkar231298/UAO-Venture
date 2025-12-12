@@ -127,6 +127,7 @@ export function FrejunDialerWidget({
           }
           authTimerRef.current = setTimeout(() => {
             setIsAuthorized(true);
+            sharedCallState?.setWidgetReady(true);
             authTimerRef.current = null;
           }, 2000);
         }
@@ -139,6 +140,7 @@ export function FrejunDialerWidget({
           authTimerRef.current = null;
         }
         setIsAuthorized(false);
+        sharedCallState?.setWidgetReady(false);
         toast({
           title: "Authorization Failed",
           description: eventData.detail || "Please reconnect your Frejun account",

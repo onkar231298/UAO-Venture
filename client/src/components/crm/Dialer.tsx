@@ -355,10 +355,34 @@ export function Dialer({
   // Initiate VoIP call via Frejun widget (postMessage to iframe)
   const initiateVoipCall = useCallback((numberToCall: string) => {
     const iframe = getFrejunIframe();
-    if (!iframe || !dialerConfig) {
+    const widgetReady = sharedCallState?.isWidgetReady ?? false;
+    
+    if (!iframe) {
       toast({
-        title: "Dialer Not Ready",
-        description: "Please wait for the dialer to load and authorize",
+        title: "Dialer Loading",
+        description: "The dialer widget is loading. Please try again in a moment.",
+        variant: "destructive",
+      });
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
+      return;
+    }
+    
+    if (!dialerConfig) {
+      toast({
+        title: "Dialer Not Configured",
+        description: "Please connect your Frejun account first",
+        variant: "destructive",
+      });
+      setLocalIsInCall(false);
+      setLocalCallStatus('idle');
+      return;
+    }
+    
+    if (!widgetReady) {
+      toast({
+        title: "Dialer Authorizing",
+        description: "Please wait a moment for authorization to complete",
         variant: "destructive",
       });
       setLocalIsInCall(false);
