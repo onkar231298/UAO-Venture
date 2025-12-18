@@ -6131,6 +6131,53 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Bulk delete companies (admin only)
+  app.post('/api/crm/companies/bulk-delete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get user from database to check actual role
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const adminRoles = ['admin', 'super_admin'];
+      if (!adminRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Only administrators can delete companies in bulk" });
+      }
+      
+      const { companyIds } = req.body;
+      if (!companyIds || !Array.isArray(companyIds) || companyIds.length === 0) {
+        return res.status(400).json({ message: "companyIds array is required" });
+      }
+      
+      let deleted = 0;
+      let failed = 0;
+      const errors: string[] = [];
+      
+      for (const companyId of companyIds) {
+        try {
+          await storage.deleteCompany(companyId);
+          deleted++;
+        } catch (error: any) {
+          failed++;
+          errors.push(`Company ${companyId}: ${error.message || 'Failed to delete'}`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        deleted, 
+        failed, 
+        errors: errors.length > 0 ? errors : undefined 
+      });
+    } catch (error) {
+      console.error('Error bulk deleting companies:', error);
+      res.status(500).json({ message: "Failed to bulk delete companies" });
+    }
+  });
+
   // Company Stage Update
   app.post('/api/crm/companies/:id/stage', isAuthenticated, async (req: any, res) => {
     try {

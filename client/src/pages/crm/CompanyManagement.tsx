@@ -341,6 +341,7 @@ export default function CompanyManagement() {
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
   
@@ -477,6 +478,32 @@ export default function CompanyManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bulk delete companies mutation (admin only)
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (companyIds: number[]) => {
+      return await apiRequest(`/api/crm/companies/bulk-delete`, {
+        method: "POST",
+        body: JSON.stringify({ companyIds }),
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setBulkDeleteDialogOpen(false);
+      setSelectedCompanies([]);
+      toast({
+        title: "Success",
+        description: `${data.deleted || selectedCompanies.length} companies deleted successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete companies",
         variant: "destructive",
       });
     },
@@ -1138,6 +1165,17 @@ export default function CompanyManagement() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {isAdmin && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={() => setBulkDeleteDialogOpen(true)}
+                    data-testid="button-bulk-delete"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -2995,6 +3033,32 @@ export default function CompanyManagement() {
               data-testid="button-confirm-delete"
             >
               {deleteCompanyMutation.isPending ? "Deleting..." : "Delete Company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog - Admin Only */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-bulk-delete-companies">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Delete {selectedCompanies.length} Companies
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedCompanies.length} selected companies</strong>? 
+              This action cannot be undone and will permanently remove all associated data including contacts, activities, and notes for each company.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedCompanies)}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-bulk-delete"
+            >
+              {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedCompanies.length} Companies`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
