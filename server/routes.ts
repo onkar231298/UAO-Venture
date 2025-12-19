@@ -10896,8 +10896,48 @@ We look forward to hearing from you.`;
       // Store email message in the lead's email thread
       // This ensures the quotation email appears in the lead's email communication list
       try {
+        // Determine the internal threadId to use for storage
+        let internalThreadId: number | null = null;
+        
+        // If user selected an existing thread, look it up by its internal ID
+        if (threadId) {
+          const existingThread = await storage.getEmailThread(parseInt(threadId));
+          if (existingThread) {
+            internalThreadId = existingThread.id;
+            console.log('[Quotation Email] Using existing thread:', internalThreadId);
+          }
+        }
+        
+        // If no existing thread was selected, try to find or create one by gmailThreadId
+        if (!internalThreadId && emailSendResult.threadId) {
+          const threadsByGmailId = await db.select()
+            .from(emailThreads)
+            .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId))
+            .limit(1);
+          
+          if (threadsByGmailId.length > 0) {
+            internalThreadId = threadsByGmailId[0].id;
+            console.log('[Quotation Email] Found thread by Gmail ID:', internalThreadId);
+          } else {
+            // Create a new thread record
+            const [newThread] = await db.insert(emailThreads).values({
+              leadId,
+              subject: emailOptions.subject,
+              gmailThreadId: emailSendResult.threadId,
+              lastMessageDate: new Date(),
+              messageCount: 1,
+              hasUnread: false,
+              senderUserId: userId,
+            }).returning();
+            internalThreadId = newThread.id;
+            console.log('[Quotation Email] Created new thread:', internalThreadId);
+          }
+        }
+        
+        // Store the email message with proper thread linking
         const storedEmail = await storage.createEmailMessage({
           leadId,
+          threadId: internalThreadId || undefined,
           direction: 'outbound',
           fromEmail: emailConfig.companyEmail || emailConfig.email,
           toEmails: toEmails,
@@ -10912,41 +10952,21 @@ We look forward to hearing from you.`;
           isRead: true,
         });
         
-        // Also update or create the email thread record to ensure proper thread linking
-        if (emailSendResult.threadId) {
+        // Update thread's message count if we have a thread
+        if (internalThreadId) {
           try {
-            // Check if thread already exists
-            const existingThreads = await db.select()
-              .from(emailThreads)
-              .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId))
-              .limit(1);
-            
-            if (existingThreads.length === 0) {
-              // Create new thread record
-              await db.insert(emailThreads).values({
-                leadId,
-                subject: emailOptions.subject,
-                gmailThreadId: emailSendResult.threadId,
+            await db.update(emailThreads)
+              .set({
                 lastMessageDate: new Date(),
-                messageCount: 1,
-                hasUnread: false,
-                senderUserId: userId,
-              });
-            } else {
-              // Update existing thread
-              await db.update(emailThreads)
-                .set({
-                  lastMessageDate: new Date(),
-                  messageCount: sql`${emailThreads.messageCount} + 1`,
-                })
-                .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId));
-            }
+                messageCount: sql`${emailThreads.messageCount} + 1`,
+              })
+              .where(eq(emailThreads.id, internalThreadId));
           } catch (threadError) {
             console.log('Could not update email thread record:', threadError);
           }
         }
         
-        console.log('[Quotation Email] Email stored in database, thread linked:', emailSendResult.threadId);
+        console.log('[Quotation Email] Email stored in database, thread:', internalThreadId, 'gmail thread:', emailSendResult.threadId);
       } catch (storeError) {
         console.log('Could not store email message in database:', storeError);
         // Continue without failing - email was already sent
