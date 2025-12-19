@@ -50,6 +50,8 @@ import {
   bidRevisions,
   products,
   smsMessages,
+  emailThreads,
+  emailMessages,
 } from "@shared/schema";
 import { eq, and, isNotNull, desc, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
