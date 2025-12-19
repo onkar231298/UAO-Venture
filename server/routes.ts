@@ -10524,9 +10524,13 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Get company contact email for the lead
-      const { email, subject, body, attachPdf, threadId } = req.body;
+      const { email, to, cc, subject, body, attachPdf, threadId } = req.body;
       
-      if (!email) {
+      // Support both single email (legacy) and to array (new)
+      const toEmails: string[] = to ? (Array.isArray(to) ? to : [to]) : (email ? [email] : []);
+      const ccEmails: string[] = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
+      
+      if (toEmails.length === 0) {
         return res.status(400).json({ message: 'Recipient email is required' });
       }
 
@@ -10744,8 +10748,8 @@ We look forward to hearing from you.`;
       let emailSendResult: { messageId: string; threadId: string };
       
       const emailOptions: any = {
-        to: Array.isArray(email) ? email : [email],
-        cc: [],
+        to: toEmails,
+        cc: ccEmails,
         bcc: [],
         subject: emailSubject,
         bodyHtml: emailBodyContent,
@@ -10883,18 +10887,19 @@ We look forward to hearing from you.`;
         leadId,
         activityType: 'quote_sent',
         subject: 'Quotation Sent',
-        description: `Quotation ${quotation.quotationId} sent to ${email}`,
+        description: `Quotation ${quotation.quotationId} sent to ${toEmails.join(', ')}${ccEmails.length > 0 ? ` (CC: ${ccEmails.join(', ')})` : ''}`,
         createdBy: userId,
       });
 
-      // Store email message - use the threadId from request or from the send result
+      // Store email message in the lead's email thread
+      // This ensures the quotation email appears in the lead's email communication list
       try {
-        await storage.createEmailMessage({
+        const storedEmail = await storage.createEmailMessage({
           leadId,
           direction: 'outbound',
           fromEmail: emailConfig.companyEmail || emailConfig.email,
-          toEmails: [email],
-          ccEmails: [],
+          toEmails: toEmails,
+          ccEmails: ccEmails,
           bccEmails: [],
           subject: emailOptions.subject || `Quotation ${quotation.quotationId}`,
           bodyHtml: emailBodyContent,
@@ -10904,6 +10909,42 @@ We look forward to hearing from you.`;
           gmailThreadId: emailSendResult.threadId || null,
           isRead: true,
         });
+        
+        // Also update or create the email thread record to ensure proper thread linking
+        if (emailSendResult.threadId) {
+          try {
+            // Check if thread already exists
+            const existingThreads = await db.select()
+              .from(emailThreads)
+              .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId))
+              .limit(1);
+            
+            if (existingThreads.length === 0) {
+              // Create new thread record
+              await db.insert(emailThreads).values({
+                leadId,
+                subject: emailOptions.subject,
+                gmailThreadId: emailSendResult.threadId,
+                lastMessageDate: new Date(),
+                messageCount: 1,
+                hasUnread: false,
+                senderUserId: userId,
+              });
+            } else {
+              // Update existing thread
+              await db.update(emailThreads)
+                .set({
+                  lastMessageDate: new Date(),
+                  messageCount: sql`${emailThreads.messageCount} + 1`,
+                })
+                .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId));
+            }
+          } catch (threadError) {
+            console.log('Could not update email thread record:', threadError);
+          }
+        }
+        
+        console.log('[Quotation Email] Email stored in database, thread linked:', emailSendResult.threadId);
       } catch (storeError) {
         console.log('Could not store email message in database:', storeError);
         // Continue without failing - email was already sent

@@ -78,6 +78,10 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   const [showSendQuoteDialog, setShowSendQuoteDialog] = useState(false);
   const [selectedQuoteToSend, setSelectedQuoteToSend] = useState<any>(null);
   const [selectedThreadForQuote, setSelectedThreadForQuote] = useState<string>("");
+  const [quoteEmailSubject, setQuoteEmailSubject] = useState("");
+  const [quoteEmailBody, setQuoteEmailBody] = useState("");
+  const [quoteEmailTo, setQuoteEmailTo] = useState<string[]>([]);
+  const [quoteEmailCc, setQuoteEmailCc] = useState<string[]>([]);
   const [showConvertToSODialog, setShowConvertToSODialog] = useState(false);
   const [selectedQuoteForSO, setSelectedQuoteForSO] = useState<any>(null);
   const [showSendSODialog, setShowSendSODialog] = useState(false);
@@ -947,7 +951,14 @@ Packaging: Standard export packaging`,
 
   // Send quotation via email mutation
   const sendQuotationMutation = useMutation({
-    mutationFn: async (data: { quotationId: number; email: string; quotationInfo: string; threadId?: string }) => {
+    mutationFn: async (data: { 
+      quotationId: number; 
+      subject: string; 
+      body: string; 
+      to: string[]; 
+      cc?: string[]; 
+      threadId?: string 
+    }) => {
       const response = await fetch(`/api/crm/leads/${lead?.id}/quotations/${data.quotationId}/send`, {
         method: 'POST',
         headers: {
@@ -955,7 +966,11 @@ Packaging: Standard export packaging`,
         },
         credentials: 'include',
         body: JSON.stringify({
-          email: data.email,
+          email: data.to[0],
+          to: data.to,
+          cc: data.cc,
+          subject: data.subject,
+          body: data.body,
           threadId: data.threadId,
           attachPdf: true,
         }),
@@ -972,6 +987,14 @@ Packaging: Standard export packaging`,
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email/threads', lead?.id] });
+      setShowSendQuoteDialog(false);
+      setSelectedQuoteToSend(null);
+      setQuoteEmailSubject("");
+      setQuoteEmailBody("");
+      setQuoteEmailTo([]);
+      setQuoteEmailCc([]);
+      setSelectedThreadForQuote("");
       toast({
         title: "Quotation Sent",
         description: "The quotation has been sent to the customer via email.",
@@ -985,6 +1008,46 @@ Packaging: Standard export packaging`,
       });
     },
   });
+
+  // Initialize quotation email form with default content
+  const initializeQuotationEmailForm = (quote: any) => {
+    const companyName = lead?.company?.companyName || lead?.companyName || 'Valued Customer';
+    const customerEmail = lead?.contactPerson?.email || lead?.company?.primaryEmail || '';
+    const contactName = lead?.contactName || lead?.contactPerson?.name || companyName;
+    
+    // Get product names
+    let productName = 'your inquiry';
+    if (lead?.productsInterested && lead.productsInterested.length > 0 && availableProducts.length > 0) {
+      const productNames = lead.productsInterested
+        .map((pid: number) => availableProducts.find((p: any) => p.id === pid)?.name)
+        .filter(Boolean);
+      if (productNames.length > 0) {
+        productName = productNames.join(', ');
+      }
+    }
+    
+    setQuoteEmailSubject(`Quotation ${quote.quotationId} - ${productName}`);
+    setQuoteEmailTo(customerEmail ? [customerEmail] : []);
+    setQuoteEmailCc([]);
+    setQuoteEmailBody(`<p>Dear ${contactName},</p>
+
+<p>Greetings from Bright Fame Organic!</p>
+
+<p>Thank you for your interest in <strong>${productName}</strong>. We are pleased to send you the quotation as requested.</p>
+
+<p><strong>Quotation Details:</strong></p>
+<ul>
+<li>Quotation Number: ${quote.quotationId}</li>
+<li>Total Amount: ${quote.currency || 'USD'} ${parseFloat(quote.totalAmount || 0).toLocaleString()}</li>
+<li>Valid Until: ${quote.validUntil ? format(new Date(quote.validUntil), 'MMMM d, yyyy') : 'As mentioned in quotation'}</li>
+</ul>
+
+<p>Please find the quotation attached to this email for your reference.</p>
+
+<p>If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.</p>
+
+<p>We look forward to hearing from you.</p>`);
+  };
 
   const handleSendQuotation = (quote: any) => {
     if (!emailConfig) {
@@ -1004,8 +1067,9 @@ Packaging: Standard export packaging`,
       });
       return;
     }
-    // Show the send dialog for thread selection
+    // Initialize form and show the send dialog
     setSelectedQuoteToSend(quote);
+    initializeQuotationEmailForm(quote);
     setSelectedThreadForQuote("");
     setShowSendQuoteDialog(true);
   };
@@ -1013,21 +1077,26 @@ Packaging: Standard export packaging`,
   const confirmSendQuotation = () => {
     if (!selectedQuoteToSend) return;
     
-    const customerEmail = lead?.contactPerson?.email;
-    if (!customerEmail) return;
+    if (quoteEmailTo.length === 0) {
+      toast({
+        title: "No Recipient",
+        description: "Please add at least one recipient email address.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    const quotationInfo = `${selectedQuoteToSend.quotationId} - ${selectedQuoteToSend.currency || 'USD'} ${parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}`;
     // If "new_thread" is selected, don't send a threadId (start a new thread)
     const threadId = selectedThreadForQuote && selectedThreadForQuote !== "new_thread" ? selectedThreadForQuote : undefined;
+    
     sendQuotationMutation.mutate({
       quotationId: selectedQuoteToSend.id,
-      email: customerEmail,
-      quotationInfo,
+      subject: quoteEmailSubject,
+      body: quoteEmailBody,
+      to: quoteEmailTo,
+      cc: quoteEmailCc.length > 0 ? quoteEmailCc : undefined,
       threadId,
     });
-    setShowSendQuoteDialog(false);
-    setSelectedQuoteToSend(null);
-    setSelectedThreadForQuote("");
   };
 
   const uploadAttachment = async (file: File): Promise<string | null> => {
@@ -3474,90 +3543,176 @@ Packaging: Standard export packaging`,
           )}
         </Tabs>
 
-        {/* Send Quotation Dialog with Thread Selection */}
+        {/* Send Quotation Dialog with Custom Email Composer */}
         {showSendQuoteDialog && selectedQuoteToSend && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <Card className="w-full max-w-md mx-4 bg-white">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Dialog open={showSendQuoteDialog} onOpenChange={setShowSendQuoteDialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
                   <Send className="h-5 w-5 text-green-600" />
-                  Send Quotation
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="p-3 bg-gray-50 rounded border">
-                    <div className="text-sm">
-                      <strong>Quotation:</strong> {selectedQuoteToSend.quotationId}
-                    </div>
-                    <div className="text-sm">
-                      <strong>Amount:</strong> {selectedQuoteToSend.currency || 'USD'} {parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}
-                    </div>
-                    <div className="text-sm">
-                      <strong>To:</strong> {lead?.contactPerson?.email}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="thread-select" className="mb-2 block font-semibold text-red-600">
-                      Select Email Thread *
-                    </Label>
-                    <p className="text-xs text-gray-600 mb-2">
-                      Choose an existing conversation thread to send this quotation as a reply.
-                    </p>
-                    {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).length > 0 ? (
-                      <Select
-                        value={selectedThreadForQuote}
-                        onValueChange={setSelectedThreadForQuote}
-                      >
-                        <SelectTrigger className="border-2 border-blue-300">
-                          <SelectValue placeholder="-- Select a thread --" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {emailThreads.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
-                            <SelectItem key={thread.threadId || thread.id} value={thread.gmailThreadId || thread.threadId}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{thread.subject || 'No subject'}</span>
-                                <span className="text-xs text-gray-500">{format(new Date(thread.date || thread.createdAt), 'MMM d, yyyy')}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="p-3 bg-yellow-50 border border-yellow-300 rounded text-sm text-yellow-800">
-                        No email threads found for this lead. Please send an initial email first to create a thread.
+                  Send Quotation to Customer
+                </DialogTitle>
+                <DialogDescription>
+                  Compose an email to send Quotation {selectedQuoteToSend.quotationId} to the customer
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-green-900">{selectedQuoteToSend.quotationId}</div>
+                      <div className="text-sm text-green-700">
+                        {selectedQuoteToSend.currency || 'USD'} {parseFloat(selectedQuoteToSend.totalAmount || 0).toLocaleString()}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 justify-end pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowSendQuoteDialog(false);
-                        setSelectedQuoteToSend(null);
-                        setSelectedThreadForQuote("");
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={confirmSendQuotation}
-                      disabled={sendQuotationMutation.isPending || !selectedThreadForQuote}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {sendQuotationMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4 mr-2" />
-                      )}
-                      Send Quotation
-                    </Button>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800">
+                      PDF will be attached
+                    </Badge>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <div>
+                  <Label htmlFor="quote-thread">Email Thread</Label>
+                  <Select
+                    value={selectedThreadForQuote}
+                    onValueChange={(value) => {
+                      setSelectedThreadForQuote(value);
+                      if (value && value !== "new_thread") {
+                        const thread = emailThreads?.find((t: any) => t.id.toString() === value);
+                        if (thread) {
+                          const lastMessage = thread.messages?.[thread.messages.length - 1];
+                          if (lastMessage) {
+                            const ourEmail = emailConfig?.companyEmail?.toLowerCase();
+                            if (lastMessage.direction === 'outbound') {
+                              const toEmails = (lastMessage.toEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                              if (toEmails.length > 0) setQuoteEmailTo(toEmails);
+                            } else {
+                              if (lastMessage.fromEmail) setQuoteEmailTo([lastMessage.fromEmail]);
+                            }
+                            const ccEmails = (lastMessage.ccEmails || []).filter((e: string) => e && e.toLowerCase() !== ourEmail);
+                            setQuoteEmailCc(ccEmails);
+                          }
+                          setQuoteEmailSubject(`Re: ${thread.subject || 'Quotation'}`);
+                        }
+                      } else {
+                        const customerEmail = lead?.contactPerson?.email || lead?.company?.primaryEmail || '';
+                        setQuoteEmailTo(customerEmail ? [customerEmail] : []);
+                        setQuoteEmailCc([]);
+                        initializeQuotationEmailForm(selectedQuoteToSend);
+                      }
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-quote-thread">
+                      <SelectValue placeholder="Start new thread or select existing..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new_thread">
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Start New Thread
+                        </div>
+                      </SelectItem>
+                      {emailThreads?.map((thread: any) => (
+                        <SelectItem key={thread.id} value={thread.id.toString()}>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm truncate max-w-[300px]">
+                              {thread.subject || 'No subject'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {format(new Date(thread.lastMessageDate || thread.createdAt), 'MMM d, yyyy')}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="quote-email-to">To *</Label>
+                    <Input
+                      id="quote-email-to"
+                      value={quoteEmailTo.join(', ')}
+                      onChange={(e) => setQuoteEmailTo(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                      placeholder="recipient@example.com"
+                      data-testid="input-quote-email-to"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quote-email-cc">CC</Label>
+                    <Input
+                      id="quote-email-cc"
+                      value={quoteEmailCc.join(', ')}
+                      onChange={(e) => setQuoteEmailCc(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                      placeholder="cc@example.com"
+                      data-testid="input-quote-email-cc"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="quote-subject">Subject</Label>
+                  <Input
+                    id="quote-subject"
+                    value={quoteEmailSubject}
+                    onChange={(e) => setQuoteEmailSubject(e.target.value)}
+                    placeholder="Enter email subject"
+                    disabled={selectedThreadForQuote && selectedThreadForQuote !== "new_thread"}
+                    className={selectedThreadForQuote && selectedThreadForQuote !== "new_thread" ? "bg-gray-100" : ""}
+                    data-testid="input-quote-subject"
+                  />
+                  {selectedThreadForQuote && selectedThreadForQuote !== "new_thread" && (
+                    <p className="text-xs text-gray-500 mt-1">Subject is auto-set when replying to a thread</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Message</Label>
+                  <RichTextEditor
+                    content={quoteEmailBody}
+                    onChange={setQuoteEmailBody}
+                    placeholder="Write your email here... Use the toolbar above for formatting."
+                    minHeight="200px"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The Quotation PDF will be automatically attached to this email
+                  </p>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSendQuoteDialog(false);
+                      setSelectedQuoteToSend(null);
+                      setQuoteEmailSubject("");
+                      setQuoteEmailBody("");
+                      setQuoteEmailTo([]);
+                      setQuoteEmailCc([]);
+                      setSelectedThreadForQuote("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmSendQuotation}
+                    disabled={sendQuotationMutation.isPending || quoteEmailTo.length === 0}
+                    className="bg-green-600 hover:bg-green-700"
+                    data-testid="button-confirm-send-quotation"
+                  >
+                    {sendQuotationMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Send Quotation
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
 
         {/* Convert to Sales Order Dialog */}
