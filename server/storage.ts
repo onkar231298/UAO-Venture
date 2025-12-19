@@ -5476,6 +5476,69 @@ export class DatabaseStorage implements IStorage {
     await db.delete(companies).where(eq(companies.id, id));
   }
 
+  async bulkDeleteCompanies(companyIds: number[]): Promise<{ success: boolean; deleted: number; failed: number; errors?: string[] }> {
+    let deleted = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    
+    try {
+      // Use SQL IN clause for batch operations where possible
+      // First get all email thread IDs for these companies
+      const threads = await db.select({ id: emailThreads.id })
+        .from(emailThreads)
+        .where(inArray(emailThreads.companyId, companyIds));
+      
+      // Delete email messages in batch
+      if (threads.length > 0) {
+        const threadIds = threads.map(t => t.id);
+        await db.delete(emailMessages).where(inArray(emailMessages.threadId, threadIds));
+      }
+      
+      // Delete email threads in batch
+      await db.delete(emailThreads).where(inArray(emailThreads.companyId, companyIds));
+      
+      // Delete leads in batch (lead activities and tasks will cascade)
+      await db.delete(leads).where(inArray(leads.companyId, companyIds));
+      
+      // Delete call logs in batch
+      await db.delete(callLogs).where(inArray(callLogs.companyId, companyIds));
+      
+      // Delete SMS messages in batch
+      await db.delete(smsMessages).where(inArray(smsMessages.companyId, companyIds));
+      
+      // Delete voicemails in batch
+      await db.delete(voicemails).where(inArray(voicemails.companyId, companyIds));
+      
+      // Delete company activities in batch
+      await db.delete(companyActivities).where(inArray(companyActivities.companyId, companyIds));
+      
+      // Delete company tasks in batch
+      await db.delete(companyTasks).where(inArray(companyTasks.companyId, companyIds));
+      
+      // Delete company notes in batch
+      await db.delete(companyNotes).where(inArray(companyNotes.companyId, companyIds));
+      
+      // Delete company contacts in batch
+      await db.delete(companyContacts).where(inArray(companyContacts.companyId, companyIds));
+      
+      // Finally delete the companies in batch
+      const result = await db.delete(companies).where(inArray(companies.id, companyIds)).returning({ id: companies.id });
+      deleted = result.length;
+      
+    } catch (error: any) {
+      console.error('Bulk delete error:', error);
+      errors.push(error.message || 'Bulk delete failed');
+      failed = companyIds.length;
+    }
+    
+    return { 
+      success: deleted > 0, 
+      deleted, 
+      failed,
+      errors: errors.length > 0 ? errors : undefined 
+    };
+  }
+
   async getCompanyByGST(gstNumber: string): Promise<Company | undefined> {
     const [company] = await db.select().from(companies).where(eq(companies.gstNumber, gstNumber));
     return company;

@@ -89,8 +89,8 @@ export default function UnifiedLogin() {
           title: "Login Successful!",
           description: `Welcome back, ${result.user.firstName}!`,
         });
-        // Redirect to customer dashboard
-        setLocation('/customer/dashboard');
+        // Redirect to home page
+        setLocation('/');
       } else {
         const error = await response.json();
         throw new Error(error.message || "Login failed");

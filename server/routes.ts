@@ -6152,26 +6152,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(400).json({ message: "companyIds array is required" });
       }
       
-      let deleted = 0;
-      let failed = 0;
-      const errors: string[] = [];
+      // Use optimized bulk delete for large operations
+      const result = await storage.bulkDeleteCompanies(companyIds);
       
-      for (const companyId of companyIds) {
-        try {
-          await storage.deleteCompany(companyId);
-          deleted++;
-        } catch (error: any) {
-          failed++;
-          errors.push(`Company ${companyId}: ${error.message || 'Failed to delete'}`);
-        }
-      }
-      
-      res.json({ 
-        success: true, 
-        deleted, 
-        failed, 
-        errors: errors.length > 0 ? errors : undefined 
-      });
+      res.json(result);
     } catch (error) {
       console.error('Error bulk deleting companies:', error);
       res.status(500).json({ message: "Failed to bulk delete companies" });
