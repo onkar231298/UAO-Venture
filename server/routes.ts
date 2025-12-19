@@ -10506,6 +10506,9 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
 
       // Create quotation with lead link
+      // Extract items array before creating (they go in separate table)
+      const items = req.body.items || [];
+      
       // Convert validUntil from string to Date if present
       const quotationData = {
         ...req.body,
@@ -10513,11 +10516,30 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         createdBy: userId,
       };
       
+      // Remove items from quotationData before parsing (they go in separate table)
+      delete quotationData.items;
+      
       if (quotationData.validUntil && typeof quotationData.validUntil === 'string') {
         quotationData.validUntil = new Date(quotationData.validUntil);
       }
       
       const quotation = await storage.createQuotation(quotationData);
+
+      // Create quotation items if provided
+      if (items.length > 0) {
+        for (const item of items) {
+          await db.insert(quotationItems).values({
+            quotationId: quotation.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            specifications: item.specifications || null
+          });
+        }
+        console.log(`Created ${items.length} quotation items for quotation ${quotation.id}`);
+      }
 
       // Log activity
       await storage.createLeadActivity({

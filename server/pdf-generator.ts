@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import converter from 'number-to-words';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 // Get __dirname equivalent for ES modules
@@ -464,12 +465,17 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   // Header with company logo - matching quotation PDF size and style
   try {
-    const logoWidth = 140;
-    const pageWidth = 595; // A4 page width in points
-    const logoX = (pageWidth - logoWidth) / 2;
-    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
+    if (fs.existsSync(logoPath)) {
+      const logoWidth = 140;
+      const pageWidth = 595; // A4 page width in points
+      const logoX = (pageWidth - logoWidth) / 2;
+      console.log('[SO PDF] Adding logo from:', logoPath);
+      doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
+    } else {
+      console.log('[SO PDF] Logo file not found at:', logoPath);
+    }
   } catch (error) {
-    console.log('Logo not found at', logoPath, ', continuing without logo');
+    console.error('[SO PDF] Error loading logo:', error);
   }
   
   // Header bar with title - positioned after logo with proper spacing like quotation
