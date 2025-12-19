@@ -348,7 +348,11 @@ export default function CustomerDashboard() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Inquiries & Bids</h1>
-        <Button className="min-h-[44px] w-full sm:w-auto" data-testid="button-new-inquiry">
+        <Button 
+          className="min-h-[44px] w-full sm:w-auto" 
+          data-testid="button-new-inquiry"
+          onClick={() => setLocation('/products')}
+        >
           <Plus className="w-4 h-4 mr-2" />
           New Inquiry
         </Button>
@@ -632,7 +636,7 @@ export default function CustomerDashboard() {
                 <div className="text-center py-8">
                   <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No inquiries found</p>
-                  <Button className="mt-4">
+                  <Button className="mt-4" onClick={() => setLocation('/products')}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit Your First Inquiry
                   </Button>
