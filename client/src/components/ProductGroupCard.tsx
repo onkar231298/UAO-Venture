@@ -127,7 +127,7 @@ export default function ProductGroupCard({ products, groupId }: ProductGroupCard
                 <span className="sm:hidden">Quote</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Request Quote for {primaryProduct.name}</DialogTitle>
               </DialogHeader>
