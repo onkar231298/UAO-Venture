@@ -507,79 +507,69 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   
   // BILL TO section with proper customer info
   doc.fontSize(10).fillColor(orangeColor).text('BILL TO', 50, yPos + 8);
-  doc.fontSize(9).fillColor(darkGray);
+  doc.fontSize(8).fillColor(darkGray);
   
-  let billYPos = yPos + 22;
+  let billYPos = yPos + 24;
   const companyName = order.customerCompanyName || customer.companyName;
   const contactName = order.customerContactName || customer.name;
   
   // Show company name if available
   if (companyName && companyName !== 'Customer') {
-    doc.text(companyName, 50, billYPos, { width: 230 });
-    billYPos += 12;
-  }
-  // Show contact name if different from company
-  if (contactName && contactName !== companyName && contactName !== 'Customer') {
-    doc.text(`Contact: ${contactName}`, 50, billYPos, { width: 230 });
+    doc.text(companyName.slice(0, 30), 50, billYPos, { width: 230 });
     billYPos += 12;
   }
   // Show email if available
   if (order.customerEmail || customer.email) {
-    doc.text(order.customerEmail || customer.email || '', 50, billYPos, { width: 230 });
+    doc.text((order.customerEmail || customer.email || '').slice(0, 35), 50, billYPos, { width: 230 });
     billYPos += 12;
   }
-  // Show billing address
+  // Show billing address - truncate to prevent overflow
   if (order.billingAddress || customer.address) {
-    doc.text((order.billingAddress || customer.address)?.slice(0, 40) || '', 50, billYPos, { width: 230 });
+    doc.text((order.billingAddress || customer.address)?.slice(0, 35) || '', 50, billYPos, { width: 230 });
     billYPos += 12;
   }
-  // City and state on separate lines to avoid overlap
+  // City and state combined
   const billCity = order.billingCity || customer.city;
   const billState = order.billingState || customer.state;
   if (billCity || billState) {
-    doc.text([billCity, billState].filter(Boolean).join(', '), 50, billYPos, { width: 230 });
+    doc.text([billCity, billState].filter(Boolean).join(', ').slice(0, 35), 50, billYPos, { width: 230 });
     billYPos += 12;
   }
   const billPostal = order.billingPostalCode || customer.postalCode;
   const billCountry = order.billingCountry || customer.country;
   if (billPostal || billCountry) {
-    doc.text([billPostal, billCountry].filter(Boolean).join(', '), 50, billYPos, { width: 230 });
+    doc.text([billPostal, billCountry].filter(Boolean).join(', ').slice(0, 30), 50, billYPos, { width: 230 });
   }
   
   // SHIP TO section - with proper text wrapping to prevent overlap
   doc.fontSize(10).fillColor(orangeColor).text('SHIP TO', 310, yPos + 8);
-  doc.fontSize(7).fillColor(darkGray);
+  doc.fontSize(8).fillColor(darkGray);
   
-  let shipYPos = yPos + 22;
+  let shipYPos = yPos + 24;
   // Show company name
   if (companyName && companyName !== 'Customer') {
-    doc.text(companyName.slice(0, 35), 310, shipYPos, { width: 230, lineBreak: false });
-    shipYPos += 10;
+    doc.text(companyName.slice(0, 30), 310, shipYPos, { width: 220 });
+    shipYPos += 12;
   }
-  // Shipping address - truncate and wrap properly
+  // Shipping address - truncate to prevent overflow
   if (order.shippingAddress) {
-    const addr = order.shippingAddress.slice(0, 50);
-    doc.text(addr, 310, shipYPos, { width: 230, lineBreak: false });
-    shipYPos += 10;
+    doc.text(order.shippingAddress.slice(0, 35), 310, shipYPos, { width: 220 });
+    shipYPos += 12;
   }
-  // City on its own line
-  if (order.shippingCity) {
-    doc.text(order.shippingCity.slice(0, 30), 310, shipYPos, { width: 230, lineBreak: false });
-    shipYPos += 10;
-  }
-  // State on its own line
-  if (order.shippingState) {
-    doc.text(order.shippingState.slice(0, 30), 310, shipYPos, { width: 230, lineBreak: false });
-    shipYPos += 10;
+  // City and state combined
+  const shipCityState = [order.shippingCity, order.shippingState].filter(Boolean).join(', ');
+  if (shipCityState) {
+    doc.text(shipCityState.slice(0, 35), 310, shipYPos, { width: 220 });
+    shipYPos += 12;
   }
   // Postal and country
   if (order.shippingPostalCode || order.shippingCountry) {
-    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', ').slice(0, 35), 310, shipYPos, { width: 230, lineBreak: false });
-    shipYPos += 10;
+    doc.text([order.shippingPostalCode, order.shippingCountry].filter(Boolean).join(', ').slice(0, 30), 310, shipYPos, { width: 220 });
+    shipYPos += 12;
   }
   // Shipping method
   if (order.shippingMethod) {
-    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 230, lineBreak: false });
+    doc.text(`Shipping: ${order.shippingMethod.replace(/_/g, ' ').toUpperCase()}`, 310, shipYPos, { width: 220 });
   }
   
   yPos += boxHeight + 10;
