@@ -3819,8 +3819,43 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Save the sent email message to the thread for tracking
       let threadIdToUse = emailThreadId ? parseInt(emailThreadId) : null;
       
-      if (!threadIdToUse && order.leadId) {
-        // Create a new thread for this SO email
+      // Verify the thread exists if one was provided
+      if (threadIdToUse) {
+        const existingThread = await storage.getEmailThread(threadIdToUse);
+        if (!existingThread) {
+          console.log('[SO Send] Selected thread not found, will create new one');
+          threadIdToUse = null;
+        } else {
+          console.log('[SO Send] Using existing thread:', threadIdToUse);
+        }
+      }
+      
+      // If no valid thread, try to find by gmailThreadId or create new one
+      if (!threadIdToUse && sentThreadId) {
+        const threadsByGmailId = await db.select()
+          .from(emailThreads)
+          .where(eq(emailThreads.gmailThreadId, sentThreadId))
+          .limit(1);
+        
+        if (threadsByGmailId.length > 0) {
+          threadIdToUse = threadsByGmailId[0].id;
+          console.log('[SO Send] Found thread by Gmail ID:', threadIdToUse);
+        } else if (order.leadId) {
+          // Create a new thread for this SO email
+          const newThread = await storage.createEmailThread({
+            leadId: order.leadId,
+            subject: subject,
+            customerEmail: toEmails[0],
+            status: 'active',
+            gmailThreadId: sentThreadId || undefined,
+            lastMessageAt: new Date(),
+            createdAt: new Date(),
+          });
+          threadIdToUse = newThread.id;
+          console.log('[SO Send] Created new thread:', threadIdToUse);
+        }
+      } else if (!threadIdToUse && order.leadId) {
+        // No gmail thread ID, create a new local thread
         const newThread = await storage.createEmailThread({
           leadId: order.leadId,
           subject: subject,
@@ -3831,13 +3866,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           createdAt: new Date(),
         });
         threadIdToUse = newThread.id;
+        console.log('[SO Send] Created new thread (no gmail ID):', threadIdToUse);
       }
       
       if (threadIdToUse) {
-        // Add the sent message to the thread
+        // Add the sent message to the thread with leadId for proper linking
         await storage.createEmailMessage({
           threadId: threadIdToUse,
+          leadId: order.leadId || undefined,
           gmailMessageId: sentMessageId || undefined,
+          gmailThreadId: sentThreadId || undefined,
           direction: 'outbound',
           fromEmail: emailConfig.emailAddress || '',
           toEmails: toEmails,
@@ -3851,11 +3889,24 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           createdAt: new Date(),
         });
         
-        // Update thread's last message time
+        // Update thread's last message time and message count
         await storage.updateEmailThread(threadIdToUse, {
           lastMessageAt: new Date(),
           gmailThreadId: sentThreadId || undefined,
         });
+        
+        // Also increment message count
+        try {
+          await db.update(emailThreads)
+            .set({
+              messageCount: sql`${emailThreads.messageCount} + 1`,
+            })
+            .where(eq(emailThreads.id, threadIdToUse));
+        } catch (err) {
+          console.log('[SO Send] Could not update message count:', err);
+        }
+        
+        console.log('[SO Send] Email stored in thread:', threadIdToUse, 'gmail thread:', sentThreadId);
       }
 
       // Update sales order status to confirmed
