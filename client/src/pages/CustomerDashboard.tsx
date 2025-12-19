@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2 } from "lucide-react";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 export default function CustomerDashboard() {
@@ -29,26 +29,44 @@ export default function CustomerDashboard() {
   const [selectedBidForTracking, setSelectedBidForTracking] = useState<any>(null);
   const [showBidTrackingDialog, setShowBidTrackingDialog] = useState(false);
 
-  // Data fetching for customer-specific data
-  const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
+  // Data fetching for customer-specific data with auto-refresh every 30 seconds
+  const { data: inquiries, isLoading: inquiriesLoading, refetch: refetchInquiries, isRefetching: isRefetchingInquiries } = useQuery({
     queryKey: [`/api/customer/inquiries/${customer?.id}`],
-    enabled: isCustomerAuthenticated && !!customer?.id
+    enabled: isCustomerAuthenticated && !!customer?.id,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  const { data: savedProducts, isLoading: savedLoading } = useQuery({
+  const { data: savedProducts, isLoading: savedLoading, refetch: refetchSaved, isRefetching: isRefetchingSaved } = useQuery({
     queryKey: [`/api/customer/saved-products/${customer?.id}`],
-    enabled: isCustomerAuthenticated && !!customer?.id
+    enabled: isCustomerAuthenticated && !!customer?.id,
+    refetchInterval: 30000,
   });
 
-  const { data: quotations, isLoading: quotationsLoading } = useQuery({
+  const { data: quotations, isLoading: quotationsLoading, refetch: refetchQuotations, isRefetching: isRefetchingQuotations } = useQuery({
     queryKey: [`/api/customer/quotations/${customer?.id}`],
-    enabled: isCustomerAuthenticated && !!customer?.id
+    enabled: isCustomerAuthenticated && !!customer?.id,
+    refetchInterval: 30000,
   });
 
-  const { data: sampleRequests, isLoading: sampleRequestsLoading } = useQuery({
+  const { data: sampleRequests, isLoading: sampleRequestsLoading, refetch: refetchSampleRequests, isRefetching: isRefetchingSampleRequests } = useQuery({
     queryKey: [`/api/customer/sample-requests/${customer?.id}`],
-    enabled: isCustomerAuthenticated && !!customer?.id
+    enabled: isCustomerAuthenticated && !!customer?.id,
+    refetchInterval: 30000,
   });
+
+  // Manual refresh all data
+  const handleRefreshAll = () => {
+    refetchInquiries();
+    refetchSaved();
+    refetchQuotations();
+    refetchSampleRequests();
+    toast({
+      title: "Refreshing",
+      description: "Updating your data...",
+    });
+  };
+
+  const isRefreshing = isRefetchingInquiries || isRefetchingSaved || isRefetchingQuotations || isRefetchingSampleRequests;
 
   // Query for bid tracking data (uses the numeric database id)
   const { data: bidTrackingData, isLoading: bidTrackingLoading } = useQuery<any>({
@@ -256,9 +274,23 @@ export default function CustomerDashboard() {
   const renderDashboardOverview = () => (
     <div className="space-y-4 sm:space-y-6">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-        <p className="text-sm sm:text-base text-gray-600">Welcome back, {customer?.firstName} {customer?.lastName}</p>
-        <p className="text-sm text-gray-500">{customer?.companyName}</p>
+        <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
+            <p className="text-sm sm:text-base text-gray-600">Welcome back, {customer?.firstName} {customer?.lastName}</p>
+            <p className="text-sm text-gray-500">{customer?.companyName}</p>
+          </div>
+          <Button 
+            variant="outline"
+            size="sm"
+            data-testid="button-refresh-all"
+            onClick={handleRefreshAll}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -348,14 +380,27 @@ export default function CustomerDashboard() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Inquiries & Bids</h1>
-        <Button 
-          className="min-h-[44px] w-full sm:w-auto" 
-          data-testid="button-new-inquiry"
-          onClick={() => setLocation('/products')}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Inquiry
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline"
+            size="sm"
+            className="min-h-[44px]" 
+            data-testid="button-refresh-inquiries"
+            onClick={() => refetchInquiries()}
+            disabled={isRefetchingInquiries}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingInquiries ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            className="min-h-[44px] flex-1 sm:flex-none" 
+            data-testid="button-new-inquiry"
+            onClick={() => setLocation('/products')}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Inquiry
+          </Button>
+        </div>
       </div>
 
       {/* Tabbed Interface */}
@@ -1294,7 +1339,19 @@ export default function CustomerDashboard() {
 
   const renderQuotations = () => (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">My Quotations</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">My Quotations</h1>
+        <Button 
+          variant="outline"
+          size="sm"
+          data-testid="button-refresh-quotations"
+          onClick={() => refetchQuotations()}
+          disabled={isRefetchingQuotations}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingQuotations ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       
       {/* Quotation Process Explanation */}
       <Card className="bg-blue-50 border-blue-200">
@@ -2074,6 +2131,16 @@ export default function CustomerDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Sample Requests</h1>
+        <Button 
+          variant="outline"
+          size="sm"
+          data-testid="button-refresh-sample-requests"
+          onClick={() => refetchSampleRequests()}
+          disabled={isRefetchingSampleRequests}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingSampleRequests ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Sample Requests List */}
