@@ -47,6 +47,7 @@ export default function CustomerRegistration() {
       email: "",
       phoneNumber: "",
       companyName: "",
+      website: "",
       streetAddress: "",
       city: "",
       state: "",
@@ -250,6 +251,29 @@ export default function CustomerRegistration() {
                         <FormLabel>Company Name *</FormLabel>
                         <FormControl>
                           <Input placeholder="Your Company Ltd." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="website"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Company Website
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="url" 
+                            placeholder="https://www.yourcompany.com" 
+                            {...field} 
+                            value={field.value || ""}
+                            data-testid="input-website"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

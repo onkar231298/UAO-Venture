@@ -1839,6 +1839,7 @@ export const customerRegistrationSchema = insertUserSchema.extend({
   email: true,
   phoneNumber: true,
   companyName: true,
+  website: true,
   streetAddress: true,
   city: true,
   state: true,
