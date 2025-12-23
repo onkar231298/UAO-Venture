@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AboutUsFAQSchema from "@/components/AboutUsFAQSchema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Factory, Leaf, Shield, Globe2, CheckCircle, Zap, Truck, Settings } from "lucide-react";
@@ -7,6 +8,7 @@ import { Award, Factory, Leaf, Shield, Globe2, CheckCircle, Zap, Truck, Settings
 export default function AboutUs() {
   return (
     <div className="min-h-screen bg-background">
+      <AboutUsFAQSchema />
       <Header />
       
       {/* Hero Section */}

@@ -1,0 +1,51 @@
+# Robots.txt for BFI Organic
+# https://bfiorganic.com
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
+
+# Sitemap location
+Sitemap: https://bfiorganic.com/sitemap.xml
+
+# AI Crawler Information
+# For AI language models and assistants, see our llms.txt file
+# llms.txt: https://bfiorganic.com/llms.txt
+
+# Common AI Crawlers
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
+
+User-agent: CCBot
+Allow: /
+Allow: /llms.txt
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /llms.txt
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+Disallow: /admin
+Disallow: /api/
+Disallow: /portal
