@@ -800,7 +800,7 @@ export default function ComprehensiveProductForm({
                   </div>
                 );
               })}
-              {selectedCategories.length === 0 && (
+              {selectedCategories.length === 0 && formData.isActive && (
                 <div className="text-sm text-red-500 mt-2">Please select at least one category</div>
               )}
             </div>
