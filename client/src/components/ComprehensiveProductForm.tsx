@@ -335,42 +335,45 @@ export default function ComprehensiveProductForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate categories
-    if (selectedCategories.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one category",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!primaryCategoryId) {
-      toast({
-        title: "Error", 
-        description: "Please select a primary category",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Only validate categories and product types for active products
+    if (formData.isActive) {
+      // Validate categories
+      if (selectedCategories.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one category",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!primaryCategoryId) {
+        toast({
+          title: "Error", 
+          description: "Please select a primary category",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Validate product types
-    if (selectedProductTypes.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one product type",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!primaryProductTypeId) {
-      toast({
-        title: "Error", 
-        description: "Please select a primary product type",
-        variant: "destructive",
-      });
-      return;
+      // Validate product types
+      if (selectedProductTypes.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one product type",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!primaryProductTypeId) {
+        toast({
+          title: "Error", 
+          description: "Please select a primary product type",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     // Clean and convert form data to proper types
