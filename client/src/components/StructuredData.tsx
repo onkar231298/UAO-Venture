@@ -110,25 +110,13 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
       "keywords": [
         product.name.toLowerCase(),
         product.botanicalName?.toLowerCase(),
-        product.category?.name?.toLowerCase(),
         "organic ingredients",
         "bulk supplier",
         "pharmaceutical grade",
         "wholesale",
         product.origin?.toLowerCase(),
         ...(product.healthSupport ? [product.healthSupport.toLowerCase()] : [])
-      ].filter(Boolean).join(", "),
-      "applicationCategory": [
-        "Pharmaceutical",
-        "Nutraceutical", 
-        "Food & Beverage",
-        "Cosmetic",
-        "Supplement Manufacturing"
-      ],
-      "targetMarket": [
-        "Europe", "United States", "Canada", "India", "United Kingdom", 
-        "China", "Japan", "Korea", "Global B2B"
-      ]
+      ].filter(Boolean).join(", ")
     };
 
     // Breadcrumb Schema
