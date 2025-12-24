@@ -70,8 +70,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
           "https://schema.org/CreditCard",
           "https://schema.org/BankTransferInAdvance",
           "https://schema.org/CheckInAdvance"
-        ],
-        "businessFunction": "https://schema.org/Sell"
+        ]
       },
       "additionalProperty": [
         ...(product.botanicalName ? [{
