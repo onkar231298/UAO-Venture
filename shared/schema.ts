@@ -692,6 +692,7 @@ export const quotations = pgTable("quotations", {
   // Additional PDF fields
   placeOfSupply: varchar("place_of_supply", { length: 100 }),
   countryOfSupply: varchar("country_of_supply", { length: 100 }),
+  leadTime: varchar("lead_time", { length: 100 }), // e.g., "5-7 days", "2-3 weeks", "Immediate"
   
   // Counter-Offer and Negotiation
   customerCounterPrice: decimal("customer_counter_price", { precision: 10, scale: 2 }), // Customer's proposed price
