@@ -38,6 +38,8 @@ import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
+import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
+import { Users } from "lucide-react";
 
 interface CompanyActivityLocal {
   id: number;
@@ -1369,8 +1371,12 @@ export default function MyCompanies() {
 
           {selectedCompany && (
             <Tabs value={dialogTab} onValueChange={setDialogTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="info">Info</TabsTrigger>
+                <TabsTrigger value="contacts" className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  Contacts
+                </TabsTrigger>
                 <TabsTrigger value="emails" className="flex items-center gap-1">
                   <Mail className="h-3 w-3" />
                   Emails
@@ -1663,6 +1669,18 @@ export default function MyCompanies() {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="contacts" className="mt-4">
+                <CompanyContactsTab 
+                  companyId={selectedCompany.id}
+                  companyDetails={{
+                    id: selectedCompany.id,
+                    companyName: selectedCompany.companyName,
+                    primaryEmail: selectedCompany.primaryEmail,
+                    primaryPhone: selectedCompany.primaryPhone,
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="emails" className="mt-4">
