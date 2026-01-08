@@ -120,6 +120,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     priceType: "ex_warehouse",
     currency: "USD",
     validDays: "30",
+    leadTime: "",
     terms: "",
     notes: "",
     discountPercent: "0",
@@ -847,6 +848,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       priceType: "ex_warehouse",
       currency: lead?.currency || "USD",
       validDays: "30",
+      leadTime: product?.leadTime || "",
       terms: `Payment Terms: 30 days net
 Delivery: Ex-works
 Validity: 30 days from quotation date
@@ -870,6 +872,7 @@ Packaging: Standard export packaging`,
       priceType: "ex_warehouse",
       currency: "USD",
       validDays: "30",
+      leadTime: "",
       terms: "",
       notes: "",
       discountPercent: "0",
@@ -935,6 +938,7 @@ Packaging: Standard export packaging`,
       priceType: quoteFormData.priceType,
       currency: quoteFormData.currency,
       validUntil: validUntil,
+      leadTime: quoteFormData.leadTime || null,
       terms: quoteFormData.terms,
       notes: quoteFormData.notes,
       status: "draft",
@@ -2141,6 +2145,18 @@ Packaging: Standard export packaging`,
                               <SelectItem value="90">90 Days</SelectItem>
                             </SelectContent>
                           </Select>
+                        </div>
+                        
+                        {/* Lead Time */}
+                        <div>
+                          <Label htmlFor="quote-lead-time">Lead Time</Label>
+                          <Input
+                            id="quote-lead-time"
+                            value={quoteFormData.leadTime}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, leadTime: e.target.value})}
+                            placeholder="e.g., 5-7 days, 2-3 weeks"
+                            data-testid="input-quote-lead-time"
+                          />
                         </div>
                         
                         {/* Discount */}

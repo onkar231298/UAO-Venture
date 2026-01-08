@@ -3374,6 +3374,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         notes: quotation.notes,
         paymentTerms: quotation.paymentTerms || 'As per agreement',
         deliveryTerms: quotation.deliveryTerms || quotation.priceType || 'Ex-Works',
+        leadTime: quotation.leadTime || null,
         subtotal: quotation.subtotal,
         discountPercent: quotation.discountPercent,
         discountAmount: quotation.discountAmount,

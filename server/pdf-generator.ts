@@ -26,6 +26,7 @@ interface QuotationData {
   notes?: string;
   paymentTerms: string;
   deliveryTerms: string;
+  leadTime?: string;
   
   // Optional fields
   subtotal?: string;
@@ -305,10 +306,11 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
      .text(`1. Payment: ${quotation.paymentTerms}`, 50, yPos + 28, { width: 260, lineGap: 1 })
      .text(`2. Delivery: ${quotation.deliveryTerms}`, 50, yPos + 40, { width: 260, lineGap: 1 })
      .text(`3. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 52, { width: 260, lineGap: 1 })
-     .text('4. Quality as per specifications', 50, yPos + 64, { width: 260, lineGap: 1 })
-     .text('5. Standard export packaging', 50, yPos + 76, { width: 260, lineGap: 1 });
+     .text(`4. Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 64, { width: 260, lineGap: 1 })
+     .text('5. Quality as per specifications', 50, yPos + 76, { width: 260, lineGap: 1 })
+     .text('6. Standard export packaging', 50, yPos + 88, { width: 260, lineGap: 1 });
   
-  yPos += 110;
+  yPos += 122;
   
   // Amount in Words (compact)
   doc.fillColor('#f8f9fa').rect(40, yPos, 510, 25).fill()
