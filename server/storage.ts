@@ -3017,8 +3017,7 @@ export class DatabaseStorage implements IStorage {
           quantity: inquiries.quantity,
           unit: inquiries.unit,
           unitPrice: sql<number>`CASE WHEN ${quotations.totalAmount} IS NOT NULL AND ${inquiries.quantity} IS NOT NULL AND ${inquiries.quantity} > 0 THEN ${quotations.totalAmount} / ${inquiries.quantity} ELSE 0 END`,
-          // Payment and delivery terms
-          paymentTerms: sql<string>`CASE WHEN ${quotations.terms} LIKE '%Payment%' THEN TRIM(SUBSTRING(${quotations.terms} FROM 'Payment[^:]*:([^\\n]+)')) ELSE '30 days net' END`,
+          // Delivery terms - extracted from terms field for backward compatibility
           deliveryTerms: sql<string>`CASE WHEN ${quotations.terms} LIKE '%Delivery%' THEN TRIM(SUBSTRING(${quotations.terms} FROM 'Delivery[^:]*:([^\\n]+)')) ELSE ${quotations.priceType} END`,
         })
         .from(quotations)
