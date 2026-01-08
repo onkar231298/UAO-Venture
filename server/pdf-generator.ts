@@ -295,22 +295,23 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   
   yPos += 80;
   
-  // Terms and Conditions (compact)
-  doc.fillColor('#fff7e6').rect(40, yPos, 280, 95).fill()
-     .strokeColor('#ffa500').rect(40, yPos, 280, 95).stroke();
+  // Terms and Conditions (expanded for better readability)
+  const termsBoxHeight = 115;
+  doc.fillColor('#fff7e6').rect(40, yPos, 300, termsBoxHeight).fill()
+     .strokeColor('#ffa500').rect(40, yPos, 300, termsBoxHeight).stroke();
   
   doc.fontSize(11).fillColor(orangeColor).text('Terms and Conditions', 50, yPos + 8);
-  doc.moveTo(50, yPos + 22).lineTo(310, yPos + 22).strokeColor(orangeColor).stroke();
+  doc.moveTo(50, yPos + 22).lineTo(330, yPos + 22).strokeColor(orangeColor).stroke();
   
   doc.fontSize(8).fillColor('black')
-     .text(`1. Payment: ${quotation.paymentTerms}`, 50, yPos + 28, { width: 260, lineGap: 1 })
-     .text(`2. Delivery: ${quotation.deliveryTerms}`, 50, yPos + 40, { width: 260, lineGap: 1 })
-     .text(`3. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 52, { width: 260, lineGap: 1 })
-     .text(`4. Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 64, { width: 260, lineGap: 1 })
-     .text('5. Quality as per specifications', 50, yPos + 76, { width: 260, lineGap: 1 })
-     .text('6. Standard export packaging', 50, yPos + 88, { width: 260, lineGap: 1 });
+     .text(`1. Payment Terms: ${quotation.paymentTerms}`, 50, yPos + 30, { width: 280, lineGap: 2 })
+     .text(`2. Delivery Terms: ${quotation.deliveryTerms}`, 50, yPos + 44, { width: 280, lineGap: 2 })
+     .text(`3. Production Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 58, { width: 280, lineGap: 2 })
+     .text(`4. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 72, { width: 280, lineGap: 2 })
+     .text('5. Quality as per specifications', 50, yPos + 86, { width: 280, lineGap: 2 })
+     .text('6. Standard export packaging', 50, yPos + 100, { width: 280, lineGap: 2 });
   
-  yPos += 122;
+  yPos += termsBoxHeight + 25;
   
   // Amount in Words (compact)
   doc.fillColor('#f8f9fa').rect(40, yPos, 510, 25).fill()
