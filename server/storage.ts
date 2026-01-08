@@ -5413,8 +5413,16 @@ export class DatabaseStorage implements IStorage {
     const normalizedName = normalizeCompanyName(companyData.companyName);
     const normalizedDomain = companyData.primaryEmail ? extractEmailDomain(companyData.primaryEmail) : null;
     
-    const [company] = await db.insert(companies).values({
+    // Convert empty strings to null for unique constraint fields
+    const sanitizedData = {
       ...companyData,
+      gstNumber: companyData.gstNumber === '' ? null : companyData.gstNumber,
+      primaryEmail: companyData.primaryEmail === '' ? null : companyData.primaryEmail,
+      website: companyData.website === '' ? null : companyData.website,
+    };
+    
+    const [company] = await db.insert(companies).values({
+      ...sanitizedData,
       normalizedName,
       normalizedDomain,
     }).returning();
@@ -5423,6 +5431,17 @@ export class DatabaseStorage implements IStorage {
 
   async updateCompany(id: number, companyData: Partial<InsertCompany>): Promise<Company> {
     const updateData: any = { ...companyData, updatedAt: new Date() };
+    
+    // Convert empty strings to null for unique constraint fields
+    if (updateData.gstNumber === '') {
+      updateData.gstNumber = null;
+    }
+    if (updateData.primaryEmail === '') {
+      updateData.primaryEmail = null;
+    }
+    if (updateData.website === '') {
+      updateData.website = null;
+    }
     
     if (companyData.companyName || companyData.primaryEmail) {
       const { normalizeCompanyName, extractEmailDomain } = await import('./duplicateDetection');
