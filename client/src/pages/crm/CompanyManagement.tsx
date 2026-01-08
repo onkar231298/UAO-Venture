@@ -585,6 +585,8 @@ export default function CompanyManagement() {
       factoryAddressState: company.factoryAddressState || "",
       factoryAddressCountry: company.factoryAddressCountry || "",
       factoryAddressZip: company.factoryAddressZip || "",
+      departmentPhones: [],
+      additionalEmails: [],
     });
     setEditDialogOpen(true);
   };
