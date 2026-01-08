@@ -73,6 +73,8 @@ export default function SalesPersonDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [selectedSample, setSelectedSample] = useState<any>(null);
+  const [showSampleDialog, setShowSampleDialog] = useState(false);
   const [showLeadDialog, setShowLeadDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -659,7 +661,15 @@ export default function SalesPersonDashboard() {
                         </div>
                         <div className="flex items-center gap-3">
                           {getStatusBadge(sample.status || 'pending')}
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSample(sample);
+                              setShowSampleDialog(true);
+                            }}
+                            data-testid={`button-view-sample-${sample.id}`}
+                          >
                             <Eye className="w-4 h-4 mr-1" />
                             View
                           </Button>
@@ -739,6 +749,101 @@ export default function SalesPersonDashboard() {
           onOpenChange={setShowLeadDialog}
         />
       )}
+
+      {/* Sample Details Dialog */}
+      <Dialog open={showSampleDialog} onOpenChange={setShowSampleDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sample Request Details</DialogTitle>
+            <DialogDescription>
+              Request ID: {selectedSample?.requestId || `Sample #${selectedSample?.id}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSample && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Status:</span>
+                {getStatusBadge(selectedSample.status || 'pending')}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Customer Name</p>
+                  <p className="font-medium">{selectedSample.customerName || selectedSample.contactName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Company</p>
+                  <p className="font-medium">{selectedSample.companyName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{selectedSample.emailAddress || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Phone</p>
+                  <p className="font-medium">{selectedSample.phoneNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Sample Size</p>
+                  <p className="font-medium">{selectedSample.sampleSize || '25g'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Purpose</p>
+                  <p className="font-medium">{selectedSample.purpose || 'N/A'}</p>
+                </div>
+                {selectedSample.expectedOrderQuantity && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-500">Expected Order Quantity</p>
+                    <p className="font-medium">{selectedSample.expectedOrderQuantity}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedSample.message && (
+                <div>
+                  <p className="text-sm text-gray-500">Message</p>
+                  <p className="mt-1 p-3 bg-gray-50 rounded text-sm">{selectedSample.message}</p>
+                </div>
+              )}
+
+              {selectedSample.shippingAddress && (
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Shipping Address</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded">
+                    <p>{selectedSample.shippingAddress}</p>
+                    {selectedSample.city && (
+                      <p>{selectedSample.city}, {selectedSample.state} {selectedSample.postalCode}</p>
+                    )}
+                    {selectedSample.country && <p>{selectedSample.country}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Created</p>
+                  <p className="font-medium">
+                    {selectedSample.createdAt && format(new Date(selectedSample.createdAt), "PPpp")}
+                  </p>
+                </div>
+                {selectedSample.updatedAt && (
+                  <div>
+                    <p className="text-sm text-gray-500">Last Updated</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedSample.updatedAt), "PPpp")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={() => setShowSampleDialog(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
