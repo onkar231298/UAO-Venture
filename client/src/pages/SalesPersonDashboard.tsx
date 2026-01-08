@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   Users,
   Package,
@@ -40,7 +48,10 @@ import {
   Briefcase,
   ClipboardList,
   Truck,
-  Settings
+  Settings,
+  Plus,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
@@ -69,6 +80,21 @@ interface DashboardData {
   };
 }
 
+const companySchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  primaryEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+  primaryPhone: z.string().optional(),
+  gstNumber: z.string().optional(),
+  industryType: z.string().optional(),
+  companySize: z.string().optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  addressStreet: z.string().optional(),
+  addressCity: z.string().optional(),
+  addressState: z.string().optional(),
+  addressCountry: z.string().optional(),
+  addressZip: z.string().optional(),
+});
+
 export default function SalesPersonDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
@@ -77,6 +103,27 @@ export default function SalesPersonDashboard() {
   const [showSampleDialog, setShowSampleDialog] = useState(false);
   const [showLeadDialog, setShowLeadDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [showCreateCompanyDialog, setShowCreateCompanyDialog] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<any>(null);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+
+  const companyForm = useForm<z.infer<typeof companySchema>>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      companyName: "",
+      primaryEmail: "",
+      primaryPhone: "",
+      gstNumber: "",
+      industryType: "",
+      companySize: "",
+      website: "",
+      addressStreet: "",
+      addressCity: "",
+      addressState: "",
+      addressCountry: "",
+      addressZip: "",
+    },
+  });
 
   const { data: dashboardData, isLoading: dashboardLoading } = useQuery<DashboardData>({
     queryKey: ['/api/sales/dashboard'],
@@ -101,6 +148,78 @@ export default function SalesPersonDashboard() {
   const { data: bidsData, isLoading: bidsLoading } = useQuery<{ bids: any[]; total: number }>({
     queryKey: ['/api/sales/my-bids'],
     enabled: isAuthenticated && !!user,
+  });
+
+  // Check for duplicates when company details change
+  const checkForDuplicates = async (companyName: string, email?: string, phone?: string) => {
+    if (!companyName || companyName.length < 3) {
+      setDuplicateWarning(null);
+      return;
+    }
+    
+    setIsCheckingDuplicates(true);
+    try {
+      const response = await fetch('/api/check-duplicate-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName, email: email || undefined, phone: phone || undefined }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setDuplicateWarning(result);
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
+  };
+
+  // Debounce duplicate check
+  useEffect(() => {
+    const companyName = companyForm.watch('companyName');
+    const email = companyForm.watch('primaryEmail');
+    const phone = companyForm.watch('primaryPhone');
+    
+    if (!showCreateCompanyDialog) {
+      setDuplicateWarning(null);
+      return;
+    }
+    
+    const timeoutId = setTimeout(() => {
+      checkForDuplicates(companyName, email, phone);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [companyForm.watch('companyName'), companyForm.watch('primaryEmail'), companyForm.watch('primaryPhone'), showCreateCompanyDialog]);
+
+  // Create company mutation
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof companySchema>) => {
+      return await apiRequest("/api/crm/companies", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales/my-companies"] });
+      setShowCreateCompanyDialog(false);
+      companyForm.reset();
+      setDuplicateWarning(null);
+      toast({
+        title: "Success",
+        description: "Company created successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create company",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading || dashboardLoading) {
@@ -256,6 +375,15 @@ export default function SalesPersonDashboard() {
                 My Companies
               </Button>
             </Link>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => setShowCreateCompanyDialog(true)}
+              data-testid="nav-add-company"
+            >
+              <Plus className="w-4 h-4 mr-3" />
+              Add Company
+            </Button>
             <Button
               variant={activeTab === 'inquiries' ? 'secondary' : 'ghost'}
               className="w-full justify-start"
@@ -842,6 +970,301 @@ export default function SalesPersonDashboard() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Company Dialog */}
+      <Dialog open={showCreateCompanyDialog} onOpenChange={setShowCreateCompanyDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Company</DialogTitle>
+            <DialogDescription>
+              Add a new company to the CRM system
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...companyForm}>
+            <form onSubmit={companyForm.handleSubmit((data) => createCompanyMutation.mutate(data))} className="space-y-4">
+              {duplicateWarning && duplicateWarning.hasPotentialDuplicates && (
+                <div 
+                  className={`p-4 rounded-lg border ${
+                    duplicateWarning.highestConfidence >= 80 
+                      ? 'bg-red-50 border-red-200 text-red-800' 
+                      : duplicateWarning.highestConfidence >= 60 
+                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                        : 'bg-blue-50 border-blue-200 text-blue-800'
+                  }`}
+                  data-testid="alert-duplicate-warning"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-medium">
+                        {duplicateWarning.highestConfidence >= 80 
+                          ? 'Possible Duplicate Detected!' 
+                          : 'Similar Companies Found'}
+                      </h4>
+                      <p className="text-sm mt-1">
+                        {duplicateWarning.highestConfidence >= 80 
+                          ? 'This company may already exist in the system. Please review before creating.'
+                          : 'Similar companies exist. You may want to verify this is a new company.'}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {duplicateWarning.matches?.slice(0, 3).map((match: any) => (
+                          <div 
+                            key={match.companyId} 
+                            className="text-sm flex items-center gap-2"
+                          >
+                            <Building2 className="h-3 w-3" />
+                            <span className="font-medium">{match.companyName}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {match.confidence}% match
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <FormField
+                control={companyForm.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name *</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input placeholder="Enter company name" {...field} data-testid="input-company-name" />
+                      </FormControl>
+                      {isCheckingDuplicates && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={companyForm.control}
+                  name="primaryEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@company.com" {...field} data-testid="input-primary-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={companyForm.control}
+                  name="primaryPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1-xxx-xxx-xxxx" {...field} data-testid="input-primary-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={companyForm.control}
+                  name="gstNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>GST Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="GST number" {...field} data-testid="input-gst-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={companyForm.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Website</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com" {...field} data-testid="input-website" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={companyForm.control}
+                  name="industryType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Industry Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-industry-type">
+                            <SelectValue placeholder="Select industry" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="food">Food & Beverage</SelectItem>
+                          <SelectItem value="pharma">Pharmaceuticals</SelectItem>
+                          <SelectItem value="cosmetics">Cosmetics & Personal Care</SelectItem>
+                          <SelectItem value="nutraceuticals">Nutraceuticals</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={companyForm.control}
+                  name="companySize"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Size</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-company-size">
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="1-10">1-10 employees</SelectItem>
+                          <SelectItem value="11-50">11-50 employees</SelectItem>
+                          <SelectItem value="51-200">51-200 employees</SelectItem>
+                          <SelectItem value="201-500">201-500 employees</SelectItem>
+                          <SelectItem value="500+">500+ employees</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Address Information</h4>
+                <div className="space-y-3">
+                  <FormField
+                    control={companyForm.control}
+                    name="addressStreet"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Street address" {...field} data-testid="input-address-street" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={companyForm.control}
+                      name="addressCity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="City" {...field} data-testid="input-address-city" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={companyForm.control}
+                      name="addressState"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input placeholder="State" {...field} data-testid="input-address-state" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={companyForm.control}
+                      name="addressCountry"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Country" {...field} data-testid="input-address-country" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={companyForm.control}
+                      name="addressZip"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ZIP Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ZIP code" {...field} data-testid="input-address-zip" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowCreateCompanyDialog(false);
+                    companyForm.reset();
+                    setDuplicateWarning(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createCompanyMutation.isPending}
+                  data-testid="button-create-company-submit"
+                >
+                  {createCompanyMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Company'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
