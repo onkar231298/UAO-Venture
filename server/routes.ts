@@ -10515,6 +10515,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       // Extract items array before creating (they go in separate table)
       const items = req.body.items || [];
       
+      console.log('[QUOTATION DEBUG] Received body currency:', req.body.currency);
+      console.log('[QUOTATION DEBUG] Received body paymentTerms:', req.body.paymentTerms);
+      console.log('[QUOTATION DEBUG] Received body leadTime:', req.body.leadTime);
+      
       // Convert validUntil from string to Date if present
       const quotationData = {
         ...req.body,
@@ -10529,7 +10533,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         quotationData.validUntil = new Date(quotationData.validUntil);
       }
       
+      console.log('[QUOTATION DEBUG] Final quotationData currency:', quotationData.currency);
+      
       const quotation = await storage.createQuotation(quotationData);
+      console.log('[QUOTATION DEBUG] Created quotation currency:', quotation.currency);
 
       // Create quotation items if provided
       if (items.length > 0) {
