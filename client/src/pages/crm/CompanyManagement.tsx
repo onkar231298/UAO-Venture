@@ -176,7 +176,26 @@ interface CompanyDetails {
   primaryPhone?: string | null;
 }
 
+const contactSchema = z.object({
+  contactName: z.string().min(1, "Contact name is required"),
+  designation: z.string().optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  whatsapp: z.string().optional(),
+  role: z.string().optional(),
+  isPrimary: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
 function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; companyDetails?: CompanyDetails | null }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [addContactDialogOpen, setAddContactDialogOpen] = useState(false);
+  const [editContactDialogOpen, setEditContactDialogOpen] = useState(false);
+  const [deleteContactDialogOpen, setDeleteContactDialogOpen] = useState(false);
+  const [contactToEdit, setContactToEdit] = useState<CompanyContact | null>(null);
+  const [contactToDelete, setContactToDelete] = useState<CompanyContact | null>(null);
+
   const { data: contacts, isLoading } = useQuery<CompanyContact[]>({
     queryKey: ['/api/crm/companies', companyId, 'contacts'],
     queryFn: async () => {
@@ -187,6 +206,116 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
       return response.json();
     },
   });
+
+  const addContactForm = useForm<z.infer<typeof contactSchema>>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      contactName: "",
+      designation: "",
+      email: "",
+      phone: "",
+      whatsapp: "",
+      role: "",
+      isPrimary: false,
+      isActive: true,
+    },
+  });
+
+  const editContactForm = useForm<z.infer<typeof contactSchema>>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      contactName: "",
+      designation: "",
+      email: "",
+      phone: "",
+      whatsapp: "",
+      role: "",
+      isPrimary: false,
+      isActive: true,
+    },
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof contactSchema>) => {
+      const response = await apiRequest("POST", `/api/crm/companies/${companyId}/contacts`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'contacts'] });
+      toast({ title: "Contact added successfully" });
+      setAddContactDialogOpen(false);
+      addContactForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to add contact", variant: "destructive" });
+    },
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ contactId, data }: { contactId: number; data: z.infer<typeof contactSchema> }) => {
+      const response = await apiRequest("PATCH", `/api/crm/contacts/${contactId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'contacts'] });
+      toast({ title: "Contact updated successfully" });
+      setEditContactDialogOpen(false);
+      setContactToEdit(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update contact", variant: "destructive" });
+    },
+  });
+
+  const deleteContactMutation = useMutation({
+    mutationFn: async (contactId: number) => {
+      const response = await apiRequest("DELETE", `/api/crm/contacts/${contactId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'contacts'] });
+      toast({ title: "Contact deleted successfully" });
+      setDeleteContactDialogOpen(false);
+      setContactToDelete(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete contact", variant: "destructive" });
+    },
+  });
+
+  const setPrimaryMutation = useMutation({
+    mutationFn: async (contactId: number) => {
+      const response = await apiRequest("POST", `/api/crm/companies/${companyId}/contacts/${contactId}/set-primary`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'contacts'] });
+      toast({ title: "Primary contact updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to set primary contact", variant: "destructive" });
+    },
+  });
+
+  const handleEditContact = (contact: CompanyContact) => {
+    setContactToEdit(contact);
+    editContactForm.reset({
+      contactName: contact.contactName || "",
+      designation: contact.designation || "",
+      email: contact.email || "",
+      phone: contact.phone || "",
+      whatsapp: contact.whatsapp || "",
+      role: contact.role || "",
+      isPrimary: contact.isPrimary,
+      isActive: contact.isActive,
+    });
+    setEditContactDialogOpen(true);
+  };
+
+  const handleDeleteContact = (contact: CompanyContact) => {
+    setContactToDelete(contact);
+    setDeleteContactDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -204,24 +333,25 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
   const hasPrimaryInfo = companyDetails?.primaryEmail || companyDetails?.primaryPhone;
   const hasContacts = contacts && contacts.length > 0;
 
-  if (!hasPrimaryInfo && !hasContacts) {
-    return (
-      <Card>
-        <CardContent className="pt-4">
-          <div className="text-center py-6 text-muted-foreground">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No contacts linked to this company yet</p>
-            <p className="text-sm">Add contacts or update company details</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardContent className="pt-4">
         <div className="space-y-4">
+          {/* Add Contact Button */}
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={() => {
+                addContactForm.reset();
+                setAddContactDialogOpen(true);
+              }}
+              data-testid="button-add-contact"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Contact
+            </Button>
+          </div>
+
           {/* Primary Contact Info from Company */}
           {hasPrimaryInfo && (
             <div className="p-4 border rounded-lg bg-green-50 border-green-200">
@@ -251,19 +381,22 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
           )}
           
           {/* Department Contacts */}
-          {hasContacts && (
+          {hasContacts ? (
             <>
               <h4 className="font-medium text-sm text-muted-foreground pt-2">Department Contacts</h4>
               {contacts!.map((contact) => (
-                <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold">{contact.contactName}</p>
                       {contact.isPrimary && (
-                        <Badge variant="secondary" className="text-xs">Primary</Badge>
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Primary</Badge>
                       )}
                       {contact.designation && (
                         <Badge variant="outline" className="text-xs">{contact.designation}</Badge>
+                      )}
+                      {contact.role && (
+                        <Badge variant="outline" className="text-xs bg-purple-50">{contact.role}</Badge>
                       )}
                     </div>
                     {contact.email && (
@@ -282,16 +415,328 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
                         </a>
                       </div>
                     )}
+                    {contact.whatsapp && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-3 w-3 text-green-600" />
+                        <span className="text-green-600">WhatsApp: {contact.whatsapp}</span>
+                      </div>
+                    )}
                   </div>
-                  {!contact.isActive && (
-                    <Badge variant="outline" className="text-orange-600">Inactive</Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!contact.isActive && (
+                      <Badge variant="outline" className="text-orange-600">Inactive</Badge>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" data-testid={`button-contact-menu-${contact.id}`}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditContact(contact)} data-testid={`button-edit-contact-${contact.id}`}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {!contact.isPrimary && (
+                          <DropdownMenuItem onClick={() => setPrimaryMutation.mutate(contact.id)} data-testid={`button-set-primary-${contact.id}`}>
+                            <Pin className="h-4 w-4 mr-2" />
+                            Set as Primary
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600" 
+                          onClick={() => handleDeleteContact(contact)}
+                          data-testid={`button-delete-contact-${contact.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))}
             </>
+          ) : !hasPrimaryInfo && (
+            <div className="text-center py-6 text-muted-foreground">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No contacts linked to this company yet</p>
+              <p className="text-sm">Click "Add Contact" to add team members</p>
+            </div>
           )}
         </div>
       </CardContent>
+
+      {/* Add Contact Dialog */}
+      <Dialog open={addContactDialogOpen} onOpenChange={setAddContactDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Add Contact
+            </DialogTitle>
+            <DialogDescription>
+              Add a new contact person for this company
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...addContactForm}>
+            <form onSubmit={addContactForm.handleSubmit((data) => createContactMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={addContactForm.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="John Doe" data-testid="input-contact-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addContactForm.control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Designation</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Purchase Manager, CEO, Sales Head" data-testid="input-contact-designation" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={addContactForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} placeholder="john@company.com" data-testid="input-contact-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={addContactForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="+91 98765 43210" data-testid="input-contact-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={addContactForm.control}
+                name="whatsapp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>WhatsApp Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="+91 98765 43210" data-testid="input-contact-whatsapp" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addContactForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department/Role</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Procurement, Operations, Finance" data-testid="input-contact-role" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center gap-4">
+                <FormField
+                  control={addContactForm.control}
+                  name="isPrimary"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-contact-primary" />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Set as Primary Contact</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setAddContactDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createContactMutation.isPending} data-testid="button-save-contact">
+                  {createContactMutation.isPending ? "Adding..." : "Add Contact"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contact Dialog */}
+      <Dialog open={editContactDialogOpen} onOpenChange={setEditContactDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-5 w-5" />
+              Edit Contact
+            </DialogTitle>
+            <DialogDescription>
+              Update contact information
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editContactForm}>
+            <form onSubmit={editContactForm.handleSubmit((data) => {
+              if (contactToEdit) {
+                updateContactMutation.mutate({ contactId: contactToEdit.id, data });
+              }
+            })} className="space-y-4">
+              <FormField
+                control={editContactForm.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="John Doe" data-testid="input-edit-contact-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editContactForm.control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Designation</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Purchase Manager, CEO, Sales Head" data-testid="input-edit-contact-designation" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editContactForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} placeholder="john@company.com" data-testid="input-edit-contact-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editContactForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="+91 98765 43210" data-testid="input-edit-contact-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={editContactForm.control}
+                name="whatsapp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>WhatsApp Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="+91 98765 43210" data-testid="input-edit-contact-whatsapp" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editContactForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department/Role</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Procurement, Operations, Finance" data-testid="input-edit-contact-role" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center gap-4">
+                <FormField
+                  control={editContactForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-edit-contact-active" />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Active</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditContactDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateContactMutation.isPending} data-testid="button-update-contact">
+                  {updateContactMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Contact Confirmation */}
+      <AlertDialog open={deleteContactDialogOpen} onOpenChange={setDeleteContactDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{contactToDelete?.contactName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => contactToDelete && deleteContactMutation.mutate(contactToDelete.id)}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-delete-contact"
+            >
+              {deleteContactMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
