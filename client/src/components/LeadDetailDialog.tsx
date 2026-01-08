@@ -121,6 +121,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     currency: "USD",
     validDays: "30",
     leadTime: "",
+    paymentTerms: "",
     terms: "",
     notes: "",
     discountPercent: "0",
@@ -849,8 +850,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       currency: lead?.currency || "USD",
       validDays: "30",
       leadTime: product?.leadTime || "",
-      terms: `Payment Terms: 30 days net
-Delivery: Ex-works
+      paymentTerms: "30 days net",
+      terms: `Delivery: Ex-works
 Validity: 30 days from quotation date
 Quality: As per specifications
 Packaging: Standard export packaging`,
@@ -873,6 +874,7 @@ Packaging: Standard export packaging`,
       currency: "USD",
       validDays: "30",
       leadTime: "",
+      paymentTerms: "",
       terms: "",
       notes: "",
       discountPercent: "0",
@@ -939,6 +941,7 @@ Packaging: Standard export packaging`,
       currency: quoteFormData.currency,
       validUntil: validUntil,
       leadTime: quoteFormData.leadTime || null,
+      paymentTerms: quoteFormData.paymentTerms || null,
       terms: quoteFormData.terms,
       notes: quoteFormData.notes,
       status: "draft",
@@ -2149,13 +2152,25 @@ Packaging: Standard export packaging`,
                         
                         {/* Lead Time */}
                         <div>
-                          <Label htmlFor="quote-lead-time">Lead Time</Label>
+                          <Label htmlFor="quote-lead-time">Production Lead Time</Label>
                           <Input
                             id="quote-lead-time"
                             value={quoteFormData.leadTime}
                             onChange={(e) => setQuoteFormData({...quoteFormData, leadTime: e.target.value})}
                             placeholder="e.g., 5-7 days, 2-3 weeks"
                             data-testid="input-quote-lead-time"
+                          />
+                        </div>
+                        
+                        {/* Payment Terms */}
+                        <div>
+                          <Label htmlFor="quote-payment-terms">Payment Terms</Label>
+                          <Input
+                            id="quote-payment-terms"
+                            value={quoteFormData.paymentTerms}
+                            onChange={(e) => setQuoteFormData({...quoteFormData, paymentTerms: e.target.value})}
+                            placeholder="e.g., 30 days net, 50% advance"
+                            data-testid="input-quote-payment-terms"
                           />
                         </div>
                         

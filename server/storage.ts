@@ -3006,6 +3006,7 @@ export class DatabaseStorage implements IStorage {
           updatedAt: quotations.updatedAt,
           leadId: quotations.leadId,
           leadTime: quotations.leadTime,
+          paymentTerms: quotations.paymentTerms,
           sentAt: quotations.sentAt,
           sentBy: quotations.sentBy,
           salesOrderId: quotations.salesOrderId,
