@@ -130,7 +130,10 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
 
   const createContactMutation = useMutation({
     mutationFn: async (data: z.infer<typeof contactSchema>) => {
-      const response = await apiRequest("POST", `/api/crm/companies/${companyId}/contacts`, data);
+      const response = await apiRequest(`/api/crm/companies/${companyId}/contacts`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -146,7 +149,10 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
 
   const updateContactMutation = useMutation({
     mutationFn: async ({ contactId, data }: { contactId: number; data: z.infer<typeof contactSchema> }) => {
-      const response = await apiRequest("PATCH", `/api/crm/contacts/${contactId}`, data);
+      const response = await apiRequest(`/api/crm/contacts/${contactId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -162,7 +168,9 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
 
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      const response = await apiRequest("DELETE", `/api/crm/contacts/${contactId}`);
+      const response = await apiRequest(`/api/crm/contacts/${contactId}`, {
+        method: "DELETE",
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -178,7 +186,9 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
 
   const setPrimaryMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      const response = await apiRequest("POST", `/api/crm/companies/${companyId}/contacts/${contactId}/set-primary`);
+      const response = await apiRequest(`/api/crm/companies/${companyId}/contacts/${contactId}/set-primary`, {
+        method: "POST",
+      });
       return response.json();
     },
     onSuccess: () => {
