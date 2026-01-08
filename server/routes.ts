@@ -455,12 +455,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Password reset requested for ${email}, URL: ${resetUrl}`);
       
-      // Try to send email using first available connected admin email config
+      // Try to send email using admin@bright-organic.com or first available connected email config
       try {
         const emailConfigs = await storage.getUserEmailConfigs();
-        const connectedConfig = emailConfigs.find(config => config.isConnected && config.accessToken);
+        // Prioritize admin@bright-organic.com for system emails
+        const connectedConfig = emailConfigs.find(config => 
+          config.isConnected && config.accessToken && config.companyEmail === 'admin@bright-organic.com'
+        ) || emailConfigs.find(config => config.isConnected && config.accessToken);
         
         if (connectedConfig) {
+          console.log(`Using email config: ${connectedConfig.companyEmail} for password reset`);
+          
           // Get valid access token
           const accessToken = await gmailApi.ensureValidAccessToken(
             {
