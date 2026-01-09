@@ -2846,7 +2846,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { status, myOnly, startDate, endDate, limit = '50', offset = '0' } = req.query;
+      const { status, myOnly, startDate, endDate, dateFrom, dateTo, search, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -2865,12 +2865,27 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         filters.status = status as string;
       }
       
-      if (startDate) {
-        filters.startDate = new Date(startDate as string);
+      // Support both startDate/endDate and dateFrom/dateTo for flexibility
+      const fromDate = (startDate || dateFrom) as string;
+      const toDate = (endDate || dateTo) as string;
+      
+      if (fromDate && fromDate.trim()) {
+        const parsedDate = new Date(fromDate);
+        if (!isNaN(parsedDate.getTime())) {
+          filters.startDate = parsedDate;
+        }
       }
       
-      if (endDate) {
-        filters.endDate = new Date(endDate as string);
+      if (toDate && toDate.trim()) {
+        const parsedDate = new Date(toDate);
+        if (!isNaN(parsedDate.getTime())) {
+          filters.endDate = parsedDate;
+        }
+      }
+      
+      // Search by quotation ID
+      if (search && (search as string).trim()) {
+        filters.search = (search as string).trim();
       }
 
       const result = await storage.getQuotations(filters);
@@ -3520,7 +3535,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { status, companyId, leadId, assignedToUserId, myOnly, startDate, endDate, search, limit = '50', offset = '0' } = req.query;
+      const { status, companyId, leadId, assignedToUserId, myOnly, startDate, endDate, dateFrom, dateTo, search, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -3552,16 +3567,26 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         filters.assignedToUserId = assignedToUserId as string;
       }
       
-      if (startDate) {
-        filters.startDate = new Date(startDate as string);
+      // Support both startDate/endDate and dateFrom/dateTo for flexibility
+      const fromDate = (startDate || dateFrom) as string;
+      const toDate = (endDate || dateTo) as string;
+      
+      if (fromDate && fromDate.trim()) {
+        const parsedDate = new Date(fromDate);
+        if (!isNaN(parsedDate.getTime())) {
+          filters.startDate = parsedDate;
+        }
       }
       
-      if (endDate) {
-        filters.endDate = new Date(endDate as string);
+      if (toDate && toDate.trim()) {
+        const parsedDate = new Date(toDate);
+        if (!isNaN(parsedDate.getTime())) {
+          filters.endDate = parsedDate;
+        }
       }
       
-      if (search) {
-        filters.search = search as string;
+      if (search && (search as string).trim()) {
+        filters.search = (search as string).trim();
       }
 
       const result = await storage.getSalesOrders(filters);

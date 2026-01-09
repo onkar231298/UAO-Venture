@@ -4,13 +4,17 @@ import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { 
   FileText, ShoppingCart, DollarSign, TrendingUp, 
-  Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package
+  Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package,
+  Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -61,6 +65,9 @@ interface SalesOrder {
 export default function MySalesAndQuotations() {
   const [selectedTab, setSelectedTab] = useState("quotations");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<SalesOrder | null>(null);
   const [showQuotationDetail, setShowQuotationDetail] = useState(false);
@@ -73,10 +80,13 @@ export default function MySalesAndQuotations() {
   });
 
   const { data: quotationsData, isLoading: quotationsLoading, refetch: refetchQuotations } = useQuery<{ quotations: Quotation[]; total: number }>({
-    queryKey: ['/api/quotations', statusFilter],
+    queryKey: ['/api/quotations', statusFilter, searchQuery, dateFrom, dateTo],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchQuery) params.append('search', searchQuery);
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
       const response = await fetch(`/api/quotations?${params}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch quotations');
       return response.json();
@@ -84,15 +94,25 @@ export default function MySalesAndQuotations() {
   });
 
   const { data: salesOrdersData, isLoading: salesOrdersLoading, refetch: refetchSalesOrders } = useQuery<{ orders: SalesOrder[]; total: number }>({
-    queryKey: ['/api/sales-orders', statusFilter],
+    queryKey: ['/api/sales-orders', statusFilter, searchQuery, dateFrom, dateTo],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchQuery) params.append('search', searchQuery);
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
       const response = await fetch(`/api/sales-orders?${params}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch sales orders');
       return response.json();
     },
   });
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setSearchQuery("");
+    setDateFrom("");
+    setDateTo("");
+  };
 
   const formatCurrency = (amount: string | null, currency: string = 'INR') => {
     if (!amount) return '-';
@@ -235,26 +255,62 @@ export default function MySalesAndQuotations() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Documents</CardTitle>
-              <div className="flex items-center gap-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <CardTitle>Documents</CardTitle>
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex-1 min-w-[200px]">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Search</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={selectedTab === "quotations" ? "Search by quotation number..." : "Search by SO number..."}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="w-[160px]">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-[140px]">
+                  <Label className="text-xs text-muted-foreground mb-1 block">From Date</Label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+                <div className="w-[140px]">
+                  <Label className="text-xs text-muted-foreground mb-1 block">To Date</Label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -287,6 +343,7 @@ export default function MySalesAndQuotations() {
                       <thead>
                         <tr className="border-b text-left">
                           <th className="pb-3 font-medium">Quotation ID</th>
+                          <th className="pb-3 font-medium">Lead ID</th>
                           <th className="pb-3 font-medium">Product</th>
                           <th className="pb-3 font-medium">Amount</th>
                           <th className="pb-3 font-medium">Status</th>
@@ -299,6 +356,14 @@ export default function MySalesAndQuotations() {
                         {quotationsData?.quotations?.map((quotation) => (
                           <tr key={quotation.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 font-medium">{quotation.quotationId}</td>
+                            <td className="py-3">
+                              {quotation.leadId ? (
+                                <Badge variant="outline" className="font-mono">
+                                  <Hash className="h-3 w-3 mr-1" />
+                                  {quotation.leadId}
+                                </Badge>
+                              ) : '-'}
+                            </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2">
                                 <Package className="h-4 w-4 text-muted-foreground" />
@@ -366,6 +431,7 @@ export default function MySalesAndQuotations() {
                       <thead>
                         <tr className="border-b text-left">
                           <th className="pb-3 font-medium">SO Number</th>
+                          <th className="pb-3 font-medium">Lead ID</th>
                           <th className="pb-3 font-medium">Company</th>
                           <th className="pb-3 font-medium">Amount</th>
                           <th className="pb-3 font-medium">Status</th>
@@ -378,6 +444,14 @@ export default function MySalesAndQuotations() {
                         {salesOrdersData?.orders?.map((order) => (
                           <tr key={order.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 font-medium">{order.soNumber}</td>
+                            <td className="py-3">
+                              {order.leadId ? (
+                                <Badge variant="outline" className="font-mono">
+                                  <Hash className="h-3 w-3 mr-1" />
+                                  {order.leadId}
+                                </Badge>
+                              ) : '-'}
+                            </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -463,7 +537,7 @@ export default function MySalesAndQuotations() {
 }
 
 function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotation | null; open: boolean; onClose: () => void }) {
-  const { data: quotationDetails } = useQuery({
+  const { data: quotationDetails, isLoading } = useQuery({
     queryKey: ['/api/quotations', quotation?.id],
     enabled: !!quotation?.id && open,
     queryFn: async () => {
@@ -475,71 +549,190 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
 
   if (!quotation) return null;
 
+  const formatCurrency = (amount: string | null, currency: string = 'INR') => {
+    if (!amount) return '-';
+    const num = parseFloat(amount);
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Quotation Details - {quotation.quotationId}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Quotation Details - {quotation.quotationId}
+          </DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-4 p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge className={quotation.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}>
-                  {quotation.status}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="font-semibold">{quotation.totalAmount ? `₹${parseFloat(quotation.totalAmount).toLocaleString()}` : '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Created</p>
-                <p>{format(new Date(quotation.createdAt), 'PPP')}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Valid Until</p>
-                <p>{quotation.validUntil ? format(new Date(quotation.validUntil), 'PPP') : '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Product</p>
-                <p>{quotation.productName || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Lead ID</p>
-                <p>{quotation.leadId ? `#${quotation.leadId}` : '-'}</p>
-              </div>
+        <ScrollArea className="max-h-[70vh]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-6 w-6 animate-spin" />
             </div>
-
-            {quotationDetails?.items && quotationDetails.items.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Items</h4>
-                <div className="border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="p-2 text-left">Product</th>
-                        <th className="p-2 text-right">Qty</th>
-                        <th className="p-2 text-right">Unit Price</th>
-                        <th className="p-2 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {quotationDetails.items.map((item: any, idx: number) => (
-                        <tr key={idx} className="border-b last:border-0">
-                          <td className="p-2">{item.productName || `Product ${item.productId}`}</td>
-                          <td className="p-2 text-right">{item.quantity} {item.unit}</td>
-                          <td className="p-2 text-right">₹{parseFloat(item.unitPrice || '0').toLocaleString()}</td>
-                          <td className="p-2 text-right">₹{parseFloat(item.totalPrice || '0').toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          ) : (
+            <div className="space-y-6 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
+                  <Badge className={
+                    quotation.status === 'accepted' ? 'bg-green-100 text-green-800' : 
+                    quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }>
+                    {quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1)}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Amount</p>
+                  <p className="text-lg font-bold text-green-600">{formatCurrency(quotation.totalAmount, quotation.currency)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Lead ID</p>
+                  <p className="font-medium">{quotation.leadId ? `#${quotation.leadId}` : '-'}</p>
                 </div>
               </div>
-            )}
-          </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Dates & Timeline
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/30 rounded-lg p-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Created</p>
+                    <p className="text-sm font-medium">{format(new Date(quotation.createdAt), 'MMM d, yyyy')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Valid Until</p>
+                    <p className="text-sm font-medium">{quotation.validUntil ? format(new Date(quotation.validUntil), 'MMM d, yyyy') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sent At</p>
+                    <p className="text-sm font-medium">{quotation.sentAt ? format(new Date(quotation.sentAt), 'MMM d, yyyy HH:mm') : 'Not sent'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Currency</p>
+                    <p className="text-sm font-medium">{quotation.currency || 'INR'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {quotationDetails?.customerName && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Customer Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 rounded-lg p-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Customer Name</p>
+                        <p className="text-sm font-medium">{quotationDetails.customerName || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Company</p>
+                        <p className="text-sm font-medium">{quotationDetails.companyName || '-'}</p>
+                      </div>
+                      {quotationDetails.customerEmail && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Email</p>
+                          <p className="text-sm font-medium flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {quotationDetails.customerEmail}
+                          </p>
+                        </div>
+                      )}
+                      {quotationDetails.customerPhone && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Phone</p>
+                          <p className="text-sm font-medium flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {quotationDetails.customerPhone}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {quotationDetails?.items && quotationDetails.items.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Items ({quotationDetails.items.length})
+                    </h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left">Product</th>
+                            <th className="p-3 text-right">Qty</th>
+                            <th className="p-3 text-right">Unit Price</th>
+                            <th className="p-3 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {quotationDetails.items.map((item: any, idx: number) => (
+                            <tr key={idx} className="border-b last:border-0">
+                              <td className="p-3">{item.productName || `Product ${item.productId}`}</td>
+                              <td className="p-3 text-right">{item.quantity} {item.unit}</td>
+                              <td className="p-3 text-right">{formatCurrency(item.unitPrice, quotation.currency)}</td>
+                              <td className="p-3 text-right font-medium">{formatCurrency(item.totalPrice, quotation.currency)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-muted/30">
+                          <tr>
+                            <td colSpan={3} className="p-3 text-right font-semibold">Total:</td>
+                            <td className="p-3 text-right font-bold text-green-600">{formatCurrency(quotation.totalAmount, quotation.currency)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(quotationDetails?.terms || quotationDetails?.notes) && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {quotationDetails.terms && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <FileCheck className="h-4 w-4" />
+                          Terms & Conditions
+                        </h4>
+                        <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap">
+                          {quotationDetails.terms}
+                        </div>
+                      </div>
+                    )}
+                    {quotationDetails.notes && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Notes</h4>
+                        <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap">
+                          {quotationDetails.notes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>
@@ -547,7 +740,7 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
 }
 
 function SalesOrderDetailDialog({ salesOrder, open, onClose }: { salesOrder: SalesOrder | null; open: boolean; onClose: () => void }) {
-  const { data: orderDetails } = useQuery({
+  const { data: orderDetails, isLoading } = useQuery({
     queryKey: ['/api/sales-orders', salesOrder?.id],
     enabled: !!salesOrder?.id && open,
     queryFn: async () => {
@@ -559,71 +752,213 @@ function SalesOrderDetailDialog({ salesOrder, open, onClose }: { salesOrder: Sal
 
   if (!salesOrder) return null;
 
+  const formatCurrency = (amount: string | null, currency: string = 'INR') => {
+    if (!amount) return '-';
+    const num = parseFloat(amount);
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'shipped': return 'bg-purple-100 text-purple-800';
+      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'confirmed': return 'bg-teal-100 text-teal-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Sales Order Details - {salesOrder.soNumber}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Sales Order Details - {salesOrder.soNumber}
+          </DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-4 p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge className={salesOrder.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}>
-                  {salesOrder.status}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="font-semibold">{salesOrder.grandTotal ? `₹${parseFloat(salesOrder.grandTotal).toLocaleString()}` : '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Company</p>
-                <p>{salesOrder.companyName || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Created</p>
-                <p>{format(new Date(salesOrder.createdAt), 'PPP')}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Expected Delivery</p>
-                <p>{salesOrder.expectedDeliveryDate ? format(new Date(salesOrder.expectedDeliveryDate), 'PPP') : '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Lead ID</p>
-                <p>{salesOrder.leadId ? `#${salesOrder.leadId}` : '-'}</p>
-              </div>
+        <ScrollArea className="max-h-[70vh]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-6 w-6 animate-spin" />
             </div>
-
-            {orderDetails?.items && orderDetails.items.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Items</h4>
-                <div className="border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="p-2 text-left">Product</th>
-                        <th className="p-2 text-right">Qty</th>
-                        <th className="p-2 text-right">Unit Price</th>
-                        <th className="p-2 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderDetails.items.map((item: any, idx: number) => (
-                        <tr key={idx} className="border-b last:border-0">
-                          <td className="p-2">{item.productName}</td>
-                          <td className="p-2 text-right">{item.quantity} {item.unit}</td>
-                          <td className="p-2 text-right">₹{parseFloat(item.unitPrice || '0').toLocaleString()}</td>
-                          <td className="p-2 text-right">₹{parseFloat(item.totalPrice || '0').toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          ) : (
+            <div className="space-y-6 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
+                  <Badge className={getStatusBadgeColor(salesOrder.status)}>
+                    {salesOrder.status.charAt(0).toUpperCase() + salesOrder.status.slice(1)}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Grand Total</p>
+                  <p className="text-lg font-bold text-green-600">{formatCurrency(salesOrder.grandTotal, salesOrder.currency)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Lead ID</p>
+                  <p className="font-medium">{salesOrder.leadId ? `#${salesOrder.leadId}` : '-'}</p>
                 </div>
               </div>
-            )}
-          </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Company & Customer
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 rounded-lg p-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Company</p>
+                    <p className="text-sm font-medium">{salesOrder.companyName || '-'}</p>
+                  </div>
+                  {orderDetails?.customerName && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Contact Person</p>
+                      <p className="text-sm font-medium">{orderDetails.customerName}</p>
+                    </div>
+                  )}
+                  {orderDetails?.customerEmail && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {orderDetails.customerEmail}
+                      </p>
+                    </div>
+                  )}
+                  {orderDetails?.customerPhone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {orderDetails.customerPhone}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Dates & Timeline
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/30 rounded-lg p-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Created</p>
+                    <p className="text-sm font-medium">{format(new Date(salesOrder.createdAt), 'MMM d, yyyy')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Expected Delivery</p>
+                    <p className="text-sm font-medium">{salesOrder.expectedDeliveryDate ? format(new Date(salesOrder.expectedDeliveryDate), 'MMM d, yyyy') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Currency</p>
+                    <p className="text-sm font-medium">{salesOrder.currency || 'INR'}</p>
+                  </div>
+                  {orderDetails?.paymentTerms && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Payment Terms</p>
+                      <p className="text-sm font-medium">{orderDetails.paymentTerms}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {orderDetails?.shippingAddress && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Shipping Address
+                    </h4>
+                    <div className="bg-muted/30 rounded-lg p-3 text-sm">
+                      {orderDetails.shippingAddress}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {orderDetails?.items && orderDetails.items.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Items ({orderDetails.items.length})
+                    </h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left">Product</th>
+                            <th className="p-3 text-right">Qty</th>
+                            <th className="p-3 text-right">Unit Price</th>
+                            <th className="p-3 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orderDetails.items.map((item: any, idx: number) => (
+                            <tr key={idx} className="border-b last:border-0">
+                              <td className="p-3">{item.productName}</td>
+                              <td className="p-3 text-right">{item.quantity} {item.unit}</td>
+                              <td className="p-3 text-right">{formatCurrency(item.unitPrice, salesOrder.currency)}</td>
+                              <td className="p-3 text-right font-medium">{formatCurrency(item.totalPrice, salesOrder.currency)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-muted/30">
+                          <tr>
+                            <td colSpan={3} className="p-3 text-right font-semibold">Grand Total:</td>
+                            <td className="p-3 text-right font-bold text-green-600">{formatCurrency(salesOrder.grandTotal, salesOrder.currency)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(orderDetails?.terms || orderDetails?.notes) && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {orderDetails.terms && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <FileCheck className="h-4 w-4" />
+                          Terms & Conditions
+                        </h4>
+                        <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap">
+                          {orderDetails.terms}
+                        </div>
+                      </div>
+                    )}
+                    {orderDetails.notes && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Notes</h4>
+                        <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap">
+                          {orderDetails.notes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>

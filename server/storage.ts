@@ -2969,6 +2969,7 @@ export class DatabaseStorage implements IStorage {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ quotations: any[]; total: number }> {
@@ -3000,6 +3001,11 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.endDate) {
       conditions.push(lte(quotations.createdAt, filters.endDate));
+    }
+    
+    // Search by quotation ID (case-insensitive)
+    if (filters?.search) {
+      conditions.push(ilike(quotations.quotationId, `%${filters.search}%`));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
