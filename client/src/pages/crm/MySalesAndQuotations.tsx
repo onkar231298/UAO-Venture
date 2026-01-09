@@ -38,6 +38,7 @@ interface Quotation {
   id: number;
   quotationId: string;
   customerId: string | null;
+  customerCompanyName: string | null;
   totalAmount: string | null;
   currency: string;
   status: string;
@@ -344,11 +345,11 @@ export default function MySalesAndQuotations() {
                         <tr className="border-b text-left">
                           <th className="pb-3 font-medium">Quotation ID</th>
                           <th className="pb-3 font-medium">Lead ID</th>
+                          <th className="pb-3 font-medium">Company</th>
                           <th className="pb-3 font-medium">Product</th>
                           <th className="pb-3 font-medium">Amount</th>
                           <th className="pb-3 font-medium">Status</th>
                           <th className="pb-3 font-medium">Created</th>
-                          <th className="pb-3 font-medium">Valid Until</th>
                           <th className="pb-3 font-medium text-right">Actions</th>
                         </tr>
                       </thead>
@@ -366,16 +367,19 @@ export default function MySalesAndQuotations() {
                             </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                <span className="truncate max-w-[150px]">{quotation.customerCompanyName || '-'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3">
+                              <div className="flex items-center gap-2">
                                 <Package className="h-4 w-4 text-muted-foreground" />
-                                <span className="truncate max-w-[200px]">{quotation.productName || '-'}</span>
+                                <span className="truncate max-w-[150px]">{quotation.productName || '-'}</span>
                               </div>
                             </td>
                             <td className="py-3">{formatCurrency(quotation.totalAmount, quotation.currency)}</td>
                             <td className="py-3">{getStatusBadge(quotation.status)}</td>
                             <td className="py-3">{format(new Date(quotation.createdAt), 'MMM d, yyyy')}</td>
-                            <td className="py-3">
-                              {quotation.validUntil ? format(new Date(quotation.validUntil), 'MMM d, yyyy') : '-'}
-                            </td>
                             <td className="py-3">
                               <div className="flex items-center justify-end gap-2">
                                 <Button
