@@ -92,7 +92,7 @@ const companySchema = z.object({
   gstNumber: z.string().optional(),
   industryType: z.string().optional(),
   companySize: z.string().optional(),
-  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  website: z.string().optional().or(z.literal("")),
   
   // Primary Address
   addressStreet: z.string().optional(),
