@@ -62,6 +62,7 @@ import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
+import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -801,6 +802,7 @@ export default function CompanyManagement() {
     unit: 'kg',
   });
   const [activityFilter, setActivityFilter] = useState<'email' | 'call' | null>(null);
+  const [showBulkEmailComposer, setShowBulkEmailComposer] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1612,6 +1614,16 @@ export default function CompanyManagement() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => setShowBulkEmailComposer(true)}
+                  data-testid="button-bulk-email"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Bulk Email
+                </Button>
                 {isAdmin && (
                   <Button 
                     variant="destructive" 
@@ -3510,6 +3522,13 @@ export default function CompanyManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Email Composer */}
+      <BulkEmailComposer
+        open={showBulkEmailComposer}
+        onOpenChange={setShowBulkEmailComposer}
+        preSelectedCompanyIds={selectedCompanies}
+      />
     </div>
   );
 }
