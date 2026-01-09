@@ -11660,7 +11660,7 @@ We look forward to hearing from you.`;
       
       const { name, subject, htmlContent, textContent, companyIds, fromName, replyTo, templateId, scheduledAt } = validationResult.data;
 
-      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail } = await import('./sendgridService');
+      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail, getCompanyContacts } = await import('./sendgridService');
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
       
       // Get companies based on role
@@ -11670,6 +11670,9 @@ We look forward to hearing from you.`;
       if (selectedCompanies.length === 0) {
         return res.status(400).json({ message: 'No valid companies selected' });
       }
+
+      // Get all contacts for selected companies
+      const allContacts = await getCompanyContacts(companyIds);
 
       // Create campaign
       const campaignId = await createCampaign(
@@ -11686,6 +11689,7 @@ We look forward to hearing from you.`;
 
       // If not scheduled, send immediately
       if (!scheduledAt) {
+        // Start with primary company emails
         const recipients = selectedCompanies
           .filter((c: any) => c.email)
           .map((c: any) => ({
@@ -11694,6 +11698,23 @@ We look forward to hearing from you.`;
             companyName: c.name,
             companyId: c.id,
           }));
+        
+        // Add all additional contacts from company_contacts table
+        for (const contact of allContacts) {
+          if (contact.email) {
+            const company = selectedCompanies.find((c: any) => c.id === contact.companyId);
+            // Avoid duplicates - only add if email is different from primary
+            const isDuplicate = recipients.some(r => r.email.toLowerCase() === contact.email.toLowerCase());
+            if (!isDuplicate && company) {
+              recipients.push({
+                email: contact.email,
+                contactName: contact.name || undefined,
+                companyName: company.name,
+                companyId: contact.companyId,
+              });
+            }
+          }
+        }
 
         const result = await sendBulkEmails(
           campaignId,

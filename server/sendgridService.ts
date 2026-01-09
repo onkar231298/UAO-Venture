@@ -1,6 +1,6 @@
 import sgMail from "@sendgrid/mail";
 import { db } from "./db";
-import { emailCampaigns, emailCampaignRecipients, emailTemplates, companies } from "@shared/schema";
+import { emailCampaigns, emailCampaignRecipients, emailTemplates, companies, companyContacts } from "@shared/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -259,26 +259,39 @@ export async function deleteTemplate(id: number): Promise<boolean> {
 }
 
 export async function getCompaniesForBulkEmail(userId: string, isAdmin: boolean) {
-  if (isAdmin) {
-    return db.select({
-      id: companies.id,
-      name: companies.companyName,
-      email: companies.primaryEmail,
-    })
-    .from(companies)
-    .where(eq(companies.status, "active"));
-  }
+  const baseQuery = isAdmin 
+    ? db.select({
+        id: companies.id,
+        name: companies.companyName,
+        email: companies.primaryEmail,
+      })
+      .from(companies)
+      .where(eq(companies.status, "active"))
+    : db.select({
+        id: companies.id,
+        name: companies.companyName,
+        email: companies.primaryEmail,
+      })
+      .from(companies)
+      .where(and(
+        eq(companies.status, "active"),
+        eq(companies.assignedTo, userId)
+      ));
+  
+  return baseQuery;
+}
+
+export async function getCompanyContacts(companyIds: number[]) {
+  if (companyIds.length === 0) return [];
   
   return db.select({
-    id: companies.id,
-    name: companies.companyName,
-    email: companies.primaryEmail,
+    id: companyContacts.id,
+    companyId: companyContacts.companyId,
+    name: companyContacts.name,
+    email: companyContacts.email,
   })
-  .from(companies)
-  .where(and(
-    eq(companies.status, "active"),
-    eq(companies.assignedTo, userId)
-  ));
+  .from(companyContacts)
+  .where(inArray(companyContacts.companyId, companyIds));
 }
 
 export async function getCampaignStats(campaignId: number) {
