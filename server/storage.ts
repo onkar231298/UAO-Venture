@@ -3036,9 +3036,15 @@ export class DatabaseStorage implements IStorage {
           salesOrderId: quotations.salesOrderId,
           customerCompanyName: sql<string>`COALESCE(NULLIF(${quotations.customerCompanyName}, ''), ${companies.companyName})`,
           leadDisplayId: sql<string | null>`${leads.leadId}`,
-          // Product info from inquiry
-          productName: products.name,
-          productId: products.productId,
+          // Product info - try quotation_items first, then fall back to inquiry
+          productName: sql<string | null>`COALESCE(
+            (SELECT p.name FROM quotation_items qi JOIN products p ON qi.product_id = p.id WHERE qi.quotation_id = ${quotations.id} LIMIT 1),
+            ${products.name}
+          )`,
+          productId: sql<string | null>`COALESCE(
+            (SELECT p.product_id FROM quotation_items qi JOIN products p ON qi.product_id = p.id WHERE qi.quotation_id = ${quotations.id} LIMIT 1),
+            ${products.productId}
+          )`,
           // Inquiry details for missing quotation items
           quantity: inquiries.quantity,
           unit: inquiries.unit,
