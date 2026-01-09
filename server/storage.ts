@@ -349,9 +349,12 @@ export interface IStorage {
   // Quotation operations
   getQuotations(filters?: {
     customerId?: string;
+    createdBy?: string;
     inquiryId?: number;
     leadId?: number;
     status?: string;
+    startDate?: Date;
+    endDate?: Date;
     limit?: number;
     offset?: number;
   }): Promise<{ quotations: Quotation[]; total: number }>;
@@ -2960,9 +2963,12 @@ export class DatabaseStorage implements IStorage {
   // Quotation operations
   async getQuotations(filters?: {
     customerId?: string;
+    createdBy?: string;
     inquiryId?: number;
     leadId?: number;
     status?: string;
+    startDate?: Date;
+    endDate?: Date;
     limit?: number;
     offset?: number;
   }): Promise<{ quotations: any[]; total: number }> {
@@ -2970,6 +2976,10 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.customerId) {
       conditions.push(eq(quotations.customerId, filters.customerId));
+    }
+    
+    if (filters?.createdBy) {
+      conditions.push(eq(quotations.createdBy, filters.createdBy));
     }
     
     if (filters?.inquiryId) {
@@ -2982,6 +2992,14 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.status) {
       conditions.push(eq(quotations.status, filters.status));
+    }
+    
+    if (filters?.startDate) {
+      conditions.push(gte(quotations.createdAt, filters.startDate));
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(lte(quotations.createdAt, filters.endDate));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

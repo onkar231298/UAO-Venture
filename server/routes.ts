@@ -2836,7 +2836,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Get quotations
+  // Get quotations with role-based filtering
   app.get('/api/quotations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -2846,7 +2846,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { status, limit = '50', offset = '0' } = req.query;
+      const { status, myOnly, startDate, endDate, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -2856,10 +2856,21 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Role-based filtering
       if (user.role === 'customer') {
         filters.customerId = userId;
+      } else if (myOnly === 'true' || (user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        // Sales agents see only their own quotations, or admin can filter to their own with myOnly=true
+        filters.createdBy = userId;
       }
 
       if (status) {
         filters.status = status as string;
+      }
+      
+      if (startDate) {
+        filters.startDate = new Date(startDate as string);
+      }
+      
+      if (endDate) {
+        filters.endDate = new Date(endDate as string);
       }
 
       const result = await storage.getQuotations(filters);
@@ -2867,6 +2878,93 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error("Error fetching quotations:", error);
       res.status(500).json({ message: "Failed to fetch quotations" });
+    }
+  });
+  
+  // Get sales metrics for dashboard (weekly stats, totals)
+  app.get('/api/sales-metrics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      
+      // Calculate date ranges
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      // Build filters based on role
+      const quotationFilters: any = { startDate: weekStart };
+      const soFilters: any = { startDate: weekStart };
+      
+      if (!isAdmin) {
+        quotationFilters.createdBy = userId;
+        soFilters.assignedToUserId = userId;
+      }
+      
+      // Get weekly quotations
+      const weeklyQuotations = await storage.getQuotations({
+        ...quotationFilters,
+        limit: 1000,
+      });
+      
+      // Get weekly sales orders
+      const weeklySalesOrders = await storage.getSalesOrders({
+        ...soFilters,
+        limit: 1000,
+      });
+      
+      // Calculate totals
+      const weeklyQuotationValue = weeklyQuotations.quotations.reduce((sum: number, q: any) => 
+        sum + (parseFloat(q.totalAmount) || 0), 0);
+      
+      const weeklySoValue = weeklySalesOrders.orders.reduce((sum: number, so: any) => 
+        sum + (parseFloat(so.grandTotal) || 0), 0);
+      
+      // Get all-time totals for current user/all
+      const allQuotationFilters: any = { limit: 10000 };
+      const allSoFilters: any = { limit: 10000 };
+      
+      if (!isAdmin) {
+        allQuotationFilters.createdBy = userId;
+        allSoFilters.assignedToUserId = userId;
+      }
+      
+      const allQuotations = await storage.getQuotations(allQuotationFilters);
+      const allSalesOrders = await storage.getSalesOrders(allSoFilters);
+      
+      const totalQuotationValue = allQuotations.quotations.reduce((sum: number, q: any) => 
+        sum + (parseFloat(q.totalAmount) || 0), 0);
+      
+      const totalSoValue = allSalesOrders.orders.reduce((sum: number, so: any) => 
+        sum + (parseFloat(so.grandTotal) || 0), 0);
+      
+      res.json({
+        weekly: {
+          quotationsCount: weeklyQuotations.total,
+          quotationsValue: weeklyQuotationValue,
+          salesOrdersCount: weeklySalesOrders.total,
+          salesOrdersValue: weeklySoValue,
+        },
+        total: {
+          quotationsCount: allQuotations.total,
+          quotationsValue: totalQuotationValue,
+          salesOrdersCount: allSalesOrders.total,
+          salesOrdersValue: totalSoValue,
+        },
+        isAdmin,
+      });
+    } catch (error) {
+      console.error("Error fetching sales metrics:", error);
+      res.status(500).json({ message: "Failed to fetch sales metrics" });
     }
   });
 
@@ -3412,7 +3510,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Get sales orders with enhanced filtering
+  // Get sales orders with enhanced filtering and role-based access
   app.get('/api/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -3422,7 +3520,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { status, companyId, leadId, assignedToUserId, startDate, endDate, search, limit = '50', offset = '0' } = req.query;
+      const { status, companyId, leadId, assignedToUserId, myOnly, startDate, endDate, search, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -3432,6 +3530,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Role-based filtering
       if (user.role === 'customer') {
         filters.customerId = userId;
+      } else if (myOnly === 'true' || (user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        // Sales agents see only their assigned sales orders, or admin can filter with myOnly=true
+        filters.assignedToUserId = userId;
       }
 
       if (status) {
@@ -3446,7 +3547,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         filters.leadId = parseInt(leadId as string);
       }
       
-      if (assignedToUserId) {
+      // Only apply assignedToUserId filter if explicitly provided and different from role-based filter
+      if (assignedToUserId && !filters.assignedToUserId) {
         filters.assignedToUserId = assignedToUserId as string;
       }
       

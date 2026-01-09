@@ -14,6 +14,7 @@ import {
   Mail,
   User,
   LogOut,
+  FileText,
 } from "lucide-react";
 
 interface SalesLayoutProps {
@@ -91,6 +92,16 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
               >
                 <Building2 className="w-4 h-4 mr-3" />
                 My Companies
+              </Button>
+            </Link>
+            <Link href="/sales/my-sales">
+              <Button
+                variant={isActive('/sales/my-sales') ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                data-testid="nav-my-sales"
+              >
+                <FileText className="w-4 h-4 mr-3" />
+                My Sales & Quotations
               </Button>
             </Link>
           </div>

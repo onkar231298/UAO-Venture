@@ -63,6 +63,7 @@ import OrganicHerbs from "@/pages/OrganicHerbs";
 import EUOrganicSpices from "@/pages/EUOrganicSpices";
 import EmailSettings from "@/pages/crm/EmailSettings";
 import MyCompanies from "@/pages/crm/MyCompanies";
+import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 
 // Helper component for product URL redirect
@@ -160,6 +161,7 @@ function Router() {
               <Route path="/sales" component={SalesPersonDashboard} />
               <Route path="/sales/leads" component={SalesLeadManagement} />
               <Route path="/sales/my-companies" component={MyCompanies} />
+              <Route path="/sales/my-sales" component={MySalesAndQuotations} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
               <Route path="/crm/email-settings" component={EmailSettings} />
             </>
