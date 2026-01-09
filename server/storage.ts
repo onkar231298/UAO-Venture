@@ -3034,7 +3034,7 @@ export class DatabaseStorage implements IStorage {
           sentAt: quotations.sentAt,
           sentBy: quotations.sentBy,
           salesOrderId: quotations.salesOrderId,
-          customerCompanyName: quotations.customerCompanyName,
+          customerCompanyName: sql<string>`COALESCE(NULLIF(${quotations.customerCompanyName}, ''), ${companies.companyName})`,
           // Product info from inquiry
           productName: products.name,
           productId: products.productId,
@@ -3048,6 +3048,8 @@ export class DatabaseStorage implements IStorage {
         .from(quotations)
         .leftJoin(inquiries, eq(quotations.inquiryId, inquiries.id))
         .leftJoin(products, eq(inquiries.productId, products.id))
+        .leftJoin(leads, eq(quotations.leadId, leads.id))
+        .leftJoin(companies, eq(leads.companyId, companies.id))
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
@@ -3336,8 +3338,53 @@ export class DatabaseStorage implements IStorage {
 
     const [ordersResult, totalResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: salesOrders.id,
+          soNumber: salesOrders.soNumber,
+          quotationId: salesOrders.quotationId,
+          leadId: salesOrders.leadId,
+          companyId: salesOrders.companyId,
+          customerId: salesOrders.customerId,
+          assignedToUserId: salesOrders.assignedToUserId,
+          customerContactName: salesOrders.customerContactName,
+          customerEmail: salesOrders.customerEmail,
+          customerPhone: salesOrders.customerPhone,
+          customerCompanyName: sql<string>`COALESCE(NULLIF(${salesOrders.customerCompanyName}, ''), ${companies.companyName})`,
+          customerAddress: salesOrders.customerAddress,
+          customerCity: salesOrders.customerCity,
+          customerState: salesOrders.customerState,
+          customerCountry: salesOrders.customerCountry,
+          customerPostalCode: salesOrders.customerPostalCode,
+          shippingAddress: salesOrders.shippingAddress,
+          shippingCity: salesOrders.shippingCity,
+          shippingState: salesOrders.shippingState,
+          shippingCountry: salesOrders.shippingCountry,
+          shippingPostalCode: salesOrders.shippingPostalCode,
+          subtotal: salesOrders.subtotal,
+          taxAmount: salesOrders.taxAmount,
+          shippingCost: salesOrders.shippingCost,
+          discountAmount: salesOrders.discountAmount,
+          grandTotal: salesOrders.grandTotal,
+          currency: salesOrders.currency,
+          paymentTerms: salesOrders.paymentTerms,
+          paymentMethod: salesOrders.paymentMethod,
+          paymentStatus: salesOrders.paymentStatus,
+          deliveryMethod: salesOrders.deliveryMethod,
+          expectedDeliveryDate: salesOrders.expectedDeliveryDate,
+          actualDeliveryDate: salesOrders.actualDeliveryDate,
+          trackingNumber: salesOrders.trackingNumber,
+          status: salesOrders.status,
+          notes: salesOrders.notes,
+          internalNotes: salesOrders.internalNotes,
+          terms: salesOrders.terms,
+          createdAt: salesOrders.createdAt,
+          updatedAt: salesOrders.updatedAt,
+          sentAt: salesOrders.sentAt,
+          sentBy: salesOrders.sentBy,
+          companyName: companies.companyName,
+        })
         .from(salesOrders)
+        .leftJoin(companies, eq(salesOrders.companyId, companies.id))
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
