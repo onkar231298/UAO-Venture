@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -13,10 +16,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown
+  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown, Edit2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -742,6 +746,21 @@ const PRIORITY_COLORS: Record<string, string> = {
   normal: "bg-gray-100 text-gray-800",
 };
 
+const companyEditSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  primaryEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+  primaryPhone: z.string().optional(),
+  gstNumber: z.string().optional(),
+  industryType: z.string().optional(),
+  companySize: z.string().optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  addressStreet: z.string().optional(),
+  addressCity: z.string().optional(),
+  addressState: z.string().optional(),
+  addressCountry: z.string().optional(),
+  addressZip: z.string().optional(),
+});
+
 interface DroppableColumnProps {
   id: string;
   children: React.ReactNode;
@@ -878,6 +897,29 @@ export default function MyCompanies() {
     unit: 'kg',
   });
 
+  // Edit Company state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
+
+  // Edit company form
+  const editForm = useForm<z.infer<typeof companyEditSchema>>({
+    resolver: zodResolver(companyEditSchema),
+    defaultValues: {
+      companyName: "",
+      primaryEmail: "",
+      primaryPhone: "",
+      gstNumber: "",
+      industryType: "",
+      companySize: "",
+      website: "",
+      addressStreet: "",
+      addressCity: "",
+      addressState: "",
+      addressCountry: "",
+      addressZip: "",
+    },
+  });
+
   // Fetch products for the dropdown
   const { data: productsData } = useQuery<{ products: Array<{ id: number; productId: string; name: string; description: string | null }> }>({
     queryKey: ['/api/products', { limit: 1000 }],
@@ -999,6 +1041,53 @@ export default function MyCompanies() {
       });
     },
   });
+
+  // Edit company mutation
+  const editCompanyMutation = useMutation({
+    mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companyEditSchema> }) => {
+      return apiRequest(`/api/crm/companies/${companyId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+      setShowEditDialog(false);
+      setCompanyToEdit(null);
+      editForm.reset();
+      toast({
+        title: "Success",
+        description: "Company updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Open edit dialog with company data
+  const handleOpenEditDialog = (company: Company) => {
+    setCompanyToEdit(company);
+    editForm.reset({
+      companyName: company.companyName || "",
+      primaryEmail: company.primaryEmail || "",
+      primaryPhone: company.primaryPhone || "",
+      gstNumber: "",
+      industryType: "",
+      companySize: "",
+      website: company.website || "",
+      addressStreet: "",
+      addressCity: company.addressCity || "",
+      addressState: "",
+      addressCountry: company.addressCountry || "",
+      addressZip: "",
+    });
+    setShowEditDialog(true);
+  };
 
   // Handler for email action
   const handleEmailAction = (company: Company) => {
@@ -1621,6 +1710,15 @@ export default function MyCompanies() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEditDialog(selectedCompany)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit Company
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1900,6 +1998,181 @@ export default function MyCompanies() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Company Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowEditDialog(false);
+          setCompanyToEdit(null);
+          editForm.reset();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-5 w-5" />
+              Edit Company
+            </DialogTitle>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit((data) => {
+              if (companyToEdit) {
+                editCompanyMutation.mutate({ companyId: companyToEdit.id, data });
+              }
+            })} className="space-y-4">
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name *</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter company name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="primaryEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" placeholder="email@company.com" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="primaryPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="+1234567890" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="website"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Website</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://company.com" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Address</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="addressStreet"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter street address" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="City" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressState"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State/Province</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="State" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressZip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Postal code" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditDialog(false);
+                    setCompanyToEdit(null);
+                    editForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editCompanyMutation.isPending}
+                >
+                  {editCompanyMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
       </div>
