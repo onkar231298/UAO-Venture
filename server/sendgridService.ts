@@ -4,7 +4,7 @@ import { emailCampaigns, emailCampaignRecipients, emailTemplates, companies } fr
 import { eq, and, inArray, sql } from "drizzle-orm";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const DEFAULT_FROM_EMAIL = "noreply@brightfameorganic.com";
+const DEFAULT_FROM_EMAIL = "sales@bright-organic.com";
 const DEFAULT_FROM_NAME = "Bright Fame Organic";
 
 if (SENDGRID_API_KEY) {
