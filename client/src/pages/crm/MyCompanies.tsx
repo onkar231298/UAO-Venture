@@ -904,6 +904,7 @@ export default function MyCompanies() {
   
   // Bulk Email state
   const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<number[]>([]);
 
   // Edit company form
   const editForm = useForm<z.infer<typeof companyEditSchema>>({
@@ -1188,7 +1189,7 @@ export default function MyCompanies() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Mail className="h-4 w-4 mr-1" />
-              Bulk Email
+              Bulk Email {bulkSelectedIds.length > 0 && `(${bulkSelectedIds.length})`}
             </Button>
             
             <Button
@@ -1374,6 +1375,18 @@ export default function MyCompanies() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="p-3 w-10">
+                    <Checkbox 
+                      checked={filteredCompanies.length > 0 && bulkSelectedIds.length === filteredCompanies.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setBulkSelectedIds(filteredCompanies.map(c => c.id));
+                        } else {
+                          setBulkSelectedIds([]);
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="text-left p-3 font-medium">Company</th>
                   <th className="text-left p-3 font-medium">Contact</th>
                   <th className="text-left p-3 font-medium">Location</th>
@@ -1385,7 +1398,7 @@ export default function MyCompanies() {
               <tbody>
                 {filteredCompanies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       No companies found
                     </td>
                   </tr>
@@ -1399,6 +1412,18 @@ export default function MyCompanies() {
                         onClick={() => setSelectedCompany(company)}
                         data-testid={`row-company-${company.id}`}
                       >
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox 
+                            checked={bulkSelectedIds.includes(company.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setBulkSelectedIds([...bulkSelectedIds, company.id]);
+                              } else {
+                                setBulkSelectedIds(bulkSelectedIds.filter(id => id !== company.id));
+                              }
+                            }}
+                          />
+                        </td>
                         <td className="p-3">
                           <div className="font-medium">{company.companyName}</div>
                           {company.origin === 'website' && (
@@ -2193,7 +2218,13 @@ export default function MyCompanies() {
       {/* Bulk Email Composer Dialog */}
       <BulkEmailComposer
         open={showBulkEmailDialog}
-        onOpenChange={setShowBulkEmailDialog}
+        onOpenChange={(open) => {
+          setShowBulkEmailDialog(open);
+          if (!open) {
+            setBulkSelectedIds([]);
+          }
+        }}
+        preSelectedCompanyIds={bulkSelectedIds}
       />
       </div>
     </SalesLayout>

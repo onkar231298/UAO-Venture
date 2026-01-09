@@ -526,60 +526,91 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       <Users className="h-4 w-4" />
                       Recipients ({selectedCompanyIds.length})
                     </Label>
-                    <div className="relative mb-2">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                      <Input
-                        placeholder="Search..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-7 h-8 text-sm"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAll}
-                      className="w-full mb-2 h-7 text-xs"
-                    >
-                      {selectedCompanyIds.length === companiesWithEmail.length ? (
-                        <><CheckSquare className="h-3 w-3 mr-1" />Deselect All</>
-                      ) : (
-                        <><Square className="h-3 w-3 mr-1" />Select All ({companiesWithEmail.length})</>
-                      )}
-                    </Button>
-                    <ScrollArea className="h-40 border rounded-md">
-                      {isLoadingCompanies ? (
-                        <div className="flex items-center justify-center h-full">
-                          <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                    {preSelectedCompanyIds.length > 0 ? (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-center gap-2 text-green-700 mb-2">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="font-medium text-sm">{selectedCompanyIds.length} companies selected</span>
                         </div>
-                      ) : companiesWithEmail.length === 0 ? (
-                        <div className="text-center py-4 text-muted-foreground text-xs">
-                          <AlertCircle className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                          <p>No companies found</p>
-                        </div>
-                      ) : (
-                        <div className="p-1 space-y-0.5">
-                          {companiesWithEmail.map((company) => (
-                            <div
-                              key={company.id}
-                              className={`flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-gray-50 text-xs ${
-                                selectedCompanyIds.includes(company.id) ? 'bg-green-50' : ''
-                              }`}
-                              onClick={() => handleToggleCompany(company.id)}
-                            >
-                              <Checkbox
-                                checked={selectedCompanyIds.includes(company.id)}
-                                className="h-3 w-3"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{company.name}</p>
-                                <p className="text-muted-foreground truncate">{company.email}</p>
+                        <ScrollArea className="h-32">
+                          <div className="space-y-1">
+                            {companies.filter(c => selectedCompanyIds.includes(c.id)).map((company) => (
+                              <div key={company.id} className="text-xs flex items-center justify-between bg-white rounded px-2 py-1">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{company.name}</p>
+                                  <p className="text-muted-foreground truncate">{company.email}</p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0"
+                                  onClick={() => setSelectedCompanyIds(selectedCompanyIds.filter(id => id !== company.id))}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                          <Input
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-7 h-8 text-sm"
+                          />
                         </div>
-                      )}
-                    </ScrollArea>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          className="w-full mb-2 h-7 text-xs"
+                        >
+                          {selectedCompanyIds.length === companiesWithEmail.length ? (
+                            <><CheckSquare className="h-3 w-3 mr-1" />Deselect All</>
+                          ) : (
+                            <><Square className="h-3 w-3 mr-1" />Select All ({companiesWithEmail.length})</>
+                          )}
+                        </Button>
+                        <ScrollArea className="h-40 border rounded-md">
+                          {isLoadingCompanies ? (
+                            <div className="flex items-center justify-center h-full">
+                              <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                            </div>
+                          ) : companiesWithEmail.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground text-xs">
+                              <AlertCircle className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                              <p>No companies found</p>
+                            </div>
+                          ) : (
+                            <div className="p-1 space-y-0.5">
+                              {companiesWithEmail.map((company) => (
+                                <div
+                                  key={company.id}
+                                  className={`flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-gray-50 text-xs ${
+                                    selectedCompanyIds.includes(company.id) ? 'bg-green-50' : ''
+                                  }`}
+                                  onClick={() => handleToggleCompany(company.id)}
+                                >
+                                  <Checkbox
+                                    checked={selectedCompanyIds.includes(company.id)}
+                                    className="h-3 w-3"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{company.name}</p>
+                                    <p className="text-muted-foreground truncate">{company.email}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
