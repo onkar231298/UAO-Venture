@@ -8654,13 +8654,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Frejun OAuth callback (supports both URL patterns)
-  app.get('/api/voice/frejun/oauth/callback', async (req, res) => {
+  // Shared Frejun OAuth callback handler (supports both GET and POST)
+  const handleFrejunOAuthCallback = async (req: any, res: any) => {
     try {
-      const { code, email, state } = req.query;
+      // Support both query params (GET) and body params (POST)
+      const code = req.query.code || req.body?.code;
+      const email = req.query.email || req.body?.email;
+      const state = req.query.state || req.body?.state;
       const { frejunService } = await import('./frejunService');
       
-      console.log('Frejun OAuth callback received - code:', code ? 'present' : 'missing', 'email:', email, 'state:', state);
+      console.log('Frejun OAuth callback received - method:', req.method, 'code:', code ? 'present' : 'missing', 'email:', email, 'state:', state);
       
       if (!code) {
         return res.redirect('/admin/settings?frejun=error&reason=no_code');
@@ -8711,44 +8714,15 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       console.error('Error in Frejun OAuth callback:', error);
       res.redirect('/admin/settings?frejun=error&reason=callback_failed');
     }
-  });
+  };
 
-  // Legacy callback path (backward compatibility)
-  app.get('/api/voice/frejun/callback', async (req, res) => {
-    try {
-      const { code, email, state } = req.query;
-      const { frejunService } = await import('./frejunService');
-      
-      if (!code) {
-        return res.redirect('/admin/settings?frejun=error&reason=no_code');
-      }
-      
-      const tokenResult = await frejunService.exchangeCodeForTokens(code as string);
-      
-      if (!tokenResult.success || !tokenResult.accessToken) {
-        return res.redirect('/admin/settings?frejun=error&reason=token_exchange_failed');
-      }
-      
-      // Store the token for this user (state contains userId)
-      const userId = state as string;
-      if (userId) {
-        const expiresAt = new Date();
-        expiresAt.setSeconds(expiresAt.getSeconds() + (tokenResult.expiresIn || 3600));
-        
-        await frejunService.storeUserToken(userId, {
-          accessToken: tokenResult.accessToken,
-          refreshToken: tokenResult.refreshToken || '',
-          expiresAt,
-          userEmail: email as string || '',
-        });
-      }
-      
-      res.redirect('/admin/settings?frejun=connected');
-    } catch (error) {
-      console.error('Error in Frejun OAuth callback:', error);
-      res.redirect('/admin/settings?frejun=error&reason=callback_failed');
-    }
-  });
+  // Frejun OAuth callback (supports both GET and POST methods)
+  app.get('/api/voice/frejun/oauth/callback', handleFrejunOAuthCallback);
+  app.post('/api/voice/frejun/oauth/callback', handleFrejunOAuthCallback);
+
+  // Legacy callback path (backward compatibility) - supports both GET and POST
+  app.get('/api/voice/frejun/callback', handleFrejunOAuthCallback);
+  app.post('/api/voice/frejun/callback', handleFrejunOAuthCallback);
 
   // Get Frejun dialer widget configuration
   app.get('/api/voice/frejun/dialer-config', isAuthenticated, async (req: any, res) => {

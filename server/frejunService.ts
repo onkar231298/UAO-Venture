@@ -174,9 +174,10 @@ class FrejunService {
       };
     }
 
-    // Correct OAuth 2.0 endpoint: POST https://product.frejun.com/oauth/token
+    // Correct OAuth 2.0 endpoint: POST https://product.frejun.com/oauth/token/
     // Use Basic auth with client_id:client_secret, form body with grant_type, code, redirect_uri
-    const tokenUrl = `${FREJUN_PRODUCT_URL}/oauth/token`;
+    // Note: Trailing slash is required for Frejun's OAuth endpoint
+    const tokenUrl = `${FREJUN_PRODUCT_URL}/oauth/token/`;
     
     try {
       // Create Base64 encoded authorization header for Basic auth
@@ -236,7 +237,8 @@ class FrejunService {
       const credentials = `${FREJUN_CLIENT_ID}:${FREJUN_CLIENT_SECRET}`;
       const base64Credentials = Buffer.from(credentials).toString('base64');
       
-      const tokenUrl = `${FREJUN_PRODUCT_URL}/oauth/token`;
+      // Note: Trailing slash is required for Frejun's OAuth endpoint
+      const tokenUrl = `${FREJUN_PRODUCT_URL}/oauth/token/`;
       
       console.log('Attempting Frejun token refresh');
 
