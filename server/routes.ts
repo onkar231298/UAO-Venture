@@ -5682,10 +5682,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const { departmentPhones, additionalEmails, ...companyFields } = req.body;
       
+      // Get user role to determine auto-assignment
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      
+      // Auto-assign to creating user if they're a sales agent (not admin)
+      // Admins can manually assign, so we don't auto-assign for them
+      const assignedTo = isAdmin ? companyFields.assignedTo : userId;
+      
       const companyData = insertCompanySchema.parse({
         ...companyFields,
         origin: companyFields.origin || 'manual',
-        createdBy: userId
+        createdBy: userId,
+        assignedTo: assignedTo || null,
       });
       const company = await storage.createCompany(companyData);
       
