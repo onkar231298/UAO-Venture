@@ -262,23 +262,21 @@ export async function getCompaniesForBulkEmail(userId: string, isAdmin: boolean)
   if (isAdmin) {
     return db.select({
       id: companies.id,
-      name: companies.name,
-      email: companies.email,
-      contactName: companies.contactName,
+      name: companies.companyName,
+      email: companies.primaryEmail,
     })
     .from(companies)
-    .where(eq(companies.isActive, true));
+    .where(eq(companies.status, "active"));
   }
   
   return db.select({
     id: companies.id,
-    name: companies.name,
-    email: companies.email,
-    contactName: companies.contactName,
+    name: companies.companyName,
+    email: companies.primaryEmail,
   })
   .from(companies)
   .where(and(
-    eq(companies.isActive, true),
+    eq(companies.status, "active"),
     eq(companies.assignedTo, userId)
   ));
 }
