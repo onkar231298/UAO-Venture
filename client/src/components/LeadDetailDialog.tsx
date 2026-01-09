@@ -275,6 +275,18 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     enabled: open && !!lead?.id,
   });
 
+  // Fetch all company contacts for this lead
+  const { data: companyContacts = [] } = useQuery<any[]>({
+    queryKey: ['/api/crm/leads', lead?.id, 'company-contacts'],
+    queryFn: async () => {
+      if (!lead?.id) return [];
+      const response = await fetch(`/api/crm/leads/${lead.id}/company-contacts`);
+      if (!response.ok) throw new Error('Failed to fetch company contacts');
+      return response.json();
+    },
+    enabled: open && !!lead?.id,
+  });
+
   // Fetch user's email config
   const { data: emailConfig } = useQuery<any>({
     queryKey: ['/api/email/config'],
@@ -1408,6 +1420,75 @@ Packaging: Standard export packaging`,
                 </div>
               </CardContent>
             </Card>
+
+            {/* All Company Contacts */}
+            {companyContacts.length > 0 && (
+              <Card>
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    All Company Contacts ({companyContacts.length})
+                  </h3>
+                  <div className="space-y-4">
+                    {companyContacts.map((contact: any) => (
+                      <div 
+                        key={contact.id} 
+                        className={`p-3 rounded-lg border ${contact.isPrimary ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-medium">
+                              {contact.contactName}
+                              {contact.isPrimary && (
+                                <Badge variant="secondary" className="ml-2 text-xs">Primary</Badge>
+                              )}
+                            </p>
+                            {contact.designation && (
+                              <p className="text-sm text-gray-500">{contact.designation}</p>
+                            )}
+                          </div>
+                          {contact.role && (
+                            <Badge variant="outline" className="capitalize text-xs">{contact.role.replace('_', ' ')}</Badge>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          {contact.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3 w-3 text-gray-400" />
+                              <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                                {contact.email}
+                              </a>
+                            </div>
+                          )}
+                          {contact.phone && (
+                            <div className="flex items-center gap-2">
+                              <ClickToCall
+                                phoneNumber={`${contact.countryCode || ''}${contact.phone}`}
+                                contactName={contact.contactName}
+                                leadId={lead.id}
+                                companyId={lead.companyId || undefined}
+                              />
+                              <SendSmsButton
+                                phoneNumber={`${contact.countryCode || ''}${contact.phone}`}
+                                contactName={contact.contactName}
+                                leadId={lead.id}
+                                companyId={lead.companyId || undefined}
+                              />
+                            </div>
+                          )}
+                          {contact.whatsapp && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-3 w-3 text-green-500" />
+                              <span className="text-gray-600">WhatsApp: {contact.whatsapp}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Deal Information */}
             <Card>
