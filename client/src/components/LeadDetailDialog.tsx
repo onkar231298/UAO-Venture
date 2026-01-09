@@ -7,8 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck, Ship } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck, Ship, Edit2 } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const companyEditSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  primaryEmail: z.string().email().optional().or(z.literal("")),
+  primaryPhone: z.string().optional().or(z.literal("")),
+  website: z.string().optional().or(z.literal("")),
+  addressCity: z.string().optional().or(z.literal("")),
+  addressCountry: z.string().optional().or(z.literal("")),
+});
 import ActivityTimeline from "./ActivityTimeline";
 import { format, formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -129,6 +149,22 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     gstNumber: "",
     gstPercentage: "18",
   });
+  
+  // Edit company state
+  const [showEditCompanyDialog, setShowEditCompanyDialog] = useState(false);
+  
+  const editCompanyForm = useForm<z.infer<typeof companyEditSchema>>({
+    resolver: zodResolver(companyEditSchema),
+    defaultValues: {
+      companyName: "",
+      primaryEmail: "",
+      primaryPhone: "",
+      website: "",
+      addressCity: "",
+      addressCountry: "",
+    },
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -1028,6 +1064,51 @@ Packaging: Standard export packaging`,
     },
   });
 
+  // Edit company mutation
+  const editCompanyMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof companyEditSchema>) => {
+      if (!lead?.companyId) {
+        throw new Error("No company associated with this lead");
+      }
+      return apiRequest(`/api/crm/companies/${lead.companyId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+      setShowEditCompanyDialog(false);
+      editCompanyForm.reset();
+      toast({
+        title: "Success",
+        description: "Company updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Open edit company dialog with company data
+  const handleOpenEditCompanyDialog = () => {
+    if (lead?.company) {
+      editCompanyForm.reset({
+        companyName: lead.company.companyName || "",
+        primaryEmail: lead.company.primaryEmail || "",
+        primaryPhone: lead.company.primaryPhone || "",
+        website: lead.company.website || "",
+        addressCity: lead.company.addressCity || "",
+        addressCountry: lead.company.addressCountry || "",
+      });
+      setShowEditCompanyDialog(true);
+    }
+  };
+
   // Initialize quotation email form with default content
   const initializeQuotationEmailForm = (quote: any) => {
     const companyName = lead?.company?.companyName || lead?.companyName || 'Valued Customer';
@@ -1337,10 +1418,22 @@ Packaging: Standard export packaging`,
             {/* Company Information */}
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Building className="h-4 w-4" />
-                  Company Information
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Company Information
+                  </h3>
+                  {lead.companyId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenEditCompanyDialog}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Company Name</p>
@@ -4301,6 +4394,134 @@ Packaging: Standard export packaging`,
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Edit Company Dialog */}
+        <Dialog open={showEditCompanyDialog} onOpenChange={(open) => {
+          if (!open) {
+            setShowEditCompanyDialog(false);
+            editCompanyForm.reset();
+          }
+        }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit2 className="h-5 w-5" />
+                Edit Company
+              </DialogTitle>
+            </DialogHeader>
+
+            <Form {...editCompanyForm}>
+              <form onSubmit={editCompanyForm.handleSubmit((data) => {
+                editCompanyMutation.mutate(data);
+              })} className="space-y-4">
+                <FormField
+                  control={editCompanyForm.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter company name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editCompanyForm.control}
+                    name="primaryEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" placeholder="email@company.com" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editCompanyForm.control}
+                    name="primaryPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="+1234567890" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={editCompanyForm.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Website</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="https://company.com" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editCompanyForm.control}
+                    name="addressCity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="City" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editCompanyForm.control}
+                    name="addressCountry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Country" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditCompanyDialog(false);
+                      editCompanyForm.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={editCompanyMutation.isPending}
+                  >
+                    {editCompanyMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
