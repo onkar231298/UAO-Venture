@@ -45,6 +45,7 @@ interface Quotation {
   createdAt: string;
   validUntil: string | null;
   leadId: number | null;
+  leadDisplayId: string | null;
   productName: string | null;
   productId: string | null;
   sentAt: string | null;
@@ -55,7 +56,9 @@ interface SalesOrder {
   soNumber: string;
   companyId: number | null;
   companyName: string | null;
+  customerCompanyName: string | null;
   leadId: number | null;
+  leadDisplayId: string | null;
   grandTotal: string | null;
   currency: string;
   status: string;
@@ -358,10 +361,9 @@ export default function MySalesAndQuotations() {
                           <tr key={quotation.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 font-medium">{quotation.quotationId}</td>
                             <td className="py-3">
-                              {quotation.leadId ? (
-                                <Badge variant="outline" className="font-mono">
-                                  <Hash className="h-3 w-3 mr-1" />
-                                  {quotation.leadId}
+                              {quotation.leadDisplayId ? (
+                                <Badge variant="outline" className="font-mono text-xs">
+                                  {quotation.leadDisplayId}
                                 </Badge>
                               ) : '-'}
                             </td>
@@ -449,17 +451,16 @@ export default function MySalesAndQuotations() {
                           <tr key={order.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 font-medium">{order.soNumber}</td>
                             <td className="py-3">
-                              {order.leadId ? (
-                                <Badge variant="outline" className="font-mono">
-                                  <Hash className="h-3 w-3 mr-1" />
-                                  {order.leadId}
+                              {order.leadDisplayId ? (
+                                <Badge variant="outline" className="font-mono text-xs">
+                                  {order.leadDisplayId}
                                 </Badge>
                               ) : '-'}
                             </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                                <span className="truncate max-w-[200px]">{order.companyName || '-'}</span>
+                                <span className="truncate max-w-[150px]">{order.customerCompanyName || order.companyName || '-'}</span>
                               </div>
                             </td>
                             <td className="py-3">{formatCurrency(order.grandTotal, order.currency)}</td>

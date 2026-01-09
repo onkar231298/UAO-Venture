@@ -3035,6 +3035,7 @@ export class DatabaseStorage implements IStorage {
           sentBy: quotations.sentBy,
           salesOrderId: quotations.salesOrderId,
           customerCompanyName: sql<string>`COALESCE(NULLIF(${quotations.customerCompanyName}, ''), ${companies.companyName})`,
+          leadDisplayId: sql<string | null>`${leads.leadId}`,
           // Product info from inquiry
           productName: products.name,
           productId: products.productId,
@@ -3382,9 +3383,11 @@ export class DatabaseStorage implements IStorage {
           sentAt: salesOrders.sentAt,
           sentBy: salesOrders.sentBy,
           companyName: companies.companyName,
+          leadDisplayId: sql<string | null>`${leads.leadId}`,
         })
         .from(salesOrders)
         .leftJoin(companies, eq(salesOrders.companyId, companies.id))
+        .leftJoin(leads, eq(salesOrders.leadId, leads.id))
         .where(whereClause)
         .limit(filters?.limit || 50)
         .offset(filters?.offset || 0)
