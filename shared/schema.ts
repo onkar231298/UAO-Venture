@@ -2319,3 +2319,101 @@ export const insertFrejunTokenSchema = createInsertSchema(frejunTokens).omit({
 
 export type FrejunToken = typeof frejunTokens.$inferSelect;
 export type InsertFrejunToken = z.infer<typeof insertFrejunTokenSchema>;
+
+// Email Campaigns for bulk email functionality
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content"),
+  fromName: varchar("from_name", { length: 255 }),
+  replyToEmail: varchar("reply_to_email", { length: 255 }),
+  templateId: integer("template_id"),
+  status: varchar("status", { length: 50 }).default("draft"), // draft, scheduled, sending, sent, cancelled
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  totalRecipients: integer("total_recipients").default(0),
+  sentCount: integer("sent_count").default(0),
+  deliveredCount: integer("delivered_count").default(0),
+  openedCount: integer("opened_count").default(0),
+  clickedCount: integer("clicked_count").default(0),
+  bouncedCount: integer("bounced_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_email_campaigns_status").on(table.status),
+  index("idx_email_campaigns_created_by").on(table.createdBy),
+  index("idx_email_campaigns_scheduled").on(table.scheduledAt),
+]);
+
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+
+// Email Campaign Recipients
+export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => emailCampaigns.id),
+  companyId: integer("company_id").references(() => companies.id),
+  email: varchar("email", { length: 255 }).notNull(),
+  contactName: varchar("contact_name", { length: 255 }),
+  companyName: varchar("company_name", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, sent, delivered, opened, clicked, bounced, failed
+  sendgridMessageId: varchar("sendgrid_message_id", { length: 255 }),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  bounceReason: text("bounce_reason"),
+  failedAt: timestamp("failed_at"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_email_recipients_campaign").on(table.campaignId),
+  index("idx_email_recipients_company").on(table.companyId),
+  index("idx_email_recipients_status").on(table.status),
+  index("idx_email_recipients_email").on(table.email),
+]);
+
+export const insertEmailCampaignRecipientSchema = createInsertSchema(emailCampaignRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type EmailCampaignRecipient = typeof emailCampaignRecipients.$inferSelect;
+export type InsertEmailCampaignRecipient = z.infer<typeof insertEmailCampaignRecipientSchema>;
+
+// Email Templates for reusable content
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content"),
+  description: text("description"),
+  variables: jsonb("variables").$type<string[]>(), // List of available variables like {{company_name}}, {{contact_name}}
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_email_templates_active").on(table.isActive),
+]);
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;

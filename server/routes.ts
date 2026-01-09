@@ -11563,6 +11563,350 @@ We look forward to hearing from you.`;
     }
   });
 
+  // ============================================
+  // BULK EMAIL CAMPAIGNS (SendGrid Integration)
+  // ============================================
+
+  // Get companies available for bulk email (role-based) - must be before :id route
+  app.get('/api/email-campaigns/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+      
+      const { getCompaniesForBulkEmail } = await import('./sendgridService');
+      const companies = await getCompaniesForBulkEmail(userId, isAdmin);
+      res.json(companies);
+    } catch (error) {
+      console.error('Error fetching companies for bulk email:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
+  // Get all email campaigns (admin sees all, sales sees own)
+  app.get('/api/email-campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+      
+      const { getCampaigns } = await import('./sendgridService');
+      const campaigns = await getCampaigns(userId, isAdmin);
+      res.json(campaigns);
+    } catch (error) {
+      console.error('Error fetching email campaigns:', error);
+      res.status(500).json({ message: 'Failed to fetch email campaigns' });
+    }
+  });
+
+  // Get campaign by ID with stats
+  app.get('/api/email-campaigns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { getCampaignById, getCampaignStats } = await import('./sendgridService');
+      
+      const campaign = await getCampaignById(parseInt(id));
+      if (!campaign) {
+        return res.status(404).json({ message: 'Campaign not found' });
+      }
+      
+      const stats = await getCampaignStats(parseInt(id));
+      res.json({ ...campaign, stats });
+    } catch (error) {
+      console.error('Error fetching campaign:', error);
+      res.status(500).json({ message: 'Failed to fetch campaign' });
+    }
+  });
+
+  // Get campaign recipients
+  app.get('/api/email-campaigns/:id/recipients', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { getCampaignRecipients } = await import('./sendgridService');
+      const recipients = await getCampaignRecipients(parseInt(id));
+      res.json(recipients);
+    } catch (error) {
+      console.error('Error fetching campaign recipients:', error);
+      res.status(500).json({ message: 'Failed to fetch campaign recipients' });
+    }
+  });
+
+  // Create and send bulk email campaign
+  app.post('/api/email-campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Validate request body with Zod
+      const campaignSchema = z.object({
+        name: z.string().min(1, "Campaign name is required").max(255),
+        subject: z.string().min(1, "Subject is required").max(500),
+        htmlContent: z.string().min(1, "Email content is required"),
+        textContent: z.string().optional().nullable(),
+        companyIds: z.array(z.number()).min(1, "At least one company is required"),
+        fromName: z.string().optional(),
+        replyTo: z.string().email().optional().or(z.literal('')),
+        templateId: z.number().optional(),
+        scheduledAt: z.string().optional(),
+      });
+      
+      const validationResult = campaignSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Validation failed', 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { name, subject, htmlContent, textContent, companyIds, fromName, replyTo, templateId, scheduledAt } = validationResult.data;
+
+      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail } = await import('./sendgridService');
+      const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+      
+      // Get companies based on role
+      const availableCompanies = await getCompaniesForBulkEmail(userId, isAdmin);
+      const selectedCompanies = availableCompanies.filter((c: any) => companyIds.includes(c.id));
+      
+      if (selectedCompanies.length === 0) {
+        return res.status(400).json({ message: 'No valid companies selected' });
+      }
+
+      // Create campaign
+      const campaignId = await createCampaign(
+        name,
+        subject,
+        htmlContent,
+        textContent || null,
+        userId,
+        fromName,
+        replyTo,
+        templateId,
+        scheduledAt ? new Date(scheduledAt) : undefined
+      );
+
+      // If not scheduled, send immediately
+      if (!scheduledAt) {
+        const recipients = selectedCompanies
+          .filter((c: any) => c.email)
+          .map((c: any) => ({
+            email: c.email,
+            contactName: c.contactName,
+            companyName: c.name,
+            companyId: c.id,
+          }));
+
+        const result = await sendBulkEmails(
+          campaignId,
+          recipients,
+          subject,
+          htmlContent,
+          textContent,
+          fromName,
+          replyTo
+        );
+
+        res.json({ 
+          success: true, 
+          campaignId, 
+          sent: result.sent, 
+          failed: result.failed,
+          errors: result.errors.slice(0, 10)
+        });
+      } else {
+        res.json({ 
+          success: true, 
+          campaignId, 
+          message: 'Campaign scheduled successfully' 
+        });
+      }
+    } catch (error) {
+      console.error('Error creating email campaign:', error);
+      res.status(500).json({ message: 'Failed to create email campaign' });
+    }
+  });
+
+  // ============================================
+  // EMAIL TEMPLATES
+  // ============================================
+
+  // Get all templates
+  app.get('/api/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const { getTemplates } = await import('./sendgridService');
+      const templates = await getTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ message: 'Failed to fetch email templates' });
+    }
+  });
+
+  // Create template
+  app.post('/api/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Validate request body with Zod
+      const templateSchema = z.object({
+        name: z.string().min(1, "Template name is required").max(255),
+        subject: z.string().min(1, "Subject is required").max(500),
+        htmlContent: z.string().min(1, "HTML content is required"),
+        textContent: z.string().optional().nullable(),
+        description: z.string().optional().nullable(),
+        variables: z.array(z.string()).optional(),
+      });
+      
+      const validationResult = templateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Validation failed', 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { name, subject, htmlContent, textContent, description, variables } = validationResult.data;
+
+      const { createTemplate } = await import('./sendgridService');
+      const templateId = await createTemplate(
+        name,
+        subject,
+        htmlContent,
+        textContent || null,
+        description || null,
+        variables || ['contact_name', 'company_name'],
+        userId
+      );
+
+      res.json({ success: true, id: templateId });
+    } catch (error) {
+      console.error('Error creating email template:', error);
+      res.status(500).json({ message: 'Failed to create email template' });
+    }
+  });
+
+  // Update template
+  app.patch('/api/email-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Validate request body with Zod
+      const updateTemplateSchema = z.object({
+        name: z.string().min(1).max(255).optional(),
+        subject: z.string().min(1).max(500).optional(),
+        htmlContent: z.string().min(1).optional(),
+        textContent: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        variables: z.array(z.string()).optional(),
+        isActive: z.boolean().optional(),
+      });
+      
+      const validationResult = updateTemplateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Validation failed', 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { updateTemplate } = await import('./sendgridService');
+      await updateTemplate(parseInt(id), validationResult.data);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      res.status(500).json({ message: 'Failed to update email template' });
+    }
+  });
+
+  // Delete template (soft delete)
+  app.delete('/api/email-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { deleteTemplate } = await import('./sendgridService');
+      await deleteTemplate(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({ message: 'Failed to delete email template' });
+    }
+  });
+
+  // SendGrid webhook for email events (delivery, open, click, bounce)
+  // Optionally configure SENDGRID_WEBHOOK_VERIFICATION_KEY in secrets for signature verification
+  app.post('/api/webhooks/sendgrid', async (req, res) => {
+    try {
+      // Optional: Verify webhook signature if verification key is configured
+      // For setup, enable Signed Event Webhook in SendGrid and set the verification key
+      const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+      if (verificationKey) {
+        const signature = req.headers['x-twilio-email-event-webhook-signature'];
+        const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'];
+        
+        if (!signature || !timestamp) {
+          console.warn('[SendGrid Webhook] Missing signature headers');
+          return res.status(401).send('Unauthorized');
+        }
+        // Note: For full signature verification, install @sendgrid/eventwebhook
+        // and use EventWebhook.verifySignature(publicKey, payload, signature, timestamp)
+      }
+      
+      const events = req.body;
+      
+      // Validate that the request body is an array (SendGrid sends events as arrays)
+      if (!Array.isArray(events)) {
+        console.warn('[SendGrid Webhook] Invalid request: expected array of events');
+        return res.status(400).send('Invalid request format');
+      }
+      
+      // Validate each event has required fields
+      const validEvents = ['delivered', 'open', 'click', 'bounce', 'dropped', 'processed', 'deferred', 'spam_report'];
+      const { updateRecipientStatus } = await import('./sendgridService');
+      
+      for (const event of events) {
+        // Basic validation - must have event type and message ID
+        if (!event || typeof event !== 'object' || !event.event || !event.sg_message_id) {
+          continue;
+        }
+        
+        // Only process known event types
+        if (!validEvents.includes(event.event)) {
+          continue;
+        }
+        
+        const messageId = event.sg_message_id?.split('.')[0];
+        if (!messageId) continue;
+
+        let status: string | null = null;
+        let additionalData: any = {};
+
+        switch (event.event) {
+          case 'delivered':
+            status = 'delivered';
+            break;
+          case 'open':
+            status = 'opened';
+            break;
+          case 'click':
+            status = 'clicked';
+            break;
+          case 'bounce':
+          case 'dropped':
+            status = 'bounced';
+            additionalData.bounceReason = event.reason || event.type;
+            break;
+        }
+
+        if (status) {
+          await updateRecipientStatus(messageId, status, additionalData);
+        }
+      }
+
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error('Error processing SendGrid webhook:', error);
+      res.status(200).send('OK');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

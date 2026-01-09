@@ -43,6 +43,7 @@ import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimelin
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
+import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { Users } from "lucide-react";
 
 interface CompanyActivityLocal {
@@ -900,6 +901,9 @@ export default function MyCompanies() {
   // Edit Company state
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
+  
+  // Bulk Email state
+  const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
 
   // Edit company form
   const editForm = useForm<z.infer<typeof companyEditSchema>>({
@@ -1177,6 +1181,16 @@ export default function MyCompanies() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowBulkEmailDialog(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Mail className="h-4 w-4 mr-1" />
+              Bulk Email
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
@@ -2175,6 +2189,12 @@ export default function MyCompanies() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Email Composer Dialog */}
+      <BulkEmailComposer
+        open={showBulkEmailDialog}
+        onOpenChange={setShowBulkEmailDialog}
+      />
       </div>
     </SalesLayout>
   );
