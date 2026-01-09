@@ -7582,6 +7582,32 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // ========================================
+  // CRM - LEAD COMPANY CONTACTS ROUTES
+  // ========================================
+
+  // Get all contacts for a lead's company
+  app.get('/api/crm/leads/:leadId/company-contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      if (!lead.companyId) {
+        return res.json([]);
+      }
+
+      const contacts = await storage.getCompanyContacts(lead.companyId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching lead company contacts:', error);
+      res.status(500).json({ message: 'Failed to fetch company contacts' });
+    }
+  });
+
+  // ========================================
   // CRM - LEAD ACTIVITY ROUTES
   // ========================================
 
