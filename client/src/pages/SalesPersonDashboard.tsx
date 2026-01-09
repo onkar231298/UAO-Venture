@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -333,140 +334,60 @@ export default function SalesPersonDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Sales Dashboard</h2>
-          <p className="text-sm text-gray-600 capitalize">{userRole.replace('_', ' ')}</p>
-        </div>
-
-        <nav className="flex-1 p-4">
-          <div className="space-y-1">
-            <Button
-              variant={activeTab === 'overview' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('overview')}
-              data-testid="nav-overview"
-            >
-              <Home className="w-4 h-4 mr-3" />
-              Overview
-            </Button>
-            <Link href="/sales/leads">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                data-testid="nav-leads"
-              >
-                <Target className="w-4 h-4 mr-3" />
-                My Leads
-                {summary.activeLeads > 0 && (
-                  <Badge className="ml-auto bg-blue-100 text-blue-800">{summary.activeLeads}</Badge>
-                )}
-              </Button>
-            </Link>
-            <Link href="/sales/my-companies">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                data-testid="nav-my-companies"
-              >
-                <Building2 className="w-4 h-4 mr-3" />
-                My Companies
-              </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={() => setShowCreateCompanyDialog(true)}
-              data-testid="nav-add-company"
-            >
-              <Plus className="w-4 h-4 mr-3" />
-              Add Company
-            </Button>
-            <Button
-              variant={activeTab === 'inquiries' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('inquiries')}
-              data-testid="nav-inquiries"
-            >
-              <MessageSquare className="w-4 h-4 mr-3" />
-              My Inquiries
-              {summary.pendingInquiries > 0 && (
-                <Badge className="ml-auto bg-yellow-100 text-yellow-800">{summary.pendingInquiries}</Badge>
-              )}
-            </Button>
-            <Button
-              variant={activeTab === 'samples' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('samples')}
-              data-testid="nav-samples"
-            >
-              <Package className="w-4 h-4 mr-3" />
-              My Samples
-              {summary.samplesInProgress > 0 && (
-                <Badge className="ml-auto bg-purple-100 text-purple-800">{summary.samplesInProgress}</Badge>
-              )}
-            </Button>
-            <Button
-              variant={activeTab === 'bids' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('bids')}
-              data-testid="nav-bids"
-            >
-              <Briefcase className="w-4 h-4 mr-3" />
-              My High Volume Bids
-              {summary.pendingBids > 0 && (
-                <Badge className="ml-auto bg-orange-100 text-orange-800">{summary.pendingBids}</Badge>
-              )}
-            </Button>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">Settings</p>
-            <Link href="/crm/email-settings">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                data-testid="nav-email-settings"
-              >
-                <Mail className="w-4 h-4 mr-3" />
-                Email Settings
-              </Button>
-            </Link>
-          </div>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">{dashboardData?.user?.firstName} {dashboardData?.user?.lastName}</p>
-              <p className="text-xs text-gray-500 capitalize">{userRole.replace('_', ' ')}</p>
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={() => window.location.href = '/api/logout'}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, {dashboardData?.user?.firstName || 'Sales Rep'}!
-              </h1>
-              <p className="text-gray-600">Here's what's happening with your sales pipeline today.</p>
-            </div>
-            <NotificationBell />
-          </div>
+    <SalesLayout title="Overview" subtitle="Here's what's happening with your sales pipeline today.">
+      {/* Tab Navigation for different sections */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button
+          variant={activeTab === 'overview' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveTab('overview')}
+        >
+          <Home className="w-4 h-4 mr-2" />
+          Dashboard
+        </Button>
+        <Button
+          variant={activeTab === 'inquiries' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveTab('inquiries')}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Inquiries
+          {summary.pendingInquiries > 0 && (
+            <Badge className="ml-2 bg-yellow-100 text-yellow-800">{summary.pendingInquiries}</Badge>
+          )}
+        </Button>
+        <Button
+          variant={activeTab === 'samples' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveTab('samples')}
+        >
+          <Package className="w-4 h-4 mr-2" />
+          Samples
+          {summary.samplesInProgress > 0 && (
+            <Badge className="ml-2 bg-purple-100 text-purple-800">{summary.samplesInProgress}</Badge>
+          )}
+        </Button>
+        <Button
+          variant={activeTab === 'bids' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveTab('bids')}
+        >
+          <Briefcase className="w-4 h-4 mr-2" />
+          High Volume Bids
+          {summary.pendingBids > 0 && (
+            <Badge className="ml-2 bg-orange-100 text-orange-800">{summary.pendingBids}</Badge>
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+          onClick={() => setShowCreateCompanyDialog(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Company
+        </Button>
+      </div>
 
           {activeTab === 'overview' && (
             <>
@@ -866,8 +787,6 @@ export default function SalesPersonDashboard() {
               </CardContent>
             </Card>
           )}
-        </div>
-      </main>
 
       {/* Lead Detail Dialog */}
       {selectedLead && (
@@ -1267,6 +1186,6 @@ export default function SalesPersonDashboard() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </SalesLayout>
   );
 }
