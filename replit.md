@@ -45,6 +45,23 @@ Preferred communication style: Simple, everyday language.
 - **Website Navigation & Filtering**: Advanced multi-faceted product filtering with URL parameter support and dynamic ingredients navigation.
 - **Security & Verification**: Google reCAPTCHA v3 integration for customer registration.
 
+## Pending Features (To Be Continued)
+
+### Bulk Email Feature (Waiting for SendGrid API Key)
+**Status**: Paused - awaiting SENDGRID_API_KEY from user
+**Approach**: Hybrid model using SendGrid for sending + Gmail OAuth for receiving replies
+**Planned Features**:
+- Bulk email sending from My Companies page
+- Company selection (individual checkboxes or select all)
+- Role-based access: Admin can email all companies, Sales agents can email only their assigned companies
+- Rich text email composer with Reply-To set to user's Gmail
+- Email templates with variable substitution (company name, contact name, etc.)
+- Scheduled sending with date/time picker
+- Campaign delivery reports (sent, delivered, opened, bounced)
+- Replies sync via existing Gmail OAuth integration to CRM activity timeline
+
+**Required Secret**: `SENDGRID_API_KEY` (user to provide from https://sendgrid.com)
+
 ### Business Logic
 - **B2B Platform**: Designed for comprehensive B2B operations.
 - **CRM Workflow**: Manages the entire inquiry-to-order lifecycle with a company-centric approach.
