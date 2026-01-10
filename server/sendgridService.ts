@@ -54,6 +54,12 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
   }
 
   try {
+    // Create text version from HTML, ensuring it's never empty
+    let textContent = options.text || options.html.replace(/<[^>]*>/g, "").trim();
+    if (!textContent || textContent.length === 0) {
+      textContent = "Please view this email in an HTML-compatible email client.";
+    }
+    
     const msg = {
       to: options.to,
       from: {
@@ -62,7 +68,7 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
       },
       replyTo: options.replyTo || DEFAULT_FROM_EMAIL,
       subject: options.subject,
-      text: options.text || options.html.replace(/<[^>]*>/g, ""),
+      text: textContent,
       html: options.html,
     };
 
