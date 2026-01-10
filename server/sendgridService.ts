@@ -177,7 +177,7 @@ export async function createCampaign(
     status: scheduledAt ? "scheduled" : "draft",
     scheduledAt,
     createdBy,
-  }).returning({ id: emailCampaigns.id });
+  }).returning();
 
   return result[0].id;
 }
