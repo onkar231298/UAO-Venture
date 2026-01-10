@@ -81,6 +81,18 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
 
 // Get user's location-based currency (IP-based approach - no permissions required)
 export async function detectUserCurrency(): Promise<string> {
+  // Check sessionStorage cache first for faster loading
+  const cachedCurrency = sessionStorage.getItem('detectedCurrency');
+  const cacheTime = sessionStorage.getItem('currencyCacheTime');
+  const cacheExpiry = 30 * 60 * 1000; // 30 minutes cache
+  
+  if (cachedCurrency && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
+    if (['USD', 'INR', 'EUR', 'GBP'].includes(cachedCurrency)) {
+      console.log(`Currency loaded from cache: ${cachedCurrency}`);
+      return cachedCurrency;
+    }
+  }
+  
   try {
     // Primary: Server-side IP detection (most reliable)
     const response = await fetch('/api/detect-currency');
@@ -88,6 +100,9 @@ export async function detectUserCurrency(): Promise<string> {
     
     if (data.currency && ['USD', 'INR', 'EUR', 'GBP'].includes(data.currency)) {
       console.log(`Currency detected via server: ${data.currency} from ${data.source}`);
+      // Cache the result
+      sessionStorage.setItem('detectedCurrency', data.currency);
+      sessionStorage.setItem('currencyCacheTime', Date.now().toString());
       return data.currency;
     }
   } catch (error) {

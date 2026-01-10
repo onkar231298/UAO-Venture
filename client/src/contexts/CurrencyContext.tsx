@@ -20,9 +20,9 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
   useEffect(() => {
     const detectCurrency = async () => {
       try {
-        // Set a timeout for currency detection to prevent long loading
+        // Set a longer timeout for currency detection (5 seconds)
         const timeout = new Promise<string>((_, reject) => 
-          setTimeout(() => reject(new Error('Currency detection timeout')), 3000)
+          setTimeout(() => reject(new Error('Currency detection timeout')), 5000)
         );
         
         const detectedCurrency = await Promise.race([
@@ -34,7 +34,14 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
         console.log(`🌐 Global currency context set to: ${detectedCurrency}`);
       } catch (error) {
         console.warn('Currency detection failed, defaulting to USD:', error);
-        setCurrency('USD');
+        // Try to use cached currency from sessionStorage if available
+        const cachedCurrency = sessionStorage.getItem('detectedCurrency');
+        if (cachedCurrency && ['USD', 'INR', 'EUR', 'GBP'].includes(cachedCurrency)) {
+          setCurrency(cachedCurrency);
+          console.log(`🌐 Using cached currency: ${cachedCurrency}`);
+        } else {
+          setCurrency('USD');
+        }
       } finally {
         setIsLoading(false);
       }
