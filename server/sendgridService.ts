@@ -60,6 +60,13 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
       textContent = "Please view this email in an HTML-compatible email client.";
     }
     
+    // Ensure HTML content is valid and not empty
+    const htmlContent = options.html && options.html.trim().length > 0 
+      ? options.html 
+      : `<p>${textContent}</p>`;
+    
+    console.log(`[SendGrid] Preparing email - HTML length: ${htmlContent.length}, Text length: ${textContent.length}`);
+    
     const msg = {
       to: options.to,
       from: {
@@ -69,7 +76,7 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
       replyTo: options.replyTo || DEFAULT_FROM_EMAIL,
       subject: options.subject,
       text: textContent,
-      html: options.html,
+      html: htmlContent,
     };
 
     const response = await sgMail.send(msg);
