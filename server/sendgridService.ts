@@ -287,7 +287,7 @@ export async function getCompanyContacts(companyIds: number[]) {
   return db.select({
     id: companyContacts.id,
     companyId: companyContacts.companyId,
-    name: companyContacts.name,
+    name: companyContacts.contactName,
     email: companyContacts.email,
   })
   .from(companyContacts)
