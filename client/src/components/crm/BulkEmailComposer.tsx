@@ -383,6 +383,13 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   }, []);
 
   const handleImageUpload = async (files: File[]) => {
+    toast({
+      title: "Image Warning",
+      description: "Embedded images may not display in some email clients (like Gmail). For best results, use hosted image URLs instead.",
+      variant: "destructive",
+      duration: 8000,
+    });
+    
     for (const file of files) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -697,6 +704,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                         className="hidden"
                       />
                     </div>
+                    <p className="text-[10px] text-amber-600 mt-1">
+                      Note: For best results, use hosted image URLs. Embedded images may not display in Gmail.
+                    </p>
                     {uploadedImages.length > 0 && (
                       <ScrollArea className="h-24 mt-2">
                         <div className="grid grid-cols-3 gap-1">
