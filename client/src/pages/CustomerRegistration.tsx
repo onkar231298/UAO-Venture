@@ -268,8 +268,8 @@ export default function CustomerRegistration() {
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            type="url" 
-                            placeholder="https://www.yourcompany.com" 
+                            type="text" 
+                            placeholder="www.yourcompany.com" 
                             {...field} 
                             value={field.value || ""}
                             data-testid="input-website"
