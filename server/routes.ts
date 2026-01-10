@@ -283,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 activityType: 'note',
                 subject: 'New Contact Registered',
                 description: `New user ${userData.email} registered from website and was linked to this existing company`,
-                createdBy: 'system',
+                createdBy: null,
               });
               
               console.log(`Linked new registration to existing company ${existingCompany.companyName} (ID: ${existingCompanyId})`);
@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'active',
               companyStage: 'prospect',
               linkedUserId: user.id,
-              createdBy: 'system',
+              createdBy: null,
               duplicateStatus: duplicateCheck.hasPotentialDuplicates ? 'suspected' : 'unique',
               duplicateConfidence: duplicateCheck.highestConfidence > 0 ? duplicateCheck.highestConfidence.toString() : null,
             });
