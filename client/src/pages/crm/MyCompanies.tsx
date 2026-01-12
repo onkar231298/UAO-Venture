@@ -1666,6 +1666,7 @@ export default function MyCompanies() {
                   <th className="text-left p-3 font-medium">Company</th>
                   <th className="text-left p-3 font-medium">Contact</th>
                   <th className="text-left p-3 font-medium">Location</th>
+                  <th className="text-left p-3 font-medium">Assigned</th>
                   <th className="text-left p-3 font-medium">Stage</th>
                   <th className="text-left p-3 font-medium">Priority</th>
                   <th className="text-left p-3 font-medium">Actions</th>
@@ -1674,7 +1675,7 @@ export default function MyCompanies() {
               <tbody>
                 {filteredCompanies.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                       No companies found
                     </td>
                   </tr>
@@ -1714,6 +1715,14 @@ export default function MyCompanies() {
                         </td>
                         <td className="p-3 text-sm">
                           {[company.addressCity, company.addressCountry].filter(Boolean).join(", ") || '-'}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {company.assignedAt ? (
+                            <div>
+                              <div>{format(new Date(company.assignedAt), 'MMM dd, yyyy')}</div>
+                              <div className="text-xs text-muted-foreground">{format(new Date(company.assignedAt), 'hh:mm a')}</div>
+                            </div>
+                          ) : '-'}
                         </td>
                         <td className="p-3">
                           <Badge className={stageInfo.color}>{stageInfo.label}</Badge>
