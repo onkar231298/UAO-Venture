@@ -251,7 +251,7 @@ export default function EmailConfigManagement() {
     try {
       const dimensions = await validateImageDimensions(file);
       const maxWidth = 1200;
-      const maxHeight = 800;
+      const maxHeight = 1000;
       
       if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
         toast({
@@ -856,7 +856,7 @@ export default function EmailConfigManagement() {
                   <h5 className="font-medium text-purple-800 text-sm mb-1">Supported Dimensions</h5>
                   <p className="text-xs text-purple-700">
                     <strong>Max Width:</strong> 1200px<br />
-                    <strong>Max Height:</strong> 800px
+                    <strong>Max Height:</strong> 1000px
                   </p>
                   <p className="text-xs text-purple-600 mt-1">
                     This signature will be automatically appended to all emails sent from this account.
