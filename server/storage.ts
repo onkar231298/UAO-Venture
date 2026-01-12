@@ -737,9 +737,22 @@ export class DatabaseStorage implements IStorage {
 
   // Staff authentication operations
   async verifyStaffCredentials(email: string, password: string): Promise<User | null> {
+    console.log('[Auth] Verifying staff credentials for email:', email);
     const [user] = await db.select().from(users).where(eq(users.email, email));
     
-    if (!user || !user.password) {
+    if (!user) {
+      console.log('[Auth] User not found for email:', email);
+      return null;
+    }
+    
+    if (!user.password) {
+      console.log('[Auth] User has no password set:', email);
+      return null;
+    }
+    
+    // Check if user is active
+    if (!user.isActive) {
+      console.log('[Auth] User account is inactive:', email);
       return null;
     }
     
@@ -754,15 +767,18 @@ export class DatabaseStorage implements IStorage {
       'seo_manager', 'website_manager'
     ];
     if (!staffRoles.includes(user.role || '')) {
+      console.log('[Auth] User role not allowed for staff login:', user.role);
       return null;
     }
     
     // Verify password
     const isValid = await bcrypt.compare(password, user.password);
+    console.log('[Auth] Password verification result for', email, ':', isValid);
     if (!isValid) {
       return null;
     }
     
+    console.log('[Auth] Staff login successful for:', email);
     return user;
   }
 
