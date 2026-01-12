@@ -21,6 +21,13 @@ interface EmailRecipient {
   companyId?: number;
 }
 
+export interface EmailAttachment {
+  content: string; // Base64 encoded content
+  filename: string;
+  type: string; // MIME type
+  disposition?: 'attachment' | 'inline';
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -28,6 +35,7 @@ interface SendEmailOptions {
   text?: string;
   fromName?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }
 
 interface BulkEmailResult {
@@ -67,7 +75,7 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
     
     console.log(`[SendGrid] Preparing email - HTML length: ${htmlContent.length}, Text length: ${textContent.length}`);
     
-    const msg = {
+    const msg: any = {
       to: options.to,
       from: {
         email: DEFAULT_FROM_EMAIL,
@@ -78,6 +86,17 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
       text: textContent,
       html: htmlContent,
     };
+
+    // Add attachments if provided
+    if (options.attachments && options.attachments.length > 0) {
+      msg.attachments = options.attachments.map(att => ({
+        content: att.content,
+        filename: att.filename,
+        type: att.type,
+        disposition: att.disposition || 'attachment',
+      }));
+      console.log(`[SendGrid] Including ${options.attachments.length} attachment(s)`);
+    }
 
     const response = await sgMail.send(msg);
     const messageId = response[0]?.headers?.["x-message-id"];
@@ -97,7 +116,8 @@ export async function sendBulkEmails(
   htmlContent: string,
   textContent?: string,
   fromName?: string,
-  replyTo?: string
+  replyTo?: string,
+  attachments?: EmailAttachment[]
 ): Promise<{ sent: number; failed: number; errors: string[] }> {
   if (!SENDGRID_API_KEY) {
     return { sent: 0, failed: recipients.length, errors: ["SendGrid API key not configured"] };
@@ -129,6 +149,7 @@ export async function sendBulkEmails(
       text: personalizedText,
       fromName,
       replyTo,
+      attachments,
     });
 
     await db.insert(emailCampaignRecipients).values({

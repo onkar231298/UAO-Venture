@@ -11638,6 +11638,12 @@ We look forward to hearing from you.`;
       const user = await storage.getUser(userId);
       
       // Validate request body with Zod
+      const attachmentSchema = z.object({
+        content: z.string(), // Base64 encoded
+        filename: z.string(),
+        type: z.string(), // MIME type
+      });
+      
       const campaignSchema = z.object({
         name: z.string().min(1, "Campaign name is required").max(255),
         subject: z.string().min(1, "Subject is required").max(500),
@@ -11648,6 +11654,7 @@ We look forward to hearing from you.`;
         replyTo: z.string().email().optional().or(z.literal('')),
         templateId: z.number().optional(),
         scheduledAt: z.string().optional(),
+        attachments: z.array(attachmentSchema).optional(),
       });
       
       const validationResult = campaignSchema.safeParse(req.body);
@@ -11658,7 +11665,31 @@ We look forward to hearing from you.`;
         });
       }
       
-      const { name, subject, htmlContent, textContent, companyIds, fromName, replyTo, templateId, scheduledAt } = validationResult.data;
+      const { name, subject, htmlContent, textContent, companyIds, fromName, replyTo, templateId, scheduledAt, attachments } = validationResult.data;
+
+      // Server-side attachment size validation
+      if (attachments && attachments.length > 0) {
+        const MAX_SINGLE_FILE = 10 * 1024 * 1024; // 10MB
+        const MAX_TOTAL = 25 * 1024 * 1024; // 25MB
+        
+        let totalSize = 0;
+        for (const att of attachments) {
+          // Base64 decodes to ~75% of its string length
+          const estimatedSize = att.content.length * 0.75;
+          if (estimatedSize > MAX_SINGLE_FILE) {
+            return res.status(400).json({ 
+              message: `Attachment "${att.filename}" exceeds 10MB limit` 
+            });
+          }
+          totalSize += estimatedSize;
+        }
+        
+        if (totalSize > MAX_TOTAL) {
+          return res.status(400).json({ 
+            message: 'Total attachments exceed 25MB limit' 
+          });
+        }
+      }
 
       const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail, getCompanyContacts } = await import('./sendgridService');
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
@@ -11723,7 +11754,8 @@ We look forward to hearing from you.`;
           htmlContent,
           textContent,
           fromName,
-          replyTo
+          replyTo,
+          attachments
         );
 
         res.json({ 

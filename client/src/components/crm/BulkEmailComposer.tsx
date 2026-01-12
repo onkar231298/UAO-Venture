@@ -87,6 +87,8 @@ import {
   Highlighter,
   Copy,
   ClipboardPaste,
+  Paperclip,
+  File,
 } from "lucide-react";
 
 interface Company {
@@ -126,6 +128,12 @@ interface UploadedImage {
   url: string;
   name: string;
   size: number;
+}
+
+interface EmailAttachment {
+  content: string; // Base64 encoded
+  filename: string;
+  type: string; // MIME type
 }
 
 interface BulkEmailComposerProps {
@@ -168,7 +176,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [isDragging, setIsDragging] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
@@ -233,6 +243,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       companyIds: number[];
       scheduledAt?: string;
       replyTo?: string;
+      attachments?: EmailAttachment[];
     }) => {
       return apiRequest('/api/email-campaigns', {
         method: 'POST',
@@ -267,6 +278,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     setScheduleDate("");
     setScheduleTime("");
     setUploadedImages([]);
+    setEmailAttachments([]);
     editor?.commands.clearContent();
   };
 
@@ -335,7 +347,87 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       companyIds: selectedCompanyIds,
       scheduledAt,
       replyTo: user?.email || undefined,
+      attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
     });
+  };
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const maxSize = 10 * 1024 * 1024; // 10MB per file
+    const maxTotal = 25 * 1024 * 1024; // 25MB total (SendGrid limit is 30MB but leave buffer)
+    
+    // Check individual file sizes first
+    const validFiles: globalThis.File[] = [];
+    for (const file of files) {
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 10MB limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) {
+      if (e.target) e.target.value = '';
+      return;
+    }
+    
+    // Calculate existing attachments size (base64 length * 0.75 ≈ original binary size)
+    const existingSize = emailAttachments.reduce((sum, att) => sum + (att.content.length * 0.75), 0);
+    const newFilesTotalSize = validFiles.reduce((sum, f) => sum + f.size, 0);
+    
+    if (existingSize + newFilesTotalSize > maxTotal) {
+      toast({
+        title: "Total size limit exceeded",
+        description: `Total attachments cannot exceed 25MB. Current: ${Math.round(existingSize / 1024 / 1024)}MB, new: ${Math.round(newFilesTotalSize / 1024 / 1024)}MB`,
+        variant: "destructive",
+      });
+      if (e.target) e.target.value = '';
+      return;
+    }
+    
+    // Process valid files and check running total as we add each
+    let runningSize = existingSize;
+    for (const file of validFiles) {
+      if (runningSize + file.size > maxTotal) {
+        toast({
+          title: "Size limit reached",
+          description: `Cannot add ${file.name} - would exceed 25MB total limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      
+      runningSize += file.size;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setEmailAttachments(prev => {
+          // Double-check we're not adding duplicates
+          if (prev.some(a => a.filename === file.name)) {
+            return prev;
+          }
+          return [...prev, {
+            content: base64,
+            filename: file.name,
+            type: file.type || 'application/octet-stream',
+          }];
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // Reset input
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const removeAttachment = (filename: string) => {
+    setEmailAttachments(prev => prev.filter(att => att.filename !== filename));
   };
 
   const handleApplyHtml = () => {
@@ -734,6 +826,52 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           ))}
                         </div>
                       </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="flex-shrink-0">
+                  <CardContent className="p-3">
+                    <Label className="text-xs flex items-center gap-1 mb-2">
+                      <Paperclip className="h-3 w-3" />
+                      Attachments
+                    </Label>
+                    <div
+                      className="border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-colors border-gray-200 hover:border-gray-300"
+                      onClick={() => attachmentInputRef.current?.click()}
+                    >
+                      <File className="h-5 w-5 mx-auto mb-1 text-gray-400" />
+                      <p className="text-xs text-muted-foreground">
+                        Click to add files (PDF, DOC, etc.)
+                      </p>
+                      <p className="text-[10px] text-gray-400">Max 10MB per file, 25MB total</p>
+                      <input
+                        ref={attachmentInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleAttachmentUpload}
+                        className="hidden"
+                      />
+                    </div>
+                    {emailAttachments.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {emailAttachments.map((att) => (
+                          <div key={att.filename} className="flex items-center justify-between bg-gray-50 rounded p-1.5 text-xs">
+                            <div className="flex items-center gap-1 truncate">
+                              <File className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                              <span className="truncate">{att.filename}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0"
+                              onClick={() => removeAttachment(att.filename)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
