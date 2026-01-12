@@ -312,7 +312,30 @@ export async function getCompaniesForBulkEmail(userId: string, isAdmin: boolean)
         eq(companies.assignedTo, userId)
       ));
   
-  return baseQuery;
+  const companiesResult = await baseQuery;
+  
+  // Get all company IDs to fetch their contacts
+  const companyIds = companiesResult.map(c => c.id);
+  
+  // Fetch all contacts for these companies
+  const contacts = companyIds.length > 0 
+    ? await db.select({
+        id: companyContacts.id,
+        companyId: companyContacts.companyId,
+        name: companyContacts.contactName,
+        email: companyContacts.email,
+      })
+      .from(companyContacts)
+      .where(inArray(companyContacts.companyId, companyIds))
+    : [];
+  
+  // Group contacts by company and add to each company
+  return companiesResult.map(company => ({
+    ...company,
+    contacts: contacts
+      .filter(c => c.companyId === company.id && c.email)
+      .map(c => ({ id: c.id, name: c.name, email: c.email }))
+  }));
 }
 
 export async function getCompanyContacts(companyIds: number[]) {

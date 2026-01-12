@@ -91,11 +91,18 @@ import {
   File,
 } from "lucide-react";
 
+interface CompanyContact {
+  id: number;
+  name: string | null;
+  email: string;
+}
+
 interface Company {
   id: number;
   name: string;
   email: string;
   contactName: string | null;
+  contacts?: CompanyContact[];
 }
 
 interface EmailTemplate {
@@ -285,10 +292,44 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const filteredCompanies = companies.filter((company) =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.contactName?.toLowerCase().includes(searchTerm.toLowerCase())
+    company.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.contacts?.some(c => c.email?.toLowerCase().includes(searchTerm.toLowerCase()) || c.name?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const companiesWithEmail = filteredCompanies.filter((c) => c.email);
+  const companiesWithEmail = filteredCompanies.filter((c) => c.email || (c.contacts && c.contacts.length > 0));
+  
+  // Calculate total recipients including all contacts for selected companies
+  const getTotalRecipients = () => {
+    let count = 0;
+    for (const companyId of selectedCompanyIds) {
+      const company = companies.find(c => c.id === companyId);
+      if (company) {
+        // Count primary email
+        if (company.email) count++;
+        // Count additional contacts (excluding duplicates of primary)
+        if (company.contacts) {
+          for (const contact of company.contacts) {
+            if (contact.email && contact.email.toLowerCase() !== company.email?.toLowerCase()) {
+              count++;
+            }
+          }
+        }
+      }
+    }
+    return count;
+  };
+  
+  const getCompanyEmailCount = (company: Company) => {
+    let count = company.email ? 1 : 0;
+    if (company.contacts) {
+      for (const contact of company.contacts) {
+        if (contact.email && contact.email.toLowerCase() !== company.email?.toLowerCase()) {
+          count++;
+        }
+      }
+    }
+    return count;
+  };
 
   const handleSelectAll = () => {
     if (selectedCompanyIds.length === companiesWithEmail.length) {
@@ -627,7 +668,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                   <CardContent className="p-3">
                     <Label className="text-sm font-medium mb-2 flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Recipients ({selectedCompanyIds.length})
+                      Recipients ({selectedCompanyIds.length} companies, {getTotalRecipients()} emails)
                     </Label>
                     {preSelectedCompanyIds.length > 0 ? (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
@@ -691,24 +732,39 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                             </div>
                           ) : (
                             <div className="p-1 space-y-0.5">
-                              {companiesWithEmail.map((company) => (
-                                <div
-                                  key={company.id}
-                                  className={`flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-gray-50 text-xs ${
-                                    selectedCompanyIds.includes(company.id) ? 'bg-green-50' : ''
-                                  }`}
-                                  onClick={() => handleToggleCompany(company.id)}
-                                >
-                                  <Checkbox
-                                    checked={selectedCompanyIds.includes(company.id)}
-                                    className="h-3 w-3"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{company.name}</p>
-                                    <p className="text-muted-foreground truncate">{company.email}</p>
+                              {companiesWithEmail.map((company) => {
+                                const emailCount = getCompanyEmailCount(company);
+                                return (
+                                  <div
+                                    key={company.id}
+                                    className={`flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-gray-50 text-xs ${
+                                      selectedCompanyIds.includes(company.id) ? 'bg-green-50' : ''
+                                    }`}
+                                    onClick={() => handleToggleCompany(company.id)}
+                                  >
+                                    <Checkbox
+                                      checked={selectedCompanyIds.includes(company.id)}
+                                      className="h-3 w-3"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        <p className="font-medium truncate">{company.name}</p>
+                                        {emailCount > 1 && (
+                                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                            {emailCount} emails
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-muted-foreground truncate">{company.email}</p>
+                                      {company.contacts && company.contacts.length > 0 && (
+                                        <div className="text-muted-foreground text-[10px] mt-0.5">
+                                          +{company.contacts.filter(c => c.email && c.email.toLowerCase() !== company.email?.toLowerCase()).length} more contacts
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </ScrollArea>
