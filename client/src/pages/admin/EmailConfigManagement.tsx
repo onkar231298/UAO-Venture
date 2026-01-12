@@ -237,21 +237,21 @@ export default function EmailConfigManagement() {
       return;
     }
 
-    // Validate file size (max 2MB for signatures)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (max 5MB for signatures to allow banner-style images)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Signature image must be less than 2MB",
+        description: "Signature image must be less than 5MB",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate image dimensions
+    // Validate image dimensions (allow larger banner-style signatures)
     try {
       const dimensions = await validateImageDimensions(file);
-      const maxWidth = 400;
-      const maxHeight = 150;
+      const maxWidth = 1200;
+      const maxHeight = 800;
       
       if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
         toast({
@@ -848,15 +848,15 @@ export default function EmailConfigManagement() {
                       )}
                     </Button>
                     <p className="text-xs text-gray-500">
-                      PNG, JPG, or GIF. Max 2MB.
+                      PNG, JPG, or GIF. Max 5MB.
                     </p>
                   </div>
                 </div>
                 <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                  <h5 className="font-medium text-purple-800 text-sm mb-1">Recommended Dimensions</h5>
+                  <h5 className="font-medium text-purple-800 text-sm mb-1">Supported Dimensions</h5>
                   <p className="text-xs text-purple-700">
-                    <strong>Width:</strong> 300px (max 400px)<br />
-                    <strong>Height:</strong> 100px (max 150px)
+                    <strong>Max Width:</strong> 1200px<br />
+                    <strong>Max Height:</strong> 800px
                   </p>
                   <p className="text-xs text-purple-600 mt-1">
                     This signature will be automatically appended to all emails sent from this account.
