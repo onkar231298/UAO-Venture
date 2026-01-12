@@ -11773,60 +11773,8 @@ We look forward to hearing from you.`;
         }
       }
 
-      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail, getCompanyContacts, EmailAttachment } = await import('./sendgridService');
+      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail, getCompanyContacts } = await import('./sendgridService');
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
-      
-      // Fetch user's email config for signature
-      const emailConfig = await storage.getUserEmailConfig(userId);
-      let finalHtmlContent = htmlContent;
-      const allAttachments: any[] = attachments ? [...attachments] : [];
-      
-      // If user has a signature image, fetch and embed it
-      if (emailConfig?.signatureImageUrl) {
-        try {
-          console.log('[Bulk Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
-          const objectStorageService = (await import('./objectStorageService')).default;
-          
-          let signaturePath = emailConfig.signatureImageUrl;
-          if (signaturePath.startsWith('http')) {
-            const urlMatch = signaturePath.match(/\/public\/(.+)$/);
-            if (urlMatch) {
-              signaturePath = `public/${urlMatch[1]}`;
-            }
-          }
-          
-          const fileContent = await objectStorageService.downloadFile(signaturePath);
-          if (fileContent) {
-            const mimeType = signaturePath.toLowerCase().endsWith('.png') ? 'image/png' :
-                           signaturePath.toLowerCase().endsWith('.gif') ? 'image/gif' : 'image/jpeg';
-            
-            const base64Content = fileContent.toString('base64');
-            console.log('[Bulk Email] Signature image loaded successfully, size:', fileContent.length, 'bytes');
-            
-            // Add signature as inline attachment with content_id
-            allAttachments.push({
-              content: base64Content,
-              filename: 'signature.png',
-              type: mimeType,
-              disposition: 'inline',
-              content_id: 'email_signature',
-            });
-            
-            // Append signature HTML to email content
-            const signatureHtml = `
-              <br/><br/>
-              <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-                <img src="cid:email_signature" alt="Email Signature" style="max-width: 100%; height: auto;" />
-              </div>
-            `;
-            finalHtmlContent = htmlContent + signatureHtml;
-            console.log('[Bulk Email] Signature embedded with CID reference');
-          }
-        } catch (signatureError) {
-          console.error('[Bulk Email] Failed to load signature image:', signatureError);
-          // Continue without signature
-        }
-      }
       
       // Get companies based on role
       const availableCompanies = await getCompaniesForBulkEmail(userId, isAdmin);
@@ -11885,11 +11833,11 @@ We look forward to hearing from you.`;
           campaignId,
           recipients,
           subject,
-          finalHtmlContent,
+          htmlContent,
           textContent,
           fromName,
           replyTo,
-          allAttachments.length > 0 ? allAttachments : undefined
+          attachments
         );
 
         res.json({ 

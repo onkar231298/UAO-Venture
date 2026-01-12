@@ -26,7 +26,6 @@ export interface EmailAttachment {
   filename: string;
   type: string; // MIME type
   disposition?: 'attachment' | 'inline';
-  content_id?: string; // Required for inline images referenced via cid:
 }
 
 interface SendEmailOptions {
@@ -90,19 +89,12 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
 
     // Add attachments if provided
     if (options.attachments && options.attachments.length > 0) {
-      msg.attachments = options.attachments.map(att => {
-        const attachment: any = {
-          content: att.content,
-          filename: att.filename,
-          type: att.type,
-          disposition: att.disposition || 'attachment',
-        };
-        // Add content_id for inline images (required for cid: references)
-        if (att.content_id) {
-          attachment.content_id = att.content_id;
-        }
-        return attachment;
-      });
+      msg.attachments = options.attachments.map(att => ({
+        content: att.content,
+        filename: att.filename,
+        type: att.type,
+        disposition: att.disposition || 'attachment',
+      }));
       console.log(`[SendGrid] Including ${options.attachments.length} attachment(s)`);
     }
 
