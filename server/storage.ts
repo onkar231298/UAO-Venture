@@ -5517,10 +5517,14 @@ export class DatabaseStorage implements IStorage {
       website: companyData.website === '' ? null : companyData.website,
     };
     
+    // Auto-set assignedAt when a company is assigned to someone
+    const assignedAt = companyData.assignedTo ? new Date() : null;
+    
     const [company] = await db.insert(companies).values({
       ...sanitizedData,
       normalizedName,
       normalizedDomain,
+      assignedAt,
     }).returning();
     return company;
   }
@@ -5537,6 +5541,11 @@ export class DatabaseStorage implements IStorage {
     }
     if (updateData.website === '') {
       updateData.website = null;
+    }
+    
+    // Update assignedAt when assignedTo changes
+    if (companyData.assignedTo !== undefined) {
+      updateData.assignedAt = companyData.assignedTo ? new Date() : null;
     }
     
     if (companyData.companyName || companyData.primaryEmail) {
