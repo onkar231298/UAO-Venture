@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mail, Plus, RefreshCw, X, Send, Eye, Reply } from "lucide-react";
+import { Mail, Plus, RefreshCw, X, Send, Eye, Reply, Paperclip, Loader2, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -37,6 +37,14 @@ interface EmailMessage {
   receivedAt: string | null;
 }
 
+interface EmailAttachment {
+  file: File;
+  name: string;
+  size: number;
+  uploading?: boolean;
+  uploadedUrl?: string;
+}
+
 interface CompanyEmailsTabProps {
   companyId: number;
   companyEmail: string | null;
@@ -44,6 +52,7 @@ interface CompanyEmailsTabProps {
 
 export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabProps) {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCompose, setShowCompose] = useState(false);
   const [emailTo, setEmailTo] = useState(companyEmail || '');
   const [emailCc, setEmailCc] = useState('');
@@ -54,6 +63,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [showEmailView, setShowEmailView] = useState(false);
   const [showThreadView, setShowThreadView] = useState(false);
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
 
   const { data: emailThreads = [], isLoading, refetch } = useQuery<EmailThread[]>({
     queryKey: ['/api/crm/companies', companyId, 'emails'],
@@ -67,7 +77,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
   });
 
   const sendEmailMutation = useMutation({
-    mutationFn: async (data: { to: string; cc?: string; subject: string; bodyHtml: string; threadId?: number; isReply?: boolean }) => {
+    mutationFn: async (data: { to: string; cc?: string; subject: string; bodyHtml: string; threadId?: number; isReply?: boolean; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number }> }) => {
       return apiRequest(`/api/crm/companies/${companyId}/emails/send`, {
         method: 'POST',
         body: JSON.stringify({
@@ -78,6 +88,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
           bodyText: data.bodyHtml.replace(/<[^>]*>/g, ''),
           threadId: data.threadId,
           isReply: data.isReply,
+          attachments: data.attachments,
         }),
       });
     },
@@ -94,6 +105,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
       setEmailSubject('');
       setEmailBody('');
       setReplyToThread(null);
+      setAttachments([]);
     },
     onError: (error: any) => {
       toast({
@@ -114,6 +126,14 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
       return;
     }
 
+    const uploadedAttachments = attachments
+      .filter(att => att.uploadedUrl)
+      .map(att => ({
+        fileName: att.name,
+        fileUrl: att.uploadedUrl!,
+        fileSize: att.size,
+      }));
+
     sendEmailMutation.mutate({
       to: emailTo,
       cc: emailCc,
@@ -121,7 +141,96 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
       bodyHtml: emailBody,
       threadId: replyToThread?.id,
       isReply: !!replyToThread,
+      attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
     });
+  };
+
+  const uploadAttachment = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/email-attachments/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Upload failed');
+      }
+      
+      const data = await response.json();
+      return data.url;
+    } catch (error: any) {
+      console.error('Attachment upload failed:', error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload attachment",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newAttachments: EmailAttachment[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 25 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: `${file.name} exceeds 25MB limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      newAttachments.push({
+        file,
+        name: file.name,
+        size: file.size,
+        uploading: true,
+      });
+    }
+    
+    setAttachments(prev => [...prev, ...newAttachments]);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    for (const att of newAttachments) {
+      const uploadedUrl = await uploadAttachment(att.file);
+      
+      setAttachments(prev => {
+        const updated = [...prev];
+        const attIndex = updated.findIndex(a => a.file === att.file && a.name === att.name);
+        if (attIndex !== -1) {
+          if (uploadedUrl) {
+            updated[attIndex] = { ...updated[attIndex], uploading: false, uploadedUrl };
+          } else {
+            updated.splice(attIndex, 1);
+          }
+        }
+        return updated;
+      });
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const handleReply = (thread: EmailThread) => {
@@ -129,6 +238,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
     setEmailTo(companyEmail || '');
     setEmailSubject(thread.subject?.startsWith('Re:') ? thread.subject : `Re: ${thread.subject || ''}`);
     setEmailBody('');
+    setAttachments([]);
     setShowCompose(true);
   };
 
@@ -137,6 +247,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
     setEmailTo(companyEmail || '');
     setEmailSubject('');
     setEmailBody('');
+    setAttachments([]);
     setShowCompose(true);
   };
 
@@ -228,13 +339,61 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
                 />
               </div>
             </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-4 w-4 mr-1" />
+                  Attach Files
+                </Button>
+                <span className="text-xs text-gray-500">Max 25MB per file</span>
+              </div>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
+                  {attachments.map((att, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center gap-2 px-2 py-1 bg-white border rounded-md text-sm ${att.uploading ? 'opacity-60' : ''}`}
+                    >
+                      {att.uploading ? (
+                        <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+                      ) : att.uploadedUrl ? (
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Paperclip className="h-3 w-3 text-gray-400" />
+                      )}
+                      <span className="max-w-[150px] truncate">{att.name}</span>
+                      <span className="text-xs text-gray-500">({formatFileSize(att.size)})</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowCompose(false)}>
                 Cancel
               </Button>
               <Button 
                 onClick={handleSendEmail} 
-                disabled={sendEmailMutation.isPending}
+                disabled={sendEmailMutation.isPending || attachments.some(a => a.uploading)}
               >
                 {sendEmailMutation.isPending ? (
                   <>
