@@ -6655,7 +6655,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
@@ -10047,7 +10047,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
@@ -11019,7 +11019,7 @@ We look forward to hearing from you.`;
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 300px; max-height: 150px; display: block;" />
+                  <img src="cid:signature_image" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
