@@ -5745,7 +5745,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const user = await storage.getUser(userId);
       const userRole = user?.role || req.user.claims.role || req.user.claims['https://brightfameorganic.com/roles']?.[0] || 'customer';
       
-      console.log('[Companies API] User:', userId, 'Role:', userRole, 'Origin filter:', origin);
+      console.log('[Companies API] User:', userId, 'Role:', userRole, 'Origin filter:', origin, 'AssignedDateFrom:', assignedDateFrom, 'AssignedDateTo:', assignedDateTo);
       
       const filters: any = {
         search,

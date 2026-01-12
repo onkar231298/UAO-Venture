@@ -1103,6 +1103,14 @@ export default function MyCompanies() {
     })
   );
 
+  // Helper to format date as YYYY-MM-DD in local timezone
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Calculate date range based on filter selection
   const getAssignedDateRange = () => {
     const today = new Date();
@@ -1111,22 +1119,22 @@ export default function MyCompanies() {
     switch (assignedDateFilter) {
       case 'today':
         return {
-          assignedDateFrom: today.toISOString().split('T')[0],
-          assignedDateTo: today.toISOString().split('T')[0],
+          assignedDateFrom: formatDateLocal(today),
+          assignedDateTo: formatDateLocal(today),
         };
       case 'yesterday':
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         return {
-          assignedDateFrom: yesterday.toISOString().split('T')[0],
-          assignedDateTo: yesterday.toISOString().split('T')[0],
+          assignedDateFrom: formatDateLocal(yesterday),
+          assignedDateTo: formatDateLocal(yesterday),
         };
       case 'this_week':
         const startOfWeek = new Date(today);
         startOfWeek.setDate(today.getDate() - today.getDay());
         return {
-          assignedDateFrom: startOfWeek.toISOString().split('T')[0],
-          assignedDateTo: today.toISOString().split('T')[0],
+          assignedDateFrom: formatDateLocal(startOfWeek),
+          assignedDateTo: formatDateLocal(today),
         };
       case 'last_week':
         const lastWeekEnd = new Date(today);
@@ -1134,8 +1142,8 @@ export default function MyCompanies() {
         const lastWeekStart = new Date(lastWeekEnd);
         lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
         return {
-          assignedDateFrom: lastWeekStart.toISOString().split('T')[0],
-          assignedDateTo: lastWeekEnd.toISOString().split('T')[0],
+          assignedDateFrom: formatDateLocal(lastWeekStart),
+          assignedDateTo: formatDateLocal(lastWeekEnd),
         };
       case 'custom':
         return {
