@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,6 +151,7 @@ const colors = [
 
 export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = [] }: BulkEmailComposerProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'compose' | 'campaigns'>('compose');
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(preSelectedCompanyIds);
   const [searchTerm, setSearchTerm] = useState("");
@@ -230,6 +232,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       textContent?: string;
       companyIds: number[];
       scheduledAt?: string;
+      replyTo?: string;
     }) => {
       return apiRequest('/api/email-campaigns', {
         method: 'POST',
@@ -331,6 +334,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       htmlContent,
       companyIds: selectedCompanyIds,
       scheduledAt,
+      replyTo: user?.email || undefined,
     });
   };
 
