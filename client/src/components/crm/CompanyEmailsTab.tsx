@@ -162,7 +162,7 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
       }
       
       const data = await response.json();
-      return data.url;
+      return data.fileUrl || data.url;
     } catch (error: any) {
       console.error('Attachment upload failed:', error);
       toast({
