@@ -674,26 +674,42 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
                         <div className="flex items-center gap-2 text-green-700 mb-2">
                           <CheckCircle className="h-4 w-4" />
-                          <span className="font-medium text-sm">{selectedCompanyIds.length} companies selected</span>
+                          <span className="font-medium text-sm">{selectedCompanyIds.length} companies, {getTotalRecipients()} emails</span>
                         </div>
-                        <ScrollArea className="h-32">
-                          <div className="space-y-1">
-                            {companies.filter(c => selectedCompanyIds.includes(c.id)).map((company) => (
-                              <div key={company.id} className="text-xs flex items-center justify-between bg-white rounded px-2 py-1">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium truncate">{company.name}</p>
-                                  <p className="text-muted-foreground truncate">{company.email}</p>
+                        <ScrollArea className="h-40">
+                          <div className="space-y-2">
+                            {companies.filter(c => selectedCompanyIds.includes(c.id)).map((company) => {
+                              const emailCount = getCompanyEmailCount(company);
+                              const additionalContacts = company.contacts?.filter(c => c.email && c.email.toLowerCase() !== company.email?.toLowerCase()) || [];
+                              return (
+                                <div key={company.id} className="text-xs bg-white rounded px-2 py-1.5 border border-green-100">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1">
+                                      <p className="font-medium truncate">{company.name}</p>
+                                      {emailCount > 1 && (
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                          {emailCount} emails
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0"
+                                      onClick={() => setSelectedCompanyIds(selectedCompanyIds.filter(id => id !== company.id))}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <p className="text-muted-foreground truncate">{company.email} (primary)</p>
+                                  {additionalContacts.map((contact) => (
+                                    <p key={contact.id} className="text-muted-foreground truncate">
+                                      {contact.email} {contact.name ? `(${contact.name})` : ''}
+                                    </p>
+                                  ))}
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0"
-                                  onClick={() => setSelectedCompanyIds(selectedCompanyIds.filter(id => id !== company.id))}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </ScrollArea>
                       </div>
