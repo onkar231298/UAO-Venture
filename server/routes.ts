@@ -6609,6 +6609,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       let finalBodyHtml = bodyHtml;
       let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
       let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
+      let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
       
       // Fetch signature image and prepare as inline attachment (same as Lead email)
       if (emailConfig.signatureImageUrl) {
@@ -6666,6 +6667,58 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
       }
 
+      // Fetch file attachments from object storage
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        console.log('[Company Email] Processing', attachments.length, 'file attachments');
+        const objectStorageService = new ObjectStorageService();
+        
+        for (const att of attachments) {
+          try {
+            if (!att.fileUrl) {
+              console.log('[Company Email] Skipping attachment without fileUrl:', att.fileName);
+              continue;
+            }
+            
+            console.log('[Company Email] Loading attachment:', att.fileName, 'from path:', att.fileUrl);
+            
+            // Ensure the attachment URL starts with /objects/
+            let attachmentPath = att.fileUrl;
+            if (!attachmentPath.startsWith('/objects/')) {
+              attachmentPath = objectStorageService.normalizeObjectEntityPath(attachmentPath);
+              console.log('[Company Email] Normalized attachment path:', attachmentPath);
+            }
+            
+            if (!attachmentPath.startsWith('/objects/')) {
+              console.error('[Company Email] Invalid attachment path format:', attachmentPath);
+              continue;
+            }
+            
+            const attachmentFile = await objectStorageService.getObjectEntityFile(attachmentPath);
+            const [fileContent] = await attachmentFile.download();
+            const base64Data = fileContent.toString('base64');
+            
+            // Get file metadata for mime type
+            const [metadata] = await attachmentFile.getMetadata();
+            const mimeType = metadata.contentType || 'application/octet-stream';
+            
+            fileAttachments.push({
+              base64Data,
+              mimeType,
+              filename: att.fileName || 'attachment',
+            });
+            
+            console.log('[Company Email] File attachment loaded successfully:', att.fileName, 'size:', fileContent.length, 'bytes, mimeType:', mimeType);
+          } catch (attError: any) {
+            console.error('[Company Email] Failed to load attachment:', att.fileName, 'Error:', attError?.message || attError);
+            // Continue with other attachments even if one fails
+          }
+        }
+        
+        console.log('[Company Email] Successfully loaded', fileAttachments.length, 'of', attachments.length, 'attachments');
+      } else {
+        console.log('[Company Email] No file attachments to process');
+      }
+
       // Build References and In-Reply-To headers for proper threading
       let referencesHeader = '';
       let inReplyToHeader = '';
@@ -6701,8 +6754,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
       const bccAddresses = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : [];
 
-      // Build multipart email with inline attachments if present
+      // Build multipart email with attachments if present
       const boundary = '----=_Part_' + Date.now();
+      const relatedBoundary = '----=_Related_' + Date.now();
       let emailRaw = '';
       
       emailRaw += `From: ${senderEmail}\r\n`;
@@ -6714,23 +6768,49 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (referencesHeader) emailRaw += `References: ${referencesHeader}\r\n`;
       if (inReplyToHeader) emailRaw += `In-Reply-To: ${inReplyToHeader}\r\n`;
       
-      if (inlineAttachments.length > 0) {
-        // Multipart related for inline images
-        emailRaw += `Content-Type: multipart/related; boundary="${boundary}"\r\n\r\n`;
+      const hasInline = inlineAttachments.length > 0;
+      const hasFiles = fileAttachments.length > 0;
+      
+      if (hasFiles || hasInline) {
+        // Use multipart/mixed as the outer container when we have file attachments
+        emailRaw += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
         
-        // HTML body part
-        emailRaw += `--${boundary}\r\n`;
-        emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
-        emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
-        emailRaw += finalBodyHtml + '\r\n';
+        if (hasInline) {
+          // If we have inline attachments, wrap body in multipart/related
+          emailRaw += `--${boundary}\r\n`;
+          emailRaw += `Content-Type: multipart/related; boundary="${relatedBoundary}"\r\n\r\n`;
+          
+          // HTML body part
+          emailRaw += `--${relatedBoundary}\r\n`;
+          emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
+          emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
+          emailRaw += finalBodyHtml + '\r\n';
+          
+          // Inline attachments (signature, etc.)
+          for (const att of inlineAttachments) {
+            emailRaw += `--${relatedBoundary}\r\n`;
+            emailRaw += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
+            emailRaw += 'Content-Transfer-Encoding: base64\r\n';
+            emailRaw += `Content-ID: <${att.contentId}>\r\n`;
+            emailRaw += 'Content-Disposition: inline\r\n\r\n';
+            emailRaw += att.base64Data + '\r\n';
+          }
+          
+          emailRaw += `--${relatedBoundary}--\r\n`;
+        } else {
+          // Just HTML body part
+          emailRaw += `--${boundary}\r\n`;
+          emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
+          emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
+          emailRaw += finalBodyHtml + '\r\n';
+        }
         
-        // Inline attachments
-        for (const att of inlineAttachments) {
+        // File attachments
+        for (const att of fileAttachments) {
           emailRaw += `--${boundary}\r\n`;
           emailRaw += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
           emailRaw += 'Content-Transfer-Encoding: base64\r\n';
-          emailRaw += `Content-ID: <${att.contentId}>\r\n`;
-          emailRaw += 'Content-Disposition: inline\r\n\r\n';
+          emailRaw += `Content-Disposition: attachment; filename="${att.filename}"\r\n\r\n`;
           emailRaw += att.base64Data + '\r\n';
         }
         
