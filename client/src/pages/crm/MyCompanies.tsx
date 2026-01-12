@@ -1041,6 +1041,9 @@ export default function MyCompanies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
+  const [assignedDateFilter, setAssignedDateFilter] = useState<'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'custom'>('all');
+  const [customDateFrom, setCustomDateFrom] = useState<string>('');
+  const [customDateTo, setCustomDateTo] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -1100,8 +1103,57 @@ export default function MyCompanies() {
     })
   );
 
+  // Calculate date range based on filter selection
+  const getAssignedDateRange = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    switch (assignedDateFilter) {
+      case 'today':
+        return {
+          assignedDateFrom: today.toISOString().split('T')[0],
+          assignedDateTo: today.toISOString().split('T')[0],
+        };
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return {
+          assignedDateFrom: yesterday.toISOString().split('T')[0],
+          assignedDateTo: yesterday.toISOString().split('T')[0],
+        };
+      case 'this_week':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        return {
+          assignedDateFrom: startOfWeek.toISOString().split('T')[0],
+          assignedDateTo: today.toISOString().split('T')[0],
+        };
+      case 'last_week':
+        const lastWeekEnd = new Date(today);
+        lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
+        const lastWeekStart = new Date(lastWeekEnd);
+        lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
+        return {
+          assignedDateFrom: lastWeekStart.toISOString().split('T')[0],
+          assignedDateTo: lastWeekEnd.toISOString().split('T')[0],
+        };
+      case 'custom':
+        return {
+          assignedDateFrom: customDateFrom || undefined,
+          assignedDateTo: customDateTo || undefined,
+        };
+      default:
+        return {};
+    }
+  };
+
+  const dateRange = getAssignedDateRange();
+
   const { data: companiesData, isLoading, refetch } = useQuery<{ companies: Company[] }>({
-    queryKey: ['/api/crm/companies', { assignedTo: user?.id }],
+    queryKey: ['/api/crm/companies', { 
+      assignedTo: user?.id,
+      ...dateRange,
+    }],
   });
 
   const myCompanies = (companiesData?.companies || []).filter(
@@ -1450,7 +1502,70 @@ export default function MyCompanies() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={assignedDateFilter} onValueChange={(value: 'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'custom') => setAssignedDateFilter(value)}>
+          <SelectTrigger className="w-[180px]" data-testid="select-assigned-date">
+            <Calendar className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Assigned Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="today">Assigned Today</SelectItem>
+            <SelectItem value="yesterday">Assigned Yesterday</SelectItem>
+            <SelectItem value="this_week">This Week</SelectItem>
+            <SelectItem value="last_week">Last Week</SelectItem>
+            <SelectItem value="custom">Custom Range</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {assignedDateFilter === 'custom' && (
+          <div className="flex gap-2 items-center">
+            <Input
+              type="date"
+              value={customDateFrom}
+              onChange={(e) => setCustomDateFrom(e.target.value)}
+              className="w-[140px]"
+              placeholder="From"
+            />
+            <span className="text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={customDateTo}
+              onChange={(e) => setCustomDateTo(e.target.value)}
+              className="w-[140px]"
+              placeholder="To"
+            />
+          </div>
+        )}
       </div>
+
+      {assignedDateFilter !== 'all' && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {assignedDateFilter === 'today' && 'Showing companies assigned today'}
+            {assignedDateFilter === 'yesterday' && 'Showing companies assigned yesterday'}
+            {assignedDateFilter === 'this_week' && 'Showing companies assigned this week'}
+            {assignedDateFilter === 'last_week' && 'Showing companies assigned last week'}
+            {assignedDateFilter === 'custom' && `Showing companies assigned ${customDateFrom || '...'} to ${customDateTo || '...'}`}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-4 w-4 p-0 ml-1"
+              onClick={() => {
+                setAssignedDateFilter('all');
+                setCustomDateFrom('');
+                setCustomDateTo('');
+              }}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            ({myCompanies.length} companies found)
+          </span>
+        </div>
+      )}
 
       {viewMode === 'kanban' ? (
         <DndContext

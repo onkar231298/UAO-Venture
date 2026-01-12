@@ -5736,7 +5736,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const { 
         search, industryType, needsEnrichment, origin, status, 
         companyStage, priority, assignedTo, createdFrom,
-        dateFrom, dateTo,
+        dateFrom, dateTo, assignedDateFrom, assignedDateTo,
         limit = '1000', offset = '0' 
       } = req.query;
       
@@ -5768,6 +5768,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (createdFrom) filters.createdFrom = createdFrom;
       if (dateFrom) filters.dateFrom = dateFrom;
       if (dateTo) filters.dateTo = dateTo;
+      if (assignedDateFrom) filters.assignedDateFrom = assignedDateFrom;
+      if (assignedDateTo) filters.assignedDateTo = assignedDateTo;
       
       const result = await storage.getCompanies(filters);
       console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));

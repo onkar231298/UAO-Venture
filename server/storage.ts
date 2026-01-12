@@ -5359,6 +5359,8 @@ export class DatabaseStorage implements IStorage {
     createdFrom?: string;
     dateFrom?: string;
     dateTo?: string;
+    assignedDateFrom?: string;
+    assignedDateTo?: string;
     limit?: number;
     offset?: number;
     user?: { id: string; role: string };
@@ -5460,6 +5462,18 @@ export class DatabaseStorage implements IStorage {
       const toDate = new Date(filters.dateTo);
       toDate.setHours(23, 59, 59, 999);
       conditions.push(lte(companies.createdAt, toDate));
+    }
+
+    // Filter by assignment date (when company was assigned to agent)
+    if (filters?.assignedDateFrom) {
+      const fromDate = new Date(filters.assignedDateFrom);
+      conditions.push(gte(companies.assignedAt, fromDate));
+    }
+
+    if (filters?.assignedDateTo) {
+      const toDate = new Date(filters.assignedDateTo);
+      toDate.setHours(23, 59, 59, 999);
+      conditions.push(lte(companies.assignedAt, toDate));
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
