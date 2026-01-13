@@ -151,10 +151,26 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  // Unified logout - redirect to login page
+  // Unified logout - completely destroy session and clear cookie
   app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect("/login");
+    // First logout from passport
+    req.logout((err) => {
+      if (err) {
+        console.error('[Logout] Error during logout:', err);
+      }
+      
+      // Destroy the entire session to prevent session fixation
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error('[Logout] Error destroying session:', destroyErr);
+        }
+        
+        // Clear the session cookie
+        res.clearCookie('bfi.sid', { path: '/' });
+        
+        console.log('[Logout] Session completely destroyed and cookie cleared');
+        res.redirect("/login");
+      });
     });
   });
 
@@ -173,24 +189,42 @@ export async function setupAuth(app: Express) {
         return res.redirect('/login?error=invalid_credentials');
       }
       
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((regenErr) => {
+        if (regenErr) {
+          console.error('[Login] Session regeneration failed:', regenErr);
           return res.redirect('/login?error=login_failed');
         }
         
-        // Redirect based on user role
-        const role = user.claims?.role || '';
-        
-        if (role === 'admin' || role === 'super_admin') {
-          return res.redirect('/admin');
-        } else if (role.includes('sales')) {
-          return res.redirect('/sales');
-        } else if (role === 'customer') {
-          return res.redirect('/customer/dashboard');
-        } else {
-          // Other staff roles
-          return res.redirect('/staff');
-        }
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            console.error('[Login] Login failed:', loginErr);
+            return res.redirect('/login?error=login_failed');
+          }
+          
+          // Save session to ensure it's persisted
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('[Login] Session save failed:', saveErr);
+            }
+            
+            console.log('[Login] User logged in successfully:', user.claims?.email, 'Role:', user.claims?.role);
+            
+            // Redirect based on user role
+            const role = user.claims?.role || '';
+            
+            if (role === 'admin' || role === 'super_admin') {
+              return res.redirect('/admin');
+            } else if (role.includes('sales')) {
+              return res.redirect('/sales');
+            } else if (role === 'customer') {
+              return res.redirect('/customer/dashboard');
+            } else {
+              // Other staff roles
+              return res.redirect('/staff');
+            }
+          });
+        });
       });
     })(req, res, next);
   });
