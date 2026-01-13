@@ -10,11 +10,21 @@ const DEFAULT_FROM_NAME = "Bright Fame Organic";
 function initSendGrid(): boolean {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (apiKey) {
+    console.log(`[SendGrid] API key configured (length: ${apiKey.length})`);
     sgMail.setApiKey(apiKey);
     return true;
   }
   console.warn("[SendGrid] API key not found - email functionality disabled");
   return false;
+}
+
+// Export function to verify API key exists (without exposing it)
+export function verifyApiKeyExists(): { exists: boolean; length?: number } {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (apiKey && apiKey.length > 10) {
+    return { exists: true, length: apiKey.length };
+  }
+  return { exists: false };
 }
 
 interface EmailRecipient {
