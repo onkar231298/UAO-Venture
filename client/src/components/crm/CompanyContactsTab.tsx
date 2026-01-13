@@ -193,6 +193,7 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
       toast({ title: "Primary contact updated" });
     },
     onError: () => {

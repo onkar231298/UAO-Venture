@@ -5920,13 +5920,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setPrimaryContact(companyId: number, contactId: number): Promise<void> {
+    // First, unset all contacts as primary for this company
     await db.update(companyContacts)
       .set({ isPrimary: false })
       .where(eq(companyContacts.companyId, companyId));
     
+    // Set the selected contact as primary
     await db.update(companyContacts)
       .set({ isPrimary: true, updatedAt: new Date() })
       .where(eq(companyContacts.id, contactId));
+    
+    // Also update the company's primary contact info
+    const [contact] = await db.select().from(companyContacts).where(eq(companyContacts.id, contactId));
+    if (contact) {
+      await db.update(companies)
+        .set({ 
+          primaryEmail: contact.email || undefined,
+          primaryPhone: contact.phone || undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(companies.id, companyId));
+    }
   }
 
   // ========================================

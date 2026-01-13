@@ -1095,6 +1095,33 @@ export default function MyCompanies() {
     enabled: showConvertDialog,
   });
 
+  // Fetch contacts for selected company to get primary contact details
+  interface CompanyContact {
+    id: number;
+    companyId: number;
+    contactName: string;
+    designation?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    isPrimary: boolean;
+    isActive: boolean;
+  }
+  
+  const { data: selectedCompanyContacts } = useQuery<CompanyContact[]>({
+    queryKey: ['/api/crm/companies', selectedCompany?.id, 'contacts'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${selectedCompany?.id}/contacts`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch contacts');
+      return response.json();
+    },
+    enabled: !!selectedCompany,
+  });
+
+  // Get the primary contact from the contacts list
+  const primaryContact = selectedCompanyContacts?.find(c => c.isPrimary) || selectedCompanyContacts?.[0];
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -1857,25 +1884,25 @@ export default function MyCompanies() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Contact Name</p>
-                        <p className="font-medium">N/A</p>
+                        <p className="font-medium">{primaryContact?.contactName || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Designation</p>
-                        <p className="font-medium">N/A</p>
+                        <p className="font-medium">{primaryContact?.designation || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Email</p>
                         <p className="font-medium">
-                          {selectedCompany.primaryEmail ? (
+                          {(primaryContact?.email || selectedCompany.primaryEmail) ? (
                             <a 
-                              href={`mailto:${selectedCompany.primaryEmail}`} 
+                              href={`mailto:${primaryContact?.email || selectedCompany.primaryEmail}`} 
                               className="text-blue-600 hover:underline"
                               onClick={(e) => {
                                 e.preventDefault();
                                 handleEmailAction(selectedCompany);
                               }}
                             >
-                              {selectedCompany.primaryEmail}
+                              {primaryContact?.email || selectedCompany.primaryEmail}
                             </a>
                           ) : "N/A"}
                         </p>
@@ -1883,16 +1910,16 @@ export default function MyCompanies() {
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
                         <div className="font-medium flex items-center gap-2">
-                          {selectedCompany.primaryPhone ? (
+                          {(primaryContact?.phone || selectedCompany.primaryPhone) ? (
                             <>
                               <ClickToCall
-                                phoneNumber={selectedCompany.primaryPhone}
-                                contactName={selectedCompany.companyName}
+                                phoneNumber={primaryContact?.phone || selectedCompany.primaryPhone || ''}
+                                contactName={primaryContact?.contactName || selectedCompany.companyName}
                                 companyId={selectedCompany.id}
                               />
                               <SendSmsButton
-                                phoneNumber={selectedCompany.primaryPhone}
-                                contactName={selectedCompany.companyName}
+                                phoneNumber={primaryContact?.phone || selectedCompany.primaryPhone || ''}
+                                contactName={primaryContact?.contactName || selectedCompany.companyName}
                                 companyId={selectedCompany.id}
                               />
                             </>
