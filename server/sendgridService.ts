@@ -3,17 +3,18 @@ import { db } from "./db";
 import { emailCampaigns, emailCampaignRecipients, emailTemplates, companies, companyContacts } from "@shared/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const DEFAULT_FROM_EMAIL = "sales@bright-organic.com";
 const DEFAULT_FROM_NAME = "Bright Fame Organic";
 
-if (SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-  // Log first 10 chars only for security
-  const keyPreview = SENDGRID_API_KEY.substring(0, 10) + "...";
-  console.log(`[SendGrid] API key configured: ${keyPreview}`);
-} else {
+// Initialize API key fresh each time to pick up secret updates
+function initSendGrid(): boolean {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (apiKey) {
+    sgMail.setApiKey(apiKey);
+    return true;
+  }
   console.warn("[SendGrid] API key not found - email functionality disabled");
+  return false;
 }
 
 interface EmailRecipient {
@@ -59,7 +60,7 @@ export function replaceVariables(
 }
 
 export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEmailResult> {
-  if (!SENDGRID_API_KEY) {
+  if (!initSendGrid()) {
     return { success: false, error: "SendGrid API key not configured" };
   }
 
@@ -126,7 +127,7 @@ export async function sendBulkEmails(
   replyTo?: string,
   attachments?: EmailAttachment[]
 ): Promise<{ sent: number; failed: number; errors: string[] }> {
-  if (!SENDGRID_API_KEY) {
+  if (!initSendGrid()) {
     return { sent: 0, failed: recipients.length, errors: ["SendGrid API key not configured"] };
   }
 
