@@ -83,30 +83,47 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
 export async function detectUserCurrency(): Promise<string> {
   // Check sessionStorage cache first for faster loading
   const cachedCurrency = sessionStorage.getItem('detectedCurrency');
+  const cachedIP = sessionStorage.getItem('detectedIP');
   const cacheTime = sessionStorage.getItem('currencyCacheTime');
   const cacheExpiry = 30 * 60 * 1000; // 30 minutes cache
-  
-  if (cachedCurrency && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
-    if (['USD', 'INR', 'EUR', 'GBP'].includes(cachedCurrency)) {
-      console.log(`Currency loaded from cache: ${cachedCurrency}`);
-      return cachedCurrency;
-    }
-  }
   
   try {
     // Primary: Server-side IP detection (most reliable)
     const response = await fetch('/api/detect-currency');
     const data = await response.json();
     
+    // Check if IP has changed (e.g., VPN switch) - if so, ignore cache
+    const ipChanged = cachedIP && data.ip && cachedIP !== data.ip;
+    if (ipChanged) {
+      console.log(`IP changed from ${cachedIP} to ${data.ip} - refreshing currency`);
+    }
+    
+    // Use cache only if IP hasn't changed and cache is valid
+    if (!ipChanged && cachedCurrency && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
+      if (['USD', 'INR', 'EUR', 'GBP'].includes(cachedCurrency)) {
+        console.log(`Currency loaded from cache: ${cachedCurrency} (IP: ${cachedIP})`);
+        return cachedCurrency;
+      }
+    }
+    
     if (data.currency && ['USD', 'INR', 'EUR', 'GBP'].includes(data.currency)) {
-      console.log(`Currency detected via server: ${data.currency} from ${data.source}`);
-      // Cache the result
+      console.log(`Currency detected via server: ${data.currency} from ${data.source} (IP: ${data.ip}, Country: ${data.countryCode})`);
+      // Cache the result with IP for VPN change detection
       sessionStorage.setItem('detectedCurrency', data.currency);
+      sessionStorage.setItem('detectedIP', data.ip || '');
       sessionStorage.setItem('currencyCacheTime', Date.now().toString());
       return data.currency;
     }
   } catch (error) {
     console.warn('Server-side currency detection failed:', error);
+    
+    // If server failed but we have valid cache, use it
+    if (cachedCurrency && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
+      if (['USD', 'INR', 'EUR', 'GBP'].includes(cachedCurrency)) {
+        console.log(`Using cached currency after server failure: ${cachedCurrency}`);
+        return cachedCurrency;
+      }
+    }
   }
 
   try {
@@ -215,8 +232,13 @@ export function getProductPrice(product: any, userCurrency: string): number | nu
   const priceField = `price${userCurrency}`;
   const price = product[priceField];
   
-  if (price && !isNaN(parseFloat(price))) {
-    return parseFloat(price);
+  // Check if price exists and is a valid positive number
+  // 0 or negative prices are treated as "not available"
+  if (price !== null && price !== undefined) {
+    const parsedPrice = parseFloat(price);
+    if (!isNaN(parsedPrice) && parsedPrice > 0) {
+      return parsedPrice;
+    }
   }
   
   // No fallback - users should only see their regional pricing
