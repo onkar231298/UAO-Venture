@@ -9,7 +9,9 @@ const DEFAULT_FROM_NAME = "Bright Fame Organic";
 
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
-  console.log("[SendGrid] API key configured successfully");
+  // Log first 10 chars only for security
+  const keyPreview = SENDGRID_API_KEY.substring(0, 10) + "...";
+  console.log(`[SendGrid] API key configured: ${keyPreview}`);
 } else {
   console.warn("[SendGrid] API key not found - email functionality disabled");
 }
