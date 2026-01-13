@@ -6613,51 +6613,41 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
       let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
       
-      // Fetch signature image and embed directly as base64 data URI (more reliable than CID)
+      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
       if (emailConfig.signatureImageUrl) {
         try {
-          console.log('[Company Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
-          const objectStorageService = new ObjectStorageService();
+          console.log('[Company Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
           
           // Ensure the signature URL starts with /objects/
           let signaturePath = emailConfig.signatureImageUrl;
           if (!signaturePath.startsWith('/objects/')) {
+            const objectStorageService = new ObjectStorageService();
             signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-            console.log('[Company Email] Normalized signature path:', signaturePath);
           }
           
-          if (!signaturePath.startsWith('/objects/')) {
-            console.error('[Company Email] Invalid signature path format:', signaturePath);
-            throw new Error('Invalid signature path format');
-          }
+          // Build full public HTTPS URL for the signature
+          const baseUrl = getBaseUrl();
+          const signatureUrl = `${baseUrl}${signaturePath}`;
           
-          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
+          console.log('[Company Email] Using signature URL:', signatureUrl);
           
-          // Download file content as buffer
-          const [fileContent] = await signatureFile.download();
-          const base64Data = fileContent.toString('base64');
-          
-          // Get file metadata for mime type
-          const [metadata] = await signatureFile.getMetadata();
-          const mimeType = metadata.contentType || 'image/png';
-          
-          // Embed signature directly in HTML using base64 data URI (no attachment needed)
+          // Embed signature using public URL (works reliably across all email clients)
           finalBodyHtml = `${bodyHtml}
             <br><br>
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="data:${mimeType};base64,${base64Data}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
+                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
           
           finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
           
-          console.log('[Company Email] Signature image embedded successfully');
+          console.log('[Company Email] Signature image URL embedded successfully');
         } catch (signatureError: any) {
-          console.error('[Company Email] Failed to load signature image:', signatureError?.message || signatureError);
-          // Continue without signature if loading fails
+          console.error('[Company Email] Failed to embed signature image:', signatureError?.message || signatureError);
+          // Continue without signature if embedding fails
         }
       }
 
@@ -9996,42 +9986,31 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
       let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
       
-      // Fetch signature image and embed directly as base64 data URI (more reliable than CID)
+      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
       if (emailConfig.signatureImageUrl) {
         try {
-          console.log('[Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
-          const objectStorageService = new ObjectStorageService();
+          console.log('[Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
           
           // Ensure the signature URL starts with /objects/
           let signaturePath = emailConfig.signatureImageUrl;
           if (!signaturePath.startsWith('/objects/')) {
-            // Try to normalize the path if it's a full URL
+            const objectStorageService = new ObjectStorageService();
             signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-            console.log('[Email] Normalized signature path:', signaturePath);
           }
           
-          if (!signaturePath.startsWith('/objects/')) {
-            console.error('[Email] Invalid signature path format:', signaturePath);
-            throw new Error('Invalid signature path format');
-          }
+          // Build full public HTTPS URL for the signature
+          const baseUrl = getBaseUrl();
+          const signatureUrl = `${baseUrl}${signaturePath}`;
           
-          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
+          console.log('[Email] Using signature URL:', signatureUrl);
           
-          // Download file content as buffer
-          const [fileContent] = await signatureFile.download();
-          const base64Data = fileContent.toString('base64');
-          
-          // Get file metadata for mime type
-          const [metadata] = await signatureFile.getMetadata();
-          const mimeType = metadata.contentType || 'image/png';
-          
-          // Embed signature directly in HTML using base64 data URI (no attachment needed)
+          // Embed signature using public URL (works reliably across all email clients)
           finalBodyHtml = `${bodyHtml}
             <br><br>
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="data:${mimeType};base64,${base64Data}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
+                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
@@ -10039,10 +10018,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           // Add text signature placeholder
           finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
           
-          console.log('[Email] Signature image embedded successfully, size:', fileContent.length, 'bytes, mimeType:', mimeType);
+          console.log('[Email] Signature image URL embedded successfully');
         } catch (signatureError: any) {
-          console.error('[Email] Failed to load signature image:', signatureError?.message || signatureError);
-          // Continue without signature if loading fails
+          console.error('[Email] Failed to embed signature image:', signatureError?.message || signatureError);
+          // Continue without signature if embedding fails
         }
       } else {
         console.log('[Email] No signature configured for this email config');
@@ -10958,41 +10937,31 @@ If you have any queries or require further clarification, please feel free to re
 
 We look forward to hearing from you.`;
 
-      // Fetch signature image and embed directly as base64 data URI (more reliable than CID)
+      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
       if (emailConfig.signatureImageUrl) {
         try {
-          console.log('[Quotation Email] Attempting to load signature image:', emailConfig.signatureImageUrl);
-          const objectStorageService = new ObjectStorageService();
+          console.log('[Quotation Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
           
           // Ensure the signature URL starts with /objects/
           let signaturePath = emailConfig.signatureImageUrl;
           if (!signaturePath.startsWith('/objects/')) {
+            const objectStorageService = new ObjectStorageService();
             signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-            console.log('[Quotation Email] Normalized signature path:', signaturePath);
           }
           
-          if (!signaturePath.startsWith('/objects/')) {
-            console.error('[Quotation Email] Invalid signature path format:', signaturePath);
-            throw new Error('Invalid signature path format');
-          }
+          // Build full public HTTPS URL for the signature
+          const baseUrl = getBaseUrl();
+          const signatureUrl = `${baseUrl}${signaturePath}`;
           
-          const signatureFile = await objectStorageService.getObjectEntityFile(signaturePath);
+          console.log('[Quotation Email] Using signature URL:', signatureUrl);
           
-          // Download file content as buffer
-          const [fileContent] = await signatureFile.download();
-          const base64Data = fileContent.toString('base64');
-          
-          // Get file metadata for mime type
-          const [metadata] = await signatureFile.getMetadata();
-          const mimeType = metadata.contentType || 'image/png';
-          
-          // Embed signature directly in HTML using base64 data URI (no attachment needed)
+          // Embed signature using public URL (works reliably across all email clients)
           emailBodyContent = `${emailBodyContent}
             <br><br>
             <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
               <tr>
                 <td>
-                  <img src="data:${mimeType};base64,${base64Data}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
+                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
                 </td>
               </tr>
             </table>`;
@@ -11000,10 +10969,10 @@ We look forward to hearing from you.`;
           // Add text signature placeholder
           emailBodyTextContent = `${emailBodyTextContent}\n\n---\n${emailConfig.displayName || salesRepName}\nBright Fame Organic Pvt. Ltd.`;
           
-          console.log('[Quotation Email] Signature image embedded successfully, size:', fileContent.length, 'bytes');
+          console.log('[Quotation Email] Signature image URL embedded successfully');
         } catch (signatureError: any) {
-          console.error('[Quotation Email] Failed to load signature image:', signatureError?.message || signatureError);
-          // Fallback to text signature if image loading fails
+          console.error('[Quotation Email] Failed to embed signature image:', signatureError?.message || signatureError);
+          // Fallback to text signature if embedding fails
           emailBodyContent = `${emailBodyContent}
   <p>Best Regards,<br/>
   <strong>${salesRepName}</strong><br/>
