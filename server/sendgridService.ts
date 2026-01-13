@@ -106,8 +106,13 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
     console.log(`[SendGrid] Email sent to ${options.to}, messageId: ${messageId}`);
     return { success: true, messageId };
   } catch (error: any) {
-    console.error(`[SendGrid] Failed to send email to ${options.to}:`, error?.response?.body || error.message);
-    return { success: false, error: error?.response?.body?.errors?.[0]?.message || error.message };
+    const errorBody = error?.response?.body;
+    const errorMessage = errorBody?.errors?.[0]?.message || error.message;
+    console.error(`[SendGrid] Failed to send email to ${options.to}:`);
+    console.error(`[SendGrid] Status: ${error?.code || error?.response?.statusCode}`);
+    console.error(`[SendGrid] Error body:`, JSON.stringify(errorBody, null, 2));
+    console.error(`[SendGrid] Error message: ${errorMessage}`);
+    return { success: false, error: errorMessage };
   }
 }
 
