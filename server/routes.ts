@@ -11749,7 +11749,7 @@ We look forward to hearing from you.`;
           .filter((c: any) => c.email)
           .map((c: any) => ({
             email: c.email,
-            contactName: c.contactName,
+            contactName: c.contacts?.[0]?.name || c.name,
             companyName: c.name,
             companyId: c.id,
           }));
@@ -11796,9 +11796,17 @@ We look forward to hearing from you.`;
           message: 'Campaign scheduled successfully' 
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating email campaign:', error);
-      res.status(500).json({ message: 'Failed to create email campaign' });
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response?.body
+      });
+      res.status(500).json({ 
+        message: 'Failed to create email campaign',
+        error: error?.message || 'Unknown error'
+      });
     }
   });
 
