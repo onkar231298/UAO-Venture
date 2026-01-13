@@ -11591,6 +11591,40 @@ We look forward to hearing from you.`;
   // BULK EMAIL CAMPAIGNS (SendGrid Integration)
   // ============================================
 
+  // Test SendGrid API key (admin only)
+  app.get('/api/email-campaigns/test-key', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey) {
+        return res.json({ 
+          configured: false, 
+          message: 'SENDGRID_API_KEY not set' 
+        });
+      }
+      
+      // Check if key has correct format (starts with SG.)
+      const isValidFormat = apiKey.startsWith('SG.');
+      const keyLength = apiKey.length;
+      
+      res.json({ 
+        configured: true, 
+        validFormat: isValidFormat,
+        keyLength,
+        message: isValidFormat ? 'API key appears valid' : 'API key format may be incorrect (should start with SG.)'
+      });
+    } catch (error) {
+      console.error('Error testing SendGrid key:', error);
+      res.status(500).json({ message: 'Failed to test API key' });
+    }
+  });
+
   // Get companies available for bulk email (role-based) - must be before :id route
   app.get('/api/email-campaigns/companies', isAuthenticated, async (req: any, res) => {
     try {
