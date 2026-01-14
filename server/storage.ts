@@ -1760,18 +1760,21 @@ export class DatabaseStorage implements IStorage {
     await db.delete(products).where(eq(products.id, id));
   }
 
-  // Featured Products operations
+  // Featured Products operations - now returns random products with images from all categories
   async getFeaturedProducts(limit: number = 8): Promise<Product[]> {
+    // Get random products that have images, are active and visible
+    // This ensures variety on each page load and all product types are shown
     return await db.select()
       .from(products)
       .where(
         and(
-          eq(products.isFeatured, true),
           eq(products.isActive, true),
-          eq(products.isVisible, true)
+          eq(products.isVisible, true),
+          // Ensure product has a main image
+          sql`"main_image" IS NOT NULL AND "main_image" != ''`
         )
       )
-      .orderBy(asc(products.featuredOrder), desc(products.createdAt))
+      .orderBy(sql`RANDOM()`) // Random order on each request
       .limit(limit);
   }
 
