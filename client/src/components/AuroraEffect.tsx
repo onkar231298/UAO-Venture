@@ -15,13 +15,22 @@ export function AuroraEffect() {
     const hasSeenAurora = localStorage.getItem('aurora_shown');
     if (hasSeenAurora) return;
 
+    // TEMPORARY: Show for all visitors for testing
+    // TODO: Re-enable geo check after testing
+    const TESTING_MODE = true;
+
     async function checkLocation() {
       try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        const countryCode = data.country_code;
+        let shouldShow = TESTING_MODE;
         
-        if (EUROPEAN_COUNTRIES.includes(countryCode)) {
+        if (!TESTING_MODE) {
+          const response = await fetch('https://ipapi.co/json/');
+          const data = await response.json();
+          const countryCode = data.country_code;
+          shouldShow = EUROPEAN_COUNTRIES.includes(countryCode);
+        }
+        
+        if (shouldShow) {
           setShow(true);
           localStorage.setItem('aurora_shown', 'true');
           
