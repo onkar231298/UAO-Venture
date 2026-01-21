@@ -65,6 +65,7 @@ import EmailSettings from "@/pages/crm/EmailSettings";
 import MyCompanies from "@/pages/crm/MyCompanies";
 import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
+import { AuroraEffect } from "@/components/AuroraEffect";
 
 // Helper component for product URL redirect
 function ProductRedirect({ params }: { params: { slug: string } }) {
@@ -205,6 +206,7 @@ function App() {
             <CallStateProvider>
               <TooltipProvider>
                 <Toaster />
+                <AuroraEffect />
                 <Router />
               </TooltipProvider>
             </CallStateProvider>
