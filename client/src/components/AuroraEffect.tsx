@@ -1,10 +1,27 @@
 import { useState, useEffect } from "react";
 
-const EUROPEAN_COUNTRIES = [
-  'DE', 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'GR', 
-  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 
-  'SI', 'ES', 'SE', 'GB', 'NO', 'CH', 'IS', 'UA', 'BY', 'RS', 'BA', 'ME', 
-  'MK', 'AL', 'MD', 'XK'
+const AURORA_COUNTRIES = [
+  'NO', // Norway
+  'SE', // Sweden
+  'FI', // Finland
+  'IS', // Iceland
+  'CA', // Canada
+  'US', // United States
+  'GB', // United Kingdom
+  'GL', // Greenland
+  'DK', // Denmark
+  'IE', // Ireland
+  'DE', // Germany
+  'NL', // Netherlands
+  'PL', // Poland
+  'EE', // Estonia
+  'LV', // Latvia
+  'LT', // Lithuania
+  'RU', // Russia
+  'CN', // China
+  'FR', // France
+  'AU', // Australia
+  'NZ', // New Zealand
 ];
 
 export function AuroraEffect() {
@@ -12,16 +29,29 @@ export function AuroraEffect() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    // Show aurora effect on every page load
-    setShow(true);
-    
-    setTimeout(() => {
-      setFadeOut(true);
-    }, 4000);
-    
-    setTimeout(() => {
-      setShow(false);
-    }, 5000);
+    async function checkLocation() {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        const countryCode = data.country_code;
+        
+        if (AURORA_COUNTRIES.includes(countryCode)) {
+          setShow(true);
+          
+          setTimeout(() => {
+            setFadeOut(true);
+          }, 4000);
+          
+          setTimeout(() => {
+            setShow(false);
+          }, 5000);
+        }
+      } catch (error) {
+        console.log('Could not detect location for aurora effect');
+      }
+    }
+
+    checkLocation();
   }, []);
 
   if (!show) return null;
