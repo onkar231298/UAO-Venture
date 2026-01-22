@@ -156,8 +156,8 @@ export async function checkForDuplicates(
     // Collect all unique assigned user IDs for batch lookup
     const assignedUserIds = new Set<string>();
     for (const company of potentialMatches) {
-      if (company.assignedToUserId) {
-        assignedUserIds.add(company.assignedToUserId);
+      if (company.assignedTo) {
+        assignedUserIds.add(company.assignedTo);
       }
     }
     
@@ -176,7 +176,7 @@ export async function checkForDuplicates(
     for (const company of potentialMatches) {
       if (excludeCompanyId && company.id === excludeCompanyId) continue;
       
-      const assignedUserName = company.assignedToUserId ? userMap.get(company.assignedToUserId) || null : null;
+      const assignedUserName = company.assignedTo ? userMap.get(company.assignedTo) || null : null;
       
       if (company.companyName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
         matches.push({
@@ -185,7 +185,7 @@ export async function checkForDuplicates(
           matchType: 'exact_name',
           confidence: 100,
           matchDetails: 'Exact company name match',
-          assignedToUserId: company.assignedToUserId,
+          assignedToUserId: company.assignedTo,
           assignedToUserName: assignedUserName
         });
         continue;
@@ -198,7 +198,7 @@ export async function checkForDuplicates(
           matchType: 'normalized_name',
           confidence: 95,
           matchDetails: 'Company names match after normalization (removing legal suffixes like Pvt Ltd, Inc, etc.)',
-          assignedToUserId: company.assignedToUserId,
+          assignedToUserId: company.assignedTo,
           assignedToUserName: assignedUserName
         });
         continue;
@@ -211,7 +211,7 @@ export async function checkForDuplicates(
           matchType: 'email_domain',
           confidence: 85,
           matchDetails: `Same email domain: @${emailDomain}`,
-          assignedToUserId: company.assignedToUserId,
+          assignedToUserId: company.assignedTo,
           assignedToUserName: assignedUserName
         });
         continue;
@@ -225,7 +225,7 @@ export async function checkForDuplicates(
           matchType: 'fuzzy_name',
           confidence: similarity,
           matchDetails: `Company names are ${similarity}% similar`,
-          assignedToUserId: company.assignedToUserId,
+          assignedToUserId: company.assignedTo,
           assignedToUserName: assignedUserName
         });
       }
@@ -236,7 +236,7 @@ export async function checkForDuplicates(
         id: companies.id,
         companyName: companies.companyName,
         duplicateStatus: companies.duplicateStatus,
-        assignedToUserId: companies.assignedToUserId
+        assignedTo: companies.assignedTo
       })
       .from(companies)
       .where(ne(companies.duplicateStatus, 'merged'))
@@ -245,8 +245,8 @@ export async function checkForDuplicates(
       // Collect assigned user IDs for fallback matches
       const fallbackUserIds = new Set<string>();
       for (const company of allCompanies) {
-        if (company.assignedToUserId) {
-          fallbackUserIds.add(company.assignedToUserId);
+        if (company.assignedTo) {
+          fallbackUserIds.add(company.assignedTo);
         }
       }
       
@@ -267,14 +267,14 @@ export async function checkForDuplicates(
         
         const similarity = calculateNameSimilarity(companyName, company.companyName);
         if (similarity >= 75) {
-          const assignedUserName = company.assignedToUserId ? fallbackUserMap.get(company.assignedToUserId) || null : null;
+          const assignedUserName = company.assignedTo ? fallbackUserMap.get(company.assignedTo) || null : null;
           matches.push({
             companyId: company.id,
             companyName: company.companyName,
             matchType: 'fuzzy_name',
             confidence: similarity,
             matchDetails: `Company names are ${similarity}% similar`,
-            assignedToUserId: company.assignedToUserId,
+            assignedToUserId: company.assignedTo,
             assignedToUserName: assignedUserName
           });
         }
