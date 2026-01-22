@@ -771,6 +771,8 @@ export default function CompanyManagement() {
       matchType: string;
       confidence: number;
       matchedFields: string[];
+      assignedToUserId?: string | null;
+      assignedToUserName?: string | null;
     }>;
     highestConfidence: number;
   } | null>(null);
@@ -1957,21 +1959,31 @@ export default function CompanyManagement() {
                           ? 'This company may already exist in the system. Please review before creating.'
                           : 'Similar companies exist. You may want to verify this is a new company.'}
                       </p>
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2 space-y-2">
                         {duplicateWarning.matches.slice(0, 3).map((match) => (
                           <div 
                             key={match.companyId} 
-                            className="text-sm flex items-center gap-2"
+                            className="text-sm"
                             data-testid={`duplicate-match-${match.companyId}`}
                           >
-                            <Building2 className="h-3 w-3" />
-                            <span className="font-medium">{match.companyName}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {match.confidence}% match
-                            </Badge>
-                            <span className="text-xs opacity-75">
-                              ({match.matchedFields.join(', ')})
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-3 w-3" />
+                              <span className="font-medium">{match.companyName}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {match.confidence}% match
+                              </Badge>
+                            </div>
+                            <div className="ml-5 text-xs mt-0.5">
+                              {match.assignedToUserName ? (
+                                <span className="text-amber-700 dark:text-amber-400 font-medium">
+                                  Assigned to: {match.assignedToUserName}
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 italic">
+                                  Unassigned
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

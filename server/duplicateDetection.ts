@@ -1,6 +1,6 @@
 import { db } from './db';
-import { companies } from '@shared/schema';
-import { eq, or, and, ilike, sql, ne } from 'drizzle-orm';
+import { companies, users } from '@shared/schema';
+import { eq, or, and, ilike, sql, ne, inArray } from 'drizzle-orm';
 
 export interface DuplicateMatch {
   companyId: number;
@@ -8,6 +8,8 @@ export interface DuplicateMatch {
   matchType: 'exact_name' | 'normalized_name' | 'email_domain' | 'phone' | 'fuzzy_name';
   confidence: number;
   matchDetails: string;
+  assignedToUserId?: string | null;
+  assignedToUserName?: string | null;
 }
 
 export interface DuplicateCheckResult {
@@ -151,8 +153,30 @@ export async function checkForDuplicates(
     
     const potentialMatches = await query;
     
+    // Collect all unique assigned user IDs for batch lookup
+    const assignedUserIds = new Set<string>();
+    for (const company of potentialMatches) {
+      if (company.assignedToUserId) {
+        assignedUserIds.add(company.assignedToUserId);
+      }
+    }
+    
+    // Fetch user names for all assigned users
+    const userMap = new Map<string, string>();
+    if (assignedUserIds.size > 0) {
+      const usersList = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+        .from(users)
+        .where(inArray(users.id, Array.from(assignedUserIds)));
+      for (const user of usersList) {
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Unknown User';
+        userMap.set(user.id, fullName);
+      }
+    }
+    
     for (const company of potentialMatches) {
       if (excludeCompanyId && company.id === excludeCompanyId) continue;
+      
+      const assignedUserName = company.assignedToUserId ? userMap.get(company.assignedToUserId) || null : null;
       
       if (company.companyName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
         matches.push({
@@ -160,7 +184,9 @@ export async function checkForDuplicates(
           companyName: company.companyName,
           matchType: 'exact_name',
           confidence: 100,
-          matchDetails: 'Exact company name match'
+          matchDetails: 'Exact company name match',
+          assignedToUserId: company.assignedToUserId,
+          assignedToUserName: assignedUserName
         });
         continue;
       }
@@ -171,7 +197,9 @@ export async function checkForDuplicates(
           companyName: company.companyName,
           matchType: 'normalized_name',
           confidence: 95,
-          matchDetails: 'Company names match after normalization (removing legal suffixes like Pvt Ltd, Inc, etc.)'
+          matchDetails: 'Company names match after normalization (removing legal suffixes like Pvt Ltd, Inc, etc.)',
+          assignedToUserId: company.assignedToUserId,
+          assignedToUserName: assignedUserName
         });
         continue;
       }
@@ -182,7 +210,9 @@ export async function checkForDuplicates(
           companyName: company.companyName,
           matchType: 'email_domain',
           confidence: 85,
-          matchDetails: `Same email domain: @${emailDomain}`
+          matchDetails: `Same email domain: @${emailDomain}`,
+          assignedToUserId: company.assignedToUserId,
+          assignedToUserName: assignedUserName
         });
         continue;
       }
@@ -194,7 +224,9 @@ export async function checkForDuplicates(
           companyName: company.companyName,
           matchType: 'fuzzy_name',
           confidence: similarity,
-          matchDetails: `Company names are ${similarity}% similar`
+          matchDetails: `Company names are ${similarity}% similar`,
+          assignedToUserId: company.assignedToUserId,
+          assignedToUserName: assignedUserName
         });
       }
     }
@@ -203,23 +235,47 @@ export async function checkForDuplicates(
       const allCompanies = await db.select({
         id: companies.id,
         companyName: companies.companyName,
-        duplicateStatus: companies.duplicateStatus
+        duplicateStatus: companies.duplicateStatus,
+        assignedToUserId: companies.assignedToUserId
       })
       .from(companies)
       .where(ne(companies.duplicateStatus, 'merged'))
       .limit(500);
+      
+      // Collect assigned user IDs for fallback matches
+      const fallbackUserIds = new Set<string>();
+      for (const company of allCompanies) {
+        if (company.assignedToUserId) {
+          fallbackUserIds.add(company.assignedToUserId);
+        }
+      }
+      
+      // Fetch user names for fallback matches
+      const fallbackUserMap = new Map<string, string>();
+      if (fallbackUserIds.size > 0) {
+        const fallbackUsers = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(inArray(users.id, Array.from(fallbackUserIds)));
+        for (const user of fallbackUsers) {
+          const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Unknown User';
+          fallbackUserMap.set(user.id, fullName);
+        }
+      }
       
       for (const company of allCompanies) {
         if (excludeCompanyId && company.id === excludeCompanyId) continue;
         
         const similarity = calculateNameSimilarity(companyName, company.companyName);
         if (similarity >= 75) {
+          const assignedUserName = company.assignedToUserId ? fallbackUserMap.get(company.assignedToUserId) || null : null;
           matches.push({
             companyId: company.id,
             companyName: company.companyName,
             matchType: 'fuzzy_name',
             confidence: similarity,
-            matchDetails: `Company names are ${similarity}% similar`
+            matchDetails: `Company names are ${similarity}% similar`,
+            assignedToUserId: company.assignedToUserId,
+            assignedToUserName: assignedUserName
           });
         }
       }
