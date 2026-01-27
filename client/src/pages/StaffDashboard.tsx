@@ -23,6 +23,7 @@ import {
   LayoutDashboard,
   Send
 } from "lucide-react";
+import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
 export default function StaffDashboard() {
   const { toast } = useToast();
@@ -300,9 +301,12 @@ export default function StaffDashboard() {
                   {roleDisplayName} Portal
                 </p>
               </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {roleDisplayName}
-              </Badge>
+              <div className="flex items-center gap-3">
+                <PunchInOutButton />
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {roleDisplayName}
+                </Badge>
+              </div>
             </div>
           </div>
         </header>

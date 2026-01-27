@@ -17,6 +17,8 @@ import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemSettings from "@/pages/admin/SystemSettings";
+import HRManagement from "@/pages/admin/HRManagement";
+import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   SidebarProvider,
@@ -49,7 +51,8 @@ import {
   Send,
   Mail,
   LogOut,
-  Building2
+  Building2,
+  Clock
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -169,6 +172,7 @@ export default function AdminDashboard() {
       case 'newsletter': return 'Newsletter Subscriptions';
       case 'blog': return 'Blog Management';
       case 'settings': return 'System Settings';
+      case 'hr-management': return 'HR Management';
       default: return 'Dashboard';
     }
   };
@@ -427,6 +431,17 @@ export default function AdminDashboard() {
                     <span>Blog Management</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('hr-management')}
+                    isActive={activeSection === 'hr-management'}
+                    className="w-full"
+                  >
+                    <Clock className="mr-3 h-5 w-5" />
+                    <span>HR Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </div>
 
@@ -484,8 +499,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Right: Notifications + User Info + Badge */}
+              {/* Right: Punch In/Out + Notifications + User Info + Badge */}
               <div className="flex items-center gap-3">
+                <PunchInOutButton />
                 <NotificationBell />
                 <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
                   {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
@@ -657,8 +673,12 @@ export default function AdminDashboard() {
           {activeSection === 'settings' && (
             <SystemSettings />
           )}
+
+          {activeSection === 'hr-management' && (
+            <HRManagement />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

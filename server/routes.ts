@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import hrRoutes from "./hrRoutes";
 import { 
   insertInquirySchema, 
   insertQuotationSchema, 
@@ -12025,6 +12026,9 @@ We look forward to hearing from you.`;
       res.status(200).send('OK');
     }
   });
+
+  // Register HR Management routes
+  app.use(hrRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

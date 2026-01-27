@@ -2417,3 +2417,128 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit
 
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+
+// ==================== HR MANAGEMENT MODULE ====================
+
+// Attendance Records for punch in/out tracking
+export const attendanceRecords = pgTable("attendance_records", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD format
+  punchInTime: timestamp("punch_in_time"),
+  punchOutTime: timestamp("punch_out_time"),
+  punchInPhotoUrl: text("punch_in_photo_url"),
+  punchOutPhotoUrl: text("punch_out_photo_url"),
+  punchInLatitude: decimal("punch_in_latitude", { precision: 10, scale: 8 }),
+  punchInLongitude: decimal("punch_in_longitude", { precision: 11, scale: 8 }),
+  punchInAddress: text("punch_in_address"),
+  punchOutLatitude: decimal("punch_out_latitude", { precision: 10, scale: 8 }),
+  punchOutLongitude: decimal("punch_out_longitude", { precision: 11, scale: 8 }),
+  punchOutAddress: text("punch_out_address"),
+  workingHours: decimal("working_hours", { precision: 5, scale: 2 }),
+  overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }),
+  status: varchar("status", { length: 50 }).default("present"), // present, absent, half_day, leave, holiday
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_attendance_user").on(table.userId),
+  index("idx_attendance_date").on(table.date),
+  index("idx_attendance_user_date").on(table.userId, table.date),
+]);
+
+export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
+
+// Employee Salary Configuration
+export const employeeSalaries = pgTable("employee_salaries", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).default("0"),
+  houseRentAllowance: decimal("house_rent_allowance", { precision: 12, scale: 2 }).default("0"),
+  conveyanceAllowance: decimal("conveyance_allowance", { precision: 12, scale: 2 }).default("0"),
+  medicalAllowance: decimal("medical_allowance", { precision: 12, scale: 2 }).default("0"),
+  specialAllowance: decimal("special_allowance", { precision: 12, scale: 2 }).default("0"),
+  grossSalary: decimal("gross_salary", { precision: 12, scale: 2 }).default("0"),
+  deductions: decimal("deductions", { precision: 12, scale: 2 }).default("0"),
+  netSalary: decimal("net_salary", { precision: 12, scale: 2 }).default("0"),
+  bankAccountNumber: varchar("bank_account_number", { length: 50 }),
+  bankName: varchar("bank_name", { length: 100 }),
+  ifscCode: varchar("ifsc_code", { length: 20 }),
+  panNumber: varchar("pan_number", { length: 20 }),
+  effectiveFrom: timestamp("effective_from").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_employee_salaries_user").on(table.userId),
+  index("idx_employee_salaries_active").on(table.isActive),
+]);
+
+export const insertEmployeeSalarySchema = createInsertSchema(employeeSalaries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EmployeeSalary = typeof employeeSalaries.$inferSelect;
+export type InsertEmployeeSalary = z.infer<typeof insertEmployeeSalarySchema>;
+
+// Salary Slips (Monthly payslips)
+export const salarySlips = pgTable("salary_slips", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).default("0"),
+  houseRentAllowance: decimal("house_rent_allowance", { precision: 12, scale: 2 }).default("0"),
+  conveyanceAllowance: decimal("conveyance_allowance", { precision: 12, scale: 2 }).default("0"),
+  medicalAllowance: decimal("medical_allowance", { precision: 12, scale: 2 }).default("0"),
+  specialAllowance: decimal("special_allowance", { precision: 12, scale: 2 }).default("0"),
+  grossSalary: decimal("gross_salary", { precision: 12, scale: 2 }).default("0"),
+  totalDeductions: decimal("total_deductions", { precision: 12, scale: 2 }).default("0"),
+  netSalary: decimal("net_salary", { precision: 12, scale: 2 }).default("0"),
+  workingDays: integer("working_days").default(0),
+  presentDays: integer("present_days").default(0),
+  absentDays: integer("absent_days").default(0),
+  leaveDays: integer("leave_days").default(0),
+  overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }).default("0"),
+  status: varchar("status", { length: 50 }).default("draft"), // draft, generated, paid
+  paidAt: timestamp("paid_at"),
+  generatedAt: timestamp("generated_at"),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_salary_slips_user").on(table.userId),
+  index("idx_salary_slips_month_year").on(table.month, table.year),
+  index("idx_salary_slips_user_month_year").on(table.userId, table.month, table.year),
+]);
+
+export const insertSalarySlipSchema = createInsertSchema(salarySlips).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SalarySlip = typeof salarySlips.$inferSelect;
+export type InsertSalarySlip = z.infer<typeof insertSalarySlipSchema>;
+
+// HR Relations
+export const attendanceRecordsRelations = relations(attendanceRecords, ({ one }) => ({
+  user: one(users, { fields: [attendanceRecords.userId], references: [users.id] }),
+}));
+
+export const employeeSalariesRelations = relations(employeeSalaries, ({ one }) => ({
+  user: one(users, { fields: [employeeSalaries.userId], references: [users.id] }),
+}));
+
+export const salarySlipsRelations = relations(salarySlips, ({ one }) => ({
+  user: one(users, { fields: [salarySlips.userId], references: [users.id] }),
+}));
