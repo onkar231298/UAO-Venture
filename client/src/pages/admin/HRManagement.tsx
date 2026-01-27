@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2 } from "lucide-react";
+import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -89,6 +90,18 @@ interface SalarySlip {
   userDepartment: string | null;
 }
 
+interface PaidHoliday {
+  id: number;
+  date: string;
+  name: string;
+  description: string | null;
+  year: number;
+  month: number;
+  isRecurring: boolean | null;
+  createdAt: string | null;
+  createdBy: string | null;
+}
+
 export default function HRManagement() {
   const [activeTab, setActiveTab] = useState("attendance");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -100,6 +113,13 @@ export default function HRManagement() {
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
+  const [showHolidayDialog, setShowHolidayDialog] = useState(false);
+  const [holidayForm, setHolidayForm] = useState({
+    date: "",
+    name: "",
+    description: "",
+  });
+  const [holidayFilterYear, setHolidayFilterYear] = useState(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -130,6 +150,27 @@ export default function HRManagement() {
       params.set("month", selectedMonth.toString());
       params.set("year", selectedYear.toString());
       const response = await fetch(`/api/hr/admin/salary-slips?${params}`);
+      return response.json();
+    },
+  });
+
+  const { data: holidays = [], isLoading: loadingHolidays } = useQuery<PaidHoliday[]>({
+    queryKey: ["/api/hr/holidays", holidayFilterYear],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("year", holidayFilterYear.toString());
+      const response = await fetch(`/api/hr/holidays?${params}`);
+      return response.json();
+    },
+  });
+
+  const { data: workingDaysInfo } = useQuery({
+    queryKey: ["/api/hr/working-days", selectedYear, selectedMonth],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("year", selectedYear.toString());
+      params.set("month", selectedMonth.toString());
+      const response = await fetch(`/api/hr/working-days?${params}`);
       return response.json();
     },
   });
@@ -186,6 +227,41 @@ export default function HRManagement() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to generate", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const addHolidayMutation = useMutation({
+    mutationFn: async (data: typeof holidayForm) => {
+      return apiRequest("/api/hr/holidays", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Holiday added successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/holidays"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/working-days"] });
+      setShowHolidayDialog(false);
+      setHolidayForm({ date: "", name: "", description: "" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to add holiday", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/hr/holidays/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Holiday deleted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/holidays"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/working-days"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
     },
   });
 
@@ -252,10 +328,14 @@ export default function HRManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="attendance" className="gap-2">
             <Clock className="h-4 w-4" />
             Attendance
+          </TabsTrigger>
+          <TabsTrigger value="holidays" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Holidays
           </TabsTrigger>
           <TabsTrigger value="salaries" className="gap-2">
             <DollarSign className="h-4 w-4" />
@@ -455,6 +535,115 @@ export default function HRManagement() {
                   </TableBody>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="holidays" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5" />
+                    Paid Holidays Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage paid holidays for the organization. Saturdays and Sundays are automatically considered as off days.
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowHolidayDialog(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Holiday
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Note:</strong> Saturdays and Sundays are automatically considered as paid off days. 
+                  Add public holidays and company-specific holidays below.
+                </p>
+              </div>
+
+              <div className="flex gap-4 mb-4">
+                <div>
+                  <Label>Filter by Year</Label>
+                  <Select value={holidayFilterYear.toString()} onValueChange={(v) => setHolidayFilterYear(parseInt(v))}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {workingDaysInfo && (
+                  <div className="flex items-end gap-6 text-sm">
+                    <div className="text-center">
+                      <span className="block text-muted-foreground">Working Days</span>
+                      <span className="font-semibold text-lg">{workingDaysInfo.workingDays}</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="block text-muted-foreground">Weekends</span>
+                      <span className="font-semibold text-lg">{workingDaysInfo.weekends}</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="block text-muted-foreground">Holidays</span>
+                      <span className="font-semibold text-lg">{workingDaysInfo.holidays}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {loadingHolidays ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : holidays.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No holidays added for {holidayFilterYear}. Click "Add Holiday" to add one.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Day</TableHead>
+                      <TableHead>Holiday Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {holidays.map((holiday) => {
+                      const holidayDate = new Date(holiday.date);
+                      const dayName = format(holidayDate, "EEEE");
+                      return (
+                        <TableRow key={holiday.id}>
+                          <TableCell>{format(holidayDate, "dd MMM yyyy")}</TableCell>
+                          <TableCell>{dayName}</TableCell>
+                          <TableCell className="font-medium">{holiday.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{holiday.description || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => deleteHolidayMutation.mutate(holiday.id)}
+                              disabled={deleteHolidayMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -682,6 +871,61 @@ export default function HRManagement() {
           </DialogHeader>
           <div className="aspect-video bg-muted rounded-lg overflow-hidden">
             <img src={photoUrl} alt="Attendance" className="w-full h-full object-cover" />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showHolidayDialog} onOpenChange={setShowHolidayDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Add Paid Holiday
+            </DialogTitle>
+            <DialogDescription>
+              Add a new paid holiday. All employees will have this day off with full pay.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Holiday Date *</Label>
+              <Input
+                type="date"
+                value={holidayForm.date}
+                onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Holiday Name *</Label>
+              <Input
+                value={holidayForm.name}
+                onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
+                placeholder="e.g., Republic Day, Diwali, Christmas"
+              />
+            </div>
+            <div>
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={holidayForm.description}
+                onChange={(e) => setHolidayForm({ ...holidayForm, description: e.target.value })}
+                placeholder="Additional details about the holiday"
+                rows={2}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => {
+              setShowHolidayDialog(false);
+              setHolidayForm({ date: "", name: "", description: "" });
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => addHolidayMutation.mutate(holidayForm)} 
+              disabled={addHolidayMutation.isPending || !holidayForm.date || !holidayForm.name}
+            >
+              {addHolidayMutation.isPending ? "Adding..." : "Add Holiday"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
