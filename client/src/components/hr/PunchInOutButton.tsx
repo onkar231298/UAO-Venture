@@ -40,9 +40,24 @@ export function PunchInOutButton() {
     queryKey: ["/api/hr/attendance/today"],
   });
 
+  const { data: dayOffInfo } = useQuery<{
+    isWeekend: boolean;
+    isHoliday: boolean;
+    holidayName: string | null;
+    isDayOff: boolean;
+  }>({
+    queryKey: ["/api/hr/is-day-off", format(new Date(), "yyyy-MM-dd")],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const response = await fetch(`/api/hr/is-day-off?date=${today}`);
+      return response.json();
+    },
+  });
+
   const isPunchedIn = todayAttendance?.punchInTime && !todayAttendance?.punchOutTime;
   const isPunchedOut = todayAttendance?.punchOutTime;
   const canPunchIn = !todayAttendance?.punchInTime;
+  const isDayOff = dayOffInfo?.isDayOff || false;
 
   const punchInMutation = useMutation({
     mutationFn: async (data: { photoBase64: string; latitude: number; longitude: number; address: string }) => {
@@ -208,7 +223,14 @@ export function PunchInOutButton() {
 
   return (
     <>
-      {isPunchedOut ? (
+      {isDayOff && !todayAttendance?.punchInTime ? (
+        <div className="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
+          <Clock className="h-4 w-4 text-amber-600" />
+          <span className="text-amber-700 dark:text-amber-300">
+            {dayOffInfo?.isWeekend ? "Weekend Off" : dayOffInfo?.holidayName || "Holiday"}
+          </span>
+        </div>
+      ) : isPunchedOut ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-md">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <span>

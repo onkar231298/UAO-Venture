@@ -459,6 +459,33 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       return res.status(400).json({ error: "Salary not configured for this employee" });
     }
 
+    // Calculate working days excluding weekends and holidays
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    
+    // Get holidays for this month
+    const holidays = await db.select()
+      .from(paidHolidays)
+      .where(and(
+        eq(paidHolidays.year, year),
+        eq(paidHolidays.month, month)
+      ));
+    
+    const holidayDates = new Set(holidays.map(h => 
+      new Date(h.date).toISOString().split('T')[0]
+    ));
+    
+    let workingDaysInMonth = 0;
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      const dateStr = d.toISOString().split('T')[0];
+      
+      // Skip weekends (Saturday = 6, Sunday = 0) and holidays
+      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDates.has(dateStr)) {
+        workingDaysInMonth++;
+      }
+    }
+
     // Get attendance for the month
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
@@ -472,7 +499,7 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       ));
 
     const presentDays = attendance.filter(a => a.status === 'present').length;
-    const absentDays = attendance.filter(a => a.status === 'absent').length;
+    const absentDays = workingDaysInMonth - presentDays; // Calculate absent days based on working days
     const leaveDays = attendance.filter(a => a.status === 'leave').length;
     const totalOvertimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtimeHours || '0') || 0), 0);
 
@@ -497,9 +524,9 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       grossSalary: salaryConfig.grossSalary,
       totalDeductions: salaryConfig.deductions,
       netSalary: salaryConfig.netSalary,
-      workingDays: 30,
+      workingDays: workingDaysInMonth, // Use calculated working days
       presentDays,
-      absentDays,
+      absentDays: Math.max(0, absentDays - leaveDays), // Subtract leaves from absent
       leaveDays,
       overtimeHours: totalOvertimeHours.toString(),
       status: "generated",
