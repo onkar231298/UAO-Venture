@@ -2542,3 +2542,24 @@ export const employeeSalariesRelations = relations(employeeSalaries, ({ one }) =
 export const salarySlipsRelations = relations(salarySlips, ({ one }) => ({
   user: one(users, { fields: [salarySlips.userId], references: [users.id] }),
 }));
+
+// Paid Holidays table for flexible holiday management
+export const paidHolidays = pgTable("paid_holidays", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  isRecurring: boolean("is_recurring").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: varchar("created_by", { length: 255 }),
+});
+
+export const insertPaidHolidaySchema = createInsertSchema(paidHolidays).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPaidHoliday = z.infer<typeof insertPaidHolidaySchema>;
+export type PaidHoliday = typeof paidHolidays.$inferSelect;

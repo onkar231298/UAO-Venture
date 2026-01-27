@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "./db";
-import { attendanceRecords, employeeSalaries, salarySlips, users } from "@shared/schema";
+import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays } from "@shared/schema";
 import { eq, and, gte, lte, desc, sql, asc } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
@@ -607,6 +607,242 @@ router.get("/api/hr/attendance/photo/:photoPath(*)", isAuthenticated, async (req
   } catch (error) {
     console.error("Error fetching photo:", error);
     res.status(404).json({ error: "Photo not found" });
+  }
+});
+
+// ============ PAID HOLIDAYS MANAGEMENT ============
+
+// Get all paid holidays (with optional year/month filter)
+router.get("/api/hr/holidays", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const { year, month } = req.query;
+    
+    let conditions: any[] = [];
+    
+    if (year) {
+      conditions.push(eq(paidHolidays.year, parseInt(year as string)));
+    }
+    if (month) {
+      conditions.push(eq(paidHolidays.month, parseInt(month as string)));
+    }
+    
+    const holidays = await db.select()
+      .from(paidHolidays)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(paidHolidays.date));
+    
+    res.json(holidays);
+  } catch (error) {
+    console.error("Error fetching holidays:", error);
+    res.status(500).json({ error: "Failed to fetch holidays" });
+  }
+});
+
+// Create a new paid holiday (admin only)
+router.post("/api/hr/holidays", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+    
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const { date, name, description, isRecurring } = req.body;
+    
+    if (!date || !name) {
+      return res.status(400).json({ error: "Date and name are required" });
+    }
+    
+    const holidayDate = new Date(date);
+    const year = holidayDate.getFullYear();
+    const month = holidayDate.getMonth() + 1;
+    
+    const [newHoliday] = await db.insert(paidHolidays)
+      .values({
+        date: holidayDate,
+        name,
+        description: description || null,
+        year,
+        month,
+        isRecurring: isRecurring || false,
+        createdBy: userId,
+      })
+      .returning();
+    
+    res.status(201).json(newHoliday);
+  } catch (error) {
+    console.error("Error creating holiday:", error);
+    res.status(500).json({ error: "Failed to create holiday" });
+  }
+});
+
+// Update a paid holiday (admin only)
+router.patch("/api/hr/holidays/:id", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+    
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const { id } = req.params;
+    const { date, name, description, isRecurring } = req.body;
+    
+    const updateData: any = {};
+    if (date) {
+      const holidayDate = new Date(date);
+      updateData.date = holidayDate;
+      updateData.year = holidayDate.getFullYear();
+      updateData.month = holidayDate.getMonth() + 1;
+    }
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isRecurring !== undefined) updateData.isRecurring = isRecurring;
+    
+    const [updated] = await db.update(paidHolidays)
+      .set(updateData)
+      .where(eq(paidHolidays.id, parseInt(id)))
+      .returning();
+    
+    if (!updated) {
+      return res.status(404).json({ error: "Holiday not found" });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating holiday:", error);
+    res.status(500).json({ error: "Failed to update holiday" });
+  }
+});
+
+// Delete a paid holiday (admin only)
+router.delete("/api/hr/holidays/:id", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+    
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const { id } = req.params;
+    
+    const [deleted] = await db.delete(paidHolidays)
+      .where(eq(paidHolidays.id, parseInt(id)))
+      .returning();
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Holiday not found" });
+    }
+    
+    res.json({ success: true, deleted });
+  } catch (error) {
+    console.error("Error deleting holiday:", error);
+    res.status(500).json({ error: "Failed to delete holiday" });
+  }
+});
+
+// Check if a specific date is a holiday or weekend
+router.get("/api/hr/is-day-off", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: "Date is required" });
+    }
+    
+    const checkDate = new Date(date as string);
+    const dayOfWeek = checkDate.getDay();
+    
+    // Check if weekend (Saturday = 6, Sunday = 0)
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Check if holiday
+    const startOfDay = new Date(checkDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(checkDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const [holiday] = await db.select()
+      .from(paidHolidays)
+      .where(and(
+        gte(paidHolidays.date, startOfDay),
+        lte(paidHolidays.date, endOfDay)
+      ));
+    
+    res.json({
+      date: date,
+      isWeekend,
+      isHoliday: !!holiday,
+      holidayName: holiday?.name || null,
+      isDayOff: isWeekend || !!holiday,
+    });
+  } catch (error) {
+    console.error("Error checking day off:", error);
+    res.status(500).json({ error: "Failed to check day off" });
+  }
+});
+
+// Get working days count for a month (excluding weekends and holidays)
+router.get("/api/hr/working-days", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const { year, month } = req.query;
+    
+    if (!year || !month) {
+      return res.status(400).json({ error: "Year and month are required" });
+    }
+    
+    const yearNum = parseInt(year as string);
+    const monthNum = parseInt(month as string);
+    
+    // Get all days in the month
+    const firstDay = new Date(yearNum, monthNum - 1, 1);
+    const lastDay = new Date(yearNum, monthNum, 0);
+    
+    // Get holidays for this month
+    const holidays = await db.select()
+      .from(paidHolidays)
+      .where(and(
+        eq(paidHolidays.year, yearNum),
+        eq(paidHolidays.month, monthNum)
+      ));
+    
+    const holidayDates = new Set(holidays.map(h => 
+      new Date(h.date).toISOString().split('T')[0]
+    ));
+    
+    let workingDays = 0;
+    let weekends = 0;
+    let holidaysCount = 0;
+    
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      const dateStr = d.toISOString().split('T')[0];
+      
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        weekends++;
+      } else if (holidayDates.has(dateStr)) {
+        holidaysCount++;
+      } else {
+        workingDays++;
+      }
+    }
+    
+    res.json({
+      year: yearNum,
+      month: monthNum,
+      totalDays: lastDay.getDate(),
+      workingDays,
+      weekends,
+      holidays: holidaysCount,
+      holidayDetails: holidays.map(h => ({
+        date: h.date,
+        name: h.name,
+      })),
+    });
+  } catch (error) {
+    console.error("Error calculating working days:", error);
+    res.status(500).json({ error: "Failed to calculate working days" });
   }
 });
 
