@@ -127,7 +127,7 @@ export default function OurTeam() {
                 </div>
               </div>
 
-              {/* Kamal Padel - Right aligned */}
+              {/* Kamal Patel - Right aligned */}
               <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div className="order-1 md:order-2">
                   <div className="w-48 h-48 bg-gray-200 rounded-2xl mx-auto md:mx-0 flex items-center justify-center shadow-lg">
@@ -138,13 +138,13 @@ export default function OurTeam() {
                   <Badge variant="outline" className="mb-4 bg-orange-50 text-orange-700 border-orange-200 px-4 py-2">
                     Director of Supply Chain
                   </Badge>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Mr. Kamal Padel</h3>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Mr. Kamal Patel</h3>
                   <div className="flex items-center space-x-2 mb-4">
                     <Target className="w-5 h-5 text-orange-600" />
                     <span className="text-orange-600 font-medium">Global Logistics Excellence</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
-                    With extensive experience in shipping, logistics, and international trade documentation, Mr. Kamal Padel ensures 
+                    With extensive experience in shipping, logistics, and international trade documentation, Mr. Kamal Patel ensures 
                     that Bright Fame Organic's products reach global markets with efficiency, compliance, and care. His deep knowledge 
                     of customs regulations, freight operations, and export procedures helps the company maintain a seamless, timely, 
                     and cost-effective supply chain.
