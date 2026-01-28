@@ -49,7 +49,26 @@ export default function Header() {
   const [mobileIngredientsOpen, setMobileIngredientsOpen] = useState(false);
   const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
+  const [detectedCountry, setDetectedCountry] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Fetch detected country based on IP
+  useEffect(() => {
+    const fetchCountry = async () => {
+      try {
+        const response = await fetch('/api/detect-currency');
+        const data = await response.json();
+        if (data.countryName) {
+          setDetectedCountry(data.countryName);
+        } else if (data.countryCode) {
+          setDetectedCountry(data.countryCode);
+        }
+      } catch (error) {
+        console.error('Failed to detect country:', error);
+      }
+    };
+    fetchCountry();
+  }, []);
 
   // Fetch categories for ingredients dropdown
   const { data: categories = [] } = useQuery<Category[]>({
@@ -411,13 +430,15 @@ export default function Header() {
 
           {/* Right Side - User Actions */}
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Country Selector */}
-            <div className="hidden md:flex items-center space-x-2">
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <Globe className="w-4 h-4" />
-                <span>India</span>
+            {/* Country Indicator */}
+            {detectedCountry && (
+              <div className="hidden md:flex items-center space-x-2">
+                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                  <Globe className="w-4 h-4" />
+                  <span>{detectedCountry}</span>
+                </div>
               </div>
-            </div>
+            )}
             
             {/* User Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">

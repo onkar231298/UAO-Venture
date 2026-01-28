@@ -1197,6 +1197,23 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         GB: 'GBP', UK: 'GBP', // UK
       };
 
+      // Country code to name mapping
+      const COUNTRY_NAME_MAP: Record<string, string> = {
+        US: 'USA', CA: 'Canada', MX: 'Mexico',
+        IN: 'India',
+        DE: 'Germany', FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands',
+        BE: 'Belgium', AT: 'Austria', PT: 'Portugal', IE: 'Ireland', FI: 'Finland',
+        LU: 'Luxembourg', MT: 'Malta', CY: 'Cyprus', SK: 'Slovakia', SI: 'Slovenia',
+        EE: 'Estonia', LV: 'Latvia', LT: 'Lithuania', GR: 'Greece',
+        GB: 'UK', UK: 'UK',
+        AU: 'Australia', NZ: 'New Zealand', JP: 'Japan', CN: 'China', KR: 'South Korea',
+        SG: 'Singapore', AE: 'UAE', SA: 'Saudi Arabia', ZA: 'South Africa',
+        BR: 'Brazil', AR: 'Argentina', CL: 'Chile', CO: 'Colombia',
+        RU: 'Russia', PL: 'Poland', CZ: 'Czech Republic', HU: 'Hungary',
+        SE: 'Sweden', NO: 'Norway', DK: 'Denmark', CH: 'Switzerland',
+        TH: 'Thailand', VN: 'Vietnam', MY: 'Malaysia', ID: 'Indonesia', PH: 'Philippines',
+      };
+
       // Try each service
       for (const service of services) {
         try {
@@ -1204,10 +1221,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           const currency = COUNTRY_CURRENCY_MAP[result.countryCode] || 'USD';
           
           if (result.countryCode) {
+            const countryName = COUNTRY_NAME_MAP[result.countryCode] || result.countryCode;
             console.log(`Currency detected: ${result.countryCode} -> ${currency} via ${result.service}`);
             return res.json({ 
               currency, 
-              countryCode: result.countryCode, 
+              countryCode: result.countryCode,
+              countryName,
               source: result.service,
               ip: clientIP 
             });
