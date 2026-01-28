@@ -196,9 +196,8 @@ export default function Contact() {
                       <div>
                         <h4 className="font-semibold">Head Office</h4>
                         <p className="text-gray-600">
-                          BFI Organic Private Limited<br />
-                          Industrial Area, Sector 12<br />
-                          New Delhi - 110020, India
+                          415, APMC Building, Market Yard,<br />
+                          Unjha-384170, Gujarat, India
                         </p>
                       </div>
                     </div>
