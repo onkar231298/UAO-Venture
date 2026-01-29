@@ -18,7 +18,6 @@ import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import HRManagement from "@/pages/admin/HRManagement";
-import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   SidebarProvider,
@@ -499,9 +498,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Right: Punch In/Out + Notifications + User Info + Badge */}
+              {/* Right: Notifications + User Info + Badge */}
               <div className="flex items-center gap-3">
-                <PunchInOutButton />
                 <NotificationBell />
                 <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
                   {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
