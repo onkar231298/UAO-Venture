@@ -16,6 +16,7 @@ import {
   LogOut,
   FileText,
 } from "lucide-react";
+import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
 interface SalesLayoutProps {
   children: React.ReactNode;
@@ -154,6 +155,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
               {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
             </div>
             <div className="flex items-center gap-4">
+              <PunchInOutButton />
               <NotificationBell />
             </div>
           </div>
