@@ -106,7 +106,7 @@ export default function HRManagement() {
   const [activeTab, setActiveTab] = useState("attendance");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [showSalaryDialog, setShowSalaryDialog] = useState(false);
@@ -133,7 +133,7 @@ export default function HRManagement() {
       const params = new URLSearchParams();
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
-      if (selectedEmployee) params.set("userId", selectedEmployee);
+      if (selectedEmployee && selectedEmployee !== "all") params.set("userId", selectedEmployee);
       const response = await fetch(`/api/hr/admin/attendance?${params}`);
       return response.json();
     },
@@ -388,7 +388,7 @@ export default function HRManagement() {
                       <SelectValue placeholder="All Employees" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Employees</SelectItem>
+                      <SelectItem value="all">All Employees</SelectItem>
                       {staff.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.firstName} {s.lastName}

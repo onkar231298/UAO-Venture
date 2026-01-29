@@ -232,7 +232,7 @@ router.get("/api/hr/attendance/history", isAuthenticated, async (req: Request, r
 // Admin: Get all employees attendance
 router.get("/api/hr/admin/attendance", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -289,7 +289,7 @@ router.get("/api/hr/admin/attendance", isAuthenticated, async (req: Request, res
 // Admin: Get all staff users for dropdown
 router.get("/api/hr/admin/staff", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -316,7 +316,7 @@ router.get("/api/hr/admin/staff", isAuthenticated, async (req: Request, res: Res
 // Admin: Get/Update employee salary config
 router.get("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -336,7 +336,7 @@ router.get("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request,
 
 router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -406,7 +406,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
 // Admin: Get all salary configurations
 router.get("/api/hr/admin/salaries", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -443,7 +443,7 @@ router.get("/api/hr/admin/salaries", isAuthenticated, async (req: Request, res: 
 // Generate salary slip for an employee for a specific month
 router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -559,7 +559,7 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
 // Get salary slips
 router.get("/api/hr/admin/salary-slips", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -608,7 +608,7 @@ router.get("/api/hr/admin/salary-slips", isAuthenticated, async (req: Request, r
 // Get attendance photo
 router.get("/api/hr/attendance/photo/:photoPath(*)", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     const userId = req.user?.id;
     const { photoPath } = req.params;
     
@@ -668,7 +668,7 @@ router.get("/api/hr/holidays", isAuthenticated, async (req: Request, res: Respon
 // Create a new paid holiday (admin only)
 router.post("/api/hr/holidays", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     const userId = req.user?.id;
     
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
@@ -707,7 +707,7 @@ router.post("/api/hr/holidays", isAuthenticated, async (req: Request, res: Respo
 // Update a paid holiday (admin only)
 router.patch("/api/hr/holidays/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Admin access required" });
@@ -746,7 +746,7 @@ router.patch("/api/hr/holidays/:id", isAuthenticated, async (req: Request, res: 
 // Delete a paid holiday (admin only)
 router.delete("/api/hr/holidays/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userRole = req.user?.role;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Admin access required" });
