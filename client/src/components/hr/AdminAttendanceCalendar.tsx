@@ -96,6 +96,7 @@ export function AdminAttendanceCalendar() {
   };
 
   const getAttendanceForDate = (date: string) => {
+    if (!Array.isArray(attendanceRecords)) return undefined;
     return attendanceRecords.find(r => r.date === date);
   };
 
