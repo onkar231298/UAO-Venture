@@ -248,47 +248,51 @@ export default function HRManagement() {
     },
   });
 
-  const { data: currentSalary } = useQuery({
+  const { data: currentSalary, isLoading: isLoadingSalary, isFetched: isSalaryFetched } = useQuery({
     queryKey: ["/api/hr/admin/salary", selectedStaff?.id],
-    enabled: !!selectedStaff?.id,
+    enabled: !!selectedStaff?.id && showSalaryDialog,
     queryFn: async () => {
       const response = await fetch(`/api/hr/admin/salary/${selectedStaff?.id}`);
       return response.json();
     },
   });
 
-  // Sync salaryForm with currentSalary when dialog opens
+  // Sync salaryForm with currentSalary when data is loaded
   useEffect(() => {
-    if (currentSalary && showSalaryDialog) {
-      setSalaryForm({
-        salarySlipName: (currentSalary as any).salarySlipName || "",
-        basicSalary: currentSalary.basicSalary || "",
-        houseRentAllowance: currentSalary.houseRentAllowance || "",
-        conveyanceAllowance: currentSalary.conveyanceAllowance || "",
-        medicalAllowance: currentSalary.medicalAllowance || "",
-        specialAllowance: currentSalary.specialAllowance || "",
-        deductions: currentSalary.deductions || "",
-        bankAccountNumber: currentSalary.bankAccountNumber || "",
-        bankName: currentSalary.bankName || "",
-        ifscCode: (currentSalary as any).ifscCode || "",
-        panNumber: (currentSalary as any).panNumber || "",
-      });
-    } else if (!currentSalary && showSalaryDialog) {
-      setSalaryForm({
-        salarySlipName: "",
-        basicSalary: "",
-        houseRentAllowance: "",
-        conveyanceAllowance: "",
-        medicalAllowance: "",
-        specialAllowance: "",
-        deductions: "",
-        bankAccountNumber: "",
-        bankName: "",
-        ifscCode: "",
-        panNumber: "",
-      });
+    // Only sync form when data has been fetched (not loading)
+    if (showSalaryDialog && isSalaryFetched && !isLoadingSalary) {
+      if (currentSalary && currentSalary.id) {
+        setSalaryForm({
+          salarySlipName: (currentSalary as any).salarySlipName || "",
+          basicSalary: currentSalary.basicSalary || "",
+          houseRentAllowance: currentSalary.houseRentAllowance || "",
+          conveyanceAllowance: currentSalary.conveyanceAllowance || "",
+          medicalAllowance: currentSalary.medicalAllowance || "",
+          specialAllowance: currentSalary.specialAllowance || "",
+          deductions: currentSalary.deductions || "",
+          bankAccountNumber: currentSalary.bankAccountNumber || "",
+          bankName: currentSalary.bankName || "",
+          ifscCode: (currentSalary as any).ifscCode || "",
+          panNumber: (currentSalary as any).panNumber || "",
+        });
+      } else {
+        // Only reset to blank if no existing salary config exists
+        setSalaryForm({
+          salarySlipName: "",
+          basicSalary: "",
+          houseRentAllowance: "",
+          conveyanceAllowance: "",
+          medicalAllowance: "",
+          specialAllowance: "",
+          deductions: "",
+          bankAccountNumber: "",
+          bankName: "",
+          ifscCode: "",
+          panNumber: "",
+        });
+      }
     }
-  }, [currentSalary, showSalaryDialog]);
+  }, [currentSalary, showSalaryDialog, isSalaryFetched, isLoadingSalary]);
 
   const saveSalaryMutation = useMutation({
     mutationFn: async (data: typeof salaryForm) => {
@@ -1354,8 +1358,11 @@ export default function HRManagement() {
           
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowSalaryDialog(false)}>Cancel</Button>
-            <Button onClick={() => saveSalaryMutation.mutate(salaryForm)} disabled={saveSalaryMutation.isPending}>
-              {saveSalaryMutation.isPending ? "Saving..." : "Save"}
+            <Button 
+              onClick={() => saveSalaryMutation.mutate(salaryForm)} 
+              disabled={saveSalaryMutation.isPending || isLoadingSalary}
+            >
+              {saveSalaryMutation.isPending ? "Saving..." : isLoadingSalary ? "Loading..." : "Save"}
             </Button>
           </div>
         </DialogContent>
