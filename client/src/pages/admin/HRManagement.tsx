@@ -255,6 +255,37 @@ export default function HRManagement() {
     },
   });
 
+  // Sync salaryForm with currentSalary when dialog opens
+  useEffect(() => {
+    if (currentSalary && showSalaryDialog) {
+      setSalaryForm({
+        basicSalary: currentSalary.basicSalary || "",
+        houseRentAllowance: currentSalary.houseRentAllowance || "",
+        conveyanceAllowance: currentSalary.conveyanceAllowance || "",
+        medicalAllowance: currentSalary.medicalAllowance || "",
+        specialAllowance: currentSalary.specialAllowance || "",
+        deductions: currentSalary.deductions || "",
+        bankAccountNumber: currentSalary.bankAccountNumber || "",
+        bankName: currentSalary.bankName || "",
+        ifscCode: currentSalary.ifscCode || "",
+        panNumber: currentSalary.panNumber || "",
+      });
+    } else if (!currentSalary && showSalaryDialog) {
+      setSalaryForm({
+        basicSalary: "",
+        houseRentAllowance: "",
+        conveyanceAllowance: "",
+        medicalAllowance: "",
+        specialAllowance: "",
+        deductions: "",
+        bankAccountNumber: "",
+        bankName: "",
+        ifscCode: "",
+        panNumber: "",
+      });
+    }
+  }, [currentSalary, showSalaryDialog]);
+
   const saveSalaryMutation = useMutation({
     mutationFn: async (data: typeof salaryForm) => {
       return apiRequest(`/api/hr/admin/salary/${selectedStaff?.id}`, {
@@ -1206,7 +1237,7 @@ export default function HRManagement() {
               <Label>Basic Salary (INR)</Label>
               <Input
                 type="number"
-                value={currentSalary?.basicSalary || salaryForm.basicSalary}
+                value={salaryForm.basicSalary}
                 onChange={(e) => setSalaryForm({ ...salaryForm, basicSalary: e.target.value })}
                 placeholder="11200"
               />
@@ -1215,7 +1246,7 @@ export default function HRManagement() {
               <Label>House Rent Allowance</Label>
               <Input
                 type="number"
-                value={currentSalary?.houseRentAllowance || salaryForm.houseRentAllowance}
+                value={salaryForm.houseRentAllowance}
                 onChange={(e) => setSalaryForm({ ...salaryForm, houseRentAllowance: e.target.value })}
                 placeholder="4480"
               />
@@ -1224,7 +1255,7 @@ export default function HRManagement() {
               <Label>Conveyance Allowance</Label>
               <Input
                 type="number"
-                value={currentSalary?.conveyanceAllowance || salaryForm.conveyanceAllowance}
+                value={salaryForm.conveyanceAllowance}
                 onChange={(e) => setSalaryForm({ ...salaryForm, conveyanceAllowance: e.target.value })}
                 placeholder="1280"
               />
@@ -1233,7 +1264,7 @@ export default function HRManagement() {
               <Label>Medical Allowance</Label>
               <Input
                 type="number"
-                value={currentSalary?.medicalAllowance || salaryForm.medicalAllowance}
+                value={salaryForm.medicalAllowance}
                 onChange={(e) => setSalaryForm({ ...salaryForm, medicalAllowance: e.target.value })}
                 placeholder="960"
               />
@@ -1242,7 +1273,7 @@ export default function HRManagement() {
               <Label>Special Allowance</Label>
               <Input
                 type="number"
-                value={currentSalary?.specialAllowance || salaryForm.specialAllowance}
+                value={salaryForm.specialAllowance}
                 onChange={(e) => setSalaryForm({ ...salaryForm, specialAllowance: e.target.value })}
                 placeholder="10080"
               />
@@ -1251,7 +1282,7 @@ export default function HRManagement() {
               <Label>Deductions</Label>
               <Input
                 type="number"
-                value={currentSalary?.deductions || salaryForm.deductions}
+                value={salaryForm.deductions}
                 onChange={(e) => setSalaryForm({ ...salaryForm, deductions: e.target.value })}
                 placeholder="0"
               />
@@ -1259,7 +1290,7 @@ export default function HRManagement() {
             <div>
               <Label>Bank Account</Label>
               <Input
-                value={currentSalary?.bankAccountNumber || salaryForm.bankAccountNumber}
+                value={salaryForm.bankAccountNumber}
                 onChange={(e) => setSalaryForm({ ...salaryForm, bankAccountNumber: e.target.value })}
                 placeholder="Account number"
               />
@@ -1267,7 +1298,7 @@ export default function HRManagement() {
             <div>
               <Label>Bank Name</Label>
               <Input
-                value={currentSalary?.bankName || salaryForm.bankName}
+                value={salaryForm.bankName}
                 onChange={(e) => setSalaryForm({ ...salaryForm, bankName: e.target.value })}
                 placeholder="Bank name"
               />
@@ -1275,7 +1306,7 @@ export default function HRManagement() {
             <div>
               <Label>IFSC Code</Label>
               <Input
-                value={currentSalary?.ifscCode || salaryForm.ifscCode}
+                value={salaryForm.ifscCode}
                 onChange={(e) => setSalaryForm({ ...salaryForm, ifscCode: e.target.value })}
                 placeholder="IFSC code"
               />
@@ -1283,7 +1314,7 @@ export default function HRManagement() {
             <div>
               <Label>PAN Number</Label>
               <Input
-                value={currentSalary?.panNumber || salaryForm.panNumber}
+                value={salaryForm.panNumber}
                 onChange={(e) => setSalaryForm({ ...salaryForm, panNumber: e.target.value })}
                 placeholder="PAN number"
               />
