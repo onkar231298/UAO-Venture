@@ -7,6 +7,17 @@ import { objectStorageClient } from "./objectStorage";
 
 const router = Router();
 
+// Helper function to get user ID from request (handles both Replit auth and local staff users)
+function getUserId(req: Request): string | null {
+  const user = req.user as any;
+  if (!user) return null;
+  // For local staff/admin users, id is in claims.sub
+  if (user.claims?.sub) return user.claims.sub;
+  // For Replit auth users, id is at top level
+  if (user.id) return user.id;
+  return null;
+}
+
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
   const parts = normalizedPath.split('/');
@@ -34,7 +45,7 @@ function calculateWorkingHours(punchIn: Date, punchOut: Date): number {
 // Get current user's attendance status for today
 router.get("/api/hr/attendance/today", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -57,7 +68,7 @@ router.get("/api/hr/attendance/today", isAuthenticated, async (req: Request, res
 // Punch In
 router.post("/api/hr/attendance/punch-in", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -138,7 +149,7 @@ router.post("/api/hr/attendance/punch-in", isAuthenticated, async (req: Request,
 // Punch Out
 router.post("/api/hr/attendance/punch-out", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -209,7 +220,7 @@ router.post("/api/hr/attendance/punch-out", isAuthenticated, async (req: Request
 // Get user's attendance history
 router.get("/api/hr/attendance/history", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -609,7 +620,7 @@ router.get("/api/hr/admin/salary-slips", isAuthenticated, async (req: Request, r
 router.get("/api/hr/attendance/photo/:photoPath(*)", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     const { photoPath } = req.params;
     
     // Only allow admin or the owner of the photo to view it
@@ -669,7 +680,7 @@ router.get("/api/hr/holidays", isAuthenticated, async (req: Request, res: Respon
 router.post("/api/hr/holidays", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     
     if (!userRole || !["super_admin", "admin"].includes(userRole)) {
       return res.status(403).json({ error: "Admin access required" });
@@ -920,7 +931,7 @@ router.get("/api/hr/leaves", isAuthenticated, async (req: Request, res: Response
 // Get my leave applications (Employee)
 router.get("/api/hr/leaves/my", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -940,7 +951,7 @@ router.get("/api/hr/leaves/my", isAuthenticated, async (req: Request, res: Respo
 // Apply for leave (Employee)
 router.post("/api/hr/leaves/apply", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -994,7 +1005,7 @@ router.patch("/api/hr/leaves/:id/status", isAuthenticated, async (req: Request, 
     const [updated] = await db.update(leaveApplications)
       .set({
         status,
-        approvedBy: req.user?.id,
+        approvedBy: getUserId(req),
         approvalDate: new Date(),
         rejectionReason: status === "rejected" ? rejectionReason : null,
         updatedAt: new Date(),
@@ -1134,7 +1145,7 @@ router.post("/api/hr/attendance/manual", isAuthenticated, async (req: Request, r
 // Get attendance history for an employee (Admin or self)
 router.get("/api/hr/attendance/history/:userId?", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const currentUserId = req.user?.id;
+    const currentUserId = getUserId(req);
     const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
     const { userId } = req.params;
     const { month, year } = req.query;
@@ -1170,7 +1181,7 @@ router.get("/api/hr/attendance/history/:userId?", isAuthenticated, async (req: R
 // Get my attendance summary (Employee)
 router.get("/api/hr/attendance/summary", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
