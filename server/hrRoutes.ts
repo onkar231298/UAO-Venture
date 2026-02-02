@@ -984,13 +984,14 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
       doc.font('Helvetica-Bold').text('PAN Number:', 300, rowY + 39);
       doc.font('Helvetica').text(salaryConfig.panNumber || 'N/A', 390, rowY + 39);
       
-      rowY += 85;
+      rowY += 90;
     }
     
-    // Footer
+    // Footer - position dynamically below content, not at fixed position
+    const footerY = Math.max(rowY + 10, 720);
     doc.fontSize(8).fillColor('#666');
-    doc.text('This is a computer-generated document and does not require a signature.', 50, 750, { align: 'center' });
-    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 50, 762, { align: 'center' });
+    doc.text('This is a computer-generated document and does not require a signature.', 50, footerY, { align: 'center', width: 495 });
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 50, footerY + 12, { align: 'center', width: 495 });
 
     doc.end();
   } catch (error) {
