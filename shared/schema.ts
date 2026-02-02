@@ -2461,6 +2461,7 @@ export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema
 export const employeeSalaries = pgTable("employee_salaries", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  salarySlipName: varchar("salary_slip_name", { length: 255 }), // Display name for salary slip only
   basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).default("0"),
   houseRentAllowance: decimal("house_rent_allowance", { precision: 12, scale: 2 }).default("0"),
   conveyanceAllowance: decimal("conveyance_allowance", { precision: 12, scale: 2 }).default("0"),

@@ -917,8 +917,10 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     const boxY = doc.y + 10;
     doc.fontSize(10).font('Helvetica-Bold').fillColor('#333');
     
+    // Use salarySlipName if configured, otherwise use employee name
+    const displayName = salaryConfig?.salarySlipName || `${employee.firstName} ${employee.lastName}`;
     doc.text('Employee Name:', 60, boxY);
-    doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 160, boxY);
+    doc.font('Helvetica').text(displayName, 160, boxY);
     
     doc.font('Helvetica-Bold').text('Employee ID:', 300, boxY);
     doc.font('Helvetica').text(userId.substring(0, 20), 390, boxY);
@@ -1091,7 +1093,7 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
       doc.fontSize(9).font('Helvetica');
       
       doc.font('Helvetica-Bold').text('Account Holder:', col1, rowY + 3);
-      doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 160, rowY + 3);
+      doc.font('Helvetica').text(displayName, 160, rowY + 3);
       
       doc.font('Helvetica-Bold').text('Bank Name:', col1, rowY + 18);
       doc.font('Helvetica').text(salaryConfig.bankName || 'N/A', 160, rowY + 18);

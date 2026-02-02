@@ -51,6 +51,7 @@ interface AttendanceRecord {
 interface SalaryConfig {
   id: number;
   userId: string;
+  salarySlipName: string | null;
   basicSalary: string | null;
   houseRentAllowance: string | null;
   conveyanceAllowance: string | null;
@@ -191,6 +192,7 @@ export default function HRManagement() {
   });
 
   const [salaryForm, setSalaryForm] = useState({
+    salarySlipName: "",
     basicSalary: "",
     houseRentAllowance: "",
     conveyanceAllowance: "",
@@ -259,6 +261,7 @@ export default function HRManagement() {
   useEffect(() => {
     if (currentSalary && showSalaryDialog) {
       setSalaryForm({
+        salarySlipName: (currentSalary as any).salarySlipName || "",
         basicSalary: currentSalary.basicSalary || "",
         houseRentAllowance: currentSalary.houseRentAllowance || "",
         conveyanceAllowance: currentSalary.conveyanceAllowance || "",
@@ -267,11 +270,12 @@ export default function HRManagement() {
         deductions: currentSalary.deductions || "",
         bankAccountNumber: currentSalary.bankAccountNumber || "",
         bankName: currentSalary.bankName || "",
-        ifscCode: currentSalary.ifscCode || "",
-        panNumber: currentSalary.panNumber || "",
+        ifscCode: (currentSalary as any).ifscCode || "",
+        panNumber: (currentSalary as any).panNumber || "",
       });
     } else if (!currentSalary && showSalaryDialog) {
       setSalaryForm({
+        salarySlipName: "",
         basicSalary: "",
         houseRentAllowance: "",
         conveyanceAllowance: "",
@@ -1247,6 +1251,18 @@ export default function HRManagement() {
               {selectedStaff?.firstName} {selectedStaff?.lastName}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name on Salary Slip (Optional)</Label>
+              <Input
+                type="text"
+                value={salaryForm.salarySlipName}
+                onChange={(e) => setSalaryForm({ ...salaryForm, salarySlipName: e.target.value })}
+                placeholder="Enter real name for salary slip (leave blank to use account name)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">This name will only appear on the salary slip PDF</p>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Basic Salary (INR)</Label>
