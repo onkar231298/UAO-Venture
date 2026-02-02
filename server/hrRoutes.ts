@@ -644,6 +644,12 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const paidDays = presentDays + leaveDays;
     const attendanceRatio = workingDaysInMonth > 0 ? paidDays / workingDaysInMonth : 0;
 
+    console.log(`Salary Slip Generation for ${userId}:`);
+    console.log(`  Working Days in Month: ${workingDaysInMonth}`);
+    console.log(`  Present Days: ${presentDays}, Leave Days: ${leaveDays}`);
+    console.log(`  Paid Days: ${paidDays}, Attendance Ratio: ${(attendanceRatio * 100).toFixed(1)}%`);
+    console.log(`  Config Basic: ${salaryConfig.basicSalary}, Gross: ${salaryConfig.grossSalary}`);
+
     // Prorate salary based on actual attendance
     const prorateAmount = (amount: string | null) => {
       const val = parseFloat(amount || '0');
@@ -666,6 +672,8 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     
     const proratedDeductions = prorateAmount(salaryConfig.deductions);
     const proratedNet = (parseFloat(proratedGross) - parseFloat(proratedDeductions)).toFixed(2);
+
+    console.log(`  Prorated Basic: ${proratedBasic}, Prorated Gross: ${proratedGross}, Prorated Net: ${proratedNet}`);
 
     const slipData = {
       userId,
