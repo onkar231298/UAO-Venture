@@ -825,19 +825,20 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 220, 40, { width: 150 });
-      doc.moveDown(4);
+      doc.y = 120; // Move cursor below the logo
     } else {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
          .text('BRIGHT FAME ORGANIC', { align: 'center' });
       doc.fontSize(10).font('Helvetica').fillColor('#666')
          .text('Premium Quality Organic Products', { align: 'center' });
-      doc.moveDown(0.5);
     }
+    
+    doc.moveDown(1);
     
     // Salary Slip title
     doc.fontSize(16).font('Helvetica-Bold').fillColor('#000')
        .text(`SALARY SLIP - ${monthName} ${yearNum}`, { align: 'center' });
-    doc.moveDown();
+    doc.moveDown(1.5);
 
     // Employee Details Box
     doc.rect(50, doc.y, 495, 80).stroke();
