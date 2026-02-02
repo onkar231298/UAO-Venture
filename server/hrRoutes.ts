@@ -225,14 +225,27 @@ router.get("/api/hr/attendance/history", isAuthenticated, async (req: Request, r
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { startDate, endDate } = req.query;
+    const { month, year } = req.query;
 
-    let query = db.select()
+    let conditions = [eq(attendanceRecords.userId, userId)];
+    
+    // Filter by month and year if provided
+    if (month && year) {
+      const monthNum = parseInt(month as string);
+      const yearNum = parseInt(year as string);
+      const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+      // Calculate last day of month
+      const lastDay = new Date(yearNum, monthNum, 0).getDate();
+      const endDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
+      conditions.push(gte(attendanceRecords.date, startDate));
+      conditions.push(lte(attendanceRecords.date, endDate));
+    }
+
+    const records = await db.select()
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.userId, userId))
+      .where(and(...conditions))
       .orderBy(desc(attendanceRecords.date));
 
-    const records = await query;
     res.json(records);
   } catch (error) {
     console.error("Error fetching attendance history:", error);
