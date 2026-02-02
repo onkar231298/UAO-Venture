@@ -11,6 +11,7 @@ import {
   boolean,
   uuid,
   foreignKey,
+  date,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -2563,3 +2564,38 @@ export const insertPaidHolidaySchema = createInsertSchema(paidHolidays).omit({
 
 export type InsertPaidHoliday = z.infer<typeof insertPaidHolidaySchema>;
 export type PaidHoliday = typeof paidHolidays.$inferSelect;
+
+// Leave Applications for employee leave requests
+export const leaveApplications = pgTable("leave_applications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  leaveType: varchar("leave_type", { length: 50 }).notNull(), // full_day, half_day
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, approved, rejected
+  approvedBy: varchar("approved_by", { length: 255 }),
+  approvalDate: timestamp("approval_date"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_leave_user").on(table.userId),
+  index("idx_leave_status").on(table.status),
+  index("idx_leave_dates").on(table.startDate, table.endDate),
+]);
+
+export const insertLeaveApplicationSchema = createInsertSchema(leaveApplications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvalDate: true,
+});
+
+export type InsertLeaveApplication = z.infer<typeof insertLeaveApplicationSchema>;
+export type LeaveApplication = typeof leaveApplications.$inferSelect;
+
+export const leaveApplicationsRelations = relations(leaveApplications, ({ one }) => ({
+  user: one(users, { fields: [leaveApplications.userId], references: [users.id] }),
+  approver: one(users, { fields: [leaveApplications.approvedBy], references: [users.id] }),
+}));

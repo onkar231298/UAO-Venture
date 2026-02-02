@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "./db";
-import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays } from "@shared/schema";
-import { eq, and, gte, lte, desc, sql, asc } from "drizzle-orm";
+import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, leaveApplications } from "@shared/schema";
+import { eq, and, gte, lte, desc, sql, asc, or, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
 
@@ -870,6 +870,342 @@ router.get("/api/hr/working-days", isAuthenticated, async (req: Request, res: Re
   } catch (error) {
     console.error("Error calculating working days:", error);
     res.status(500).json({ error: "Failed to calculate working days" });
+  }
+});
+
+// ========== LEAVE MANAGEMENT ROUTES ==========
+
+// Get all leave applications (Admin only)
+router.get("/api/hr/leaves", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (userRole !== "admin" && userRole !== "super_admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { status } = req.query;
+    
+    let query = db.select({
+      id: leaveApplications.id,
+      userId: leaveApplications.userId,
+      leaveType: leaveApplications.leaveType,
+      startDate: leaveApplications.startDate,
+      endDate: leaveApplications.endDate,
+      reason: leaveApplications.reason,
+      status: leaveApplications.status,
+      approvedBy: leaveApplications.approvedBy,
+      approvalDate: leaveApplications.approvalDate,
+      rejectionReason: leaveApplications.rejectionReason,
+      createdAt: leaveApplications.createdAt,
+      userName: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName'),
+      userEmail: users.email,
+    })
+    .from(leaveApplications)
+    .leftJoin(users, eq(leaveApplications.userId, users.id))
+    .orderBy(desc(leaveApplications.createdAt));
+
+    const results = await query;
+    
+    const filtered = status && status !== 'all' 
+      ? results.filter(r => r.status === status)
+      : results;
+    
+    res.json(filtered);
+  } catch (error) {
+    console.error("Error fetching leave applications:", error);
+    res.status(500).json({ error: "Failed to fetch leave applications" });
+  }
+});
+
+// Get my leave applications (Employee)
+router.get("/api/hr/leaves/my", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const leaves = await db.select()
+      .from(leaveApplications)
+      .where(eq(leaveApplications.userId, userId))
+      .orderBy(desc(leaveApplications.createdAt));
+    
+    res.json(leaves);
+  } catch (error) {
+    console.error("Error fetching my leave applications:", error);
+    res.status(500).json({ error: "Failed to fetch leave applications" });
+  }
+});
+
+// Apply for leave (Employee)
+router.post("/api/hr/leaves/apply", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { leaveType, startDate, endDate, reason } = req.body;
+
+    if (!leaveType || !startDate || !endDate) {
+      return res.status(400).json({ error: "Leave type, start date and end date are required" });
+    }
+
+    // Validate date range
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start > end) {
+      return res.status(400).json({ error: "Start date must be before or equal to end date" });
+    }
+
+    const [leave] = await db.insert(leaveApplications)
+      .values({
+        userId,
+        leaveType,
+        startDate,
+        endDate,
+        reason: reason || null,
+        status: "pending",
+      })
+      .returning();
+
+    res.json(leave);
+  } catch (error) {
+    console.error("Error applying for leave:", error);
+    res.status(500).json({ error: "Failed to apply for leave" });
+  }
+});
+
+// Approve/Reject leave (Admin only)
+router.patch("/api/hr/leaves/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (userRole !== "admin" && userRole !== "super_admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body;
+
+    if (!status || !["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Valid status (approved/rejected) is required" });
+    }
+
+    const [updated] = await db.update(leaveApplications)
+      .set({
+        status,
+        approvedBy: req.user?.id,
+        approvalDate: new Date(),
+        rejectionReason: status === "rejected" ? rejectionReason : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(leaveApplications.id, parseInt(id)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "Leave application not found" });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating leave status:", error);
+    res.status(500).json({ error: "Failed to update leave status" });
+  }
+});
+
+// ========== ADMIN MANUAL PUNCHING ROUTES ==========
+
+// Get all employees for manual punching (Admin)
+router.get("/api/hr/employees", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (userRole !== "admin" && userRole !== "super_admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const employees = await db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+    })
+    .from(users)
+    .where(and(
+      sql`${users.role} NOT IN ('admin', 'super_admin', 'customer')`,
+      sql`${users.role} IS NOT NULL`
+    ));
+
+    res.json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ error: "Failed to fetch employees" });
+  }
+});
+
+// Admin manual punch (Full day / Half day / Late mark)
+router.post("/api/hr/attendance/manual", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (userRole !== "admin" && userRole !== "super_admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { userId, date, attendanceType, notes } = req.body;
+
+    if (!userId || !date || !attendanceType) {
+      return res.status(400).json({ error: "User ID, date and attendance type are required" });
+    }
+
+    // Check if attendance already exists for this date
+    const [existing] = await db.select()
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.userId, userId),
+        eq(attendanceRecords.date, date)
+      ));
+
+    let punchInTime: Date;
+    let punchOutTime: Date;
+    let status: string;
+    let workingHours: number;
+
+    // Set times based on attendance type
+    const baseDate = new Date(date);
+    switch (attendanceType) {
+      case "full_day":
+        punchInTime = new Date(baseDate.setHours(9, 0, 0, 0));
+        punchOutTime = new Date(baseDate.setHours(18, 0, 0, 0));
+        status = "present";
+        workingHours = 9;
+        break;
+      case "half_day":
+        punchInTime = new Date(baseDate.setHours(9, 0, 0, 0));
+        punchOutTime = new Date(baseDate.setHours(13, 0, 0, 0));
+        status = "half_day";
+        workingHours = 4;
+        break;
+      case "late_mark":
+        punchInTime = new Date(baseDate.setHours(10, 30, 0, 0));
+        punchOutTime = new Date(baseDate.setHours(18, 0, 0, 0));
+        status = "late";
+        workingHours = 7.5;
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid attendance type" });
+    }
+
+    let record;
+    if (existing) {
+      // Update existing record
+      [record] = await db.update(attendanceRecords)
+        .set({
+          punchInTime,
+          punchOutTime,
+          workingHours: workingHours.toString(),
+          status,
+          notes: notes || `Manual entry by admin: ${attendanceType}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(attendanceRecords.id, existing.id))
+        .returning();
+    } else {
+      // Create new record
+      [record] = await db.insert(attendanceRecords)
+        .values({
+          userId,
+          date,
+          punchInTime,
+          punchOutTime,
+          workingHours: workingHours.toString(),
+          status,
+          notes: notes || `Manual entry by admin: ${attendanceType}`,
+        })
+        .returning();
+    }
+
+    res.json(record);
+  } catch (error) {
+    console.error("Error creating manual attendance:", error);
+    res.status(500).json({ error: "Failed to create manual attendance" });
+  }
+});
+
+// Get attendance history for an employee (Admin or self)
+router.get("/api/hr/attendance/history/:userId?", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const currentUserId = req.user?.id;
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    const { userId } = req.params;
+    const { month, year } = req.query;
+    
+    const targetUserId = userId || currentUserId;
+    
+    // Only admin can view other users' attendance
+    if (targetUserId !== currentUserId && userRole !== "admin" && userRole !== "super_admin") {
+      return res.status(403).json({ error: "You can only view your own attendance history" });
+    }
+
+    let conditions = [eq(attendanceRecords.userId, targetUserId as string)];
+    
+    if (month && year) {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+      conditions.push(gte(attendanceRecords.date, startDate));
+      conditions.push(lte(attendanceRecords.date, endDate));
+    }
+
+    const history = await db.select()
+      .from(attendanceRecords)
+      .where(and(...conditions))
+      .orderBy(desc(attendanceRecords.date));
+
+    res.json(history);
+  } catch (error) {
+    console.error("Error fetching attendance history:", error);
+    res.status(500).json({ error: "Failed to fetch attendance history" });
+  }
+});
+
+// Get my attendance summary (Employee)
+router.get("/api/hr/attendance/summary", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { month, year } = req.query;
+    const currentDate = new Date();
+    const targetMonth = month ? parseInt(month as string) : currentDate.getMonth() + 1;
+    const targetYear = year ? parseInt(year as string) : currentDate.getFullYear();
+
+    const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+    const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${lastDay}`;
+
+    const records = await db.select()
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.userId, userId),
+        gte(attendanceRecords.date, startDate),
+        lte(attendanceRecords.date, endDate)
+      ));
+
+    const summary = {
+      totalDays: lastDay,
+      present: records.filter(r => r.status === "present").length,
+      halfDay: records.filter(r => r.status === "half_day").length,
+      late: records.filter(r => r.status === "late").length,
+      absent: records.filter(r => r.status === "absent").length,
+      leave: records.filter(r => r.status === "leave").length,
+      totalWorkingHours: records.reduce((sum, r) => sum + parseFloat(r.workingHours || "0"), 0),
+    };
+
+    res.json(summary);
+  } catch (error) {
+    console.error("Error fetching attendance summary:", error);
+    res.status(500).json({ error: "Failed to fetch attendance summary" });
   }
 });
 

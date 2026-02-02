@@ -21,9 +21,11 @@ import {
   Calculator,
   TrendingUp,
   LayoutDashboard,
-  Send
+  Send,
+  Calendar
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
+import { MyAttendance } from "@/components/hr/MyAttendance";
 
 export default function StaffDashboard() {
   const { toast } = useToast();
@@ -245,6 +247,26 @@ export default function StaffDashboard() {
               </div>
             </div>
 
+            {/* HR Section */}
+            <div className="mb-6">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                HR
+              </h3>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveSection('my-attendance')}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'my-attendance'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Calendar className="mr-3 h-5 w-5" />
+                  My Attendance
+                </button>
+              </div>
+            </div>
+
             {/* PROFILE Section */}
             <div className="mb-6">
               <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -295,6 +317,7 @@ export default function StaffDashboard() {
                    activeSection === 'accounts' ? 'Accounts & Finance' :
                    activeSection === 'website' ? 'Website Management' :
                    activeSection === 'analytics' ? 'Analytics & Reports' :
+                   activeSection === 'my-attendance' ? 'My Attendance' :
                    activeSection === 'settings' ? 'Profile Settings' : 'Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -403,8 +426,13 @@ export default function StaffDashboard() {
             </>
           )}
 
+          {/* My Attendance Section */}
+          {activeSection === 'my-attendance' && (
+            <MyAttendance />
+          )}
+
           {/* Other sections content */}
-          {activeSection !== 'overview' && (
+          {activeSection !== 'overview' && activeSection !== 'my-attendance' && (
             <Card>
               <CardHeader>
                 <CardTitle>

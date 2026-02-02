@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays } from "lucide-react";
+import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays, UserCog, ClipboardCheck, Check, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -265,6 +265,68 @@ export default function HRManagement() {
     },
   });
 
+  // Manual Punching State
+  const [manualPunchForm, setManualPunchForm] = useState({
+    userId: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    attendanceType: "full_day",
+    notes: "",
+  });
+
+  // Leave Management State
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState("all");
+
+  // Get employees for manual punching
+  const { data: employees = [] } = useQuery<StaffMember[]>({
+    queryKey: ["/api/hr/employees"],
+  });
+
+  // Get all leave applications
+  const { data: leaveApplications = [], isLoading: loadingLeaves } = useQuery<any[]>({
+    queryKey: ["/api/hr/leaves", leaveStatusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (leaveStatusFilter !== "all") params.set("status", leaveStatusFilter);
+      const response = await fetch(`/api/hr/leaves?${params}`);
+      return response.json();
+    },
+  });
+
+  // Manual punch mutation
+  const manualPunchMutation = useMutation({
+    mutationFn: async (data: typeof manualPunchForm) => {
+      return apiRequest("/api/hr/attendance/manual", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Attendance marked successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/admin/attendance"] });
+      setManualPunchForm({ userId: "", date: format(new Date(), "yyyy-MM-dd"), attendanceType: "full_day", notes: "" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to mark attendance", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Approve/Reject leave mutation
+  const updateLeaveStatusMutation = useMutation({
+    mutationFn: async ({ id, status, rejectionReason }: { id: number; status: string; rejectionReason?: string }) => {
+      return apiRequest(`/api/hr/leaves/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, rejectionReason }),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Leave status updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/leaves"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditSalary = (member: StaffMember) => {
     setSelectedStaff(member);
     setShowSalaryDialog(true);
@@ -328,10 +390,18 @@ export default function HRManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="attendance" className="gap-2">
             <Clock className="h-4 w-4" />
             Attendance
+          </TabsTrigger>
+          <TabsTrigger value="manual-punch" className="gap-2">
+            <UserCog className="h-4 w-4" />
+            Manual Punch
+          </TabsTrigger>
+          <TabsTrigger value="leaves" className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            Leaves
           </TabsTrigger>
           <TabsTrigger value="holidays" className="gap-2">
             <CalendarDays className="h-4 w-4" />
@@ -480,6 +550,205 @@ export default function HRManagement() {
                           </TableRow>
                         ))
                       )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Manual Punching Tab */}
+        <TabsContent value="manual-punch" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                Manual Attendance Entry
+              </CardTitle>
+              <CardDescription>
+                Mark attendance for employees who forgot to punch in or for special cases
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <Label>Select Employee *</Label>
+                  <Select
+                    value={manualPunchForm.userId}
+                    onValueChange={(value) => setManualPunchForm({ ...manualPunchForm, userId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Date *</Label>
+                  <Input
+                    type="date"
+                    value={manualPunchForm.date}
+                    onChange={(e) => setManualPunchForm({ ...manualPunchForm, date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Attendance Type *</Label>
+                  <Select
+                    value={manualPunchForm.attendanceType}
+                    onValueChange={(value) => setManualPunchForm({ ...manualPunchForm, attendanceType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full_day">Full Day (9:00 AM - 6:00 PM)</SelectItem>
+                      <SelectItem value="half_day">Half Day (9:00 AM - 1:00 PM)</SelectItem>
+                      <SelectItem value="late_mark">Late Mark (10:30 AM - 6:00 PM)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={() => manualPunchMutation.mutate(manualPunchForm)}
+                    disabled={!manualPunchForm.userId || !manualPunchForm.date || manualPunchMutation.isPending}
+                    className="w-full"
+                  >
+                    {manualPunchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Mark Attendance
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label>Notes (optional)</Label>
+                <Textarea
+                  value={manualPunchForm.notes}
+                  onChange={(e) => setManualPunchForm({ ...manualPunchForm, notes: e.target.value })}
+                  placeholder="Reason for manual entry..."
+                  rows={2}
+                />
+              </div>
+              
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Attendance Types Explained:</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li><strong>Full Day:</strong> Employee worked complete shift (9 working hours)</li>
+                  <li><strong>Half Day:</strong> Employee worked half shift (4 working hours)</li>
+                  <li><strong>Late Mark:</strong> Employee arrived late (7.5 working hours)</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Leave Management Tab */}
+        <TabsContent value="leaves" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardCheck className="h-5 w-5" />
+                    Leave Applications
+                  </CardTitle>
+                  <CardDescription>Review and manage employee leave requests</CardDescription>
+                </div>
+                <Select value={leaveStatusFilter} onValueChange={setLeaveStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Applications</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingLeaves ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : leaveApplications.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No leave applications found
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Employee</TableHead>
+                        <TableHead>Leave Type</TableHead>
+                        <TableHead>From</TableHead>
+                        <TableHead>To</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaveApplications.map((leave) => (
+                        <TableRow key={leave.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{leave.userName || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">{leave.userEmail}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={leave.leaveType === 'full_day' ? 'default' : 'secondary'}>
+                              {leave.leaveType === 'full_day' ? 'Full Day' : 'Half Day'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{leave.startDate}</TableCell>
+                          <TableCell>{leave.endDate}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{leave.reason || '-'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                leave.status === 'approved' ? 'default' :
+                                leave.status === 'rejected' ? 'destructive' : 'secondary'
+                              }
+                              className={leave.status === 'approved' ? 'bg-green-500' : ''}
+                            >
+                              {leave.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {leave.status === 'pending' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => updateLeaveStatusMutation.mutate({ id: leave.id, status: 'approved' })}
+                                  disabled={updateLeaveStatusMutation.isPending}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => updateLeaveStatusMutation.mutate({ id: leave.id, status: 'rejected' })}
+                                  disabled={updateLeaveStatusMutation.isPending}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
