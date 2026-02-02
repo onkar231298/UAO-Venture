@@ -603,16 +603,8 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       new Date(h.date).toISOString().split('T')[0]
     ));
     
-    let workingDaysInMonth = 0;
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      const dateStr = d.toISOString().split('T')[0];
-      
-      // Skip weekends (Saturday = 6, Sunday = 0) and holidays
-      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDates.has(dateStr)) {
-        workingDaysInMonth++;
-      }
-    }
+    // Use total calendar days in month (weekends & holidays are paid)
+    const totalDaysInMonth = lastDay.getDate();
 
     // Get attendance for the month
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -627,7 +619,6 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       ));
 
     const presentDays = attendance.filter(a => a.status === 'present').length;
-    const absentDays = workingDaysInMonth - presentDays; // Calculate absent days based on working days
     const leaveDays = attendance.filter(a => a.status === 'leave').length;
     const totalOvertimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtimeHours || '0') || 0), 0);
 
@@ -641,11 +632,12 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       ));
 
     // Calculate payable days (present + leave days count as paid)
+    // Weekends & holidays are considered paid, so they're included in totalDaysInMonth
     const paidDays = presentDays + leaveDays;
-    const attendanceRatio = workingDaysInMonth > 0 ? paidDays / workingDaysInMonth : 0;
+    const attendanceRatio = totalDaysInMonth > 0 ? paidDays / totalDaysInMonth : 0;
 
     console.log(`Salary Slip Generation for ${userId}:`);
-    console.log(`  Working Days in Month: ${workingDaysInMonth}`);
+    console.log(`  Total Days in Month: ${totalDaysInMonth}`);
     console.log(`  Present Days: ${presentDays}, Leave Days: ${leaveDays}`);
     console.log(`  Paid Days: ${paidDays}, Attendance Ratio: ${(attendanceRatio * 100).toFixed(1)}%`);
     console.log(`  Config Basic: ${salaryConfig.basicSalary}, Gross: ${salaryConfig.grossSalary}`);
@@ -687,9 +679,9 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       grossSalary: proratedGross,
       totalDeductions: proratedDeductions,
       netSalary: proratedNet,
-      workingDays: workingDaysInMonth,
+      workingDays: totalDaysInMonth, // Total calendar days in month
       presentDays: paidDays, // Show paid days (present + leaves)
-      absentDays: Math.max(0, workingDaysInMonth - paidDays),
+      absentDays: Math.max(0, totalDaysInMonth - paidDays),
       leaveDays,
       overtimeHours: totalOvertimeHours.toString(),
       status: "generated",
