@@ -956,10 +956,15 @@ router.post("/api/hr/leaves/apply", isAuthenticated, async (req: Request, res: R
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { leaveType, startDate, endDate, reason } = req.body;
+    const { leaveType, halfDayPeriod, startDate, endDate, reason } = req.body;
 
     if (!leaveType || !startDate || !endDate) {
       return res.status(400).json({ error: "Leave type, start date and end date are required" });
+    }
+
+    // Validate half day period when half_day is selected
+    if (leaveType === "half_day" && !halfDayPeriod) {
+      return res.status(400).json({ error: "Half day period (first_half/second_half) is required for half day leave" });
     }
 
     // Validate date range
@@ -973,6 +978,7 @@ router.post("/api/hr/leaves/apply", isAuthenticated, async (req: Request, res: R
       .values({
         userId,
         leaveType,
+        halfDayPeriod: leaveType === "half_day" ? halfDayPeriod : null,
         startDate,
         endDate,
         reason: reason || null,

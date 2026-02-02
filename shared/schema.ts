@@ -2570,6 +2570,7 @@ export const leaveApplications = pgTable("leave_applications", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 255 }).notNull(),
   leaveType: varchar("leave_type", { length: 50 }).notNull(), // full_day, half_day
+  halfDayPeriod: varchar("half_day_period", { length: 20 }), // first_half, second_half (only for half_day)
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   reason: text("reason"),

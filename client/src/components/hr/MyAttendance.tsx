@@ -57,6 +57,7 @@ export function MyAttendance() {
   const [showApplyDialog, setShowApplyDialog] = useState(false);
   const [leaveForm, setLeaveForm] = useState({
     leaveType: "full_day",
+    halfDayPeriod: "first_half" as "first_half" | "second_half",
     startDate: "",
     endDate: "",
     reason: "",
@@ -105,7 +106,7 @@ export function MyAttendance() {
       toast({ title: "Leave application submitted" });
       queryClient.invalidateQueries({ queryKey: ["/api/hr/leaves/my"] });
       setShowApplyDialog(false);
-      setLeaveForm({ leaveType: "full_day", startDate: "", endDate: "", reason: "" });
+      setLeaveForm({ leaveType: "full_day", halfDayPeriod: "first_half", startDate: "", endDate: "", reason: "" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to apply", description: error.message, variant: "destructive" });
@@ -178,6 +179,35 @@ export function MyAttendance() {
                   </SelectContent>
                 </Select>
               </div>
+              {leaveForm.leaveType === "half_day" && (
+                <div>
+                  <Label>Half Day Period *</Label>
+                  <div className="flex gap-4 mt-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="halfDayPeriod"
+                        value="first_half"
+                        checked={leaveForm.halfDayPeriod === "first_half"}
+                        onChange={(e) => setLeaveForm({ ...leaveForm, halfDayPeriod: e.target.value as "first_half" | "second_half" })}
+                        className="w-4 h-4"
+                      />
+                      <span>First Half (Morning)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="halfDayPeriod"
+                        value="second_half"
+                        checked={leaveForm.halfDayPeriod === "second_half"}
+                        onChange={(e) => setLeaveForm({ ...leaveForm, halfDayPeriod: e.target.value as "first_half" | "second_half" })}
+                        className="w-4 h-4"
+                      />
+                      <span>Second Half (Afternoon)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>From Date *</Label>
@@ -391,7 +421,8 @@ export function MyAttendance() {
                         <TableRow key={leave.id}>
                           <TableCell>
                             <Badge variant={leave.leaveType === 'full_day' ? 'default' : 'secondary'}>
-                              {leave.leaveType === 'full_day' ? 'Full Day' : 'Half Day'}
+                              {leave.leaveType === 'full_day' ? 'Full Day' : 
+                                `Half Day (${(leave as any).halfDayPeriod === 'first_half' ? 'Morning' : 'Afternoon'})`}
                             </Badge>
                           </TableCell>
                           <TableCell>{leave.startDate}</TableCell>
