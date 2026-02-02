@@ -59,8 +59,8 @@ interface SalaryConfig {
   grossSalary: string | null;
   deductions: string | null;
   netSalary: string | null;
-  enquiryIncentiveRate: string | null;
-  salesIncentivePercentage: string | null;
+  numberOfEnquiries: number | null;
+  salesIncentiveAmount: string | null;
   bankAccountNumber: string | null;
   bankName: string | null;
   userName: string | null;
@@ -185,8 +185,8 @@ export default function HRManagement() {
     medicalAllowance: "",
     specialAllowance: "",
     deductions: "",
-    enquiryIncentiveRate: "125",
-    salesIncentivePercentage: "0",
+    numberOfEnquiries: "0",
+    salesIncentiveAmount: "0",
     bankAccountNumber: "",
     bankName: "",
     ifscCode: "",
@@ -773,8 +773,9 @@ export default function HRManagement() {
                       <TableHead>HRA</TableHead>
                       <TableHead>Gross</TableHead>
                       <TableHead>Net</TableHead>
-                      <TableHead>Enq. Incentive</TableHead>
-                      <TableHead>Sales %</TableHead>
+                      <TableHead>Enquiries</TableHead>
+                      <TableHead>Enq. Incentive (×₹125)</TableHead>
+                      <TableHead>Sales Incentive</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -794,8 +795,9 @@ export default function HRManagement() {
                           <TableCell>{salary?.houseRentAllowance || "-"}</TableCell>
                           <TableCell>{salary?.grossSalary || "-"}</TableCell>
                           <TableCell className="font-medium">{salary?.netSalary || "-"}</TableCell>
-                          <TableCell className="text-green-600">₹{salary?.enquiryIncentiveRate || "125"}</TableCell>
-                          <TableCell className="text-blue-600">{salary?.salesIncentivePercentage || "0"}%</TableCell>
+                          <TableCell>{salary?.numberOfEnquiries || 0}</TableCell>
+                          <TableCell className="text-green-600">₹{(salary?.numberOfEnquiries || 0) * 125}</TableCell>
+                          <TableCell className="text-blue-600">₹{salary?.salesIncentiveAmount || "0"}</TableCell>
                           <TableCell>
                             <Button size="sm" variant="outline" onClick={() => handleEditSalary(member)}>
                               Configure
@@ -1132,25 +1134,24 @@ export default function HRManagement() {
             <h4 className="font-medium mb-3 text-blue-800">Incentive Configuration</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Enquiry Incentive (₹ per enquiry)</Label>
+                <Label>Number of Enquiries Received</Label>
                 <Input
                   type="number"
-                  value={currentSalary?.enquiryIncentiveRate || salaryForm.enquiryIncentiveRate}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, enquiryIncentiveRate: e.target.value })}
-                  placeholder="125"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Amount paid per customer enquiry</p>
-              </div>
-              <div>
-                <Label>Sales Incentive (%)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={currentSalary?.salesIncentivePercentage || salaryForm.salesIncentivePercentage}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, salesIncentivePercentage: e.target.value })}
+                  value={currentSalary?.numberOfEnquiries ?? salaryForm.numberOfEnquiries}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, numberOfEnquiries: e.target.value })}
                   placeholder="0"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Percentage of sales value</p>
+                <p className="text-xs text-muted-foreground mt-1">Auto-calculated: ₹{(parseInt(currentSalary?.numberOfEnquiries?.toString() || salaryForm.numberOfEnquiries) || 0) * 125} (×₹125 per enquiry)</p>
+              </div>
+              <div>
+                <Label>Sales Incentive Amount (₹)</Label>
+                <Input
+                  type="number"
+                  value={currentSalary?.salesIncentiveAmount || salaryForm.salesIncentiveAmount}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, salesIncentiveAmount: e.target.value })}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Enter the manual sales incentive amount</p>
               </div>
             </div>
           </div>
