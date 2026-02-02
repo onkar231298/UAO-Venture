@@ -422,7 +422,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName } = req.body;
 
     // Helper to convert empty strings to "0" for numeric fields
     const toNumericStr = (val: any) => {
@@ -457,6 +457,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           bankName: bankName || "",
           ifscCode: ifscCode || "",
           panNumber: panNumber || "",
+          salarySlipName: salarySlipName || "",
           updatedAt: new Date()
         })
         .where(eq(employeeSalaries.id, existing.id));
@@ -474,7 +475,8 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         bankAccountNumber: bankAccountNumber || "",
         bankName: bankName || "",
         ifscCode: ifscCode || "",
-        panNumber: panNumber || ""
+        panNumber: panNumber || "",
+        salarySlipName: salarySlipName || ""
       });
     }
 
