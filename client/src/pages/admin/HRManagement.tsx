@@ -990,7 +990,7 @@ export default function HRManagement() {
                     <Gift className="h-5 w-5" />
                     Monthly Incentives
                   </CardTitle>
-                  <CardDescription>Manage monthly incentives for employees - enquiry incentive (₹125 per enquiry) and sales incentive</CardDescription>
+                  <CardDescription>Manage monthly incentives for employees - enquiry incentive (₹150 per enquiry) and sales incentive</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -1032,7 +1032,7 @@ export default function HRManagement() {
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>No. of Enquiries</TableHead>
-                      <TableHead>Enquiry Incentive (×₹125)</TableHead>
+                      <TableHead>Enquiry Incentive (×₹150)</TableHead>
                       <TableHead>Sales Incentive</TableHead>
                       <TableHead>Total Incentive</TableHead>
                       <TableHead>Remarks</TableHead>
@@ -1320,7 +1320,7 @@ export default function HRManagement() {
                 placeholder="0"
               />
               <p className="text-sm text-green-600 mt-1 font-medium">
-                Enquiry Incentive: ₹{(parseInt(incentiveForm.numberOfEnquiries) || 0) * 125} (×₹125)
+                Enquiry Incentive: ₹{(parseInt(incentiveForm.numberOfEnquiries) || 0) * 150} (×₹150)
               </p>
             </div>
             <div>
@@ -1334,7 +1334,7 @@ export default function HRManagement() {
             </div>
             <div className="p-3 bg-purple-50 rounded-lg">
               <p className="text-lg font-bold text-purple-700">
-                Total Incentive: ₹{((parseInt(incentiveForm.numberOfEnquiries) || 0) * 125) + (parseFloat(incentiveForm.salesIncentiveAmount) || 0)}
+                Total Incentive: ₹{((parseInt(incentiveForm.numberOfEnquiries) || 0) * 150) + (parseFloat(incentiveForm.salesIncentiveAmount) || 0)}
               </p>
             </div>
             <div>

@@ -516,7 +516,7 @@ router.post("/api/hr/admin/incentives/:userId", isAuthenticated, async (req: Req
     const { month, year, numberOfEnquiries, salesIncentiveAmount, remarks } = req.body;
 
     const enquiries = parseInt(numberOfEnquiries) || 0;
-    const enquiryIncentive = enquiries * 125; // ₹125 per enquiry
+    const enquiryIncentive = enquiries * 150; // ₹150 per enquiry
     const salesIncentive = parseFloat(salesIncentiveAmount) || 0;
     const total = enquiryIncentive + salesIncentive;
 
