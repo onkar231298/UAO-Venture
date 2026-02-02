@@ -368,6 +368,12 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     const { userId } = req.params;
     const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber } = req.body;
 
+    // Helper to convert empty strings to "0" for numeric fields
+    const toNumericStr = (val: any) => {
+      if (val === "" || val === null || val === undefined) return "0";
+      return val.toString();
+    };
+
     const grossSalary = (parseFloat(basicSalary) || 0) + 
                         (parseFloat(houseRentAllowance) || 0) + 
                         (parseFloat(conveyanceAllowance) || 0) + 
@@ -383,36 +389,36 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     if (existing) {
       await db.update(employeeSalaries)
         .set({
-          basicSalary: basicSalary?.toString(),
-          houseRentAllowance: houseRentAllowance?.toString(),
-          conveyanceAllowance: conveyanceAllowance?.toString(),
-          medicalAllowance: medicalAllowance?.toString(),
-          specialAllowance: specialAllowance?.toString(),
+          basicSalary: toNumericStr(basicSalary),
+          houseRentAllowance: toNumericStr(houseRentAllowance),
+          conveyanceAllowance: toNumericStr(conveyanceAllowance),
+          medicalAllowance: toNumericStr(medicalAllowance),
+          specialAllowance: toNumericStr(specialAllowance),
           grossSalary: grossSalary.toString(),
-          deductions: deductions?.toString(),
+          deductions: toNumericStr(deductions),
           netSalary: netSalary.toString(),
-          bankAccountNumber,
-          bankName,
-          ifscCode,
-          panNumber,
+          bankAccountNumber: bankAccountNumber || "",
+          bankName: bankName || "",
+          ifscCode: ifscCode || "",
+          panNumber: panNumber || "",
           updatedAt: new Date()
         })
         .where(eq(employeeSalaries.id, existing.id));
     } else {
       await db.insert(employeeSalaries).values({
         userId,
-        basicSalary: basicSalary?.toString(),
-        houseRentAllowance: houseRentAllowance?.toString(),
-        conveyanceAllowance: conveyanceAllowance?.toString(),
-        medicalAllowance: medicalAllowance?.toString(),
-        specialAllowance: specialAllowance?.toString(),
+        basicSalary: toNumericStr(basicSalary),
+        houseRentAllowance: toNumericStr(houseRentAllowance),
+        conveyanceAllowance: toNumericStr(conveyanceAllowance),
+        medicalAllowance: toNumericStr(medicalAllowance),
+        specialAllowance: toNumericStr(specialAllowance),
         grossSalary: grossSalary.toString(),
-        deductions: deductions?.toString(),
+        deductions: toNumericStr(deductions),
         netSalary: netSalary.toString(),
-        bankAccountNumber,
-        bankName,
-        ifscCode,
-        panNumber
+        bankAccountNumber: bankAccountNumber || "",
+        bankName: bankName || "",
+        ifscCode: ifscCode || "",
+        panNumber: panNumber || ""
       });
     }
 
