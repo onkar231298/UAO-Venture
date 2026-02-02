@@ -10,6 +10,59 @@ import fs from "fs";
 
 const router = Router();
 
+// Helper function to convert number to words (Indian format)
+function convertNumberToWords(num: number): string {
+  if (num === 0) return 'Zero';
+  
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 
+                'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 
+                'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  const convertBelowHundred = (n: number): string => {
+    if (n < 20) return ones[n];
+    return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+  };
+  
+  const convertBelowThousand = (n: number): string => {
+    if (n < 100) return convertBelowHundred(n);
+    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertBelowHundred(n % 100) : '');
+  };
+  
+  let result = '';
+  
+  // Crore (10 million)
+  if (num >= 10000000) {
+    result += convertBelowThousand(Math.floor(num / 10000000)) + ' Crore ';
+    num %= 10000000;
+  }
+  
+  // Lakh (100 thousand)
+  if (num >= 100000) {
+    result += convertBelowHundred(Math.floor(num / 100000)) + ' Lakh ';
+    num %= 100000;
+  }
+  
+  // Thousand
+  if (num >= 1000) {
+    result += convertBelowHundred(Math.floor(num / 1000)) + ' Thousand ';
+    num %= 1000;
+  }
+  
+  // Hundred
+  if (num >= 100) {
+    result += ones[Math.floor(num / 100)] + ' Hundred ';
+    num %= 100;
+  }
+  
+  // Below hundred
+  if (num > 0) {
+    result += convertBelowHundred(num);
+  }
+  
+  return 'Rupees ' + result.trim();
+}
+
 // Helper function to get user ID from request (handles both Replit auth and local staff users)
 function getUserId(req: Request): string | null {
   const user = req.user as any;
@@ -861,96 +914,151 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     doc.font('Helvetica-Bold').text('Working Days:', 300, boxY + 40);
     doc.font('Helvetica').text(`${slip.presentDays || 0} / ${slip.workingDays || 0}`, 390, boxY + 40);
     
-    doc.moveDown(5);
+    doc.moveDown(4);
     
-    // Salary Breakdown Table
-    const tableTop = doc.y + 10;
-    const col1 = 60;
-    const col2 = 280;
-    const col3 = 380;
+    // Get full salary from config (not prorated)
+    const fullBasic = parseFloat(salaryConfig?.basicSalary || '0');
+    const fullHRA = parseFloat(salaryConfig?.houseRentAllowance || '0');
+    const fullConveyance = parseFloat(salaryConfig?.conveyanceAllowance || '0');
+    const fullMedical = parseFloat(salaryConfig?.medicalAllowance || '0');
+    const fullSpecial = parseFloat(salaryConfig?.specialAllowance || '0');
+    const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
+    const configDeductions = parseFloat(salaryConfig?.deductions || '0');
     
-    // Table Header
-    doc.rect(50, tableTop, 495, 25).fill('#166534');
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
-    doc.text('EARNINGS', col1, tableTop + 7);
-    doc.text('AMOUNT (₹)', col3, tableTop + 7);
+    // Calculate absent days deduction
+    const totalDays = slip.workingDays || 31;
+    const paidDays = slip.presentDays || 0;
+    const absentDays = Math.max(0, totalDays - paidDays);
+    const perDaySalary = fullGross / totalDays;
+    const absentDeduction = perDaySalary * absentDays;
     
-    let rowY = tableTop + 30;
-    doc.fillColor('#000').font('Helvetica');
+    // Particulars Section Header
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#000');
+    doc.text('Particulars', 50, doc.y);
+    doc.moveDown(0.5);
     
-    // Earnings rows
-    const earnings = [
-      ['Basic Salary', slip.basicSalary],
-      ['House Rent Allowance (HRA)', slip.houseRentAllowance],
-      ['Conveyance Allowance', slip.conveyanceAllowance],
-      ['Medical Allowance', slip.medicalAllowance],
-      ['Special Allowance', slip.specialAllowance],
+    const tableTop = doc.y;
+    const col1 = 55;
+    const col2 = 180;
+    const col3 = 310;
+    const col4 = 470;
+    
+    // Table Header - Earnings and Deductions side by side
+    doc.rect(50, tableTop, 247, 20).fill('#166534');
+    doc.rect(297, tableTop, 248, 20).fill('#dc2626');
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#fff');
+    doc.text('Earnings', col1, tableTop + 5);
+    doc.text('Amount', col2, tableTop + 5);
+    doc.text('Deductions', col3, tableTop + 5);
+    doc.text('Amount', col4, tableTop + 5);
+    
+    let rowY = tableTop + 22;
+    const rowHeight = 18;
+    
+    // Define earnings and deductions
+    const earningsData = [
+      ['Basic', fullBasic],
+      ['HRA', fullHRA],
+      ['Conveyance Allowance', fullConveyance],
+      ['Medical Allowance', fullMedical],
+      ['Special Allowance', fullSpecial],
     ];
     
-    earnings.forEach(([label, amount], i) => {
-      if (i % 2 === 0) {
-        doc.rect(50, rowY - 5, 495, 22).fill('#f0fdf4').stroke();
+    const deductionsData = [
+      ['Provident Fund (PF)', configDeductions * 0.5],
+      ['Professional Tax', configDeductions * 0.3],
+      ['Other Deductions', configDeductions * 0.2],
+      ['', 0],
+      ['', 0],
+    ];
+    
+    // Draw rows
+    earningsData.forEach(([label, amount], i) => {
+      doc.rect(50, rowY, 247, rowHeight).stroke('#e5e7eb');
+      doc.rect(297, rowY, 248, rowHeight).stroke('#e5e7eb');
+      
+      doc.fillColor('#000').fontSize(8).font('Helvetica');
+      doc.text(label as string, col1, rowY + 4);
+      doc.text(`₹ ${(amount as number).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col2, rowY + 4);
+      
+      const dedLabel = deductionsData[i][0] as string;
+      const dedAmount = deductionsData[i][1] as number;
+      if (dedLabel) {
+        doc.text(dedLabel, col3, rowY + 4);
+        doc.text(`₹ ${dedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col4, rowY + 4);
       }
-      doc.fillColor('#000').fontSize(10);
-      doc.text(label as string, col1, rowY);
-      doc.text(`₹ ${parseFloat(amount as string || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
-      rowY += 22;
+      rowY += rowHeight;
     });
     
-    // Gross Salary
-    doc.rect(50, rowY - 5, 495, 25).fill('#dcfce7');
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#166534');
-    doc.text('GROSS SALARY', col1, rowY + 2);
-    doc.text(`₹ ${parseFloat(slip.grossSalary || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 2);
-    rowY += 30;
+    // Gross Pay row
+    doc.rect(50, rowY, 247, 20).fill('#dcfce7');
+    doc.rect(297, rowY, 248, 20).fill('#fee2e2');
+    doc.fontSize(9).font('Helvetica-Bold');
+    doc.fillColor('#166534').text('Gross Pay', col1, rowY + 5);
+    doc.text(`₹ ${fullGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col2, rowY + 5);
+    doc.fillColor('#dc2626').text('Gross Deduction', col3, rowY + 5);
+    doc.text(`₹ ${configDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col4, rowY + 5);
+    rowY += 25;
     
-    // Deductions section
-    doc.rect(50, rowY, 495, 25).fill('#dc2626');
+    // Attendance & Leave Deductions Section
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000');
+    doc.text('Attendance Summary & Deductions', col1, rowY);
+    rowY += 18;
+    
+    doc.rect(50, rowY, 495, 18).fill('#f3f4f6');
+    doc.fontSize(8).font('Helvetica').fillColor('#000');
+    doc.text(`Total Days: ${totalDays}`, col1, rowY + 4);
+    doc.text(`Paid Days: ${paidDays}`, 150, rowY + 4);
+    doc.text(`Absent Days: ${absentDays}`, 250, rowY + 4);
+    doc.text(`Per Day: ₹ ${perDaySalary.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 350, rowY + 4);
+    rowY += 20;
+    
+    doc.rect(50, rowY, 495, 18).stroke('#e5e7eb');
+    doc.fontSize(8).font('Helvetica');
+    doc.text(`Less: Absent Days Deduction (${absentDays} days × ₹${perDaySalary.toFixed(2)})`, col1, rowY + 4);
+    doc.fillColor('#dc2626').text(`- ₹ ${absentDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col4, rowY + 4);
+    rowY += 22;
+    
+    // Net Calculation Summary
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000');
+    doc.text('Net Payable Calculation', col1, rowY);
+    rowY += 15;
+    
+    const incentiveTotal = parseFloat(incentive?.totalIncentive || '0');
+    const netAfterDeductions = fullGross - configDeductions - absentDeduction;
+    const finalNetPayable = netAfterDeductions + incentiveTotal;
+    
+    const summaryData = [
+      ['Gross Pay', fullGross, false],
+      ['Less: Statutory Deductions', -configDeductions, false],
+      ['Less: Absent Days Deduction', -absentDeduction, false],
+      ['Add: Incentives Earned', incentiveTotal, false],
+    ];
+    
+    summaryData.forEach(([label, amount, isBold]) => {
+      doc.rect(50, rowY, 495, 16).stroke('#e5e7eb');
+      doc.fontSize(8).font('Helvetica').fillColor('#000');
+      doc.text(label as string, col1, rowY + 4);
+      const amtNum = amount as number;
+      const amtStr = amtNum < 0 
+        ? `- ₹ ${Math.abs(amtNum).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+        : `₹ ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      doc.fillColor(amtNum < 0 ? '#dc2626' : '#000').text(amtStr, col4, rowY + 4);
+      rowY += 16;
+    });
+    
+    // Net Payable Amount (Green bar)
+    doc.rect(50, rowY, 495, 24).fill('#166534');
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
-    doc.text('DEDUCTIONS', col1, rowY + 7);
-    doc.text('AMOUNT (₹)', col3, rowY + 7);
-    rowY += 30;
+    doc.text('Net Payable Amount', col1, rowY + 6);
+    doc.text(`₹ ${finalNetPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col4, rowY + 6);
+    rowY += 28;
     
-    doc.fillColor('#000').font('Helvetica').fontSize(10);
-    doc.text('Total Deductions', col1, rowY);
-    doc.text(`₹ ${parseFloat(slip.totalDeductions || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
-    rowY += 30;
-    
-    // Incentives section (if any)
-    console.log(`PDF Incentive data for ${userId} - Month ${monthNum}/${yearNum}:`, incentive);
-    if (incentive) {
-      doc.rect(50, rowY, 495, 25).fill('#7c3aed');
-      doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
-      doc.text('INCENTIVES', col1, rowY + 7);
-      doc.text('AMOUNT (₹)', col3, rowY + 7);
-      rowY += 30;
-      
-      doc.fillColor('#000').font('Helvetica').fontSize(10);
-      if (incentive.numberOfEnquiries > 0) {
-        doc.text(`Enquiry Incentive (${incentive.numberOfEnquiries} × ₹150)`, col1, rowY);
-        doc.text(`₹ ${parseFloat(incentive.enquiryIncentiveAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
-        rowY += 22;
-      }
-      if (parseFloat(incentive.salesIncentiveAmount || '0') > 0) {
-        doc.text('Sales Incentive', col1, rowY);
-        doc.text(`₹ ${parseFloat(incentive.salesIncentiveAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
-        rowY += 22;
-      }
-      
-      doc.rect(50, rowY - 5, 495, 25).fill('#ede9fe');
-      doc.fontSize(11).font('Helvetica-Bold').fillColor('#7c3aed');
-      doc.text('TOTAL INCENTIVE', col1, rowY + 2);
-      doc.text(`₹ ${parseFloat(incentive.totalIncentive || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 2);
-      rowY += 30;
-    }
-    
-    // Net Salary
-    const netWithIncentive = parseFloat(slip.netSalary || '0') + parseFloat(incentive?.totalIncentive || '0');
-    doc.rect(50, rowY, 495, 30).fill('#166534');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#fff');
-    doc.text('NET PAYABLE', col1, rowY + 8);
-    doc.text(`₹ ${netWithIncentive.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 8);
-    rowY += 35;
+    // Amount in words
+    const amountInWords = convertNumberToWords(Math.round(finalNetPayable));
+    doc.fontSize(8).font('Helvetica-Oblique').fillColor('#666');
+    doc.text(`In words: ${amountInWords} Only`, col1, rowY);
+    rowY += 18;
     
     // Bank Details section - compact layout
     if (salaryConfig) {
