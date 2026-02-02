@@ -2469,6 +2469,8 @@ export const employeeSalaries = pgTable("employee_salaries", {
   grossSalary: decimal("gross_salary", { precision: 12, scale: 2 }).default("0"),
   deductions: decimal("deductions", { precision: 12, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 12, scale: 2 }).default("0"),
+  enquiryIncentiveRate: decimal("enquiry_incentive_rate", { precision: 10, scale: 2 }).default("125"),
+  salesIncentivePercentage: decimal("sales_incentive_percentage", { precision: 5, scale: 2 }).default("0"),
   bankAccountNumber: varchar("bank_account_number", { length: 50 }),
   bankName: varchar("bank_name", { length: 100 }),
   ifscCode: varchar("ifsc_code", { length: 20 }),

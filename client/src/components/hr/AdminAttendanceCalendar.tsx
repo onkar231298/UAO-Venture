@@ -63,8 +63,11 @@ export function AdminAttendanceCalendar() {
     queryKey: [`/api/hr/attendance/history/${selectedEmployee}`, { month: selectedMonth, year: selectedYear }],
     queryFn: async () => {
       if (!selectedEmployee) return [];
-      const res = await apiRequest(`/api/hr/attendance/history/${selectedEmployee}?month=${selectedMonth}&year=${selectedYear}`);
-      return res;
+      const res = await fetch(`/api/hr/attendance/history/${selectedEmployee}?month=${selectedMonth}&year=${selectedYear}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
     },
     enabled: !!selectedEmployee,
   });
@@ -78,7 +81,7 @@ export function AdminAttendanceCalendar() {
     },
     onSuccess: () => {
       toast({ title: "Attendance marked successfully" });
-      queryClient.invalidateQueries({ queryKey: [`/api/hr/attendance/history/${selectedEmployee}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/hr/attendance/history/${selectedEmployee}`, { month: selectedMonth, year: selectedYear }] });
       setDialogOpen(false);
       setNotes("");
     },

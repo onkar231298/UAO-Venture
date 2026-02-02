@@ -59,6 +59,8 @@ interface SalaryConfig {
   grossSalary: string | null;
   deductions: string | null;
   netSalary: string | null;
+  enquiryIncentiveRate: string | null;
+  salesIncentivePercentage: string | null;
   bankAccountNumber: string | null;
   bankName: string | null;
   userName: string | null;
@@ -183,6 +185,8 @@ export default function HRManagement() {
     medicalAllowance: "",
     specialAllowance: "",
     deductions: "",
+    enquiryIncentiveRate: "125",
+    salesIncentivePercentage: "0",
     bankAccountNumber: "",
     bankName: "",
     ifscCode: "",
@@ -769,6 +773,8 @@ export default function HRManagement() {
                       <TableHead>HRA</TableHead>
                       <TableHead>Gross</TableHead>
                       <TableHead>Net</TableHead>
+                      <TableHead>Enq. Incentive</TableHead>
+                      <TableHead>Sales %</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -788,6 +794,8 @@ export default function HRManagement() {
                           <TableCell>{salary?.houseRentAllowance || "-"}</TableCell>
                           <TableCell>{salary?.grossSalary || "-"}</TableCell>
                           <TableCell className="font-medium">{salary?.netSalary || "-"}</TableCell>
+                          <TableCell className="text-green-600">₹{salary?.enquiryIncentiveRate || "125"}</TableCell>
+                          <TableCell className="text-blue-600">{salary?.salesIncentivePercentage || "0"}%</TableCell>
                           <TableCell>
                             <Button size="sm" variant="outline" onClick={() => handleEditSalary(member)}>
                               Configure
@@ -1119,6 +1127,34 @@ export default function HRManagement() {
               />
             </div>
           </div>
+          
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium mb-3 text-blue-800">Incentive Configuration</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Enquiry Incentive (₹ per enquiry)</Label>
+                <Input
+                  type="number"
+                  value={currentSalary?.enquiryIncentiveRate || salaryForm.enquiryIncentiveRate}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, enquiryIncentiveRate: e.target.value })}
+                  placeholder="125"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Amount paid per customer enquiry</p>
+              </div>
+              <div>
+                <Label>Sales Incentive (%)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={currentSalary?.salesIncentivePercentage || salaryForm.salesIncentivePercentage}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, salesIncentivePercentage: e.target.value })}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Percentage of sales value</p>
+              </div>
+            </div>
+          </div>
+          
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowSalaryDialog(false)}>Cancel</Button>
             <Button onClick={() => saveSalaryMutation.mutate(salaryForm)} disabled={saveSalaryMutation.isPending}>

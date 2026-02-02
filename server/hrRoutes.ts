@@ -366,7 +366,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, enquiryIncentiveRate, salesIncentivePercentage } = req.body;
 
     const grossSalary = (parseFloat(basicSalary) || 0) + 
                         (parseFloat(houseRentAllowance) || 0) + 
@@ -391,6 +391,8 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           grossSalary: grossSalary.toString(),
           deductions: deductions?.toString(),
           netSalary: netSalary.toString(),
+          enquiryIncentiveRate: enquiryIncentiveRate?.toString() || "125",
+          salesIncentivePercentage: salesIncentivePercentage?.toString() || "0",
           bankAccountNumber,
           bankName,
           ifscCode,
@@ -409,6 +411,8 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         grossSalary: grossSalary.toString(),
         deductions: deductions?.toString(),
         netSalary: netSalary.toString(),
+        enquiryIncentiveRate: enquiryIncentiveRate?.toString() || "125",
+        salesIncentivePercentage: salesIncentivePercentage?.toString() || "0",
         bankAccountNumber,
         bankName,
         ifscCode,
@@ -446,6 +450,8 @@ router.get("/api/hr/admin/salaries", isAuthenticated, async (req: Request, res: 
       grossSalary: employeeSalaries.grossSalary,
       deductions: employeeSalaries.deductions,
       netSalary: employeeSalaries.netSalary,
+      enquiryIncentiveRate: employeeSalaries.enquiryIncentiveRate,
+      salesIncentivePercentage: employeeSalaries.salesIncentivePercentage,
       bankAccountNumber: employeeSalaries.bankAccountNumber,
       bankName: employeeSalaries.bankName,
       userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
