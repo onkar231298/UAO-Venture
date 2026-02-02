@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { AdminAttendanceCalendar } from "@/components/hr/AdminAttendanceCalendar";
 
 interface StaffMember {
   id: string;
@@ -558,20 +559,23 @@ export default function HRManagement() {
           </Card>
         </TabsContent>
 
-        {/* Manual Punching Tab */}
+        {/* Manual Punching Tab - Calendar Based */}
         <TabsContent value="manual-punch" className="space-y-4">
+          <AdminAttendanceCalendar />
+          
+          {/* Quick Entry Form */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserCog className="h-5 w-5" />
-                Manual Attendance Entry
+                Quick Attendance Entry
               </CardTitle>
               <CardDescription>
-                Mark attendance for employees who forgot to punch in or for special cases
+                Quickly mark attendance for a specific employee and date
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 <div>
                   <Label>Select Employee *</Label>
                   <Select
@@ -611,8 +615,17 @@ export default function HRManagement() {
                       <SelectItem value="full_day">Full Day (9:00 AM - 6:00 PM)</SelectItem>
                       <SelectItem value="half_day">Half Day (9:00 AM - 1:00 PM)</SelectItem>
                       <SelectItem value="late_mark">Late Mark (10:30 AM - 6:00 PM)</SelectItem>
+                      <SelectItem value="day_off">Day Off / Absent</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Notes (optional)</Label>
+                  <Input
+                    value={manualPunchForm.notes}
+                    onChange={(e) => setManualPunchForm({ ...manualPunchForm, notes: e.target.value })}
+                    placeholder="Reason..."
+                  />
                 </div>
                 <div className="flex items-end">
                   <Button
@@ -621,27 +634,9 @@ export default function HRManagement() {
                     className="w-full"
                   >
                     {manualPunchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Mark Attendance
+                    Mark
                   </Button>
                 </div>
-              </div>
-              <div>
-                <Label>Notes (optional)</Label>
-                <Textarea
-                  value={manualPunchForm.notes}
-                  onChange={(e) => setManualPunchForm({ ...manualPunchForm, notes: e.target.value })}
-                  placeholder="Reason for manual entry..."
-                  rows={2}
-                />
-              </div>
-              
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Attendance Types Explained:</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li><strong>Full Day:</strong> Employee worked complete shift (9 working hours)</li>
-                  <li><strong>Half Day:</strong> Employee worked half shift (4 working hours)</li>
-                  <li><strong>Late Mark:</strong> Employee arrived late (7.5 working hours)</li>
-                </ul>
               </div>
             </CardContent>
           </Card>

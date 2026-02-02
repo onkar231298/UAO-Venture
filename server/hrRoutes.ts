@@ -1121,6 +1121,12 @@ router.post("/api/hr/attendance/manual", isAuthenticated, async (req: Request, r
         status = "late";
         workingHours = 7.5;
         break;
+      case "day_off":
+        punchInTime = null as any;
+        punchOutTime = null as any;
+        status = "absent";
+        workingHours = 0;
+        break;
       default:
         return res.status(400).json({ error: "Invalid attendance type" });
     }
@@ -1134,7 +1140,7 @@ router.post("/api/hr/attendance/manual", isAuthenticated, async (req: Request, r
           punchOutTime,
           workingHours: workingHours.toString(),
           status,
-          notes: notes || `Manual entry by admin: ${attendanceType}`,
+          remarks: notes || `Manual entry by admin: ${attendanceType}`,
           updatedAt: new Date(),
         })
         .where(eq(attendanceRecords.id, existing.id))
@@ -1149,7 +1155,7 @@ router.post("/api/hr/attendance/manual", isAuthenticated, async (req: Request, r
           punchOutTime,
           workingHours: workingHours.toString(),
           status,
-          notes: notes || `Manual entry by admin: ${attendanceType}`,
+          remarks: notes || `Manual entry by admin: ${attendanceType}`,
         })
         .returning();
     }
