@@ -958,37 +958,37 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     doc.fontSize(14).font('Helvetica-Bold').fillColor('#fff');
     doc.text('NET PAYABLE', col1, rowY + 8);
     doc.text(`₹ ${netWithIncentive.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 8);
-    rowY += 45;
+    rowY += 35;
     
-    // Bank Details section
+    // Bank Details section - compact layout
     if (salaryConfig) {
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000');
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#000');
       doc.text('BANK DETAILS', col1, rowY);
-      rowY += 20;
+      rowY += 18;
       
-      doc.rect(50, rowY - 5, 495, 70).stroke();
-      doc.fontSize(10).font('Helvetica');
+      doc.rect(50, rowY - 5, 495, 55).stroke();
+      doc.fontSize(9).font('Helvetica');
       
-      doc.font('Helvetica-Bold').text('Account Holder:', col1, rowY + 5);
-      doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 170, rowY + 5);
+      doc.font('Helvetica-Bold').text('Account Holder:', col1, rowY + 3);
+      doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 160, rowY + 3);
       
-      doc.font('Helvetica-Bold').text('Bank Name:', col1, rowY + 22);
-      doc.font('Helvetica').text(salaryConfig.bankName || 'N/A', 170, rowY + 22);
+      doc.font('Helvetica-Bold').text('Bank Name:', col1, rowY + 18);
+      doc.font('Helvetica').text(salaryConfig.bankName || 'N/A', 160, rowY + 18);
       
-      doc.font('Helvetica-Bold').text('Account Number:', col1, rowY + 39);
-      doc.font('Helvetica').text(salaryConfig.bankAccountNumber || 'N/A', 170, rowY + 39);
+      doc.font('Helvetica-Bold').text('Account Number:', col1, rowY + 33);
+      doc.font('Helvetica').text(salaryConfig.bankAccountNumber || 'N/A', 160, rowY + 33);
       
-      doc.font('Helvetica-Bold').text('IFSC Code:', 300, rowY + 22);
-      doc.font('Helvetica').text(salaryConfig.ifscCode || 'N/A', 390, rowY + 22);
+      doc.font('Helvetica-Bold').text('IFSC Code:', 300, rowY + 18);
+      doc.font('Helvetica').text(salaryConfig.ifscCode || 'N/A', 380, rowY + 18);
       
-      doc.font('Helvetica-Bold').text('PAN Number:', 300, rowY + 39);
-      doc.font('Helvetica').text(salaryConfig.panNumber || 'N/A', 390, rowY + 39);
+      doc.font('Helvetica-Bold').text('PAN Number:', 300, rowY + 33);
+      doc.font('Helvetica').text(salaryConfig.panNumber || 'N/A', 380, rowY + 33);
       
-      rowY += 90;
+      rowY += 65;
     }
     
-    // Footer - position dynamically below content, not at fixed position
-    const footerY = Math.max(rowY + 10, 720);
+    // Footer - position at bottom of first page, ensure no overlap
+    const footerY = Math.min(rowY + 15, 755);
     doc.fontSize(8).fillColor('#666');
     doc.text('This is a computer-generated document and does not require a signature.', 50, footerY, { align: 'center', width: 495 });
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 50, footerY + 12, { align: 'center', width: 495 });
