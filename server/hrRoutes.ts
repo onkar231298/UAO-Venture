@@ -4,6 +4,9 @@ import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, 
 import { eq, and, gte, lte, desc, sql, asc, or, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
+import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 
 const router = Router();
 
@@ -810,7 +813,6 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     const monthName = monthNames[monthNum];
 
     // Generate PDF using PDFKit
-    const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -819,8 +821,6 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     doc.pipe(res);
 
     // Header with company logo
-    const path = require('path');
-    const fs = require('fs');
     const logoPath = path.resolve(process.cwd(), 'bfi-logo.png');
     
     if (fs.existsSync(logoPath)) {
