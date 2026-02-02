@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "./db";
-import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, leaveApplications } from "@shared/schema";
+import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, leaveApplications, monthlyIncentives } from "@shared/schema";
 import { eq, and, gte, lte, desc, sql, asc, or, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
@@ -366,7 +366,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, numberOfEnquiries, salesIncentiveAmount } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber } = req.body;
 
     const grossSalary = (parseFloat(basicSalary) || 0) + 
                         (parseFloat(houseRentAllowance) || 0) + 
@@ -391,8 +391,6 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           grossSalary: grossSalary.toString(),
           deductions: deductions?.toString(),
           netSalary: netSalary.toString(),
-          numberOfEnquiries: parseInt(numberOfEnquiries) || 0,
-          salesIncentiveAmount: salesIncentiveAmount?.toString() || "0",
           bankAccountNumber,
           bankName,
           ifscCode,
@@ -411,8 +409,6 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         grossSalary: grossSalary.toString(),
         deductions: deductions?.toString(),
         netSalary: netSalary.toString(),
-        numberOfEnquiries: parseInt(numberOfEnquiries) || 0,
-        salesIncentiveAmount: salesIncentiveAmount?.toString() || "0",
         bankAccountNumber,
         bankName,
         ifscCode,
@@ -450,8 +446,6 @@ router.get("/api/hr/admin/salaries", isAuthenticated, async (req: Request, res: 
       grossSalary: employeeSalaries.grossSalary,
       deductions: employeeSalaries.deductions,
       netSalary: employeeSalaries.netSalary,
-      numberOfEnquiries: employeeSalaries.numberOfEnquiries,
-      salesIncentiveAmount: employeeSalaries.salesIncentiveAmount,
       bankAccountNumber: employeeSalaries.bankAccountNumber,
       bankName: employeeSalaries.bankName,
       userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
@@ -467,6 +461,101 @@ router.get("/api/hr/admin/salaries", isAuthenticated, async (req: Request, res: 
   } catch (error) {
     console.error("Error fetching salaries:", error);
     res.status(500).json({ error: "Failed to fetch salaries" });
+  }
+});
+
+// Monthly Incentives - Get all for a specific month/year
+router.get("/api/hr/admin/incentives", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { month, year } = req.query;
+    const monthNum = parseInt(month as string) || new Date().getMonth() + 1;
+    const yearNum = parseInt(year as string) || new Date().getFullYear();
+
+    const incentives = await db.select({
+      id: monthlyIncentives.id,
+      userId: monthlyIncentives.userId,
+      month: monthlyIncentives.month,
+      year: monthlyIncentives.year,
+      numberOfEnquiries: monthlyIncentives.numberOfEnquiries,
+      enquiryIncentiveAmount: monthlyIncentives.enquiryIncentiveAmount,
+      salesIncentiveAmount: monthlyIncentives.salesIncentiveAmount,
+      totalIncentive: monthlyIncentives.totalIncentive,
+      remarks: monthlyIncentives.remarks,
+      userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+      userEmail: users.email,
+    })
+    .from(monthlyIncentives)
+    .leftJoin(users, eq(monthlyIncentives.userId, users.id))
+    .where(and(
+      eq(monthlyIncentives.month, monthNum),
+      eq(monthlyIncentives.year, yearNum)
+    ))
+    .orderBy(asc(users.firstName));
+
+    res.json(incentives);
+  } catch (error) {
+    console.error("Error fetching incentives:", error);
+    res.status(500).json({ error: "Failed to fetch incentives" });
+  }
+});
+
+// Monthly Incentives - Save/Update for an employee
+router.post("/api/hr/admin/incentives/:userId", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { userId } = req.params;
+    const { month, year, numberOfEnquiries, salesIncentiveAmount, remarks } = req.body;
+
+    const enquiries = parseInt(numberOfEnquiries) || 0;
+    const enquiryIncentive = enquiries * 125; // ₹125 per enquiry
+    const salesIncentive = parseFloat(salesIncentiveAmount) || 0;
+    const total = enquiryIncentive + salesIncentive;
+
+    const [existing] = await db.select()
+      .from(monthlyIncentives)
+      .where(and(
+        eq(monthlyIncentives.userId, userId),
+        eq(monthlyIncentives.month, month),
+        eq(monthlyIncentives.year, year)
+      ));
+
+    if (existing) {
+      await db.update(monthlyIncentives)
+        .set({
+          numberOfEnquiries: enquiries,
+          enquiryIncentiveAmount: enquiryIncentive.toString(),
+          salesIncentiveAmount: salesIncentive.toString(),
+          totalIncentive: total.toString(),
+          remarks,
+          updatedAt: new Date()
+        })
+        .where(eq(monthlyIncentives.id, existing.id));
+    } else {
+      await db.insert(monthlyIncentives).values({
+        userId,
+        month,
+        year,
+        numberOfEnquiries: enquiries,
+        enquiryIncentiveAmount: enquiryIncentive.toString(),
+        salesIncentiveAmount: salesIncentive.toString(),
+        totalIncentive: total.toString(),
+        remarks
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error saving incentive:", error);
+    res.status(500).json({ error: "Failed to save incentive" });
   }
 });
 

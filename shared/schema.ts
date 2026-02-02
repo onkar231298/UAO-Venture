@@ -2469,8 +2469,6 @@ export const employeeSalaries = pgTable("employee_salaries", {
   grossSalary: decimal("gross_salary", { precision: 12, scale: 2 }).default("0"),
   deductions: decimal("deductions", { precision: 12, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 12, scale: 2 }).default("0"),
-  numberOfEnquiries: integer("number_of_enquiries").default(0),
-  salesIncentiveAmount: decimal("sales_incentive_amount", { precision: 12, scale: 2 }).default("0"),
   bankAccountNumber: varchar("bank_account_number", { length: 50 }),
   bankName: varchar("bank_name", { length: 100 }),
   ifscCode: varchar("ifsc_code", { length: 20 }),
@@ -2492,6 +2490,33 @@ export const insertEmployeeSalarySchema = createInsertSchema(employeeSalaries).o
 
 export type EmployeeSalary = typeof employeeSalaries.$inferSelect;
 export type InsertEmployeeSalary = z.infer<typeof insertEmployeeSalarySchema>;
+
+// Monthly Incentives (Separate from salary config - changes each month)
+export const monthlyIncentives = pgTable("monthly_incentives", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  numberOfEnquiries: integer("number_of_enquiries").default(0),
+  enquiryIncentiveAmount: decimal("enquiry_incentive_amount", { precision: 12, scale: 2 }).default("0"), // auto-calculated: enquiries × 125
+  salesIncentiveAmount: decimal("sales_incentive_amount", { precision: 12, scale: 2 }).default("0"), // manual entry
+  totalIncentive: decimal("total_incentive", { precision: 12, scale: 2 }).default("0"), // sum of both
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_monthly_incentives_user").on(table.userId),
+  index("idx_monthly_incentives_month_year").on(table.month, table.year),
+]);
+
+export const insertMonthlyIncentiveSchema = createInsertSchema(monthlyIncentives).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type MonthlyIncentive = typeof monthlyIncentives.$inferSelect;
+export type InsertMonthlyIncentive = z.infer<typeof insertMonthlyIncentiveSchema>;
 
 // Salary Slips (Monthly payslips)
 export const salarySlips = pgTable("salary_slips", {

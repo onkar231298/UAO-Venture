@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays, UserCog, ClipboardCheck, Check, X } from "lucide-react";
+import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays, UserCog, ClipboardCheck, Check, X, Gift } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,8 +59,6 @@ interface SalaryConfig {
   grossSalary: string | null;
   deductions: string | null;
   netSalary: string | null;
-  numberOfEnquiries: number | null;
-  salesIncentiveAmount: string | null;
   bankAccountNumber: string | null;
   bankName: string | null;
   userName: string | null;
@@ -91,6 +89,20 @@ interface SalarySlip {
   userName: string | null;
   userEmail: string | null;
   userDepartment: string | null;
+}
+
+interface MonthlyIncentive {
+  id: number;
+  userId: string;
+  month: number;
+  year: number;
+  numberOfEnquiries: number | null;
+  enquiryIncentiveAmount: string | null;
+  salesIncentiveAmount: string | null;
+  totalIncentive: string | null;
+  remarks: string | null;
+  userName: string | null;
+  userEmail: string | null;
 }
 
 interface PaidHoliday {
@@ -185,12 +197,53 @@ export default function HRManagement() {
     medicalAllowance: "",
     specialAllowance: "",
     deductions: "",
-    numberOfEnquiries: "0",
-    salesIncentiveAmount: "0",
     bankAccountNumber: "",
     bankName: "",
     ifscCode: "",
     panNumber: "",
+  });
+
+  const [incentiveMonth, setIncentiveMonth] = useState(new Date().getMonth() + 1);
+  const [incentiveYear, setIncentiveYear] = useState(new Date().getFullYear());
+  const [showIncentiveDialog, setShowIncentiveDialog] = useState(false);
+  const [selectedIncentiveStaff, setSelectedIncentiveStaff] = useState<StaffMember | null>(null);
+  const [incentiveForm, setIncentiveForm] = useState({
+    numberOfEnquiries: "0",
+    salesIncentiveAmount: "0",
+    remarks: "",
+  });
+
+  const { data: monthlyIncentives = [] } = useQuery<MonthlyIncentive[]>({
+    queryKey: ["/api/hr/admin/incentives", { month: incentiveMonth, year: incentiveYear }],
+    queryFn: async () => {
+      const response = await fetch(`/api/hr/admin/incentives?month=${incentiveMonth}&year=${incentiveYear}`, { credentials: "include" });
+      return response.json();
+    },
+  });
+
+  const saveIncentiveMutation = useMutation({
+    mutationFn: async (data: typeof incentiveForm) => {
+      const response = await fetch(`/api/hr/admin/incentives/${selectedIncentiveStaff?.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...data,
+          month: incentiveMonth,
+          year: incentiveYear,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save incentive");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Incentive saved successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hr/admin/incentives", { month: incentiveMonth, year: incentiveYear }] });
+      setShowIncentiveDialog(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to save incentive", variant: "destructive" });
+    },
   });
 
   const { data: currentSalary } = useQuery({
@@ -395,7 +448,7 @@ export default function HRManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="attendance" className="gap-2">
             <Clock className="h-4 w-4" />
             Attendance
@@ -415,6 +468,10 @@ export default function HRManagement() {
           <TabsTrigger value="salaries" className="gap-2">
             <DollarSign className="h-4 w-4" />
             Salary Config
+          </TabsTrigger>
+          <TabsTrigger value="incentives" className="gap-2">
+            <Gift className="h-4 w-4" />
+            Incentives
           </TabsTrigger>
           <TabsTrigger value="payslips" className="gap-2">
             <FileText className="h-4 w-4" />
@@ -771,11 +828,12 @@ export default function HRManagement() {
                       <TableHead>Department</TableHead>
                       <TableHead>Basic</TableHead>
                       <TableHead>HRA</TableHead>
+                      <TableHead>Conveyance</TableHead>
+                      <TableHead>Medical</TableHead>
+                      <TableHead>Special</TableHead>
                       <TableHead>Gross</TableHead>
+                      <TableHead>Deductions</TableHead>
                       <TableHead>Net</TableHead>
-                      <TableHead>Enquiries</TableHead>
-                      <TableHead>Enq. Incentive (×₹125)</TableHead>
-                      <TableHead>Sales Incentive</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -791,13 +849,14 @@ export default function HRManagement() {
                             </div>
                           </TableCell>
                           <TableCell>{member.department}</TableCell>
-                          <TableCell>{salary?.basicSalary || "-"}</TableCell>
-                          <TableCell>{salary?.houseRentAllowance || "-"}</TableCell>
-                          <TableCell>{salary?.grossSalary || "-"}</TableCell>
-                          <TableCell className="font-medium">{salary?.netSalary || "-"}</TableCell>
-                          <TableCell>{salary?.numberOfEnquiries || 0}</TableCell>
-                          <TableCell className="text-green-600">₹{(salary?.numberOfEnquiries || 0) * 125}</TableCell>
-                          <TableCell className="text-blue-600">₹{salary?.salesIncentiveAmount || "0"}</TableCell>
+                          <TableCell>₹{salary?.basicSalary || "-"}</TableCell>
+                          <TableCell>₹{salary?.houseRentAllowance || "-"}</TableCell>
+                          <TableCell>₹{salary?.conveyanceAllowance || "-"}</TableCell>
+                          <TableCell>₹{salary?.medicalAllowance || "-"}</TableCell>
+                          <TableCell>₹{salary?.specialAllowance || "-"}</TableCell>
+                          <TableCell className="font-medium text-green-600">₹{salary?.grossSalary || "-"}</TableCell>
+                          <TableCell className="text-red-600">₹{salary?.deductions || "0"}</TableCell>
+                          <TableCell className="font-bold">₹{salary?.netSalary || "-"}</TableCell>
                           <TableCell>
                             <Button size="sm" variant="outline" onClick={() => handleEditSalary(member)}>
                               Configure
@@ -918,6 +977,107 @@ export default function HRManagement() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="incentives" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="h-5 w-5" />
+                    Monthly Incentives
+                  </CardTitle>
+                  <CardDescription>Manage monthly incentives for employees - enquiry incentive (₹125 per enquiry) and sales incentive</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 mb-4">
+                <div>
+                  <Label>Month</Label>
+                  <Select value={incentiveMonth.toString()} onValueChange={(v) => setIncentiveMonth(parseInt(v))}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {new Date(2024, i, 1).toLocaleString('default', { month: 'long' })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Year</Label>
+                  <Select value={incentiveYear.toString()} onValueChange={(v) => setIncentiveYear(parseInt(v))}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2024, 2025, 2026, 2027].map((year) => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>No. of Enquiries</TableHead>
+                      <TableHead>Enquiry Incentive (×₹125)</TableHead>
+                      <TableHead>Sales Incentive</TableHead>
+                      <TableHead>Total Incentive</TableHead>
+                      <TableHead>Remarks</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {staff.map((member) => {
+                      const incentive = monthlyIncentives.find((i) => i.userId === member.id);
+                      return (
+                        <TableRow key={member.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{member.firstName} {member.lastName}</p>
+                              <p className="text-xs text-muted-foreground">{member.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{incentive?.numberOfEnquiries || 0}</TableCell>
+                          <TableCell className="text-green-600 font-medium">₹{incentive?.enquiryIncentiveAmount || "0"}</TableCell>
+                          <TableCell className="text-blue-600 font-medium">₹{incentive?.salesIncentiveAmount || "0"}</TableCell>
+                          <TableCell className="font-bold text-purple-600">₹{incentive?.totalIncentive || "0"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{incentive?.remarks || "-"}</TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setSelectedIncentiveStaff(member);
+                                setIncentiveForm({
+                                  numberOfEnquiries: (incentive?.numberOfEnquiries || 0).toString(),
+                                  salesIncentiveAmount: incentive?.salesIncentiveAmount || "0",
+                                  remarks: incentive?.remarks || "",
+                                });
+                                setShowIncentiveDialog(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1130,36 +1290,66 @@ export default function HRManagement() {
             </div>
           </div>
           
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium mb-3 text-blue-800">Incentive Configuration</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Number of Enquiries Received</Label>
-                <Input
-                  type="number"
-                  value={currentSalary?.numberOfEnquiries ?? salaryForm.numberOfEnquiries}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, numberOfEnquiries: e.target.value })}
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Auto-calculated: ₹{(parseInt(currentSalary?.numberOfEnquiries?.toString() || salaryForm.numberOfEnquiries) || 0) * 125} (×₹125 per enquiry)</p>
-              </div>
-              <div>
-                <Label>Sales Incentive Amount (₹)</Label>
-                <Input
-                  type="number"
-                  value={currentSalary?.salesIncentiveAmount || salaryForm.salesIncentiveAmount}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, salesIncentiveAmount: e.target.value })}
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Enter the manual sales incentive amount</p>
-              </div>
-            </div>
-          </div>
-          
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowSalaryDialog(false)}>Cancel</Button>
             <Button onClick={() => saveSalaryMutation.mutate(salaryForm)} disabled={saveSalaryMutation.isPending}>
               {saveSalaryMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showIncentiveDialog} onOpenChange={setShowIncentiveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5" />
+              Monthly Incentive - {new Date(incentiveYear, incentiveMonth - 1, 1).toLocaleString('default', { month: 'long' })} {incentiveYear}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedIncentiveStaff?.firstName} {selectedIncentiveStaff?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Number of Enquiries Received</Label>
+              <Input
+                type="number"
+                value={incentiveForm.numberOfEnquiries}
+                onChange={(e) => setIncentiveForm({ ...incentiveForm, numberOfEnquiries: e.target.value })}
+                placeholder="0"
+              />
+              <p className="text-sm text-green-600 mt-1 font-medium">
+                Enquiry Incentive: ₹{(parseInt(incentiveForm.numberOfEnquiries) || 0) * 125} (×₹125)
+              </p>
+            </div>
+            <div>
+              <Label>Sales Incentive Amount (₹)</Label>
+              <Input
+                type="number"
+                value={incentiveForm.salesIncentiveAmount}
+                onChange={(e) => setIncentiveForm({ ...incentiveForm, salesIncentiveAmount: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <p className="text-lg font-bold text-purple-700">
+                Total Incentive: ₹{((parseInt(incentiveForm.numberOfEnquiries) || 0) * 125) + (parseFloat(incentiveForm.salesIncentiveAmount) || 0)}
+              </p>
+            </div>
+            <div>
+              <Label>Remarks (Optional)</Label>
+              <Textarea
+                value={incentiveForm.remarks}
+                onChange={(e) => setIncentiveForm({ ...incentiveForm, remarks: e.target.value })}
+                placeholder="Any additional notes..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowIncentiveDialog(false)}>Cancel</Button>
+            <Button onClick={() => saveIncentiveMutation.mutate(incentiveForm)} disabled={saveIncentiveMutation.isPending}>
+              {saveIncentiveMutation.isPending ? "Saving..." : "Save Incentive"}
             </Button>
           </div>
         </DialogContent>
