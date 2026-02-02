@@ -637,21 +637,48 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
         eq(salarySlips.year, year)
       ));
 
+    // Calculate payable days (present + leave days count as paid)
+    const paidDays = presentDays + leaveDays;
+    const attendanceRatio = workingDaysInMonth > 0 ? paidDays / workingDaysInMonth : 0;
+
+    // Prorate salary based on actual attendance
+    const prorateAmount = (amount: string | null) => {
+      const val = parseFloat(amount || '0');
+      return (val * attendanceRatio).toFixed(2);
+    };
+
+    const proratedBasic = prorateAmount(salaryConfig.basicSalary);
+    const proratedHRA = prorateAmount(salaryConfig.houseRentAllowance);
+    const proratedConveyance = prorateAmount(salaryConfig.conveyanceAllowance);
+    const proratedMedical = prorateAmount(salaryConfig.medicalAllowance);
+    const proratedSpecial = prorateAmount(salaryConfig.specialAllowance);
+    
+    const proratedGross = (
+      parseFloat(proratedBasic) + 
+      parseFloat(proratedHRA) + 
+      parseFloat(proratedConveyance) + 
+      parseFloat(proratedMedical) + 
+      parseFloat(proratedSpecial)
+    ).toFixed(2);
+    
+    const proratedDeductions = prorateAmount(salaryConfig.deductions);
+    const proratedNet = (parseFloat(proratedGross) - parseFloat(proratedDeductions)).toFixed(2);
+
     const slipData = {
       userId,
       month,
       year,
-      basicSalary: salaryConfig.basicSalary,
-      houseRentAllowance: salaryConfig.houseRentAllowance,
-      conveyanceAllowance: salaryConfig.conveyanceAllowance,
-      medicalAllowance: salaryConfig.medicalAllowance,
-      specialAllowance: salaryConfig.specialAllowance,
-      grossSalary: salaryConfig.grossSalary,
-      totalDeductions: salaryConfig.deductions,
-      netSalary: salaryConfig.netSalary,
-      workingDays: workingDaysInMonth, // Use calculated working days
-      presentDays,
-      absentDays: Math.max(0, absentDays - leaveDays), // Subtract leaves from absent
+      basicSalary: proratedBasic,
+      houseRentAllowance: proratedHRA,
+      conveyanceAllowance: proratedConveyance,
+      medicalAllowance: proratedMedical,
+      specialAllowance: proratedSpecial,
+      grossSalary: proratedGross,
+      totalDeductions: proratedDeductions,
+      netSalary: proratedNet,
+      workingDays: workingDaysInMonth,
+      presentDays: paidDays, // Show paid days (present + leaves)
+      absentDays: Math.max(0, workingDaysInMonth - paidDays),
       leaveDays,
       overtimeHours: totalOvertimeHours.toString(),
       status: "generated",
