@@ -1204,14 +1204,29 @@ export default function HRManagement() {
                             ) : "-"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={!hasSalaryConfig || generateSlipMutation.isPending}
-                              onClick={() => generateSlipMutation.mutate(member.id)}
-                            >
-                              {generateSlipMutation.isPending ? "..." : slip ? "Regenerate" : "Generate"}
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!hasSalaryConfig || generateSlipMutation.isPending}
+                                onClick={() => generateSlipMutation.mutate(member.id)}
+                              >
+                                {generateSlipMutation.isPending ? "..." : slip ? "Regenerate" : "Generate"}
+                              </Button>
+                              {slip && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => {
+                                    window.open(`/api/hr/admin/salary-slip/download/${member.id}/${selectedMonth}/${selectedYear}`, '_blank');
+                                  }}
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  PDF
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

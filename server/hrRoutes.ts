@@ -730,6 +730,240 @@ router.get("/api/hr/admin/salary-slips", isAuthenticated, async (req: Request, r
   }
 });
 
+// Download salary slip as PDF
+router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userRole = (req.user as any)?.claims?.role || (req.user as any)?.role;
+    if (!userRole || !["super_admin", "admin"].includes(userRole)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { userId, month, year } = req.params;
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+
+    // Get salary slip
+    const [slip] = await db.select()
+      .from(salarySlips)
+      .where(and(
+        eq(salarySlips.userId, userId),
+        eq(salarySlips.month, monthNum),
+        eq(salarySlips.year, yearNum)
+      ));
+
+    if (!slip) {
+      return res.status(404).json({ error: "Salary slip not found" });
+    }
+
+    // Get employee details
+    const [employee] = await db.select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    // Get salary config (for bank details)
+    const [salaryConfig] = await db.select()
+      .from(employeeSalaries)
+      .where(eq(employeeSalaries.userId, userId));
+
+    // Get monthly incentives
+    const [incentive] = await db.select()
+      .from(monthlyIncentives)
+      .where(and(
+        eq(monthlyIncentives.userId, userId),
+        eq(monthlyIncentives.month, monthNum),
+        eq(monthlyIncentives.year, yearNum)
+      ));
+
+    const monthNames = ["", "January", "February", "March", "April", "May", "June", 
+                        "July", "August", "September", "October", "November", "December"];
+    const monthName = monthNames[monthNum];
+
+    // Generate PDF using PDFKit
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=salary_slip_${employee.firstName}_${employee.lastName}_${monthName}_${yearNum}.pdf`);
+    
+    doc.pipe(res);
+
+    // Header with company logo
+    const path = require('path');
+    const fs = require('fs');
+    const logoPath = path.resolve(process.cwd(), 'bfi-logo.png');
+    
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 220, 40, { width: 150 });
+      doc.moveDown(4);
+    } else {
+      doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
+         .text('BRIGHT FAME ORGANIC', { align: 'center' });
+      doc.fontSize(10).font('Helvetica').fillColor('#666')
+         .text('Premium Quality Organic Products', { align: 'center' });
+      doc.moveDown(0.5);
+    }
+    
+    // Salary Slip title
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#000')
+       .text(`SALARY SLIP - ${monthName} ${yearNum}`, { align: 'center' });
+    doc.moveDown();
+
+    // Employee Details Box
+    doc.rect(50, doc.y, 495, 80).stroke();
+    const boxY = doc.y + 10;
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#333');
+    
+    doc.text('Employee Name:', 60, boxY);
+    doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 160, boxY);
+    
+    doc.font('Helvetica-Bold').text('Employee ID:', 300, boxY);
+    doc.font('Helvetica').text(userId.substring(0, 20), 390, boxY);
+    
+    doc.font('Helvetica-Bold').text('Department:', 60, boxY + 20);
+    doc.font('Helvetica').text(employee.department || 'N/A', 160, boxY + 20);
+    
+    doc.font('Helvetica-Bold').text('Email:', 300, boxY + 20);
+    doc.font('Helvetica').text(employee.email || 'N/A', 390, boxY + 20);
+    
+    doc.font('Helvetica-Bold').text('Pay Period:', 60, boxY + 40);
+    doc.font('Helvetica').text(`${monthName} ${yearNum}`, 160, boxY + 40);
+    
+    doc.font('Helvetica-Bold').text('Working Days:', 300, boxY + 40);
+    doc.font('Helvetica').text(`${slip.presentDays || 0} / ${slip.workingDays || 0}`, 390, boxY + 40);
+    
+    doc.moveDown(5);
+    
+    // Salary Breakdown Table
+    const tableTop = doc.y + 10;
+    const col1 = 60;
+    const col2 = 280;
+    const col3 = 380;
+    
+    // Table Header
+    doc.rect(50, tableTop, 495, 25).fill('#166534');
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
+    doc.text('EARNINGS', col1, tableTop + 7);
+    doc.text('AMOUNT (₹)', col3, tableTop + 7);
+    
+    let rowY = tableTop + 30;
+    doc.fillColor('#000').font('Helvetica');
+    
+    // Earnings rows
+    const earnings = [
+      ['Basic Salary', slip.basicSalary],
+      ['House Rent Allowance (HRA)', slip.houseRentAllowance],
+      ['Conveyance Allowance', slip.conveyanceAllowance],
+      ['Medical Allowance', slip.medicalAllowance],
+      ['Special Allowance', slip.specialAllowance],
+    ];
+    
+    earnings.forEach(([label, amount], i) => {
+      if (i % 2 === 0) {
+        doc.rect(50, rowY - 5, 495, 22).fill('#f0fdf4').stroke();
+      }
+      doc.fillColor('#000').fontSize(10);
+      doc.text(label as string, col1, rowY);
+      doc.text(`₹ ${parseFloat(amount as string || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
+      rowY += 22;
+    });
+    
+    // Gross Salary
+    doc.rect(50, rowY - 5, 495, 25).fill('#dcfce7');
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#166534');
+    doc.text('GROSS SALARY', col1, rowY + 2);
+    doc.text(`₹ ${parseFloat(slip.grossSalary || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 2);
+    rowY += 30;
+    
+    // Deductions section
+    doc.rect(50, rowY, 495, 25).fill('#dc2626');
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
+    doc.text('DEDUCTIONS', col1, rowY + 7);
+    doc.text('AMOUNT (₹)', col3, rowY + 7);
+    rowY += 30;
+    
+    doc.fillColor('#000').font('Helvetica').fontSize(10);
+    doc.text('Total Deductions', col1, rowY);
+    doc.text(`₹ ${parseFloat(slip.totalDeductions || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
+    rowY += 30;
+    
+    // Incentives section (if any)
+    if (incentive && (parseFloat(incentive.totalIncentive || '0') > 0)) {
+      doc.rect(50, rowY, 495, 25).fill('#7c3aed');
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
+      doc.text('INCENTIVES', col1, rowY + 7);
+      doc.text('AMOUNT (₹)', col3, rowY + 7);
+      rowY += 30;
+      
+      doc.fillColor('#000').font('Helvetica').fontSize(10);
+      if (incentive.numberOfEnquiries > 0) {
+        doc.text(`Enquiry Incentive (${incentive.numberOfEnquiries} × ₹150)`, col1, rowY);
+        doc.text(`₹ ${parseFloat(incentive.enquiryIncentiveAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
+        rowY += 22;
+      }
+      if (parseFloat(incentive.salesIncentiveAmount || '0') > 0) {
+        doc.text('Sales Incentive', col1, rowY);
+        doc.text(`₹ ${parseFloat(incentive.salesIncentiveAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY);
+        rowY += 22;
+      }
+      
+      doc.rect(50, rowY - 5, 495, 25).fill('#ede9fe');
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#7c3aed');
+      doc.text('TOTAL INCENTIVE', col1, rowY + 2);
+      doc.text(`₹ ${parseFloat(incentive.totalIncentive || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 2);
+      rowY += 30;
+    }
+    
+    // Net Salary
+    const netWithIncentive = parseFloat(slip.netSalary || '0') + parseFloat(incentive?.totalIncentive || '0');
+    doc.rect(50, rowY, 495, 30).fill('#166534');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#fff');
+    doc.text('NET PAYABLE', col1, rowY + 8);
+    doc.text(`₹ ${netWithIncentive.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, col3, rowY + 8);
+    rowY += 45;
+    
+    // Bank Details section
+    if (salaryConfig) {
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000');
+      doc.text('BANK DETAILS', col1, rowY);
+      rowY += 20;
+      
+      doc.rect(50, rowY - 5, 495, 70).stroke();
+      doc.fontSize(10).font('Helvetica');
+      
+      doc.font('Helvetica-Bold').text('Account Holder:', col1, rowY + 5);
+      doc.font('Helvetica').text(`${employee.firstName} ${employee.lastName}`, 170, rowY + 5);
+      
+      doc.font('Helvetica-Bold').text('Bank Name:', col1, rowY + 22);
+      doc.font('Helvetica').text(salaryConfig.bankName || 'N/A', 170, rowY + 22);
+      
+      doc.font('Helvetica-Bold').text('Account Number:', col1, rowY + 39);
+      doc.font('Helvetica').text(salaryConfig.bankAccountNumber || 'N/A', 170, rowY + 39);
+      
+      doc.font('Helvetica-Bold').text('IFSC Code:', 300, rowY + 22);
+      doc.font('Helvetica').text(salaryConfig.ifscCode || 'N/A', 390, rowY + 22);
+      
+      doc.font('Helvetica-Bold').text('PAN Number:', 300, rowY + 39);
+      doc.font('Helvetica').text(salaryConfig.panNumber || 'N/A', 390, rowY + 39);
+      
+      rowY += 85;
+    }
+    
+    // Footer
+    doc.fontSize(8).fillColor('#666');
+    doc.text('This is a computer-generated document and does not require a signature.', 50, 750, { align: 'center' });
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 50, 762, { align: 'center' });
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating salary slip PDF:", error);
+    res.status(500).json({ error: "Failed to generate salary slip PDF" });
+  }
+});
+
 // Get attendance photo
 router.get("/api/hr/attendance/photo/:photoPath(*)", isAuthenticated, async (req: Request, res: Response) => {
   try {
