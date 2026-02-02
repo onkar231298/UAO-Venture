@@ -828,23 +828,22 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     
     doc.pipe(res);
 
-    // Header with company logo
+    // Header with company logo - position it properly without overlap
     const logoPath = path.resolve(process.cwd(), 'bfi-logo.png');
     
     if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 220, 40, { width: 150 });
-      doc.y = 120; // Move cursor below the logo
+      doc.image(logoPath, 220, 50, { width: 150 });
+      doc.y = 140; // Move cursor well below the logo
     } else {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
          .text('BRIGHT FAME ORGANIC', { align: 'center' });
       doc.fontSize(10).font('Helvetica').fillColor('#666')
          .text('Premium Quality Organic Products', { align: 'center' });
+      doc.moveDown(1);
     }
     
-    doc.moveDown(1);
-    
-    // Salary Slip title
-    doc.fontSize(16).font('Helvetica-Bold').fillColor('#000')
+    // Salary Slip title - with proper spacing
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#166534')
        .text(`SALARY SLIP - ${monthName} ${yearNum}`, { align: 'center' });
     doc.moveDown(1.5);
 
@@ -927,7 +926,8 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     rowY += 30;
     
     // Incentives section (if any)
-    if (incentive && (parseFloat(incentive.totalIncentive || '0') > 0)) {
+    console.log(`PDF Incentive data for ${userId} - Month ${monthNum}/${yearNum}:`, incentive);
+    if (incentive) {
       doc.rect(50, rowY, 495, 25).fill('#7c3aed');
       doc.fontSize(11).font('Helvetica-Bold').fillColor('#fff');
       doc.text('INCENTIVES', col1, rowY + 7);
