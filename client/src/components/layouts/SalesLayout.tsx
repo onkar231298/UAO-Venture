@@ -15,6 +15,7 @@ import {
   User,
   LogOut,
   FileText,
+  Calendar,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
@@ -108,6 +109,20 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
           </div>
           
           <div className="mt-6 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">HR</p>
+            <Link href="/sales/my-attendance">
+              <Button
+                variant={isActive('/sales/my-attendance') ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                data-testid="nav-my-attendance"
+              >
+                <Calendar className="w-4 h-4 mr-3" />
+                My Attendance
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">Settings</p>
             <Link href="/crm/email-settings">
               <Button

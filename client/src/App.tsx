@@ -64,6 +64,7 @@ import EUOrganicSpices from "@/pages/EUOrganicSpices";
 import EmailSettings from "@/pages/crm/EmailSettings";
 import MyCompanies from "@/pages/crm/MyCompanies";
 import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
+import MyAttendancePage from "@/pages/sales/MyAttendancePage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import { AuroraEffect } from "@/components/AuroraEffect";
 
@@ -163,6 +164,7 @@ function Router() {
               <Route path="/sales/leads" component={SalesLeadManagement} />
               <Route path="/sales/my-companies" component={MyCompanies} />
               <Route path="/sales/my-sales" component={MySalesAndQuotations} />
+              <Route path="/sales/my-attendance" component={MyAttendancePage} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
               <Route path="/crm/email-settings" component={EmailSettings} />
             </>
