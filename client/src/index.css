@@ -508,4 +508,67 @@ body {
     -webkit-line-clamp: 3;
   }
 }
+
+/* TipTap Editor Table Styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  table-layout: fixed;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  min-width: 50px;
+  vertical-align: top;
+}
+
+.ProseMirror th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  text-align: left;
+}
+
+.ProseMirror tr:nth-child(even) td {
+  background-color: #fafafa;
+}
+
+.ProseMirror .selectedCell {
+  background-color: #e3f2fd !important;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #adf;
+  cursor: col-resize;
+  z-index: 20;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Email table styles for sent emails */
+.email-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.email-table th,
+.email-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.email-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
 /* Force cache bust 1753793542 */

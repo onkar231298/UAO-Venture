@@ -44,6 +44,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Image from '@tiptap/extension-image';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import {
   Mail,
   Send,
@@ -89,6 +90,11 @@ import {
   ClipboardPaste,
   Paperclip,
   File,
+  Table2,
+  Plus,
+  Minus,
+  Rows,
+  Columns,
 } from "lucide-react";
 
 interface CompanyContact {
@@ -203,6 +209,28 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
         allowBase64: true,
         HTMLAttributes: {
           class: 'email-image',
+        },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'email-table',
+          style: 'border-collapse: collapse; width: 100%; margin: 10px 0;',
+        },
+      }),
+      TableRow.configure({
+        HTMLAttributes: {
+          style: 'border: 1px solid #ddd;',
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          style: 'border: 1px solid #ddd; background-color: #f5f5f5; padding: 8px; text-align: left; font-weight: bold;',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          style: 'border: 1px solid #ddd; padding: 8px;',
         },
       }),
     ],
@@ -1141,7 +1169,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           </ToolbarButton>
                         </div>
 
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
                           <ToolbarButton onClick={setLink} isActive={editor.isActive('link')} tooltip="Add Link">
                             <LinkIcon className="h-4 w-4" />
                           </ToolbarButton>
@@ -1151,6 +1179,38 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           >
                             <ImageIcon className="h-4 w-4" />
                           </ToolbarButton>
+                        </div>
+
+                        <div className="flex items-center gap-0.5">
+                          <ToolbarButton
+                            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                            isActive={editor.isActive('table')}
+                            tooltip="Insert Table"
+                          >
+                            <Table2 className="h-4 w-4" />
+                          </ToolbarButton>
+                          {editor.isActive('table') && (
+                            <>
+                              <ToolbarButton
+                                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                                tooltip="Add Column"
+                              >
+                                <Columns className="h-4 w-4" />
+                              </ToolbarButton>
+                              <ToolbarButton
+                                onClick={() => editor.chain().focus().addRowAfter().run()}
+                                tooltip="Add Row"
+                              >
+                                <Rows className="h-4 w-4" />
+                              </ToolbarButton>
+                              <ToolbarButton
+                                onClick={() => editor.chain().focus().deleteTable().run()}
+                                tooltip="Delete Table"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </ToolbarButton>
+                            </>
+                          )}
                         </div>
                       </>
                     )}
