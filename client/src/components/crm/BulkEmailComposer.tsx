@@ -43,7 +43,50 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import FontFamily from '@tiptap/extension-font-family';
 import Image from '@tiptap/extension-image';
+import { Extension } from '@tiptap/core';
+
+// Custom FontSize extension
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    };
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+  addCommands() {
+    return {
+      setFontSize: (fontSize: string) => ({ chain }: any) => {
+        return chain().setMark('textStyle', { fontSize }).run();
+      },
+      unsetFontSize: () => ({ chain }: any) => {
+        return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
+      },
+    };
+  },
+});
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import {
   Mail,
@@ -200,6 +243,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       Underline,
       TextStyle,
       Color,
+      FontFamily,
+      FontSize,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Link.configure({ openOnClick: false }),
@@ -1112,6 +1157,58 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                               ))}
                             </div>
                           )}
+                        </div>
+
+                        {/* Font Size Selector */}
+                        <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
+                          <select
+                            className="h-7 px-1 text-xs border rounded bg-white hover:bg-gray-50 cursor-pointer"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                editor.chain().focus().setMark('textStyle', { fontSize: e.target.value }).run();
+                              }
+                            }}
+                            value=""
+                          >
+                            <option value="" disabled>Size</option>
+                            <option value="10px">10</option>
+                            <option value="12px">12</option>
+                            <option value="14px">14</option>
+                            <option value="16px">16</option>
+                            <option value="18px">18</option>
+                            <option value="20px">20</option>
+                            <option value="24px">24</option>
+                            <option value="28px">28</option>
+                            <option value="32px">32</option>
+                            <option value="36px">36</option>
+                            <option value="48px">48</option>
+                            <option value="64px">64</option>
+                          </select>
+                        </div>
+
+                        {/* Font Family Selector */}
+                        <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
+                          <select
+                            className="h-7 px-1 text-xs border rounded bg-white hover:bg-gray-50 cursor-pointer max-w-[100px]"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                editor.chain().focus().setFontFamily(e.target.value).run();
+                              }
+                            }}
+                            value=""
+                          >
+                            <option value="" disabled>Font</option>
+                            <option value="Arial" style={{ fontFamily: 'Arial' }}>Arial</option>
+                            <option value="Times New Roman" style={{ fontFamily: 'Times New Roman' }}>Times New Roman</option>
+                            <option value="Georgia" style={{ fontFamily: 'Georgia' }}>Georgia</option>
+                            <option value="Verdana" style={{ fontFamily: 'Verdana' }}>Verdana</option>
+                            <option value="Courier New" style={{ fontFamily: 'Courier New' }}>Courier New</option>
+                            <option value="Trebuchet MS" style={{ fontFamily: 'Trebuchet MS' }}>Trebuchet MS</option>
+                            <option value="Tahoma" style={{ fontFamily: 'Tahoma' }}>Tahoma</option>
+                            <option value="Palatino Linotype" style={{ fontFamily: 'Palatino Linotype' }}>Palatino</option>
+                            <option value="Lucida Sans" style={{ fontFamily: 'Lucida Sans' }}>Lucida Sans</option>
+                            <option value="Impact" style={{ fontFamily: 'Impact' }}>Impact</option>
+                          </select>
                         </div>
 
                         <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
