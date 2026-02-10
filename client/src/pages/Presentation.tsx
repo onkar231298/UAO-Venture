@@ -40,6 +40,10 @@ import factoryMachinery2Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_
 import buhlerMachineryImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(1)_1770700935409.jpeg";
 import factoryMachinery3Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_1770700935409.jpeg";
 import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
+import standeeImg from "@assets/standee-pouch-white.jpg";
+import ffsMachineImg from "@assets/ffs-machine.jpg";
+import cleanroomWorkersImg from "@assets/cleanroom-workers.jpg";
+import cleanroomFacilityImg from "@assets/cleanroom-facility.jpg";
 
 const COLORS = {
   turmericGold: "#C89B2B",
@@ -57,6 +61,7 @@ const sections = [
   { id: "portfolio", label: "Product Portfolio" },
   { id: "manufacturing", label: "Manufacturing" },
   { id: "processing", label: "Processing Capacity" },
+  { id: "packaging", label: "Packaging" },
   { id: "quality", label: "Quality Control" },
   { id: "organic", label: "Organic Division" },
   { id: "logistics", label: "Export Logistics" },
@@ -958,10 +963,166 @@ export default function Presentation() {
         </div>
       </section>
 
+      <div className="pres-divider" style={{ background: `linear-gradient(90deg, transparent, ${COLORS.turmericGold}, transparent)` }} />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          7. PACKAGING SOLUTIONS
+         ═══════════════════════════════════════════════════════════════════ */}
+      <section id="packaging" className="py-16 sm:py-24 md:py-32" style={{ background: COLORS.offWhite }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <Anim type="scale-up">
+            <div className="text-center mb-10 sm:mb-16">
+              <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2 sm:mb-3" style={{ color: COLORS.turmericGold }}>
+                Packaging Excellence
+              </p>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6" style={{ color: COLORS.charcoal }}>
+                Standee Pouch Packaging Solutions
+              </h2>
+              <p className="text-sm sm:text-base md:text-lg max-w-3xl mx-auto" style={{ color: "#666" }}>
+                Premium blank white standee pouches with clear windows, packed in our fully automatic FFS facility inside an ISO-certified clean room with epoxy flooring and strict food safety protocols.
+              </p>
+            </div>
+          </Anim>
+
+          {/* Pouch SKU Grid + Image */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 sm:mb-16">
+            <Anim type="fade-right" delay={200}>
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
+                <img src={standeeImg} alt="White Standee Pouch with Window" className="w-full h-[320px] sm:h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1">Blank White Standee Pouch</h3>
+                  <p className="text-xs sm:text-sm text-gray-200">Stand-up bottom gusset with clear front window — ready for private label</p>
+                </div>
+              </div>
+            </Anim>
+
+            <div>
+              <Anim type="fade-left" delay={100}>
+                <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5" style={{ color: COLORS.charcoal }}>Available SKUs: 100g – 1 KG</h3>
+              </Anim>
+              <div className="space-y-3">
+                {[
+                  { weight: "100g", dim: "130 × 200 mm", moq: "10,000 pcs" },
+                  { weight: "200g", dim: "150 × 230 mm", moq: "10,000 pcs" },
+                  { weight: "250g", dim: "160 × 250 mm", moq: "8,000 pcs" },
+                  { weight: "500g", dim: "180 × 290 mm", moq: "5,000 pcs" },
+                  { weight: "750g", dim: "200 × 320 mm", moq: "5,000 pcs" },
+                  { weight: "1 KG", dim: "220 × 350 mm", moq: "3,000 pcs" },
+                ].map((sku, i) => (
+                  <Anim key={sku.weight} type="fade-left" delay={150 + i * 80}>
+                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+                      <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg flex items-center justify-center font-bold text-sm sm:text-base" style={{ background: `linear-gradient(135deg, ${COLORS.turmericGold}20, ${COLORS.herbalGreen}20)`, color: COLORS.charcoal }}>
+                        {sku.weight}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: COLORS.charcoal }}>Standee Pouch – {sku.weight}</p>
+                        <p className="text-xs text-gray-500">{sku.dim} · MOQ: {sku.moq}</p>
+                      </div>
+                      <div className="hidden sm:flex flex-wrap gap-1">
+                        {["Window", "Zipper", "Food Grade"].map(tag => (
+                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${COLORS.herbalGreen}10`, color: COLORS.herbalGreen }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </Anim>
+                ))}
+              </div>
+
+              <Anim type="fade-left" delay={700}>
+                <div className="mt-4 sm:mt-5 p-3 sm:p-4 rounded-xl" style={{ background: `${COLORS.turmericGold}10`, border: `1px solid ${COLORS.turmericGold}30` }}>
+                  <p className="text-xs sm:text-sm" style={{ color: COLORS.earthBrown }}>
+                    <strong>Pouch Features:</strong> Multi-layer PET/AL/PE laminate · Clear front window · Zipper reseal · Bottom gusset (self-standing) · FDA & EU food-grade compliant · Moisture & oxygen barrier
+                  </p>
+                </div>
+              </Anim>
+            </div>
+          </div>
+
+          {/* FFS Machine & Clean Room */}
+          <Anim type="fade-up">
+            <div className="text-center mb-8 sm:mb-10">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold" style={{ color: COLORS.charcoal }}>
+                Automatic FFS Machine in Clean Room
+              </h3>
+              <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto mt-2">
+                Fully automatic Form-Fill-Seal packaging in a dedicated clean room with epoxy flooring, climate control, and HEPA filtration
+              </p>
+            </div>
+          </Anim>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-10 sm:mb-14">
+            <Anim type="fade-right" delay={200}>
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl group h-[260px] sm:h-[340px] md:h-[400px]">
+                <img src={cleanroomFacilityImg} alt="Clean Room Facility with Epoxy Flooring" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <p className="text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: COLORS.turmericGold }}>Clean Room Environment</p>
+                  <h4 className="text-base sm:text-lg font-bold text-white">Epoxy-Coated Clean Room</h4>
+                  <p className="text-xs text-gray-300 mt-0.5">Seamless flooring, positive air pressure, temperature controlled</p>
+                </div>
+              </div>
+            </Anim>
+
+            <Anim type="fade-left" delay={300}>
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl group h-[260px] sm:h-[340px] md:h-[400px]">
+                <img src={ffsMachineImg} alt="Automatic FFS Packaging Machine" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <p className="text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: COLORS.turmericGold }}>Fully Automatic</p>
+                  <h4 className="text-base sm:text-lg font-bold text-white">Form-Fill-Seal Machine</h4>
+                  <p className="text-xs text-gray-300 mt-0.5">High-speed packaging with precision weighing & sealing</p>
+                </div>
+              </div>
+            </Anim>
+          </div>
+
+          {/* Workers in PPE - Full Width */}
+          <Anim type="scale-up" delay={200}>
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl group mb-10 sm:mb-14">
+              <img src={cleanroomWorkersImg} alt="Workers in Full Food Safety Gear" className="w-full h-[220px] sm:h-[300px] md:h-[360px] object-cover group-hover:scale-105 transition-transform duration-700" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <h4 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2">Trained Workforce in Full PPE</h4>
+                  <p className="text-xs sm:text-sm text-gray-200 max-w-xl mx-auto">
+                    Hair nets, face masks, hand gloves, shoe covers, and sanitized lab coats — strict food safety protocols at all times
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Anim>
+
+          {/* Clean Room Features Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {[
+              { title: "Epoxy Flooring", desc: "Seamless, non-porous, easy-to-sanitize surface throughout the facility" },
+              { title: "Climate Controlled", desc: "Temperature & humidity regulated for product integrity" },
+              { title: "Full PPE Protocol", desc: "Hair nets, masks, gloves, shoe covers, lab coats mandatory" },
+              { title: "Automatic FFS", desc: "Fully automated Form-Fill-Seal for consistent hygienic packaging" },
+              { title: "FSSAI Certified", desc: "Compliant with Indian food safety & hygiene regulations" },
+              { title: "ISO Clean Room", desc: "Controlled environment meeting ISO clean room standards" },
+            ].map((feat, i) => (
+              <Anim key={feat.title} type="fade-up" delay={100 + i * 80}>
+                <div className="p-4 sm:p-5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all border border-gray-100">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 sm:mb-3" style={{ background: `${COLORS.herbalGreen}12` }}>
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: COLORS.herbalGreen }} />
+                  </div>
+                  <h5 className="font-bold text-sm sm:text-base mb-1" style={{ color: COLORS.charcoal }}>{feat.title}</h5>
+                  <p className="text-xs sm:text-sm text-gray-500">{feat.desc}</p>
+                </div>
+              </Anim>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div className="pres-divider" style={{ background: `linear-gradient(90deg, transparent, ${COLORS.chilliRed}, transparent)` }} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          7. QUALITY CONTROL
+          8. QUALITY CONTROL
          ═══════════════════════════════════════════════════════════════════ */}
       <section id="quality" className="py-16 sm:py-24 md:py-32" style={{ background: COLORS.offWhite }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
