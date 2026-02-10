@@ -21,10 +21,10 @@ import {
   ShieldCheck
 } from "lucide-react";
 import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
-import standeeImg from "@assets/standee-pouch-white.jpg";
-import ffsMachineImg from "@assets/ffs-machine.jpg";
-import cleanroomWorkersImg from "@assets/cleanroom-workers.jpg";
-import cleanroomFacilityImg from "@assets/cleanroom-facility.jpg";
+import standeeWhiteImg from "@assets/image_1770704885158.png";
+import standeeBrownImg from "@assets/image_1770704849414.png";
+import ffsMachineImg from "@assets/image_1770704939826.png";
+import cleanroomFacilityImg from "@assets/image_1770705013985.png";
 
 
 const COLORS = {
@@ -183,7 +183,7 @@ export default function PackagingSolutions() {
             {/* Pouch Image */}
             <Anim type="fade-right" delay={200}>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
-                <img src={standeeImg} alt="White Standee Pouch with Window" className="w-full h-[350px] sm:h-[450px] md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={standeeWhiteImg} alt="White Standee Pouch with Window" className="w-full h-[350px] sm:h-[450px] md:h-[500px] object-contain bg-gray-50 p-4 group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-1">Blank White Standee Pouch</h3>
@@ -321,17 +321,15 @@ export default function PackagingSolutions() {
             </Anim>
           </div>
 
-          {/* Workers Image - Full Width */}
+          {/* Full Pouch Range - Full Width */}
           <Anim type="scale-up" delay={200}>
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl group mb-12 sm:mb-16">
-              <img src={cleanroomWorkersImg} alt="Workers in Food Safety Gear" className="w-full h-[250px] sm:h-[350px] md:h-[400px] object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center px-4">
-                  <Users className="w-10 h-10 sm:w-14 sm:h-14 text-white/90 mx-auto mb-3" />
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">Trained Workforce in Full PPE</h3>
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl group mb-12 sm:mb-16 bg-white">
+              <img src={standeeBrownImg} alt="Standee Pouches - Complete Range of Sizes" className="w-full h-[280px] sm:h-[380px] md:h-[450px] object-contain p-4 sm:p-8 group-hover:scale-105 transition-transform duration-700" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 to-transparent">
+                <div className="text-center">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">Complete Standee Pouch Range</h3>
                   <p className="text-sm sm:text-base text-gray-200 max-w-xl mx-auto">
-                    Every worker follows strict food safety protocols — hair nets, face masks, hand gloves, shoe covers, and sanitized lab coats at all times
+                    Available in multiple sizes from 100g to 1 KG — with clear windows for product visibility
                   </p>
                 </div>
               </div>

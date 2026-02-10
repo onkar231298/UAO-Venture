@@ -40,10 +40,10 @@ import factoryMachinery2Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_
 import buhlerMachineryImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(1)_1770700935409.jpeg";
 import factoryMachinery3Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_1770700935409.jpeg";
 import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
-import standeeImg from "@assets/standee-pouch-white.jpg";
-import ffsMachineImg from "@assets/ffs-machine.jpg";
-import cleanroomWorkersImg from "@assets/cleanroom-workers.jpg";
-import cleanroomFacilityImg from "@assets/cleanroom-facility.jpg";
+import standeeWhiteImg from "@assets/image_1770704885158.png";
+import standeeBrownImg from "@assets/image_1770704849414.png";
+import ffsMachineImg from "@assets/image_1770704939826.png";
+import cleanroomFacilityImg from "@assets/image_1770705013985.png";
 
 const COLORS = {
   turmericGold: "#C89B2B",
@@ -988,7 +988,7 @@ export default function Presentation() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 sm:mb-16">
             <Anim type="fade-right" delay={200}>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
-                <img src={standeeImg} alt="White Standee Pouch with Window" className="w-full h-[320px] sm:h-[420px] md:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={standeeWhiteImg} alt="White Standee Pouch with Window" className="w-full h-[320px] sm:h-[420px] md:h-[480px] object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-1">Blank White Standee Pouch</h3>
@@ -1079,16 +1079,15 @@ export default function Presentation() {
             </Anim>
           </div>
 
-          {/* Workers in PPE - Full Width */}
+          {/* Full Pouch Range - Full Width */}
           <Anim type="scale-up" delay={200}>
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl group mb-10 sm:mb-14">
-              <img src={cleanroomWorkersImg} alt="Workers in Full Food Safety Gear" className="w-full h-[220px] sm:h-[300px] md:h-[360px] object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center px-4">
-                  <h4 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2">Trained Workforce in Full PPE</h4>
-                  <p className="text-xs sm:text-sm text-gray-200 max-w-xl mx-auto">
-                    Hair nets, face masks, hand gloves, shoe covers, and sanitized lab coats — strict food safety protocols at all times
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl group mb-10 sm:mb-14 bg-white">
+              <img src={standeeBrownImg} alt="Standee Pouches - Complete Range of Sizes" className="w-full h-[250px] sm:h-[350px] md:h-[420px] object-contain p-4 sm:p-8 group-hover:scale-105 transition-transform duration-700" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 to-transparent">
+                <div className="text-center">
+                  <h4 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Complete Standee Pouch Range</h4>
+                  <p className="text-xs sm:text-sm text-gray-200">
+                    Available in multiple sizes from 100g to 1 KG — with clear windows for product visibility
                   </p>
                 </div>
               </div>
