@@ -585,6 +585,182 @@ body {
   scroll-snap-align: start;
 }
 
+/* Section Dividers */
+.pres-divider {
+  height: 2px;
+  opacity: 0.4;
+}
+
+/* Floating particles */
+@keyframes presFloat {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-30px) translateX(10px); opacity: 0.5; }
+  50% { transform: translateY(-15px) translateX(-8px); opacity: 0.2; }
+  75% { transform: translateY(-40px) translateX(15px); opacity: 0.4; }
+}
+
+.pres-particle {
+  animation: presFloat 8s ease-in-out infinite;
+}
+
+/* Slow spin for star icon */
+@keyframes presSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pres-spin-slow {
+  animation: presSpin 12s linear infinite;
+}
+
+/* Badge glow */
+@keyframes presBadgeGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(200, 155, 43, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(200, 155, 43, 0.4); }
+}
+
+.pres-badge-glow {
+  animation: presBadgeGlow 3s ease-in-out infinite;
+}
+
+/* CTA pulse glow */
+@keyframes presPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 155, 43, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(200, 155, 43, 0); }
+}
+
+.pres-pulse-glow {
+  animation: presPulseGlow 2.5s ease-in-out infinite;
+}
+
+/* Float animation */
+@keyframes presFloatUpDown {
+  0%, 100% { transform: translateY(0) translateX(-50%); }
+  50% { transform: translateY(-12px) translateX(-50%); }
+}
+
+.pres-float {
+  animation: presFloatUpDown 2s ease-in-out infinite;
+}
+
+/* Section heading line grow */
+@keyframes presLineGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.pres-line-grow {
+  animation: presLineGrow 0.8s ease-out 0.3s both;
+}
+
+/* Card hover lift */
+.pres-card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pres-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+/* Card lift with shadow expansion */
+.pres-card-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.pres-card-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+}
+
+/* Light card hover (for dark backgrounds) */
+.pres-card-hover-light {
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.pres-card-hover-light:hover {
+  transform: translateY(-4px);
+  background: rgba(255,255,255,0.15) !important;
+  border-color: rgba(255,255,255,0.25) !important;
+}
+
+/* Map dot pulse */
+@keyframes presMapPulse {
+  0%, 100% { r: 12; opacity: 0.15; }
+  50% { r: 18; opacity: 0.05; }
+}
+
+.pres-map-pulse {
+  animation: presMapPulse 2.5s ease-in-out infinite;
+}
+
+/* Map path draw */
+@keyframes presMapDraw {
+  from { stroke-dashoffset: 1500; }
+  to { stroke-dashoffset: 0; }
+}
+
+.pres-map-path {
+  stroke-dasharray: 1500;
+  animation: presMapDraw 3s ease-out forwards;
+}
+
+/* Gold glow box */
+@keyframes presGoldGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(200, 155, 43, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(200, 155, 43, 0.5); }
+}
+
+.pres-glow-gold {
+  animation: presGoldGlow 3s ease-in-out infinite;
+}
+
+/* Gold border animate */
+@keyframes presGoldBorder {
+  0%, 100% { border-color: rgba(255,255,255,0.1); }
+  50% { border-color: rgba(200, 155, 43, 0.3); }
+}
+
+.pres-gold-border-animate:hover {
+  animation: presGoldBorder 1.5s ease-in-out infinite;
+}
+
+/* Avatar float on leadership cards */
+@keyframes presAvatarFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.pres-card-lift:hover .pres-avatar-float {
+  animation: presAvatarFloat 2s ease-in-out infinite;
+}
+
+/* Timeline step pulse */
+@keyframes presStepPulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+.pres-step-pulse {
+  transition: transform 0.3s ease;
+}
+
+.pres-step-pulse:hover {
+  transform: scale(1.15);
+}
+
+/* Nav scroll hide */
+.pres-nav-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pres-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .presentation-page nav {
     overflow-x: auto;
@@ -592,6 +768,15 @@ body {
   }
   .presentation-page nav::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .presentation-page * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 /* Force cache bust 1753793542 */
