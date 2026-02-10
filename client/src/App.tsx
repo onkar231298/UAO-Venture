@@ -62,6 +62,7 @@ import FoodIngredients from "@/pages/FoodIngredients";
 import OrganicHerbs from "@/pages/OrganicHerbs";
 import EUOrganicSpices from "@/pages/EUOrganicSpices";
 import Presentation from "@/pages/Presentation";
+import PackagingSolutions from "@/pages/PackagingSolutions";
 import EmailSettings from "@/pages/crm/EmailSettings";
 import MyCompanies from "@/pages/crm/MyCompanies";
 import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
@@ -136,6 +137,7 @@ function Router() {
       <Route path="/organic-herbs" component={OrganicHerbs} />
       <Route path="/eu-organic-spices" component={EUOrganicSpices} />
       <Route path="/presentation" component={Presentation} />
+      <Route path="/packaging-solutions" component={PackagingSolutions} />
       
       {/* Service pages */}
       <Route path="/services/quality-testing" component={QualityTesting} />
