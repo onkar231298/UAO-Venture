@@ -43,7 +43,7 @@ import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
 import standeeWhiteImg from "@assets/image_1770704885158.png";
 import standeeBrownImg from "@assets/image_1770704849414.png";
 import ffsMachineImg from "@assets/image_1770704939826.png";
-import cleanroomFacilityImg from "@assets/image_1770705013985.png";
+import cleanroomFacilityImg from "@assets/image_1770705325041.png";
 
 const COLORS = {
   turmericGold: "#C89B2B",
