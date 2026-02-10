@@ -571,4 +571,27 @@ body {
   background-color: #f5f5f5;
   font-weight: bold;
 }
+/* Presentation Page Styles */
+.presentation-page {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.presentation-page * {
+  scroll-margin-top: 60px;
+}
+
+.presentation-page section {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 768px) {
+  .presentation-page nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .presentation-page nav::-webkit-scrollbar {
+    display: none;
+  }
+}
 /* Force cache bust 1753793542 */

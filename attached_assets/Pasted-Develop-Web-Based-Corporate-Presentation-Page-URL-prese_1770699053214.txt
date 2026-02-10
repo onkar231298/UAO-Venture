@@ -1,0 +1,316 @@
+Develop Web-Based Corporate Presentation Page
+
+URL: /presentation
+
+⸻
+
+PROJECT OBJECTIVE
+
+Develop a premium, corporate web-based presentation page for:
+
+Bright Fame Organic
+(Organic-focused sister concern of Bright Fame International)
+
+Bright Fame International is recognized as a Three Star Export House (Government of India).
+
+This page will be presented to the National Purchase Head of Reliance for private label spices and herbal powders.
+
+The objective is to communicate:
+	•	Scale
+	•	Structured sourcing
+	•	Manufacturing capability
+	•	Export-grade compliance
+	•	Documentation strength
+	•	Retail-readiness
+
+Avoid repetition of points across sections.
+Each section must communicate a distinct capability.
+
+⸻
+
+🎨 DESIGN DIRECTION
+
+Color Palette (category-aligned & premium):
+	•	Turmeric Gold (#C89B2B)
+	•	Herbal Green (#2E5E3E)
+	•	Deep Chilli Red (#9E1B1B)
+	•	Earth Brown (#5A3E2B)
+	•	Off White (#F8F5EF)
+	•	Charcoal Grey (#2C2C2C)
+
+Design Style:
+	•	Clean corporate layout
+	•	Large whitespace
+	•	Strong number highlights
+	•	Subtle animation
+	•	Premium typography
+	•	Professional supply-chain feel
+
+No flashy graphics. No clutter.
+
+⸻
+
+🏗 PAGE STRUCTURE (NO REPETITION)
+
+⸻
+
+1️⃣ HERO SECTION
+
+Headline:
+
+Bright Fame Organic
+Private Label Spice & Herbal Manufacturing Partner
+
+Subheading:
+
+Structured Sourcing. Controlled Processing. Retail-Ready Packaging.
+
+Highlight badge under heading:
+
+“Sister Concern of Bright Fame International – Three Star Export House”
+
+Background: Premium spice/herbal visual with subtle overlay.
+
+CTA: “View Capabilities”
+
+⸻
+
+2️⃣ GROUP CREDIBILITY
+
+Title:
+Group Foundation & Export Recognition
+
+Content:
+
+Brief explanation that Bright Fame Organic operates as the organic division of Bright Fame International.
+
+Mention only here:
+	•	Recognized Three Star Export House
+	•	Established export documentation culture
+	•	Government-recognized performance
+
+Do not repeat export recognition elsewhere.
+
+⸻
+
+3️⃣ PAN-INDIA SOURCING NETWORK
+
+Title:
+Origin-Based Procurement System
+
+Content:
+
+Explain structured mandi-based procurement model.
+
+Highlight locations visually on India map:
+	•	Guntur – Red Chilli
+	•	Hassan – Ginger
+	•	Dindigul – Turmeric
+	•	Ramganj Mandi
+	•	Kota Mandi
+	•	Major APMC access
+
+Show clearly:
+
+₹45 Crore+ Average Monthly Procurement
+
+Do not repeat this figure elsewhere.
+
+Focus here only on sourcing scale and stability.
+
+⸻
+
+4️⃣ PRODUCT PORTFOLIO
+
+Title:
+Private Label Product Categories
+
+Divide into three clean sections:
+
+Ground Spices
+Whole Spices
+Herbal Powders
+
+List products without repeating sourcing or scale information.
+
+Include placeholders for product visuals.
+
+This section is purely about product capability.
+
+⸻
+
+5️⃣ MANUFACTURING & PACKAGING INFRASTRUCTURE
+
+Title:
+Processing & Retail Packaging Capability
+
+Explain:
+	•	Cleaning & grading
+	•	Grinding systems
+	•	Controlled processing
+	•	Retail pouch formats (50g–1kg)
+	•	Bulk packs (5kg–25kg)
+	•	Batch coding & barcode integration
+
+Do not mention lab or export here.
+
+Keep focus strictly on production & packaging.
+
+Include image placeholders for machinery and pouch formats.
+
+⸻
+
+6️⃣ QUALITY CONTROL & LAB SYSTEM
+
+Title:
+In-House Laboratory & Compliance System
+
+Explain clearly:
+	•	Fully equipped in-house lab
+	•	Moisture & microbial testing
+	•	Physical & chemical analysis
+	•	Adulteration checks
+	•	Batch-level QC
+
+Mention only here:
+
+All testing aligned with European testing standards and methodologies.
+
+Introduce documentation software here:
+	•	Automated COA generation
+	•	Specification sheet generation
+	•	Traceability system
+	•	Error-free documentation
+
+Do not repeat documentation or compliance elsewhere.
+
+This is the technical credibility section.
+
+⸻
+
+7️⃣ ORGANIC & HERBAL DIVISION
+
+Title:
+Dedicated Organic & Herbal Operations
+
+Explain:
+	•	Certified organic sourcing
+	•	Segregated storage & processing
+	•	Dedicated herbal procurement
+	•	Controlled organic handling
+
+Do not repeat export, lab, or procurement value here.
+
+Focus only on organic specialization.
+
+Use herbal green background tone.
+
+⸻
+
+8️⃣ EXPORT LOGISTICS CAPABILITY
+
+Title:
+Factory-Level Export Logistics
+
+Explain only here:
+	•	Permission for Self-Sealing of Containers at Factory
+	•	Secure dispatch from manufacturing unit
+	•	Streamlined export movement
+	•	Reduced port dependency
+
+Keep this section concise and logistics-focused.
+
+Do not repeat Three Star Export House mention here.
+
+⸻
+
+9️⃣ LEADERSHIP & TEAM
+
+Title:
+Management & Core Team
+
+Pull structured data from existing /team page.
+
+Display leadership roles clearly:
+	•	Founder
+	•	Procurement Head
+	•	Operations Head
+	•	Quality Head
+	•	Commercial Head
+
+Each with:
+	•	Photo placeholder
+	•	Name
+	•	Role
+	•	2–3 line responsibility summary
+
+This section builds operational confidence.
+
+⸻
+
+🔟 STRATEGIC PARTNERSHIP VALUE
+
+Title:
+Why Bright Fame Organic for Private Label
+
+Summarize capabilities without repeating detailed explanations:
+	•	Strong origin control
+	•	Structured procurement scale
+	•	Controlled manufacturing environment
+	•	EU-aligned lab system
+	•	Self-sealing export capability
+	•	Retail-ready packaging formats
+
+Short, sharp bullet points only.
+
+⸻
+
+1️⃣1️⃣ COLLABORATION PROCESS
+
+Title:
+Proposed Engagement Model
+
+Simple flow:
+
+Product Finalization
+↓
+Sample Development
+↓
+Packaging Alignment
+↓
+Commercial Discussion
+↓
+Pilot Order
+↓
+Scale Rollout
+
+Minimalist visual flow diagram.
+
+⸻
+
+⚙️ TECHNICAL REQUIREMENTS
+	•	Fully responsive design
+	•	Smooth scroll navigation
+	•	Anchor-based section jump menu
+	•	Editable CMS blocks
+	•	High-resolution image placeholders
+	•	Corporate animation only
+
+⸻
+
+🎯 FINAL EXPERIENCE GOAL
+
+When the National Purchase Head views this page, the perception should be:
+	•	This company has structured sourcing scale
+	•	This company controls manufacturing
+	•	This company understands compliance
+	•	This company is export-grade
+	•	This company is retail-ready
+
+Professional.
+Stable.
+Scalable.
+
+No repetition.
+No clutter.
+Clear capability segmentation.
