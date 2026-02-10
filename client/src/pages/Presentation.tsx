@@ -39,6 +39,7 @@ import factoryInsideImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.37_AM_1
 import factoryMachinery2Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(2)_1770700935408.jpeg";
 import buhlerMachineryImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(1)_1770700935409.jpeg";
 import factoryMachinery3Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_1770700935409.jpeg";
+import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
 
 const COLORS = {
   turmericGold: "#C89B2B",
@@ -272,9 +273,12 @@ export default function Presentation() {
         }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center h-12 sm:h-14 overflow-x-auto pres-nav-scroll">
-          <span className="font-bold text-white whitespace-nowrap mr-4 sm:mr-6 text-xs sm:text-sm" style={{ color: COLORS.turmericGold }}>
-            BRIGHT FAME ORGANIC
-          </span>
+          <div className="flex items-center gap-2 whitespace-nowrap mr-4 sm:mr-6 shrink-0">
+            <img src={bfiLogoImg} alt="BFI Logo" className="h-7 sm:h-9 w-auto object-contain" />
+            <span className="font-bold text-xs sm:text-sm hidden md:inline" style={{ color: COLORS.turmericGold }}>
+              BRIGHT FAME ORGANIC
+            </span>
+          </div>
           <div className="flex gap-0.5 sm:gap-1">
             {sections.map((s) => (
               <button
@@ -343,6 +347,14 @@ export default function Presentation() {
           }}
         >
           <Anim type="drop-in" delay={200}>
+            <img 
+              src={bfiLogoImg} 
+              alt="Bright Fame Organic Logo" 
+              className="h-20 sm:h-28 md:h-36 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl"
+            />
+          </Anim>
+
+          <Anim type="fade-up" delay={400}>
             <div
               className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full mb-6 sm:mb-8 text-xs sm:text-sm font-medium pres-badge-glow"
               style={{ background: "rgba(200,155,43,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}
@@ -353,7 +365,7 @@ export default function Presentation() {
             </div>
           </Anim>
 
-          <Anim type="scale-up" delay={500}>
+          <Anim type="scale-up" delay={600}>
             <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight tracking-tight">
               Bright Fame Organic
             </h1>
@@ -1344,6 +1356,11 @@ export default function Presentation() {
       <footer className="py-8 sm:py-12" style={{ background: COLORS.charcoal, borderTop: `3px solid ${COLORS.turmericGold}` }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="fade-up">
+            <img 
+              src={bfiLogoImg} 
+              alt="Bright Fame Organic Logo" 
+              className="h-14 sm:h-20 w-auto object-contain mx-auto mb-3 sm:mb-4"
+            />
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Bright Fame Organic</h3>
             <p className="text-xs sm:text-sm mb-1" style={{ color: COLORS.turmericGold }}>
               Sister Concern of Bright Fame International – Three Star Export House
