@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { MyActivityWidget } from "@/components/hr/MyActivityWidget";
 import {
   Users,
   Package,
@@ -346,6 +347,11 @@ export default function StaffDashboard() {
                 <p className="text-gray-600 dark:text-gray-400">
                   Manage your assigned modules from this dashboard.
                 </p>
+              </div>
+
+              {/* Activity Status Widget */}
+              <div className="mb-6">
+                <MyActivityWidget />
               </div>
 
               {/* Stats Cards */}

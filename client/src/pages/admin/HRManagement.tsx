@@ -9,12 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays, UserCog, ClipboardCheck, Check, X, Gift } from "lucide-react";
+import { Calendar, Clock, Download, MapPin, User, DollarSign, FileText, Image, Loader2, Plus, Trash2, CalendarDays, UserCog, ClipboardCheck, Check, X, Gift, Activity } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { AdminAttendanceCalendar } from "@/components/hr/AdminAttendanceCalendar";
+import { TeamActivityMonitor } from "@/components/hr/TeamActivityMonitor";
 
 interface StaffMember {
   id: string;
@@ -487,7 +488,11 @@ export default function HRManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="team-activity" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Team Activity
+          </TabsTrigger>
           <TabsTrigger value="attendance" className="gap-2">
             <Clock className="h-4 w-4" />
             Attendance
@@ -517,6 +522,10 @@ export default function HRManagement() {
             Salary Slips
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="team-activity" className="space-y-4">
+          <TeamActivityMonitor />
+        </TabsContent>
 
         <TabsContent value="attendance" className="space-y-4">
           <Card>

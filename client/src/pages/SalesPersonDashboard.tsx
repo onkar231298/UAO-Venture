@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SalesLayout } from "@/components/layouts/SalesLayout";
+import { MyActivityWidget } from "@/components/hr/MyActivityWidget";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -391,6 +392,11 @@ export default function SalesPersonDashboard() {
 
           {activeTab === 'overview' && (
             <>
+              {/* Activity Status Widget */}
+              <div className="mb-6">
+                <MyActivityWidget />
+              </div>
+
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 <Link href="/sales/leads">

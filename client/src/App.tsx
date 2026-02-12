@@ -69,6 +69,7 @@ import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
 import MyAttendancePage from "@/pages/sales/MyAttendancePage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import { AuroraEffect } from "@/components/AuroraEffect";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 
 // Helper component for product URL redirect
 function ProductRedirect({ params }: { params: { slug: string } }) {
@@ -187,6 +188,11 @@ function Router() {
   );
 }
 
+function ActivityHeartbeatTracker() {
+  useActivityHeartbeat();
+  return null;
+}
+
 function App() {
   // Initialize SEO service and Google Analytics on app load
   useEffect(() => {
@@ -213,6 +219,7 @@ function App() {
               <TooltipProvider>
                 <Toaster />
                 <AuroraEffect />
+                <ActivityHeartbeatTracker />
                 <Router />
               </TooltipProvider>
             </CallStateProvider>

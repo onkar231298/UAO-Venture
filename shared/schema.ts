@@ -2628,3 +2628,48 @@ export const leaveApplicationsRelations = relations(leaveApplications, ({ one })
   user: one(users, { fields: [leaveApplications.userId], references: [users.id] }),
   approver: one(users, { fields: [leaveApplications.approvedBy], references: [users.id] }),
 }));
+
+export const activityHeartbeats = pgTable("activity_heartbeats", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  page: varchar("page", { length: 255 }),
+  action: varchar("action", { length: 100 }),
+}, (table) => [
+  index("idx_heartbeat_user").on(table.userId),
+  index("idx_heartbeat_timestamp").on(table.timestamp),
+  index("idx_heartbeat_user_ts").on(table.userId, table.timestamp),
+]);
+
+export const insertActivityHeartbeatSchema = createInsertSchema(activityHeartbeats).omit({
+  id: true,
+  timestamp: true,
+});
+export type ActivityHeartbeat = typeof activityHeartbeats.$inferSelect;
+export type InsertActivityHeartbeat = z.infer<typeof insertActivityHeartbeatSchema>;
+
+export const dailyPerformanceSummary = pgTable("daily_performance_summary", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: varchar("date", { length: 10 }).notNull(),
+  totalActiveMinutes: integer("total_active_minutes").default(0),
+  totalIdleMinutes: integer("total_idle_minutes").default(0),
+  firstActivity: timestamp("first_activity"),
+  lastActivity: timestamp("last_activity"),
+  heartbeatCount: integer("heartbeat_count").default(0),
+  tier: varchar("tier", { length: 30 }).default("disconnected"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_perf_user").on(table.userId),
+  index("idx_perf_date").on(table.date),
+  index("idx_perf_user_date").on(table.userId, table.date),
+]);
+
+export const insertDailyPerformanceSummarySchema = createInsertSchema(dailyPerformanceSummary).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type DailyPerformanceSummary = typeof dailyPerformanceSummary.$inferSelect;
+export type InsertDailyPerformanceSummary = z.infer<typeof insertDailyPerformanceSummarySchema>;

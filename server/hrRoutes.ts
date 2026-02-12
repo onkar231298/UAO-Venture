@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "./db";
-import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, leaveApplications, monthlyIncentives } from "@shared/schema";
+import { attendanceRecords, employeeSalaries, salarySlips, users, paidHolidays, leaveApplications, monthlyIncentives, activityHeartbeats, dailyPerformanceSummary } from "@shared/schema";
 import { eq, and, gte, lte, desc, sql, asc, or, isNull } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
@@ -1738,6 +1738,293 @@ router.get("/api/hr/attendance/summary", isAuthenticated, async (req: Request, r
   } catch (error) {
     console.error("Error fetching attendance summary:", error);
     res.status(500).json({ error: "Failed to fetch attendance summary" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// ACTIVITY MONITORING & PERFORMANCE TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+function calculatePerformanceTier(totalIdleMinutes: number, heartbeatCount: number): string {
+  if (heartbeatCount === 0) return "disconnected";
+  if (totalIdleMinutes < 30) return "champion";
+  if (totalIdleMinutes < 60) return "steady";
+  if (totalIdleMinutes < 120) return "drifting";
+  return "disconnected";
+}
+
+function getUserLiveStatus(lastActivityTime: Date | null): { status: string; minutesAgo: number } {
+  if (!lastActivityTime) return { status: "offline", minutesAgo: -1 };
+  const now = new Date();
+  const diffMs = now.getTime() - lastActivityTime.getTime();
+  const minutesAgo = Math.floor(diffMs / 60000);
+  if (minutesAgo < 15) return { status: "online", minutesAgo };
+  if (minutesAgo < 30) return { status: "away", minutesAgo };
+  return { status: "offline", minutesAgo };
+}
+
+router.post("/api/activity/heartbeat", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const { page, action } = req.body;
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    await db.insert(activityHeartbeats).values({
+      userId,
+      page: page || "/",
+      action: action || "heartbeat",
+    });
+
+    const todayHeartbeats = await db
+      .select({ timestamp: activityHeartbeats.timestamp })
+      .from(activityHeartbeats)
+      .where(
+        and(
+          eq(activityHeartbeats.userId, userId),
+          gte(activityHeartbeats.timestamp, new Date(todayStr + "T00:00:00")),
+          lte(activityHeartbeats.timestamp, new Date(todayStr + "T23:59:59"))
+        )
+      )
+      .orderBy(asc(activityHeartbeats.timestamp));
+
+    let totalActiveMinutes = 0;
+    let totalIdleMinutes = 0;
+    const HEARTBEAT_INTERVAL = 2;
+    const IDLE_THRESHOLD = 5;
+
+    for (let i = 1; i < todayHeartbeats.length; i++) {
+      const gap = (todayHeartbeats[i].timestamp.getTime() - todayHeartbeats[i - 1].timestamp.getTime()) / 60000;
+      if (gap <= IDLE_THRESHOLD) {
+        totalActiveMinutes += gap;
+      } else {
+        totalIdleMinutes += gap;
+      }
+    }
+
+    const tier = calculatePerformanceTier(totalIdleMinutes, todayHeartbeats.length);
+
+    const existing = await db
+      .select()
+      .from(dailyPerformanceSummary)
+      .where(and(eq(dailyPerformanceSummary.userId, userId), eq(dailyPerformanceSummary.date, todayStr)));
+
+    if (existing.length > 0) {
+      await db
+        .update(dailyPerformanceSummary)
+        .set({
+          totalActiveMinutes: Math.round(totalActiveMinutes),
+          totalIdleMinutes: Math.round(totalIdleMinutes),
+          lastActivity: now,
+          heartbeatCount: todayHeartbeats.length,
+          tier,
+          updatedAt: now,
+        })
+        .where(and(eq(dailyPerformanceSummary.userId, userId), eq(dailyPerformanceSummary.date, todayStr)));
+    } else {
+      await db.insert(dailyPerformanceSummary).values({
+        userId,
+        date: todayStr,
+        totalActiveMinutes: Math.round(totalActiveMinutes),
+        totalIdleMinutes: Math.round(totalIdleMinutes),
+        firstActivity: todayHeartbeats[0]?.timestamp || now,
+        lastActivity: now,
+        heartbeatCount: todayHeartbeats.length,
+        tier,
+      });
+    }
+
+    res.json({ success: true, tier, totalActiveMinutes: Math.round(totalActiveMinutes) });
+  } catch (error) {
+    console.error("Error recording heartbeat:", error);
+    res.status(500).json({ error: "Failed to record heartbeat" });
+  }
+});
+
+router.get("/api/hr/admin/activity-status", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const reqUserId = getUserId(req);
+    if (!reqUserId) return res.status(401).json({ error: "Not authenticated" });
+    const requestingUser = await db.select().from(users).where(eq(users.id, reqUserId));
+    if (!requestingUser.length || !["super_admin", "admin"].includes(requestingUser[0].role || "")) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const dateParam = req.query.date as string;
+    const todayStr = dateParam || new Date().toISOString().split("T")[0];
+
+    const staffUsers = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role,
+        department: users.department,
+        profileImageUrl: users.profileImageUrl,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.userType, "staff"),
+          eq(users.isActive, true)
+        )
+      );
+
+    const performances = await db
+      .select()
+      .from(dailyPerformanceSummary)
+      .where(eq(dailyPerformanceSummary.date, todayStr));
+
+    const perfMap = new Map(performances.map(p => [p.userId, p]));
+
+    const result = staffUsers.map(user => {
+      const perf = perfMap.get(user.id);
+      const liveStatus = getUserLiveStatus(perf?.lastActivity || null);
+      return {
+        ...user,
+        liveStatus: liveStatus.status,
+        minutesAgo: liveStatus.minutesAgo,
+        totalActiveMinutes: perf?.totalActiveMinutes || 0,
+        totalIdleMinutes: perf?.totalIdleMinutes || 0,
+        heartbeatCount: perf?.heartbeatCount || 0,
+        firstActivity: perf?.firstActivity,
+        lastActivity: perf?.lastActivity,
+        tier: perf?.tier || "disconnected",
+      };
+    });
+
+    result.sort((a, b) => {
+      const statusOrder: Record<string, number> = { online: 0, away: 1, offline: 2 };
+      return (statusOrder[a.liveStatus] || 2) - (statusOrder[b.liveStatus] || 2);
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching admin activity status:", error);
+    res.status(500).json({ error: "Failed to fetch activity status" });
+  }
+});
+
+router.get("/api/hr/my-activity-status", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const perf = await db
+      .select()
+      .from(dailyPerformanceSummary)
+      .where(and(eq(dailyPerformanceSummary.userId, userId), eq(dailyPerformanceSummary.date, todayStr)));
+
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last7Days.push(d.toISOString().split("T")[0]);
+    }
+
+    const weekPerf = await db
+      .select()
+      .from(dailyPerformanceSummary)
+      .where(
+        and(
+          eq(dailyPerformanceSummary.userId, userId),
+          gte(dailyPerformanceSummary.date, last7Days[0]),
+          lte(dailyPerformanceSummary.date, last7Days[6])
+        )
+      )
+      .orderBy(asc(dailyPerformanceSummary.date));
+
+    const todayData = perf[0] || null;
+    const liveStatus = getUserLiveStatus(todayData?.lastActivity || null);
+
+    const todayHeartbeats = await db
+      .select({ timestamp: activityHeartbeats.timestamp })
+      .from(activityHeartbeats)
+      .where(
+        and(
+          eq(activityHeartbeats.userId, userId),
+          gte(activityHeartbeats.timestamp, new Date(todayStr + "T00:00:00")),
+          lte(activityHeartbeats.timestamp, new Date(todayStr + "T23:59:59"))
+        )
+      )
+      .orderBy(asc(activityHeartbeats.timestamp));
+
+    const timelineSlots: { hour: number; active: boolean }[] = [];
+    const activeHours = new Set<number>();
+    todayHeartbeats.forEach(h => activeHours.add(h.timestamp.getHours()));
+    for (let h = 8; h <= 20; h++) {
+      timelineSlots.push({ hour: h, active: activeHours.has(h) });
+    }
+
+    res.json({
+      liveStatus: liveStatus.status,
+      minutesAgo: liveStatus.minutesAgo,
+      totalActiveMinutes: todayData?.totalActiveMinutes || 0,
+      totalIdleMinutes: todayData?.totalIdleMinutes || 0,
+      tier: todayData?.tier || "disconnected",
+      firstActivity: todayData?.firstActivity,
+      lastActivity: todayData?.lastActivity,
+      heartbeatCount: todayData?.heartbeatCount || 0,
+      timeline: timelineSlots,
+      weekHistory: weekPerf.map(d => ({
+        date: d.date,
+        activeMinutes: d.totalActiveMinutes,
+        tier: d.tier,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching my activity status:", error);
+    res.status(500).json({ error: "Failed to fetch activity status" });
+  }
+});
+
+router.get("/api/hr/admin/activity-history", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const reqUserId = getUserId(req);
+    if (!reqUserId) return res.status(401).json({ error: "Not authenticated" });
+    const requestingUser = await db.select().from(users).where(eq(users.id, reqUserId));
+    if (!requestingUser.length || !["super_admin", "admin"].includes(requestingUser[0].role || "")) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { userId, startDate, endDate } = req.query;
+
+    const conditions = [];
+    if (userId) conditions.push(eq(dailyPerformanceSummary.userId, userId as string));
+    if (startDate) conditions.push(gte(dailyPerformanceSummary.date, startDate as string));
+    if (endDate) conditions.push(lte(dailyPerformanceSummary.date, endDate as string));
+
+    const history = await db
+      .select({
+        id: dailyPerformanceSummary.id,
+        userId: dailyPerformanceSummary.userId,
+        date: dailyPerformanceSummary.date,
+        totalActiveMinutes: dailyPerformanceSummary.totalActiveMinutes,
+        totalIdleMinutes: dailyPerformanceSummary.totalIdleMinutes,
+        tier: dailyPerformanceSummary.tier,
+        heartbeatCount: dailyPerformanceSummary.heartbeatCount,
+        firstActivity: dailyPerformanceSummary.firstActivity,
+        lastActivity: dailyPerformanceSummary.lastActivity,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        department: users.department,
+      })
+      .from(dailyPerformanceSummary)
+      .innerJoin(users, eq(dailyPerformanceSummary.userId, users.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(dailyPerformanceSummary.date))
+      .limit(200);
+
+    res.json(history);
+  } catch (error) {
+    console.error("Error fetching activity history:", error);
+    res.status(500).json({ error: "Failed to fetch activity history" });
   }
 });
 
