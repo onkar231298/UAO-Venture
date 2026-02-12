@@ -99,21 +99,24 @@ export function MyActivityWidget() {
 
         {data.timeline.length > 0 && (
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Today's Timeline (8AM–8PM)</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Today's Timeline (1PM–9PM IST)</p>
             <div className="flex gap-0.5">
-              {data.timeline.map((slot) => (
-                <div
-                  key={slot.hour}
-                  className={`flex-1 h-5 rounded-sm ${slot.active ? "bg-emerald-400" : "bg-gray-200"}`}
-                  title={`${slot.hour}:00 — ${slot.active ? "Active" : "No activity"}`}
-                />
-              ))}
+              {data.timeline.map((slot) => {
+                const displayHour = slot.hour > 12 ? slot.hour - 12 : slot.hour;
+                const ampm = slot.hour >= 12 ? "PM" : "AM";
+                return (
+                  <div
+                    key={slot.hour}
+                    className={`flex-1 h-5 rounded-sm ${slot.active ? "bg-emerald-400" : "bg-gray-200"}`}
+                    title={`${displayHour}:00 ${ampm} — ${slot.active ? "Active" : "No activity"}`}
+                  />
+                );
+              })}
             </div>
             <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
-              <span>8AM</span>
-              <span>12PM</span>
-              <span>4PM</span>
-              <span>8PM</span>
+              <span>1PM</span>
+              <span>5PM</span>
+              <span>9PM</span>
             </div>
           </div>
         )}

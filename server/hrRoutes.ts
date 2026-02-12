@@ -1778,21 +1778,27 @@ router.post("/api/activity/heartbeat", isAuthenticated, async (req: Request, res
       action: action || "heartbeat",
     });
 
+    const WORK_START_IST = 13;
+    const WORK_END_IST = 21;
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+    const workStartUTC = new Date(new Date(todayStr + "T00:00:00Z").getTime() + (WORK_START_IST * 60 * 60 * 1000) - IST_OFFSET_MS);
+    const workEndUTC = new Date(new Date(todayStr + "T00:00:00Z").getTime() + (WORK_END_IST * 60 * 60 * 1000) - IST_OFFSET_MS);
+
     const todayHeartbeats = await db
       .select({ timestamp: activityHeartbeats.timestamp })
       .from(activityHeartbeats)
       .where(
         and(
           eq(activityHeartbeats.userId, userId),
-          gte(activityHeartbeats.timestamp, new Date(todayStr + "T00:00:00")),
-          lte(activityHeartbeats.timestamp, new Date(todayStr + "T23:59:59"))
+          gte(activityHeartbeats.timestamp, workStartUTC),
+          lte(activityHeartbeats.timestamp, workEndUTC)
         )
       )
       .orderBy(asc(activityHeartbeats.timestamp));
 
     let totalActiveMinutes = 0;
     let totalIdleMinutes = 0;
-    const HEARTBEAT_INTERVAL = 2;
     const IDLE_THRESHOLD = 5;
 
     for (let i = 1; i < todayHeartbeats.length; i++) {
@@ -1942,23 +1948,33 @@ router.get("/api/hr/my-activity-status", isAuthenticated, async (req: Request, r
     const todayData = perf[0] || null;
     const liveStatus = getUserLiveStatus(todayData?.lastActivity || null);
 
+    const WORK_START_IST = 13;
+    const WORK_END_IST = 21;
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+    const workStartUTC = new Date(new Date(todayStr + "T00:00:00Z").getTime() + (WORK_START_IST * 60 * 60 * 1000) - IST_OFFSET_MS);
+    const workEndUTC = new Date(new Date(todayStr + "T00:00:00Z").getTime() + (WORK_END_IST * 60 * 60 * 1000) - IST_OFFSET_MS);
+
     const todayHeartbeats = await db
       .select({ timestamp: activityHeartbeats.timestamp })
       .from(activityHeartbeats)
       .where(
         and(
           eq(activityHeartbeats.userId, userId),
-          gte(activityHeartbeats.timestamp, new Date(todayStr + "T00:00:00")),
-          lte(activityHeartbeats.timestamp, new Date(todayStr + "T23:59:59"))
+          gte(activityHeartbeats.timestamp, workStartUTC),
+          lte(activityHeartbeats.timestamp, workEndUTC)
         )
       )
       .orderBy(asc(activityHeartbeats.timestamp));
 
     const timelineSlots: { hour: number; active: boolean }[] = [];
-    const activeHours = new Set<number>();
-    todayHeartbeats.forEach(h => activeHours.add(h.timestamp.getHours()));
-    for (let h = 8; h <= 20; h++) {
-      timelineSlots.push({ hour: h, active: activeHours.has(h) });
+    const activeHoursIST = new Set<number>();
+    todayHeartbeats.forEach(h => {
+      const istHour = new Date(h.timestamp.getTime() + IST_OFFSET_MS).getUTCHours();
+      activeHoursIST.add(istHour);
+    });
+    for (let h = WORK_START_IST; h < WORK_END_IST; h++) {
+      timelineSlots.push({ hour: h, active: activeHoursIST.has(h) });
     }
 
     res.json({
