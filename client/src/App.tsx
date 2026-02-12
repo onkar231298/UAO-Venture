@@ -68,7 +68,7 @@ import MyCompanies from "@/pages/crm/MyCompanies";
 import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
 import MyAttendancePage from "@/pages/sales/MyAttendancePage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
-import { AuroraEffect } from "@/components/AuroraEffect";
+
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 
 // Helper component for product URL redirect
@@ -218,7 +218,7 @@ function App() {
             <CallStateProvider>
               <TooltipProvider>
                 <Toaster />
-                <AuroraEffect />
+
                 <ActivityHeartbeatTracker />
                 <Router />
               </TooltipProvider>
