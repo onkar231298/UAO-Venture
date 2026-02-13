@@ -1855,6 +1855,7 @@ router.get("/api/hr/admin/activity-status", isAuthenticated, async (req: Request
     if (!reqUserId) return res.status(401).json({ error: "Not authenticated" });
     const requestingUser = await db.select().from(users).where(eq(users.id, reqUserId));
     if (!requestingUser.length || !["super_admin", "admin"].includes(requestingUser[0].role || "")) {
+      console.log("[Activity] Access denied for user:", reqUserId, "role:", requestingUser[0]?.role);
       return res.status(403).json({ error: "Unauthorized" });
     }
 
@@ -1878,6 +1879,8 @@ router.get("/api/hr/admin/activity-status", isAuthenticated, async (req: Request
           eq(users.isActive, true)
         )
       );
+
+    console.log("[Activity] Found", staffUsers.length, "staff users for activity status");
 
     const performances = await db
       .select()

@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import ProductFAQs from "@/components/ProductFAQs";
+import { ProductAEO } from "@/components/ProductAEO";
 import OptimizedImage from "@/components/OptimizedImage";
 import ImagePreloader from "@/components/ImagePreloader";
 import ScrollableProductSection from "@/components/ScrollableProductSection";
@@ -751,6 +752,11 @@ export default function ProductDetailBFI() {
 
           </div>
         </div>
+      </div>
+
+      {/* AI-Optimized Product Information for AEO */}
+      <div className="container mx-auto px-4 py-8">
+        <ProductAEO product={product as any} />
       </div>
 
       {/* Related Products with Internal Linking */}

@@ -10,6 +10,8 @@ import WebsiteSchema from "@/components/WebsiteSchema";
 import CompanyStructuredData from "@/components/CompanyStructuredData";
 import SitemapGenerator from "@/components/SitemapGenerator";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
+import HomepageAEO from "@/components/HomepageAEO";
+import { KnowledgeHubAEO } from "@/components/KnowledgeHubAEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -153,6 +155,16 @@ export default function Home() {
         </div>
       </section>
       
+      {/* AEO - AI-Optimized FAQ and Company Information */}
+      <HomepageAEO />
+
+      {/* AI Knowledge Hub Content */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <KnowledgeHubAEO />
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600 text-white">
         <div className="container mx-auto px-4 text-center">

@@ -49,9 +49,10 @@ function formatTime(dateStr: string | null): string {
 }
 
 export function TeamActivityMonitor() {
-  const { data: teamData, isLoading } = useQuery<TeamMemberActivity[]>({
+  const { data: teamData, isLoading, error } = useQuery<TeamMemberActivity[]>({
     queryKey: ["/api/hr/admin/activity-status"],
     refetchInterval: 30000,
+    retry: 1,
   });
 
   if (isLoading) {
@@ -60,6 +61,17 @@ export function TeamActivityMonitor() {
         <CardContent className="py-12 text-center">
           <Activity className="h-8 w-8 animate-pulse mx-auto mb-3 text-muted-foreground" />
           <p className="text-muted-foreground">Loading team activity...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <XCircle className="h-8 w-8 mx-auto mb-3 text-red-400" />
+          <p className="text-muted-foreground">Unable to load team activity. Please ensure you have admin access.</p>
         </CardContent>
       </Card>
     );
