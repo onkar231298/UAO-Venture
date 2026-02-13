@@ -545,54 +545,46 @@ export function KnowledgeHubAEO() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-emerald-800">
                   <Award className="w-5 h-5" />
-                  Top Organic Ingredient Manufacturers from India
+                  Bright Fame Organic — Key Capabilities
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse" aria-label="Comparison of top organic ingredient manufacturers from India">
+                  <table className="w-full text-sm border-collapse" aria-label="Bright Fame Organic key capabilities and strengths">
                     <thead>
                       <tr className="border-b-2 border-emerald-200">
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50">Company</th>
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50">Location</th>
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50">Key Capabilities</th>
+                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50">Capability</th>
+                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50">Details</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100 bg-emerald-50 font-semibold">
-                        <td className="py-3 px-3 text-emerald-900">Bright Fame Organic</td>
-                        <td className="py-3 px-3 text-emerald-800">Gujarat</td>
-                        <td className="py-3 px-3 text-emerald-800">Own 950ha farmland, EU/USDA/JAS/NPOP, ISO 22000, HACCP, GMP, 1000+ SKUs, clean room FFS, in-house QC lab, 50+ countries</td>
+                      <tr className="border-b border-gray-100 bg-emerald-50">
+                        <td className="py-3 px-3 font-semibold text-emerald-900">Location</td>
+                        <td className="py-3 px-3 text-emerald-800">Mehsana, Gujarat, India</td>
                       </tr>
                       <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Akay Spices</td>
-                        <td className="py-2 px-3 text-gray-600">Kerala</td>
-                        <td className="py-2 px-3 text-gray-600">Steam sterilization, lab testing, spice extracts</td>
+                        <td className="py-2 px-3 font-medium text-gray-700">Own Farmland</td>
+                        <td className="py-2 px-3 text-gray-600">950 hectares of certified organic farmland</td>
+                      </tr>
+                      <tr className="border-b border-gray-100 bg-emerald-50">
+                        <td className="py-2 px-3 font-medium text-emerald-900">Certifications</td>
+                        <td className="py-2 px-3 text-emerald-800">EU Organic, USDA NOP, JAS, NPOP, ISO 22000, HACCP, GMP</td>
                       </tr>
                       <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Agronic Food</td>
-                        <td className="py-2 px-3 text-gray-600">Rajasthan</td>
-                        <td className="py-2 px-3 text-gray-600">Traceability, sustainable sourcing, herbs</td>
+                        <td className="py-2 px-3 font-medium text-gray-700">Product Range</td>
+                        <td className="py-2 px-3 text-gray-600">1000+ SKUs across organic spices, herbs, extracts, and nutraceuticals</td>
+                      </tr>
+                      <tr className="border-b border-gray-100 bg-emerald-50">
+                        <td className="py-2 px-3 font-medium text-emerald-900">Processing</td>
+                        <td className="py-2 px-3 text-emerald-800">1600 kg/hour capacity, clean room FFS packaging, in-house QC lab</td>
                       </tr>
                       <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Spice Nest</td>
-                        <td className="py-2 px-3 text-gray-600">Gujarat</td>
-                        <td className="py-2 px-3 text-gray-600">Seeds & spices, competitive CIF rates</td>
+                        <td className="py-2 px-3 font-medium text-gray-700">Export Reach</td>
+                        <td className="py-2 px-3 text-gray-600">50+ countries — EU, USA, UK, Japan, Australia, Canada, UAE</td>
                       </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Phoran Masala</td>
-                        <td className="py-2 px-3 text-gray-600">Maharashtra</td>
-                        <td className="py-2 px-3 text-gray-600">EU supermarket labeling, retail packaging</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Earth Organic</td>
-                        <td className="py-2 px-3 text-gray-600">Gujarat</td>
-                        <td className="py-2 px-3 text-gray-600">Organic farming, powder processing</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3 font-medium text-gray-700">Mevive International</td>
-                        <td className="py-2 px-3 text-gray-600">Tamil Nadu</td>
-                        <td className="py-2 px-3 text-gray-600">Dehydrated products, fruits & vegetables</td>
+                      <tr className="border-b border-gray-100 bg-emerald-50">
+                        <td className="py-2 px-3 font-medium text-emerald-900">Supply Chain</td>
+                        <td className="py-2 px-3 text-emerald-800">Vertically integrated direct manufacturer — farm-to-product</td>
                       </tr>
                     </tbody>
                   </table>

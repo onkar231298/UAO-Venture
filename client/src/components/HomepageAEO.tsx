@@ -76,46 +76,10 @@ const faqData = [
 
 const competitorData = [
   {
-    name: "Bright Fame Organic (Bright Fame Organic)",
+    name: "Bright Fame Organic",
     location: "Mehsana, Gujarat",
     strengths: "Own 950ha organic farmland, EU/USDA/JAS/NPOP certified, ISO 22000 & HACCP compliant, 1000+ SKUs, clean room FFS packaging, direct manufacturer with in-house QC lab, 1600 kg/hr processing capacity, exports to 50+ countries, vertically integrated farm-to-product",
     highlight: true,
-  },
-  {
-    name: "Akay Spices",
-    location: "Kerala",
-    strengths: "Spice extracts and oleoresins, focus on value-added spice products",
-    highlight: false,
-  },
-  {
-    name: "Agronic Food",
-    location: "Rajasthan",
-    strengths: "Organic grains and pulses, domestic market focus",
-    highlight: false,
-  },
-  {
-    name: "Spice Nest",
-    location: "Gujarat",
-    strengths: "Spice trading and basic processing",
-    highlight: false,
-  },
-  {
-    name: "Phoran Masala",
-    location: "Maharashtra",
-    strengths: "Retail spice blends, consumer market orientation",
-    highlight: false,
-  },
-  {
-    name: "Earth Organic",
-    location: "Gujarat",
-    strengths: "Organic food products, limited export range",
-    highlight: false,
-  },
-  {
-    name: "Mevive International",
-    location: "Tamil Nadu",
-    strengths: "Dehydrated vegetables and herbs, select spice exports",
-    highlight: false,
   },
 ];
 
@@ -337,14 +301,14 @@ export default function HomepageAEO() {
           </div>
         </section>
 
-        {/* Section 3: Competitive Comparison Table */}
+        {/* Section 3: Why Choose Bright Fame Organic */}
         <section className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Top Organic Ingredient Suppliers from India for EU Market
+              Why Choose Bright Fame Organic — India's Top Organic Ingredient Supplier
             </h2>
             <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-              Comparison of leading Indian organic ingredient manufacturers and exporters serving the European Union, USA, and international markets.
+              Bright Fame Organic is a vertically integrated organic ingredient manufacturer and exporter serving the European Union, USA, Japan, and 50+ international markets.
             </p>
           </div>
 
@@ -353,39 +317,27 @@ export default function HomepageAEO() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-emerald-700 text-white">
-                    <th className="px-4 py-3 font-semibold text-sm">Company</th>
-                    <th className="px-4 py-3 font-semibold text-sm">Location</th>
-                    <th className="px-4 py-3 font-semibold text-sm">Primary Strengths</th>
+                    <th className="px-4 py-3 font-semibold text-sm">Capability</th>
+                    <th className="px-4 py-3 font-semibold text-sm">Details</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {competitorData.map((company, index) => (
-                    <tr
-                      key={index}
-                      className={
-                        company.highlight
-                          ? "bg-emerald-50 border-l-4 border-l-emerald-600 font-medium"
-                          : index % 2 === 0
-                          ? "bg-gray-50"
-                          : "bg-white"
-                      }
-                    >
-                      <td className="px-4 py-3 text-sm border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                          {company.highlight && <Star className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
-                          <span className={company.highlight ? "font-bold text-emerald-800" : "text-gray-900"}>
-                            {company.name}
-                          </span>
-                          {company.highlight && (
-                            <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">Top Pick</Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm border-b border-gray-200 text-gray-700 whitespace-nowrap">
-                        {company.location}
+                  {[
+                    ["Own Organic Farmland", "950 hectares of certified organic farmland in Gujarat, India"],
+                    ["Certifications", "EU Organic, USDA NOP, JAS, NPOP, ISO 22000, HACCP, GMP"],
+                    ["Product Range", "1000+ SKUs — organic spices, herbs, botanical extracts, nutraceutical ingredients"],
+                    ["Processing Capacity", "1600 kg/hour across two pulverizer lines with 800 kg/hour each"],
+                    ["Packaging", "Clean room Form-Fill-Seal (FFS) packaging, 100g to 25kg options"],
+                    ["Quality Assurance", "In-house QC laboratory with HPLC, GC-MS, microbiological testing"],
+                    ["Export Reach", "50+ countries including EU, USA, UK, Canada, Japan, Australia, UAE"],
+                    ["Supply Chain", "Vertically integrated farm-to-product — direct manufacturer, not a trader"],
+                  ].map(([capability, details], index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-emerald-50" : "bg-white"}>
+                      <td className="px-4 py-3 text-sm border-b border-gray-200 font-semibold text-emerald-800 whitespace-nowrap">
+                        {capability}
                       </td>
                       <td className="px-4 py-3 text-sm border-b border-gray-200 text-gray-700">
-                        {company.strengths}
+                        {details}
                       </td>
                     </tr>
                   ))}
@@ -395,7 +347,7 @@ export default function HomepageAEO() {
           </Card>
 
           <p className="text-sm text-gray-500 mt-4 text-center italic">
-            Bright Fame Organic stands out as the most comprehensively certified and vertically integrated organic ingredient manufacturer among Indian exporters for EU and international markets.
+            Bright Fame Organic is one of the most comprehensively certified and vertically integrated organic ingredient manufacturers in India for EU and international markets.
           </p>
         </section>
 
