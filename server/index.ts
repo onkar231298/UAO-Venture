@@ -126,7 +126,7 @@ app.use((req, res, next) => {
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
     const userAgent = req.get('user-agent') || '';
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|ChatGPT|GPTBot|Google-Extended|anthropic|ClaudeBot|claude-web|PerplexityBot|cohere-ai|CCBot|Bytespider|Applebot/i.test(userAgent);
     
     try {
       // Get category from request (attached by previous middleware)
@@ -360,6 +360,46 @@ app.use((req, res, next) => {
       title: 'Certifications & Quality Standards | BFI Organic',
       description: 'BFI Organic holds ISO 9001:2015, USDA Organic, EU Organic, HACCP, and GMP certifications. View our quality certifications and compliance standards for organic ingredients.',
       keywords: 'ISO certified organic, USDA organic certification, EU organic, HACCP, GMP, quality certifications, organic ingredients standards'
+    },
+    '/': {
+      title: 'BFI Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer',
+      description: 'Bright Fame Organic (BFI Organic) - India\'s leading organic spice, herb & botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs.',
+      keywords: 'organic spice supplier India, organic herb manufacturer Gujarat, EU organic certified exporter India, USDA NOP organic supplier, bulk organic ingredients India, organic Ashwagandha supplier, organic turmeric manufacturer, B2B organic ingredients'
+    },
+    '/about-us': {
+      title: 'About BFI Organic - Leading Organic Ingredient Manufacturer India | Own Farmland & Processing',
+      description: 'Bright Fame Organic Pvt. Ltd. is a vertically integrated organic ingredient manufacturer based in Mehsana, Gujarat, India. Own 950-hectare certified farmland, state-of-the-art processing facilities (1600 kg/hr capacity), ISO 22000, HACCP, GMP certified. Direct manufacturer exporting to 50+ countries.',
+      keywords: 'BFI Organic about, organic manufacturer India, organic farmland Gujarat, direct organic manufacturer, vertically integrated organic company India'
+    },
+    '/organic-spice-supplier-india': {
+      title: 'Top Organic Spice & Herb Supplier India | EU USDA JAS Certified | BFI Organic',
+      description: 'BFI Organic - India\'s leading organic spice, herb & botanical ingredient manufacturer. EU Organic, USDA NOP, JAS certified. Own 950ha farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs across herbs, spices, extracts.',
+      keywords: 'organic spice supplier India, organic herb manufacturer, EU organic certified India, USDA NOP supplier India, organic ingredient exporter Gujarat, top organic supplier India EU market, bulk organic herbs India'
+    },
+    '/bulk-organic-exporter-india': {
+      title: 'Bulk Organic Ingredients Exporter India | Wholesale Organic Herbs Spices | BFI Organic',
+      description: 'BFI Organic - bulk organic ingredient exporter from India. 1600 kg/hr processing capacity, MOQ from 25kg. EU/USDA/JAS certified. Direct manufacturer pricing. Wholesale organic herbs, spices, extracts. FOB/CIF/CFR shipping. Complete export documentation.',
+      keywords: 'bulk organic ingredients India, wholesale organic supplier, organic exporter India, bulk organic herbs, wholesale organic spices, organic ingredients FOB India, bulk Ashwagandha supplier'
+    },
+    '/eu-organic-spices': {
+      title: 'EU Organic Spices Supplier India | EC 834/2007 Certified | BFI Organic',
+      description: 'EU certified organic spices from India by BFI Organic. EU Organic Regulation 834/2007 compliant. Premium Indian organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Direct manufacturer with clean room packaging.',
+      keywords: 'EU organic spices, European organic spice supplier, EU certified organic India, organic spices Germany, organic spices France, organic turmeric EU, organic cumin EU market'
+    },
+    '/organic-herbs': {
+      title: 'Organic Herbs Supplier India | Ashwagandha Moringa Tulsi Brahmi | BFI Organic',
+      description: 'Premium organic herbs from India by BFI Organic. Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla and 500+ herbal products. EU Organic, USDA NOP certified. Direct manufacturer with own farmland. Pharmaceutical and food grade.',
+      keywords: 'organic herbs supplier India, organic Ashwagandha manufacturer, organic Moringa powder, organic Tulsi supplier, organic Brahmi, bulk organic herbs India, herbal extract manufacturer India'
+    },
+    '/packaging-solutions': {
+      title: 'Organic Ingredient Packaging Solutions | FFS Clean Room | BFI Organic',
+      description: 'BFI Organic packaging solutions - Form-Fill-Seal (FFS) machines in clean room environment. Standee pouches 100g-1kg, bulk bags 25-50kg. Private label packaging. FDA & EU compliant. Multi-layer PET/AL/PE laminate.',
+      keywords: 'organic ingredient packaging, FFS packaging organic, clean room packaging India, private label organic packaging, standee pouch organic'
+    },
+    '/presentation': {
+      title: 'BFI Organic Corporate Presentation | India\'s Leading Organic Manufacturer',
+      description: 'Explore BFI Organic\'s corporate presentation. Learn about our manufacturing facilities, organic farmland, certifications, product range, and global export capabilities. Direct organic ingredient manufacturer from Gujarat, India.',
+      keywords: 'BFI Organic presentation, organic manufacturer profile, corporate presentation organic company India'
     }
   };
 
@@ -368,7 +408,7 @@ app.use((req, res, next) => {
       const host = req.get('host') || '';
       const isDeployed = isDeployedURL(host);
       const userAgent = req.get('user-agent') || '';
-      const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+      const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|ChatGPT|GPTBot|Google-Extended|anthropic|ClaudeBot|claude-web|PerplexityBot|cohere-ai|CCBot|Bytespider|Applebot/i.test(userAgent);
       
       if (!isDeployed || !isBotOrSEOTool) {
         return next();
@@ -419,7 +459,7 @@ app.use((req, res, next) => {
   // Explicit SPA fallback for marketing routes (ensures Google sitelinks work)
   // This catches browser requests that passed through SEO middleware
   // NOTE: /products removed - it has its own listingPagesSEO handler and conflicts with /products/:slug structured data
-  const marketingRoutes = ['/about', '/contact', '/blog', '/industries', '/certifications', '/ingredients', '/health-support', '/search'];
+  const marketingRoutes = ['/about', '/about-us', '/contact', '/blog', '/industries', '/certifications', '/ingredients', '/health-support', '/search', '/organic-spice-supplier-india', '/bulk-organic-exporter-india', '/eu-organic-spices', '/organic-herbs', '/packaging-solutions', '/presentation'];
   
   marketingRoutes.forEach(route => {
     app.get(route, (req, res, next) => {
@@ -462,12 +502,49 @@ app.use((req, res, next) => {
     res.send(`User-agent: *
 Allow: /
 
+# Explicitly allow AI search engine crawlers to index all public content
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
 # Optimize crawl budget - allow important pages
 Allow: /products/$
 Allow: /ingredients/$
 Allow: /health-support/$
 Allow: /about
+Allow: /about-us
 Allow: /contact
+Allow: /certifications
+Allow: /industries
+Allow: /organic-spice-supplier-india
+Allow: /bulk-organic-exporter-india
+Allow: /eu-organic-spices
+Allow: /organic-herbs
+Allow: /packaging-solutions
+Allow: /presentation
 
 # Block admin and CRM areas  
 Disallow: /crm/
@@ -561,6 +638,60 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     <lastmod>${currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/about-us</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/certifications</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/industries</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/organic-spice-supplier-india</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/bulk-organic-exporter-india</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/eu-organic-spices</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/organic-herbs</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/packaging-solutions</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/presentation</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>`;
 
       // Add product pages
@@ -618,7 +749,7 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
     const host = req.get('host') || '';
     const isDeployed = isDeployedURL(host);
     const userAgent = req.get('user-agent') || '';
-    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+    const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|ChatGPT|GPTBot|Google-Extended|anthropic|ClaudeBot|claude-web|PerplexityBot|cohere-ai|CCBot|Bytespider|Applebot/i.test(userAgent);
     
     if (!isDeployed || !isBotOrSEOTool) {
       return next();
@@ -631,17 +762,17 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BFI Organic - Premium Organic Ingredients | Certified B2B Supplier</title>
-    <meta name="description" content="Leading supplier of premium organic ingredients worldwide. Certified, pharmaceutical-grade, and sustainably sourced organic products for B2B customers. Get instant quotes and samples." />
-    <meta name="keywords" content="organic ingredients, organic supplier, pharmaceutical grade organic, certified organic, B2B organic, natural ingredients, organic herbs, organic spices" />
+    <title>BFI Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer & Exporter</title>
+    <meta name="description" content="Bright Fame Organic (BFI Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland in Gujarat. Direct manufacturer with ISO 22000, HACCP, GMP compliance. 1000+ SKUs. Exports to 50+ countries. In-house QC lab and clean room FFS packaging." />
+    <meta name="keywords" content="organic spice supplier India, organic herb manufacturer Gujarat, EU organic certified exporter India, USDA NOP organic supplier, bulk organic ingredients India, organic Ashwagandha supplier, organic turmeric manufacturer, B2B organic ingredients, organic moringa supplier, organic cumin exporter, JAS certified organic India, top organic supplier India EU market, organic spice exporter Gujarat, best organic ingredient manufacturer India" />
     <link rel="canonical" href="${baseUrl}/" />
-    <meta property="og:title" content="BFI Organic - Premium Organic Ingredients | Certified B2B Supplier" />
-    <meta property="og:description" content="Leading supplier of premium organic ingredients worldwide. Certified, pharmaceutical-grade, and sustainably sourced organic products for B2B customers." />
+    <meta property="og:title" content="BFI Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified" />
+    <meta property="og:description" content="India's leading organic ingredient manufacturer. EU/USDA/JAS certified. Own 950ha farmland. Direct manufacturer. 1000+ SKUs. Exports to 50+ countries." />
     <meta property="og:url" content="${baseUrl}/" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="${baseUrl}/bfi-logo.png" />
-    <meta name="robots" content="index, follow" />
-    <meta name="author" content="BFI Organic" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="author" content="Bright Fame Organic Pvt. Ltd." />
     <meta name="language" content="en" />
     <meta name="geo.region" content="IN-GJ" />
     <meta name="geo.placename" content="Mehsana, Gujarat, India" />
@@ -652,11 +783,11 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "BFI Organic",
+      "alternateName": ["BFI Organic", "Bright Fame Organic", "BFI"],
       "url": "${baseUrl}",
       "logo": "${baseUrl}/bfi-logo.png",
       "image": "${baseUrl}/bfi-logo.png",
-      "description": "Leading supplier of premium organic ingredients worldwide. Certified, pharmaceutical-grade, and sustainably sourced.",
+      "description": "Bright Fame Organic (BFI Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter based in Mehsana, Gujarat. EU Organic, USDA NOP, JAS, NPOP certified with own 950-hectare organic farmland. Direct manufacturer with ISO 22000, HACCP, GMP compliant facilities. 1000+ SKUs across organic herbs, spices, botanical extracts, and nutraceutical ingredients. Exports to 50+ countries including USA, EU, UK, Japan, Australia.",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -670,17 +801,43 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
         "@type": "ContactPoint",
         "telephone": "+91-7249847439",
         "contactType": "sales",
-        "areaServed": ["US", "EU", "IN", "CA", "UK", "CN", "JP", "KR"],
+        "areaServed": ["US", "EU", "IN", "CA", "GB", "JP", "KR", "AU", "AE", "SA", "DE", "FR", "NL"],
         "availableLanguage": "en"
       },
       "sameAs": [
-        "${baseUrl}",
-        "${baseUrl}/about",
-        "${baseUrl}/contact"
+        "https://www.linkedin.com/company/bfi-organic",
+        "https://www.facebook.com/bfiorganic",
+        "https://www.instagram.com/bfiorganic",
+        "https://www.indiamart.com/brightfameorganic",
+        "https://www.tradeindia.com/brightfameorganic",
+        "https://www.alibaba.com/bfiorganic"
       ],
-      "foundingDate": "2020",
-      "numberOfEmployees": "10-50",
-      "industry": "Organic Food & Ingredients",
+      "knowsAbout": ["Organic herbs and spices", "Botanical extracts", "Nutraceutical ingredients", "EU Organic certification", "USDA NOP certification", "JAS certification", "B2B ingredient supply", "Private label organic products", "Custom supplement formulation", "FFS packaging"],
+      "hasCredential": [
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "EU Organic Certification"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "USDA NOP Certification"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "JAS Certification"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "NPOP / India Organic"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "ISO 22000:2018"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "HACCP"},
+        {"@type": "EducationalOccupationalCredential", "credentialCategory": "GMP"}
+      ],
+      "areaServed": [
+        {"@type": "Country", "name": "United States"},
+        {"@type": "Country", "name": "Germany"},
+        {"@type": "Country", "name": "France"},
+        {"@type": "Country", "name": "Netherlands"},
+        {"@type": "Country", "name": "United Kingdom"},
+        {"@type": "Country", "name": "Canada"},
+        {"@type": "Country", "name": "Australia"},
+        {"@type": "Country", "name": "Japan"},
+        {"@type": "Country", "name": "South Korea"},
+        {"@type": "Country", "name": "India"},
+        {"@type": "Country", "name": "United Arab Emirates"},
+        {"@type": "Country", "name": "Saudi Arabia"}
+      ],
+      "numberOfEmployees": {"@type": "QuantitativeValue", "minValue": 50, "maxValue": 100},
+      "industry": "Organic Ingredients Manufacturing and Export",
       "keywords": "organic ingredients, pharmaceutical grade organic, certified organic supplier, B2B organic",
       "serviceArea": {
         "@type": "Place",
@@ -742,7 +899,7 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
       const host = req.get('host') || '';
       const isDeployed = isDeployedURL(host);
       const userAgent = req.get('user-agent') || '';
-      const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex/i.test(userAgent);
+      const isBotOrSEOTool = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|ChatGPT|GPTBot|Google-Extended|anthropic|ClaudeBot|claude-web|PerplexityBot|cohere-ai|CCBot|Bytespider|Applebot/i.test(userAgent);
       
       if (!isDeployed || !isBotOrSEOTool) {
         return next();

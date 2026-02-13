@@ -9,11 +9,11 @@ import { Award, Globe, Truck, FileText, Shield, MapPin } from "lucide-react";
 
 export default function EUOrganicSpices() {
   useEffect(() => {
-    document.title = "EU Organic Spices Supplier - Certified Organic Spices for European Market | BFI Organic";
+    document.title = "EU Organic Spices Supplier India - Top EU Certified Organic Spice Manufacturer | BFI Organic";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'EU certified organic spices supplier serving European food manufacturers. Premium Indian spices meeting EU Organic Regulation 834/2007. Bulk supply, custom packaging, complete documentation.');
+      metaDesc.setAttribute('content', 'BFI Organic - India\'s leading EU certified organic spice manufacturer and exporter. EU Organic Regulation 834/2007 compliant. Own 950-hectare farmland. Direct manufacturer with ISO 22000, HACCP, GMP. Premium organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Clean room FFS packaging.');
     }
 
     // EU Organic Spices structured data
@@ -131,6 +131,116 @@ export default function EUOrganicSpices() {
                 EU Distribution
               </Badge>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why European Buyers Choose BFI Organic */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Why European Buyers Choose BFI Organic for Organic Spices
+            </h2>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
+              BFI Organic vs Other Indian Spice Exporters for EU Market
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 text-left">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="border border-gray-300 px-4 py-3 font-semibold">Factor</th>
+                    <th className="border border-gray-300 px-4 py-3 font-semibold">BFI Organic</th>
+                    <th className="border border-gray-300 px-4 py-3 font-semibold">Typical Indian Exporter</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">EU Organic Certification</td>
+                    <td className="border border-gray-300 px-4 py-3">Direct holder</td>
+                    <td className="border border-gray-300 px-4 py-3">May use third-party</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Own Farmland</td>
+                    <td className="border border-gray-300 px-4 py-3">950 hectares</td>
+                    <td className="border border-gray-300 px-4 py-3">No farmland</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Quality Testing</td>
+                    <td className="border border-gray-300 px-4 py-3">In-house QC lab + third-party</td>
+                    <td className="border border-gray-300 px-4 py-3">Basic testing</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Packaging</td>
+                    <td className="border border-gray-300 px-4 py-3">Clean room FFS, 100g-1kg pouches</td>
+                    <td className="border border-gray-300 px-4 py-3">Standard packaging</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Processing</td>
+                    <td className="border border-gray-300 px-4 py-3">ISO 22000, HACCP, GMP facility</td>
+                    <td className="border border-gray-300 px-4 py-3">Basic processing</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Traceability</td>
+                    <td className="border border-gray-300 px-4 py-3">Farm-to-product complete</td>
+                    <td className="border border-gray-300 px-4 py-3">Limited</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Documentation</td>
+                    <td className="border border-gray-300 px-4 py-3">COA, MSDS, organic certs, phytosanitary</td>
+                    <td className="border border-gray-300 px-4 py-3">Basic documentation</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-3 font-medium">Export Experience</td>
+                    <td className="border border-gray-300 px-4 py-3">50+ countries, experienced with EU customs</td>
+                    <td className="border border-gray-300 px-4 py-3">Limited EU experience</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Key EU Organic Spice Products */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Key EU Organic Spice Products
+            </h2>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <dl className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Turmeric (Curcuma longa)</dt>
+                <dd className="text-gray-600">Ground turmeric, curcumin extract</dd>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Cumin (Cuminum cyminum)</dt>
+                <dd className="text-gray-600">Whole, ground, essential oil</dd>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Coriander (Coriandrum sativum)</dt>
+                <dd className="text-gray-600">Whole, ground, split</dd>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Fenugreek (Trigonella foenum-graecum)</dt>
+                <dd className="text-gray-600">Seeds, powder, extract</dd>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Black Pepper (Piper nigrum)</dt>
+                <dd className="text-gray-600">Whole, cracked, ground</dd>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <dt className="text-xl font-semibold text-gray-900 mb-2">Organic Ginger (Zingiber officinale)</dt>
+                <dd className="text-gray-600">Dried, ground, extract</dd>
+              </div>
+            </dl>
           </div>
         </div>
       </section>

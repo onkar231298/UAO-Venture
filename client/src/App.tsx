@@ -61,6 +61,8 @@ import Industries from "@/pages/Industries";
 import FoodIngredients from "@/pages/FoodIngredients";
 import OrganicHerbs from "@/pages/OrganicHerbs";
 import EUOrganicSpices from "@/pages/EUOrganicSpices";
+import BulkOrganicExporter from "@/pages/BulkOrganicExporter";
+import OrganicSupplierIndia from "@/pages/OrganicSupplierIndia";
 import Presentation from "@/pages/Presentation";
 import PackagingSolutions from "@/pages/PackagingSolutions";
 import EmailSettings from "@/pages/crm/EmailSettings";
@@ -137,6 +139,8 @@ function Router() {
       <Route path="/food-ingredients" component={FoodIngredients} />
       <Route path="/organic-herbs" component={OrganicHerbs} />
       <Route path="/eu-organic-spices" component={EUOrganicSpices} />
+      <Route path="/bulk-organic-exporter-india" component={BulkOrganicExporter} />
+      <Route path="/organic-spice-supplier-india" component={OrganicSupplierIndia} />
       <Route path="/presentation" component={Presentation} />
       <Route path="/packaging-solutions" component={PackagingSolutions} />
       
