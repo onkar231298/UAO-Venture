@@ -40,6 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Inventory Management**: Stock tracking (batch/lot, expiry, location), stock level monitoring.
 - **Logistics Management**: Inventory visibility, dispatch tracking.
 - **SEO & Structured Data**: Meta titles, descriptions, SEO-friendly URLs, structured data (JSON-LD), OpenGraph support, 301 redirects, sitemap generation, and server-side SEO middleware for marketing pages.
+- **Answer Engine Optimization (AEO)**: AI discoverability optimization for ChatGPT, Gemini, Claude, Perplexity, and other LLM-based search systems. Components: `HomepageAEO` (entity definitions, 10 buyer-intent Q&A, comparison blocks), `ProductAEO` (product specs, applications, sourcing transparency), `AboutAEO` (company authority, 6-step supply chain, 25 AI-citation Q&A pairs, FAQPage schema), `KnowledgeHubAEO` (20-term glossary, buyer guides, comparison tables, Organization schema). All use semantic HTML (`<details>/<summary>`, `<dl>`, `<table>`), schema.org attributes, and JSON-LD structured data.
 - **Category Management**: CRUD operations for product categories with admin interface, auto-generated SEO-friendly slugs, soft delete.
 - **Admin Dashboard**: APIs for analytics and data aggregation.
 - **Website Navigation & Filtering**: Advanced multi-faceted product filtering with URL parameter support and dynamic ingredients navigation.
