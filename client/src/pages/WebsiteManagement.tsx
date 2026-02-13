@@ -3216,7 +3216,7 @@ function SliderForm({ slider, onSubmit, onCancel, isLoading }: any) {
 function SEOManagement() {
   const { toast } = useToast();
   const [seoSettings, setSeoSettings] = useState({
-    siteTitle: "BFI Organic - Premium Organic Ingredients",
+    siteTitle: "Bright Fame Organic - Premium Organic Ingredients",
     siteDescription: "Leading supplier of certified organic ingredients and natural products for global markets",
     siteKeywords: "organic ingredients, natural products, USDA certified, bulk organic",
     ogImage: "",

@@ -1011,12 +1011,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "description": product.description || `High-quality ${product.name} from BFI Organic`,
+        "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
         "sku": product.productId,
         "mpn": product.productId,
         "brand": {
           "@type": "Brand",
-          "name": "BFI Organic",
+          "name": "Bright Fame Organic",
           "url": baseUrl
         },
         "manufacturer": {
@@ -1045,7 +1045,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",
-            "name": "BFI Organic",
+            "name": "Bright Fame Organic",
             "url": baseUrl
           }
         },
@@ -1130,11 +1130,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         organizationSchema: organizationSchema,
         faqSchema: faqSchema,
         seoData: {
-          title: product.seoTitle || `${product.name} - BFI Organic`,
-          description: product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`,
+          title: product.seoTitle || `${product.name} - Bright Fame Organic`,
+          description: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`,
           canonical: productUrl,
-          ogTitle: product.seoTitle || `${product.name} - BFI Organic`,
-          ogDescription: product.seoDescription || product.description || `High-quality ${product.name} from BFI Organic`,
+          ogTitle: product.seoTitle || `${product.name} - Bright Fame Organic`,
+          ogDescription: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`,
           ogImage: imageUrl,
           ogUrl: productUrl
         }

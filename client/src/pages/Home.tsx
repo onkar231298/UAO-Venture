@@ -40,7 +40,7 @@ export default function Home() {
       <section className="py-8 bg-white">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Premium Organic Ingredients Supplier - BFI Organic
+            Premium Organic Ingredients Supplier - Bright Fame Organic
           </h1>
           <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6">
             Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.

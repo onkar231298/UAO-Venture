@@ -89,7 +89,7 @@ const FallbackApp = {
         <div style="max-width: 1200px; margin: 0 auto; padding: 40px;">
           <div style="text-align: center; background: white; border-radius: 12px; padding: 60px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
             <h1 style="font-size: 48px; font-weight: bold; color: #1f2937; margin-bottom: 16px;">
-              BFI Organic
+              Bright Fame Organic
             </h1>
             <h2 style="font-size: 24px; color: #6b7280; margin-bottom: 40px;">
               Premium B2B Organic Ingredients

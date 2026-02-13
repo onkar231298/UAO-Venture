@@ -677,8 +677,8 @@ export const quotations = pgTable("quotations", {
   gstNumber: varchar("gst_number", { length: 15 }), // GST Number for the transaction
   gstPercentage: decimal("gst_percentage", { precision: 5, scale: 2 }), // GST percentage (e.g., 18.00)
   gstAmount: decimal("gst_amount", { precision: 10, scale: 2 }), // Calculated GST amount
-  sellerGstin: varchar("seller_gstin", { length: 15 }), // Optional - BFI Organic GSTIN
-  sellerPan: varchar("seller_pan", { length: 10 }), // Optional - BFI Organic PAN
+  sellerGstin: varchar("seller_gstin", { length: 15 }), // Optional - Bright Fame Organic GSTIN
+  sellerPan: varchar("seller_pan", { length: 10 }), // Optional - Bright Fame Organic PAN
   buyerGstin: varchar("buyer_gstin", { length: 15 }), // Optional - Customer GSTIN
   buyerPan: varchar("buyer_pan", { length: 10 }), // Optional - Customer PAN
   

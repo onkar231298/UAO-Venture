@@ -88,12 +88,12 @@ export default function HomeStructuredData() {
       "subOrganization": [
         {
           "@type": "Organization",
-          "name": "BFI Organic - Food Ingredients Division",
+          "name": "Bright Fame Organic - Food Ingredients Division",
           "url": `${baseUrl}/food-ingredients`
         },
         {
           "@type": "Organization",
-          "name": "BFI Organic - Organic Herbs Division",
+          "name": "Bright Fame Organic - Organic Herbs Division",
           "url": `${baseUrl}/organic-herbs`
         }
       ]
@@ -103,7 +103,7 @@ export default function HomeStructuredData() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "BFI Organic - Premium B2B Organic Ingredients",
+      "name": "Bright Fame Organic - Premium B2B Organic Ingredients",
       "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "description": "Leading B2B marketplace for certified organic ingredients, herbs, spices, and botanical extracts. USDA and EU organic certified products from India.",
@@ -126,7 +126,7 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "name": "Main Site Navigation",
-      "description": "Primary navigation pages for BFI Organic website",
+      "description": "Primary navigation pages for Bright Fame Organic website",
       "itemListElement": [
         {
           "@type": "SiteNavigationElement",
@@ -146,7 +146,7 @@ export default function HomeStructuredData() {
           "@type": "SiteNavigationElement",
           "position": 3,
           "name": "About Us",
-          "description": "Learn about BFI Organic - 25+ years of organic ingredient expertise",
+          "description": "Learn about Bright Fame Organic - 25+ years of organic ingredient expertise",
           "url": `${baseUrl}/about`
         },
         {

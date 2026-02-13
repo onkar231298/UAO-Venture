@@ -4706,7 +4706,7 @@ export class DatabaseStorage implements IStorage {
       'powder', // form (powder/extract/oil/liquid/capsule/tablet)
       
       // *** OPTIONAL SEO FIELDS ***
-      'Premium Ashwagandha Root Extract Powder - 5% Withanolides | BFI Organic', // seoTitle
+      'Premium Ashwagandha Root Extract Powder - 5% Withanolides | Bright Fame Organic', // seoTitle
       'High-quality organic Ashwagandha root extract powder with 5% withanolides. Perfect for nutraceutical applications. Food grade quality from India.', // seoDescription
       '/products/ashwagandha-extract-powder', // canonicalUrl
       
@@ -5266,7 +5266,7 @@ export class DatabaseStorage implements IStorage {
       // Create new settings
       const [newSettings] = await db.insert(globalSeoSettings)
         .values({ 
-          siteTitle: "BFI Organic - Premium Organic Ingredients Supplier",
+          siteTitle: "Bright Fame Organic - Premium Organic Ingredients Supplier",
           siteDescription: "Leading supplier of premium organic ingredients, herbs, and botanical extracts. Certified organic products for pharmaceutical, nutraceutical, and food industries worldwide.",
           primaryKeywords: "organic ingredients, herbal extracts, pharmaceutical raw materials, nutraceutical ingredients, organic herbs, botanical extracts, organic spices, certified organic",
           primaryTargetRegion: "Global (All Regions)",

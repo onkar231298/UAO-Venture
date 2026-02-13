@@ -22,8 +22,8 @@ export default function Landing() {
   // SEO optimization for the homepage
   useSEO({
     title: "Bright Fame Organic - Premium B2B Organic Ingredients",
-    description: "Bright Fame Organic Pvt. Ltd. (BFI Organic) - Leading B2B supplier of certified organic ingredients from Gujarat, India. Specializing in herbal extracts, nutraceutical raw materials, and pharmaceutical-grade organic compounds. Trusted by 500+ global clients.",
-    keywords: "Bright Fame Organic, BFI Organic, Gujarat organic supplier, B2B organic ingredients, herbal extracts India, nutraceutical raw materials, pharmaceutical organic compounds, organic herbs Gujarat, certified organic supplier India, Mehsana organic company",
+    description: "Bright Fame Organic Pvt. Ltd. (Bright Fame Organic) - Leading B2B supplier of certified organic ingredients from Gujarat, India. Specializing in herbal extracts, nutraceutical raw materials, and pharmaceutical-grade organic compounds. Trusted by 500+ global clients.",
+    keywords: "Bright Fame Organic, Bright Fame Organic, Gujarat organic supplier, B2B organic ingredients, herbal extracts India, nutraceutical raw materials, pharmaceutical organic compounds, organic herbs Gujarat, certified organic supplier India, Mehsana organic company",
     canonicalUrl: `${window.location.origin}/`,
     pageType: "website",
     pageId: "homepage"
@@ -202,7 +202,7 @@ export default function Landing() {
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Why Choose Bright Fame Organic (BFI Organic)?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Why Choose Bright Fame Organic (Bright Fame Organic)?</h2>
             <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto px-4 sm:px-0">
               <strong>Bright Fame Organic Pvt. Ltd.</strong> specializes exclusively in pharmaceutical-grade organic ingredients and nutraceutical compounds. Unlike traditional spice suppliers, we focus on advanced herbal extracts, standardized botanical compounds, and certified organic raw materials for pharmaceutical, nutraceutical, and wellness industries.
             </p>
@@ -370,7 +370,7 @@ export default function Landing() {
             {[
               {
                 rating: 5,
-                text: "BFI Organic has been our reliable partner for organic ingredients. Their quality is consistently excellent, and their customer service is top-notch. The CRM platform makes ordering so much easier.",
+                text: "Bright Fame Organic has been our reliable partner for organic ingredients. Their quality is consistently excellent, and their customer service is top-notch. The CRM platform makes ordering so much easier.",
                 author: "David Chen",
                 position: "Procurement Manager, NutriCorp",
                 avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"

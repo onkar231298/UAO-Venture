@@ -160,7 +160,7 @@ export default function GlobalSeoSettings() {
                 id="siteTitle"
                 value={formData.siteTitle}
                 onChange={(e) => handleInputChange("siteTitle", e.target.value)}
-                placeholder="BFI Organic - Premium Organic Ingredients Supplier"
+                placeholder="Bright Fame Organic - Premium Organic Ingredients Supplier"
                 className="max-w-2xl"
               />
             </div>

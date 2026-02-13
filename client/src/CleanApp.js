@@ -33,7 +33,7 @@ function ProductPage({ productSlug }) {
 
   // Homepage for root path
   return createElement('div', { style: { padding: '20px', fontFamily: 'Arial' } },
-    createElement('h1', { style: { color: '#2c5530', fontSize: '32px' } }, 'BFI Organic'),
+    createElement('h1', { style: { color: '#2c5530', fontSize: '32px' } }, 'Bright Fame Organic'),
     createElement('h2', { style: { color: '#666', fontSize: '24px' } }, 'Premium Organic Ingredients'),
     createElement('p', { style: { fontSize: '18px' } }, 
       'Welcome to Bright Fame Organic - your trusted partner for certified organic ingredients.'

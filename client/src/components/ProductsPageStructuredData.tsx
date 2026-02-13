@@ -22,7 +22,7 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "BFI Organic",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "logo": `${baseUrl}/bfi-logo.png`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide."
@@ -73,7 +73,7 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
               "image": product.mainImage,
               "brand": {
                 "@type": "Brand",
-                "name": "BFI Organic"
+                "name": "Bright Fame Organic"
               },
               "offers": {
                 "@type": "Offer",

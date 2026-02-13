@@ -2,7 +2,7 @@
 # This file provides structured information for AI assistants and language models
 
 ## Company Overview
-Name: Bright Fame Organic (BFI Organic)
+Name: Bright Fame Organic (Bright Fame Organic)
 Type: B2B Organic Ingredients Supplier
 Industry: Organic Agriculture, Food Manufacturing, Nutraceuticals, Pharmaceuticals
 Founded: India

@@ -279,7 +279,7 @@ export default function Presentation() {
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center h-12 sm:h-14 overflow-x-auto pres-nav-scroll">
           <div className="flex items-center gap-2 whitespace-nowrap mr-4 sm:mr-6 shrink-0">
-            <img src={bfiLogoImg} alt="BFI Logo" className="h-7 sm:h-9 w-auto object-contain" />
+            <img src={bfiLogoImg} alt="Bright Fame Organic Logo" className="h-7 sm:h-9 w-auto object-contain" />
             <span className="font-bold text-xs sm:text-sm hidden md:inline" style={{ color: COLORS.turmericGold }}>
               BRIGHT FAME ORGANIC
             </span>

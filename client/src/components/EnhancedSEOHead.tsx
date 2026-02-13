@@ -25,7 +25,7 @@ export default function EnhancedSEOHead({
   productPrice,
   currency = 'USD',
   availability,
-  brand = 'BFI Organic',
+  brand = 'Bright Fame Organic',
   category,
   geoTargeting = ['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']
 }: EnhancedSEOHeadProps) {
@@ -45,7 +45,7 @@ export default function EnhancedSEOHead({
     updateMetaTag('og:title', title, 'property');
     updateMetaTag('og:description', description, 'property');
     updateMetaTag('og:type', pageType === 'product' ? 'product' : 'website', 'property');
-    updateMetaTag('og:site_name', 'BFI Organic - Premium Organic Ingredients', 'property');
+    updateMetaTag('og:site_name', 'Bright Fame Organic - Premium Organic Ingredients', 'property');
     updateMetaTag('og:locale', 'en_US', 'property');
     
     if (canonicalUrl) {
@@ -111,7 +111,7 @@ export default function EnhancedSEOHead({
 
     // Additional SEO meta tags
     updateMetaTag('author', 'Bright Fame Organic Pvt. Ltd.');
-    updateMetaTag('publisher', 'BFI Organic');
+    updateMetaTag('publisher', 'Bright Fame Organic');
     updateMetaTag('copyright', `© ${new Date().getFullYear()} Bright Fame Organic Pvt. Ltd.`);
     updateMetaTag('language', 'English');
     updateMetaTag('revisit-after', '7 days');

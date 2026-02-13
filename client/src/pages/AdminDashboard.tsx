@@ -183,7 +183,7 @@ export default function AdminDashboard() {
         <Sidebar className="border-r border-gray-200 dark:border-gray-700">
           {/* Logo/Brand */}
           <SidebarHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">BFI Admin Portal</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
             <a 
               href="/" 

@@ -132,7 +132,7 @@ export default function CustomerSidebar() {
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">BFI</span>
+                <span className="text-white font-bold text-sm">BFO</span>
               </div>
               <div>
                 <h2 className="font-semibold text-gray-900">Customer Portal</h2>

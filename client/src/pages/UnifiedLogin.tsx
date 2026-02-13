@@ -119,8 +119,8 @@ export default function UnifiedLogin() {
               <Leaf className="text-white text-2xl" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-green-600">BFI ORGANIC</CardTitle>
-          <CardDescription>Welcome to BFI Organic Login Portal</CardDescription>
+          <CardTitle className="text-2xl font-bold text-green-600">BRIGHT FAME ORGANIC</CardTitle>
+          <CardDescription>Welcome to Bright Fame Organic Login Portal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -227,7 +227,7 @@ export default function UnifiedLogin() {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-800 font-medium mb-1">Staff Access:</p>
                 <div className="text-xs text-gray-700">
-                  <p>For BFI Organic team members only</p>
+                  <p>For Bright Fame Organic team members only</p>
                 </div>
               </div>
             </TabsContent>

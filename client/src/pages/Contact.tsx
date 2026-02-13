@@ -20,12 +20,12 @@ export default function Contact() {
   });
 
   useEffect(() => {
-    document.title = "Contact BFI Organic - Get in Touch for Organic Ingredient Inquiries";
+    document.title = "Contact Bright Fame Organic - Get in Touch for Organic Ingredient Inquiries";
     
     // Add meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Contact BFI Organic for premium organic ingredients. Get expert consultation, product samples, and competitive quotes. Serving B2B customers globally.');
+      metaDescription.setAttribute('content', 'Contact Bright Fame Organic for premium organic ingredients. Get expert consultation, product samples, and competitive quotes. Serving B2B customers globally.');
     }
   }, []);
 
@@ -48,7 +48,7 @@ export default function Contact() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Contact BFI Organic
+              Contact Bright Fame Organic
             </h1>
             <p className="text-xl opacity-90 mb-8">
               Get in touch with our organic ingredient experts. We're here to help 
@@ -249,7 +249,7 @@ export default function Contact() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Globe className="w-5 h-5 text-green-600" />
-                      Why Choose BFI Organic?
+                      Why Choose Bright Fame Organic?
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">

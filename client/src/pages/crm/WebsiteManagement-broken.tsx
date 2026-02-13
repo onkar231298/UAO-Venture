@@ -1416,7 +1416,7 @@ export default function WebsiteManagement() {
           <Input
             value={formData.seoTitle}
             onChange={(e) => setFormData(prev => ({ ...prev, seoTitle: e.target.value }))}
-            placeholder="Product name - Category | BFI Organic"
+            placeholder="Product name - Category | Bright Fame Organic"
           />
         </div>
         <div>

@@ -202,17 +202,17 @@ export default function ProductDetailBFI() {
     if (!optimizedTitle) {
       // Generate keyword-optimized title based on product type
       if (productName.includes('amla')) {
-        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | BFI Organic`;
+        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('haritaki')) {
-        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | BFI Organic`;
+        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('turmeric')) {
-        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | BFI Organic`;
+        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('ashwagandha')) {
-        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | BFI Organic`;
+        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | Bright Fame Organic`;
       } else {
         // Generic optimization
         const category = product.category?.name || 'Organic Ingredients';
-        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | BFI Organic`;
+        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | Bright Fame Organic`;
       }
     }
     
@@ -246,13 +246,13 @@ export default function ProductDetailBFI() {
     if (product) {
       // Update page title with optimized SEO title
       const optimizedTitle = generateOptimizedTitle(product);
-      if (document.title === 'Vite + React + TS' || !document.title.includes('BFI Organic')) {
+      if (document.title === 'Vite + React + TS' || !document.title.includes('Bright Fame Organic')) {
         document.title = optimizedTitle;
       }
       
       // Update meta description with optimized SEO description
       let metaDescription = document.querySelector('meta[name="description"]');
-      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('BFI Organic')) {
+      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('Bright Fame Organic')) {
         if (!metaDescription) {
           metaDescription = document.createElement('meta');
           metaDescription.setAttribute('name', 'description');
@@ -347,7 +347,7 @@ export default function ProductDetailBFI() {
         productPrice={product.priceUSD || product.rate}
         currency="USD"
         availability={product.currentStock && parseFloat(product.currentStock.toString()) > 0 ? 'InStock' : 'OutOfStock'}
-        brand="BFI Organic"
+        brand="Bright Fame Organic"
         category={product.category?.name || product.healthSupport}
         geoTargeting={['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']}
       />

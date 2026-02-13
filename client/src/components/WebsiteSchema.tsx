@@ -8,7 +8,7 @@ export default function WebsiteSchema() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "BFI Organic - Premium Organic Ingredients Supplier",
+      "name": "Bright Fame Organic - Premium Organic Ingredients Supplier",
       "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "description": "Leading global supplier of certified organic ingredients, spices, herbs, and botanical extracts for pharmaceutical, nutraceutical, and food industries.",

@@ -300,7 +300,7 @@ body {
 }
 
 @layer components {
-  /* BFI Organic specific components */
+  /* Bright Fame Organic specific components */
   .bfi-gradient {
     background: linear-gradient(135deg, var(--bfi-primary) 0%, var(--bfi-primary-light) 100%);
   }
@@ -465,7 +465,7 @@ body {
     -webkit-line-clamp: 2;
   }
   
-  /* Custom utilities for BFI Organic */
+  /* Custom utilities for Bright Fame Organic */
   .bg-bfi-primary {
     background-color: var(--bfi-primary);
   }

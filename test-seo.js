@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// SEO Testing Script for BFI Organic Platform
+// SEO Testing Script for Bright Fame Organic Platform
 import https from 'https';
 import http from 'http';
 

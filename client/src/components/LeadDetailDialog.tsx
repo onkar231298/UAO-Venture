@@ -772,7 +772,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
 <p>Please review the order details and let us know if you have any questions.</p>
 
-<p>Best regards,<br/>The BFI Organic Team</p>`);
+<p>Best regards,<br/>The Bright Fame Organic Team</p>`);
     setSelectedThreadForSO("");
   };
 

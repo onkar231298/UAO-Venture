@@ -10,7 +10,7 @@ import { CheckCircle, Award, Globe, Truck, FileText, Users } from "lucide-react"
 export default function FoodIngredients() {
   // Set page SEO
   useEffect(() => {
-    document.title = "Food Grade Organic Ingredients Supplier - BFI Organic | EU Certified";
+    document.title = "Food Grade Organic Ingredients Supplier - Bright Fame Organic | EU Certified";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
@@ -120,7 +120,7 @@ export default function FoodIngredients() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Food Manufacturers Choose BFI Organic
+              Why Food Manufacturers Choose Bright Fame Organic
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Leading supplier of food-grade organic ingredients with EU compliance and global reach

@@ -396,7 +396,7 @@ export default function PackagingSolutions() {
       <section className="py-16 sm:py-20" style={{ background: `linear-gradient(135deg, ${COLORS.herbalGreen}, #1a3a2a)` }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="scale-up">
-            <img src={bfiLogoImg} alt="BFI Logo" className="h-12 sm:h-16 w-auto object-contain mx-auto mb-4 sm:mb-6" />
+            <img src={bfiLogoImg} alt="Bright Fame Organic Logo" className="h-12 sm:h-16 w-auto object-contain mx-auto mb-4 sm:mb-6" />
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
               Ready to Discuss Your Packaging Needs?
             </h2>

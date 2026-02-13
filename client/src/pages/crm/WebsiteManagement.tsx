@@ -1179,7 +1179,7 @@ function SchemaValidatorInterface() {
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <ul className="text-sm text-green-700 space-y-1">
               <li>• Product schema with name, description, SKU, and pricing</li>
-              <li>• Brand information for BFI Organic</li>
+              <li>• Brand information for Bright Fame Organic</li>
               <li>• Availability and stock status</li>
               <li>• Breadcrumb navigation</li>
               <li>• Additional properties (botanical name, origin, form)</li>

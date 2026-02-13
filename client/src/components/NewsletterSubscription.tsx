@@ -50,7 +50,7 @@ export default function NewsletterSubscription({
       
       toast({
         title: "Successfully Subscribed!",
-        description: "Thank you for subscribing to our newsletter. You'll receive the latest updates from BFI Organic.",
+        description: "Thank you for subscribing to our newsletter. You'll receive the latest updates from Bright Fame Organic.",
         duration: 5000,
       });
 
@@ -156,7 +156,7 @@ export default function NewsletterSubscription({
           Stay Updated
         </h3>
         <p className="text-gray-600 mb-4">
-          Get the latest insights and updates from BFI Organic delivered to your inbox.
+          Get the latest insights and updates from Bright Fame Organic delivered to your inbox.
         </p>
         <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
           <Input

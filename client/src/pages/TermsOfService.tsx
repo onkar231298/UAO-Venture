@@ -79,7 +79,7 @@ export default function TermsOfService() {
               <ul className="list-disc pl-6 text-gray-700 dark:text-gray-300 mb-4">
                 <li>Legitimate business purposes related to organic ingredients</li>
                 <li>Product research and inquiry submission</li>
-                <li>Communication with BFI Organic representatives</li>
+                <li>Communication with Bright Fame Organic representatives</li>
                 <li>Accessing available resources and documentation</li>
               </ul>
 

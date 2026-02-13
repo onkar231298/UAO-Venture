@@ -9,7 +9,7 @@ import { Leaf, Award, Globe, Shield, FileCheck, Microscope } from "lucide-react"
 
 export default function OrganicHerbs() {
   useEffect(() => {
-    document.title = "Organic Herbs Supplier - EU Certified Medicinal & Culinary Herbs | BFI Organic";
+    document.title = "Organic Herbs Supplier - EU Certified Medicinal & Culinary Herbs | Bright Fame Organic";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {

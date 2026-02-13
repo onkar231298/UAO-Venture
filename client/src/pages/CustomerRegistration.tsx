@@ -121,7 +121,7 @@ export default function CustomerRegistration() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl text-green-700">Welcome to BFI Organic!</CardTitle>
+            <CardTitle className="text-2xl text-green-700">Welcome to Bright Fame Organic!</CardTitle>
             <CardDescription>
               Your account has been created successfully. You can now log in to explore our premium organic ingredients.
             </CardDescription>
@@ -153,7 +153,7 @@ export default function CustomerRegistration() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <UserPlus className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join BFI Organic</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Bright Fame Organic</h1>
           <p className="text-gray-600">Create your account to access premium organic ingredients</p>
         </div>
 

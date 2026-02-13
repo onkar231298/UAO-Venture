@@ -506,7 +506,7 @@ export default function EmailConfigManagement() {
                     id="displayName"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    placeholder="John Smith - BFI Organic"
+                    placeholder="John Smith - Bright Fame Organic"
                     data-testid="input-display-name"
                   />
                   <p className="text-xs text-gray-500 mt-1">

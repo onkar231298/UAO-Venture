@@ -117,8 +117,8 @@ const industries: IndustryCard[] = [
 
 export default function Industries() {
   useSEO({
-    title: "Industries We Serve - B2B Organic Ingredients Supplier | BFI Organic",
-    description: "BFI Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant.",
+    title: "Industries We Serve - B2B Organic Ingredients Supplier | Bright Fame Organic",
+    description: "Bright Fame Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant.",
     keywords: "organic ingredients supplier, pharmaceutical ingredients, food grade herbs, nutraceutical raw materials, cosmetic ingredients, B2B organic supplier, certified organic herbs",
     canonicalUrl: `${window.location.origin}/industries`,
     pageType: "website",
@@ -142,7 +142,7 @@ export default function Industries() {
                 Industries We Serve
               </h1>
               <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
-                BFI Organic is a trusted B2B supplier of certified organic ingredients serving diverse industries worldwide. 
+                Bright Fame Organic is a trusted B2B supplier of certified organic ingredients serving diverse industries worldwide. 
                 With ISO certifications, state-of-the-art facilities, and rigorous quality control, we deliver premium organic 
                 raw materials tailored to your industry's specific requirements.
               </p>

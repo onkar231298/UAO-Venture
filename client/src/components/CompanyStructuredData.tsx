@@ -7,7 +7,7 @@ export default function CompanyStructuredData() {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "BFI Organic",
+      "alternateName": "Bright Fame Organic",
       "description": "Leading B2B supplier of certified organic ingredients, herbs, spices, and botanical extracts serving pharmaceutical, nutraceutical, and food industries worldwide.",
       "url": "https://bright-organic.com",
       "logo": "https://bright-organic.com/bfi-logo.png",

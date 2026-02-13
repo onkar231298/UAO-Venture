@@ -115,7 +115,7 @@ export default function StaffDashboard() {
       <aside className="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">BFI Staff Portal</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Staff Portal</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">{roleDisplayName}</p>
         </div>
 

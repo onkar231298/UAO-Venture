@@ -8,8 +8,8 @@ export function createStaticProductPage(product) {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>${product.name} - BFI Organic</title>
-    <meta name="description" content="${product.description || 'Premium organic ingredient from BFI Organic'}" />
+    <title>${product.name} - Bright Fame Organic</title>
+    <meta name="description" content="${product.description || 'Premium organic ingredient from Bright Fame Organic'}" />
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f9f9f9; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -26,7 +26,7 @@ export function createStaticProductPage(product) {
 <body>
     <div class="container">
         <div class="nav">
-            <a href="/">← Back to BFI Organic Homepage</a>
+            <a href="/">← Back to Bright Fame Organic Homepage</a>
         </div>
         
         <h1>${product.name}</h1>
@@ -66,7 +66,7 @@ export function createStaticHomePage() {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>BFI Organic - Premium B2B Organic Ingredients</title>
+    <title>Bright Fame Organic - Premium B2B Organic Ingredients</title>
     <meta name="description" content="Bright Fame Organic Pvt. Ltd. - Leading supplier of certified organic ingredients for B2B customers worldwide." />
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
@@ -81,7 +81,7 @@ export function createStaticHomePage() {
 </head>
 <body>
     <div class="container">
-        <h1>BFI Organic</h1>
+        <h1>Bright Fame Organic</h1>
         <h2>Premium Organic Ingredients for B2B Excellence</h2>
         
         <div class="success-banner">
