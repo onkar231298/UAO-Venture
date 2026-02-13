@@ -633,48 +633,7 @@ export function KnowledgeHubAEO() {
               </CardContent>
             </Card>
 
-            {/* Comparison 2: India vs China */}
-            <Card className="border-emerald-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-emerald-800">
-                  <Globe className="w-5 h-5" />
-                  India vs China: Organic Ingredient Sourcing
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse" aria-label="Comparison of India and China as organic ingredient sourcing origins">
-                    <thead>
-                      <tr className="border-b-2 border-emerald-200">
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50 w-1/3">Factor</th>
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50 w-1/3">India</th>
-                        <th className="text-left py-3 px-3 font-semibold text-emerald-800 bg-emerald-50 w-1/3">China</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        ["Organic Farmland", "4.7M+ hectares under organic cultivation", "3.1M+ hectares under organic cultivation"],
-                        ["Specialty Strength", "Herbs, spices, Ayurvedic botanicals, psyllium", "Tea, soy, grains, goji berries"],
-                        ["Certification Standards", "NPOP (aligned with EU Organic and USDA NOP)", "China Organic (GB/T 19630), OFDC"],
-                        ["Pricing", "Competitive for herbs, spices, and botanicals", "Competitive for grains and bulk commodities"],
-                        ["Traditional Medicine Heritage", "Ayurveda (5,000+ years)", "Traditional Chinese Medicine (TCM)"],
-                        ["Export Infrastructure", "APEDA-regulated, established logistics", "Large-scale export infrastructure"],
-                        ["English Communication", "Widely available in business settings", "More limited in B2B interactions"],
-                        ["Traceability Systems", "Farm-to-product systems well developed", "Improving but variable by supplier"],
-                      ].map(([factor, india, china]) => (
-                        <tr key={factor} className="border-b border-gray-100">
-                          <td className="py-2 px-3 font-medium text-gray-700">{factor}</td>
-                          <td className="py-2 px-3 text-gray-600">{india}</td>
-                          <td className="py-2 px-3 text-gray-600">{china}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Comparison 3: Conventional vs Organic */}
+            {/* Comparison 2: Conventional vs Organic */}
             <Card className="border-emerald-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-emerald-800">
