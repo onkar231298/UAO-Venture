@@ -50,7 +50,7 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
 
   const docMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/quality/document-requests", data);
+      const res = await apiRequest("/api/quality/document-requests", { method: "POST", body: JSON.stringify(data) });
       return res.json();
     },
     onSuccess: () => {
@@ -66,7 +66,7 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
 
   const testMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/quality/testing-requests", data);
+      const res = await apiRequest("/api/quality/testing-requests", { method: "POST", body: JSON.stringify(data) });
       return res.json();
     },
     onSuccess: () => {
@@ -82,7 +82,7 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
 
   const approvalMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/quality/customer-vendor-approvals", data);
+      const res = await apiRequest("/api/quality/customer-vendor-approvals", { method: "POST", body: JSON.stringify(data) });
       return res.json();
     },
     onSuccess: () => {

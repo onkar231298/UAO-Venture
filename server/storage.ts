@@ -7448,8 +7448,8 @@ export class DatabaseStorage implements IStorage {
 
   async getQualityBatchNumbers(filters?: { batchType?: string; status?: string; limit?: number; offset?: number }): Promise<{ batches: QualityBatchNumber[]; total: number }> {
     const conditions: any[] = [];
-    if (filters?.batchType) conditions.push(eq(qualityBatchNumbers.batchType, filters.batchType));
-    if (filters?.status) conditions.push(eq(qualityBatchNumbers.status, filters.status));
+    if (filters?.batchType && filters.batchType !== 'all') conditions.push(eq(qualityBatchNumbers.batchType, filters.batchType));
+    if (filters?.status && filters.status !== 'all') conditions.push(eq(qualityBatchNumbers.status, filters.status));
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const [batches, countResult] = await Promise.all([

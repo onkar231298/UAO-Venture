@@ -12246,6 +12246,17 @@ We look forward to hearing from you.`;
     }
   });
 
+  // Approved RM batches (for FG creation) - must be before :id route
+  app.get('/api/quality/batches/approved-rm', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const batches = await storage.getApprovedRMBatches();
+      res.json(batches);
+    } catch (error) {
+      console.error('Error fetching approved RM batches:', error);
+      res.status(500).json({ message: 'Failed to fetch approved RM batches' });
+    }
+  });
+
   app.get('/api/quality/batches/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
       const batch = await storage.getQualityBatchNumber(parseInt(req.params.id));
@@ -12313,17 +12324,6 @@ We look forward to hearing from you.`;
     } catch (error) {
       console.error('Error rejecting batch:', error);
       res.status(500).json({ message: 'Failed to reject batch' });
-    }
-  });
-
-  // Approved RM batches (for FG creation)
-  app.get('/api/quality/batches/approved-rm', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
-    try {
-      const batches = await storage.getApprovedRMBatches();
-      res.json(batches);
-    } catch (error) {
-      console.error('Error fetching approved RM batches:', error);
-      res.status(500).json({ message: 'Failed to fetch approved RM batches' });
     }
   });
 

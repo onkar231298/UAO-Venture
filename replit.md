@@ -71,7 +71,18 @@ Preferred communication style: Simple, everyday language.
 - Document requests (COA, specs, MSDS, organic certs, allergen statements, vendor questionnaires)
 - Testing requests (IRF - Incoming Raw Material, TRF - Testing Request Form)
 - Test reports with pass/fail/conditional conclusions
-- Batch number creation with format: BFO-[O/C]-[MaterialCode]-[Form]-[MMYY]
+- **Batch Lifecycle Management**: Full RM-to-FG batch lifecycle with:
+  - Batch number format: BFO-[O/C]-[MaterialCode]-[Form]-[MMYY] (auto-generated)
+  - Batch types: raw_material (RM) and finished_good (FG)
+  - Status flow: created → testing → approved/rejected → partially_used/consumed
+  - Visual inspection (pass/fail/conditional) with notes
+  - Standard tests (moisture for RM) and custom test parameters (dynamic, added at creation)
+  - Quantity tracking: total, approved, used, remaining with unit of measure
+  - Supplier info (name, batch ref), storage location, expiry date
+  - Batch approval/rejection workflow with approver tracking
+  - RM-to-FG transfer: select approved RM batches, record quantities consumed, auto-calculate process loss (qty & %)
+  - Test results CRUD per batch
+  - Full traceability: which RM batches went into each FG batch, and vice versa
 - Material vendor management with approval workflows
 - Customer vendor approval processing from Sales team
 - Non-Conformance Reports (NCR) with severity tracking (minor/major/critical)
@@ -80,8 +91,8 @@ Preferred communication style: Simple, everyday language.
 - Super Admin overview of all quality operations via AdminDashboard
 - Dedicated Quality Dashboard at /quality/dashboard for quality roles
 
-**Database Tables**: quality_document_requests, quality_testing_requests, quality_test_reports, quality_batch_numbers, quality_vendors, quality_customer_vendor_approvals, quality_ncrs, quality_attachments
-**API Endpoints**: /api/quality/* (document-requests, testing-requests, test-reports, batches, vendors, customer-vendor-approvals, ncrs, attachments, dashboard-stats)
+**Database Tables**: quality_document_requests, quality_testing_requests, quality_test_reports, quality_batch_numbers, batch_test_results, batch_material_consumption, quality_vendors, quality_customer_vendor_approvals, quality_ncrs, quality_attachments
+**API Endpoints**: /api/quality/* (document-requests, testing-requests, test-reports, batches, batches/approved-rm, batches/:id/approve, batches/:id/reject, batches/:id/test-results, batches/:id/consumptions, batches/transfer-rm-to-fg, vendors, customer-vendor-approvals, ncrs, attachments, dashboard-stats)
 **Key Files**: client/src/pages/quality/QualityDashboard.tsx, client/src/pages/admin/AdminQualityOverview.tsx, client/src/components/quality/QualityRequestDialog.tsx
 
 ## Pending Features (To Be Continued)
