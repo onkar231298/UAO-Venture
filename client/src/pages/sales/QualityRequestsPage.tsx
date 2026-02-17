@@ -14,20 +14,23 @@ export default function QualityRequestsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("documents");
 
-  const { data: docRequests, isLoading: docsLoading } = useQuery<any[]>({
+  const { data: docData, isLoading: docsLoading } = useQuery<any>({
     queryKey: ['/api/quality/document-requests'],
     enabled: !!user,
   });
+  const docRequests: any[] = docData?.requests || (Array.isArray(docData) ? docData : []);
 
-  const { data: testRequests, isLoading: testsLoading } = useQuery<any[]>({
+  const { data: testData, isLoading: testsLoading } = useQuery<any>({
     queryKey: ['/api/quality/testing-requests'],
     enabled: !!user,
   });
+  const testRequests: any[] = testData?.requests || (Array.isArray(testData) ? testData : []);
 
-  const { data: approvals, isLoading: approvalsLoading } = useQuery<any[]>({
+  const { data: approvalData, isLoading: approvalsLoading } = useQuery<any>({
     queryKey: ['/api/quality/customer-vendor-approvals'],
     enabled: !!user,
   });
+  const approvals: any[] = approvalData?.approvals || (Array.isArray(approvalData) ? approvalData : []);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
