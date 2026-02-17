@@ -548,10 +548,11 @@ function DocumentRequestsSection() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>Reference ID</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Material</TableHead>
+                <TableHead>Customer Name</TableHead>
                 <TableHead>Requested By</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
@@ -561,16 +562,17 @@ function DocumentRequestsSection() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No document requests found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No document requests found</TableCell></TableRow>
               ) : (
                 items.map((item: any) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">#{item.id}</TableCell>
+                    <TableCell className="font-mono text-sm font-semibold text-green-700">{item.referenceId || `#${item.id}`}</TableCell>
                     <TableCell>{item.title || "-"}</TableCell>
                     <TableCell><Badge variant="outline">{item.requestType?.toUpperCase() || "-"}</Badge></TableCell>
                     <TableCell>{item.materialName || "-"}</TableCell>
+                    <TableCell className="font-medium">{item.customerName || "-"}</TableCell>
                     <TableCell>{item.requesterName || "-"}</TableCell>
                     <TableCell><Badge variant={item.priority === "urgent" ? "destructive" : "secondary"}>{item.priority}</Badge></TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
@@ -591,16 +593,17 @@ function DocumentRequestsSection() {
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Document Request #{selectedItem?.id}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Document Request: {selectedItem?.referenceId || `#${selectedItem?.id}`}</DialogTitle></DialogHeader>
           {selectedItem && (
             <div className="space-y-6">
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg">Request Details</h3>
                 <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Reference ID</Label><p className="text-sm mt-1 font-mono font-semibold text-green-700">{selectedItem.referenceId || "N/A"}</p></div>
                   <div><Label>Title</Label><p className="text-sm mt-1">{selectedItem.title || "N/A"}</p></div>
                   <div><Label>Type</Label><p className="text-sm mt-1">{selectedItem.requestType?.toUpperCase() || "N/A"}</p></div>
                   <div><Label>Material Name</Label><p className="text-sm mt-1">{selectedItem.materialName || "N/A"}</p></div>
-                  <div><Label>Customer Name</Label><p className="text-sm mt-1">{selectedItem.customerName || "N/A"}</p></div>
+                  <div><Label>Customer Name</Label><p className="text-sm mt-1 font-medium">{selectedItem.customerName || "N/A"}</p></div>
                   <div className="col-span-2"><Label>Description</Label><p className="text-sm mt-1">{selectedItem.description || "N/A"}</p></div>
                   <div className="col-span-2"><Label>Notes</Label><p className="text-sm mt-1">{selectedItem.notes || "N/A"}</p></div>
                   <div><Label>Priority</Label><div className="mt-1"><Badge variant={selectedItem.priority === "urgent" ? "destructive" : "secondary"}>{selectedItem.priority}</Badge></div></div>

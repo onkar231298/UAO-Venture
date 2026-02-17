@@ -154,6 +154,7 @@ export default function QualityRequestsPage() {
                         <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedDoc(req)}>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
+                              <span className="font-mono text-sm font-semibold text-green-700">{req.referenceId || `#${req.id}`}</span>
                               <span className="font-medium">{req.title || req.materialName || 'Document Request'}</span>
                               <Badge variant="outline" className="text-xs">{(req.requestType || req.documentType)?.toUpperCase()}</Badge>
                               {hasResponse(req) && (
@@ -208,6 +209,7 @@ export default function QualityRequestsPage() {
                         <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedTest(req)}>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
+                              <span className="font-mono text-sm font-semibold text-blue-700">{req.referenceId || `#${req.id}`}</span>
                               <span className="font-medium">{req.title || req.materialName || 'Testing Request'}</span>
                               <Badge variant="outline" className="text-xs">{req.requestType?.toUpperCase()}</Badge>
                               {hasResponse(req) && (
@@ -292,12 +294,16 @@ export default function QualityRequestsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Document Request #{selectedDoc?.id}
+              Document Request: {selectedDoc?.referenceId || `#${selectedDoc?.id}`}
             </DialogTitle>
           </DialogHeader>
           {selectedDoc && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs text-gray-500">Reference ID</Label>
+                  <p className="text-sm font-mono font-semibold text-green-700">{selectedDoc.referenceId || '-'}</p>
+                </div>
                 <div>
                   <Label className="text-xs text-gray-500">Title</Label>
                   <p className="text-sm font-medium">{selectedDoc.title || '-'}</p>
@@ -312,7 +318,7 @@ export default function QualityRequestsPage() {
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">Customer</Label>
-                  <p className="text-sm">{selectedDoc.customerName || '-'}</p>
+                  <p className="text-sm font-medium">{selectedDoc.customerName || '-'}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">Priority</Label>
@@ -386,12 +392,16 @@ export default function QualityRequestsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FlaskConical className="h-5 w-5" />
-              Testing Request #{selectedTest?.id}
+              Testing Request: {selectedTest?.referenceId || `#${selectedTest?.id}`}
             </DialogTitle>
           </DialogHeader>
           {selectedTest && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs text-gray-500">Reference ID</Label>
+                  <p className="text-sm font-mono font-semibold text-blue-700">{selectedTest.referenceId || '-'}</p>
+                </div>
                 <div>
                   <Label className="text-xs text-gray-500">Title</Label>
                   <p className="text-sm font-medium">{selectedTest.title || '-'}</p>

@@ -63,6 +63,8 @@ import {
   smsMessages,
   emailThreads,
   emailMessages,
+  qualityDocumentRequests,
+  qualityTestingRequests,
 } from "@shared/schema";
 import { eq, and, isNotNull, desc, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -12135,13 +12137,20 @@ We look forward to hearing from you.`;
   app.post('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
+      const custName = req.body.customerName || 'Unknown';
+      const now = new Date();
+      const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getFullYear()).slice(-2)}`;
+      const countResult = await db.select({ count: sql<number>`count(*)::int` }).from(qualityDocumentRequests).where(sql`customer_name = ${custName} AND to_char(created_at, 'MMYY') = ${monthYear}`);
+      const seq = String((countResult[0]?.count || 0) + 1).padStart(3, '0');
+      const referenceId = `QDR-${custName}-${monthYear}-${seq}`;
       const body = {
         ...req.body,
         requesterId: userId,
+        referenceId,
         requestType: req.body.requestType || req.body.documentType || 'coa',
         title: req.body.title || `${(req.body.documentType || req.body.requestType || 'document').toUpperCase()} - ${req.body.materialName || 'Request'}`,
         materialName: req.body.materialName || req.body.productName || null,
-        customerName: req.body.customerName || null,
+        customerName: custName,
       };
       const validated = insertQualityDocumentRequestSchema.parse(body);
       const result = await storage.createQualityDocumentRequest(validated);
@@ -12206,12 +12215,19 @@ We look forward to hearing from you.`;
   app.post('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
+      const custName = req.body.customerName || 'Unknown';
+      const now = new Date();
+      const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getFullYear()).slice(-2)}`;
+      const countResult = await db.select({ count: sql<number>`count(*)::int` }).from(qualityTestingRequests).where(sql`customer_name = ${custName} AND to_char(created_at, 'MMYY') = ${monthYear}`);
+      const seq = String((countResult[0]?.count || 0) + 1).padStart(3, '0');
+      const referenceId = `QTR-${custName}-${monthYear}-${seq}`;
       const body = {
         ...req.body,
         requesterId: userId,
+        referenceId,
         title: req.body.title || `${(req.body.requestType || 'IRF').toUpperCase()} - ${req.body.materialName || 'Test Request'}`,
         materialName: req.body.materialName || null,
-        customerName: req.body.customerName || null,
+        customerName: custName,
       };
       const validated = insertQualityTestingRequestSchema.parse(body);
       const result = await storage.createQualityTestingRequest(validated);

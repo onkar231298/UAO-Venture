@@ -2682,6 +2682,7 @@ export type InsertDailyPerformanceSummary = z.infer<typeof insertDailyPerformanc
 
 export const qualityDocumentRequests = pgTable("quality_document_requests", {
   id: serial("id").primaryKey(),
+  referenceId: varchar("reference_id", { length: 255 }),
   requesterId: varchar("requester_id").notNull().references(() => users.id),
   companyId: integer("company_id"),
   productId: integer("product_id"),
@@ -2717,6 +2718,7 @@ export type InsertQualityDocumentRequest = z.infer<typeof insertQualityDocumentR
 
 export const qualityTestingRequests = pgTable("quality_testing_requests", {
   id: serial("id").primaryKey(),
+  referenceId: varchar("reference_id", { length: 255 }),
   requesterId: varchar("requester_id").notNull().references(() => users.id),
   companyId: integer("company_id"),
   productId: integer("product_id"),
