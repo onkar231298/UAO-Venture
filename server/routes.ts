@@ -11457,36 +11457,48 @@ We look forward to hearing from you.`;
 
       const { normalizeCompanyName, calculateNameSimilarity } = await import('./duplicateDetection');
 
-      const groups: Map<string, any[]> = new Map();
+      function pickBestToKeep(group: any[]): any {
+        const assigned = group.filter((c: any) => c.assignedTo);
+        const unassigned = group.filter((c: any) => !c.assignedTo);
+        if (assigned.length > 0) {
+          return assigned.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+        }
+        return unassigned.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+      }
+
+      const nameGroups: Map<string, any[]> = new Map();
       for (const c of allCompanies) {
         const norm = c.normalizedName || normalizeCompanyName(c.companyName);
-        if (!groups.has(norm)) groups.set(norm, []);
-        groups.get(norm)!.push({ ...c, normalizedKey: norm });
+        if (!nameGroups.has(norm)) nameGroups.set(norm, []);
+        nameGroups.get(norm)!.push({ ...c, normalizedKey: norm });
       }
 
       const exactDuplicateIds = new Set<number>();
-      const duplicateGroups: any[] = [];
+      const exactGroups: any[] = [];
 
-      for (const [normName, group] of groups) {
+      for (const [normName, group] of nameGroups) {
         if (group.length > 1) {
           for (const c of group) exactDuplicateIds.add(c.id);
+          const best = pickBestToKeep(group);
           const sorted = group.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          const oldest = sorted[0];
-          duplicateGroups.push({
-            groupName: oldest.companyName,
+          exactGroups.push({
+            groupName: best.companyName,
             matchType: 'exact_name',
             confidence: 100,
+            keepId: best.id,
             companies: sorted.map((c: any) => ({
               ...c,
               assignedToName: c.assignedTo ? userMap.get(c.assignedTo) || null : null,
-              isOldest: c.id === oldest.id,
-              suggestion: c.id === oldest.id ? 'keep' : 'delete',
+              isOldest: c.id === sorted[0].id,
+              suggestion: c.id === best.id ? 'keep' : 'delete',
             })),
           });
         }
       }
 
       const nonDuplicateCompanies = allCompanies.filter(c => !exactDuplicateIds.has(c.id));
+      const duplicateGroups: any[] = [];
+
       const tokenIndex = new Map<string, any[]>();
       for (const c of nonDuplicateCompanies) {
         const norm = normalizeCompanyName(c.companyName);
@@ -11518,17 +11530,17 @@ We look forward to hearing from you.`;
         }
         if (similarGroup.length > 1) {
           for (const c of similarGroup) fuzzyChecked.add(c.id);
+          const best = pickBestToKeep(similarGroup);
           const sorted = similarGroup.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          const oldest = sorted[0];
           duplicateGroups.push({
-            groupName: oldest.companyName,
+            groupName: best.companyName,
             matchType: 'fuzzy_name',
             confidence: calculateNameSimilarity(sorted[0].companyName, sorted[1].companyName),
             companies: sorted.map((c: any) => ({
               ...c,
               assignedToName: c.assignedTo ? userMap.get(c.assignedTo) || null : null,
-              isOldest: c.id === oldest.id,
-              suggestion: c.id === oldest.id ? 'keep' : 'review',
+              isOldest: c.id === sorted[0].id,
+              suggestion: c.id === best.id ? 'keep' : 'review',
             })),
           });
         }
@@ -11536,10 +11548,72 @@ We look forward to hearing from you.`;
 
       duplicateGroups.sort((a, b) => b.companies.length - a.companies.length || b.confidence - a.confidence);
       
-      res.json(duplicateGroups);
+      res.json({ exactGroups, fuzzyGroups: duplicateGroups });
     } catch (error) {
       console.error('Error fetching duplicate companies:', error);
       res.status(500).json({ message: 'Failed to fetch duplicate companies' });
+    }
+  });
+
+  app.post('/api/admin/companies/auto-clean-duplicates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales_manager'))) {
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+
+      const { normalizeCompanyName } = await import('./duplicateDetection');
+
+      const allCompanies = await storage.getAllCompanies();
+      const nameGroups: Map<string, any[]> = new Map();
+      for (const c of allCompanies) {
+        const norm = (c as any).normalizedName || normalizeCompanyName(c.companyName);
+        if (!nameGroups.has(norm)) nameGroups.set(norm, []);
+        nameGroups.get(norm)!.push(c);
+      }
+
+      function pickBestToKeep(group: any[]): any {
+        const assigned = group.filter((c: any) => c.assignedTo);
+        const unassigned = group.filter((c: any) => !c.assignedTo);
+        if (assigned.length > 0) {
+          return assigned.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+        }
+        return unassigned.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+      }
+
+      const deleteIds: number[] = [];
+      const keptIds: number[] = [];
+
+      for (const [normName, group] of nameGroups) {
+        if (group.length > 1) {
+          const best = pickBestToKeep(group);
+          keptIds.push(best.id);
+          for (const c of group) {
+            if (c.id !== best.id) deleteIds.push(c.id);
+          }
+        }
+      }
+
+      let totalDeleted = 0;
+      const failedIds: number[] = [];
+      const batchSize = 100;
+      for (let i = 0; i < deleteIds.length; i += batchSize) {
+        const batch = deleteIds.slice(i, i + batchSize);
+        try {
+          const result = await storage.bulkDeleteCompanies(batch);
+          totalDeleted += result.deleted;
+        } catch (e) {
+          console.error('Error auto-deleting exact duplicates batch:', e);
+          failedIds.push(...batch);
+        }
+      }
+
+      res.json({ deleted: totalDeleted, failed: failedIds.length, kept: keptIds.length });
+    } catch (error) {
+      console.error('Error auto-cleaning duplicates:', error);
+      res.status(500).json({ message: 'Failed to auto-clean duplicates' });
     }
   });
 

@@ -39,8 +39,8 @@ import {
   Shield,
   ChevronDown,
   ChevronRight,
-  CheckSquare,
-  Square,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -67,21 +67,32 @@ interface DuplicateGroup {
   groupName: string;
   matchType: string;
   confidence: number;
+  keepId?: number;
   companies: DuplicateCompany[];
 }
 
+interface DuplicateResponse {
+  exactGroups: DuplicateGroup[];
+  fuzzyGroups: DuplicateGroup[];
+}
+
 export default function DuplicateReview() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; company: DuplicateCompany | null }>({ open: false, company: null });
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<{ open: boolean; companyIds: number[]; count: number }>({ open: false, companyIds: [], count: 0 });
+  const [autoCleanConfirm, setAutoCleanConfirm] = useState(false);
+  const [lastAutoDeleted, setLastAutoDeleted] = useState(0);
 
-  const { data: duplicateGroups, isLoading, refetch, isRefetching } = useQuery<DuplicateGroup[]>({
+  const { data: duplicateData, isLoading, refetch, isRefetching } = useQuery<DuplicateResponse>({
     queryKey: ['/api/admin/companies/duplicates'],
   });
+
+  const exactGroups = duplicateData?.exactGroups || [];
+  const fuzzyGroups = duplicateData?.fuzzyGroups || [];
+  const allGroups = [...exactGroups, ...fuzzyGroups];
 
   const deleteMutation = useMutation({
     mutationFn: async (companyId: number) => {
@@ -121,6 +132,27 @@ export default function DuplicateReview() {
     },
   });
 
+  const autoCleanMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('/api/admin/companies/auto-clean-duplicates', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      return res as any;
+    },
+    onSuccess: (data: any) => {
+      const deleted = data?.deleted || 0;
+      setLastAutoDeleted(deleted);
+      toast({ title: `${deleted} exact duplicates cleaned up successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies/duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+      setAutoCleanConfirm(false);
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to clean duplicates", description: err.message, variant: "destructive" });
+    },
+  });
+
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -154,13 +186,12 @@ export default function DuplicateReview() {
   };
 
   const selectAllDuplicates = () => {
-    if (!duplicateGroups) return;
-    const allDuplicateIds = duplicateGroups.flatMap(g => g.companies.filter(c => c.suggestion !== 'keep').map(c => c.id));
-    const allSelected = allDuplicateIds.every(id => selectedIds.has(id));
+    const allDupIds = allGroups.flatMap(g => g.companies.filter(c => c.suggestion !== 'keep').map(c => c.id));
+    const allSelected = allDupIds.every(id => selectedIds.has(id));
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(allDuplicateIds));
+      setSelectedIds(new Set(allDupIds));
     }
   };
 
@@ -177,16 +208,16 @@ export default function DuplicateReview() {
   };
 
   const selectedCompanyDetails = useMemo(() => {
-    if (!duplicateGroups || bulkDeleteConfirm.companyIds.length === 0) return [];
+    if (allGroups.length === 0 || bulkDeleteConfirm.companyIds.length === 0) return [];
     const idSet = new Set(bulkDeleteConfirm.companyIds);
-    return duplicateGroups.flatMap(g => g.companies).filter(c => idSet.has(c.id));
-  }, [duplicateGroups, bulkDeleteConfirm.companyIds]);
+    return allGroups.flatMap(g => g.companies).filter(c => idSet.has(c.id));
+  }, [allGroups, bulkDeleteConfirm.companyIds]);
 
-  const totalDuplicates = duplicateGroups?.reduce((sum, g) => sum + g.companies.length - 1, 0) || 0;
+  const totalExactDuplicates = exactGroups.reduce((sum, g) => sum + g.companies.filter(c => c.suggestion === 'delete').length, 0);
+  const totalFuzzyDuplicates = fuzzyGroups.reduce((sum, g) => sum + g.companies.length - 1, 0);
   const allDuplicateIds = useMemo(() => {
-    if (!duplicateGroups) return [];
-    return duplicateGroups.flatMap(g => g.companies.filter(c => c.suggestion !== 'keep').map(c => c.id));
-  }, [duplicateGroups]);
+    return allGroups.flatMap(g => g.companies.filter(c => c.suggestion !== 'keep').map(c => c.id));
+  }, [allGroups]);
   const allSelected = allDuplicateIds.length > 0 && allDuplicateIds.every(id => selectedIds.has(id));
 
   if (isLoading) {
@@ -197,6 +228,8 @@ export default function DuplicateReview() {
     );
   }
 
+  const hasAnyDuplicates = exactGroups.length > 0 || fuzzyGroups.length > 0;
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -206,7 +239,7 @@ export default function DuplicateReview() {
             Duplicate Review Queue
           </h1>
           <p className="text-muted-foreground mt-1">
-            Review and resolve duplicate company records. Select entries and delete them in bulk.
+            Review and clean up duplicate company records. Assigned companies are preferred over unassigned ones.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -222,7 +255,7 @@ export default function DuplicateReview() {
           )}
           <Button
             variant="outline"
-            onClick={() => refetch()}
+            onClick={() => { setSelectedIds(new Set()); setLastAutoDeleted(0); refetch(); }}
             disabled={isRefetching}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
@@ -231,7 +264,19 @@ export default function DuplicateReview() {
         </div>
       </div>
 
-      {(!duplicateGroups || duplicateGroups.length === 0) ? (
+      {lastAutoDeleted > 0 && (
+        <Card className="border-green-200 bg-green-50/50">
+          <CardContent className="py-3 flex items-center gap-3">
+            <Sparkles className="h-5 w-5 text-green-600" />
+            <p className="text-sm text-green-800">
+              <span className="font-semibold">{lastAutoDeleted} exact duplicate{lastAutoDeleted > 1 ? 's' : ''}</span> were cleaned up.
+              Assigned companies were kept over unassigned ones.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!hasAnyDuplicates ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
@@ -242,230 +287,229 @@ export default function DuplicateReview() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2 bg-muted/50 rounded-lg p-3">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={selectAllDuplicates}
-                id="select-all"
-              />
-              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
-                Select All Duplicates ({allDuplicateIds.length} entries)
-              </label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Found <span className="font-semibold text-amber-600">{duplicateGroups.length} groups</span> with{' '}
-              <span className="font-semibold text-red-600">{totalDuplicates} duplicate entries</span> to review
-            </p>
-          </div>
-          
-          {duplicateGroups.map((group, idx) => {
-            const groupKey = `${group.groupName}-${idx}`;
-            const isExpanded = expandedGroups.has(groupKey);
-            const deleteSuggestions = group.companies.filter(c => c.suggestion === 'delete');
-            const nonKeepIds = group.companies.filter(c => c.suggestion !== 'keep').map(c => c.id);
-            const groupAllSelected = nonKeepIds.length > 0 && nonKeepIds.every(id => selectedIds.has(id));
-            const groupSomeSelected = nonKeepIds.some(id => selectedIds.has(id));
-            const groupSelectedCount = nonKeepIds.filter(id => selectedIds.has(id)).length;
-            
-            return (
-              <Card key={groupKey} className="border-l-4 border-l-amber-500">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={groupAllSelected}
-                        onCheckedChange={() => toggleSelectGroup(group)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div 
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-                        onClick={() => toggleGroup(groupKey)}
-                      >
-                        {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                        <div>
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            <Building2 className="h-5 w-5" />
-                            {group.groupName}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
-                            <Badge variant={group.confidence === 100 ? "destructive" : "secondary"}>
-                              {group.confidence}% Match
-                            </Badge>
-                            <Badge variant="outline">
-                              {group.matchType === 'exact_name' ? 'Exact Name Match' : 'Similar Name'}
-                            </Badge>
-                            <span className="text-xs">
-                              {group.companies.length} entries found
-                            </span>
-                            {deleteSuggestions.length > 0 && (
+        <div className="space-y-6">
+          {exactGroups.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2 bg-red-50 rounded-lg p-3 border border-red-200">
+                <div>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 text-red-800">
+                    <Zap className="h-5 w-5" />
+                    Exact Name Duplicates
+                  </h2>
+                  <p className="text-sm text-red-700 mt-1">
+                    {exactGroups.length} groups with {totalExactDuplicates} duplicates ready for auto-cleanup.
+                    Assigned companies will be kept, unassigned ones deleted.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={() => setAutoCleanConfirm(true)}
+                  disabled={autoCleanMutation.isPending}
+                >
+                  {autoCleanMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Zap className="h-4 w-4 mr-2" />
+                  )}
+                  Clean Up All {totalExactDuplicates} Exact Duplicates
+                </Button>
+              </div>
+
+              {exactGroups.map((group, idx) => {
+                const groupKey = `exact-${group.groupName}-${idx}`;
+                const isExpanded = expandedGroups.has(groupKey);
+                const deleteSuggestions = group.companies.filter(c => c.suggestion === 'delete');
+
+                return (
+                  <Card key={groupKey} className="border-l-4 border-l-red-500">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div 
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+                          onClick={() => toggleGroup(groupKey)}
+                        >
+                          {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                          <div>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                              <Building2 className="h-5 w-5" />
+                              {group.groupName}
+                            </CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
+                              <Badge variant="destructive">100% Match</Badge>
+                              <Badge variant="outline">Exact Name</Badge>
+                              <span className="text-xs">{group.companies.length} entries</span>
                               <Badge className="bg-red-100 text-red-800">
-                                {deleteSuggestions.length} suggested for deletion
+                                {deleteSuggestions.length} to delete
                               </Badge>
-                            )}
-                            {groupSelectedCount > 0 && (
-                              <Badge className="bg-blue-100 text-blue-800">
-                                {groupSelectedCount} selected
-                              </Badge>
-                            )}
-                          </CardDescription>
+                            </CardDescription>
+                          </div>
+                        </div>
+                        {deleteSuggestions.length > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteSuggested(group); }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete {deleteSuggestions.length}
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    {isExpanded && (
+                      <CardContent>
+                        <CompanyTable
+                          group={group}
+                          selectedIds={selectedIds}
+                          toggleSelect={toggleSelect}
+                          toggleSelectGroup={toggleSelectGroup}
+                          setDeleteConfirm={setDeleteConfirm}
+                          deleteMutationPending={deleteMutation.isPending}
+                        />
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {fuzzyGroups.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                <div>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 text-amber-800">
+                    <AlertTriangle className="h-5 w-5" />
+                    Similar Names - Needs Review
+                  </h2>
+                  <p className="text-sm text-amber-700 mt-1">
+                    {fuzzyGroups.length} groups with {totalFuzzyDuplicates} similar entries. Please review before deleting.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between flex-wrap gap-2 bg-muted/50 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={selectAllDuplicates}
+                    id="select-all"
+                  />
+                  <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                    Select All ({allDuplicateIds.length} entries)
+                  </label>
+                </div>
+              </div>
+              
+              {fuzzyGroups.map((group, idx) => {
+                const groupKey = `fuzzy-${group.groupName}-${idx}`;
+                const isExpanded = expandedGroups.has(groupKey);
+                const nonKeepIds = group.companies.filter(c => c.suggestion !== 'keep').map(c => c.id);
+                const groupAllSelected = nonKeepIds.length > 0 && nonKeepIds.every(id => selectedIds.has(id));
+                const groupSelectedCount = nonKeepIds.filter(id => selectedIds.has(id)).length;
+                
+                return (
+                  <Card key={groupKey} className="border-l-4 border-l-amber-500">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={groupAllSelected}
+                            onCheckedChange={() => toggleSelectGroup(group)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div 
+                            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+                            onClick={() => toggleGroup(groupKey)}
+                          >
+                            {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                            <div>
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <Building2 className="h-5 w-5" />
+                                {group.groupName}
+                              </CardTitle>
+                              <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
+                                <Badge variant="secondary">
+                                  {group.confidence}% Similar
+                                </Badge>
+                                <span className="text-xs">{group.companies.length} entries</span>
+                                {groupSelectedCount > 0 && (
+                                  <Badge className="bg-blue-100 text-blue-800">
+                                    {groupSelectedCount} selected
+                                  </Badge>
+                                )}
+                              </CardDescription>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {deleteSuggestions.length > 0 && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteSuggested(group); }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete {deleteSuggestions.length} Duplicate{deleteSuggestions.length > 1 ? 's' : ''}
-                      </Button>
+                    </CardHeader>
+                    
+                    {isExpanded && (
+                      <CardContent>
+                        <CompanyTable
+                          group={group}
+                          selectedIds={selectedIds}
+                          toggleSelect={toggleSelect}
+                          toggleSelectGroup={toggleSelectGroup}
+                          setDeleteConfirm={setDeleteConfirm}
+                          deleteMutationPending={deleteMutation.isPending}
+                        />
+                      </CardContent>
                     )}
-                  </div>
-                </CardHeader>
-                
-                {isExpanded && (
-                  <CardContent>
-                    <div className="rounded-md border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[40px]">
-                              <Checkbox
-                                checked={groupAllSelected}
-                                onCheckedChange={() => toggleSelectGroup(group)}
-                              />
-                            </TableHead>
-                            <TableHead className="w-[80px]">Suggestion</TableHead>
-                            <TableHead>Company Name</TableHead>
-                            <TableHead>Assigned To</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>Origin</TableHead>
-                            <TableHead>Added Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="w-[80px]">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {group.companies.map((company) => (
-                            <TableRow 
-                              key={company.id}
-                              className={
-                                selectedIds.has(company.id) 
-                                  ? 'bg-blue-50/70' 
-                                  : company.suggestion === 'keep' 
-                                    ? 'bg-green-50/50' 
-                                    : company.suggestion === 'delete' 
-                                      ? 'bg-red-50/50' 
-                                      : ''
-                              }
-                            >
-                              <TableCell>
-                                {company.suggestion === 'keep' ? (
-                                  <Checkbox disabled checked={false} />
-                                ) : (
-                                  <Checkbox
-                                    checked={selectedIds.has(company.id)}
-                                    onCheckedChange={() => toggleSelect(company.id)}
-                                  />
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {company.suggestion === 'keep' ? (
-                                  <Badge className="bg-green-100 text-green-800 text-xs">
-                                    <Shield className="h-3 w-3 mr-1" />
-                                    Keep
-                                  </Badge>
-                                ) : company.suggestion === 'delete' ? (
-                                  <Badge className="bg-red-100 text-red-800 text-xs">
-                                    <Trash2 className="h-3 w-3 mr-1" />
-                                    Delete
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-xs">
-                                    Review
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-medium">{company.companyName}</div>
-                                <div className="text-xs text-muted-foreground">ID: {company.id}</div>
-                              </TableCell>
-                              <TableCell>
-                                {company.assignedToName ? (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <User className="h-3 w-3 text-muted-foreground" />
-                                    {company.assignedToName}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">Unassigned</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {company.primaryEmail ? (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <Mail className="h-3 w-3 text-muted-foreground" />
-                                    <span className="truncate max-w-[200px]">{company.primaryEmail}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {(company.addressCity || company.addressCountry) ? (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                                    {[company.addressCity, company.addressCountry].filter(Boolean).join(', ')}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {company.origin || 'unknown'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1 text-sm whitespace-nowrap">
-                                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                                  {format(new Date(company.createdAt), 'MMM d, yyyy')}
-                                </div>
-                                {company.isOldest && (
-                                  <div className="text-xs text-green-600 font-medium">Oldest entry</div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {company.status || 'active'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => setDeleteConfirm({ open: true, company })}
-                                  disabled={deleteMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
+
+      <AlertDialog open={autoCleanConfirm} onOpenChange={setAutoCleanConfirm}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clean Up {totalExactDuplicates} Exact Duplicates</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <span className="block mb-2">
+                  This will delete {totalExactDuplicates} exact name duplicate companies across {exactGroups.length} groups.
+                </span>
+                <span className="block mb-2 font-medium">
+                  For each group, the system will keep:
+                </span>
+                <ul className="list-disc list-inside text-sm space-y-1 mb-3">
+                  <li>The assigned company (if one exists)</li>
+                  <li>The oldest entry (if all are unassigned)</li>
+                </ul>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {exactGroups.map(g => (
+                    <div key={g.groupName} className="flex items-center justify-between text-sm bg-red-50 rounded p-2">
+                      <span className="font-medium">{g.groupName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Keeping 1, deleting {g.companies.filter(c => c.suggestion === 'delete').length}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <span className="block mt-3 text-red-600 font-medium">
+                  This action cannot be undone.
+                </span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => autoCleanMutation.mutate()}
+              disabled={autoCleanMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {autoCleanMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+              Clean Up All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, company: open ? deleteConfirm.company : null })}>
         <AlertDialogContent>
@@ -507,7 +551,7 @@ export default function DuplicateReview() {
             <AlertDialogDescription asChild>
               <div>
                 <span className="block mb-2">
-                  The following {bulkDeleteConfirm.count} duplicate entries will be permanently deleted:
+                  The following {bulkDeleteConfirm.count} entries will be permanently deleted:
                 </span>
                 <div className="max-h-60 overflow-y-auto space-y-1 mt-2">
                   {selectedCompanyDetails.map(c => (
@@ -521,7 +565,7 @@ export default function DuplicateReview() {
                   ))}
                 </div>
                 <span className="block mt-3 text-red-600 font-medium">
-                  This action cannot be undone. All contacts, leads, and activities linked to these companies will also be removed.
+                  This action cannot be undone.
                 </span>
               </div>
             </AlertDialogDescription>
@@ -539,6 +583,159 @@ export default function DuplicateReview() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function CompanyTable({
+  group,
+  selectedIds,
+  toggleSelect,
+  toggleSelectGroup,
+  setDeleteConfirm,
+  deleteMutationPending,
+}: {
+  group: DuplicateGroup;
+  selectedIds: Set<number>;
+  toggleSelect: (id: number) => void;
+  toggleSelectGroup: (group: DuplicateGroup) => void;
+  setDeleteConfirm: (v: { open: boolean; company: DuplicateCompany | null }) => void;
+  deleteMutationPending: boolean;
+}) {
+  const nonKeepIds = group.companies.filter(c => c.suggestion !== 'keep').map(c => c.id);
+  const groupAllSelected = nonKeepIds.length > 0 && nonKeepIds.every(id => selectedIds.has(id));
+
+  return (
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[40px]">
+              <Checkbox
+                checked={groupAllSelected}
+                onCheckedChange={() => toggleSelectGroup(group)}
+              />
+            </TableHead>
+            <TableHead className="w-[80px]">Suggestion</TableHead>
+            <TableHead>Company Name</TableHead>
+            <TableHead>Assigned To</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Location</TableHead>
+            <TableHead>Origin</TableHead>
+            <TableHead>Added Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[80px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {group.companies.map((company) => (
+            <TableRow 
+              key={company.id}
+              className={
+                selectedIds.has(company.id) 
+                  ? 'bg-blue-50/70' 
+                  : company.suggestion === 'keep' 
+                    ? 'bg-green-50/50' 
+                    : company.suggestion === 'delete' 
+                      ? 'bg-red-50/50' 
+                      : ''
+              }
+            >
+              <TableCell>
+                {company.suggestion === 'keep' ? (
+                  <Checkbox disabled checked={false} />
+                ) : (
+                  <Checkbox
+                    checked={selectedIds.has(company.id)}
+                    onCheckedChange={() => toggleSelect(company.id)}
+                  />
+                )}
+              </TableCell>
+              <TableCell>
+                {company.suggestion === 'keep' ? (
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Keep
+                  </Badge>
+                ) : company.suggestion === 'delete' ? (
+                  <Badge className="bg-red-100 text-red-800 text-xs">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">
+                    Review
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="font-medium">{company.companyName}</div>
+                <div className="text-xs text-muted-foreground">ID: {company.id}</div>
+              </TableCell>
+              <TableCell>
+                {company.assignedToName ? (
+                  <div className="flex items-center gap-1 text-sm">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    {company.assignedToName}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Unassigned</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {company.primaryEmail ? (
+                  <div className="flex items-center gap-1 text-sm">
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate max-w-[200px]">{company.primaryEmail}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {(company.addressCity || company.addressCountry) ? (
+                  <div className="flex items-center gap-1 text-sm">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    {[company.addressCity, company.addressCountry].filter(Boolean).join(', ')}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs capitalize">
+                  {company.origin || 'unknown'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1 text-sm whitespace-nowrap">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  {format(new Date(company.createdAt), 'MMM d, yyyy')}
+                </div>
+                {company.isOldest && (
+                  <div className="text-xs text-green-600 font-medium">Oldest entry</div>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs capitalize">
+                  {company.status || 'active'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => setDeleteConfirm({ open: true, company })}
+                  disabled={deleteMutationPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
