@@ -65,6 +65,7 @@ import {
   emailMessages,
   qualityDocumentRequests,
   qualityTestingRequests,
+  users,
 } from "@shared/schema";
 import { eq, and, ne, isNotNull, desc, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
