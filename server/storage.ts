@@ -25,6 +25,7 @@ import {
   companyActivities,
   companyTasks,
   companyNotes,
+  emailCampaignRecipients,
   leads,
   leadActivities,
   leadTasks,
@@ -5740,6 +5741,12 @@ export class DatabaseStorage implements IStorage {
       
       // Delete company contacts in batch
       await db.delete(companyContacts).where(inArray(companyContacts.companyId, companyIds));
+      
+      // Delete email campaign recipients in batch
+      await db.delete(emailCampaignRecipients).where(inArray(emailCampaignRecipients.companyId, companyIds));
+      
+      // Nullify sales order company references (preserve orders but unlink)
+      await db.update(salesOrders).set({ companyId: null }).where(inArray(salesOrders.companyId, companyIds));
       
       // Finally delete the companies in batch
       const result = await db.delete(companies).where(inArray(companies.id, companyIds)).returning({ id: companies.id });
