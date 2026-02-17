@@ -41,6 +41,8 @@ import {
   insertQualityTestingRequestSchema,
   insertQualityTestReportSchema,
   insertQualityBatchNumberSchema,
+  insertBatchTestResultSchema,
+  insertBatchMaterialConsumptionSchema,
   insertQualityVendorSchema,
   insertQualityCustomerVendorApprovalSchema,
   insertQualityNcrSchema,
@@ -12278,6 +12280,160 @@ We look forward to hearing from you.`;
     } catch (error) {
       console.error('Error updating quality batch:', error);
       res.status(500).json({ message: 'Failed to update batch' });
+    }
+  });
+
+  // Batch Approval
+  app.post('/api/quality/batches/:id/approve', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const batch = await storage.getQualityBatchNumber(parseInt(req.params.id));
+      if (!batch) return res.status(404).json({ message: 'Batch not found' });
+      const result = await storage.updateQualityBatchNumber(parseInt(req.params.id), {
+        status: 'approved',
+        approvedById: userId,
+        approvedAt: new Date(),
+        approvedQuantity: req.body.approvedQuantity || batch.totalQuantity,
+        remainingQuantity: req.body.approvedQuantity || batch.totalQuantity,
+      } as any);
+      res.json(result);
+    } catch (error) {
+      console.error('Error approving batch:', error);
+      res.status(500).json({ message: 'Failed to approve batch' });
+    }
+  });
+
+  app.post('/api/quality/batches/:id/reject', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityBatchNumber(parseInt(req.params.id), {
+        status: 'rejected',
+        notes: req.body.notes || 'Batch rejected',
+      } as any);
+      res.json(result);
+    } catch (error) {
+      console.error('Error rejecting batch:', error);
+      res.status(500).json({ message: 'Failed to reject batch' });
+    }
+  });
+
+  // Approved RM batches (for FG creation)
+  app.get('/api/quality/batches/approved-rm', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const batches = await storage.getApprovedRMBatches();
+      res.json(batches);
+    } catch (error) {
+      console.error('Error fetching approved RM batches:', error);
+      res.status(500).json({ message: 'Failed to fetch approved RM batches' });
+    }
+  });
+
+  // Batch Test Results
+  app.get('/api/quality/batches/:id/test-results', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const results = await storage.getBatchTestResults(parseInt(req.params.id));
+      res.json(results);
+    } catch (error) {
+      console.error('Error fetching batch test results:', error);
+      res.status(500).json({ message: 'Failed to fetch test results' });
+    }
+  });
+
+  app.post('/api/quality/batches/:id/test-results', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, batchId: parseInt(req.params.id), testedById: userId, testedAt: new Date() };
+      const validated = insertBatchTestResultSchema.parse(body);
+      const result = await storage.createBatchTestResult(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating batch test result:', error);
+      res.status(500).json({ message: 'Failed to create test result' });
+    }
+  });
+
+  app.patch('/api/quality/batch-test-results/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateBatchTestResult(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating batch test result:', error);
+      res.status(500).json({ message: 'Failed to update test result' });
+    }
+  });
+
+  // Batch Material Consumption (RM to FG transfer)
+  app.get('/api/quality/batches/:id/consumptions', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const type = (req.query.type as string) || 'fg';
+      const results = await storage.getBatchConsumptions(parseInt(req.params.id), type as 'fg' | 'rm');
+      res.json(results);
+    } catch (error) {
+      console.error('Error fetching batch consumptions:', error);
+      res.status(500).json({ message: 'Failed to fetch consumptions' });
+    }
+  });
+
+  app.post('/api/quality/batches/transfer-rm-to-fg', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const { fgBatchData, rmConsumptions } = req.body;
+
+      if (!fgBatchData || !rmConsumptions || !Array.isArray(rmConsumptions) || rmConsumptions.length === 0) {
+        return res.status(400).json({ message: 'FG batch data and RM consumptions are required' });
+      }
+
+      const fgBody = { ...fgBatchData, createdById: userId, batchType: 'finished_good' };
+      const fgValidated = insertQualityBatchNumberSchema.parse(fgBody);
+      const fgBatch = await storage.createQualityBatchNumber(fgValidated);
+
+      let totalRMInput = 0;
+      for (const rm of rmConsumptions) {
+        const consumptionData = {
+          fgBatchId: fgBatch.id,
+          rmBatchId: rm.rmBatchId,
+          quantityUsed: String(rm.quantityUsed),
+          unit: rm.unit || fgBatchData.unitOfMeasure,
+          notes: rm.notes,
+          createdById: userId,
+        };
+        const validated = insertBatchMaterialConsumptionSchema.parse(consumptionData);
+        await storage.createBatchConsumption(validated);
+
+        totalRMInput += parseFloat(rm.quantityUsed);
+
+        const rmBatch = await storage.getQualityBatchNumber(rm.rmBatchId);
+        if (rmBatch) {
+          const currentUsed = parseFloat(rmBatch.usedQuantity || '0');
+          const currentRemaining = parseFloat(rmBatch.remainingQuantity || rmBatch.totalQuantity || '0');
+          const newUsed = currentUsed + parseFloat(rm.quantityUsed);
+          const newRemaining = currentRemaining - parseFloat(rm.quantityUsed);
+          await storage.updateQualityBatchNumber(rm.rmBatchId, {
+            usedQuantity: String(newUsed),
+            remainingQuantity: String(Math.max(0, newRemaining)),
+            status: newRemaining <= 0 ? 'consumed' : 'partially_used',
+          } as any);
+        }
+      }
+
+      const fgOutputQty = parseFloat(fgBatchData.totalQuantity || '0');
+      const processLoss = totalRMInput - fgOutputQty;
+      const processLossPct = totalRMInput > 0 ? (processLoss / totalRMInput) * 100 : 0;
+      await storage.updateQualityBatchNumber(fgBatch.id, {
+        processLossQty: String(Math.max(0, processLoss)),
+        processLossPct: String(Math.max(0, processLossPct).toFixed(2)),
+      } as any);
+
+      const updatedFgBatch = await storage.getQualityBatchNumber(fgBatch.id);
+      res.status(201).json({ fgBatch: updatedFgBatch, totalRMInput, processLoss, processLossPct });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error transferring RM to FG:', error);
+      res.status(500).json({ message: 'Failed to transfer RM to FG' });
     }
   });
 

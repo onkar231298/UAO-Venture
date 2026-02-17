@@ -179,6 +179,12 @@ import {
   type InsertQualityNcr,
   type QualityAttachment,
   type InsertQualityAttachment,
+  batchTestResults,
+  batchMaterialConsumption,
+  type BatchTestResult,
+  type InsertBatchTestResult,
+  type BatchMaterialConsumption,
+  type InsertBatchMaterialConsumption,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
@@ -739,6 +745,14 @@ export interface IStorage {
   getQualityBatchNumber(id: number): Promise<QualityBatchNumber | undefined>;
   createQualityBatchNumber(data: InsertQualityBatchNumber): Promise<QualityBatchNumber>;
   updateQualityBatchNumber(id: number, data: Partial<InsertQualityBatchNumber>): Promise<QualityBatchNumber>;
+  getApprovedRMBatches(): Promise<QualityBatchNumber[]>;
+
+  getBatchTestResults(batchId: number): Promise<BatchTestResult[]>;
+  createBatchTestResult(data: InsertBatchTestResult): Promise<BatchTestResult>;
+  updateBatchTestResult(id: number, data: Partial<InsertBatchTestResult>): Promise<BatchTestResult>;
+
+  getBatchConsumptions(batchId: number, type: 'fg' | 'rm'): Promise<BatchMaterialConsumption[]>;
+  createBatchConsumption(data: InsertBatchMaterialConsumption): Promise<BatchMaterialConsumption>;
 
   getQualityVendors(filters?: { approvalStatus?: string; search?: string; limit?: number; offset?: number }): Promise<{ vendors: QualityVendor[]; total: number }>;
   getQualityVendor(id: number): Promise<QualityVendor | undefined>;
@@ -7459,6 +7473,43 @@ export class DatabaseStorage implements IStorage {
   async updateQualityBatchNumber(id: number, data: Partial<InsertQualityBatchNumber>): Promise<QualityBatchNumber> {
     const [batch] = await db.update(qualityBatchNumbers).set({ ...data, updatedAt: new Date() }).where(eq(qualityBatchNumbers.id, id)).returning();
     return batch;
+  }
+
+  async getApprovedRMBatches(): Promise<QualityBatchNumber[]> {
+    return db.select().from(qualityBatchNumbers)
+      .where(and(
+        eq(qualityBatchNumbers.batchType, 'raw_material'),
+        eq(qualityBatchNumbers.status, 'approved')
+      ))
+      .orderBy(desc(qualityBatchNumbers.createdAt));
+  }
+
+  async getBatchTestResults(batchId: number): Promise<BatchTestResult[]> {
+    return db.select().from(batchTestResults)
+      .where(eq(batchTestResults.batchId, batchId))
+      .orderBy(desc(batchTestResults.createdAt));
+  }
+
+  async createBatchTestResult(data: InsertBatchTestResult): Promise<BatchTestResult> {
+    const [result] = await db.insert(batchTestResults).values(data).returning();
+    return result;
+  }
+
+  async updateBatchTestResult(id: number, data: Partial<InsertBatchTestResult>): Promise<BatchTestResult> {
+    const [result] = await db.update(batchTestResults).set(data).where(eq(batchTestResults.id, id)).returning();
+    return result;
+  }
+
+  async getBatchConsumptions(batchId: number, type: 'fg' | 'rm'): Promise<BatchMaterialConsumption[]> {
+    const col = type === 'fg' ? batchMaterialConsumption.fgBatchId : batchMaterialConsumption.rmBatchId;
+    return db.select().from(batchMaterialConsumption)
+      .where(eq(col, batchId))
+      .orderBy(desc(batchMaterialConsumption.createdAt));
+  }
+
+  async createBatchConsumption(data: InsertBatchMaterialConsumption): Promise<BatchMaterialConsumption> {
+    const [result] = await db.insert(batchMaterialConsumption).values(data).returning();
+    return result;
   }
 
   async getQualityVendors(filters?: { approvalStatus?: string; search?: string; limit?: number; offset?: number }): Promise<{ vendors: QualityVendor[]; total: number }> {

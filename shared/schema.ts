@@ -2775,17 +2775,33 @@ export type InsertQualityTestReport = z.infer<typeof insertQualityTestReportSche
 export const qualityBatchNumbers = pgTable("quality_batch_numbers", {
   id: serial("id").primaryKey(),
   batchNumber: varchar("batch_number", { length: 100 }).notNull().unique(),
-  companyShort: varchar("company_short", { length: 10 }).notNull(), // BFO
-  organicType: varchar("organic_type", { length: 5 }).notNull(), // O (organic) or C (conventional)
-  materialCode: varchar("material_code", { length: 20 }).notNull(), // TUR, CUM, ASH, etc.
+  companyShort: varchar("company_short", { length: 10 }).notNull(),
+  organicType: varchar("organic_type", { length: 5 }).notNull(),
+  materialCode: varchar("material_code", { length: 20 }).notNull(),
   materialName: varchar("material_name", { length: 255 }),
-  materialForm: varchar("material_form", { length: 10 }).notNull(), // PWD, WHL, FLX, CUB, EXT, OIL
-  manufacturingDate: varchar("manufacturing_date", { length: 10 }).notNull(), // MMYY format
-  batchType: varchar("batch_type", { length: 30 }).default("finished_good"), // raw_material, finished_good
+  materialForm: varchar("material_form", { length: 10 }).notNull(),
+  manufacturingDate: varchar("manufacturing_date", { length: 10 }).notNull(),
+  batchType: varchar("batch_type", { length: 30 }).default("finished_good"),
   productId: integer("product_id"),
   quantity: varchar("quantity", { length: 100 }),
   unit: varchar("unit", { length: 30 }),
-  status: varchar("status", { length: 30 }).default("active"), // active, on_hold, released, expired, rejected
+  totalQuantity: decimal("total_quantity"),
+  approvedQuantity: decimal("approved_quantity"),
+  usedQuantity: decimal("used_quantity").default("0"),
+  remainingQuantity: decimal("remaining_quantity"),
+  unitOfMeasure: varchar("unit_of_measure", { length: 30 }),
+  processLossQty: decimal("process_loss_qty"),
+  processLossPct: decimal("process_loss_pct"),
+  visualInspectionStatus: varchar("visual_inspection_status", { length: 30 }),
+  visualInspectionNotes: text("visual_inspection_notes"),
+  status: varchar("status", { length: 30 }).default("created"),
+  supplierBatchRef: varchar("supplier_batch_ref", { length: 200 }),
+  supplierName: varchar("supplier_name", { length: 500 }),
+  storageLocation: varchar("storage_location", { length: 255 }),
+  expiryDate: timestamp("expiry_date"),
+  customTestParameters: jsonb("custom_test_parameters"),
+  approvedById: varchar("approved_by_id").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
   notes: text("notes"),
   createdById: varchar("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -2804,6 +2820,55 @@ export const insertQualityBatchNumberSchema = createInsertSchema(qualityBatchNum
 });
 export type QualityBatchNumber = typeof qualityBatchNumbers.$inferSelect;
 export type InsertQualityBatchNumber = z.infer<typeof insertQualityBatchNumberSchema>;
+
+export const batchTestResults = pgTable("batch_test_results", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").notNull().references(() => qualityBatchNumbers.id),
+  testName: varchar("test_name", { length: 255 }).notNull(),
+  testType: varchar("test_type", { length: 30 }).default("standard"),
+  expectedValue: varchar("expected_value", { length: 255 }),
+  actualValue: varchar("actual_value", { length: 255 }),
+  unit: varchar("unit", { length: 50 }),
+  minRange: varchar("min_range", { length: 100 }),
+  maxRange: varchar("max_range", { length: 100 }),
+  result: varchar("result", { length: 30 }),
+  testedById: varchar("tested_by_id").references(() => users.id),
+  testedAt: timestamp("tested_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_btr_batch").on(table.batchId),
+  index("idx_btr_result").on(table.result),
+]);
+
+export const insertBatchTestResultSchema = createInsertSchema(batchTestResults).omit({
+  id: true,
+  createdAt: true,
+});
+export type BatchTestResult = typeof batchTestResults.$inferSelect;
+export type InsertBatchTestResult = z.infer<typeof insertBatchTestResultSchema>;
+
+export const batchMaterialConsumption = pgTable("batch_material_consumption", {
+  id: serial("id").primaryKey(),
+  fgBatchId: integer("fg_batch_id").notNull().references(() => qualityBatchNumbers.id),
+  rmBatchId: integer("rm_batch_id").notNull().references(() => qualityBatchNumbers.id),
+  quantityUsed: decimal("quantity_used").notNull(),
+  unit: varchar("unit", { length: 50 }),
+  consumptionDate: timestamp("consumption_date").defaultNow(),
+  notes: text("notes"),
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_bmc_fg").on(table.fgBatchId),
+  index("idx_bmc_rm").on(table.rmBatchId),
+]);
+
+export const insertBatchMaterialConsumptionSchema = createInsertSchema(batchMaterialConsumption).omit({
+  id: true,
+  createdAt: true,
+});
+export type BatchMaterialConsumption = typeof batchMaterialConsumption.$inferSelect;
+export type InsertBatchMaterialConsumption = z.infer<typeof insertBatchMaterialConsumptionSchema>;
 
 export const qualityVendors = pgTable("quality_vendors", {
   id: serial("id").primaryKey(),
