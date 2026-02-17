@@ -77,6 +77,7 @@ const DEPARTMENT_LABELS: Record<string, string> = {
   accounts: "Accounts & Finance",
   marketing: "Marketing",
   admin: "Administration",
+  quality: "Quality",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -94,6 +95,8 @@ const ROLE_LABELS: Record<string, string> = {
   accounts_executive: "Accounts Executive",
   seo_manager: "SEO Manager",
   website_manager: "Website Manager",
+  quality_manager: "Quality Manager",
+  quality_executive: "Quality Executive",
 };
 
 export default function UserManagement() {
