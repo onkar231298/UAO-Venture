@@ -35,6 +35,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
+import QualityDashboard from "@/pages/quality/QualityDashboard";
 import SalesPersonDashboard from "@/pages/SalesPersonDashboard";
 import SalesLeadManagement from "@/pages/SalesLeadManagement";
 import VideoUploadTest from "@/pages/VideoUploadTest";
@@ -181,7 +182,11 @@ function Router() {
           
           {/* Staff dashboard - for all other roles */}
           {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') ? (
-            <Route path="/staff/*" component={StaffDashboard} />
+            <>
+              <Route path="/staff/*" component={StaffDashboard} />
+              <Route path="/quality/dashboard" component={QualityDashboard} />
+              <Route path="/quality/dashboard/*" component={QualityDashboard} />
+            </>
           ) : null}
         </>
       ) : null}

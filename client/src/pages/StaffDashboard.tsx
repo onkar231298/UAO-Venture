@@ -23,7 +23,8 @@ import {
   TrendingUp,
   LayoutDashboard,
   Send,
-  Calendar
+  Calendar,
+  ClipboardCheck
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { MyAttendance } from "@/components/hr/MyAttendance";
@@ -51,7 +52,9 @@ export default function StaffDashboard() {
       accounts_manager: ['accounts', 'analytics'],
       accounts_executive: ['accounts'],
       seo_manager: ['website', 'analytics'],
-      website_manager: ['website']
+      website_manager: ['website'],
+      quality_manager: ['quality', 'analytics'],
+      quality_executive: ['quality']
     };
     return modules[role] || [];
   };
@@ -232,6 +235,20 @@ export default function StaffDashboard() {
                   </button>
                 )}
                 
+                {userModules.includes('quality') && (
+                  <button
+                    onClick={() => window.location.href = '/quality/dashboard'}
+                    className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                      activeSection === 'quality'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <ClipboardCheck className="mr-3 h-5 w-5" />
+                    Quality Management
+                  </button>
+                )}
+
                 {userModules.includes('analytics') && (
                   <button
                     onClick={() => setActiveSection('analytics')}
@@ -318,6 +335,7 @@ export default function StaffDashboard() {
                    activeSection === 'accounts' ? 'Accounts & Finance' :
                    activeSection === 'website' ? 'Website Management' :
                    activeSection === 'analytics' ? 'Analytics & Reports' :
+                   activeSection === 'quality' ? 'Quality Management' :
                    activeSection === 'my-attendance' ? 'My Attendance' :
                    activeSection === 'settings' ? 'Profile Settings' : 'Dashboard'}
                 </h1>
@@ -422,6 +440,7 @@ export default function StaffDashboard() {
                         {module === 'logistics' && <Truck className="h-8 w-8" />}
                         {module === 'accounts' && <Calculator className="h-8 w-8" />}
                         {module === 'website' && <Globe className="h-8 w-8" />}
+                        {module === 'quality' && <ClipboardCheck className="h-8 w-8" />}
                         {module === 'analytics' && <BarChart3 className="h-8 w-8" />}
                         <span className="text-sm font-medium capitalize">{module}</span>
                       </Button>

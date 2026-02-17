@@ -63,6 +63,7 @@ import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimelin
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
+import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1626,6 +1627,7 @@ export default function CompanyManagement() {
                   <Mail className="h-4 w-4 mr-2" />
                   Bulk Email
                 </Button>
+                <QualityRequestDialog triggerLabel="Request Quality" />
                 {isAdmin && (
                   <Button 
                     variant="destructive" 

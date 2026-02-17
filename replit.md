@@ -64,6 +64,26 @@ Preferred communication style: Simple, everyday language.
 **Database Tables**: email_campaigns, email_campaign_recipients, email_templates
 **API Endpoints**: /api/email-campaigns, /api/email-templates, /api/webhooks/sendgrid
 
+### Quality Management Module
+**Status**: Implemented
+**Roles**: quality_manager, quality_executive (in quality department)
+**Features**:
+- Document requests (COA, specs, MSDS, organic certs, allergen statements, vendor questionnaires)
+- Testing requests (IRF - Incoming Raw Material, TRF - Testing Request Form)
+- Test reports with pass/fail/conditional conclusions
+- Batch number creation with format: BFO-[O/C]-[MaterialCode]-[Form]-[MMYY]
+- Material vendor management with approval workflows
+- Customer vendor approval processing from Sales team
+- Non-Conformance Reports (NCR) with severity tracking (minor/major/critical)
+- File attachment support for all quality entities
+- Cross-department integration: Sales team can submit requests to Quality via QualityRequestDialog
+- Super Admin overview of all quality operations via AdminDashboard
+- Dedicated Quality Dashboard at /quality/dashboard for quality roles
+
+**Database Tables**: quality_document_requests, quality_testing_requests, quality_test_reports, quality_batch_numbers, quality_vendors, quality_customer_vendor_approvals, quality_ncrs, quality_attachments
+**API Endpoints**: /api/quality/* (document-requests, testing-requests, test-reports, batches, vendors, customer-vendor-approvals, ncrs, attachments, dashboard-stats)
+**Key Files**: client/src/pages/quality/QualityDashboard.tsx, client/src/pages/admin/AdminQualityOverview.tsx, client/src/components/quality/QualityRequestDialog.tsx
+
 ## Pending Features (To Be Continued)
 
 ### Business Logic

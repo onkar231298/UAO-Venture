@@ -37,6 +37,7 @@ export const STAFF_DEPARTMENTS = [
   "accounts",
   "marketing",
   "admin",
+  "quality",
 ] as const;
 
 export type StaffDepartment = typeof STAFF_DEPARTMENTS[number];
@@ -50,6 +51,7 @@ export const STAFF_ROLES = {
   accounts: ["accounts_manager", "accounts_executive"],
   marketing: ["seo_manager", "website_manager"],
   admin: ["super_admin", "admin"],
+  quality: ["quality_manager", "quality_executive"],
 } as const;
 
 export const ALL_STAFF_ROLES = [
@@ -67,6 +69,8 @@ export const ALL_STAFF_ROLES = [
   "accounts_executive",
   "seo_manager",
   "website_manager",
+  "quality_manager",
+  "quality_executive",
 ] as const;
 
 export type StaffRole = typeof ALL_STAFF_ROLES[number];
@@ -79,9 +83,9 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   password: varchar("password"), // For customer authentication
-  role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager
+  role: varchar("role").default("customer"), // customer, super_admin, admin, sales_manager, sales_executive, purchase_manager, purchase_executive, inventory_manager, inventory_executive, logistics_manager, logistics_executive, accounts_manager, accounts_executive, seo_manager, website_manager, quality_manager, quality_executive
   userType: varchar("user_type").default("customer"), // staff, customer
-  department: varchar("department"), // sales, purchase, inventory, logistics, accounts, marketing, admin
+  department: varchar("department"), // sales, purchase, inventory, logistics, accounts, marketing, admin, quality
   companyName: varchar("company_name"),
   phoneNumber: varchar("phone_number"),
   address: text("address"), // Legacy field, kept for compatibility
@@ -2673,3 +2677,249 @@ export const insertDailyPerformanceSummarySchema = createInsertSchema(dailyPerfo
 });
 export type DailyPerformanceSummary = typeof dailyPerformanceSummary.$inferSelect;
 export type InsertDailyPerformanceSummary = z.infer<typeof insertDailyPerformanceSummarySchema>;
+
+// ==================== QUALITY MANAGEMENT MODULE ====================
+
+export const qualityDocumentRequests = pgTable("quality_document_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: varchar("requester_id").notNull().references(() => users.id),
+  companyId: integer("company_id"),
+  productId: integer("product_id"),
+  requestType: varchar("request_type", { length: 50 }).notNull(), // coa, specification, product_sheet, vendor_doc, msds, other
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  notes: text("notes"),
+  status: varchar("status", { length: 30 }).default("open").notNull(), // open, in_progress, completed, rejected
+  priority: varchar("priority", { length: 20 }).default("normal"), // low, normal, high, urgent
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  responseNotes: text("response_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qdocreq_requester").on(table.requesterId),
+  index("idx_qdocreq_assigned").on(table.assignedToId),
+  index("idx_qdocreq_status").on(table.status),
+]);
+
+export const insertQualityDocumentRequestSchema = createInsertSchema(qualityDocumentRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+export type QualityDocumentRequest = typeof qualityDocumentRequests.$inferSelect;
+export type InsertQualityDocumentRequest = z.infer<typeof insertQualityDocumentRequestSchema>;
+
+export const qualityTestingRequests = pgTable("quality_testing_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: varchar("requester_id").notNull().references(() => users.id),
+  companyId: integer("company_id"),
+  productId: integer("product_id"),
+  requestType: varchar("request_type", { length: 20 }).notNull(), // IRF, TRF
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  sampleDetails: jsonb("sample_details"), // { sampleId, quantity, batchRef, conditions }
+  status: varchar("status", { length: 30 }).default("pending").notNull(), // pending, sample_received, in_testing, completed, rejected
+  priority: varchar("priority", { length: 20 }).default("normal"),
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  testResults: text("test_results"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qtestreq_requester").on(table.requesterId),
+  index("idx_qtestreq_assigned").on(table.assignedToId),
+  index("idx_qtestreq_status").on(table.status),
+  index("idx_qtestreq_type").on(table.requestType),
+]);
+
+export const insertQualityTestingRequestSchema = createInsertSchema(qualityTestingRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+export type QualityTestingRequest = typeof qualityTestingRequests.$inferSelect;
+export type InsertQualityTestingRequest = z.infer<typeof insertQualityTestingRequestSchema>;
+
+export const qualityTestReports = pgTable("quality_test_reports", {
+  id: serial("id").primaryKey(),
+  testingRequestId: integer("testing_request_id").references(() => qualityTestingRequests.id),
+  batchId: integer("batch_id"),
+  reportType: varchar("report_type", { length: 30 }).notNull(), // initial, final, retest
+  title: varchar("title", { length: 500 }).notNull(),
+  summary: text("summary"),
+  parameters: jsonb("parameters"), // { parameter, result, spec, pass/fail }[]
+  overallResult: varchar("overall_result", { length: 20 }), // pass, fail, conditional
+  fileUrl: varchar("file_url", { length: 1000 }),
+  issuedById: varchar("issued_by_id").references(() => users.id),
+  issuedAt: timestamp("issued_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_qreport_testing").on(table.testingRequestId),
+  index("idx_qreport_batch").on(table.batchId),
+]);
+
+export const insertQualityTestReportSchema = createInsertSchema(qualityTestReports).omit({
+  id: true,
+  createdAt: true,
+  issuedAt: true,
+});
+export type QualityTestReport = typeof qualityTestReports.$inferSelect;
+export type InsertQualityTestReport = z.infer<typeof insertQualityTestReportSchema>;
+
+export const qualityBatchNumbers = pgTable("quality_batch_numbers", {
+  id: serial("id").primaryKey(),
+  batchNumber: varchar("batch_number", { length: 100 }).notNull().unique(),
+  companyShort: varchar("company_short", { length: 10 }).notNull(), // BFO
+  organicType: varchar("organic_type", { length: 5 }).notNull(), // O (organic) or C (conventional)
+  materialCode: varchar("material_code", { length: 20 }).notNull(), // TUR, CUM, ASH, etc.
+  materialName: varchar("material_name", { length: 255 }),
+  materialForm: varchar("material_form", { length: 10 }).notNull(), // PWD, WHL, FLX, CUB, EXT, OIL
+  manufacturingDate: varchar("manufacturing_date", { length: 10 }).notNull(), // MMYY format
+  batchType: varchar("batch_type", { length: 30 }).default("finished_good"), // raw_material, finished_good
+  productId: integer("product_id"),
+  quantity: varchar("quantity", { length: 100 }),
+  unit: varchar("unit", { length: 30 }),
+  status: varchar("status", { length: 30 }).default("active"), // active, on_hold, released, expired, rejected
+  notes: text("notes"),
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qbatch_number").on(table.batchNumber),
+  index("idx_qbatch_type").on(table.batchType),
+  index("idx_qbatch_status").on(table.status),
+]);
+
+export const insertQualityBatchNumberSchema = createInsertSchema(qualityBatchNumbers).omit({
+  id: true,
+  batchNumber: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type QualityBatchNumber = typeof qualityBatchNumbers.$inferSelect;
+export type InsertQualityBatchNumber = z.infer<typeof insertQualityBatchNumberSchema>;
+
+export const qualityVendors = pgTable("quality_vendors", {
+  id: serial("id").primaryKey(),
+  vendorName: varchar("vendor_name", { length: 500 }).notNull(),
+  vendorCode: varchar("vendor_code", { length: 50 }),
+  contactPerson: varchar("contact_person", { length: 255 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  address: text("address"),
+  materialSupplied: text("material_supplied"),
+  certifications: jsonb("certifications"), // ["EU Organic", "USDA NOP", ...]
+  approvalStatus: varchar("approval_status", { length: 30 }).default("pending"), // pending, approved, conditionally_approved, rejected, suspended
+  approvalDate: timestamp("approval_date"),
+  lastAuditDate: timestamp("last_audit_date"),
+  nextAuditDue: timestamp("next_audit_due"),
+  qualityScore: integer("quality_score"), // 0-100
+  notes: text("notes"),
+  addedById: varchar("added_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qvendor_status").on(table.approvalStatus),
+  index("idx_qvendor_name").on(table.vendorName),
+]);
+
+export const insertQualityVendorSchema = createInsertSchema(qualityVendors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type QualityVendor = typeof qualityVendors.$inferSelect;
+export type InsertQualityVendor = z.infer<typeof insertQualityVendorSchema>;
+
+export const qualityCustomerVendorApprovals = pgTable("quality_customer_vendor_approvals", {
+  id: serial("id").primaryKey(),
+  requesterId: varchar("requester_id").notNull().references(() => users.id),
+  companyId: integer("company_id"),
+  customerName: varchar("customer_name", { length: 500 }),
+  documentType: varchar("document_type", { length: 100 }).notNull(), // vendor_approval_form, vendor_questionnaire, audit_report, certification_request, other
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 30 }).default("received").notNull(), // received, under_review, documents_prepared, sent_to_customer, approved, rejected
+  priority: varchar("priority", { length: 20 }).default("normal"),
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  responseNotes: text("response_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qcva_requester").on(table.requesterId),
+  index("idx_qcva_assigned").on(table.assignedToId),
+  index("idx_qcva_status").on(table.status),
+]);
+
+export const insertQualityCustomerVendorApprovalSchema = createInsertSchema(qualityCustomerVendorApprovals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+export type QualityCustomerVendorApproval = typeof qualityCustomerVendorApprovals.$inferSelect;
+export type InsertQualityCustomerVendorApproval = z.infer<typeof insertQualityCustomerVendorApprovalSchema>;
+
+export const qualityNcrs = pgTable("quality_ncrs", {
+  id: serial("id").primaryKey(),
+  ncrNumber: varchar("ncr_number", { length: 50 }).notNull().unique(),
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description").notNull(),
+  batchId: integer("batch_id"),
+  vendorId: integer("vendor_id"),
+  productId: integer("product_id"),
+  severity: varchar("severity", { length: 20 }).notNull(), // minor, major, critical
+  category: varchar("category", { length: 50 }), // raw_material, process, packaging, storage, documentation
+  rootCause: text("root_cause"),
+  correctiveAction: text("corrective_action"),
+  preventiveAction: text("preventive_action"),
+  status: varchar("status", { length: 30 }).default("open").notNull(), // open, investigating, corrective_action, closed, reopened
+  raisedById: varchar("raised_by_id").references(() => users.id),
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_qncr_status").on(table.status),
+  index("idx_qncr_severity").on(table.severity),
+  index("idx_qncr_batch").on(table.batchId),
+]);
+
+export const insertQualityNcrSchema = createInsertSchema(qualityNcrs).omit({
+  id: true,
+  ncrNumber: true,
+  createdAt: true,
+  updatedAt: true,
+  closedAt: true,
+});
+export type QualityNcr = typeof qualityNcrs.$inferSelect;
+export type InsertQualityNcr = z.infer<typeof insertQualityNcrSchema>;
+
+export const qualityAttachments = pgTable("quality_attachments", {
+  id: serial("id").primaryKey(),
+  entityType: varchar("entity_type", { length: 30 }).notNull(), // document_request, testing_request, test_report, vendor, customer_vendor_approval, ncr, batch
+  entityId: integer("entity_id").notNull(),
+  fileName: varchar("file_name", { length: 500 }).notNull(),
+  fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+  fileSize: integer("file_size"),
+  fileType: varchar("file_type", { length: 100 }),
+  uploadedById: varchar("uploaded_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_qattach_entity").on(table.entityType, table.entityId),
+]);
+
+export const insertQualityAttachmentSchema = createInsertSchema(qualityAttachments).omit({
+  id: true,
+  createdAt: true,
+});
+export type QualityAttachment = typeof qualityAttachments.$inferSelect;
+export type InsertQualityAttachment = z.infer<typeof insertQualityAttachmentSchema>;

@@ -18,6 +18,7 @@ import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import HRManagement from "@/pages/admin/HRManagement";
+import AdminQualityOverview from "@/pages/admin/AdminQualityOverview";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   SidebarProvider,
@@ -51,7 +52,8 @@ import {
   Mail,
   LogOut,
   Building2,
-  Clock
+  Clock,
+  ClipboardCheck
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -441,6 +443,17 @@ export default function AdminDashboard() {
                     <span>HR Management</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveSection('quality-management')}
+                    isActive={activeSection === 'quality-management'}
+                    className="w-full"
+                  >
+                    <ClipboardCheck className="mr-3 h-5 w-5" />
+                    <span>Quality Management</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </div>
 
@@ -675,8 +688,12 @@ export default function AdminDashboard() {
           {activeSection === 'hr-management' && (
             <HRManagement />
           )}
+
+          {activeSection === 'quality-management' && (
+            <AdminQualityOverview />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

@@ -37,6 +37,14 @@ import {
   insertStaffSchema,
   updateStaffSchema,
   resetPasswordSchema,
+  insertQualityDocumentRequestSchema,
+  insertQualityTestingRequestSchema,
+  insertQualityTestReportSchema,
+  insertQualityBatchNumberSchema,
+  insertQualityVendorSchema,
+  insertQualityCustomerVendorApprovalSchema,
+  insertQualityNcrSchema,
+  insertQualityAttachmentSchema,
   STAFF_DEPARTMENTS,
   ALL_STAFF_ROLES,
   quotationItems,
@@ -12043,6 +12051,470 @@ We look forward to hearing from you.`;
     } catch (error) {
       console.error('Error processing SendGrid webhook:', error);
       res.status(200).send('OK');
+    }
+  });
+
+  // ==========================================
+  // QUALITY MANAGEMENT API ROUTES
+  // ==========================================
+
+  const qualityAllRoles = ['super_admin', 'admin', 'quality_manager', 'quality_executive'];
+  const qualitySalesRoles = [...qualityAllRoles, 'sales_manager', 'sales_executive'];
+
+  const isQualityAuthorized = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || !qualityAllRoles.includes(user.role || '')) {
+        return res.status(403).json({ message: "Forbidden: insufficient permissions" });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json({ message: "Authorization check failed" });
+    }
+  };
+
+  const isQualityOrSalesAuthorized = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || !qualitySalesRoles.includes(user.role || '')) {
+        return res.status(403).json({ message: "Forbidden: insufficient permissions" });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json({ message: "Authorization check failed" });
+    }
+  };
+
+  // Quality Document Requests
+  app.get('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (status) filters.status = status;
+      if (requesterId) filters.requesterId = requesterId;
+      if (assignedToId) filters.assignedToId = assignedToId;
+      const result = await storage.getQualityDocumentRequests(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality document requests:', error);
+      res.status(500).json({ message: 'Failed to fetch document requests' });
+    }
+  });
+
+  app.get('/api/quality/document-requests/:id', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const request = await storage.getQualityDocumentRequest(parseInt(req.params.id));
+      if (!request) return res.status(404).json({ message: 'Document request not found' });
+      res.json(request);
+    } catch (error) {
+      console.error('Error fetching quality document request:', error);
+      res.status(500).json({ message: 'Failed to fetch document request' });
+    }
+  });
+
+  app.post('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, requesterId: userId };
+      const validated = insertQualityDocumentRequestSchema.parse(body);
+      const result = await storage.createQualityDocumentRequest(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality document request:', error);
+      res.status(500).json({ message: 'Failed to create document request' });
+    }
+  });
+
+  app.patch('/api/quality/document-requests/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityDocumentRequest(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating quality document request:', error);
+      res.status(500).json({ message: 'Failed to update document request' });
+    }
+  });
+
+  // Quality Testing Requests
+  app.get('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const { status, requestType, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (status) filters.status = status;
+      if (requestType) filters.requestType = requestType;
+      if (requesterId) filters.requesterId = requesterId;
+      if (assignedToId) filters.assignedToId = assignedToId;
+      const result = await storage.getQualityTestingRequests(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality testing requests:', error);
+      res.status(500).json({ message: 'Failed to fetch testing requests' });
+    }
+  });
+
+  app.get('/api/quality/testing-requests/:id', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const request = await storage.getQualityTestingRequest(parseInt(req.params.id));
+      if (!request) return res.status(404).json({ message: 'Testing request not found' });
+      res.json(request);
+    } catch (error) {
+      console.error('Error fetching quality testing request:', error);
+      res.status(500).json({ message: 'Failed to fetch testing request' });
+    }
+  });
+
+  app.post('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, requesterId: userId };
+      const validated = insertQualityTestingRequestSchema.parse(body);
+      const result = await storage.createQualityTestingRequest(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality testing request:', error);
+      res.status(500).json({ message: 'Failed to create testing request' });
+    }
+  });
+
+  app.patch('/api/quality/testing-requests/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityTestingRequest(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating quality testing request:', error);
+      res.status(500).json({ message: 'Failed to update testing request' });
+    }
+  });
+
+  // Quality Test Reports
+  app.get('/api/quality/test-reports', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { testingRequestId, batchId, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (testingRequestId) filters.testingRequestId = parseInt(testingRequestId as string);
+      if (batchId) filters.batchId = parseInt(batchId as string);
+      const result = await storage.getQualityTestReports(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality test reports:', error);
+      res.status(500).json({ message: 'Failed to fetch test reports' });
+    }
+  });
+
+  app.post('/api/quality/test-reports', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const validated = insertQualityTestReportSchema.parse(req.body);
+      const result = await storage.createQualityTestReport(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality test report:', error);
+      res.status(500).json({ message: 'Failed to create test report' });
+    }
+  });
+
+  // Quality Batch Numbers
+  app.get('/api/quality/batches', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { batchType, status, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (batchType) filters.batchType = batchType;
+      if (status) filters.status = status;
+      const result = await storage.getQualityBatchNumbers(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality batches:', error);
+      res.status(500).json({ message: 'Failed to fetch batches' });
+    }
+  });
+
+  app.get('/api/quality/batches/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const batch = await storage.getQualityBatchNumber(parseInt(req.params.id));
+      if (!batch) return res.status(404).json({ message: 'Batch not found' });
+      res.json(batch);
+    } catch (error) {
+      console.error('Error fetching quality batch:', error);
+      res.status(500).json({ message: 'Failed to fetch batch' });
+    }
+  });
+
+  app.post('/api/quality/batches', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, createdById: userId };
+      const validated = insertQualityBatchNumberSchema.parse(body);
+      const result = await storage.createQualityBatchNumber(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality batch:', error);
+      res.status(500).json({ message: 'Failed to create batch' });
+    }
+  });
+
+  app.patch('/api/quality/batches/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityBatchNumber(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating quality batch:', error);
+      res.status(500).json({ message: 'Failed to update batch' });
+    }
+  });
+
+  // Quality Vendors
+  app.get('/api/quality/vendors', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { approvalStatus, search, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (approvalStatus) filters.approvalStatus = approvalStatus;
+      if (search) filters.search = search;
+      const result = await storage.getQualityVendors(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality vendors:', error);
+      res.status(500).json({ message: 'Failed to fetch vendors' });
+    }
+  });
+
+  app.get('/api/quality/vendors/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const vendor = await storage.getQualityVendor(parseInt(req.params.id));
+      if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+      res.json(vendor);
+    } catch (error) {
+      console.error('Error fetching quality vendor:', error);
+      res.status(500).json({ message: 'Failed to fetch vendor' });
+    }
+  });
+
+  app.post('/api/quality/vendors', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const validated = insertQualityVendorSchema.parse(req.body);
+      const result = await storage.createQualityVendor(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality vendor:', error);
+      res.status(500).json({ message: 'Failed to create vendor' });
+    }
+  });
+
+  app.patch('/api/quality/vendors/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityVendor(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating quality vendor:', error);
+      res.status(500).json({ message: 'Failed to update vendor' });
+    }
+  });
+
+  // Customer Vendor Approvals
+  app.get('/api/quality/customer-vendor-approvals', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (status) filters.status = status;
+      if (requesterId) filters.requesterId = requesterId;
+      if (assignedToId) filters.assignedToId = assignedToId;
+      const result = await storage.getQualityCustomerVendorApprovals(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching customer vendor approvals:', error);
+      res.status(500).json({ message: 'Failed to fetch customer vendor approvals' });
+    }
+  });
+
+  app.get('/api/quality/customer-vendor-approvals/:id', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const approval = await storage.getQualityCustomerVendorApproval(parseInt(req.params.id));
+      if (!approval) return res.status(404).json({ message: 'Customer vendor approval not found' });
+      res.json(approval);
+    } catch (error) {
+      console.error('Error fetching customer vendor approval:', error);
+      res.status(500).json({ message: 'Failed to fetch customer vendor approval' });
+    }
+  });
+
+  app.post('/api/quality/customer-vendor-approvals', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, requesterId: userId };
+      const validated = insertQualityCustomerVendorApprovalSchema.parse(body);
+      const result = await storage.createQualityCustomerVendorApproval(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating customer vendor approval:', error);
+      res.status(500).json({ message: 'Failed to create customer vendor approval' });
+    }
+  });
+
+  app.patch('/api/quality/customer-vendor-approvals/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityCustomerVendorApproval(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating customer vendor approval:', error);
+      res.status(500).json({ message: 'Failed to update customer vendor approval' });
+    }
+  });
+
+  // Quality NCRs
+  app.get('/api/quality/ncrs', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { status, severity, limit = '50', offset = '0' } = req.query;
+      const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
+      if (status) filters.status = status;
+      if (severity) filters.severity = severity;
+      const result = await storage.getQualityNcrs(filters);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching quality NCRs:', error);
+      res.status(500).json({ message: 'Failed to fetch NCRs' });
+    }
+  });
+
+  app.get('/api/quality/ncrs/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const ncr = await storage.getQualityNcr(parseInt(req.params.id));
+      if (!ncr) return res.status(404).json({ message: 'NCR not found' });
+      res.json(ncr);
+    } catch (error) {
+      console.error('Error fetching quality NCR:', error);
+      res.status(500).json({ message: 'Failed to fetch NCR' });
+    }
+  });
+
+  app.post('/api/quality/ncrs', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id || req.user?.id;
+      const body = { ...req.body, reportedById: req.body.reportedById || userId };
+      const validated = insertQualityNcrSchema.parse(body);
+      const result = await storage.createQualityNcr(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality NCR:', error);
+      res.status(500).json({ message: 'Failed to create NCR' });
+    }
+  });
+
+  app.patch('/api/quality/ncrs/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const result = await storage.updateQualityNcr(parseInt(req.params.id), req.body);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating quality NCR:', error);
+      res.status(500).json({ message: 'Failed to update NCR' });
+    }
+  });
+
+  // Quality Attachments
+  app.get('/api/quality/attachments/:entityType/:entityId', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const attachments = await storage.getQualityAttachments(entityType, parseInt(entityId));
+      res.json(attachments);
+    } catch (error) {
+      console.error('Error fetching quality attachments:', error);
+      res.status(500).json({ message: 'Failed to fetch attachments' });
+    }
+  });
+
+  app.post('/api/quality/attachments', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const validated = insertQualityAttachmentSchema.parse(req.body);
+      const result = await storage.createQualityAttachment(validated);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Error creating quality attachment:', error);
+      res.status(500).json({ message: 'Failed to create attachment' });
+    }
+  });
+
+  app.delete('/api/quality/attachments/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      await storage.deleteQualityAttachment(parseInt(req.params.id));
+      res.json({ message: 'Attachment deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting quality attachment:', error);
+      res.status(500).json({ message: 'Failed to delete attachment' });
+    }
+  });
+
+  // Quality Dashboard Stats
+  app.get('/api/quality/dashboard-stats', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const [docRequests, testingRequests, batches, vendorApprovals, ncrs, customerVendorApprovals] = await Promise.all([
+        storage.getQualityDocumentRequests({ limit: 1000, offset: 0 }),
+        storage.getQualityTestingRequests({ limit: 1000, offset: 0 }),
+        storage.getQualityBatchNumbers({ limit: 1000, offset: 0 }),
+        storage.getQualityVendors({ limit: 1000, offset: 0 }),
+        storage.getQualityNcrs({ limit: 1000, offset: 0 }),
+        storage.getQualityCustomerVendorApprovals({ limit: 1000, offset: 0 }),
+      ]);
+
+      const stats = {
+        documentRequests: {
+          total: docRequests.total,
+          open: docRequests.requests.filter((r: any) => r.status === 'open' || r.status === 'pending' || r.status === 'in_progress').length,
+        },
+        testingRequests: {
+          total: testingRequests.total,
+          pending: testingRequests.requests.filter((r: any) => r.status === 'pending' || r.status === 'submitted').length,
+        },
+        batches: {
+          total: batches.total,
+          active: batches.batches.filter((b: any) => b.status === 'active' || b.status === 'in_production').length,
+        },
+        vendorApprovals: {
+          total: vendorApprovals.total,
+          pending: vendorApprovals.vendors.filter((v: any) => v.approvalStatus === 'pending' || v.approvalStatus === 'under_review').length,
+        },
+        ncrs: {
+          total: ncrs.total,
+          open: ncrs.ncrs.filter((n: any) => n.status === 'open' || n.status === 'in_progress' || n.status === 'under_investigation').length,
+        },
+        customerVendorApprovals: {
+          total: customerVendorApprovals.total,
+          received: customerVendorApprovals.approvals.filter((a: any) => a.status === 'received' || a.status === 'pending').length,
+        },
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching quality dashboard stats:', error);
+      res.status(500).json({ message: 'Failed to fetch dashboard stats' });
     }
   });
 

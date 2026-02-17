@@ -155,6 +155,30 @@ import {
   type InsertVoicemail,
   type FrejunToken,
   type InsertFrejunToken,
+  qualityDocumentRequests,
+  qualityTestingRequests,
+  qualityTestReports,
+  qualityBatchNumbers,
+  qualityVendors,
+  qualityCustomerVendorApprovals,
+  qualityNcrs,
+  qualityAttachments,
+  type QualityDocumentRequest,
+  type InsertQualityDocumentRequest,
+  type QualityTestingRequest,
+  type InsertQualityTestingRequest,
+  type QualityTestReport,
+  type InsertQualityTestReport,
+  type QualityBatchNumber,
+  type InsertQualityBatchNumber,
+  type QualityVendor,
+  type InsertQualityVendor,
+  type QualityCustomerVendorApproval,
+  type InsertQualityCustomerVendorApproval,
+  type QualityNcr,
+  type InsertQualityNcr,
+  type QualityAttachment,
+  type InsertQualityAttachment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
@@ -696,6 +720,44 @@ export interface IStorage {
   getFrejunToken(userId: string): Promise<FrejunToken | undefined>;
   upsertFrejunToken(token: InsertFrejunToken): Promise<FrejunToken>;
   deleteFrejunToken(userId: string): Promise<void>;
+
+  // Quality Management operations
+  getQualityDocumentRequests(filters?: { status?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityDocumentRequest[]; total: number }>;
+  getQualityDocumentRequest(id: number): Promise<QualityDocumentRequest | undefined>;
+  createQualityDocumentRequest(data: InsertQualityDocumentRequest): Promise<QualityDocumentRequest>;
+  updateQualityDocumentRequest(id: number, data: Partial<InsertQualityDocumentRequest>): Promise<QualityDocumentRequest>;
+
+  getQualityTestingRequests(filters?: { status?: string; requestType?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityTestingRequest[]; total: number }>;
+  getQualityTestingRequest(id: number): Promise<QualityTestingRequest | undefined>;
+  createQualityTestingRequest(data: InsertQualityTestingRequest): Promise<QualityTestingRequest>;
+  updateQualityTestingRequest(id: number, data: Partial<InsertQualityTestingRequest>): Promise<QualityTestingRequest>;
+
+  getQualityTestReports(filters?: { testingRequestId?: number; batchId?: number; limit?: number; offset?: number }): Promise<{ reports: QualityTestReport[]; total: number }>;
+  createQualityTestReport(data: InsertQualityTestReport): Promise<QualityTestReport>;
+
+  getQualityBatchNumbers(filters?: { batchType?: string; status?: string; limit?: number; offset?: number }): Promise<{ batches: QualityBatchNumber[]; total: number }>;
+  getQualityBatchNumber(id: number): Promise<QualityBatchNumber | undefined>;
+  createQualityBatchNumber(data: InsertQualityBatchNumber): Promise<QualityBatchNumber>;
+  updateQualityBatchNumber(id: number, data: Partial<InsertQualityBatchNumber>): Promise<QualityBatchNumber>;
+
+  getQualityVendors(filters?: { approvalStatus?: string; search?: string; limit?: number; offset?: number }): Promise<{ vendors: QualityVendor[]; total: number }>;
+  getQualityVendor(id: number): Promise<QualityVendor | undefined>;
+  createQualityVendor(data: InsertQualityVendor): Promise<QualityVendor>;
+  updateQualityVendor(id: number, data: Partial<InsertQualityVendor>): Promise<QualityVendor>;
+
+  getQualityCustomerVendorApprovals(filters?: { status?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ approvals: QualityCustomerVendorApproval[]; total: number }>;
+  getQualityCustomerVendorApproval(id: number): Promise<QualityCustomerVendorApproval | undefined>;
+  createQualityCustomerVendorApproval(data: InsertQualityCustomerVendorApproval): Promise<QualityCustomerVendorApproval>;
+  updateQualityCustomerVendorApproval(id: number, data: Partial<InsertQualityCustomerVendorApproval>): Promise<QualityCustomerVendorApproval>;
+
+  getQualityNcrs(filters?: { status?: string; severity?: string; limit?: number; offset?: number }): Promise<{ ncrs: QualityNcr[]; total: number }>;
+  getQualityNcr(id: number): Promise<QualityNcr | undefined>;
+  createQualityNcr(data: InsertQualityNcr): Promise<QualityNcr>;
+  updateQualityNcr(id: number, data: Partial<InsertQualityNcr>): Promise<QualityNcr>;
+
+  getQualityAttachments(entityType: string, entityId: number): Promise<QualityAttachment[]>;
+  createQualityAttachment(data: InsertQualityAttachment): Promise<QualityAttachment>;
+  deleteQualityAttachment(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7288,6 +7350,225 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFrejunToken(userId: string): Promise<void> {
     await db.delete(frejunTokens).where(eq(frejunTokens.userId, userId));
+  }
+
+  // Quality Management implementations
+
+  async getQualityDocumentRequests(filters?: { status?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityDocumentRequest[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.status) conditions.push(eq(qualityDocumentRequests.status, filters.status));
+    if (filters?.requesterId) conditions.push(eq(qualityDocumentRequests.requesterId, filters.requesterId));
+    if (filters?.assignedToId) conditions.push(eq(qualityDocumentRequests.assignedToId, filters.assignedToId));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [requests, countResult] = await Promise.all([
+      db.select().from(qualityDocumentRequests).where(whereClause).orderBy(desc(qualityDocumentRequests.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityDocumentRequests).where(whereClause),
+    ]);
+    return { requests, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityDocumentRequest(id: number): Promise<QualityDocumentRequest | undefined> {
+    const [request] = await db.select().from(qualityDocumentRequests).where(eq(qualityDocumentRequests.id, id));
+    return request;
+  }
+
+  async createQualityDocumentRequest(data: InsertQualityDocumentRequest): Promise<QualityDocumentRequest> {
+    const [request] = await db.insert(qualityDocumentRequests).values(data).returning();
+    return request;
+  }
+
+  async updateQualityDocumentRequest(id: number, data: Partial<InsertQualityDocumentRequest>): Promise<QualityDocumentRequest> {
+    const [request] = await db.update(qualityDocumentRequests).set({ ...data, updatedAt: new Date() }).where(eq(qualityDocumentRequests.id, id)).returning();
+    return request;
+  }
+
+  async getQualityTestingRequests(filters?: { status?: string; requestType?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityTestingRequest[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.status) conditions.push(eq(qualityTestingRequests.status, filters.status));
+    if (filters?.requestType) conditions.push(eq(qualityTestingRequests.requestType, filters.requestType));
+    if (filters?.requesterId) conditions.push(eq(qualityTestingRequests.requesterId, filters.requesterId));
+    if (filters?.assignedToId) conditions.push(eq(qualityTestingRequests.assignedToId, filters.assignedToId));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [requests, countResult] = await Promise.all([
+      db.select().from(qualityTestingRequests).where(whereClause).orderBy(desc(qualityTestingRequests.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityTestingRequests).where(whereClause),
+    ]);
+    return { requests, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityTestingRequest(id: number): Promise<QualityTestingRequest | undefined> {
+    const [request] = await db.select().from(qualityTestingRequests).where(eq(qualityTestingRequests.id, id));
+    return request;
+  }
+
+  async createQualityTestingRequest(data: InsertQualityTestingRequest): Promise<QualityTestingRequest> {
+    const [request] = await db.insert(qualityTestingRequests).values(data).returning();
+    return request;
+  }
+
+  async updateQualityTestingRequest(id: number, data: Partial<InsertQualityTestingRequest>): Promise<QualityTestingRequest> {
+    const [request] = await db.update(qualityTestingRequests).set({ ...data, updatedAt: new Date() }).where(eq(qualityTestingRequests.id, id)).returning();
+    return request;
+  }
+
+  async getQualityTestReports(filters?: { testingRequestId?: number; batchId?: number; limit?: number; offset?: number }): Promise<{ reports: QualityTestReport[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.testingRequestId) conditions.push(eq(qualityTestReports.testingRequestId, filters.testingRequestId));
+    if (filters?.batchId) conditions.push(eq(qualityTestReports.batchId, filters.batchId));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [reports, countResult] = await Promise.all([
+      db.select().from(qualityTestReports).where(whereClause).orderBy(desc(qualityTestReports.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityTestReports).where(whereClause),
+    ]);
+    return { reports, total: countResult[0]?.count || 0 };
+  }
+
+  async createQualityTestReport(data: InsertQualityTestReport): Promise<QualityTestReport> {
+    const [report] = await db.insert(qualityTestReports).values(data).returning();
+    return report;
+  }
+
+  async getQualityBatchNumbers(filters?: { batchType?: string; status?: string; limit?: number; offset?: number }): Promise<{ batches: QualityBatchNumber[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.batchType) conditions.push(eq(qualityBatchNumbers.batchType, filters.batchType));
+    if (filters?.status) conditions.push(eq(qualityBatchNumbers.status, filters.status));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [batches, countResult] = await Promise.all([
+      db.select().from(qualityBatchNumbers).where(whereClause).orderBy(desc(qualityBatchNumbers.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityBatchNumbers).where(whereClause),
+    ]);
+    return { batches, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityBatchNumber(id: number): Promise<QualityBatchNumber | undefined> {
+    const [batch] = await db.select().from(qualityBatchNumbers).where(eq(qualityBatchNumbers.id, id));
+    return batch;
+  }
+
+  async createQualityBatchNumber(data: InsertQualityBatchNumber): Promise<QualityBatchNumber> {
+    const batchNumber = `${data.companyShort}-${data.organicType}-${data.materialCode}-${data.materialForm}-${data.manufacturingDate}`;
+    const [batch] = await db.insert(qualityBatchNumbers).values({ ...data, batchNumber }).returning();
+    return batch;
+  }
+
+  async updateQualityBatchNumber(id: number, data: Partial<InsertQualityBatchNumber>): Promise<QualityBatchNumber> {
+    const [batch] = await db.update(qualityBatchNumbers).set({ ...data, updatedAt: new Date() }).where(eq(qualityBatchNumbers.id, id)).returning();
+    return batch;
+  }
+
+  async getQualityVendors(filters?: { approvalStatus?: string; search?: string; limit?: number; offset?: number }): Promise<{ vendors: QualityVendor[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.approvalStatus) conditions.push(eq(qualityVendors.approvalStatus, filters.approvalStatus));
+    if (filters?.search) {
+      conditions.push(
+        or(
+          sql`${qualityVendors.vendorName} ILIKE ${'%' + filters.search + '%'}`,
+          sql`${qualityVendors.vendorCode} ILIKE ${'%' + filters.search + '%'}`,
+          sql`${qualityVendors.contactPerson} ILIKE ${'%' + filters.search + '%'}`
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [vendors, countResult] = await Promise.all([
+      db.select().from(qualityVendors).where(whereClause).orderBy(desc(qualityVendors.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityVendors).where(whereClause),
+    ]);
+    return { vendors, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityVendor(id: number): Promise<QualityVendor | undefined> {
+    const [vendor] = await db.select().from(qualityVendors).where(eq(qualityVendors.id, id));
+    return vendor;
+  }
+
+  async createQualityVendor(data: InsertQualityVendor): Promise<QualityVendor> {
+    const [vendor] = await db.insert(qualityVendors).values(data).returning();
+    return vendor;
+  }
+
+  async updateQualityVendor(id: number, data: Partial<InsertQualityVendor>): Promise<QualityVendor> {
+    const [vendor] = await db.update(qualityVendors).set({ ...data, updatedAt: new Date() }).where(eq(qualityVendors.id, id)).returning();
+    return vendor;
+  }
+
+  async getQualityCustomerVendorApprovals(filters?: { status?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ approvals: QualityCustomerVendorApproval[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.status) conditions.push(eq(qualityCustomerVendorApprovals.status, filters.status));
+    if (filters?.requesterId) conditions.push(eq(qualityCustomerVendorApprovals.requesterId, filters.requesterId));
+    if (filters?.assignedToId) conditions.push(eq(qualityCustomerVendorApprovals.assignedToId, filters.assignedToId));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [approvals, countResult] = await Promise.all([
+      db.select().from(qualityCustomerVendorApprovals).where(whereClause).orderBy(desc(qualityCustomerVendorApprovals.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityCustomerVendorApprovals).where(whereClause),
+    ]);
+    return { approvals, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityCustomerVendorApproval(id: number): Promise<QualityCustomerVendorApproval | undefined> {
+    const [approval] = await db.select().from(qualityCustomerVendorApprovals).where(eq(qualityCustomerVendorApprovals.id, id));
+    return approval;
+  }
+
+  async createQualityCustomerVendorApproval(data: InsertQualityCustomerVendorApproval): Promise<QualityCustomerVendorApproval> {
+    const [approval] = await db.insert(qualityCustomerVendorApprovals).values(data).returning();
+    return approval;
+  }
+
+  async updateQualityCustomerVendorApproval(id: number, data: Partial<InsertQualityCustomerVendorApproval>): Promise<QualityCustomerVendorApproval> {
+    const [approval] = await db.update(qualityCustomerVendorApprovals).set({ ...data, updatedAt: new Date() }).where(eq(qualityCustomerVendorApprovals.id, id)).returning();
+    return approval;
+  }
+
+  async getQualityNcrs(filters?: { status?: string; severity?: string; limit?: number; offset?: number }): Promise<{ ncrs: QualityNcr[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.status) conditions.push(eq(qualityNcrs.status, filters.status));
+    if (filters?.severity) conditions.push(eq(qualityNcrs.severity, filters.severity));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [ncrs, countResult] = await Promise.all([
+      db.select().from(qualityNcrs).where(whereClause).orderBy(desc(qualityNcrs.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(qualityNcrs).where(whereClause),
+    ]);
+    return { ncrs, total: countResult[0]?.count || 0 };
+  }
+
+  async getQualityNcr(id: number): Promise<QualityNcr | undefined> {
+    const [ncr] = await db.select().from(qualityNcrs).where(eq(qualityNcrs.id, id));
+    return ncr;
+  }
+
+  async createQualityNcr(data: InsertQualityNcr): Promise<QualityNcr> {
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(qualityNcrs).where(sql`${qualityNcrs.ncrNumber} LIKE ${'NCR-' + dateStr + '-%'}`);
+    const seq = (countResult?.count || 0) + 1;
+    const ncrNumber = `NCR-${dateStr}-${String(seq).padStart(3, '0')}`;
+    const [ncr] = await db.insert(qualityNcrs).values({ ...data, ncrNumber }).returning();
+    return ncr;
+  }
+
+  async updateQualityNcr(id: number, data: Partial<InsertQualityNcr>): Promise<QualityNcr> {
+    const [ncr] = await db.update(qualityNcrs).set({ ...data, updatedAt: new Date() }).where(eq(qualityNcrs.id, id)).returning();
+    return ncr;
+  }
+
+  async getQualityAttachments(entityType: string, entityId: number): Promise<QualityAttachment[]> {
+    return db.select().from(qualityAttachments).where(and(eq(qualityAttachments.entityType, entityType), eq(qualityAttachments.entityId, entityId))).orderBy(desc(qualityAttachments.createdAt));
+  }
+
+  async createQualityAttachment(data: InsertQualityAttachment): Promise<QualityAttachment> {
+    const [attachment] = await db.insert(qualityAttachments).values(data).returning();
+    return attachment;
+  }
+
+  async deleteQualityAttachment(id: number): Promise<void> {
+    await db.delete(qualityAttachments).where(eq(qualityAttachments.id, id));
   }
 }
 
