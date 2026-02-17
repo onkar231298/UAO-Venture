@@ -11566,10 +11566,18 @@ We look forward to hearing from you.`;
 
       const { normalizeCompanyName } = await import('./duplicateDetection');
 
-      const allCompanies = await storage.getAllCompanies();
+      const allCompanies = await db.select({
+        id: companies.id,
+        companyName: companies.companyName,
+        assignedTo: companies.assignedTo,
+        createdAt: companies.createdAt,
+        duplicateStatus: companies.duplicateStatus,
+        normalizedName: companies.normalizedName,
+      }).from(companies).where(ne(companies.duplicateStatus, 'merged'));
+
       const nameGroups: Map<string, any[]> = new Map();
       for (const c of allCompanies) {
-        const norm = (c as any).normalizedName || normalizeCompanyName(c.companyName);
+        const norm = c.normalizedName || normalizeCompanyName(c.companyName);
         if (!nameGroups.has(norm)) nameGroups.set(norm, []);
         nameGroups.get(norm)!.push(c);
       }
