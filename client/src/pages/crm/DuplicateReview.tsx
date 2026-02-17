@@ -18,14 +18,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Table,
   TableBody,
   TableCell,
@@ -33,39 +25,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { 
   Building2, 
   AlertTriangle, 
   CheckCircle2, 
-  GitMerge, 
-  ArrowRight,
+  Trash2,
   Mail,
   Phone,
   Globe,
   MapPin,
-  Users,
+  User,
   Calendar,
-  ExternalLink,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
-
-interface PotentialMatch {
-  companyId: number;
-  companyName: string;
-  matchType: string;
-  confidence: number;
-  matchedFields?: string[];
-  matchDetails?: string;
-}
 
 interface DuplicateCompany {
   id: number;
@@ -78,165 +55,119 @@ interface DuplicateCompany {
   addressCountry?: string | null;
   origin?: string | null;
   status?: string | null;
+  assignedTo?: string | null;
+  assignedToName?: string | null;
   createdAt: string;
   duplicateStatus?: string | null;
-  duplicateConfidence?: string | null;
-  potentialMatches?: PotentialMatch[];
+  isOldest: boolean;
+  suggestion: 'keep' | 'delete' | 'review';
+}
+
+interface DuplicateGroup {
+  groupName: string;
+  matchType: string;
+  confidence: number;
+  companies: DuplicateCompany[];
 }
 
 export default function DuplicateReview() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateCompany | null>(null);
-  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
-  const [masterCompanyId, setMasterCompanyId] = useState<number | null>(null);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'unique' | 'merge' | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; company: DuplicateCompany | null }>({ open: false, company: null });
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<{ open: boolean; companies: DuplicateCompany[]; groupName: string }>({ open: false, companies: [], groupName: '' });
 
-  const { data: duplicates, isLoading, refetch, isRefetching } = useQuery<DuplicateCompany[]>({
+  const { data: duplicateGroups, isLoading, refetch, isRefetching } = useQuery<DuplicateGroup[]>({
     queryKey: ['/api/admin/companies/duplicates'],
   });
 
-  const markUniqueMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (companyId: number) => {
-      return await apiRequest(`/api/admin/companies/${companyId}/mark-unique`, {
+      return await apiRequest(`/api/crm/companies/${companyId}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      toast({ title: "Company deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies/duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+      setDeleteConfirm({ open: false, company: null });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to delete company", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (companyIds: number[]) => {
+      return await apiRequest('/api/crm/companies/bulk-delete', {
         method: 'POST',
+        body: JSON.stringify({ companyIds }),
       });
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Company marked as unique (not a duplicate)",
-      });
+      toast({ title: "Duplicate companies deleted successfully" });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/companies/duplicates'] });
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
-      setSelectedDuplicate(null);
-      setConfirmDialogOpen(false);
+      setBulkDeleteConfirm({ open: false, companies: [], groupName: '' });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update company status",
-        variant: "destructive",
-      });
+    onError: (err: any) => {
+      toast({ title: "Failed to delete companies", description: err.message, variant: "destructive" });
     },
   });
 
-  const mergeCompaniesMutation = useMutation({
-    mutationFn: async ({ masterCompanyId, duplicateCompanyId }: { masterCompanyId: number; duplicateCompanyId: number }) => {
-      return await apiRequest('/api/admin/companies/merge', {
-        method: 'POST',
-        body: JSON.stringify({
-          masterCompanyId,
-          duplicateCompanyId,
-        }),
-      });
-    },
-    onSuccess: (data: any) => {
-      toast({
-        title: "Companies Merged",
-        description: data.message || "Companies merged successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies/duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
-      setMergeDialogOpen(false);
-      setSelectedDuplicate(null);
-      setMasterCompanyId(null);
-      setConfirmDialogOpen(false);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to merge companies",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleMarkUnique = (company: DuplicateCompany) => {
-    setSelectedDuplicate(company);
-    setConfirmAction('unique');
-    setConfirmDialogOpen(true);
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
   };
 
-  const handleMerge = (company: DuplicateCompany) => {
-    setSelectedDuplicate(company);
-    setMergeDialogOpen(true);
-  };
-
-  const confirmMarkUnique = () => {
-    if (selectedDuplicate) {
-      markUniqueMutation.mutate(selectedDuplicate.id);
+  const handleDeleteSuggested = (group: DuplicateGroup) => {
+    const toDelete = group.companies.filter(c => c.suggestion === 'delete');
+    if (toDelete.length > 0) {
+      setBulkDeleteConfirm({ open: true, companies: toDelete, groupName: group.groupName });
     }
   };
 
-  const confirmMerge = () => {
-    if (selectedDuplicate && masterCompanyId) {
-      mergeCompaniesMutation.mutate({
-        masterCompanyId,
-        duplicateCompanyId: selectedDuplicate.id,
-      });
-    }
-  };
-
-  const getConfidenceBadge = (confidence: number) => {
-    if (confidence >= 85) {
-      return <Badge variant="destructive" data-testid="badge-confidence-high">{confidence}% Match</Badge>;
-    } else if (confidence >= 70) {
-      return <Badge className="bg-orange-500 text-white" data-testid="badge-confidence-medium">{confidence}% Match</Badge>;
-    } else {
-      return <Badge variant="secondary" data-testid="badge-confidence-low">{confidence}% Match</Badge>;
-    }
-  };
-
-  const getOriginBadge = (origin?: string | null) => {
-    if (origin === 'website') {
-      return <Badge className="bg-blue-100 text-blue-800" data-testid="badge-origin-website">Website</Badge>;
-    } else if (origin === 'manual') {
-      return <Badge className="bg-gray-100 text-gray-800" data-testid="badge-origin-manual">Manual</Badge>;
-    } else if (origin === 'import') {
-      return <Badge className="bg-purple-100 text-purple-800" data-testid="badge-origin-import">Import</Badge>;
-    }
-    return <Badge variant="outline" data-testid="badge-origin-unknown">Unknown</Badge>;
-  };
+  const totalDuplicates = duplicateGroups?.reduce((sum, g) => sum + g.companies.length - 1, 0) || 0;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]" data-testid="loading-duplicates">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6" data-testid="duplicate-review-page">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="text-page-title">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-amber-500" />
             Duplicate Review Queue
           </h1>
           <p className="text-muted-foreground mt-1">
-            Review and resolve potential duplicate company records
+            Review and resolve duplicate company records. Recently added entries are suggested for deletion.
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => refetch()}
           disabled={isRefetching}
-          data-testid="button-refresh"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
-      {(!duplicates || duplicates.length === 0) ? (
-        <Card data-testid="card-no-duplicates">
+      {(!duplicateGroups || duplicateGroups.length === 0) ? (
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
-            <h3 className="text-lg font-semibold" data-testid="text-no-duplicates-title">No Duplicates Found</h3>
+            <h3 className="text-lg font-semibold">No Duplicates Found</h3>
             <p className="text-muted-foreground text-center mt-2">
               All company records appear to be unique. Great job maintaining data quality!
             </p>
@@ -244,253 +175,250 @@ export default function DuplicateReview() {
         </Card>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground" data-testid="text-duplicate-count">
-            Found {duplicates.length} potential duplicate{duplicates.length !== 1 ? 's' : ''} for review
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Found <span className="font-semibold text-amber-600">{duplicateGroups.length} groups</span> with{' '}
+              <span className="font-semibold text-red-600">{totalDuplicates} duplicate entries</span> to review
+            </p>
+          </div>
           
-          {duplicates.map((company) => (
-            <Card key={company.id} className="border-l-4 border-l-amber-500" data-testid={`card-duplicate-${company.id}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2" data-testid={`text-company-name-${company.id}`}>
-                      <Building2 className="h-5 w-5" />
-                      {company.companyName}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2 flex-wrap">
-                      {getOriginBadge(company.origin)}
-                      {company.duplicateConfidence && (
-                        <Badge variant="outline" data-testid={`badge-stored-confidence-${company.id}`}>
-                          {company.duplicateConfidence}% stored confidence
-                        </Badge>
-                      )}
-                      <span className="text-xs" data-testid={`text-created-${company.id}`}>
-                        Created {format(new Date(company.createdAt), 'MMM d, yyyy')}
-                      </span>
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleMarkUnique(company)}
-                      disabled={markUniqueMutation.isPending}
-                      data-testid={`button-mark-unique-${company.id}`}
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-1" />
-                      Not a Duplicate
-                    </Button>
-                    {company.potentialMatches && company.potentialMatches.length > 0 && (
+          {duplicateGroups.map((group, idx) => {
+            const groupKey = `${group.groupName}-${idx}`;
+            const isExpanded = expandedGroups.has(groupKey);
+            const deleteSuggestions = group.companies.filter(c => c.suggestion === 'delete');
+            
+            return (
+              <Card key={groupKey} className="border-l-4 border-l-amber-500">
+                <CardHeader 
+                  className="cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => toggleGroup(groupKey)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Building2 className="h-5 w-5" />
+                          {group.groupName}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge variant={group.confidence === 100 ? "destructive" : "secondary"}>
+                            {group.confidence}% Match
+                          </Badge>
+                          <Badge variant="outline">
+                            {group.matchType === 'exact_name' ? 'Exact Name Match' : 'Similar Name'}
+                          </Badge>
+                          <span className="text-xs">
+                            {group.companies.length} entries found
+                          </span>
+                          {deleteSuggestions.length > 0 && (
+                            <Badge className="bg-red-100 text-red-800">
+                              {deleteSuggestions.length} suggested for deletion
+                            </Badge>
+                          )}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    {deleteSuggestions.length > 0 && (
                       <Button
-                        variant="default"
+                        variant="destructive"
                         size="sm"
-                        onClick={() => handleMerge(company)}
-                        data-testid={`button-merge-${company.id}`}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteSuggested(group); }}
                       >
-                        <GitMerge className="h-4 w-4 mr-1" />
-                        Merge
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete {deleteSuggestions.length} Duplicate{deleteSuggestions.length > 1 ? 's' : ''}
                       </Button>
                     )}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  {company.primaryEmail && (
-                    <div className="flex items-center gap-2 text-sm" data-testid={`text-email-${company.id}`}>
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      {company.primaryEmail}
-                    </div>
-                  )}
-                  {company.primaryPhone && (
-                    <div className="flex items-center gap-2 text-sm" data-testid={`text-phone-${company.id}`}>
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      {company.primaryPhone}
-                    </div>
-                  )}
-                  {company.website && (
-                    <div className="flex items-center gap-2 text-sm" data-testid={`text-website-${company.id}`}>
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      {company.website}
-                    </div>
-                  )}
-                  {(company.addressCity || company.addressCountry) && (
-                    <div className="flex items-center gap-2 text-sm" data-testid={`text-location-${company.id}`}>
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      {[company.addressCity, company.addressState, company.addressCountry].filter(Boolean).join(', ')}
-                    </div>
-                  )}
-                </div>
-
-                {company.potentialMatches && company.potentialMatches.length > 0 && (
-                  <>
-                    <Separator className="my-4" />
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2" data-testid={`text-matches-header-${company.id}`}>
-                        <Users className="h-4 w-4" />
-                        Potential Matches ({company.potentialMatches.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {company.potentialMatches.map((match) => (
-                          <div
-                            key={match.companyId}
-                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                            data-testid={`match-${company.id}-${match.companyId}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <span className="font-medium" data-testid={`text-match-name-${match.companyId}`}>
-                                  {match.companyName}
-                                </span>
-                                <div className="text-xs text-muted-foreground" data-testid={`text-match-fields-${match.companyId}`}>
-                                  {match.matchedFields ? `Matched on: ${match.matchedFields.join(', ')}` : match.matchDetails || match.matchType}
+                </CardHeader>
+                
+                {isExpanded && (
+                  <CardContent>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px]">Suggestion</TableHead>
+                            <TableHead>Company Name</TableHead>
+                            <TableHead>Assigned To</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Origin</TableHead>
+                            <TableHead>Added Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-[100px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.companies.map((company) => (
+                            <TableRow 
+                              key={company.id}
+                              className={company.suggestion === 'keep' ? 'bg-green-50/50' : company.suggestion === 'delete' ? 'bg-red-50/50' : ''}
+                            >
+                              <TableCell>
+                                {company.suggestion === 'keep' ? (
+                                  <Badge className="bg-green-100 text-green-800 text-xs">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Keep
+                                  </Badge>
+                                ) : company.suggestion === 'delete' ? (
+                                  <Badge className="bg-red-100 text-red-800 text-xs">
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    Review
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">{company.companyName}</div>
+                                <div className="text-xs text-muted-foreground">ID: {company.id}</div>
+                              </TableCell>
+                              <TableCell>
+                                {company.assignedToName ? (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    {company.assignedToName}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Unassigned</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {company.primaryEmail ? (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <Mail className="h-3 w-3 text-muted-foreground" />
+                                    <span className="truncate max-w-[200px]">{company.primaryEmail}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {(company.addressCity || company.addressCountry) ? (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                                    {[company.addressCity, company.addressCountry].filter(Boolean).join(', ')}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {company.origin || 'unknown'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1 text-sm whitespace-nowrap">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  {format(new Date(company.createdAt), 'MMM d, yyyy')}
                                 </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {getConfidenceBadge(match.confidence)}
-                              <Badge variant="outline" data-testid={`badge-match-type-${match.companyId}`}>
-                                {match.matchType}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                                {company.isOldest && (
+                                  <div className="text-xs text-green-600 font-medium">Oldest entry</div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {company.status || 'active'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => setDeleteConfirm({ open: true, company })}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </>
+                  </CardContent>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent data-testid="dialog-confirm-unique">
+      <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, company: open ? deleteConfirm.company : null })}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogTitle>Delete Company</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to mark "{selectedDuplicate?.companyName}" as unique (not a duplicate)?
-              This will remove it from the review queue.
+              Are you sure you want to delete "{deleteConfirm.company?.companyName}" (ID: {deleteConfirm.company?.id})?
+              {deleteConfirm.company?.assignedToName && (
+                <span className="block mt-2 font-medium">
+                  This company is assigned to: {deleteConfirm.company.assignedToName}
+                </span>
+              )}
+              <span className="block mt-2">
+                Added on: {deleteConfirm.company?.createdAt ? format(new Date(deleteConfirm.company.createdAt), 'MMM d, yyyy') : 'Unknown'}
+              </span>
+              <span className="block mt-2 text-red-600 font-medium">
+                This action cannot be undone. All contacts, leads, and activities linked to this company will also be removed.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-unique">Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmMarkUnique}
-              disabled={markUniqueMutation.isPending}
-              data-testid="button-confirm-unique"
+              onClick={() => deleteConfirm.company && deleteMutation.mutate(deleteConfirm.company.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
             >
-              {markUniqueMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Confirm
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Company
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
-        <DialogContent className="max-w-2xl" data-testid="dialog-merge">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <GitMerge className="h-5 w-5" />
-              Merge Companies
-            </DialogTitle>
-            <DialogDescription>
-              Choose which company should be the master record. The duplicate will be merged into the master.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedDuplicate && (
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg bg-amber-50 border-amber-200" data-testid="merge-source-company">
-                <h4 className="font-medium flex items-center gap-2 text-amber-800">
-                  <Building2 className="h-4 w-4" />
-                  Duplicate Company (will be archived)
-                </h4>
-                <p className="text-sm mt-1" data-testid="text-merge-source-name">{selectedDuplicate.companyName}</p>
-                {selectedDuplicate.primaryEmail && (
-                  <p className="text-xs text-muted-foreground">{selectedDuplicate.primaryEmail}</p>
-                )}
+      <AlertDialog open={bulkDeleteConfirm.open} onOpenChange={(open) => !open && setBulkDeleteConfirm({ open: false, companies: [], groupName: '' })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {bulkDeleteConfirm.companies.length} Duplicate Companies</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="block mb-2">
+                The following duplicate entries of "{bulkDeleteConfirm.groupName}" will be deleted (the oldest entry will be kept):
+              </span>
+              <div className="max-h-48 overflow-y-auto space-y-1 mt-2">
+                {bulkDeleteConfirm.companies.map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-sm bg-red-50 rounded p-2">
+                    <span>{c.companyName} (ID: {c.id})</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {c.assignedToName && <span>Assigned: {c.assignedToName}</span>}
+                      <span>Added: {format(new Date(c.createdAt), 'MMM d, yyyy')}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div className="flex justify-center">
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Master Company</label>
-                <Select
-                  value={masterCompanyId?.toString() || ""}
-                  onValueChange={(val) => setMasterCompanyId(parseInt(val))}
-                >
-                  <SelectTrigger data-testid="select-master-company">
-                    <SelectValue placeholder="Choose the master record..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedDuplicate.potentialMatches?.map((match) => (
-                      <SelectItem
-                        key={match.companyId}
-                        value={match.companyId.toString()}
-                        data-testid={`select-option-${match.companyId}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{match.companyName}</span>
-                          <Badge variant="secondary" className="ml-2">
-                            {match.confidence}% match
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {masterCompanyId && (
-                <div className="p-4 border rounded-lg bg-green-50 border-green-200" data-testid="merge-target-company">
-                  <h4 className="font-medium flex items-center gap-2 text-green-800">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Master Company (will receive all data)
-                  </h4>
-                  <p className="text-sm mt-1">
-                    {selectedDuplicate.potentialMatches?.find(m => m.companyId === masterCompanyId)?.companyName}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    All contacts, leads, activities, and notes from the duplicate will be transferred to this company.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setMergeDialogOpen(false);
-                setMasterCompanyId(null);
-              }}
-              data-testid="button-cancel-merge"
+              <span className="block mt-3 text-red-600 font-medium">
+                This action cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(bulkDeleteConfirm.companies.map(c => c.id))}
+              disabled={bulkDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
             >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmMerge}
-              disabled={!masterCompanyId || mergeCompaniesMutation.isPending}
-              data-testid="button-confirm-merge"
-            >
-              {mergeCompaniesMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <GitMerge className="h-4 w-4 mr-2" />
-              )}
-              Merge Companies
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {bulkDeleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete All Duplicates
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -66,7 +66,7 @@ import {
   qualityDocumentRequests,
   qualityTestingRequests,
 } from "@shared/schema";
-import { eq, and, isNotNull, desc, inArray, sql } from "drizzle-orm";
+import { eq, and, ne, isNotNull, desc, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -6248,14 +6248,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     try {
       const userId = req.user.claims.sub;
       
-      // Only super_admin can delete companies
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
       
-      if (user.role !== 'super_admin') {
-        return res.status(403).json({ message: "Only Super Admin can delete companies" });
+      if (!user.role?.includes('admin') && !user.role?.includes('sales_manager')) {
+        return res.status(403).json({ message: "Only admins and sales managers can delete companies" });
       }
       
       await storage.deleteCompany(parseInt(req.params.id));
@@ -6371,9 +6370,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(401).json({ message: "User not found" });
       }
       
-      const adminRoles = ['admin', 'super_admin'];
-      if (!adminRoles.includes(user.role)) {
-        return res.status(403).json({ message: "Only administrators can delete companies in bulk" });
+      if (!user.role?.includes('admin') && !user.role?.includes('sales_manager')) {
+        return res.status(403).json({ message: "Only admins and sales managers can delete companies in bulk" });
       }
       
       const { companyIds } = req.body;
@@ -11417,7 +11415,6 @@ We look forward to hearing from you.`;
     }
   });
 
-  // Get companies with suspected duplicate status (for admin review queue)
   app.get('/api/admin/companies/duplicates', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -11427,26 +11424,118 @@ We look forward to hearing from you.`;
         return res.status(403).json({ message: 'Insufficient permissions' });
       }
       
-      const { getSuspectedDuplicates } = await import('./duplicateDetection');
-      const duplicates = await getSuspectedDuplicates();
+      const allCompanies = await db.select({
+        id: companies.id,
+        companyName: companies.companyName,
+        primaryEmail: companies.primaryEmail,
+        primaryPhone: companies.primaryPhone,
+        website: companies.website,
+        addressCity: companies.addressCity,
+        addressState: companies.addressState,
+        addressCountry: companies.addressCountry,
+        origin: companies.origin,
+        status: companies.status,
+        assignedTo: companies.assignedTo,
+        createdAt: companies.createdAt,
+        duplicateStatus: companies.duplicateStatus,
+        normalizedName: companies.normalizedName,
+      }).from(companies).where(ne(companies.duplicateStatus, 'merged'));
+
+      const assignedUserIds = new Set<string>();
+      for (const c of allCompanies) {
+        if (c.assignedTo) assignedUserIds.add(c.assignedTo);
+      }
+      const userMap = new Map<string, string>();
+      if (assignedUserIds.size > 0) {
+        const usersList = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+          .from(users).where(inArray(users.id, Array.from(assignedUserIds)));
+        for (const u of usersList) {
+          userMap.set(u.id, [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Unknown');
+        }
+      }
+
+      const { normalizeCompanyName, calculateNameSimilarity } = await import('./duplicateDetection');
+
+      const groups: Map<string, any[]> = new Map();
+      for (const c of allCompanies) {
+        const norm = c.normalizedName || normalizeCompanyName(c.companyName);
+        if (!groups.has(norm)) groups.set(norm, []);
+        groups.get(norm)!.push({ ...c, normalizedKey: norm });
+      }
+
+      const exactDuplicateIds = new Set<number>();
+      const duplicateGroups: any[] = [];
+
+      for (const [normName, group] of groups) {
+        if (group.length > 1) {
+          for (const c of group) exactDuplicateIds.add(c.id);
+          const sorted = group.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const oldest = sorted[0];
+          duplicateGroups.push({
+            groupName: oldest.companyName,
+            matchType: 'exact_name',
+            confidence: 100,
+            companies: sorted.map((c: any) => ({
+              ...c,
+              assignedToName: c.assignedTo ? userMap.get(c.assignedTo) || null : null,
+              isOldest: c.id === oldest.id,
+              suggestion: c.id === oldest.id ? 'keep' : 'delete',
+            })),
+          });
+        }
+      }
+
+      const nonDuplicateCompanies = allCompanies.filter(c => !exactDuplicateIds.has(c.id));
+      const tokenIndex = new Map<string, any[]>();
+      for (const c of nonDuplicateCompanies) {
+        const norm = normalizeCompanyName(c.companyName);
+        const tokens = norm.split(' ').filter((t: string) => t.length >= 3);
+        for (const token of tokens) {
+          if (!tokenIndex.has(token)) tokenIndex.set(token, []);
+          tokenIndex.get(token)!.push(c);
+        }
+      }
+      const fuzzyChecked = new Set<number>();
+      for (const c1 of nonDuplicateCompanies) {
+        if (fuzzyChecked.has(c1.id)) continue;
+        const norm1 = normalizeCompanyName(c1.companyName);
+        const tokens1 = norm1.split(' ').filter((t: string) => t.length >= 3);
+        const candidateIds = new Set<number>();
+        for (const token of tokens1) {
+          const bucket = tokenIndex.get(token) || [];
+          for (const cand of bucket) {
+            if (cand.id !== c1.id && !fuzzyChecked.has(cand.id)) candidateIds.add(cand.id);
+          }
+        }
+        const candidateMap = new Map(nonDuplicateCompanies.filter(c => candidateIds.has(c.id)).map(c => [c.id, c]));
+        const similarGroup = [c1];
+        for (const [cid, c2] of candidateMap) {
+          const similarity = calculateNameSimilarity(c1.companyName, c2.companyName);
+          if (similarity >= 70) {
+            similarGroup.push(c2);
+          }
+        }
+        if (similarGroup.length > 1) {
+          for (const c of similarGroup) fuzzyChecked.add(c.id);
+          const sorted = similarGroup.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const oldest = sorted[0];
+          duplicateGroups.push({
+            groupName: oldest.companyName,
+            matchType: 'fuzzy_name',
+            confidence: calculateNameSimilarity(sorted[0].companyName, sorted[1].companyName),
+            companies: sorted.map((c: any) => ({
+              ...c,
+              assignedToName: c.assignedTo ? userMap.get(c.assignedTo) || null : null,
+              isOldest: c.id === oldest.id,
+              suggestion: c.id === oldest.id ? 'keep' : 'review',
+            })),
+          });
+        }
+      }
+
+      duplicateGroups.sort((a, b) => b.companies.length - a.companies.length || b.confidence - a.confidence);
       
-      // For each suspected duplicate, find potential matches
-      const enrichedDuplicates = await Promise.all(duplicates.map(async (company) => {
-        const { checkForDuplicates } = await import('./duplicateDetection');
-        const matches = await checkForDuplicates(
-          company.companyName, 
-          company.primaryEmail || undefined,
-          company.primaryPhone || undefined,
-          company.id
-        );
-        
-        return {
-          ...company,
-          potentialMatches: matches.matches
-        };
-      }));
-      
-      res.json(enrichedDuplicates);
+      res.json(duplicateGroups);
     } catch (error) {
       console.error('Error fetching duplicate companies:', error);
       res.status(500).json({ message: 'Failed to fetch duplicate companies' });
