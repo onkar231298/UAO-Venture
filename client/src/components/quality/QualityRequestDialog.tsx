@@ -34,6 +34,7 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
   const [testForm, setTestForm] = useState({
     requestType: "irf",
     materialName: "",
+    customerName: customerName || companyName || "",
     sampleDetails: "",
     testParameters: "",
     priority: "normal",
@@ -98,11 +99,15 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
 
   const resetForms = () => {
     setDocForm({ documentType: "coa", materialName: "", customerName: customerName || companyName || "", priority: "normal", notes: "" });
-    setTestForm({ requestType: "irf", materialName: "", sampleDetails: "", testParameters: "", priority: "normal", notes: "" });
+    setTestForm({ requestType: "irf", materialName: "", customerName: customerName || companyName || "", sampleDetails: "", testParameters: "", priority: "normal", notes: "" });
     setApprovalForm({ customerName: customerName || companyName || "", vendorName: "", approvalType: "initial_approval", documentTypes: "", notes: "" });
   };
 
   const handleDocSubmit = () => {
+    if (!docForm.customerName.trim()) {
+      toast({ title: "Customer name is required", variant: "destructive" });
+      return;
+    }
     if (!docForm.materialName) {
       toast({ title: "Material name is required", variant: "destructive" });
       return;
@@ -111,6 +116,10 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
   };
 
   const handleTestSubmit = () => {
+    if (!testForm.customerName.trim()) {
+      toast({ title: "Customer name is required", variant: "destructive" });
+      return;
+    }
     if (!testForm.materialName) {
       toast({ title: "Material name is required", variant: "destructive" });
       return;
@@ -181,7 +190,7 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
               <Input value={docForm.materialName} onChange={(e) => setDocForm({ ...docForm, materialName: e.target.value })} placeholder="e.g., Organic Turmeric Powder" />
             </div>
             <div className="space-y-2">
-              <Label>Customer Name</Label>
+              <Label>Customer Name *</Label>
               <Input value={docForm.customerName} onChange={(e) => setDocForm({ ...docForm, customerName: e.target.value })} placeholder="Customer requesting document" />
             </div>
             <div className="space-y-2">
@@ -220,6 +229,10 @@ export function QualityRequestDialog({ companyName, customerName, triggerClassNa
             <div className="space-y-2">
               <Label>Material Name *</Label>
               <Input value={testForm.materialName} onChange={(e) => setTestForm({ ...testForm, materialName: e.target.value })} placeholder="e.g., Organic Ashwagandha Root" />
+            </div>
+            <div className="space-y-2">
+              <Label>Customer Name *</Label>
+              <Input value={testForm.customerName} onChange={(e) => setTestForm({ ...testForm, customerName: e.target.value })} placeholder="Customer requesting test" />
             </div>
             <div className="space-y-2">
               <Label>Sample Details</Label>
