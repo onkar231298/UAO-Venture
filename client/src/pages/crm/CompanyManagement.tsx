@@ -2819,36 +2819,76 @@ export default function CompanyManagement() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{bulkUploadPreview.length} companies ready to import</p>
-                  {bulkUploadErrors.length > 0 && (
-                    <p className="text-sm text-orange-600">{bulkUploadErrors.length} validation warnings</p>
-                  )}
+                  {(() => {
+                    const blocked = bulkUploadPreview.filter((c: any) => c.isBlocked).length;
+                    const ready = bulkUploadPreview.length - blocked;
+                    return (
+                      <>
+                        <p className="font-medium">{ready} companies ready to import</p>
+                        {blocked > 0 && (
+                          <p className="text-sm text-red-600 font-medium">{blocked} blocked (duplicates detected)</p>
+                        )}
+                        {bulkUploadErrors.length > 0 && (
+                          <p className="text-sm text-orange-600">{bulkUploadErrors.length} validation issues</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <Button variant="outline" onClick={() => setBulkUploadStep('upload')} data-testid="button-back-to-upload">
                   Back
                 </Button>
               </div>
 
-              {bulkUploadErrors.length > 0 && (
-                <Card className="border-orange-200 bg-orange-50">
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-orange-800">Validation Warnings</p>
-                        <ul className="text-sm text-orange-700 mt-1 space-y-1">
-                          {bulkUploadErrors.slice(0, 5).map((error, i) => (
-                            <li key={i}>Row {error.row}: {error.field} - {error.message}</li>
-                          ))}
-                          {bulkUploadErrors.length > 5 && (
-                            <li>...and {bulkUploadErrors.length - 5} more warnings</li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {bulkUploadErrors.length > 0 && (() => {
+                const dupErrors = bulkUploadErrors.filter(e => e.message.includes('already exists') || e.message.includes('Duplicate within file') || e.message.includes('same email domain'));
+                const otherErrors = bulkUploadErrors.filter(e => !dupErrors.includes(e));
+                return (
+                  <>
+                    {dupErrors.length > 0 && (
+                      <Card className="border-red-200 bg-red-50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-red-800">Duplicate Entries Blocked ({dupErrors.length})</p>
+                              <p className="text-xs text-red-600 mb-1">These entries will NOT be imported</p>
+                              <ul className="text-sm text-red-700 mt-1 space-y-1">
+                                {dupErrors.slice(0, 8).map((error, i) => (
+                                  <li key={i}>Row {error.row}: {error.message}</li>
+                                ))}
+                                {dupErrors.length > 8 && (
+                                  <li>...and {dupErrors.length - 8} more blocked</li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {otherErrors.length > 0 && (
+                      <Card className="border-orange-200 bg-orange-50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-orange-800">Validation Warnings</p>
+                              <ul className="text-sm text-orange-700 mt-1 space-y-1">
+                                {otherErrors.slice(0, 5).map((error, i) => (
+                                  <li key={i}>Row {error.row}: {error.field} - {error.message}</li>
+                                ))}
+                                {otherErrors.length > 5 && (
+                                  <li>...and {otherErrors.length - 5} more warnings</li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="border rounded-lg overflow-hidden">
                 <div className="max-h-[400px] overflow-auto overflow-x-auto">
@@ -2881,9 +2921,13 @@ export default function CompanyManagement() {
                             <TableCell>{company.industryType || '-'}</TableCell>
                             <TableCell>{company.addressCity || '-'}</TableCell>
                             <TableCell>
-                              {company.duplicateWarning ? (
+                              {company.isBlocked ? (
+                                <Badge variant="destructive" className="text-xs">
+                                  Blocked - Duplicate
+                                </Badge>
+                              ) : company.duplicateWarning ? (
                                 <Badge variant="outline" className="text-orange-600 border-orange-300">
-                                  Potential Duplicate
+                                  Similar Match
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="text-green-600 border-green-300">
@@ -2910,6 +2954,11 @@ export default function CompanyManagement() {
                 </Button>
                 <Button
                   onClick={async () => {
+                    const importableCompanies = bulkUploadPreview.filter((c: any) => !c.isBlocked);
+                    if (importableCompanies.length === 0) {
+                      toast({ title: "No companies to import", description: "All entries are blocked as duplicates", variant: "destructive" });
+                      return;
+                    }
                     setIsImportingBulk(true);
                     setBulkUploadStep('importing');
                     
@@ -2917,16 +2966,19 @@ export default function CompanyManagement() {
                       const response = await fetch('/api/crm/companies/import/confirm', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ companies: bulkUploadPreview }),
+                        body: JSON.stringify({ companies: importableCompanies }),
                       });
                       const result = await response.json();
                       
                       if (response.ok) {
                         setImportResults(result);
                         queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+                        const parts = [`Successfully imported ${result.success} companies`];
+                        if (result.skippedDuplicates > 0) parts.push(`${result.skippedDuplicates} skipped (duplicates)`);
+                        if (result.failed > 0) parts.push(`${result.failed} failed`);
                         toast({
                           title: "Import Complete",
-                          description: `Successfully imported ${result.success} companies${result.failed > 0 ? `, ${result.failed} failed` : ''}`,
+                          description: parts.join(', '),
                         });
                       } else {
                         toast({ title: "Error", description: result.message || "Failed to import companies", variant: "destructive" });
@@ -2939,7 +2991,7 @@ export default function CompanyManagement() {
                       setIsImportingBulk(false);
                     }
                   }}
-                  disabled={bulkUploadPreview.length === 0 || isImportingBulk}
+                  disabled={bulkUploadPreview.filter((c: any) => !c.isBlocked).length === 0 || isImportingBulk}
                   data-testid="button-confirm-import"
                 >
                   {isImportingBulk ? (
@@ -2948,7 +3000,7 @@ export default function CompanyManagement() {
                       Importing...
                     </>
                   ) : (
-                    <>Import {bulkUploadPreview.length} Companies</>
+                    <>Import {bulkUploadPreview.filter((c: any) => !c.isBlocked).length} Companies</>
                   )}
                 </Button>
               </div>

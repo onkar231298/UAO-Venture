@@ -6091,7 +6091,34 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
 
       const errors: Array<{ row: number; field: string; message: string }> = [];
-      const { checkForDuplicates } = await import('./duplicateDetection');
+      const { checkForDuplicates, normalizeCompanyName, extractEmailDomain } = await import('./duplicateDetection');
+
+      const withinFileNames = new Map<string, number>();
+      const withinFileDomains = new Map<string, number>();
+
+      for (let i = 0; i < parsedData.length; i++) {
+        const company = parsedData[i];
+        const rowNum = i + 2;
+        if (company.companyName) {
+          const norm = normalizeCompanyName(company.companyName);
+          if (norm) {
+            if (withinFileNames.has(norm)) {
+              const firstRow = withinFileNames.get(norm)!;
+              errors.push({ row: rowNum, field: 'companyName', message: `Duplicate within file - same company name as row ${firstRow}` });
+            } else {
+              withinFileNames.set(norm, rowNum);
+            }
+          }
+        }
+        if (company.primaryEmail) {
+          const domain = extractEmailDomain(company.primaryEmail);
+          if (domain) {
+            if (!withinFileDomains.has(domain)) {
+              withinFileDomains.set(domain, rowNum);
+            }
+          }
+        }
+      }
 
       const validatedCompanies = await Promise.all(parsedData.map(async (company, index) => {
         const rowNum = index + 2;
@@ -6109,30 +6136,58 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
 
         let duplicateWarning = null;
+        let isBlocked = false;
+        let blockReason = '';
         try {
           const duplicateCheck = await checkForDuplicates(
             company.companyName,
             company.primaryEmail,
             company.primaryPhone
           );
-          if (duplicateCheck.hasPotentialDuplicates && duplicateCheck.highestConfidence >= 70) {
-            duplicateWarning = duplicateCheck.matches[0];
+          if (duplicateCheck.hasPotentialDuplicates) {
+            const topMatch = duplicateCheck.matches[0];
+            if (topMatch.matchType === 'exact_name' || topMatch.matchType === 'normalized_name') {
+              isBlocked = true;
+              blockReason = `Company "${topMatch.companyName}" already exists in the database (${topMatch.matchDetails})`;
+              errors.push({ row: rowNum, field: 'companyName', message: blockReason });
+            } else if (topMatch.matchType === 'email_domain') {
+              isBlocked = true;
+              blockReason = `A company with the same email domain already exists: "${topMatch.companyName}" (${topMatch.matchDetails})`;
+              errors.push({ row: rowNum, field: 'primaryEmail', message: blockReason });
+            } else if (duplicateCheck.highestConfidence >= 70) {
+              duplicateWarning = topMatch;
+            }
           }
         } catch (e) {
           console.error('Error checking duplicates for row', rowNum, e);
+        }
+
+        const norm = normalizeCompanyName(company.companyName || '');
+        const domain = company.primaryEmail ? extractEmailDomain(company.primaryEmail) : null;
+        const hasWithinFileDup = norm && withinFileNames.has(norm) && withinFileNames.get(norm) !== rowNum;
+
+        if (hasWithinFileDup) {
+          isBlocked = true;
         }
 
         return {
           ...company,
           rowNumber: rowNum,
           duplicateWarning,
+          isBlocked,
+          blockReason: blockReason || (hasWithinFileDup ? 'Duplicate entry within the uploaded file' : ''),
         };
       }));
+
+      const blockedCount = validatedCompanies.filter(c => c.isBlocked).length;
+      const readyCount = validatedCompanies.filter(c => !c.isBlocked).length;
 
       res.json({
         companies: validatedCompanies,
         errors,
         totalRows: parsedData.length,
+        blockedCount,
+        readyCount,
       });
     } catch (error) {
       console.error('Error validating import file:', error);
@@ -6152,13 +6207,37 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       let success = 0;
       let failed = 0;
+      let skippedDuplicates = 0;
       const importErrors: string[] = [];
+      const { checkForDuplicates } = await import('./duplicateDetection');
 
       for (const companyData of companies) {
         try {
+          if (companyData.isBlocked) {
+            skippedDuplicates++;
+            importErrors.push(`${companyData.companyName}: Skipped - ${companyData.blockReason || 'duplicate detected'}`);
+            continue;
+          }
+
+          const dupCheck = await checkForDuplicates(
+            companyData.companyName,
+            companyData.primaryEmail,
+            companyData.primaryPhone
+          );
+          if (dupCheck.hasPotentialDuplicates) {
+            const topMatch = dupCheck.matches[0];
+            if (topMatch.matchType === 'exact_name' || topMatch.matchType === 'normalized_name' || topMatch.matchType === 'email_domain') {
+              skippedDuplicates++;
+              importErrors.push(`${companyData.companyName}: Skipped - duplicate of "${topMatch.companyName}" (${topMatch.matchDetails})`);
+              continue;
+            }
+          }
+
           const cleanData = { ...companyData };
           delete cleanData.rowNumber;
           delete cleanData.duplicateWarning;
+          delete cleanData.isBlocked;
+          delete cleanData.blockReason;
 
           // Process additional emails into array format
           const additionalEmails: Array<{ email: string; designation: string }> = [];
@@ -6237,6 +6316,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       res.json({
         success,
         failed,
+        skippedDuplicates,
         errors: importErrors,
       });
     } catch (error) {
