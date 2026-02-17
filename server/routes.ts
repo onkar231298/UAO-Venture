@@ -12104,7 +12104,17 @@ We look forward to hearing from you.`;
       if (requesterId) filters.requesterId = requesterId;
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityDocumentRequests(filters);
-      res.json(result);
+      const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
+      const requesterMap: Record<string, string> = {};
+      for (const uid of requesterIds) {
+        const user = await storage.getUser(uid);
+        if (user) requesterMap[uid] = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || uid;
+      }
+      const enrichedRequests = result.requests.map((r: any) => ({
+        ...r,
+        requesterName: requesterMap[r.requesterId] || r.requesterId,
+      }));
+      res.json({ requests: enrichedRequests, total: result.total });
     } catch (error) {
       console.error('Error fetching quality document requests:', error);
       res.status(500).json({ message: 'Failed to fetch document requests' });
@@ -12165,7 +12175,17 @@ We look forward to hearing from you.`;
       if (requesterId) filters.requesterId = requesterId;
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityTestingRequests(filters);
-      res.json(result);
+      const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
+      const requesterMap: Record<string, string> = {};
+      for (const uid of requesterIds) {
+        const user = await storage.getUser(uid);
+        if (user) requesterMap[uid] = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || uid;
+      }
+      const enrichedRequests = result.requests.map((r: any) => ({
+        ...r,
+        requesterName: requesterMap[r.requesterId] || r.requesterId,
+      }));
+      res.json({ requests: enrichedRequests, total: result.total });
     } catch (error) {
       console.error('Error fetching quality testing requests:', error);
       res.status(500).json({ message: 'Failed to fetch testing requests' });

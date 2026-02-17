@@ -571,7 +571,7 @@ function DocumentRequestsSection() {
                     <TableCell>{item.title || "-"}</TableCell>
                     <TableCell><Badge variant="outline">{item.requestType?.toUpperCase() || "-"}</Badge></TableCell>
                     <TableCell>{item.materialName || "-"}</TableCell>
-                    <TableCell>{item.customerName || "-"}</TableCell>
+                    <TableCell>{item.requesterName || "-"}</TableCell>
                     <TableCell><Badge variant={item.priority === "urgent" ? "destructive" : "secondary"}>{item.priority}</Badge></TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell className="text-sm">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</TableCell>
