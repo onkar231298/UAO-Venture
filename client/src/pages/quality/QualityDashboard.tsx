@@ -291,7 +291,7 @@ function DashboardOverview({ user }: { user: any }) {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.openDocumentRequests ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.documentRequests?.open ?? 0}</div>
             <p className="text-xs text-muted-foreground">Awaiting action</p>
           </CardContent>
         </Card>
@@ -302,7 +302,7 @@ function DashboardOverview({ user }: { user: any }) {
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.pendingTestingRequests ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.testingRequests?.pending ?? 0}</div>
             <p className="text-xs text-muted-foreground">IRF/TRF pending</p>
           </CardContent>
         </Card>
@@ -313,7 +313,7 @@ function DashboardOverview({ user }: { user: any }) {
             <Boxes className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.activeBatches ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.batches?.active ?? 0}</div>
             <p className="text-xs text-muted-foreground">Currently tracked</p>
           </CardContent>
         </Card>
@@ -324,7 +324,7 @@ function DashboardOverview({ user }: { user: any }) {
             <Factory className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.pendingVendorApprovals ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.vendorApprovals?.pending ?? 0}</div>
             <p className="text-xs text-muted-foreground">Vendors awaiting approval</p>
           </CardContent>
         </Card>
@@ -335,7 +335,7 @@ function DashboardOverview({ user }: { user: any }) {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.openNCRs ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.ncrs?.open ?? 0}</div>
             <p className="text-xs text-muted-foreground">Non-conformance reports</p>
           </CardContent>
         </Card>
@@ -346,7 +346,7 @@ function DashboardOverview({ user }: { user: any }) {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.customerVendorApprovals ?? 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.customerVendorApprovals?.received ?? 0}</div>
             <p className="text-xs text-muted-foreground">Pending customer approvals</p>
           </CardContent>
         </Card>
