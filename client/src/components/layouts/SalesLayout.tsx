@@ -16,6 +16,7 @@ import {
   LogOut,
   FileText,
   Calendar,
+  ClipboardCheck,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
@@ -104,6 +105,20 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
               >
                 <FileText className="w-4 h-4 mr-3" />
                 My Sales & Quotations
+              </Button>
+            </Link>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">Quality</p>
+            <Link href="/sales/quality-requests">
+              <Button
+                variant={isActive('/sales/quality-requests') ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                data-testid="nav-quality-requests"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-3" />
+                Quality Requests
               </Button>
             </Link>
           </div>

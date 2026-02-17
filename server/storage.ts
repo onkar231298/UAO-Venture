@@ -826,7 +826,8 @@ export class DatabaseStorage implements IStorage {
       'inventory_manager', 'inventory_executive',
       'logistics_manager', 'logistics_executive',
       'accounts_manager', 'accounts_executive',
-      'seo_manager', 'website_manager'
+      'seo_manager', 'website_manager',
+      'quality_manager', 'quality_executive'
     ];
     if (!staffRoles.includes(user.role || '')) {
       console.log('[Auth] User role not allowed for staff login:', user.role);

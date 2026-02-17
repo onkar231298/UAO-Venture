@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
 import {
   FileText,
   FlaskConical,
@@ -94,6 +95,10 @@ export default function AdminQualityOverview() {
             Overview of all quality operations across the organization
           </p>
         </div>
+        <QualityRequestDialog
+          triggerLabel="New Quality Request"
+          triggerClassName="bg-green-600 hover:bg-green-700 text-white"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

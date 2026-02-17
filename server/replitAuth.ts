@@ -217,10 +217,11 @@ export async function setupAuth(app: Express) {
               return res.redirect('/admin');
             } else if (role.includes('sales')) {
               return res.redirect('/sales');
+            } else if (role.includes('quality')) {
+              return res.redirect('/quality/dashboard');
             } else if (role === 'customer') {
               return res.redirect('/customer/dashboard');
             } else {
-              // Other staff roles
               return res.redirect('/staff');
             }
           });
