@@ -21,18 +21,6 @@ import HRManagement from "@/pages/admin/HRManagement";
 import AdminQualityOverview from "@/pages/admin/AdminQualityOverview";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarTrigger,
-  SidebarInset,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
-import {
   Users,
   Package,
   ShoppingCart,
@@ -53,17 +41,21 @@ import {
   LogOut,
   Building2,
   Clock,
-  ClipboardCheck
+  ClipboardCheck,
+  Menu,
+  X
 } from "lucide-react";
+
+const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [adminUser, setAdminUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [location, setLocation] = useLocation();
 
-  // Check admin authentication using useAuth hook
   const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
@@ -78,7 +70,6 @@ export default function AdminDashboard() {
         return;
       }
       
-      // Check if user is admin
       if ((user as any).role !== 'admin' && (user as any).role !== 'super_admin') {
         toast({
           title: "Access Denied",
@@ -94,7 +85,6 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated, isLoading, user, toast]);
 
-  // Set active section based on URL path
   useEffect(() => {
     if (location.includes('/dashboard/crm/leads')) {
       setActiveSection('sales-crm');
@@ -117,7 +107,6 @@ export default function AdminDashboard() {
     }
   }, [location]);
 
-  // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
     enabled: !!adminUser,
@@ -178,356 +167,169 @@ export default function AdminDashboard() {
     }
   };
 
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-900">
-        {/* Sidebar Navigation */}
-        <Sidebar className="border-r border-gray-200 dark:border-gray-700">
-          {/* Logo/Brand */}
-          <SidebarHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
-            <a 
-              href="/" 
-              className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
-            >
-              <Globe className="w-4 h-4 mr-1" />
-              Back to Website
-            </a>
-          </SidebarHeader>
+  const handleNavClick = (key: string, onClick?: () => void) => {
+    if (onClick) {
+      onClick();
+    }
+    setSidebarOpen(false);
+  };
 
-          {/* Navigation Menu */}
-          <SidebarContent className="px-2 py-4">
-            {/* MAIN Section */}
-            <div className="mb-4">
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                MAIN
-              </h3>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setLocation('/admin/dashboard')}
-                    isActive={activeSection === 'overview'}
-                    className="w-full"
-                  >
-                    <LayoutDashboard className="mr-3 h-5 w-5" />
-                    <span>Dashboard</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+  const navButton = (key: string, label: string, Icon: any, isActive: boolean, onClick: () => void, size: 'normal' | 'small' = 'normal', testId?: string) => (
+    <button
+      key={key}
+      onClick={() => handleNavClick(key, onClick)}
+      className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+        isActive
+          ? "bg-blue-100 text-blue-900 border border-blue-200"
+          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+      }`}
+      data-testid={testId}
+    >
+      <Icon className={`mr-3 flex-shrink-0 ${size === 'small' ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
+            </div>
+            <button className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setSidebarOpen(false)}>
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+          <a 
+            href="/" 
+            className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
+          >
+            <Globe className="w-4 h-4 mr-1" />
+            Back to Website
+          </a>
+        </div>
+
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <div className="space-y-6">
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">MAIN</h3>
+              <div className="space-y-1">
+                {navButton('overview', 'Dashboard', LayoutDashboard, activeSection === 'overview', () => setLocation('/admin/dashboard'))}
+              </div>
             </div>
 
-            {/* OPERATIONS Section */}
-            <div className="mb-4">
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                OPERATIONS
-              </h3>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('inventory')}
-                    isActive={activeSection === 'inventory'}
-                    className="w-full"
-                  >
-                    <Warehouse className="mr-3 h-5 w-5" />
-                    <span>Inventory Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">OPERATIONS</h3>
+              <div className="space-y-1">
+                {navButton('inventory', 'Inventory Management', Warehouse, activeSection === 'inventory', () => setActiveSection('inventory'))}
+                {navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}
 
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('sales')}
-                    isActive={['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection)}
-                    className="w-full"
-                  >
-                    <TrendingUp className="mr-3 h-5 w-5" />
-                    <span>Sales Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                
-                {/* Sales Management Sub-items */}
-                {['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'].includes(activeSection) && (
+                {salesSubKeys.includes(activeSection) && (
                   <div className="ml-6 mt-1 space-y-1">
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('enquiry-sample')}
-                        isActive={activeSection === 'enquiry-sample'}
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Send className="mr-3 h-4 w-4" />
-                        <span>Customer Inquiries</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('sample-requests')}
-                        isActive={activeSection === 'sample-requests'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-sample-requests"
-                      >
-                        <Package className="mr-3 h-4 w-4" />
-                        <span>Sample Requests</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('high-volume-bids')}
-                        isActive={activeSection === 'high-volume-bids'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-high-volume-bids"
-                      >
-                        <TrendingUp className="mr-3 h-4 w-4" />
-                        <span>High Volume Bids</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('quotation-negotiations')}
-                        isActive={activeSection === 'quotation-negotiations'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-quotation-negotiations"
-                      >
-                        <DollarSign className="mr-3 h-4 w-4" />
-                        <span>Quote Negotiations</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('sales-orders')}
-                        isActive={activeSection === 'sales-orders'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-sales-orders"
-                      >
-                        <ShoppingCart className="mr-3 h-4 w-4" />
-                        <span>Sales Orders</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setLocation('/admin/dashboard/crm/leads')}
-                        isActive={activeSection === 'sales-crm'}
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Users className="mr-3 h-4 w-4" />
-                        <span>Lead Management</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setLocation('/admin/dashboard/crm/companies')}
-                        isActive={activeSection === 'company-management'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-company-management"
-                      >
-                        <Building2 className="mr-3 h-4 w-4" />
-                        <span>Company Management</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection('duplicate-review')}
-                        isActive={activeSection === 'duplicate-review'}
-                        size="sm"
-                        className="w-full"
-                        data-testid="nav-duplicate-review"
-                      >
-                        <Activity className="mr-3 h-4 w-4" />
-                        <span>Duplicate Review</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {navButton('enquiry-sample', 'Customer Inquiries', Send, activeSection === 'enquiry-sample', () => setActiveSection('enquiry-sample'), 'small')}
+                    {navButton('sample-requests', 'Sample Requests', Package, activeSection === 'sample-requests', () => setActiveSection('sample-requests'), 'small', 'nav-sample-requests')}
+                    {navButton('high-volume-bids', 'High Volume Bids', TrendingUp, activeSection === 'high-volume-bids', () => setActiveSection('high-volume-bids'), 'small', 'nav-high-volume-bids')}
+                    {navButton('quotation-negotiations', 'Quote Negotiations', DollarSign, activeSection === 'quotation-negotiations', () => setActiveSection('quotation-negotiations'), 'small', 'nav-quotation-negotiations')}
+                    {navButton('sales-orders', 'Sales Orders', ShoppingCart, activeSection === 'sales-orders', () => setActiveSection('sales-orders'), 'small', 'nav-sales-orders')}
+                    {navButton('sales-crm', 'Lead Management', Users, activeSection === 'sales-crm', () => setLocation('/admin/dashboard/crm/leads'), 'small')}
+                    {navButton('company-management', 'Company Management', Building2, activeSection === 'company-management', () => setLocation('/admin/dashboard/crm/companies'), 'small', 'nav-company-management')}
+                    {navButton('duplicate-review', 'Duplicate Review', Activity, activeSection === 'duplicate-review', () => setActiveSection('duplicate-review'), 'small', 'nav-duplicate-review')}
                   </div>
                 )}
 
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('purchase')}
-                    isActive={activeSection === 'purchase'}
-                    className="w-full"
-                  >
-                    <ShoppingCart className="mr-3 h-5 w-5" />
-                    <span>Purchase Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('logistics')}
-                    isActive={activeSection === 'logistics'}
-                    className="w-full"
-                  >
-                    <Truck className="mr-3 h-5 w-5" />
-                    <span>Logistics Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('accounts')}
-                    isActive={activeSection === 'accounts'}
-                    className="w-full"
-                  >
-                    <Calculator className="mr-3 h-5 w-5" />
-                    <span>Accounts & Finance</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('website')}
-                    isActive={activeSection === 'website'}
-                    className="w-full"
-                  >
-                    <Globe className="mr-3 h-5 w-5" />
-                    <span>Website Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('users')}
-                    isActive={activeSection === 'users'}
-                    className="w-full"
-                  >
-                    <Users className="mr-3 h-5 w-5" />
-                    <span>User Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('analytics')}
-                    isActive={activeSection === 'analytics'}
-                    className="w-full"
-                  >
-                    <BarChart3 className="mr-3 h-5 w-5" />
-                    <span>Analytics & Reports</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('newsletter')}
-                    isActive={activeSection === 'newsletter'}
-                    className="w-full"
-                  >
-                    <Mail className="mr-3 h-5 w-5" />
-                    <span>Newsletter Subscriptions</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('blog')}
-                    isActive={activeSection === 'blog'}
-                    className="w-full"
-                  >
-                    <FileText className="mr-3 h-5 w-5" />
-                    <span>Blog Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('hr-management')}
-                    isActive={activeSection === 'hr-management'}
-                    className="w-full"
-                  >
-                    <Clock className="mr-3 h-5 w-5" />
-                    <span>HR Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('quality-management')}
-                    isActive={activeSection === 'quality-management'}
-                    className="w-full"
-                  >
-                    <ClipboardCheck className="mr-3 h-5 w-5" />
-                    <span>Quality Management</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </div>
-
-            {/* PROFILE Section */}
-            <div className="mb-4">
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                PROFILE
-              </h3>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setActiveSection('settings')}
-                    isActive={activeSection === 'settings'}
-                    className="w-full"
-                  >
-                    <Settings className="mr-3 h-5 w-5" />
-                    <span>System Settings</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </div>
-          </SidebarContent>
-
-          {/* Logout Button */}
-          <SidebarFooter className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => window.location.href = '/api/logout'}
-                  className="w-full text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span>Log out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarFooter>
-        </Sidebar>
-
-        {/* Main Content Area with App Bar */}
-        <SidebarInset className="flex-1 overflow-auto">
-          {/* Top App Bar */}
-          <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between px-4 py-3 md:px-6">
-              {/* Left: Mobile Trigger + Title */}
-              <div className="flex items-center gap-3 flex-1">
-                <SidebarTrigger className="md:hidden" />
-                <div className="flex-1">
-                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                    {getPageTitle()}
-                  </h1>
-                  <p className="hidden md:block text-sm text-gray-600 dark:text-gray-400">
-                    Manage your B2B organic ingredients platform
-                  </p>
-                </div>
-              </div>
-
-              {/* Right: Notifications + User Info + Badge */}
-              <div className="flex items-center gap-3">
-                <NotificationBell />
-                <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
-                  {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
-                </Badge>
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-blue-600 text-white">
-                    {(adminUser as any)?.firstName?.[0] || 'A'}
-                    {(adminUser as any)?.lastName?.[0] || 'D'}
-                  </AvatarFallback>
-                </Avatar>
+                {navButton('purchase', 'Purchase Management', ShoppingCart, activeSection === 'purchase', () => setActiveSection('purchase'))}
+                {navButton('logistics', 'Logistics Management', Truck, activeSection === 'logistics', () => setActiveSection('logistics'))}
+                {navButton('accounts', 'Accounts & Finance', Calculator, activeSection === 'accounts', () => setActiveSection('accounts'))}
               </div>
             </div>
-          </header>
 
-        {/* Content Based on Active Section */}
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">WEBSITE & CONTENT</h3>
+              <div className="space-y-1">
+                {navButton('website', 'Website Management', Globe, activeSection === 'website', () => setActiveSection('website'))}
+                {navButton('newsletter', 'Newsletter', Mail, activeSection === 'newsletter', () => setActiveSection('newsletter'))}
+                {navButton('blog', 'Blog Management', FileText, activeSection === 'blog', () => setActiveSection('blog'))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PEOPLE & COMPLIANCE</h3>
+              <div className="space-y-1">
+                {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
+                {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
+                {navButton('quality-management', 'Quality Management', ClipboardCheck, activeSection === 'quality-management', () => setActiveSection('quality-management'))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ANALYTICS</h3>
+              <div className="space-y-1">
+                {navButton('analytics', 'Analytics & Reports', BarChart3, activeSection === 'analytics', () => setActiveSection('analytics'))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PROFILE</h3>
+              <div className="space-y-1">
+                {navButton('settings', 'System Settings', Settings, activeSection === 'settings', () => setActiveSection('settings'))}
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => window.location.href = '/api/logout'}
+            className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="mr-3 h-4 w-4" />
+            Log out
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 md:px-6">
+            <div className="flex items-center gap-3 flex-1">
+              <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setSidebarOpen(true)}>
+                <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </button>
+              <div className="flex-1">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  {getPageTitle()}
+                </h1>
+                <p className="hidden md:block text-sm text-gray-600 dark:text-gray-400">
+                  Manage your B2B organic ingredients platform
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
+                {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
+              </Badge>
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-blue-600 text-white">
+                  {(adminUser as any)?.firstName?.[0] || 'A'}
+                  {(adminUser as any)?.lastName?.[0] || 'D'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </header>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeSection === 'overview' && (
             <>
@@ -716,8 +518,7 @@ export default function AdminDashboard() {
             </Card>
           )}
         </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      </main>
+    </div>
   );
 }

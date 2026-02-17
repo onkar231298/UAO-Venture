@@ -34,6 +34,8 @@ import {
   Search,
   RefreshCw,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 
 // ==================== STATUS BADGE HELPER ====================
@@ -111,6 +113,7 @@ export default function QualityDashboard() {
   const [qualityUser, setQualityUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -160,11 +163,26 @@ export default function QualityDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ==================== SIDEBAR ==================== */}
-      <aside className="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quality Portal</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{roleDisplayName}</p>
+      <aside className={`${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden'} md:flex w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quality Portal</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{roleDisplayName}</p>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -180,7 +198,7 @@ export default function QualityDashboard() {
                     return (
                       <button
                         key={item.key}
-                        onClick={() => setActiveSection(item.key)}
+                        onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}
                         className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
                           activeSection === item.key
                             ? "bg-blue-100 text-blue-900 border border-blue-200"
@@ -212,16 +230,24 @@ export default function QualityDashboard() {
       {/* ==================== MAIN CONTENT ==================== */}
       <main className="flex-1 overflow-auto">
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {sectionTitles[activeSection] || "Dashboard"}
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{roleDisplayName} Portal</p>
+          <div className="px-4 md:px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Menu className="h-5 w-5 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  {sectionTitles[activeSection] || "Dashboard"}
+                </h1>
+                <p className="hidden md:block text-sm text-gray-600 dark:text-gray-400">{roleDisplayName} Portal</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <PunchInOutButton />
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}
               </Badge>
             </div>
