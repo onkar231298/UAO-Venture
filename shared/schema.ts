@@ -2695,6 +2695,9 @@ export const qualityDocumentRequests = pgTable("quality_document_requests", {
   dueDate: timestamp("due_date"),
   completedAt: timestamp("completed_at"),
   responseNotes: text("response_notes"),
+  responseDocumentLink: text("response_document_link"),
+  materialName: varchar("material_name", { length: 255 }),
+  customerName: varchar("customer_name", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -2728,6 +2731,10 @@ export const qualityTestingRequests = pgTable("quality_testing_requests", {
   completedAt: timestamp("completed_at"),
   testResults: text("test_results"),
   notes: text("notes"),
+  responseNotes: text("response_notes"),
+  responseDocumentLink: text("response_document_link"),
+  materialName: varchar("material_name", { length: 255 }),
+  customerName: varchar("customer_name", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [

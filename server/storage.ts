@@ -7371,7 +7371,7 @@ export class DatabaseStorage implements IStorage {
 
   async getQualityDocumentRequests(filters?: { status?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityDocumentRequest[]; total: number }> {
     const conditions: any[] = [];
-    if (filters?.status) conditions.push(eq(qualityDocumentRequests.status, filters.status));
+    if (filters?.status && filters.status !== 'all') conditions.push(eq(qualityDocumentRequests.status, filters.status));
     if (filters?.requesterId) conditions.push(eq(qualityDocumentRequests.requesterId, filters.requesterId));
     if (filters?.assignedToId) conditions.push(eq(qualityDocumentRequests.assignedToId, filters.assignedToId));
 
@@ -7400,8 +7400,8 @@ export class DatabaseStorage implements IStorage {
 
   async getQualityTestingRequests(filters?: { status?: string; requestType?: string; requesterId?: string; assignedToId?: string; limit?: number; offset?: number }): Promise<{ requests: QualityTestingRequest[]; total: number }> {
     const conditions: any[] = [];
-    if (filters?.status) conditions.push(eq(qualityTestingRequests.status, filters.status));
-    if (filters?.requestType) conditions.push(eq(qualityTestingRequests.requestType, filters.requestType));
+    if (filters?.status && filters.status !== 'all') conditions.push(eq(qualityTestingRequests.status, filters.status));
+    if (filters?.requestType && filters.requestType !== 'all') conditions.push(eq(qualityTestingRequests.requestType, filters.requestType));
     if (filters?.requesterId) conditions.push(eq(qualityTestingRequests.requesterId, filters.requesterId));
     if (filters?.assignedToId) conditions.push(eq(qualityTestingRequests.assignedToId, filters.assignedToId));
 

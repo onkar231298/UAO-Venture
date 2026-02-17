@@ -12130,6 +12130,8 @@ We look forward to hearing from you.`;
         requesterId: userId,
         requestType: req.body.requestType || req.body.documentType || 'coa',
         title: req.body.title || `${(req.body.documentType || req.body.requestType || 'document').toUpperCase()} - ${req.body.materialName || 'Request'}`,
+        materialName: req.body.materialName || req.body.productName || null,
+        customerName: req.body.customerName || null,
       };
       const validated = insertQualityDocumentRequestSchema.parse(body);
       const result = await storage.createQualityDocumentRequest(validated);
@@ -12188,6 +12190,8 @@ We look forward to hearing from you.`;
         ...req.body,
         requesterId: userId,
         title: req.body.title || `${(req.body.requestType || 'IRF').toUpperCase()} - ${req.body.materialName || 'Test Request'}`,
+        materialName: req.body.materialName || null,
+        customerName: req.body.customerName || null,
       };
       const validated = insertQualityTestingRequestSchema.parse(body);
       const result = await storage.createQualityTestingRequest(validated);

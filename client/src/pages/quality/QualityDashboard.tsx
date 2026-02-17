@@ -41,6 +41,7 @@ import {
   XCircle,
   ArrowRight,
   Beaker,
+  ExternalLink,
 } from "lucide-react";
 
 // ==================== STATUS BADGE HELPER ====================
@@ -418,7 +419,18 @@ function DocumentRequestsSection() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ documentType: "", productName: "", description: "", priority: "normal", requestedBy: "" });
+  const [formData, setFormData] = useState({ documentType: "", productName: "", description: "", priority: "normal", notes: "", title: "" });
+  const [responseNotes, setResponseNotes] = useState("");
+  const [responseDocLink, setResponseDocLink] = useState("");
+  const [responseStatus, setResponseStatus] = useState("");
+
+  useEffect(() => {
+    if (selectedItem) {
+      setResponseNotes(selectedItem.responseNotes || "");
+      setResponseDocLink(selectedItem.responseDocumentLink || "");
+      setResponseStatus(selectedItem.status || "open");
+    }
+  }, [selectedItem]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["/api/quality/document-requests", { status: statusFilter, limit: 50, offset: 0 }],
@@ -434,7 +446,7 @@ function DocumentRequestsSection() {
       queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
       toast({ title: "Document request created" });
       setShowCreateDialog(false);
-      setFormData({ documentType: "", productName: "", description: "", priority: "normal", requestedBy: "" });
+      setFormData({ documentType: "", productName: "", description: "", priority: "normal", notes: "", title: "" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -453,7 +465,7 @@ function DocumentRequestsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items: any[] = (data as any)?.requests || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
@@ -495,8 +507,8 @@ function DocumentRequestsSection() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Product Name</Label><Input value={formData.productName} onChange={(e) => setFormData({ ...formData, productName: e.target.value })} placeholder="e.g., Organic Turmeric Powder" /></div>
-              <div><Label>Requested By</Label><Input value={formData.requestedBy} onChange={(e) => setFormData({ ...formData, requestedBy: e.target.value })} placeholder="Requester name or department" /></div>
+              <div><Label>Title</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Request title" /></div>
+              <div><Label>Material / Product Name</Label><Input value={formData.productName} onChange={(e) => setFormData({ ...formData, productName: e.target.value })} placeholder="e.g., Organic Turmeric Powder" /></div>
               <div><Label>Priority</Label>
                 <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -509,10 +521,21 @@ function DocumentRequestsSection() {
                 </Select>
               </div>
               <div><Label>Description</Label><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the document requirement" /></div>
+              <div><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Additional notes" /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-              <Button onClick={() => createMutation.mutate(formData)} disabled={createMutation.isPending}>
+              <Button onClick={() => {
+                const payload = {
+                  requestType: formData.documentType,
+                  title: formData.title || `${formData.documentType} - ${formData.productName}`,
+                  materialName: formData.productName,
+                  description: formData.description,
+                  priority: formData.priority,
+                  notes: formData.notes,
+                };
+                createMutation.mutate(payload);
+              }} disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : "Create Request"}
               </Button>
             </DialogFooter>
@@ -526,8 +549,9 @@ function DocumentRequestsSection() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Document Type</TableHead>
-                <TableHead>Product</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Material</TableHead>
                 <TableHead>Requested By</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
@@ -537,23 +561,24 @@ function DocumentRequestsSection() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No document requests found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No document requests found</TableCell></TableRow>
               ) : (
                 items.map((item: any) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-mono text-sm">#{item.id}</TableCell>
-                    <TableCell>{item.documentType}</TableCell>
-                    <TableCell>{item.productName}</TableCell>
-                    <TableCell>{item.requestedBy}</TableCell>
+                    <TableCell>{item.title || "-"}</TableCell>
+                    <TableCell><Badge variant="outline">{item.requestType?.toUpperCase() || "-"}</Badge></TableCell>
+                    <TableCell>{item.materialName || "-"}</TableCell>
+                    <TableCell>{item.customerName || "-"}</TableCell>
                     <TableCell><Badge variant={item.priority === "urgent" ? "destructive" : "secondary"}>{item.priority}</Badge></TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell className="text-sm">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" onClick={() => { setSelectedItem(item); setShowDetailDialog(true); }}><Eye className="h-4 w-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: item.id, status: "in_progress" })}><Edit className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: item.id, status: "in_progress" })} title="Mark In Progress"><ArrowRight className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -565,25 +590,73 @@ function DocumentRequestsSection() {
       </Card>
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Document Request #{selectedItem?.id}</DialogTitle></DialogHeader>
           {selectedItem && (
-            <div className="space-y-3">
-              <div><Label>Type</Label><p className="text-sm">{selectedItem.documentType}</p></div>
-              <div><Label>Product</Label><p className="text-sm">{selectedItem.productName}</p></div>
-              <div><Label>Description</Label><p className="text-sm">{selectedItem.description || "N/A"}</p></div>
-              <div><Label>Status</Label><div className="mt-1">{getStatusBadge(selectedItem.status)}</div></div>
-              <div><Label>Update Status</Label>
-                <Select onValueChange={(v) => updateMutation.mutate({ id: selectedItem.id, status: v })}>
-                  <SelectTrigger><SelectValue placeholder="Change status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Request Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Title</Label><p className="text-sm mt-1">{selectedItem.title || "N/A"}</p></div>
+                  <div><Label>Type</Label><p className="text-sm mt-1">{selectedItem.requestType?.toUpperCase() || "N/A"}</p></div>
+                  <div><Label>Material Name</Label><p className="text-sm mt-1">{selectedItem.materialName || "N/A"}</p></div>
+                  <div><Label>Customer Name</Label><p className="text-sm mt-1">{selectedItem.customerName || "N/A"}</p></div>
+                  <div className="col-span-2"><Label>Description</Label><p className="text-sm mt-1">{selectedItem.description || "N/A"}</p></div>
+                  <div className="col-span-2"><Label>Notes</Label><p className="text-sm mt-1">{selectedItem.notes || "N/A"}</p></div>
+                  <div><Label>Priority</Label><div className="mt-1"><Badge variant={selectedItem.priority === "urgent" ? "destructive" : "secondary"}>{selectedItem.priority}</Badge></div></div>
+                  <div><Label>Status</Label><div className="mt-1">{getStatusBadge(selectedItem.status)}</div></div>
+                  <div><Label>Created</Label><p className="text-sm mt-1">{selectedItem.createdAt ? new Date(selectedItem.createdAt).toLocaleString() : "N/A"}</p></div>
+                </div>
               </div>
+
+              <Card className="border-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Quality Response</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedItem.responseNotes && (
+                    <div>
+                      <Label className="text-muted-foreground">Current Response Notes</Label>
+                      <p className="text-sm mt-1 p-2 bg-gray-50 dark:bg-gray-800 rounded">{selectedItem.responseNotes}</p>
+                    </div>
+                  )}
+                  {selectedItem.responseDocumentLink && (
+                    <div>
+                      <Label className="text-muted-foreground">Current Document Link</Label>
+                      <a href={selectedItem.responseDocumentLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:underline mt-1">
+                        <ExternalLink className="h-3 w-3" />{selectedItem.responseDocumentLink}
+                      </a>
+                    </div>
+                  )}
+                  <div>
+                    <Label>Response Notes</Label>
+                    <Textarea value={responseNotes} onChange={(e) => setResponseNotes(e.target.value)} placeholder="Enter response notes..." className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Google Drive Document Link</Label>
+                    <Input value={responseDocLink} onChange={(e) => setResponseDocLink(e.target.value)} placeholder="https://drive.google.com/..." className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Update Status</Label>
+                    <Select value={responseStatus} onValueChange={setResponseStatus}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={() => updateMutation.mutate({ id: selectedItem.id, responseNotes, responseDocumentLink: responseDocLink, status: responseStatus })}
+                    disabled={updateMutation.isPending}
+                    className="w-full"
+                  >
+                    {updateMutation.isPending ? "Sending..." : "Send Response"}
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>
@@ -635,7 +708,7 @@ function TestingRequestsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items = (data as any)?.requests || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
@@ -803,7 +876,7 @@ function TestReportsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items = (data as any)?.reports || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
@@ -1637,7 +1710,7 @@ function MaterialVendorsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items = (data as any)?.vendors || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
@@ -1800,7 +1873,7 @@ function CustomerVendorApprovalsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items = (data as any)?.approvals || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
@@ -1968,7 +2041,7 @@ function NCRsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const items = (data as any)?.data || (Array.isArray(data) ? data : []);
+  const items = (data as any)?.ncrs || (Array.isArray(data) ? data : []);
 
   return (
     <div className="space-y-6">
