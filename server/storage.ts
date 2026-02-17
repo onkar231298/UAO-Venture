@@ -5666,34 +5666,67 @@ export class DatabaseStorage implements IStorage {
   async deleteCompany(id: number): Promise<void> {
     // Delete related records that don't have cascade delete
     
-    // 1. First get all email threads for this company
+    // 1. Delete email campaign recipients referencing this company
+    await db.delete(emailCampaignRecipients).where(eq(emailCampaignRecipients.companyId, id));
+    
+    // 2. Nullify salesOrders.companyId (preserve orders but remove company link)
+    await db.update(salesOrders).set({ companyId: null }).where(eq(salesOrders.companyId, id));
+    
+    // 3. Get all leads for this company to clean up lead references
+    const companyLeads = await db.select({ id: leads.id })
+      .from(leads)
+      .where(eq(leads.companyId, id));
+    
+    if (companyLeads.length > 0) {
+      const leadIds = companyLeads.map(l => l.id);
+      
+      // Nullify references to these leads in other tables
+      await db.update(salesOrders).set({ leadId: null }).where(inArray(salesOrders.leadId, leadIds));
+      await db.update(quotations).set({ leadId: null }).where(inArray(quotations.leadId, leadIds));
+      await db.update(sampleRequests).set({ leadId: null }).where(inArray(sampleRequests.leadId, leadIds));
+      
+      // Delete email messages linked to these leads
+      const leadThreads = await db.select({ id: emailThreads.id })
+        .from(emailThreads)
+        .where(inArray(emailThreads.leadId, leadIds));
+      if (leadThreads.length > 0) {
+        const threadIds = leadThreads.map(t => t.id);
+        await db.update(salesOrders).set({ emailThreadId: null }).where(inArray(salesOrders.emailThreadId, threadIds));
+        for (const threadId of threadIds) {
+          await db.delete(emailMessages).where(eq(emailMessages.threadId, threadId));
+        }
+        await db.delete(emailThreads).where(inArray(emailThreads.id, threadIds));
+      }
+      
+      // Delete call logs, SMS, voicemails linked to these leads
+      await db.delete(callLogs).where(inArray(callLogs.leadId, leadIds));
+      await db.delete(smsMessages).where(inArray(smsMessages.leadId, leadIds));
+      await db.delete(voicemails).where(inArray(voicemails.leadId, leadIds));
+    }
+    
+    // 4. Delete email threads/messages directly linked to this company
     const threads = await db.select({ id: emailThreads.id })
       .from(emailThreads)
       .where(eq(emailThreads.companyId, id));
     
-    // 2. Delete email messages for those threads
     if (threads.length > 0) {
       const threadIds = threads.map(t => t.id);
+      await db.update(salesOrders).set({ emailThreadId: null }).where(inArray(salesOrders.emailThreadId, threadIds));
       for (const threadId of threadIds) {
         await db.delete(emailMessages).where(eq(emailMessages.threadId, threadId));
       }
-      // 3. Delete the email threads
       await db.delete(emailThreads).where(eq(emailThreads.companyId, id));
     }
     
-    // 4. Delete leads associated with this company (lead activities and tasks will cascade)
+    // 5. Delete leads associated with this company (lead activities and tasks will cascade)
     await db.delete(leads).where(eq(leads.companyId, id));
     
-    // 5. Delete call logs associated with this company
+    // 6. Delete call logs, SMS, voicemails associated directly with this company
     await db.delete(callLogs).where(eq(callLogs.companyId, id));
-    
-    // 6. Delete SMS messages associated with this company
     await db.delete(smsMessages).where(eq(smsMessages.companyId, id));
-    
-    // 7. Delete voicemails associated with this company
     await db.delete(voicemails).where(eq(voicemails.companyId, id));
     
-    // 8. Finally delete the company (cascade will handle contacts, notes, activities, tasks)
+    // 7. Finally delete the company (cascade will handle contacts, notes, activities, tasks)
     await db.delete(companies).where(eq(companies.id, id));
   }
 
@@ -5709,9 +5742,35 @@ export class DatabaseStorage implements IStorage {
         .from(emailThreads)
         .where(inArray(emailThreads.companyId, companyIds));
       
+      // Delete email campaign recipients in batch
+      await db.delete(emailCampaignRecipients).where(inArray(emailCampaignRecipients.companyId, companyIds));
+      
+      // Nullify sales order company references (preserve orders but unlink)
+      await db.update(salesOrders).set({ companyId: null }).where(inArray(salesOrders.companyId, companyIds));
+      
+      // Get all leads for these companies to clean up lead references
+      const companyLeads = await db.select({ id: leads.id })
+        .from(leads)
+        .where(inArray(leads.companyId, companyIds));
+      
+      if (companyLeads.length > 0) {
+        const leadIds = companyLeads.map(l => l.id);
+        
+        // Nullify references to these leads in other tables
+        await db.update(salesOrders).set({ leadId: null }).where(inArray(salesOrders.leadId, leadIds));
+        await db.update(quotations).set({ leadId: null }).where(inArray(quotations.leadId, leadIds));
+        await db.update(sampleRequests).set({ leadId: null }).where(inArray(sampleRequests.leadId, leadIds));
+        
+        // Delete call logs, SMS, voicemails linked to these leads
+        await db.delete(callLogs).where(inArray(callLogs.leadId, leadIds));
+        await db.delete(smsMessages).where(inArray(smsMessages.leadId, leadIds));
+        await db.delete(voicemails).where(inArray(voicemails.leadId, leadIds));
+      }
+      
       // Delete email messages in batch
       if (threads.length > 0) {
         const threadIds = threads.map(t => t.id);
+        await db.update(salesOrders).set({ emailThreadId: null }).where(inArray(salesOrders.emailThreadId, threadIds));
         await db.delete(emailMessages).where(inArray(emailMessages.threadId, threadIds));
       }
       
@@ -5721,13 +5780,9 @@ export class DatabaseStorage implements IStorage {
       // Delete leads in batch (lead activities and tasks will cascade)
       await db.delete(leads).where(inArray(leads.companyId, companyIds));
       
-      // Delete call logs in batch
+      // Delete call logs, SMS, voicemails associated directly with this company
       await db.delete(callLogs).where(inArray(callLogs.companyId, companyIds));
-      
-      // Delete SMS messages in batch
       await db.delete(smsMessages).where(inArray(smsMessages.companyId, companyIds));
-      
-      // Delete voicemails in batch
       await db.delete(voicemails).where(inArray(voicemails.companyId, companyIds));
       
       // Delete company activities in batch
@@ -5741,12 +5796,6 @@ export class DatabaseStorage implements IStorage {
       
       // Delete company contacts in batch
       await db.delete(companyContacts).where(inArray(companyContacts.companyId, companyIds));
-      
-      // Delete email campaign recipients in batch
-      await db.delete(emailCampaignRecipients).where(inArray(emailCampaignRecipients.companyId, companyIds));
-      
-      // Nullify sales order company references (preserve orders but unlink)
-      await db.update(salesOrders).set({ companyId: null }).where(inArray(salesOrders.companyId, companyIds));
       
       // Finally delete the companies in batch
       const result = await db.delete(companies).where(inArray(companies.id, companyIds)).returning({ id: companies.id });
