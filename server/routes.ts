@@ -12124,8 +12124,13 @@ We look forward to hearing from you.`;
 
   app.post('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
-      const userId = req.session?.user?.id || req.user?.id;
-      const body = { ...req.body, requesterId: userId };
+      const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
+      const body = {
+        ...req.body,
+        requesterId: userId,
+        requestType: req.body.requestType || req.body.documentType || 'coa',
+        title: req.body.title || `${(req.body.documentType || req.body.requestType || 'document').toUpperCase()} - ${req.body.materialName || 'Request'}`,
+      };
       const validated = insertQualityDocumentRequestSchema.parse(body);
       const result = await storage.createQualityDocumentRequest(validated);
       res.status(201).json(result);
@@ -12178,8 +12183,12 @@ We look forward to hearing from you.`;
 
   app.post('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
-      const userId = req.session?.user?.id || req.user?.id;
-      const body = { ...req.body, requesterId: userId };
+      const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
+      const body = {
+        ...req.body,
+        requesterId: userId,
+        title: req.body.title || `${(req.body.requestType || 'IRF').toUpperCase()} - ${req.body.materialName || 'Test Request'}`,
+      };
       const validated = insertQualityTestingRequestSchema.parse(body);
       const result = await storage.createQualityTestingRequest(validated);
       res.status(201).json(result);
@@ -12516,7 +12525,7 @@ We look forward to hearing from you.`;
 
   app.post('/api/quality/customer-vendor-approvals', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
-      const userId = req.session?.user?.id || req.user?.id;
+      const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
       const body = { ...req.body, requesterId: userId };
       const validated = insertQualityCustomerVendorApprovalSchema.parse(body);
       const result = await storage.createQualityCustomerVendorApproval(validated);
