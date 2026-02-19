@@ -272,7 +272,7 @@ export default function WebsiteManagement() {
   };
 
   return (
-    <RoleBasedRoute allowedRoles={['super_admin', 'admin', 'website_manager', 'seo_manager']}>
+    <RoleBasedRoute allowedRoles={['super_admin', 'admin', 'website_manager', 'seo_manager', 'quality_manager', 'quality_executive']}>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           {/* Admin Breadcrumb */}

@@ -1512,7 +1512,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -1892,7 +1892,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -1911,7 +1911,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -1931,7 +1931,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -2751,7 +2751,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -2785,7 +2785,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -4327,7 +4327,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -4462,7 +4462,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -4626,7 +4626,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -4659,7 +4659,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager')) {
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 

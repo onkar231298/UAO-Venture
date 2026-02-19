@@ -42,7 +42,9 @@ import {
   ArrowRight,
   Beaker,
   ExternalLink,
+  Globe,
 } from "lucide-react";
+import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 
 // ==================== STATUS BADGE HELPER ====================
 function getStatusBadge(status: string) {
@@ -99,6 +101,12 @@ const sidebarSections = [
     ],
   },
   {
+    label: "WEBSITE",
+    items: [
+      { key: "website-management", label: "Website Management", icon: Globe },
+    ],
+  },
+  {
     label: "HR",
     items: [
       { key: "my-attendance", label: "My Attendance", icon: Calendar },
@@ -129,7 +137,7 @@ export default function QualityDashboard() {
         return;
       }
       const role = (user as any).role;
-      if (role !== "quality_manager" && role !== "quality_executive") {
+      if (role !== "quality_manager" && role !== "quality_executive" && role !== "super_admin") {
         toast({ title: "Access Denied", description: "Quality department privileges required.", variant: "destructive" });
         window.location.href = "/";
         return;
@@ -163,6 +171,7 @@ export default function QualityDashboard() {
     "material-vendors": "Material Vendors",
     "customer-vendor-approvals": "Customer Vendor Approvals",
     ncrs: "Non-Conformance Reports (NCR)",
+    "website-management": "Website Management",
     "my-attendance": "My Attendance",
     "profile-settings": "Profile Settings",
   };
@@ -269,6 +278,7 @@ export default function QualityDashboard() {
           {activeSection === "material-vendors" && <MaterialVendorsSection />}
           {activeSection === "customer-vendor-approvals" && <CustomerVendorApprovalsSection />}
           {activeSection === "ncrs" && <NCRsSection />}
+          {activeSection === "website-management" && <WebsiteManagement />}
           {activeSection === "my-attendance" && <MyAttendance />}
           {activeSection === "profile-settings" && (
             <Card>
