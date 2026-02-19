@@ -340,9 +340,16 @@ export const products = pgTable("products", {
   msdsDocument: varchar("msds_document", { length: 500 }), // MSDS / Safety Data Sheet
   nonGmoDocument: varchar("non_gmo_document", { length: 500 }), // Non-GMO Statement
   businessLicense: varchar("business_license", { length: 500 }), // Business License
-  registrationCert: varchar("registration_cert", { length: 500 }), // Certificate of Registration
-  kosherCert: varchar("kosher_cert", { length: 500 }), // KOSHER-OK Certificate
+  registrationCert: varchar("registration_cert", { length: 500 }), // Certificate of Registration (legacy)
+  kosherCert: varchar("kosher_cert", { length: 500 }), // KOSHER-OK Certificate (legacy)
   organicNopCert: varchar("organic_nop_cert", { length: 500 }), // Organic-NOP(USDA) Certificate
+  halalCert: varchar("halal_cert", { length: 500 }), // Halal Certification
+  euOrganicCert: varchar("eu_organic_cert", { length: 500 }), // EU Organic Certification
+  indiaOrganicCert: varchar("india_organic_cert", { length: 500 }), // India Organic Certification
+  exportCert: varchar("export_cert", { length: 500 }), // Export Certificate
+  spiceBoardCert: varchar("spice_board_cert", { length: 500 }), // Spice Board Certificate
+  fssaiLicense: varchar("fssai_license", { length: 500 }), // FSSAI License
+  exportHouseCert: varchar("export_house_cert", { length: 500 }), // Export House Certificate
   additionalDocs: jsonb("additional_docs").default("[]"), // Array of additional document URLs
   
   // FAQ Section

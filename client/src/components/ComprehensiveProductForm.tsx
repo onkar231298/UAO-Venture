@@ -90,9 +90,14 @@ export default function ComprehensiveProductForm({
     msdsDocument: product?.msdsDocument || "",
     nonGmoDocument: product?.nonGmoDocument || "",
     businessLicense: product?.businessLicense || "",
-    registrationCert: product?.registrationCert || "",
-    kosherCert: product?.kosherCert || "",
+    halalCert: product?.halalCert || "",
+    euOrganicCert: product?.euOrganicCert || "",
+    indiaOrganicCert: product?.indiaOrganicCert || "",
     organicNopCert: product?.organicNopCert || "",
+    exportCert: product?.exportCert || "",
+    spiceBoardCert: product?.spiceBoardCert || "",
+    fssaiLicense: product?.fssaiLicense || "",
+    exportHouseCert: product?.exportHouseCert || "",
     additionalDocs: product?.additionalDocs || [],
     faqs: product?.faqs || [],
     
@@ -1396,26 +1401,208 @@ export default function ComprehensiveProductForm({
                 />
               </div>
               
-              {/* Registration Certificate */}
+              {/* Halal Certification */}
               <div className="space-y-2">
-                <Label htmlFor="registrationCert" className="text-xs font-medium">Registration Certificate</Label>
+                <Label htmlFor="halalCert" className="text-xs font-medium">Halal Certification</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={formData.registrationCert}
-                    onChange={(e) => setFormData(prev => ({ ...prev, registrationCert: e.target.value }))}
+                    value={formData.halalCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, halalCert: e.target.value }))}
                     placeholder="Document URL"
                     className="flex-1 text-xs"
                   />
                 </div>
                 <Input
-                  id="registrationCert"
+                  id="halalCert"
                   type="file"
                   accept=".pdf,.doc,.docx"
                   className="text-xs"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      await handleImageUpload(file, 'registrationCert');
+                      await handleImageUpload(file, 'halalCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* EU Organic Certification */}
+              <div className="space-y-2">
+                <Label htmlFor="euOrganicCert" className="text-xs font-medium">EU Organic Certification</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.euOrganicCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, euOrganicCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="euOrganicCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'euOrganicCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* India Organic Certification */}
+              <div className="space-y-2">
+                <Label htmlFor="indiaOrganicCert" className="text-xs font-medium">India Organic Certification</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.indiaOrganicCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, indiaOrganicCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="indiaOrganicCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'indiaOrganicCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* Organic NOP (USDA) Certificate */}
+              <div className="space-y-2">
+                <Label htmlFor="organicNopCert" className="text-xs font-medium">Organic-NOP(USDA) Certificate</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.organicNopCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, organicNopCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="organicNopCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'organicNopCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* Export Certificate */}
+              <div className="space-y-2">
+                <Label htmlFor="exportCert" className="text-xs font-medium">Export Certificate</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.exportCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, exportCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="exportCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'exportCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* Spice Board Certificate */}
+              <div className="space-y-2">
+                <Label htmlFor="spiceBoardCert" className="text-xs font-medium">Spice Board Certificate</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.spiceBoardCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, spiceBoardCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="spiceBoardCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'spiceBoardCert');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* FSSAI License */}
+              <div className="space-y-2">
+                <Label htmlFor="fssaiLicense" className="text-xs font-medium">FSSAI License</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.fssaiLicense}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fssaiLicense: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="fssaiLicense"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'fssaiLicense');
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </div>
+
+              {/* Export House Certificate */}
+              <div className="space-y-2">
+                <Label htmlFor="exportHouseCert" className="text-xs font-medium">Export House Certificate</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.exportHouseCert}
+                    onChange={(e) => setFormData(prev => ({ ...prev, exportHouseCert: e.target.value }))}
+                    placeholder="Document URL"
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <Input
+                  id="exportHouseCert"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="text-xs"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleImageUpload(file, 'exportHouseCert');
                     }
                   }}
                   disabled={uploading}
@@ -1537,63 +1724,6 @@ export default function ComprehensiveProductForm({
             </div>
           </div>
           
-          {/* Certification Documents */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-800 mb-3">Certification Documents</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Kosher Certificate */}
-              <div className="space-y-2">
-                <Label htmlFor="kosherCert" className="text-xs font-medium">KOSHER-OK Certificate</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.kosherCert}
-                    onChange={(e) => setFormData(prev => ({ ...prev, kosherCert: e.target.value }))}
-                    placeholder="Document URL"
-                    className="flex-1 text-xs"
-                  />
-                </div>
-                <Input
-                  id="kosherCert"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  className="text-xs"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      await handleImageUpload(file, 'kosherCert');
-                    }
-                  }}
-                  disabled={uploading}
-                />
-              </div>
-              
-              {/* Organic NOP Certificate */}
-              <div className="space-y-2">
-                <Label htmlFor="organicNopCert" className="text-xs font-medium">Organic-NOP(USDA) Certificate</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.organicNopCert}
-                    onChange={(e) => setFormData(prev => ({ ...prev, organicNopCert: e.target.value }))}
-                    placeholder="Document URL"
-                    className="flex-1 text-xs"
-                  />
-                </div>
-                <Input
-                  id="organicNopCert"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  className="text-xs"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      await handleImageUpload(file, 'organicNopCert');
-                    }
-                  }}
-                  disabled={uploading}
-                />
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

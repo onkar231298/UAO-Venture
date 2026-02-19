@@ -106,9 +106,14 @@ export const productImageUpload = uploadToS3.fields([
   { name: 'msdsDocument', maxCount: 1 },
   { name: 'nonGmoDocument', maxCount: 1 },
   { name: 'businessLicense', maxCount: 1 },
-  { name: 'registrationCert', maxCount: 1 },
-  { name: 'kosherCert', maxCount: 1 },
+  { name: 'halalCert', maxCount: 1 },
+  { name: 'euOrganicCert', maxCount: 1 },
+  { name: 'indiaOrganicCert', maxCount: 1 },
   { name: 'organicNopCert', maxCount: 1 },
+  { name: 'exportCert', maxCount: 1 },
+  { name: 'spiceBoardCert', maxCount: 1 },
+  { name: 'fssaiLicense', maxCount: 1 },
+  { name: 'exportHouseCert', maxCount: 1 },
   { name: 'additionalDocs', maxCount: 5 },
 ]);
 

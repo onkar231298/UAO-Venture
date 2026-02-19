@@ -629,9 +629,14 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     msdsDocument: product?.msdsDocument || "",
     nonGmoDocument: product?.nonGmoDocument || "",
     businessLicense: product?.businessLicense || "",
-    registrationCert: product?.registrationCert || "",
-    kosherCert: product?.kosherCert || "",
+    halalCert: product?.halalCert || "",
+    euOrganicCert: product?.euOrganicCert || "",
+    indiaOrganicCert: product?.indiaOrganicCert || "",
     organicNopCert: product?.organicNopCert || "",
+    exportCert: product?.exportCert || "",
+    spiceBoardCert: product?.spiceBoardCert || "",
+    fssaiLicense: product?.fssaiLicense || "",
+    exportHouseCert: product?.exportHouseCert || "",
     additionalDocs: product?.additionalDocs || [],
     faqs: product?.faqs || [],
     seoTitle: product?.seoTitle || "",
@@ -1358,39 +1363,39 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       )}
                     </div>
 
-                    {/* Certificate of Registration */}
+                    {/* Halal Certification */}
                     <div className="space-y-2">
-                      <Label htmlFor="registrationCert" className="text-xs font-medium">Certificate of Registration</Label>
+                      <Label htmlFor="halalCert" className="text-xs font-medium">Halal Certification</Label>
                       <div className="flex gap-2">
                         <Input
-                          value={formData.registrationCert}
-                          onChange={(e) => setFormData(prev => ({ ...prev, registrationCert: e.target.value }))}
+                          value={formData.halalCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, halalCert: e.target.value }))}
                           placeholder="Document URL or upload below"
                           className="flex-1 text-xs"
                         />
                       </div>
                       <Input
-                        id="registrationCert"
+                        id="halalCert"
                         type="file"
                         accept=".pdf,.doc,.docx"
                         className="text-xs"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            await handleImageUpload(file, 'registrationCert');
+                            await handleImageUpload(file, 'halalCert');
                           }
                         }}
                         disabled={uploading}
                       />
-                      {formData.registrationCert && (
+                      {formData.halalCert && (
                         <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
                           <FileText className="w-3 h-3 text-green-600" />
-                          <span className="text-green-700 truncate">Registration Certificate uploaded</span>
+                          <span className="text-green-700 truncate">Halal Certification uploaded</span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setFormData(prev => ({ ...prev, registrationCert: '' }))}
+                            onClick={() => setFormData(prev => ({ ...prev, halalCert: '' }))}
                             className="h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />
@@ -1399,39 +1404,80 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       )}
                     </div>
 
-                    {/* KOSHER Certificate */}
+                    {/* EU Organic Certification */}
                     <div className="space-y-2">
-                      <Label htmlFor="kosherCert" className="text-xs font-medium">KOSHER-OK Certificate</Label>
+                      <Label htmlFor="euOrganicCert" className="text-xs font-medium">EU Organic Certification</Label>
                       <div className="flex gap-2">
                         <Input
-                          value={formData.kosherCert}
-                          onChange={(e) => setFormData(prev => ({ ...prev, kosherCert: e.target.value }))}
+                          value={formData.euOrganicCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, euOrganicCert: e.target.value }))}
                           placeholder="Document URL or upload below"
                           className="flex-1 text-xs"
                         />
                       </div>
                       <Input
-                        id="kosherCert"
+                        id="euOrganicCert"
                         type="file"
                         accept=".pdf,.doc,.docx"
                         className="text-xs"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            await handleImageUpload(file, 'kosherCert');
+                            await handleImageUpload(file, 'euOrganicCert');
                           }
                         }}
                         disabled={uploading}
                       />
-                      {formData.kosherCert && (
+                      {formData.euOrganicCert && (
                         <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
                           <FileText className="w-3 h-3 text-green-600" />
-                          <span className="text-green-700 truncate">KOSHER Certificate uploaded</span>
+                          <span className="text-green-700 truncate">EU Organic Certification uploaded</span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setFormData(prev => ({ ...prev, kosherCert: '' }))}
+                            onClick={() => setFormData(prev => ({ ...prev, euOrganicCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* India Organic Certification */}
+                    <div className="space-y-2">
+                      <Label htmlFor="indiaOrganicCert" className="text-xs font-medium">India Organic Certification</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.indiaOrganicCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, indiaOrganicCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="indiaOrganicCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'indiaOrganicCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.indiaOrganicCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">India Organic Certification uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, indiaOrganicCert: '' }))}
                             className="h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />
@@ -1473,6 +1519,170 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                             variant="ghost"
                             size="sm"
                             onClick={() => setFormData(prev => ({ ...prev, organicNopCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Export Certificate */}
+                    <div className="space-y-2">
+                      <Label htmlFor="exportCert" className="text-xs font-medium">Export Certificate</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.exportCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, exportCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="exportCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'exportCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.exportCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Export Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, exportCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Spice Board Certificate */}
+                    <div className="space-y-2">
+                      <Label htmlFor="spiceBoardCert" className="text-xs font-medium">Spice Board Certificate</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.spiceBoardCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, spiceBoardCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="spiceBoardCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'spiceBoardCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.spiceBoardCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Spice Board Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, spiceBoardCert: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* FSSAI License */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fssaiLicense" className="text-xs font-medium">FSSAI License</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.fssaiLicense}
+                          onChange={(e) => setFormData(prev => ({ ...prev, fssaiLicense: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="fssaiLicense"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'fssaiLicense');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.fssaiLicense && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">FSSAI License uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, fssaiLicense: '' }))}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Export House Certificate */}
+                    <div className="space-y-2">
+                      <Label htmlFor="exportHouseCert" className="text-xs font-medium">Export House Certificate</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.exportHouseCert}
+                          onChange={(e) => setFormData(prev => ({ ...prev, exportHouseCert: e.target.value }))}
+                          placeholder="Document URL or upload below"
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                      <Input
+                        id="exportHouseCert"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="text-xs"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            await handleImageUpload(file, 'exportHouseCert');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {formData.exportHouseCert && (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-xs">
+                          <FileText className="w-3 h-3 text-green-600" />
+                          <span className="text-green-700 truncate">Export House Certificate uploaded</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, exportHouseCert: '' }))}
                             className="h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />

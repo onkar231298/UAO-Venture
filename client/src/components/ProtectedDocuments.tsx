@@ -20,9 +20,14 @@ export default function ProtectedDocuments({ product }: ProtectedDocumentsProps)
 
   const companyDocs = [
     { name: 'Business License', url: product.businessLicense },
-    { name: 'Certificate of Registration', url: product.registrationCert },
-    { name: 'KOSHER-OK', url: product.kosherCert },
-    { name: 'Organic-NOP(USDA)', url: product.organicNopCert }
+    { name: 'Halal Certification', url: product.halalCert },
+    { name: 'EU Organic Certification', url: product.euOrganicCert },
+    { name: 'India Organic Certification', url: product.indiaOrganicCert },
+    { name: 'Organic-NOP(USDA)', url: product.organicNopCert },
+    { name: 'Export Certificate', url: product.exportCert },
+    { name: 'Spice Board Certificate', url: product.spiceBoardCert },
+    { name: 'FSSAI License', url: product.fssaiLicense },
+    { name: 'Export House Certificate', url: product.exportHouseCert }
   ];
 
   const productDocs = [
