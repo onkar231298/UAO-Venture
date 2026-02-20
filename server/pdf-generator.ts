@@ -143,105 +143,99 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   const orangeColor = '#ff8c00';
   const greenColor = '#28a745';
   
-  // Header with centered logo (smaller and more compact)
-  let yPos = 15;
+  // Header with centered logo (compact)
+  let yPos = 10;
   
   try {
-    // Add company logo (centered at top, proper aspect ratio)
-    const logoWidth = 140;
-    const pageWidth = 595; // A4 page width in points
+    const logoWidth = 120;
+    const pageWidth = 595;
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
+    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 55] });
   } catch (error) {
     console.log('Logo not found at', logoPath, ', skipping logo insertion');
   }
   
-  yPos += 105; // Increased spacing to ensure no overlap with logo
+  yPos += 65;
   
   // Quotation Title
-  doc.fontSize(28).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
-  doc.moveTo(40, yPos + 40).lineTo(550, yPos + 40).strokeColor(orangeColor).lineWidth(3).stroke();
+  doc.fontSize(22).fillColor(orangeColor).text('QUOTATION', 40, yPos, { align: 'center' });
+  doc.moveTo(40, yPos + 28).lineTo(550, yPos + 28).strokeColor(orangeColor).lineWidth(2).stroke();
   
-  yPos += 60;
+  yPos += 38;
   
   // Quote Info
-  doc.fontSize(10).fillColor('black')
+  doc.fontSize(8).fillColor('black')
      .text(`Quotation#: ${quotation.quotationId}`, 400, yPos)
-     .text(`Quotation Date: ${new Date(quotation.quotationDate).toLocaleDateString('en-GB')}`, 400, yPos + 15)
-     .text(`Valid Until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 400, yPos + 30);
+     .text(`Date: ${new Date(quotation.quotationDate).toLocaleDateString('en-GB')}`, 400, yPos + 12)
+     .text(`Valid Until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 400, yPos + 24);
   
-  // Add sales person info if available
   if (customer.salesPersonName) {
-    doc.text(`Sales Executive: ${customer.salesPersonName}`, 400, yPos + 45);
-    yPos += 75;
+    doc.text(`Sales Executive: ${customer.salesPersonName}`, 400, yPos + 36);
+    yPos += 52;
   } else {
-    yPos += 65;
+    yPos += 42;
   }
   
-  // Company Info Box (Left) - compact with proper spacing
-  doc.fillColor('#f8f9fa').rect(40, yPos, 250, 145).fill()
-     .strokeColor('#e9ecef').rect(40, yPos, 250, 145).stroke();
+  // Company Info Box (Left) - compact
+  const infoBoxHeight = 120;
+  doc.fillColor('#f8f9fa').rect(40, yPos, 250, infoBoxHeight).fill()
+     .strokeColor('#e9ecef').rect(40, yPos, 250, infoBoxHeight).stroke();
   
-  doc.fontSize(12).fillColor(orangeColor).text('Quotation by', 50, yPos + 10);
-  doc.moveTo(50, yPos + 25).lineTo(280, yPos + 25).strokeColor(orangeColor).stroke();
+  doc.fontSize(10).fillColor(orangeColor).text('Quotation by', 50, yPos + 6);
+  doc.moveTo(50, yPos + 19).lineTo(280, yPos + 19).strokeColor(orangeColor).stroke();
   
-  doc.fontSize(9).fillColor('black')
-     .text(companyDetails.address, 50, yPos + 32, { width: 230 })
-     .text(companyDetails.address2, 50, yPos + 45, { width: 230, lineGap: 2 })
-     .text(companyDetails.address3, 50, yPos + 57, { width: 230, lineGap: 2 })
-     .text('', 50, yPos + 69)
-     .text(`Phone: ${companyDetails.phone}`, 50, yPos + 75, { width: 230 })
-     .text(`Email: ${companyDetails.email}`, 50, yPos + 88, { width: 230 })
-     .text(`Website: ${companyDetails.website}`, 50, yPos + 101, { width: 230 });
+  doc.fontSize(8).fillColor('black')
+     .text(companyDetails.address, 50, yPos + 24, { width: 230 })
+     .text(companyDetails.address2, 50, yPos + 35, { width: 230 })
+     .text(companyDetails.address3, 50, yPos + 46, { width: 230 })
+     .text(`Phone: ${companyDetails.phone}`, 50, yPos + 62, { width: 230 })
+     .text(`Email: ${companyDetails.email}`, 50, yPos + 73, { width: 230 })
+     .text(`Website: ${companyDetails.website}`, 50, yPos + 84, { width: 230 });
   
   if (quotation.sellerGstin) {
-    doc.fontSize(8).text(`GSTIN: ${quotation.sellerGstin}`, 50, yPos + 127, { width: 230 });
+    doc.fontSize(7).text(`GSTIN: ${quotation.sellerGstin}`, 50, yPos + 98, { width: 230 });
   }
   
-  // Customer Info Box (Right) - compact to match left box
-  doc.fillColor('#f8f9fa').rect(300, yPos, 250, 145).fill()
-     .strokeColor('#e9ecef').rect(300, yPos, 250, 145).stroke();
+  // Customer Info Box (Right) - compact
+  doc.fillColor('#f8f9fa').rect(300, yPos, 250, infoBoxHeight).fill()
+     .strokeColor('#e9ecef').rect(300, yPos, 250, infoBoxHeight).stroke();
   
-  doc.fontSize(12).fillColor(orangeColor).text('Quotation to', 310, yPos + 10);
-  doc.moveTo(310, yPos + 25).lineTo(540, yPos + 25).strokeColor(orangeColor).stroke();
+  doc.fontSize(10).fillColor(orangeColor).text('Quotation to', 310, yPos + 6);
+  doc.moveTo(310, yPos + 19).lineTo(540, yPos + 19).strokeColor(orangeColor).stroke();
   
-  let customerYPos = yPos + 32;
+  let customerYPos = yPos + 24;
   
-  // Use contactPerson if available, otherwise use name but only if different from company
   const contactPersonName = customer.contactPerson || customer.name;
   const companyName = customer.companyName || quotation.customerCompanyName || '';
   
-  // Only show contact person if it's different from company name
   if (contactPersonName && contactPersonName !== companyName) {
-    doc.fontSize(9).fillColor('black')
-       .text(`Contact Person: ${contactPersonName}`, 310, customerYPos, { width: 230 });
-    customerYPos += 13;
+    doc.fontSize(8).fillColor('black')
+       .text(`Contact: ${contactPersonName}`, 310, customerYPos, { width: 230 });
+    customerYPos += 11;
   }
   
   if (companyName) {
-    doc.fontSize(9).fillColor('black')
+    doc.fontSize(8).fillColor('black')
        .text(`Company: ${companyName}`, 310, customerYPos, { width: 230 });
-    customerYPos += 13;
+    customerYPos += 11;
   }
   
   if (customer.email) {
     doc.text(`Email: ${customer.email}`, 310, customerYPos, { width: 230 });
-    customerYPos += 13;
+    customerYPos += 11;
   }
   
   if (customer.phone) {
     doc.text(`Phone: ${customer.phone}`, 310, customerYPos, { width: 230 });
-    customerYPos += 13;
+    customerYPos += 11;
   }
   
-  // Customer address (condensed) - prioritize new streetAddress field
   const streetAddress = customer.streetAddress || customer.address || quotation.customerAddress;
   if (streetAddress) {
-    doc.text(streetAddress, 310, customerYPos, { width: 230, lineGap: 1 });
-    customerYPos += 13;
+    doc.text(streetAddress, 310, customerYPos, { width: 230 });
+    customerYPos += 11;
   }
   
-  // City, State, Postal Code, Country (condensed on one line)
   const locationParts = [];
   if (customer.city || quotation.customerCity) locationParts.push(customer.city || quotation.customerCity);
   if (customer.state || quotation.customerState) locationParts.push(customer.state || quotation.customerState);
@@ -252,18 +246,18 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     doc.text(locationParts.join(', '), 310, customerYPos, { width: 230 });
   }
   
-  yPos += 160; // Compact spacing
+  yPos += infoBoxHeight + 10;
   
-  // Items Table Header (wider Amount column)
-  doc.fillColor(orangeColor).rect(40, yPos, 510, 25).fill();
-  doc.fontSize(10).fillColor('white')
-     .text('#', 50, yPos + 8, { width: 20 })
-     .text('Item/Item Description', 75, yPos + 8, { width: 220 })
-     .text('Qty.', 300, yPos + 8, { width: 70 })
-     .text('Rate', 375, yPos + 8, { width: 70 })
-     .text('Amount', 450, yPos + 8, { width: 90 });
+  // Items Table Header
+  doc.fillColor(orangeColor).rect(40, yPos, 510, 20).fill();
+  doc.fontSize(8).fillColor('white')
+     .text('#', 50, yPos + 6, { width: 20 })
+     .text('Item / Description', 75, yPos + 6, { width: 200 })
+     .text('Qty.', 280, yPos + 6, { width: 70 })
+     .text('Rate', 355, yPos + 6, { width: 80 })
+     .text('Amount', 440, yPos + 6, { width: 100, align: 'right' });
   
-  yPos += 25;
+  yPos += 20;
   
   // Items Table Rows - support multiple products
   const itemsList = quotation.items && quotation.items.length > 0
@@ -277,10 +271,9 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
       }];
   
   itemsList.forEach((item, index) => {
-    const rowHeight = 30;
+    const rowHeight = 22;
     
-    // Add page break if running out of space (need room for totals + terms)
-    if (yPos + rowHeight > 700) {
+    if (yPos + rowHeight > 720) {
       doc.addPage();
       yPos = 50;
     }
@@ -293,88 +286,82 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     const rawTotal = parseFloat(item.totalPrice || '0');
     const itemTotal = (!isNaN(rawTotal) && rawTotal > 0) ? rawTotal : (itemQty * itemPrice);
     
-    doc.fontSize(9).fillColor('black')
-       .text(`${index + 1}`, 50, yPos + 10, { width: 20 })
-       .text(item.productName || 'Product', 75, yPos + 10, { width: 220 })
-       .text(`${itemQty.toLocaleString()} ${item.unit || 'kg'}`, 300, yPos + 10, { width: 70 })
-       .text(`${quotation.currency} ${itemPrice.toFixed(2)}/${item.unit || 'kg'}`, 375, yPos + 10, { width: 70 })
-       .text(`${quotation.currency}\n${itemTotal.toLocaleString()}`, 450, yPos + 10, { width: 90 });
+    doc.fontSize(8).fillColor('black')
+       .text(`${index + 1}`, 50, yPos + 6, { width: 20 })
+       .text(item.productName || 'Product', 75, yPos + 6, { width: 200 })
+       .text(`${itemQty.toLocaleString()} ${item.unit || 'kg'}`, 280, yPos + 6, { width: 70 })
+       .text(`${quotation.currency} ${itemPrice.toFixed(2)}/${item.unit || 'kg'}`, 355, yPos + 6, { width: 80 })
+       .text(`${quotation.currency} ${itemTotal.toLocaleString()}`, 440, yPos + 6, { width: 100, align: 'right' });
     
-    yPos += rowHeight + 5;
+    yPos += rowHeight;
   });
   
-  // Check if totals + terms will fit, add page break if needed
-  if (yPos + 250 > 800) {
-    doc.addPage();
-    yPos = 50;
-  }
+  yPos += 8;
   
-  yPos += 10;
-  
-  // Totals Box (Right side)
+  // Totals Box (Right side) - proper width
   const totalsX = 350;
-  doc.fillColor('white').rect(totalsX, yPos, 200, 80).fill()
-     .strokeColor('#ddd').rect(totalsX, yPos, 200, 80).stroke();
+  const totalsW = 200;
+  doc.fillColor('white').rect(totalsX, yPos, totalsW, 22).fill()
+     .strokeColor('#ddd').rect(totalsX, yPos, totalsW, 22).stroke();
   
-  doc.fontSize(10).fillColor('black')
-     .text('Sub Total', totalsX + 10, yPos + 10)
-     .text(`${quotation.currency} ${parseFloat(subtotal).toLocaleString()}`, totalsX + 120, yPos + 10);
+  doc.fontSize(9).fillColor('black')
+     .text('Sub Total', totalsX + 10, yPos + 6)
+     .text(`${quotation.currency} ${parseFloat(subtotal).toLocaleString()}`, totalsX + 10, yPos + 6, { width: totalsW - 20, align: 'right' });
+  
+  let totalsYOffset = 22;
   
   if (parseFloat(discountAmount) > 0) {
-    doc.fillColor(greenColor).rect(totalsX, yPos + 25, 200, 20).fill();
-    doc.fillColor('white')
-       .text(`Discount(${quotation.discountPercent}%)`, totalsX + 10, yPos + 30)
-       .text(`- ${quotation.currency} ${parseFloat(discountAmount).toLocaleString()}`, totalsX + 120, yPos + 30);
-    yPos += 20;
+    doc.fillColor(greenColor).rect(totalsX, yPos + totalsYOffset, totalsW, 20).fill();
+    doc.fontSize(9).fillColor('white')
+       .text(`Discount(${quotation.discountPercent}%)`, totalsX + 10, yPos + totalsYOffset + 5)
+       .text(`- ${quotation.currency} ${parseFloat(discountAmount).toLocaleString()}`, totalsX + 10, yPos + totalsYOffset + 5, { width: totalsW - 20, align: 'right' });
+    totalsYOffset += 20;
   }
   
-  doc.fillColor(greenColor).rect(totalsX, yPos + 45, 200, 25).fill();
-  doc.fontSize(12).fillColor('white')
-     .text('Total', totalsX + 10, yPos + 52)
-     .text(`${quotation.currency} ${parseFloat(finalAmount).toLocaleString()}`, totalsX + 120, yPos + 52);
+  doc.fillColor(greenColor).rect(totalsX, yPos + totalsYOffset, totalsW, 24).fill()
+     .strokeColor(greenColor).rect(totalsX, yPos + totalsYOffset, totalsW, 24).stroke();
+  doc.fontSize(10).fillColor('white')
+     .text('Total', totalsX + 10, yPos + totalsYOffset + 6)
+     .text(`${quotation.currency} ${parseFloat(finalAmount).toLocaleString()}`, totalsX + 10, yPos + totalsYOffset + 6, { width: totalsW - 20, align: 'right' });
   
-  yPos += 80;
+  yPos += totalsYOffset + 34;
   
-  // Terms and Conditions (expanded for better readability)
-  const termsBoxHeight = 115;
+  // Terms and Conditions - side by side with amount in words
+  const termsBoxHeight = 90;
   doc.fillColor('#fff7e6').rect(40, yPos, 300, termsBoxHeight).fill()
      .strokeColor('#ffa500').rect(40, yPos, 300, termsBoxHeight).stroke();
   
-  doc.fontSize(11).fillColor(orangeColor).text('Terms and Conditions', 50, yPos + 8);
-  doc.moveTo(50, yPos + 22).lineTo(330, yPos + 22).strokeColor(orangeColor).stroke();
+  doc.fontSize(9).fillColor(orangeColor).text('Terms and Conditions', 50, yPos + 5);
+  doc.moveTo(50, yPos + 16).lineTo(330, yPos + 16).strokeColor(orangeColor).stroke();
   
-  doc.fontSize(8).fillColor('black')
-     .text(`1. Payment Terms: ${quotation.paymentTerms}`, 50, yPos + 30, { width: 280, lineGap: 2 })
-     .text(`2. Delivery Terms: ${quotation.deliveryTerms}`, 50, yPos + 44, { width: 280, lineGap: 2 })
-     .text(`3. Production Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 58, { width: 280, lineGap: 2 })
-     .text(`4. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 72, { width: 280, lineGap: 2 })
-     .text('5. Quality as per specifications', 50, yPos + 86, { width: 280, lineGap: 2 })
-     .text('6. Standard export packaging', 50, yPos + 100, { width: 280, lineGap: 2 });
+  doc.fontSize(7).fillColor('black')
+     .text(`1. Payment Terms: ${quotation.paymentTerms}`, 50, yPos + 22, { width: 280 })
+     .text(`2. Delivery Terms: ${quotation.deliveryTerms}`, 50, yPos + 33, { width: 280 })
+     .text(`3. Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 44, { width: 280 })
+     .text(`4. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 55, { width: 280 })
+     .text('5. Quality as per specifications', 50, yPos + 66, { width: 280 })
+     .text('6. Standard export packaging', 50, yPos + 77, { width: 280 });
   
-  yPos += termsBoxHeight + 25;
+  // Amount in Words (right side, next to terms)
+  doc.fillColor('#f8f9fa').rect(350, yPos, 200, termsBoxHeight).fill()
+     .strokeColor(orangeColor).lineWidth(2).moveTo(350, yPos).lineTo(350, yPos + termsBoxHeight).stroke()
+     .strokeColor('#e9ecef').lineWidth(1).rect(350, yPos, 200, termsBoxHeight).stroke();
   
-  // Amount in Words (compact)
-  doc.fillColor('#f8f9fa').rect(40, yPos, 510, 25).fill()
-     .strokeColor(orangeColor).lineWidth(3).moveTo(40, yPos).lineTo(40, yPos + 25).stroke();
+  doc.fontSize(8).fillColor(orangeColor).text('Total (in words):', 360, yPos + 5);
+  doc.fontSize(7).fillColor('black')
+     .text(amountInWords, 360, yPos + 18, { width: 180 });
   
-  doc.fontSize(9).fillColor('black')
-     .text('Total (in words):', 50, yPos + 4)
-     .text(amountInWords, 50, yPos + 15, { width: 450 });
+  yPos += termsBoxHeight + 12;
   
-  yPos += 40;
+  // Contact + Signature (compact single row)
+  doc.moveTo(40, yPos).lineTo(550, yPos).strokeColor('#ddd').lineWidth(1).stroke();
+  doc.fontSize(7).fillColor('#666')
+     .text(`For enquiries: ${companyDetails.email} | ${companyDetails.phone}`, 40, yPos + 5, { width: 300 });
   
-  // Contact Information (compact)
-  doc.moveTo(40, yPos).lineTo(550, yPos).strokeColor('#ddd').stroke();
-  doc.fontSize(8).fillColor('#666')
-     .text(`For enquiries: ${companyDetails.email} | ${companyDetails.phone}`, 40, yPos + 8, { align: 'center', width: 510 });
-  
-  yPos += 30;
-  
-  // Signature Section (compact)
-  doc.moveTo(400, yPos).lineTo(540, yPos).strokeColor('black').stroke();
-  doc.fontSize(9).fillColor('black')
-     .text('Computer generated quotation', 400, yPos + 8)
-     .text('No signature required', 400, yPos + 20);
+  doc.moveTo(420, yPos).lineTo(540, yPos).strokeColor('black').stroke();
+  doc.fontSize(7).fillColor('black')
+     .text('Computer generated quotation', 420, yPos + 5)
+     .text('No signature required', 420, yPos + 14);
   
   return doc;
 }
