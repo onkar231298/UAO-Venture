@@ -2507,7 +2507,7 @@ Packaging: Standard export packaging`,
                         
                         {/* Calculated Total with Breakdown */}
                         {quoteItems.some(item => item.quantity && item.unitPrice) && (
-                          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border">
+                          <div className="col-span-1 md:col-span-2 bg-gray-50 p-4 rounded-lg border">
                             <div className="space-y-2 text-sm">
                               {quoteItems.filter(item => item.quantity && item.unitPrice).map((item, idx) => (
                                 <div key={idx} className="flex justify-between">
@@ -2589,6 +2589,7 @@ Packaging: Standard export packaging`,
                             placeholder="Notes (not visible to customer)..."
                             rows={2}
                           />
+                        </div>
                         </div>
                       </div>
                       
