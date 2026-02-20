@@ -73,12 +73,12 @@ interface CustomerData {
 
 const companyDetails = {
   name: "Bright Fame Organic Pvt. Ltd.",
-  address: "C/O Bright Fame International",
+  address: "Bright Fame International",
   address2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road",
   address3: "Kansarakui, Mehsana, Gujarat 384001",
   phone: "+91-7249847439",
   email: "admin@bright-organic.com",
-  website: "www.bfiorganic.com"
+  website: "www.bright-organic.com"
 };
 
 function createQuotationPDF(quotation: QuotationData, customer: CustomerData): PDFDocument {
