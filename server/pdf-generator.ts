@@ -248,18 +248,7 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   
   yPos += infoBoxHeight + 10;
   
-  // Items Table Header
-  doc.fillColor(orangeColor).rect(40, yPos, 510, 20).fill();
-  doc.fontSize(8).fillColor('white')
-     .text('#', 50, yPos + 6, { width: 20 })
-     .text('Item / Description', 75, yPos + 6, { width: 200 })
-     .text('Qty.', 280, yPos + 6, { width: 70 })
-     .text('Rate', 355, yPos + 6, { width: 80 })
-     .text('Amount', 440, yPos + 6, { width: 100, align: 'right' });
-  
-  yPos += 20;
-  
-  // Items Table Rows - support multiple products
+  // Items Table - dynamically size rows to fit single page
   const itemsList = quotation.items && quotation.items.length > 0
     ? quotation.items
     : [{
@@ -270,14 +259,32 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
         totalPrice: quotation.totalAmount,
       }];
   
+  // Precise footer height: totals(54) + spacing(8) + terms/words box(90) + spacing(12) + contact/sig(25) + bottom margin(10)
+  const hasDiscount = parseFloat(discountAmount) > 0;
+  const totalsBlockH = 22 + (hasDiscount ? 20 : 0) + 24 + 10;
+  const termsBlockH = 90 + 12;
+  const contactBlockH = 25;
+  const footerHeight = totalsBlockH + termsBlockH + contactBlockH + 8;
+  const tableHeaderH = 18;
+  const pageBottom = 790;
+  const availableForRows = pageBottom - yPos - tableHeaderH - footerHeight;
+  const maxRowHeight = 22;
+  const minRowHeight = 12;
+  const rowHeight = Math.max(minRowHeight, Math.min(maxRowHeight, Math.floor(availableForRows / itemsList.length)));
+  const itemFontSize = rowHeight >= 18 ? 8 : rowHeight >= 14 ? 7 : 6;
+  const rowTextY = rowHeight >= 18 ? 6 : rowHeight >= 14 ? 4 : 3;
+
+  doc.fillColor(orangeColor).rect(40, yPos, 510, tableHeaderH).fill();
+  doc.fontSize(itemFontSize).fillColor('white')
+     .text('#', 50, yPos + rowTextY, { width: 20 })
+     .text('Item / Description', 75, yPos + rowTextY, { width: 200 })
+     .text('Qty.', 280, yPos + rowTextY, { width: 70 })
+     .text('Rate', 355, yPos + rowTextY, { width: 80 })
+     .text('Amount', 440, yPos + rowTextY, { width: 100, align: 'right' });
+  
+  yPos += tableHeaderH;
+  
   itemsList.forEach((item, index) => {
-    const rowHeight = 22;
-    
-    if (yPos + rowHeight > 720) {
-      doc.addPage();
-      yPos = 50;
-    }
-    
     doc.fillColor('white').rect(40, yPos, 510, rowHeight).fill()
        .strokeColor('#ddd').rect(40, yPos, 510, rowHeight).stroke();
     
@@ -286,12 +293,12 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
     const rawTotal = parseFloat(item.totalPrice || '0');
     const itemTotal = (!isNaN(rawTotal) && rawTotal > 0) ? rawTotal : (itemQty * itemPrice);
     
-    doc.fontSize(8).fillColor('black')
-       .text(`${index + 1}`, 50, yPos + 6, { width: 20 })
-       .text(item.productName || 'Product', 75, yPos + 6, { width: 200 })
-       .text(`${itemQty.toLocaleString()} ${item.unit || 'kg'}`, 280, yPos + 6, { width: 70 })
-       .text(`${quotation.currency} ${itemPrice.toFixed(2)}/${item.unit || 'kg'}`, 355, yPos + 6, { width: 80 })
-       .text(`${quotation.currency} ${itemTotal.toLocaleString()}`, 440, yPos + 6, { width: 100, align: 'right' });
+    doc.fontSize(itemFontSize).fillColor('black')
+       .text(`${index + 1}`, 50, yPos + rowTextY, { width: 20 })
+       .text(item.productName || 'Product', 75, yPos + rowTextY, { width: 200 })
+       .text(`${itemQty.toLocaleString()} ${item.unit || 'kg'}`, 280, yPos + rowTextY, { width: 70 })
+       .text(`${quotation.currency} ${itemPrice.toFixed(2)}/${item.unit || 'kg'}`, 355, yPos + rowTextY, { width: 80 })
+       .text(`${quotation.currency} ${itemTotal.toLocaleString()}`, 440, yPos + rowTextY, { width: 100, align: 'right' });
     
     yPos += rowHeight;
   });
