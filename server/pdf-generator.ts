@@ -186,13 +186,13 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   doc.moveTo(50, yPos + 25).lineTo(280, yPos + 25).strokeColor(orangeColor).stroke();
   
   doc.fontSize(9).fillColor('black')
-     .text(companyDetails.name, 50, yPos + 32, { width: 230 })
-     .text(companyDetails.address, 50, yPos + 45, { width: 230 })
-     .text(companyDetails.address2, 50, yPos + 57, { width: 230, lineGap: 2 })
-     .text(companyDetails.address3, 50, yPos + 69, { width: 230, lineGap: 2 })
-     .text(`Phone: ${companyDetails.phone}`, 50, yPos + 85, { width: 230 })
-     .text(`Email: ${companyDetails.email}`, 50, yPos + 98, { width: 230 })
-     .text(`Website: ${companyDetails.website}`, 50, yPos + 111, { width: 230 });
+     .text(companyDetails.address, 50, yPos + 32, { width: 230 })
+     .text(companyDetails.address2, 50, yPos + 45, { width: 230, lineGap: 2 })
+     .text(companyDetails.address3, 50, yPos + 57, { width: 230, lineGap: 2 })
+     .text('', 50, yPos + 69)
+     .text(`Phone: ${companyDetails.phone}`, 50, yPos + 75, { width: 230 })
+     .text(`Email: ${companyDetails.email}`, 50, yPos + 88, { width: 230 })
+     .text(`Website: ${companyDetails.website}`, 50, yPos + 101, { width: 230 });
   
   if (quotation.sellerGstin) {
     doc.fontSize(8).text(`GSTIN: ${quotation.sellerGstin}`, 50, yPos + 127, { width: 230 });
