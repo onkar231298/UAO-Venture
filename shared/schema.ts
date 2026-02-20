@@ -1611,6 +1611,21 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Lead Products - stores individual product requirements for multi-product leads
+export const leadProducts = pgTable("lead_products", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  productId: integer("product_id").references(() => products.id),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }).default("kg"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  leadIdx: index("idx_lead_products_lead").on(table.leadId),
+  productIdx: index("idx_lead_products_product").on(table.productId),
+}));
+
 // Lead activities table - Timeline tracking
 export const leadActivities = pgTable("lead_activities", {
   id: serial("id").primaryKey(),
@@ -1709,7 +1724,13 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
   tasks: many(leadTasks),
   sampleRequests: many(sampleRequests),
   quotations: many(quotations),
+  leadProducts: many(leadProducts),
   creator: one(users, { fields: [leads.createdBy], references: [users.id] }),
+}));
+
+export const leadProductsRelations = relations(leadProducts, ({ one }) => ({
+  lead: one(leads, { fields: [leadProducts.leadId], references: [leads.id] }),
+  product: one(products, { fields: [leadProducts.productId], references: [products.id] }),
 }));
 
 export const leadActivitiesRelations = relations(leadActivities, ({ one }) => ({
@@ -1760,6 +1781,11 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   updatedAt: true,
 });
 
+export const insertLeadProductSchema = createInsertSchema(leadProducts).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertLeadActivitySchema = createInsertSchema(leadActivities).omit({
   id: true,
   createdAt: true,
@@ -1790,6 +1816,8 @@ export type CompanyNote = typeof companyNotes.$inferSelect;
 export type InsertCompanyNote = z.infer<typeof insertCompanyNoteSchema>;
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type LeadProduct = typeof leadProducts.$inferSelect;
+export type InsertLeadProduct = z.infer<typeof insertLeadProductSchema>;
 export type LeadActivity = typeof leadActivities.$inferSelect;
 export type InsertLeadActivity = z.infer<typeof insertLeadActivitySchema>;
 export type LeadTask = typeof leadTasks.$inferSelect;

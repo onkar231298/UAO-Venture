@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck, Ship, Edit2 } from "lucide-react";
+import { Building, User, DollarSign, Calendar, Phone, Mail, MapPin, FileText, UserPlus, Package, MessageSquare, History, CheckCircle, XCircle, Clock, Loader2, Send, ArrowRight, ChevronDown, ChevronUp, Inbox, Reply, Paperclip, Eye, Plus, X, Upload, RefreshCw, Download, ShoppingCart, Truck, Ship, Edit2, Trash2 } from "lucide-react";
 import { type LeadWithDetails, type Product } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -149,6 +149,13 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     gstNumber: "",
     gstPercentage: "18",
   });
+  const [quoteItems, setQuoteItems] = useState<Array<{
+    productId: number;
+    productName: string;
+    quantity: string;
+    unit: string;
+    unitPrice: string;
+  }>>([]);
   
   // Edit company state
   const [showEditCompanyDialog, setShowEditCompanyDialog] = useState(false);
@@ -175,10 +182,24 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     enabled: productIds.length > 0 && open && !!lead,
   });
   
+  // Fetch lead products (with per-product quantity/unit from lead_products table)
+  const { data: leadProductsData = [] } = useQuery<Array<{
+    id: number;
+    leadId: number;
+    productId: number | null;
+    productName: string;
+    quantity: string;
+    unit: string | null;
+    notes: string | null;
+  }>>({
+    queryKey: ['/api/crm/leads', lead?.id, 'products'],
+    enabled: open && !!lead?.id,
+  });
+  
   // Fetch all products when productsInterested is empty (for quotation/sample forms)
   const { data: allProductsData } = useQuery<{ products: Product[] }>({
     queryKey: ['/api/products', { limit: 500 }],
-    enabled: productIds.length === 0 && open && !!lead,
+    enabled: open && !!lead,
   });
   
   // Use specific products if available, otherwise fall back to all products
@@ -875,22 +896,45 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   };
 
   const initializeQuoteForm = (selectedProductId?: number) => {
-    // Pre-select product from productsInterested if available
-    // If productsInterested is empty but lead has productName, try to find matching product
     let product = selectedProductId 
       ? availableProducts.find(p => p.id === selectedProductId)
       : null;
     
     if (!product && productIds.length > 0 && availableProducts.length > 0) {
-      // Use first product from productsInterested
       product = availableProducts[0];
     } else if (!product && lead?.productName && availableProducts.length > 0) {
-      // Try to find product by name match (for company-converted leads)
       product = availableProducts.find(p => p.name === lead.productName) || null;
     }
     
+    // Initialize multi-product quote items from lead products
+    if (leadProductsData.length > 0) {
+      setQuoteItems(leadProductsData.map(lp => ({
+        productId: lp.productId || 0,
+        productName: lp.productName,
+        quantity: lp.quantity?.toString() || "",
+        unit: lp.unit || "kg",
+        unitPrice: "",
+      })));
+    } else if (product) {
+      setQuoteItems([{
+        productId: product.id,
+        productName: product.name,
+        quantity: lead?.requiredQuantity?.toString() || "",
+        unit: lead?.unit || "kg",
+        unitPrice: "",
+      }]);
+    } else {
+      setQuoteItems([{
+        productId: 0,
+        productName: "",
+        quantity: "",
+        unit: "kg",
+        unitPrice: "",
+      }]);
+    }
+    
     setQuoteFormData({
-      productId: product?.id || 0,
+      productId: product?.id || (leadProductsData.length > 0 ? (leadProductsData[0].productId || 0) : 0),
       quantity: lead?.requiredQuantity?.toString() || "",
       unit: lead?.unit || "kg",
       unitPrice: "",
@@ -933,27 +977,49 @@ Packaging: Standard export packaging`,
   };
 
   const handleQuoteFormSubmit = () => {
-    if (!quoteFormData.productId) {
-      toast({
-        title: "Product Required",
-        description: "Please select a product for the quotation.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Use quoteItems for multi-product quotation
+    const validItems = quoteItems.filter(item => item.productId && item.quantity && item.unitPrice);
     
-    if (!quoteFormData.quantity || !quoteFormData.unitPrice) {
+    if (validItems.length === 0) {
       toast({
         title: "Missing Information",
-        description: "Please enter quantity and unit price.",
+        description: "Please fill in product, quantity and unit price for at least one item.",
         variant: "destructive",
       });
       return;
     }
     
-    const quantity = parseFloat(quoteFormData.quantity);
-    const unitPrice = parseFloat(quoteFormData.unitPrice);
-    const subtotal = quantity * unitPrice;
+    const incompleteItems = quoteItems.some(item => 
+      (item.productId && (!item.quantity || !item.unitPrice)) ||
+      (!item.productId && (item.quantity || item.unitPrice))
+    );
+    if (incompleteItems) {
+      toast({
+        title: "Incomplete Items",
+        description: "Each product line must have a product, quantity and unit price.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Calculate totals across all items
+    let subtotal = 0;
+    const items = validItems.map(item => {
+      const qty = parseFloat(item.quantity);
+      const price = parseFloat(item.unitPrice);
+      const lineTotal = qty * price;
+      subtotal += lineTotal;
+      const matchedProduct = [...products, ...(allProductsData?.products || [])].find(p => p.id === item.productId);
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        totalPrice: lineTotal.toFixed(2),
+        specifications: null,
+        productName: matchedProduct?.name || item.productName,
+      };
+    });
     
     const discountPercent = parseFloat(quoteFormData.discountPercent) || 0;
     const discountAmount = (subtotal * discountPercent) / 100;
@@ -969,14 +1035,19 @@ Packaging: Standard export packaging`,
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + parseInt(quoteFormData.validDays || "30"));
     
-    const product = products.find(p => p.id === quoteFormData.productId);
+    const firstItem = validItems[0];
+    const firstProduct = [...products, ...(allProductsData?.products || [])].find(p => p.id === firstItem.productId);
+    const productNames = validItems.map(item => {
+      const p = [...products, ...(allProductsData?.products || [])].find(pr => pr.id === item.productId);
+      return p?.name || item.productName;
+    }).join(', ');
     
     createQuotationMutation.mutate({
-      productId: quoteFormData.productId,
-      productName: product?.name,
-      quantity: quoteFormData.quantity,
-      unit: quoteFormData.unit,
-      unitPrice: quoteFormData.unitPrice,
+      productId: firstItem.productId,
+      productName: productNames,
+      quantity: firstItem.quantity,
+      unit: firstItem.unit,
+      unitPrice: firstItem.unitPrice,
       totalAmount: totalAmount.toFixed(2),
       subtotal: subtotal.toFixed(2),
       discountPercent: quoteFormData.discountPercent,
@@ -993,14 +1064,7 @@ Packaging: Standard export packaging`,
       terms: quoteFormData.terms,
       notes: quoteFormData.notes,
       status: "draft",
-      items: [{
-        productId: quoteFormData.productId,
-        quantity: quoteFormData.quantity,
-        unit: quoteFormData.unit,
-        unitPrice: quoteFormData.unitPrice,
-        totalPrice: subtotal.toFixed(2),
-        specifications: quoteFormData.notes || null,
-      }],
+      items: items,
     });
   };
 
@@ -1686,127 +1750,69 @@ Packaging: Standard export packaging`,
                   <p className="text-gray-500">Loading products...</p>
                 </CardContent>
               </Card>
-            ) : productIds.length === 0 && !lead?.productName ? (
-              <Card>
-                <CardContent className="p-4 sm:p-6">
-                  <p className="text-gray-500">No products associated with this lead</p>
-                </CardContent>
-              </Card>
-            ) : productIds.length === 0 && lead?.productName ? (
-              <Card>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <Package className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-lg" data-testid="product-name-manual">
-                        {lead.productName}
-                      </h4>
-                      {lead.productDescription && (
-                        <p className="text-sm text-gray-600 mt-1" data-testid="product-description-manual">
-                          {lead.productDescription}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-3 mt-3">
-                        {lead.requiredQuantity && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                            Quantity: {lead.requiredQuantity} {lead.unit || 'kg'}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary">
-                          Product Enquiry
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
+            ) : leadProductsData.length > 0 ? (
               <>
-                {/* Product Cards */}
                 <div className="grid gap-4">
-                  {products.map((product) => (
-                    <Card key={product.id} data-testid={`product-card-${product.id}`}>
-                      <CardContent className="p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          {/* Product Image */}
-                          {product.mainImage && (
-                            <div className="w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
-                              <img 
-                                src={product.mainImage} 
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                data-testid={`product-image-${product.id}`}
-                              />
-                            </div>
-                          )}
-                          
-                          {/* Product Details */}
-                          <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
-                              <div>
-                                <h4 className="font-semibold text-base sm:text-lg" data-testid={`product-name-${product.id}`}>
-                                  {product.name}
-                                </h4>
-                                <p className="text-xs sm:text-sm text-gray-500" data-testid={`product-id-${product.id}`}>
-                                  SKU: {product.productId}
-                                </p>
+                  {leadProductsData.map((lp) => {
+                    const matchedProduct = products.find(p => p.id === lp.productId);
+                    return (
+                      <Card key={lp.id} data-testid={`lead-product-card-${lp.id}`}>
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            {matchedProduct?.mainImage ? (
+                              <div className="w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                                <img src={matchedProduct.mainImage} alt={lp.productName} className="w-full h-full object-cover" />
                               </div>
-                              <Badge variant="outline" className="text-xs w-fit" data-testid={`product-status-${product.id}`}>
-                                {product.status || 'Active'}
-                              </Badge>
-                            </div>
-
-                            {/* Product Info Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                              {lead.requiredQuantity && (
-                                <div>
-                                  <p className="text-xs text-gray-500">Required Quantity</p>
-                                  <p className="font-medium" data-testid={`product-quantity-${product.id}`}>
-                                    {lead.requiredQuantity} {lead.unit || 'units'}
-                                  </p>
-                                </div>
-                              )}
-                              
-                              {product.moq && (
-                                <div>
-                                  <p className="text-xs text-gray-500">MOQ</p>
-                                  <p className="font-medium">{product.moq}</p>
-                                </div>
-                              )}
-                              
-                              {product.packingSize && (
-                                <div>
-                                  <p className="text-xs text-gray-500">Packing Size</p>
-                                  <p className="font-medium">{product.packingSize}</p>
-                                </div>
-                              )}
-                              
-                              {product.leadTime && (
-                                <div>
-                                  <p className="text-xs text-gray-500">Lead Time</p>
-                                  <p className="font-medium">{product.leadTime}</p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Product Description */}
-                            {product.description && (
-                              <div className="mt-3">
-                                <p className="text-sm text-gray-600 line-clamp-2">
-                                  {product.description}
-                                </p>
+                            ) : (
+                              <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <Package className="h-8 w-8 text-gray-400" />
                               </div>
                             )}
+                            <div className="flex-1">
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                                <div>
+                                  <h4 className="font-semibold text-base sm:text-lg">{lp.productName}</h4>
+                                  {matchedProduct && (
+                                    <p className="text-xs sm:text-sm text-gray-500">SKU: {matchedProduct.productId}</p>
+                                  )}
+                                </div>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs w-fit">
+                                  Qty: {lp.quantity} {lp.unit || 'kg'}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                {matchedProduct?.moq && (
+                                  <div>
+                                    <p className="text-xs text-gray-500">MOQ</p>
+                                    <p className="font-medium">{matchedProduct.moq}</p>
+                                  </div>
+                                )}
+                                {matchedProduct?.packingSize && (
+                                  <div>
+                                    <p className="text-xs text-gray-500">Packing Size</p>
+                                    <p className="font-medium">{matchedProduct.packingSize}</p>
+                                  </div>
+                                )}
+                                {matchedProduct?.leadTime && (
+                                  <div>
+                                    <p className="text-xs text-gray-500">Lead Time</p>
+                                    <p className="font-medium">{matchedProduct.leadTime}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {matchedProduct?.description && (
+                                <div className="mt-3">
+                                  <p className="text-sm text-gray-600 line-clamp-2">{matchedProduct.description}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
 
-                {/* Deal Summary */}
                 <Card>
                   <CardContent className="p-4 sm:p-6">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -1814,14 +1820,16 @@ Packaging: Standard export packaging`,
                       Deal Summary
                     </h3>
                     <div className="space-y-3">
-                      {lead.requiredQuantity && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Total Quantity</span>
-                          <span className="font-medium" data-testid="deal-total-quantity">
-                            {lead.requiredQuantity} {lead.unit || 'units'}
-                          </span>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Products</span>
+                        <span className="font-medium">{leadProductsData.length} product(s)</span>
+                      </div>
+                      {leadProductsData.map((lp) => (
+                        <div key={lp.id} className="flex justify-between text-sm">
+                          <span className="text-gray-500 truncate max-w-[200px]">{lp.productName}</span>
+                          <span className="font-medium">{lp.quantity} {lp.unit || 'kg'}</span>
                         </div>
-                      )}
+                      ))}
                       <div className="flex justify-between items-center border-t pt-3">
                         <span className="font-semibold">Expected Order Value</span>
                         <span className="font-bold text-lg" data-testid="deal-expected-value">
@@ -1836,22 +1844,77 @@ Packaging: Standard export packaging`,
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Special Requirements */}
-                {lead.specialRequirements && (
-                  <Card>
-                    <CardContent className="p-4 sm:p-6">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Additional Details
-                      </h3>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap" data-testid="product-special-requirements">
-                        {lead.specialRequirements}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
               </>
+            ) : productIds.length > 0 && products.length > 0 ? (
+              <>
+                <div className="grid gap-4">
+                  {products.map((product) => (
+                    <Card key={product.id} data-testid={`product-card-${product.id}`}>
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {product.mainImage && (
+                            <div className="w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                              <img src={product.mainImage} alt={product.name} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-base sm:text-lg">{product.name}</h4>
+                            <p className="text-xs text-gray-500">SKU: {product.productId}</p>
+                            {lead.requiredQuantity && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 mt-2">
+                                Quantity: {lead.requiredQuantity} {lead.unit || 'kg'}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            ) : lead?.productName ? (
+              <Card>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Package className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg">{lead.productName}</h4>
+                      {lead.productDescription && (
+                        <p className="text-sm text-gray-600 mt-1">{lead.productDescription}</p>
+                      )}
+                      <div className="flex flex-wrap gap-3 mt-3">
+                        {lead.requiredQuantity && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            Quantity: {lead.requiredQuantity} {lead.unit || 'kg'}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-4 sm:p-6">
+                  <p className="text-gray-500">No products associated with this lead</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {lead.specialRequirements && (
+              <Card>
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Additional Details
+                  </h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap" data-testid="product-special-requirements">
+                    {lead.specialRequirements}
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
@@ -2197,72 +2260,107 @@ Packaging: Standard export packaging`,
                         </Button>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Product Selection */}
-                        <div className="md:col-span-2">
-                          <Label htmlFor="quote-product">Product *</Label>
-                          <Select
-                            value={quoteFormData.productId.toString()}
-                            onValueChange={(value) => setQuoteFormData({...quoteFormData, productId: parseInt(value)})}
+                      <div className="space-y-4">
+                        {/* Multi-Product Line Items */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-sm font-semibold">Product Line Items *</Label>
+                            <span className="text-xs text-muted-foreground">{quoteItems.filter(i => i.productId).length} item(s)</span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {quoteItems.map((item, idx) => {
+                              const allProducts = [...(products || []), ...(allProductsData?.products || [])];
+                              const uniqueProducts = allProducts.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
+                              return (
+                                <div key={idx} className="border rounded-lg p-3 bg-white space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-gray-500">Item #{idx + 1}</span>
+                                    {quoteItems.length > 1 && (
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500"
+                                        onClick={() => setQuoteItems(quoteItems.filter((_, i) => i !== idx))}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <Select
+                                    value={item.productId ? item.productId.toString() : ""}
+                                    onValueChange={(value) => {
+                                      const updated = [...quoteItems];
+                                      const p = uniqueProducts.find(pr => pr.id === parseInt(value));
+                                      updated[idx] = { ...updated[idx], productId: parseInt(value), productName: p?.name || '' };
+                                      setQuoteItems(updated);
+                                    }}
+                                  >
+                                    <SelectTrigger className="text-sm">
+                                      <SelectValue placeholder="Select product" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {uniqueProducts.map((p) => (
+                                        <SelectItem key={p.id} value={p.id.toString()}>
+                                          {p.name} ({p.productId})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <Input
+                                      type="number"
+                                      placeholder="Qty"
+                                      value={item.quantity}
+                                      onChange={(e) => {
+                                        const updated = [...quoteItems];
+                                        updated[idx] = { ...updated[idx], quantity: e.target.value };
+                                        setQuoteItems(updated);
+                                      }}
+                                      className="text-sm"
+                                    />
+                                    <Select value={item.unit} onValueChange={(value) => {
+                                      const updated = [...quoteItems];
+                                      updated[idx] = { ...updated[idx], unit: value };
+                                      setQuoteItems(updated);
+                                    }}>
+                                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="kg">kg</SelectItem>
+                                        <SelectItem value="mt">MT</SelectItem>
+                                        <SelectItem value="lb">lb</SelectItem>
+                                        <SelectItem value="units">Units</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="Unit Price"
+                                      value={item.unitPrice}
+                                      onChange={(e) => {
+                                        const updated = [...quoteItems];
+                                        updated[idx] = { ...updated[idx], unitPrice: e.target.value };
+                                        setQuoteItems(updated);
+                                      }}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                  {item.quantity && item.unitPrice && (
+                                    <div className="text-xs text-right text-gray-500">
+                                      Line Total: {quoteFormData.currency} {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          <Button variant="outline" size="sm" className="w-full border-dashed mt-2"
+                            onClick={() => setQuoteItems([...quoteItems, { productId: 0, productName: '', quantity: '', unit: 'kg', unitPrice: '' }])}
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a product" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableProducts.length > 0 ? (
-                                availableProducts.map((product) => (
-                                  <SelectItem key={product.id} value={product.id.toString()}>
-                                    {product.name} ({product.productId})
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="0" disabled>No products available</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Product Line
+                          </Button>
                         </div>
-                        
-                        {/* Quantity and Price */}
-                        <div>
-                          <Label htmlFor="quote-quantity">Quantity *</Label>
-                          <Input
-                            id="quote-quantity"
-                            type="number"
-                            value={quoteFormData.quantity}
-                            onChange={(e) => setQuoteFormData({...quoteFormData, quantity: e.target.value})}
-                            placeholder="e.g., 500"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="quote-unit">Unit</Label>
-                          <Select
-                            value={quoteFormData.unit}
-                            onValueChange={(value) => setQuoteFormData({...quoteFormData, unit: value})}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                              <SelectItem value="mt">Metric Tons (MT)</SelectItem>
-                              <SelectItem value="lb">Pounds (lb)</SelectItem>
-                              <SelectItem value="units">Units</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="quote-price">Unit Price *</Label>
-                          <Input
-                            id="quote-price"
-                            type="number"
-                            step="0.01"
-                            value={quoteFormData.unitPrice}
-                            onChange={(e) => setQuoteFormData({...quoteFormData, unitPrice: e.target.value})}
-                            placeholder="Price per unit"
-                          />
-                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
                         <div>
                           <Label htmlFor="quote-currency">Currency</Label>
@@ -2408,32 +2506,60 @@ Packaging: Standard export packaging`,
                         )}
                         
                         {/* Calculated Total with Breakdown */}
-                        {quoteFormData.quantity && quoteFormData.unitPrice && (
+                        {quoteItems.some(item => item.quantity && item.unitPrice) && (
                           <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border">
                             <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
+                              {quoteItems.filter(item => item.quantity && item.unitPrice).map((item, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span className="truncate max-w-[200px]">{item.productName || `Item ${idx + 1}`}:</span>
+                                  <span>{quoteFormData.currency} {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between border-t pt-1">
                                 <span>Subtotal:</span>
-                                <span>{quoteFormData.currency} {(parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <span>{quoteFormData.currency} {(() => {
+                                  const sub = quoteItems.reduce((acc, item) => {
+                                    if (item.quantity && item.unitPrice) return acc + parseFloat(item.quantity) * parseFloat(item.unitPrice);
+                                    return acc;
+                                  }, 0);
+                                  return sub.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                })()}</span>
                               </div>
                               {parseFloat(quoteFormData.discountPercent) > 0 && (
                                 <div className="flex justify-between text-red-600">
                                   <span>Discount ({quoteFormData.discountPercent}%):</span>
-                                  <span>-{quoteFormData.currency} {((parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice) * parseFloat(quoteFormData.discountPercent)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                  <span>-{quoteFormData.currency} {(() => {
+                                    const sub = quoteItems.reduce((acc, item) => {
+                                      if (item.quantity && item.unitPrice) return acc + parseFloat(item.quantity) * parseFloat(item.unitPrice);
+                                      return acc;
+                                    }, 0);
+                                    return ((sub * parseFloat(quoteFormData.discountPercent)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                  })()}</span>
                                 </div>
                               )}
                               {quoteFormData.includeGst && (
                                 <div className="flex justify-between text-blue-600">
                                   <span>GST ({quoteFormData.gstPercentage}%):</span>
-                                  <span>+{quoteFormData.currency} {(((parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice) * (1 - parseFloat(quoteFormData.discountPercent) / 100)) * parseFloat(quoteFormData.gstPercentage)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                  <span>+{quoteFormData.currency} {(() => {
+                                    const sub = quoteItems.reduce((acc, item) => {
+                                      if (item.quantity && item.unitPrice) return acc + parseFloat(item.quantity) * parseFloat(item.unitPrice);
+                                      return acc;
+                                    }, 0);
+                                    const afterDiscount = sub * (1 - parseFloat(quoteFormData.discountPercent || "0") / 100);
+                                    return ((afterDiscount * parseFloat(quoteFormData.gstPercentage)) / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                  })()}</span>
                                 </div>
                               )}
                               <div className="flex justify-between items-center pt-2 border-t font-bold">
                                 <span>Total:</span>
                                 <span className="text-xl text-green-700">
                                   {quoteFormData.currency} {(() => {
-                                    const subtotal = parseFloat(quoteFormData.quantity) * parseFloat(quoteFormData.unitPrice);
-                                    const discount = (subtotal * parseFloat(quoteFormData.discountPercent || "0")) / 100;
-                                    const afterDiscount = subtotal - discount;
+                                    const sub = quoteItems.reduce((acc, item) => {
+                                      if (item.quantity && item.unitPrice) return acc + parseFloat(item.quantity) * parseFloat(item.unitPrice);
+                                      return acc;
+                                    }, 0);
+                                    const discount = (sub * parseFloat(quoteFormData.discountPercent || "0")) / 100;
+                                    const afterDiscount = sub - discount;
                                     const gst = quoteFormData.includeGst ? (afterDiscount * parseFloat(quoteFormData.gstPercentage || "0")) / 100 : 0;
                                     return (afterDiscount + gst).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                                   })()}

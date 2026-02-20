@@ -124,6 +124,9 @@ import {
   type CompanyWithDetails,
   type Lead,
   type InsertLead,
+  type LeadProduct,
+  type InsertLeadProduct,
+  leadProducts,
   type LeadActivity,
   type InsertLeadActivity,
   type LeadTask,
@@ -603,6 +606,11 @@ export interface IStorage {
   assignLead(leadId: number, assignedTo: string, assignedBy: string, reason?: string): Promise<Lead>;
   bulkAssignLeads(leadIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number[]; errors: { leadId: number; error: string }[] }>;
   
+  // CRM - Lead product methods
+  getLeadProducts(leadId: number): Promise<LeadProduct[]>;
+  createLeadProduct(product: InsertLeadProduct): Promise<LeadProduct>;
+  deleteLeadProducts(leadId: number): Promise<void>;
+
   // CRM - Lead activity methods
   getLeadActivities(leadId: number): Promise<LeadActivity[]>;
   createLeadActivity(activity: InsertLeadActivity): Promise<LeadActivity>;
@@ -6586,6 +6594,19 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(leadActivities)
       .where(eq(leadActivities.leadId, leadId))
       .orderBy(desc(leadActivities.activityDate));
+  }
+
+  async getLeadProducts(leadId: number): Promise<LeadProduct[]> {
+    return await db.select().from(leadProducts).where(eq(leadProducts.leadId, leadId)).orderBy(leadProducts.id);
+  }
+
+  async createLeadProduct(productData: InsertLeadProduct): Promise<LeadProduct> {
+    const [product] = await db.insert(leadProducts).values(productData).returning();
+    return product;
+  }
+
+  async deleteLeadProducts(leadId: number): Promise<void> {
+    await db.delete(leadProducts).where(eq(leadProducts.leadId, leadId));
   }
 
   async createLeadActivity(activityData: InsertLeadActivity): Promise<LeadActivity> {
