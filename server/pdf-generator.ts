@@ -48,6 +48,13 @@ interface QuotationData {
   customerPostalCode?: string;
   placeOfSupply?: string;
   countryOfSupply?: string;
+  items?: Array<{
+    productName: string;
+    quantity: string;
+    unit: string;
+    unitPrice: string;
+    totalPrice: string;
+  }>;
 }
 
 interface CustomerData {
@@ -258,18 +265,51 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   
   yPos += 25;
   
-  // Items Table Row (wider Amount column)
-  doc.fillColor('white').rect(40, yPos, 510, 30).fill()
-     .strokeColor('#ddd').rect(40, yPos, 510, 30).stroke();
+  // Items Table Rows - support multiple products
+  const itemsList = quotation.items && quotation.items.length > 0
+    ? quotation.items
+    : [{
+        productName: quotation.productName,
+        quantity: quotation.quantity,
+        unit: quotation.unit,
+        unitPrice: quotation.unitPrice,
+        totalPrice: quotation.totalAmount,
+      }];
   
-  doc.fontSize(9).fillColor('black')
-     .text('1', 50, yPos + 10, { width: 20 })
-     .text(quotation.productName, 75, yPos + 10, { width: 220 })
-     .text(`${parseFloat(quotation.quantity).toLocaleString()} ${quotation.unit}`, 300, yPos + 10, { width: 70 })
-     .text(`${quotation.currency} ${parseFloat(quotation.unitPrice).toFixed(2)}/${quotation.unit}`, 375, yPos + 10, { width: 70 })
-     .text(`${quotation.currency}\n${parseFloat(quotation.totalAmount).toLocaleString()}`, 450, yPos + 10, { width: 90 });
+  itemsList.forEach((item, index) => {
+    const rowHeight = 30;
+    
+    // Add page break if running out of space (need room for totals + terms)
+    if (yPos + rowHeight > 700) {
+      doc.addPage();
+      yPos = 50;
+    }
+    
+    doc.fillColor('white').rect(40, yPos, 510, rowHeight).fill()
+       .strokeColor('#ddd').rect(40, yPos, 510, rowHeight).stroke();
+    
+    const itemQty = parseFloat(item.quantity || '0') || 0;
+    const itemPrice = parseFloat(item.unitPrice || '0') || 0;
+    const rawTotal = parseFloat(item.totalPrice || '0');
+    const itemTotal = (!isNaN(rawTotal) && rawTotal > 0) ? rawTotal : (itemQty * itemPrice);
+    
+    doc.fontSize(9).fillColor('black')
+       .text(`${index + 1}`, 50, yPos + 10, { width: 20 })
+       .text(item.productName || 'Product', 75, yPos + 10, { width: 220 })
+       .text(`${itemQty.toLocaleString()} ${item.unit || 'kg'}`, 300, yPos + 10, { width: 70 })
+       .text(`${quotation.currency} ${itemPrice.toFixed(2)}/${item.unit || 'kg'}`, 375, yPos + 10, { width: 70 })
+       .text(`${quotation.currency}\n${itemTotal.toLocaleString()}`, 450, yPos + 10, { width: 90 });
+    
+    yPos += rowHeight + 5;
+  });
   
-  yPos += 45;
+  // Check if totals + terms will fit, add page break if needed
+  if (yPos + 250 > 800) {
+    doc.addPage();
+    yPos = 50;
+  }
+  
+  yPos += 10;
   
   // Totals Box (Right side)
   const totalsX = 350;

@@ -3504,6 +3504,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
       }
       
+      // Build items array from quotation items for multi-product PDFs
+      const pdfItems = quotationItemsResult.length > 0 
+        ? quotationItemsResult.map(item => ({
+            productName: item.productName || productName,
+            quantity: item.quantity || '1',
+            unit: item.unit || 'kg',
+            unitPrice: item.unitPrice || '0',
+            totalPrice: item.totalPrice || String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
+          }))
+        : undefined;
+
       // Prepare quotation data for PDF
       const quotationData = {
         id: quotation.id,
@@ -3540,6 +3551,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         customerPostalCode: quotation.customerPostalCode,
         placeOfSupply: quotation.placeOfSupply,
         countryOfSupply: quotation.countryOfSupply,
+        items: pdfItems,
       };
 
       // Generate PDF
@@ -10995,6 +11007,17 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           const qty = parseFloat(String(quantity));
           const unitPrice = firstItem?.unitPrice || (qty > 0 ? (parseFloat(totalAmount) / qty).toFixed(2) : '0');
           
+          // Build items array from quotation items for multi-product PDFs
+          const emailPdfItems = quotationItemsResult.length > 0 
+            ? quotationItemsResult.map(item => ({
+                productName: item.productName || productName,
+                quantity: item.quantity || '1',
+                unit: item.unit || 'kg',
+                unitPrice: item.unitPrice || '0',
+                totalPrice: item.totalPrice || String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
+              }))
+            : undefined;
+
           // Prepare quotation data
           const quotationData = {
             id: quotation.id,
@@ -11030,6 +11053,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
             customerPostalCode: quotation.customerPostalCode,
             placeOfSupply: quotation.placeOfSupply,
             countryOfSupply: quotation.countryOfSupply,
+            items: emailPdfItems,
           };
           
           const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
