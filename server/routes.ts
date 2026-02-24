@@ -1364,7 +1364,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "Product not found" });
       }
       
-      res.json(product);
+      // Load primary product type from relations
+      const productWithTypes = await storage.getProductWithTypes(product.id);
+      const primaryType = productWithTypes?.primaryType || null;
+      
+      res.json({ ...product, primaryType });
     } catch (error) {
       console.error("Error fetching product:", error);
       res.status(500).json({ message: "Failed to fetch product" });

@@ -422,16 +422,23 @@ export default function ProductDetailBFI() {
                   </div>
                 )}
                 
-                {product.productType && (
-                  <Badge className="absolute top-4 left-4 bg-green-600">
+                {((product as any).primaryType || product.productType) && (
+                  <Badge 
+                    className="absolute top-4 left-4"
+                    style={{ 
+                      backgroundColor: (product as any).primaryType?.color || '#16a34a',
+                      color: 'white'
+                    }}
+                  >
                     <Leaf className="w-3 h-3 mr-1" />
-                    {product.productType === 'organic' ? 'Organic' :
-                     product.productType === 'natural' ? 'Natural' :
-                     product.productType === 'conventional' ? 'Conventional' :
-                     product.productType === 'synthetic' ? 'Synthetic' :
-                     product.productType === 'nature_identical' ? 'Nature Identical' :
-                     product.productType === 'other' ? 'Other' : 
-                     'Organic'}
+                    {(product as any).primaryType?.name || 
+                     (product.productType === 'organic' ? 'Organic' :
+                      product.productType === 'natural' ? 'Natural' :
+                      product.productType === 'conventional' ? 'Conventional' :
+                      product.productType === 'synthetic' ? 'Synthetic' :
+                      product.productType === 'nature_identical' ? 'Nature Identical' :
+                      product.productType === 'other' ? 'Other' : 
+                      product.productType)}
                   </Badge>
                 )}
               </div>
