@@ -1689,6 +1689,46 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                           </Button>
                         </div>
                       )}
+                      <div className="mt-1">
+                        <input
+                          id="exportHouseCertBulk"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const fd = new FormData();
+                              fd.append('document', file);
+                              fd.append('fieldName', 'exportHouseCert');
+                              const resp = await fetch('/api/admin/products/apply-company-document', {
+                                method: 'POST',
+                                body: fd,
+                              });
+                              const data = await resp.json();
+                              if (resp.ok) {
+                                toast({ title: "Success", description: `Export House Certificate applied to all products` });
+                                queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+                              } else {
+                                toast({ title: "Error", description: data.message, variant: "destructive" });
+                              }
+                            } catch (err) {
+                              toast({ title: "Error", description: "Failed to apply document", variant: "destructive" });
+                            }
+                            e.target.value = '';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                          onClick={() => document.getElementById('exportHouseCertBulk')?.click()}
+                        >
+                          <Upload className="w-3 h-3 mr-1" /> Apply Export House Cert to All Products
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -13027,6 +13027,67 @@ We look forward to hearing from you.`;
     }
   });
 
+  // Admin: Apply a company document to all products (e.g., Export House Certificate)
+  app.post('/api/admin/products/apply-company-document', isAuthenticated, webpUpload.single('document'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || !user.role?.includes('admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { fieldName } = req.body;
+      if (!fieldName) {
+        return res.status(400).json({ message: "fieldName is required (e.g., exportHouseCert)" });
+      }
+
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: "No document file provided" });
+      }
+
+      // Upload to S3
+      const objectKey = `products/company-documents/${fieldName}-${Date.now()}.pdf`;
+      const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const command = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Key: objectKey,
+        Body: file.buffer,
+        ContentType: file.mimetype || 'application/pdf',
+      });
+      const { s3Client } = await import('./awsS3Service');
+      await s3Client.send(command);
+
+      const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${objectKey}`;
+
+      // Map camelCase field names to snake_case column names
+      const columnMap: Record<string, string> = {
+        exportHouseCert: 'export_house_cert',
+        exportCert: 'export_cert',
+        spiceBoardCert: 'spice_board_cert',
+        fssaiLicense: 'fssai_license',
+        businessLicense: 'business_license',
+        halalCert: 'halal_cert',
+        euOrganicCert: 'eu_organic_cert',
+        indiaOrganicCert: 'india_organic_cert',
+        usdaOrganicCert: 'usda_organic_cert',
+      };
+      const columnName = columnMap[fieldName];
+      if (!columnName) {
+        return res.status(400).json({ message: `Unknown field: ${fieldName}` });
+      }
+
+      // Update all products with this document URL using drizzle update
+      const result = await db.update(products).set({ [fieldName]: s3Url });
+
+      console.log(`[Admin] Applied ${fieldName} to all products: ${s3Url}`);
+      res.json({ message: `Document applied to all products`, url: s3Url, updatedCount: result.rowCount });
+    } catch (error) {
+      console.error('Error applying company document:', error);
+      res.status(500).json({ message: 'Failed to apply document' });
+    }
+  });
+
   // Register HR Management routes
   app.use(hrRoutes);
 
