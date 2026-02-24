@@ -601,7 +601,7 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
     healthSupport: product?.healthSupport || "",
     hsCode: product?.hsCode || "",
     categoryId: product?.categoryId || "",
-    productType: product?.productType || "organic",
+    productType: product?.productType || "",
     productGrade: product?.productGrade || "",
     form: product?.form || "",
     certifications: product?.certifications || [],
@@ -707,6 +707,10 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.productType) {
+      return;
+    }
+    
     // Clean and convert form data to proper types
     const cleanedData = {
       ...formData,
@@ -743,9 +747,10 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
       faqs: Array.isArray(formData.faqs) ? (formData.faqs as any[]).filter(faq => faq.question.trim() !== '' && faq.answer.trim() !== '') : [],
     };
     
-    // Remove undefined values to avoid sending empty data
+    // Remove undefined values to avoid sending empty data (preserve required fields)
+    const requiredFields = ['productType', 'name', 'slug'];
     Object.keys(cleanedData).forEach(key => {
-      if ((cleanedData as any)[key] === undefined || (cleanedData as any)[key] === '') {
+      if (!requiredFields.includes(key) && ((cleanedData as any)[key] === undefined || (cleanedData as any)[key] === '')) {
         delete (cleanedData as any)[key];
       }
     });
@@ -918,13 +923,13 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
               {/* Product Type, Grade, and Form */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="productType">Product Type</Label>
+                  <Label htmlFor="productType">Product Type <span className="text-red-500">*</span></Label>
                   <Select
                     value={formData.productType}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, productType: value }))}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger className={!formData.productType ? 'border-red-300' : ''}>
+                      <SelectValue placeholder="Select product type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="organic">Organic</SelectItem>
@@ -934,6 +939,9 @@ function ProductForm({ product, categories, tags, onClose, onSubmit }: any) {
                       <SelectItem value="halal">Halal</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!formData.productType && (
+                    <p className="text-xs text-red-500 mt-1">Please select a product type</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="productGrade">Product Grade</Label>

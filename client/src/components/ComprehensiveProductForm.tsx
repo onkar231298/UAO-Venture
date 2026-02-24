@@ -58,7 +58,7 @@ export default function ComprehensiveProductForm({
     healthSupport: product?.healthSupport || "",
     hsCode: product?.hsCode || "",
     categoryId: product?.categoryId?.toString() || "",
-    productType: product?.productType || "organic",
+    productType: product?.productType || "",
     productGrade: product?.productGrade || "",
     form: product?.form || "",
     certifications: product?.certifications || [],
@@ -433,9 +433,10 @@ export default function ComprehensiveProductForm({
       primaryHealthSupportId,
     };
     
-    // Remove undefined values to avoid sending empty data
+    // Remove undefined values to avoid sending empty data (preserve required fields)
+    const requiredFields = ['productType', 'name', 'slug'];
     Object.keys(cleanedData).forEach(key => {
-      if ((cleanedData as any)[key] === undefined || (cleanedData as any)[key] === '') {
+      if (!requiredFields.includes(key) && ((cleanedData as any)[key] === undefined || (cleanedData as any)[key] === '')) {
         delete (cleanedData as any)[key];
       }
     });
