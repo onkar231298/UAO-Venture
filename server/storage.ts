@@ -1379,10 +1379,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     let query = db
-      .select({
-        ...products,
-        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
-      })
+      .select()
       .from(products)
       .where(whereClause)
       .limit(filters?.limit || 50)
@@ -1600,10 +1597,7 @@ export class DatabaseStorage implements IStorage {
     // Optimized parallel queries with hints for index usage
     const [productsResult, totalResult] = await Promise.all([
       db
-        .select({
-          ...products,
-          isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
-        })
+        .select()
         .from(products)
         .where(whereClause || undefined)
         .orderBy(orderBy)
@@ -1626,10 +1620,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProduct(id: number): Promise<Product | undefined> {
     const [product] = await db
-      .select({
-        ...products,
-        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
-      })
+      .select()
       .from(products)
       .where(eq(products.id, id));
     return product;
@@ -1637,10 +1628,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
     const [product] = await db
-      .select({
-        ...products,
-        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
-      })
+      .select()
       .from(products)
       .where(
         and(eq(products.slug, slug), eq(products.isActive, true))
@@ -1654,10 +1642,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const results = await db
-      .select({
-        ...products,
-        isOrganic: sql<boolean>`CASE WHEN ${products.productType} ILIKE '%organic%' THEN true ELSE false END`,
-      })
+      .select()
       .from(products)
       .where(inArray(products.id, ids));
     

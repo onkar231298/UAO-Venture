@@ -62,7 +62,7 @@ export default function ComprehensiveProductForm({
     productGrade: product?.productGrade || "",
     form: product?.form || "",
     certifications: product?.certifications || [],
-    isOrganic: product?.isOrganic || false,
+    isOrganic: product?.isOrganic ?? false,
     currentStock: product?.currentStock?.toString() || "",
     stockUnit: product?.stockUnit || "kg",
     packingSize: product?.packingSize || "",
