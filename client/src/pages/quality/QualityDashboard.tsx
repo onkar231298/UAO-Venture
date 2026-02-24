@@ -43,6 +43,9 @@ import {
   Beaker,
   ExternalLink,
   Globe,
+  Package,
+  MapPin,
+  Truck,
 } from "lucide-react";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 
@@ -81,6 +84,7 @@ const sidebarSections = [
   {
     label: "QUALITY OPERATIONS",
     items: [
+      { key: "sample-requests", label: "Sample Requests", icon: Package },
       { key: "document-requests", label: "Document Requests", icon: FileText },
       { key: "testing-requests", label: "Testing Requests (IRF/TRF)", icon: FlaskConical },
       { key: "test-reports", label: "Test Reports", icon: ClipboardList },
@@ -164,6 +168,7 @@ export default function QualityDashboard() {
 
   const sectionTitles: Record<string, string> = {
     overview: "Dashboard",
+    "sample-requests": "Sample Requests",
     "document-requests": "Document Requests",
     "testing-requests": "Testing Requests (IRF/TRF)",
     "test-reports": "Test Reports",
@@ -271,6 +276,7 @@ export default function QualityDashboard() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeSection === "overview" && <DashboardOverview user={qualityUser} />}
+          {activeSection === "sample-requests" && <SampleRequestsSection />}
           {activeSection === "document-requests" && <DocumentRequestsSection />}
           {activeSection === "testing-requests" && <TestingRequestsSection />}
           {activeSection === "test-reports" && <TestReportsSection />}
@@ -309,6 +315,14 @@ function DashboardOverview({ user }: { user: any }) {
     enabled: !!user,
   });
 
+  const { data: sampleData } = useQuery({
+    queryKey: ["/api/sample-requests", { limit: 1000, offset: 0 }],
+    enabled: !!user,
+  });
+
+  const sampleRequests: any[] = (sampleData as any)?.requests || [];
+  const pendingSamples = sampleRequests.filter((r: any) => r.status === "pending" || r.status === "approved").length;
+
   const s = (stats as any) || {};
 
   return (
@@ -327,6 +341,17 @@ function DashboardOverview({ user }: { user: any }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Sample Requests</CardTitle>
+            <Package className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingSamples}</div>
+            <p className="text-xs text-muted-foreground">From Sales team</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Document Requests</CardTitle>
@@ -419,6 +444,255 @@ function DashboardOverview({ user }: { user: any }) {
         </CardContent>
       </Card>
     </>
+  );
+}
+
+// ==================== DOCUMENT REQUESTS SECTION ====================
+// ==================== SAMPLE REQUESTS SECTION ====================
+function SampleRequestsSection() {
+  const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [processNotes, setProcessNotes] = useState("");
+  const [processStatus, setProcessStatus] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+
+  useEffect(() => {
+    if (selectedRequest) {
+      setProcessNotes(selectedRequest.notes || "");
+      setProcessStatus(selectedRequest.status || "pending");
+      setTrackingNumber(selectedRequest.trackingNumber || "");
+    }
+  }, [selectedRequest]);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["/api/sample-requests", { status: statusFilter && statusFilter !== "all" ? statusFilter : undefined, limit: 100, offset: 0 }],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...body }: any) => {
+      const res = await apiRequest(`/api/sample-requests/${id}`, { method: "PUT", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sample-requests"] });
+      toast({ title: "Sample request updated" });
+      setShowDetailDialog(false);
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const requests: any[] = (data as any)?.requests || (Array.isArray(data) ? data : []);
+
+  const statusOptions = [
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "sample_received", label: "Sample Received" },
+    { value: "in_testing", label: "In Testing" },
+    { value: "shipped", label: "Shipped" },
+    { value: "completed", label: "Completed" },
+    { value: "rejected", label: "Rejected" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {statusOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+        <Badge variant="secondary" className="text-sm">
+          {requests.length} request{requests.length !== 1 ? 's' : ''}
+        </Badge>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-8"><Activity className="h-6 w-6 animate-spin mx-auto mb-2" /><p>Loading sample requests...</p></div>
+      ) : requests.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-gray-500">No sample requests found.</CardContent></Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Request ID</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Sample Size</TableHead>
+                <TableHead>Purpose</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((req: any) => (
+                <TableRow key={req.id}>
+                  <TableCell className="font-mono text-xs">{req.requestId}</TableCell>
+                  <TableCell className="font-medium">{req.companyName}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">{req.contactName}</div>
+                    <div className="text-xs text-gray-500">{req.emailAddress}</div>
+                  </TableCell>
+                  <TableCell>{req.productName || req.product?.name || "—"}</TableCell>
+                  <TableCell>{req.sampleSize || "25g"}</TableCell>
+                  <TableCell className="capitalize">{req.purpose?.replace(/_/g, " ") || "—"}</TableCell>
+                  <TableCell>{getStatusBadge(req.status || "pending")}</TableCell>
+                  <TableCell className="text-xs">{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "—"}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setSelectedRequest(req); setShowDetailDialog(true); }}
+                    >
+                      <Eye className="h-3 w-3 mr-1" /> Process
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Process Sample Request</DialogTitle>
+            <DialogDescription>Review and process this sample request from Sales.</DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-gray-500">Request ID</Label>
+                  <p className="font-mono text-sm">{selectedRequest.requestId}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Current Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedRequest.status || "pending")}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Company</Label>
+                  <p className="font-medium">{selectedRequest.companyName}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Contact</Label>
+                  <p>{selectedRequest.contactName}</p>
+                  <p className="text-xs text-gray-500">{selectedRequest.emailAddress}</p>
+                  <p className="text-xs text-gray-500">{selectedRequest.phoneNumber}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Product</Label>
+                  <p>{selectedRequest.productName || selectedRequest.product?.name || "—"}</p>
+                  {selectedRequest.productCode && <p className="text-xs text-gray-500">SKU: {selectedRequest.productCode}</p>}
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Sample Size</Label>
+                  <p>{selectedRequest.sampleSize || "25g"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Purpose</Label>
+                  <p className="capitalize">{selectedRequest.purpose?.replace(/_/g, " ") || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Expected Order Qty</Label>
+                  <p>{selectedRequest.expectedOrderQuantity ? `${selectedRequest.expectedOrderQuantity} kg` : "—"}</p>
+                </div>
+              </div>
+
+              {selectedRequest.message && (
+                <div>
+                  <Label className="text-xs text-gray-500">Customer Message</Label>
+                  <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">{selectedRequest.message}</p>
+                </div>
+              )}
+
+              <div className="bg-blue-50 p-4 rounded-md space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <Label className="text-sm font-medium text-blue-800">Shipping Address</Label>
+                </div>
+                <p className="text-sm">{selectedRequest.shippingAddress}</p>
+                <p className="text-sm">{selectedRequest.city}, {selectedRequest.state} {selectedRequest.postalCode}</p>
+                <p className="text-sm">{selectedRequest.country}</p>
+              </div>
+
+              <div className="border-t pt-4 space-y-4">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Edit className="h-4 w-4" /> Process Sample Request
+                </h4>
+                <div>
+                  <Label>Update Status</Label>
+                  <Select value={processStatus} onValueChange={setProcessStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(processStatus === "shipped" || processStatus === "completed") && (
+                  <div>
+                    <Label>Tracking Number</Label>
+                    <Input
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      placeholder="Enter shipping tracking number"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label>Processing Notes</Label>
+                  <Textarea
+                    value={processNotes}
+                    onChange={(e) => setProcessNotes(e.target.value)}
+                    placeholder="Add notes about sample preparation, testing, or any observations..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {selectedRequest.processedBy && (
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <p className="text-xs text-gray-500">
+                    Last processed: {selectedRequest.processedAt ? new Date(selectedRequest.processedAt).toLocaleString() : "—"}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!selectedRequest) return;
+                updateMutation.mutate({
+                  id: selectedRequest.id,
+                  status: processStatus,
+                  notes: processNotes,
+                  trackingNumber: trackingNumber || undefined,
+                });
+              }}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
