@@ -1661,12 +1661,15 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // Generate slug from name if not provided
+    // Generate unique slug from name if not provided
     if (!product.slug && product.name) {
-      product.slug = product.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+      product.slug = await this.generateUniqueSlug(product.name);
+    } else if (product.slug) {
+      // If slug is provided, also ensure it's unique by checking DB
+      const existingSlug = await db.select({ id: products.id }).from(products).where(eq(products.slug, product.slug)).limit(1);
+      if (existingSlug.length > 0) {
+        product.slug = await this.generateUniqueSlug(product.slug);
+      }
     }
     
     // Process array fields to ensure they're properly formatted for PostgreSQL
