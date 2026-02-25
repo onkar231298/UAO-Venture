@@ -460,43 +460,6 @@ export function KnowledgeHubAEO() {
           </div>
         </section>
 
-        {/* Section 2: Organic Ingredient Glossary */}
-        <section className="mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Organic Ingredient Glossary
-            </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Definitions, common uses, and sourcing information for 20 key organic ingredients commonly searched by B2B buyers worldwide.
-            </p>
-          </div>
-
-          <dl className="space-y-3">
-            {glossaryTerms.map((item) => (
-              <details key={item.term} className="group border border-gray-200 rounded-lg overflow-hidden hover:border-emerald-300 transition-colors">
-                <summary className="flex items-center justify-between cursor-pointer p-5 bg-gray-50 group-open:bg-emerald-50 transition-colors list-none">
-                  <dt className="text-base md:text-lg font-semibold text-gray-900 pr-4 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                    {item.term}
-                  </dt>
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 group-open:rotate-45 transition-transform">+</span>
-                </summary>
-                <dd className="p-5 bg-white border-t border-gray-100 space-y-3">
-                  <p className="text-gray-700 leading-relaxed">{item.definition}</p>
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">Common Uses: </span>
-                    <span className="text-sm text-gray-600">{item.uses}</span>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg p-3">
-                    <span className="text-sm font-medium text-emerald-800">Bright Fame Organic Supply: </span>
-                    <span className="text-sm text-emerald-700">{item.whyBFI}</span>
-                  </div>
-                </dd>
-              </details>
-            ))}
-          </dl>
-        </section>
-
         {/* Section 3: Buyer's Guide Content */}
         <section className="mb-16">
           <div className="text-center mb-10">
