@@ -2526,8 +2526,12 @@ export default function CompanyManagement() {
               </div>
               
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  <TabsTrigger value="contacts" data-testid="tab-contacts" className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Contacts
+                  </TabsTrigger>
                   <TabsTrigger value="emails" data-testid="tab-emails" className="flex items-center gap-1">
                     <Mail className="h-3 w-3" />
                     Emails
@@ -2685,6 +2689,13 @@ export default function CompanyManagement() {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="contacts" className="mt-4">
+                  <CompanyContactsTab 
+                    companyId={selectedCompany.id} 
+                    companyDetails={selectedCompany as any}
+                  />
                 </TabsContent>
 
                 <TabsContent value="emails" className="mt-4">
