@@ -7170,7 +7170,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/crm/companies/:companyId/notes', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const notes = await storage.getCompanyNotes(parseInt(req.params.companyId), userId);
+      const user = await storage.getUser(userId);
+      const userRole = user?.role || '';
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      const isAdmin = adminRoles.includes(userRole);
+      // Admins see ALL notes (public + private from any user); others see public + their own private
+      const notes = await storage.getCompanyNotes(parseInt(req.params.companyId), isAdmin ? undefined : userId, isAdmin);
       res.json(notes);
     } catch (error) {
       console.error('Error fetching company notes:', error);

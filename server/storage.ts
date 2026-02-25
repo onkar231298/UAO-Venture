@@ -5975,10 +5975,12 @@ export class DatabaseStorage implements IStorage {
   // CRM - COMPANY NOTES METHODS
   // ========================================
 
-  async getCompanyNotes(companyId: number, userId?: string): Promise<CompanyNote[]> {
+  async getCompanyNotes(companyId: number, userId?: string, showAll?: boolean): Promise<CompanyNote[]> {
     const conditions = [eq(companyNotes.companyId, companyId)];
     
-    if (userId) {
+    if (showAll) {
+      // Admin/super_admin: see all notes regardless of privacy
+    } else if (userId) {
       conditions.push(
         or(
           eq(companyNotes.isPrivate, false),
