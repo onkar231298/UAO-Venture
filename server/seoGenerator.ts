@@ -18,7 +18,9 @@ function isOrganicProduct(product: ProductForSEO): boolean {
 
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
-  return str.slice(0, max - 1).trim();
+  const cut = str.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return lastSpace > 0 ? cut.slice(0, lastSpace).trim() : cut.trim();
 }
 
 function getCategoryKeyword(category: string | null | undefined): string {
