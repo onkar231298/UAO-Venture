@@ -4,6 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +54,9 @@ import {
   Building2,
   AlertCircle,
   MessageSquare,
-  CheckCircle2
+  CheckCircle2,
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import BulkProductUpload from "@/components/BulkProductUpload";
@@ -3473,6 +3486,28 @@ function SliderForm({ slider, onSubmit, onCancel, isLoading }: any) {
 
 function SEOManagement() {
   const { toast } = useToast();
+  const [bulkSeoResult, setBulkSeoResult] = useState<{ updated: number; organic: number; conventional: number } | null>(null);
+
+  const bulkSeoMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/admin/products/bulk-seo-generate", { method: "POST" });
+    },
+    onSuccess: (data: any) => {
+      setBulkSeoResult(data);
+      toast({
+        title: "SEO Generated Successfully",
+        description: `Updated ${data.updated} products — ${data.organic} organic, ${data.conventional} conventional.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate SEO content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [seoSettings, setSeoSettings] = useState({
     siteTitle: "Bright Fame Organic - Premium Organic Ingredients",
     siteDescription: "Leading supplier of certified organic ingredients and natural products for global markets",
@@ -3687,6 +3722,93 @@ function SEOManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* EU Bulk SEO Generator */}
+      <Card className="border-green-200 bg-green-50">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2 text-green-800">
+            <Sparkles className="w-5 h-5" />
+            Generate EU-Market SEO for All Products
+          </CardTitle>
+          <CardDescription className="text-green-700">
+            Auto-generates optimised SEO titles and descriptions for every active product targeting European B2B buyers.
+            Organic and conventional products each get different templates with India's Top B2B Manufacturer positioning.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="bg-white rounded-lg border border-green-200 p-3">
+              <p className="font-semibold text-green-800 mb-1">Organic Products</p>
+              <p className="text-gray-600 text-xs">[Product Name] | India's Top B2B Manufacturer | EU Organic Certified</p>
+            </div>
+            <div className="bg-white rounded-lg border border-green-200 p-3">
+              <p className="font-semibold text-green-800 mb-1">Conventional / Natural Products</p>
+              <p className="text-gray-600 text-xs">[Product Name] | India's Top B2B Manufacturer | Bulk Europe</p>
+            </div>
+          </div>
+
+          {bulkSeoResult && (
+            <div className="flex items-center gap-2 bg-green-100 border border-green-300 rounded-lg px-4 py-2 text-sm text-green-800">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Last run: {bulkSeoResult.updated} products updated — {bulkSeoResult.organic} organic, {bulkSeoResult.conventional} conventional
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  className="bg-green-700 hover:bg-green-800 text-white"
+                  disabled={bulkSeoMutation.isPending}
+                >
+                  {bulkSeoMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating SEO...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate EU SEO for All Products
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Generate EU SEO for All Products?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <span className="block">
+                      This will overwrite the SEO title and description for all active products with EU-market optimised content.
+                    </span>
+                    <span className="block font-medium text-gray-800">
+                      Organic products → "India's Top B2B Manufacturer | EU Organic Certified" template
+                    </span>
+                    <span className="block font-medium text-gray-800">
+                      Conventional / Natural products → "India's Top B2B Manufacturer | Bulk Europe" template
+                    </span>
+                    <span className="block text-gray-600">
+                      You can manually edit any individual product's SEO after generating.
+                    </span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-green-700 hover:bg-green-800"
+                    onClick={() => bulkSeoMutation.mutate()}
+                  >
+                    Yes, Generate SEO
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <p className="text-xs text-green-700">
+              After generating, open any product in the product list to view or edit its SEO title and description.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* SEO Tips */}
       <Card>

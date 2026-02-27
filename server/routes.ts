@@ -60,6 +60,7 @@ import {
   inquiries,
   bidRevisions,
   products,
+  categories,
   smsMessages,
   emailThreads,
   emailMessages,
@@ -77,6 +78,7 @@ import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
+import { generateProductSEO } from "./seoGenerator";
 import * as gmailApi from "./gmail";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -5212,6 +5214,55 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error("Error generating template:", error);
       res.status(500).json({ message: "Failed to generate template" });
+    }
+  });
+
+  // Bulk generate EU-focused SEO titles and descriptions for all active products
+  app.post('/api/admin/products/bulk-seo-generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userRole = req.user?.claims?.role;
+      if (!userRole || !['admin', 'super_admin'].includes(userRole)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const rows = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          botanicalName: products.botanicalName,
+          isOrganic: products.isOrganic,
+          productType: products.productType,
+          form: products.form,
+          origin: products.origin,
+          category: categories.name,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.isActive, true));
+
+      let organicCount = 0;
+      let conventionalCount = 0;
+
+      for (const product of rows) {
+        const { seoTitle, seoDescription } = generateProductSEO(product);
+        const isOrg = !!(product.isOrganic || product.productType === "organic" || product.name.toLowerCase().includes("organic"));
+        if (isOrg) organicCount++; else conventionalCount++;
+
+        await db
+          .update(products)
+          .set({ seoTitle, seoDescription })
+          .where(eq(products.id, product.id));
+      }
+
+      res.json({
+        success: true,
+        updated: rows.length,
+        organic: organicCount,
+        conventional: conventionalCount,
+      });
+    } catch (error) {
+      console.error("Error bulk generating SEO:", error);
+      res.status(500).json({ message: "Failed to generate SEO content" });
     }
   });
 
