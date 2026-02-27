@@ -151,24 +151,37 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
+  // Helper to clear the session cookie with correct attributes
+  const clearSessionCookie = (res: any) => {
+    const isProduction = process.env.NODE_ENV === 'production' || !process.env.REPLIT_DEV_DOMAIN;
+    // Must match the same options used when setting the cookie so browsers accept the deletion
+    res.clearCookie('bfi.sid', {
+      path: '/',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+    });
+  };
+
   // Unified logout - completely destroy session and clear cookie
   app.get("/api/logout", (req, res) => {
-    // First logout from passport
+    const sessionId = req.session?.id;
+    // First logout from passport (removes req.user)
     req.logout((err) => {
       if (err) {
         console.error('[Logout] Error during logout:', err);
       }
       
-      // Destroy the entire session to prevent session fixation
+      // Destroy the entire session from the store
       req.session.destroy((destroyErr) => {
         if (destroyErr) {
-          console.error('[Logout] Error destroying session:', destroyErr);
+          console.error('[Logout] Error destroying session:', destroyErr, 'Session ID:', sessionId);
         }
         
-        // Clear the session cookie
-        res.clearCookie('bfi.sid', { path: '/' });
+        // Clear the session cookie with matching attributes so browser removes it
+        clearSessionCookie(res);
         
-        console.log('[Logout] Session completely destroyed and cookie cleared');
+        console.log('[Logout] Session destroyed and cookie cleared, session ID:', sessionId);
         res.redirect("/login");
       });
     });
@@ -179,6 +192,21 @@ export async function setupAuth(app: Express) {
     res.redirect("/login");
   });
 
+  // Helper to redirect by role after successful login
+  const redirectByRole = (res: any, role: string) => {
+    if (role === 'admin' || role === 'super_admin') {
+      return res.redirect('/admin');
+    } else if (role.includes('sales')) {
+      return res.redirect('/sales');
+    } else if (role.includes('quality')) {
+      return res.redirect('/quality/dashboard');
+    } else if (role === 'customer') {
+      return res.redirect('/customer/dashboard');
+    } else {
+      return res.redirect('/staff');
+    }
+  };
+
   // Unified login endpoint - redirects based on user role
   app.post("/admin/login", (req, res, next) => {
     passport.authenticate('local', (err: any, user: any, info: any) => {
@@ -188,45 +216,46 @@ export async function setupAuth(app: Express) {
       if (!user) {
         return res.redirect('/login?error=invalid_credentials');
       }
-      
-      // Regenerate session to prevent session fixation
-      req.session.regenerate((regenErr) => {
-        if (regenErr) {
-          console.error('[Login] Session regeneration failed:', regenErr);
-          return res.redirect('/login?error=login_failed');
-        }
-        
-        req.logIn(user, (loginErr) => {
-          if (loginErr) {
-            console.error('[Login] Login failed:', loginErr);
+
+      // If a different user is currently logged in, log them out first.
+      // req.logout() removes the user from the session but does NOT destroy the
+      // session object, so req.session.regenerate() is still callable afterward.
+      const doLogin = () => {
+        // regenerate() creates a brand-new session ID and clears all session data,
+        // preventing any previous user's data from leaking into the new session.
+        req.session.regenerate((regenErr) => {
+          if (regenErr) {
+            console.error('[Login] Session regeneration failed:', regenErr);
             return res.redirect('/login?error=login_failed');
           }
-          
-          // Save session to ensure it's persisted
-          req.session.save((saveErr) => {
-            if (saveErr) {
-              console.error('[Login] Session save failed:', saveErr);
+
+          req.logIn(user, (loginErr) => {
+            if (loginErr) {
+              console.error('[Login] Login failed:', loginErr);
+              return res.redirect('/login?error=login_failed');
             }
-            
-            console.log('[Login] User logged in successfully:', user.claims?.email, 'Role:', user.claims?.role);
-            
-            // Redirect based on user role
-            const role = user.claims?.role || '';
-            
-            if (role === 'admin' || role === 'super_admin') {
-              return res.redirect('/admin');
-            } else if (role.includes('sales')) {
-              return res.redirect('/sales');
-            } else if (role.includes('quality')) {
-              return res.redirect('/quality/dashboard');
-            } else if (role === 'customer') {
-              return res.redirect('/customer/dashboard');
-            } else {
-              return res.redirect('/staff');
-            }
+
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('[Login] Session save failed:', saveErr);
+              }
+              console.log('[Login] User logged in successfully:', user.claims?.email, 'Role:', user.claims?.role);
+              redirectByRole(res, user.claims?.role || '');
+            });
           });
         });
-      });
+      };
+
+      // If someone else is already logged in on this browser, log them out first
+      if (req.isAuthenticated()) {
+        console.log('[Login] Existing session found — clearing before new login');
+        req.logout((logoutErr) => {
+          if (logoutErr) console.error('[Login] Error clearing existing session:', logoutErr);
+          doLogin();
+        });
+      } else {
+        doLogin();
+      }
     })(req, res, next);
   });
 
