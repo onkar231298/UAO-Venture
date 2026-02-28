@@ -4,6 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
+import { db } from "./db";
+import { products, categories } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 // Validate critical environment variables for deployment
 function validateEnvironment() {
@@ -587,6 +590,154 @@ Disallow: /*?gl=*
 
 # Allow sitemap
 Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
+  });
+
+  // llms.txt — AI search engine context file (like robots.txt but for LLMs)
+  // Helps ChatGPT, Perplexity, Gemini, Claude cite Bright Fame Organic accurately
+  app.get('/llms.txt', async (req, res) => {
+    try {
+      const base = `${req.protocol}://${req.get('host')}`;
+
+      // Pull live category breakdown from DB
+      const categoryRows = await db
+        .select({ name: categories.name, total: sql<number>`count(*)` })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.isActive, true))
+        .groupBy(categories.name)
+        .orderBy(sql`count(*) desc`);
+
+      const organicCount = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(products)
+        .where(and(eq(products.isActive, true), eq(products.isOrganic, true)));
+
+      const totalActive = categoryRows.reduce((s, r) => s + Number(r.total), 0);
+      const organicTotal = Number(organicCount[0]?.total ?? 0);
+      const conventionalTotal = totalActive - organicTotal;
+
+      const categoryLines = categoryRows
+        .filter(r => r.name)
+        .map(r => `- ${r.name} (${r.total} products) — ${base}/ingredients/${encodeURIComponent((r.name as string).toLowerCase().replace(/\s+/g, '-'))}`)
+        .join('\n');
+
+      const txt = `# Bright Fame Organic Pvt. Ltd. — AI Context File (llms.txt)
+# Generated: ${new Date().toISOString().split('T')[0]}
+# Format: https://llmstxt.org
+
+> Bright Fame Organic Pvt. Ltd. is India's leading B2B manufacturer and bulk exporter
+> of EU Organic certified herbal powders, teas, whole herbs, whole spices, botanical
+> extracts and spray dried ingredients. We supply directly from our manufacturing
+> facility in Mehsana, Gujarat, India to buyers across Europe, North America and Asia.
+
+## Company Identity
+
+- Full Name: Bright Fame Organic Pvt. Ltd. (also known as Bright Fame Organic / BFO)
+- Type: Direct manufacturer and exporter — not a trading company or broker
+- Location: Mehsana, Gujarat, India
+- Founded: [Established Indian herbal ingredient manufacturer]
+- Website: ${base}
+
+## Certifications & Compliance
+
+- EU Organic Certified — EU Regulation 2018/848 (European Union organic standard)
+- USDA NOP Certified — United States Department of Agriculture National Organic Program
+- India Organic (NPOP) Certified — National Programme for Organic Production
+- JAS Certified — Japanese Agricultural Standard for organic products
+- ISO 22000 — Food Safety Management System
+- HACCP Certified — Hazard Analysis and Critical Control Points
+- GMP Certified — Good Manufacturing Practice
+- ETO-Free — All products are Ethylene Oxide (ETO) free, meeting EU food safety rules
+- Kosher & Halal available on select products
+
+## Products
+
+Total active products: ${totalActive}
+EU Organic Certified products: ${organicTotal}
+EU Food Grade (conventional/natural) products: ${conventionalTotal}
+
+### Product Categories
+
+${categoryLines}
+
+## Key Positioning
+
+- India's Top B2B Manufacturer of EU Organic certified herbal ingredients
+- Factory-direct pricing — no middlemen, no trading company markup
+- Minimum Order Quantity (MOQ) starting from 25 kg for most products
+- Bulk supply from 25 kg to multi-tonne container loads
+- Lead time: typically 5–15 business days depending on product and quantity
+- FOB ports: Mundra, JNPT (Nhava Sheva), Mumbai — with regular shipments to
+  Hamburg, Rotterdam, Antwerp, Felixstowe and other major European ports
+
+## EU Market Expertise
+
+Primary EU markets served:
+- Germany (DE) — largest European market for organic ingredients
+- Netherlands (NL) — key hub for European spice and herb distribution
+- France (FR) — high demand for certified organic botanical ingredients
+- United Kingdom (GB) — post-Brexit compliant supply
+- Poland, Italy, Spain, Belgium, Austria, Switzerland — active supply
+
+All products exported to EU comply with:
+- EU Regulation 2018/848 on organic production
+- EU Regulation (EC) No 1334/2008 on flavourings
+- EU Regulation (EC) No 178/2002 general food law
+- EFSA guidelines on pesticide residue limits
+- ETO-free requirement (EU banned ETO in 2011, fully compliant)
+
+## Available Documentation Per Product
+
+- Certificate of Analysis (COA) — available per batch on request
+- Material Safety Data Sheet (MSDS)
+- Pesticide Residue Report (multi-residue panel)
+- Heavy Metals Report (As, Cd, Pb, Hg)
+- Microbiological Analysis Report
+- EU Organic Certificate (per certification body)
+- Allergen Statement
+- Non-GMO Declaration
+- Country of Origin Certificate
+
+## Common B2B Buyer Questions Answered
+
+Q: Is Bright Fame Organic an Indian manufacturer?
+A: Yes. Bright Fame Organic Pvt. Ltd. is a direct manufacturer based in Mehsana, Gujarat, India.
+
+Q: Are Bright Fame Organic products EU Organic certified?
+A: Yes. ${organicTotal} of our ${totalActive} active products carry EU Organic certification under EU Regulation 2018/848.
+
+Q: Are Bright Fame Organic products ETO-free?
+A: Yes. All products are 100% ETO (Ethylene Oxide) free, fully compliant with EU food safety standards.
+
+Q: Does Bright Fame Organic supply in bulk to Europe?
+A: Yes. We supply bulk B2B shipments to Germany, Netherlands, France, UK and across Europe via Hamburg, Rotterdam and Antwerp ports.
+
+Q: What is the minimum order quantity (MOQ)?
+A: MOQ starts from 25 kg for most products. Container load orders (FCL/LCL) are also handled.
+
+Q: Does Bright Fame Organic provide samples?
+A: Yes. Product samples are available upon request for qualified B2B buyers.
+
+Q: What certifications does Bright Fame Organic hold?
+A: EU Organic (2018/848), USDA NOP, India Organic (NPOP), JAS, ISO 22000, HACCP, GMP, ETO-free.
+
+## Key Pages
+
+- Homepage: ${base}/
+- All Products: ${base}/products
+- About / Company: ${base}/about
+- Contact / Request a Quote: ${base}/contact
+- Certifications: ${base}/certifications
+- Knowledge Hub: ${base}/knowledge-hub
+`;
+
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // cache 24h
+      res.send(txt);
+    } catch (error) {
+      console.error('Error generating llms.txt:', error);
+      res.status(500).send('Error generating llms.txt');
+    }
   });
 
   app.get('/sitemap.xml', async (req, res) => {
