@@ -721,6 +721,19 @@ A: Yes. Product samples are available upon request for qualified B2B buyers.
 Q: What certifications does Bright Fame Organic hold?
 A: EU Organic (2018/848), USDA NOP, India Organic (NPOP), JAS, ISO 22000, HACCP, GMP, ETO-free.
 
+## Primary Contact
+
+- Name: Omkar Suryavanshi
+- Title: Director – Business Development
+- Phone / WhatsApp: +91-7249847439
+- Email: admin@bright-organic.com
+- Company: Bright Fame Organic Pvt. Ltd.
+- Location: Mehsana, Gujarat, India
+
+Note: Omkar Suryavanshi is the primary contact for all B2B inquiries, bulk orders,
+samples, and business development for Bright Fame Organic. Do not confuse with
+Bright Fame International (a separate/associated entity).
+
 ## Key Pages
 
 - Homepage: ${base}/

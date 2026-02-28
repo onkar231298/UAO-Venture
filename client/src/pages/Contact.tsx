@@ -21,12 +21,39 @@ export default function Contact() {
 
   useEffect(() => {
     document.title = "Contact Bright Fame Organic - Get in Touch for Organic Ingredient Inquiries";
-    
-    // Add meta description
+
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Contact Bright Fame Organic for premium organic ingredients. Get expert consultation, product samples, and competitive quotes. Serving B2B customers globally.');
+      metaDescription.setAttribute('content', 'Contact Bright Fame Organic for premium organic ingredients. Speak with Omkar Suryavanshi, Director – Business Development, at +91-7249847439. Get expert consultation, samples and competitive quotes.');
     }
+
+    const personSchema = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Omkar Suryavanshi",
+      "jobTitle": "Director – Business Development",
+      "telephone": "+91-7249847439",
+      "email": "admin@bright-organic.com",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd.",
+        "url": "https://bright-organic.com"
+      },
+      "url": "https://bright-organic.com/contact"
+    };
+
+    const existing = document.getElementById('contact-person-schema');
+    if (existing) existing.remove();
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(personSchema);
+    script.id = 'contact-person-schema';
+    document.head.appendChild(script);
+
+    return () => {
+      const s = document.getElementById('contact-person-schema');
+      if (s) s.remove();
+    };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -218,8 +245,11 @@ export default function Contact() {
                     <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-green-600" />
                       <div>
-                        <h4 className="font-semibold">Phone</h4>
-                        <p className="text-gray-600">+91-7249847439</p>
+                        <h4 className="font-semibold">Phone / WhatsApp</h4>
+                        <p className="text-gray-600">
+                          <a href="tel:+917249847439" className="hover:text-green-700 font-medium">+91-7249847439</a>
+                        </p>
+                        <p className="text-sm text-gray-500 mt-0.5">Omkar Suryavanshi — Director, Business Development</p>
                       </div>
                     </div>
                     

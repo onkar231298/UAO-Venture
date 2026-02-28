@@ -2,204 +2,195 @@ import { useEffect } from 'react';
 
 export default function CompanyStructuredData() {
   useEffect(() => {
-    // Company/Organization Schema
+    const PHONE = "+91-7249847439";
+    const EMAIL = "admin@bright-organic.com";
+    const BASE_URL = "https://bright-organic.com";
+
+    const address = {
+      "@type": "PostalAddress",
+      "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+      "addressLocality": "Mehsana",
+      "addressRegion": "Gujarat",
+      "postalCode": "384001",
+      "addressCountry": "IN"
+    };
+
+    const omkarContact = {
+      "@type": "Person",
+      "name": "Omkar Suryavanshi",
+      "jobTitle": "Director – Business Development",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd."
+      },
+      "telephone": PHONE,
+      "email": EMAIL,
+      "url": `${BASE_URL}/contact`
+    };
+
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "Bright Fame Organic",
-      "description": "Leading B2B supplier of certified organic ingredients, herbs, spices, and botanical extracts serving pharmaceutical, nutraceutical, and food industries worldwide.",
-      "url": "https://bright-organic.com",
-      "logo": "https://bright-organic.com/bfi-logo.png",
-      "image": "https://bright-organic.com/bfi-logo.png",
-      "foundingDate": "2000",
+      "alternateName": ["Bright Fame Organic", "BFO"],
+      "description": "India's leading B2B manufacturer and bulk exporter of EU Organic certified herbal powders, teas, whole herbs, whole spices, botanical extracts and spray dried ingredients. Direct manufacturer based in Mehsana, Gujarat, India.",
+      "url": BASE_URL,
+      "logo": `${BASE_URL}/bfi-logo.png`,
+      "image": `${BASE_URL}/bfi-logo.png`,
+      "foundingDate": "2010",
+      "address": address,
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": PHONE,
+          "contactType": "customer service",
+          "name": "Omkar Suryavanshi",
+          "email": EMAIL,
+          "availableLanguage": ["English", "Hindi", "Gujarati"],
+          "areaServed": ["DE", "NL", "FR", "GB", "US", "IN", "CA", "AU"]
+        },
+        {
+          "@type": "ContactPoint",
+          "telephone": PHONE,
+          "contactType": "sales",
+          "name": "Omkar Suryavanshi",
+          "email": EMAIL,
+          "availableLanguage": ["English", "Hindi"]
+        }
+      ],
+      "employee": [omkarContact],
       "founders": [
         {
           "@type": "Person",
           "name": "Bright Fame Organic Leadership Team"
         }
       ],
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Industrial Area",
-        "addressLocality": "Ahmedabad",
-        "addressRegion": "Gujarat",
-        "postalCode": "380001",
-        "addressCountry": "IN"
-      },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+91-9999999999",
-        "contactType": "Customer Service",
-        "email": "info@brightfameorganic.com",
-        "availableLanguage": ["English", "Hindi", "Gujarati"]
-      },
       "sameAs": [
-        "https://www.linkedin.com/company/bright-fame-organic",
-        "https://twitter.com/brightfameorg",
-        "https://www.facebook.com/brightfameorganic"
+        BASE_URL,
+        "https://www.linkedin.com/company/bright-fame-organic"
       ],
       "industry": "Organic Ingredients Manufacturing",
       "naics": "311999",
       "numberOfEmployees": {
         "@type": "QuantitativeValue",
-        "value": "100-250"
+        "value": "50-250"
       },
-      "location": {
-        "@type": "Place",
-        "name": "Bright Fame Organic Manufacturing Facility",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "Industrial Area",
-          "addressLocality": "Ahmedabad",
-          "addressRegion": "Gujarat",
-          "postalCode": "380001",
-          "addressCountry": "IN"
-        },
-        "geo": {
-          "@type": "GeoCoordinates",
-          "latitude": "23.0225",
-          "longitude": "72.5714"
-        }
-      },
-      "offers": {
-        "@type": "Offer",
-        "description": "B2B Organic Ingredients Supply",
-        "category": "Manufacturing and Supply",
-        "eligibleRegion": ["IN", "US", "GB", "CA", "AU", "DE", "FR", "JP", "KR", "CN"],
-        "businessFunction": "http://purl.org/goodrelations/v1#Sell"
-      },
+      "areaServed": [
+        "Germany", "Netherlands", "France", "United Kingdom",
+        "United States", "India", "Canada", "Australia",
+        "Poland", "Italy", "Spain", "Belgium", "Austria", "Switzerland"
+      ],
+      "knowsAbout": [
+        "EU Organic Certification",
+        "Herbal Powders",
+        "Botanical Extracts",
+        "Organic Spices",
+        "Herbal Teas",
+        "B2B Bulk Ingredient Supply",
+        "ETO-free Processing",
+        "EU 2018/848 Compliance"
+      ],
       "makesOffer": [
         {
           "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "Organic Herbal Extracts",
-            "category": "Pharmaceutical Raw Materials"
-          }
+          "itemOffered": { "@type": "Product", "name": "EU Organic Certified Herbal Powders" },
+          "eligibleRegion": "EU"
         },
         {
           "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "Organic Spices",
-            "category": "Food Ingredients"
-          }
+          "itemOffered": { "@type": "Product", "name": "EU Organic Certified Herbal Teas" },
+          "eligibleRegion": "EU"
         },
         {
           "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "Nutraceutical Ingredients",
-            "category": "Health Supplements"
-          }
+          "itemOffered": { "@type": "Product", "name": "EU Organic Certified Whole Spices" },
+          "eligibleRegion": "EU"
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": { "@type": "Product", "name": "Botanical Extracts" },
+          "eligibleRegion": "Worldwide"
         }
       ],
       "certifications": [
-        "ISO 9001:2015",
-        "ISO 22000:2018", 
+        "EU Organic (Regulation 2018/848)",
+        "USDA NOP Organic",
+        "India Organic (NPOP)",
+        "JAS (Japan Agricultural Standard)",
+        "ISO 22000:2018",
         "HACCP",
-        "Organic Certification",
-        "GMP Certified"
-      ],
-      "keywords": "organic ingredients supplier, B2B organic herbs, pharmaceutical raw materials, nutraceutical ingredients, herbal extracts manufacturer, organic spices supplier, Gujarat organic company"
-    };
-
-    // Manufacturing Company Schema
-    const manufacturingSchema = {
-      "@context": "https://schema.org",
-      "@type": "Manufacturer",
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "description": "ISO certified organic ingredients manufacturing facility specializing in herbs, spices, and botanical extracts for global B2B customers.",
-      "url": "https://bright-organic.com",
-      "logo": "https://bright-organic.com/bfi-logo.png",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Industrial Area",
-        "addressLocality": "Ahmedabad", 
-        "addressRegion": "Gujarat",
-        "postalCode": "380001",
-        "addressCountry": "IN"
-      },
-      "makesOffer": {
-        "@type": "Offer",
-        "description": "B2B Organic Ingredients Manufacturing & Supply",
-        "category": "Organic Manufacturing",
-        "eligibleRegion": "Worldwide",
-        "businessFunction": "http://purl.org/goodrelations/v1#Sell"
-      },
-      "hasCredential": [
-        {
-          "@type": "EducationalOccupationalCredential",
-          "name": "ISO 9001:2015 Certification",
-          "credentialCategory": "Quality Management"
-        },
-        {
-          "@type": "EducationalOccupationalCredential", 
-          "name": "Organic Certification",
-          "credentialCategory": "Organic Standards"
-        }
+        "GMP",
+        "ETO-Free"
       ]
     };
 
-    // Local Business Schema for regional SEO
+    const personSchema = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Omkar Suryavanshi",
+      "jobTitle": "Director – Business Development",
+      "telephone": PHONE,
+      "email": EMAIL,
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Bright Fame Organic Pvt. Ltd.",
+        "url": BASE_URL
+      },
+      "url": `${BASE_URL}/contact`,
+      "sameAs": [BASE_URL]
+    };
+
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "Bright Fame Organic Pvt. Ltd.",
-      "description": "Leading organic ingredients manufacturer and supplier in Gujarat, India",
-      "url": "https://bright-organic.com",
-      "telephone": "+91-9999999999",
-      "email": "info@brightfameorganic.com",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Industrial Area",
-        "addressLocality": "Ahmedabad",
-        "addressRegion": "Gujarat", 
-        "postalCode": "380001",
-        "addressCountry": "IN"
-      },
+      "description": "India's top B2B manufacturer of EU Organic certified herbal ingredients. Factory-direct bulk supply to Europe and worldwide.",
+      "url": BASE_URL,
+      "telephone": PHONE,
+      "email": EMAIL,
+      "address": address,
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": "23.0225",
-        "longitude": "72.5714"
+        "latitude": "23.6002",
+        "longitude": "72.3953"
       },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        "opens": "09:00",
-        "closes": "18:00"
-      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "opens": "09:00",
+          "closes": "18:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "09:00",
+          "closes": "14:00"
+        }
+      ],
       "priceRange": "$$$$",
       "currenciesAccepted": "INR, USD, EUR, GBP",
-      "paymentAccepted": "Bank Transfer, Letter of Credit, Cash"
+      "paymentAccepted": "Bank Transfer, Letter of Credit",
+      "employee": [omkarContact]
     };
 
-    // Add all schemas to the page
-    const schemas = [organizationSchema, manufacturingSchema, localBusinessSchema];
-    
+    const schemas = [organizationSchema, personSchema, localBusinessSchema];
+
     schemas.forEach((schema, index) => {
+      const existing = document.getElementById(`company-schema-${index}`);
+      if (existing) existing.remove();
+
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.text = JSON.stringify(schema);
       script.id = `company-schema-${index}`;
-      
-      // Remove existing schema if present
-      const existing = document.getElementById(`company-schema-${index}`);
-      if (existing) {
-        existing.remove();
-      }
-      
       document.head.appendChild(script);
     });
 
     return () => {
-      // Cleanup schemas on unmount
       schemas.forEach((_, index) => {
         const existing = document.getElementById(`company-schema-${index}`);
-        if (existing) {
-          existing.remove();
-        }
+        if (existing) existing.remove();
       });
     };
   }, []);

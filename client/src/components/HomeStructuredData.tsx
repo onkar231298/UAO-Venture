@@ -30,14 +30,34 @@ export default function HomeStructuredData() {
         "postalCode": "384001",
         "addressCountry": "IN"
       },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+91-7249847439",
-        "contactType": "customer service",
-        "email": "admin@bright-organic.com",
-        "availableLanguage": ["English", "Hindi"],
-        "areaServed": ["US", "EU", "IN", "GB", "CA", "AU"]
-      },
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+91-7249847439",
+          "contactType": "customer service",
+          "name": "Omkar Suryavanshi",
+          "email": "admin@bright-organic.com",
+          "availableLanguage": ["English", "Hindi", "Gujarati"],
+          "areaServed": ["DE", "NL", "FR", "GB", "US", "IN", "CA", "AU"]
+        },
+        {
+          "@type": "ContactPoint",
+          "telephone": "+91-7249847439",
+          "contactType": "sales",
+          "name": "Omkar Suryavanshi",
+          "email": "admin@bright-organic.com",
+          "availableLanguage": ["English", "Hindi"]
+        }
+      ],
+      "employee": [
+        {
+          "@type": "Person",
+          "name": "Omkar Suryavanshi",
+          "jobTitle": "Director – Business Development",
+          "telephone": "+91-7249847439",
+          "email": "admin@bright-organic.com"
+        }
+      ],
       "sameAs": [
         `${baseUrl}`,
         "https://www.linkedin.com/company/bright-fame-organic"
