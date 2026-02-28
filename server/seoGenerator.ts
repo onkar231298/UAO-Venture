@@ -61,26 +61,28 @@ export function generateProductSEO(product: ProductForSEO): {
   const categoryBenefit = getCategoryBenefit(product.category);
 
   // ─── SEO TITLE ────────────────────────────────────────────────────────────
-  // Target: max ~78 chars. Format differs for organic vs conventional.
-  const ORGANIC_SUFFIX = " | India's Top B2B Manufacturer | EU Organic Certified";
-  const CONV_SUFFIX = " | India's Top B2B Manufacturer | Bulk Europe";
+  // Target: max 78 chars. No pipe separators — natural sentence flow.
+  // Organic:       "[Name] India's Top Manufacturer EU Organic Certified"
+  // Conventional:  "[Name] India's Top Manufacturer EU Food Grade Bulk"
+  const ORGANIC_SUFFIX = " India's Top Manufacturer EU Organic Certified";
+  const CONV_SUFFIX = " India's Top Manufacturer EU Food Grade Bulk";
 
   let seoTitle: string;
 
   if (organic) {
     const full = product.name + ORGANIC_SUFFIX;
-    if (full.length <= 80) {
+    if (full.length <= 78) {
       seoTitle = full;
     } else {
-      const maxName = 80 - ORGANIC_SUFFIX.length;
+      const maxName = 78 - ORGANIC_SUFFIX.length;
       seoTitle = truncate(product.name, maxName) + ORGANIC_SUFFIX;
     }
   } else {
     const full = product.name + CONV_SUFFIX;
-    if (full.length <= 80) {
+    if (full.length <= 78) {
       seoTitle = full;
     } else {
-      const maxName = 80 - CONV_SUFFIX.length;
+      const maxName = 78 - CONV_SUFFIX.length;
       seoTitle = truncate(product.name, maxName) + CONV_SUFFIX;
     }
   }
