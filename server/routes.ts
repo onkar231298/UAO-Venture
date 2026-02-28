@@ -1039,7 +1039,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           "name": "Bright Fame Organic Pvt. Ltd.",
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+            "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
             "addressLocality": "Mehsana",
             "addressRegion": "Gujarat",
             "postalCode": "384001",
@@ -1130,7 +1130,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         "logo": `${baseUrl}/logo.png`,
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
           "addressLocality": "Mehsana",
           "addressRegion": "Gujarat",
           "postalCode": "384001",

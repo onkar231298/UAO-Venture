@@ -24,7 +24,7 @@ export default function HomeStructuredData() {
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide. USDA and EU certified organic products from India.",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",
@@ -232,7 +232,7 @@ export default function HomeStructuredData() {
       "email": "admin@bfiorganic.com",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",

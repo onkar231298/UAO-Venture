@@ -64,7 +64,6 @@ export default function Footer() {
               <div className="flex items-start space-x-2">
                 <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
                 <div>
-                  <p>C/O Bright Fame International</p>
                   <p>Opp. Murlidhar Guest House,</p>
                   <p>Mehsana-Vishnagar Road, Kansarakui</p>
                   <p>Mehsana, Gujarat 384001</p>

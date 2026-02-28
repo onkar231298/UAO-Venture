@@ -1224,8 +1224,7 @@ export default function CustomerDashboard() {
                                   <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
                                   <div className="p-4 bg-green-50 rounded-lg">
                                     <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
-                                    <p className="text-sm mt-1">C/O Bright Fame International</p>
-                                    <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
+                                        <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                     <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                     <p className="text-sm mt-2">Phone: +91-7249847439</p>
                                     <p className="text-sm">Email: admin@bright-organic.com</p>
@@ -1621,7 +1620,6 @@ export default function CustomerDashboard() {
                               <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
                               <div className="p-4 bg-green-50 rounded-lg">
                                 <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
-                                <p className="text-sm mt-1">C/O Bright Fame International</p>
                                 <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                 <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                 <p className="text-sm mt-2">Phone: +91-7249847439</p>

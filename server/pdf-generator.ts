@@ -73,7 +73,6 @@ interface CustomerData {
 
 const companyDetails = {
   name: "Bright Fame Organic Pvt. Ltd.",
-  address: "Bright Fame International",
   address2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road",
   address3: "Kansarakui, Mehsana, Gujarat 384001",
   phone: "+91-7249847439",

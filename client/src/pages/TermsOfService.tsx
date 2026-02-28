@@ -162,10 +162,10 @@ export default function TermsOfService() {
               </p>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Bright Fame International</strong><br />
+                  <strong>Bright Fame Organic Pvt. Ltd.</strong><br />
                   Email: admin@bright-organic.com<br />
-                  Address: [Your Business Address]<br />
-                  Phone: [Your Contact Number]
+                  Address: Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001<br />
+                  Phone: +91-7249847439
                 </p>
               </div>
             </section>

@@ -234,7 +234,6 @@ export default function Contact() {
                       <div>
                         <h4 className="font-semibold">Factory Address</h4>
                         <p className="text-gray-600">
-                          C/O Bright Fame International<br />
                           Opp. Murlidhar Guest House,<br />
                           Mehsana-Vishnagar Road, Kansarakui<br />
                           Mehsana, Gujarat 384001, India

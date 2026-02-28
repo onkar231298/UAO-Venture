@@ -44,7 +44,7 @@ export default function WebsiteSchema() {
       "email": "admin@bright-organic.com",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat", 
         "postalCode": "384001",

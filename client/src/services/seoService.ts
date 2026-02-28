@@ -139,13 +139,12 @@ class SEOService {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic",
-      "alternateName": "Bright Fame International",
       "url": window.location.origin,
       "logo": `${window.location.origin}/logo.png`,
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",
@@ -178,7 +177,7 @@ class SEOService {
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",

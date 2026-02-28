@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Introduction</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Bright Fame International ("Bright Fame Organic", "we", "us", or "our") operates the Bright Fame Organic website and B2B platform for organic ingredients. This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service.
+                Bright Fame Organic Pvt. Ltd. ("Bright Fame Organic", "we", "us", or "our") operates the Bright Fame Organic website and B2B platform for organic ingredients. This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service.
               </p>
             </section>
 
@@ -132,10 +132,10 @@ export default function PrivacyPolicy() {
               </p>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Bright Fame International</strong><br />
+                  <strong>Bright Fame Organic Pvt. Ltd.</strong><br />
                   Email: admin@bright-organic.com<br />
-                  Address: [Your Business Address]<br />
-                  Phone: [Your Contact Number]
+                  Address: Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001<br />
+                  Phone: +91-7249847439
                 </p>
               </div>
             </section>

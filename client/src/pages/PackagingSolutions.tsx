@@ -421,7 +421,7 @@ export default function PackagingSolutions() {
           <img src={bfiLogoImg} alt="Bright Fame Organic" className="h-10 sm:h-14 w-auto object-contain mx-auto mb-2 sm:mb-3" />
           <p className="text-xs sm:text-sm font-bold text-white">Bright Fame Organic</p>
           <p className="text-[10px] sm:text-xs mt-1" style={{ color: COLORS.turmericGold }}>
-            Sister Concern of Bright Fame International – Three Star Export House
+            Three Star Export House
           </p>
           <p className="text-[10px] sm:text-xs text-gray-500 mt-3">
             &copy; {new Date().getFullYear()} Bright Fame Organic. All rights reserved. | Private & Confidential

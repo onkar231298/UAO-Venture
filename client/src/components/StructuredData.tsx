@@ -41,7 +41,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         "name": "Bright Fame Organic Pvt. Ltd.",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
           "addressLocality": "Mehsana",
           "addressRegion": "Gujarat",
           "postalCode": "384001",
@@ -170,7 +170,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide.",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",

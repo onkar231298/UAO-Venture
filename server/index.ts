@@ -731,8 +731,7 @@ A: EU Organic (2018/848), USDA NOP, India Organic (NPOP), JAS, ISO 22000, HACCP,
 - Location: Mehsana, Gujarat, India
 
 Note: Omkar Suryavanshi is the primary contact for all B2B inquiries, bulk orders,
-samples, and business development for Bright Fame Organic. Do not confuse with
-Bright Fame International (a separate/associated entity).
+samples, and business development for Bright Fame Organic.
 
 ## Key Pages
 
@@ -954,7 +953,7 @@ Bright Fame International (a separate/associated entity).
       "description": "Bright Fame Organic (Bright Fame Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter based in Mehsana, Gujarat. EU Organic, USDA NOP, JAS, NPOP certified with own 950-hectare organic farmland. Direct manufacturer with ISO 22000, HACCP, GMP compliant facilities. 1000+ SKUs across organic herbs, spices, botanical extracts, and nutraceutical ingredients. Exports to 50+ countries including USA, EU, UK, Japan, Australia.",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+        "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
         "addressLocality": "Mehsana",
         "addressRegion": "Gujarat",
         "postalCode": "384001",
@@ -1227,7 +1226,7 @@ Bright Fame International (a separate/associated entity).
           "name": "Bright Fame Organic Pvt. Ltd.",
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+            "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
             "addressLocality": "Mehsana",
             "addressRegion": "Gujarat",
             "postalCode": "384001",
@@ -1375,7 +1374,7 @@ Bright Fame International (a separate/associated entity).
         "image": `${baseUrl}/bfi-logo.png`,
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+          "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
           "addressLocality": "Mehsana",
           "addressRegion": "Gujarat",
           "postalCode": "384001",

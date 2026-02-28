@@ -365,7 +365,7 @@ export default function Presentation() {
               style={{ background: "rgba(200,155,43,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}
             >
               <Star className="w-3 h-3 sm:w-4 sm:h-4 pres-spin-slow" />
-              <span className="hidden sm:inline">Sister Concern of Bright Fame International – Three Star Export House</span>
+              <span className="hidden sm:inline">Three Star Export House</span>
               <span className="sm:hidden">Three Star Export House</span>
             </div>
           </Anim>
@@ -440,11 +440,7 @@ export default function Presentation() {
             <Anim type="slide-left" delay={200}>
               <div>
                 <p className="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
-                  Bright Fame Organic operates as the dedicated organic and herbal division of 
-                  <strong> Bright Fame International</strong>, a company with deep roots in India's 
-                  agricultural export sector. The group brings a legacy of structured trade practices, 
-                  compliance-first documentation, and consistent export performance spanning multiple years 
-                  of uninterrupted operations across global markets.
+                  Bright Fame Organic has deep roots in India's agricultural export sector, with a legacy of structured trade practices, compliance-first documentation, and consistent export performance spanning multiple years of uninterrupted operations across global markets.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
                   This foundation enables Bright Fame Organic to operate with an established export 
@@ -639,7 +635,7 @@ export default function Presentation() {
               {
                 title: "Ground Spices",
                 image: spicePowderJarsImg,
-                imageAlt: "Premium Ground Spice Powders - Bright Fame International",
+                imageAlt: "Premium Ground Spice Powders - Bright Fame Organic",
                 color: COLORS.chilliRed,
                 items: ["Red Chilli Powder (Teja, S-17, Kashmiri, Byadgi)", "Turmeric Powder (Salem, Lakadong 5%)", "Coriander Powder", "Cumin Powder", "Black Pepper Powder", "Ginger Powder", "Garam Masala Blends", "Sambar & Rasam Masala"],
                 anim: "flip-left" as AnimationType,
@@ -647,7 +643,7 @@ export default function Presentation() {
               {
                 title: "Whole Spices & Seeds",
                 image: seedJarsImg,
-                imageAlt: "Premium Whole Seeds Collection - Bright Fame International",
+                imageAlt: "Premium Whole Seeds Collection - Bright Fame Organic",
                 color: COLORS.turmericGold,
                 items: ["Cumin Seeds (Singapore, Europe, Regular Grade)", "Coriander Seeds (Eagle, Scooter)", "Fennel Seeds", "Fenugreek Seeds", "Natural & Hulled Sesame Seeds", "Black Sesame Seeds", "Mustard Seeds (Yellow & Brown)", "Whole Red Chilli & Turmeric Fingers"],
                 anim: "flip-up" as AnimationType,
@@ -1523,7 +1519,7 @@ export default function Presentation() {
             />
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Bright Fame Organic</h3>
             <p className="text-xs sm:text-sm mb-1" style={{ color: COLORS.turmericGold }}>
-              Sister Concern of Bright Fame International – Three Star Export House
+              Three Star Export House
             </p>
             <p className="text-xs text-gray-400 mt-2 sm:mt-3">
               36 MT Daily Processing Capacity | Cryogenic Grinding Technology | Self-Sealing Export Facility
