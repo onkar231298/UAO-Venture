@@ -710,54 +710,45 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     // Paid Days = Present + Leave + Weekends + Holidays (all are paid)
     const paidDays = presentDays + leaveDays + weekendDays + holidayCount;
     const absentDaysCalc = Math.max(0, totalDaysInMonth - paidDays);
-    const attendanceRatio = totalDaysInMonth > 0 ? paidDays / totalDaysInMonth : 0;
+
+    // Fixed per-day divisor (default 30 — standard Indian payroll)
+    const perDayDivisor = salaryConfig.perDayDivisor || 30;
+
+    // Full salary components — always show 100%, never prorate
+    const fullBasic = parseFloat(salaryConfig.basicSalary || '0');
+    const fullHRA = parseFloat(salaryConfig.houseRentAllowance || '0');
+    const fullConveyance = parseFloat(salaryConfig.conveyanceAllowance || '0');
+    const fullMedical = parseFloat(salaryConfig.medicalAllowance || '0');
+    const fullSpecial = parseFloat(salaryConfig.specialAllowance || '0');
+    const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
+    const fullDeductions = parseFloat(salaryConfig.deductions || '0');
+
+    // Per-day rate using fixed divisor — same every month regardless of calendar days
+    const perDaySalaryRate = fullGross / perDayDivisor;
+    const absentDeduction = perDaySalaryRate * absentDaysCalc;
+    const netPayable = fullGross - fullDeductions - absentDeduction;
 
     console.log(`Salary Slip Generation for ${userId}:`);
-    console.log(`  Total Days in Month: ${totalDaysInMonth}`);
+    console.log(`  Total Days in Month: ${totalDaysInMonth}, Per Day Divisor: ${perDayDivisor}`);
     console.log(`  Present Days: ${presentDays}, Leave Days: ${leaveDays}, Weekends: ${weekendDays}, Holidays: ${holidayCount}`);
-    console.log(`  Paid Days: ${paidDays}, Absent Days: ${absentDaysCalc}, Attendance Ratio: ${(attendanceRatio * 100).toFixed(1)}%`);
-    console.log(`  Config Basic: ${salaryConfig.basicSalary}, Gross: ${salaryConfig.grossSalary}`);
-
-    // Prorate salary based on actual attendance
-    const prorateAmount = (amount: string | null) => {
-      const val = parseFloat(amount || '0');
-      return (val * attendanceRatio).toFixed(2);
-    };
-
-    const proratedBasic = prorateAmount(salaryConfig.basicSalary);
-    const proratedHRA = prorateAmount(salaryConfig.houseRentAllowance);
-    const proratedConveyance = prorateAmount(salaryConfig.conveyanceAllowance);
-    const proratedMedical = prorateAmount(salaryConfig.medicalAllowance);
-    const proratedSpecial = prorateAmount(salaryConfig.specialAllowance);
-    
-    const proratedGross = (
-      parseFloat(proratedBasic) + 
-      parseFloat(proratedHRA) + 
-      parseFloat(proratedConveyance) + 
-      parseFloat(proratedMedical) + 
-      parseFloat(proratedSpecial)
-    ).toFixed(2);
-    
-    const proratedDeductions = prorateAmount(salaryConfig.deductions);
-    const proratedNet = (parseFloat(proratedGross) - parseFloat(proratedDeductions)).toFixed(2);
-
-    console.log(`  Prorated Basic: ${proratedBasic}, Prorated Gross: ${proratedGross}, Prorated Net: ${proratedNet}`);
+    console.log(`  Paid Days: ${paidDays}, Absent Days: ${absentDaysCalc}`);
+    console.log(`  Gross: ${fullGross}, Per Day: ${perDaySalaryRate.toFixed(2)}, Absent Deduction: ${absentDeduction.toFixed(2)}, Net: ${netPayable.toFixed(2)}`);
 
     const slipData = {
       userId,
       month,
       year,
-      basicSalary: proratedBasic,
-      houseRentAllowance: proratedHRA,
-      conveyanceAllowance: proratedConveyance,
-      medicalAllowance: proratedMedical,
-      specialAllowance: proratedSpecial,
-      grossSalary: proratedGross,
-      totalDeductions: proratedDeductions,
-      netSalary: proratedNet,
-      workingDays: totalDaysInMonth, // Total calendar days in month
-      presentDays: paidDays, // Show paid days (present + leaves + weekends + holidays)
-      absentDays: absentDaysCalc, // Actual absent working days
+      basicSalary: fullBasic.toFixed(2),
+      houseRentAllowance: fullHRA.toFixed(2),
+      conveyanceAllowance: fullConveyance.toFixed(2),
+      medicalAllowance: fullMedical.toFixed(2),
+      specialAllowance: fullSpecial.toFixed(2),
+      grossSalary: fullGross.toFixed(2),
+      totalDeductions: fullDeductions.toFixed(2),
+      netSalary: netPayable.toFixed(2),
+      workingDays: totalDaysInMonth,
+      presentDays: paidDays,
+      absentDays: absentDaysCalc,
       leaveDays,
       overtimeHours: totalOvertimeHours.toString(),
       status: "generated",
@@ -950,11 +941,12 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
     const configDeductions = parseFloat(salaryConfig?.deductions || '0');
     
-    // Calculate absent days deduction
-    const totalDays = slip.workingDays || 31;
+    // Calculate absent days deduction using fixed per-day divisor
+    const totalDays = slip.workingDays || 30;
     const paidDays = slip.presentDays || 0;
     const absentDays = Math.max(0, totalDays - paidDays);
-    const perDaySalary = fullGross / totalDays;
+    const perDayDivisorPDF = salaryConfig?.perDayDivisor || 30;
+    const perDaySalary = fullGross / perDayDivisorPDF;
     const absentDeduction = perDaySalary * absentDays;
     
     // Particulars Section Header

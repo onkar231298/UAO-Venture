@@ -61,6 +61,7 @@ interface SalaryConfig {
   grossSalary: string | null;
   deductions: string | null;
   netSalary: string | null;
+  perDayDivisor: number | null;
   bankAccountNumber: string | null;
   bankName: string | null;
   userName: string | null;
@@ -200,6 +201,7 @@ export default function HRManagement() {
     medicalAllowance: "",
     specialAllowance: "",
     deductions: "",
+    perDayDivisor: "30",
     bankAccountNumber: "",
     bankName: "",
     ifscCode: "",
@@ -271,6 +273,7 @@ export default function HRManagement() {
           medicalAllowance: currentSalary.medicalAllowance || "",
           specialAllowance: currentSalary.specialAllowance || "",
           deductions: currentSalary.deductions || "",
+          perDayDivisor: (currentSalary.perDayDivisor || 30).toString(),
           bankAccountNumber: currentSalary.bankAccountNumber || "",
           bankName: currentSalary.bankName || "",
           ifscCode: (currentSalary as any).ifscCode || "",
@@ -286,6 +289,7 @@ export default function HRManagement() {
           medicalAllowance: "",
           specialAllowance: "",
           deductions: "",
+          perDayDivisor: "30",
           bankAccountNumber: "",
           bankName: "",
           ifscCode: "",
@@ -1330,6 +1334,20 @@ export default function HRManagement() {
                 onChange={(e) => setSalaryForm({ ...salaryForm, deductions: e.target.value })}
                 placeholder="0"
               />
+            </div>
+            <div>
+              <Label>Per Day Divisor</Label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                value={salaryForm.perDayDivisor}
+                onChange={(e) => setSalaryForm({ ...salaryForm, perDayDivisor: e.target.value })}
+              >
+                <option value="26">26 days (factories / 6-day week)</option>
+                <option value="30">30 days (standard / service sector)</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Per Day = Gross ÷ {salaryForm.perDayDivisor} — same rate every month regardless of calendar days
+              </p>
             </div>
             <div>
               <Label>Bank Account</Label>
