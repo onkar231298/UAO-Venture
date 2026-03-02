@@ -661,27 +661,7 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     // Use total calendar days in month
     const totalDaysInMonth = lastDay.getDate();
     
-    // Count weekends in the month (Saturday & Sunday are paid)
-    let weekendDays = 0;
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday = 0, Saturday = 6
-        weekendDays++;
-      }
-    }
-    
-    // Count holidays (excluding those on weekends to avoid double counting)
-    let holidayCount = 0;
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      const dateStr = d.toISOString().split('T')[0];
-      // Only count holidays that fall on weekdays
-      if (holidayDates.has(dateStr) && dayOfWeek !== 0 && dayOfWeek !== 6) {
-        holidayCount++;
-      }
-    }
-
-    // Get attendance for the month
+    // Get attendance for the month first (needed for weekend absent check)
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
@@ -696,6 +676,33 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const presentDays = attendance.filter(a => a.status === 'present').length;
     const leaveDays = attendance.filter(a => a.status === 'leave').length;
     const totalOvertimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtimeHours || '0') || 0), 0);
+
+    // Build a set of dates explicitly marked absent
+    const absentDatesSet = new Set(
+      attendance.filter(a => a.status === 'absent').map(a => a.date)
+    );
+
+    // Count weekends that are NOT explicitly marked absent
+    // (If HR has recorded a weekend as absent, it should be deducted like any other absent day)
+    let weekendDays = 0;
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      const dateStr = d.toISOString().split('T')[0];
+      if ((dayOfWeek === 0 || dayOfWeek === 6) && !absentDatesSet.has(dateStr)) {
+        weekendDays++;
+      }
+    }
+
+    // Count holidays (excluding those on weekends or already marked absent)
+    let holidayCount = 0;
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      const dateStr = d.toISOString().split('T')[0];
+      // Only count holidays that fall on weekdays and are not marked absent
+      if (holidayDates.has(dateStr) && dayOfWeek !== 0 && dayOfWeek !== 6 && !absentDatesSet.has(dateStr)) {
+        holidayCount++;
+      }
+    }
 
     // Check if slip already exists
     const [existing] = await db.select()
