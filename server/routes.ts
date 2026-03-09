@@ -7171,8 +7171,6 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/crm/follow-ups/today', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      const isAdmin = user && ['super_admin','admin','sales_manager'].includes(user.role || '');
 
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -7182,7 +7180,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       upcomingEnd.setDate(upcomingEnd.getDate() + 6);
       upcomingEnd.setHours(23, 59, 59, 999);
 
-      // Fetch tasks with company info joined
+      // Always filter by the current user — everyone sees only their own personal follow-ups
+      // Managers can use the /team endpoint for cross-agent visibility
       const rawTasks = await db
         .select({
           id: companyTasks.id,
@@ -7204,7 +7203,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         .leftJoin(companies, eq(companyTasks.companyId, companies.id))
         .where(
           and(
-            isAdmin ? undefined : eq(companyTasks.assignedTo, userId),
+            eq(companyTasks.assignedTo, userId),
             sql`${companyTasks.status} IN ('pending', 'in_progress')`
           )
         )
@@ -7214,7 +7213,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const today = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) >= todayStart && new Date(t.dueDate) <= todayEnd);
       const upcoming = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) > todayEnd && new Date(t.dueDate) <= upcomingEnd);
 
-      // Completed today
+      // Completed today — also only for current user
       const completedToday = await db
         .select({
           id: companyTasks.id,
@@ -7227,7 +7226,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         .leftJoin(companies, eq(companyTasks.companyId, companies.id))
         .where(
           and(
-            isAdmin ? undefined : eq(companyTasks.assignedTo, userId),
+            eq(companyTasks.assignedTo, userId),
             eq(companyTasks.status, 'completed'),
             gte(companyTasks.completedAt, todayStart),
             lte(companyTasks.completedAt, todayEnd)

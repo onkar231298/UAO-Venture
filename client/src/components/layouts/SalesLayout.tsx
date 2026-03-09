@@ -111,9 +111,22 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
 
       <aside className={`${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden'} md:flex w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Sales Portal</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{roleDisplayName}</p>
+          <div className="flex items-center gap-3 min-w-0">
+            {(user as any)?.profileImageUrl ? (
+              <img src={(user as any).profileImageUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                {(user as any)?.firstName ? (user as any).firstName[0].toUpperCase() : (user as any)?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                {(user as any)?.firstName || (user as any)?.lastName
+                  ? `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim()
+                  : (user as any)?.email || 'Sales Portal'}
+              </h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{roleDisplayName}</p>
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
