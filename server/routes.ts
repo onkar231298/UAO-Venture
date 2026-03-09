@@ -7110,12 +7110,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         ...req.body,
         companyId: parseInt(req.params.id),
         createdBy: userId,
+        assignedTo: req.body.assignedTo || userId,
       };
       const task = await storage.createCompanyTask(taskData);
       res.json(task);
-    } catch (error) {
-      console.error('Error creating company task:', error);
-      res.status(500).json({ message: "Failed to create task" });
+    } catch (error: any) {
+      console.error('Error creating company task:', error?.message || error);
+      res.status(500).json({ message: error?.message || "Failed to create task" });
     }
   });
 
