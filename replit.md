@@ -36,6 +36,7 @@ Preferred communication style: Simple, everyday language.
     - **Customer Notes**: Field for capturing additional customer notes.
     - **Detailed Customer Address**: Collection of complete address details during registration for accurate quotation.
     - **Frejun Voice Integration**: VoIP calling via Frejun Dialer Widget (iframe-based), OAuth 2.0 authentication, network-based 2-legged calls, call logging, voicemail management, and webhook-based call status updates. Replaces previous Net2Phone integration.
+- **Follow-up Scheduling System**: Manual follow-up scheduling per company with automated daily reminders. Features: FollowUpScheduler dialog (type/date/priority/notes), CompleteFollowUpDialog (2-step outcome + chain next), TodayFollowUpsWidget on Sales Dashboard (overdue/today/upcoming/snooze), Follow-ups tab in company detail panel (badge count, overdue/scheduled/completed sections), "Schedule Next Follow-up" banner in Calls tab, "+ Follow-up" button in company header, NotificationBell follow_up_due/overdue types, Follow-ups nav item in sales sidebar with live badge count.
 - **Purchase Management**: Purchase order system, vendor management, PO tracking.
 - **Inventory Management**: Stock tracking (batch/lot, expiry, location), stock level monitoring.
 - **Logistics Management**: Inventory visibility, dispatch tracking.

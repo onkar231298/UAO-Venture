@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   Menu,
   X,
+  AlarmClock,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
@@ -45,6 +46,15 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
     enabled: !!user,
   });
 
+  const { data: followUpData } = useQuery<{ overdueCount: number; todayCount: number }>({
+    queryKey: ['/api/crm/follow-ups/today'],
+    enabled: !!user,
+    refetchInterval: 5 * 60 * 1000,
+    select: (d: any) => ({ overdueCount: d?.overdueCount || 0, todayCount: d?.todayCount || 0 }),
+  });
+
+  const followUpBadge = (followUpData?.overdueCount || 0) + (followUpData?.todayCount || 0);
+
   const summary = dashboardData?.summary || {
     activeLeads: 0,
     pendingInquiries: 0,
@@ -66,6 +76,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
       items: [
         { key: "/sales/leads", label: "My Leads", icon: Target, badge: summary.activeLeads > 0 ? summary.activeLeads : undefined },
         { key: "/sales/my-companies", label: "My Companies", icon: Building2 },
+        { key: "/sales/my-companies?tab=followups", label: "Follow-ups", icon: AlarmClock, badge: followUpBadge > 0 ? followUpBadge : undefined, badgeColor: (followUpData?.overdueCount || 0) > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white" },
         { key: "/sales/my-sales", label: "My Sales & Quotations", icon: FileText },
       ],
     },
@@ -136,7 +147,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
                           <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
                           <span className="truncate">{item.label}</span>
                           {(item as any).badge && (
-                            <Badge className="ml-auto bg-blue-100 text-blue-800">{(item as any).badge}</Badge>
+                            <Badge className={`ml-auto ${(item as any).badgeColor || 'bg-blue-100 text-blue-800'}`}>{(item as any).badge}</Badge>
                           )}
                         </button>
                       </Link>

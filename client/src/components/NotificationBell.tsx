@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,7 @@ interface Notification {
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data: unreadCountData } = useQuery<{ count: number }>({
     queryKey: ['/api/notifications/unread-count'],
@@ -80,6 +82,10 @@ export function NotificationBell() {
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
     }
+    if (notification.link) {
+      setIsOpen(false);
+      navigate(notification.link);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -100,9 +106,20 @@ export function NotificationBell() {
         return '🎉';
       case 'quote_rejected':
         return '❌';
+      case 'follow_up_due':
+        return '📞';
+      case 'follow_up_overdue':
+        return '🚨';
       default:
         return '🔔';
     }
+  };
+
+  const getNotificationColor = (type: string, isRead: boolean) => {
+    if (isRead) return '';
+    if (type === 'follow_up_overdue') return 'bg-red-50/60';
+    if (type === 'follow_up_due') return 'bg-amber-50/60';
+    return 'bg-blue-50/50';
   };
 
   return (
@@ -160,8 +177,8 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${
-                    !notification.isRead ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
-                  }`}
+                    notification.link ? 'hover:underline-offset-0' : ''
+                  } ${getNotificationColor(notification.type, notification.isRead)}`}
                   onClick={() => handleNotificationClick(notification)}
                   data-testid={`notification-item-${notification.id}`}
                 >

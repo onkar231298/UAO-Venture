@@ -45,7 +45,10 @@ import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
-import { Users } from "lucide-react";
+import { FollowUpScheduler } from "@/components/crm/FollowUpScheduler";
+import { CompleteFollowUpDialog } from "@/components/crm/CompleteFollowUpDialog";
+import { Users, AlarmClock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { differenceInDays } from "date-fns";
 
 interface CompanyActivityLocal {
   id: number;
@@ -1065,6 +1068,10 @@ export default function MyCompanies() {
   // Edit Company state
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
+
+  // Follow-up state
+  const [showFollowUpScheduler, setShowFollowUpScheduler] = useState(false);
+  const [completeFollowUpTask, setCompleteFollowUpTask] = useState<any | null>(null);
   
   // Bulk Email state
   const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
@@ -1118,6 +1125,19 @@ export default function MyCompanies() {
     },
     enabled: !!selectedCompany,
   });
+
+  // Get company tasks for follow-ups tab
+  const { data: companyFollowUpTasks = [], refetch: refetchTasks } = useQuery<any[]>({
+    queryKey: [`/api/crm/companies/${selectedCompany?.id}/tasks`],
+    enabled: !!selectedCompany,
+  });
+
+  const pendingFollowUpCount = companyFollowUpTasks.filter(
+    (t) => t.status === 'pending' || t.status === 'in_progress'
+  ).length;
+  const overdueFollowUpCount = companyFollowUpTasks.filter(
+    (t) => (t.status === 'pending' || t.status === 'in_progress') && t.dueDate && new Date(t.dueDate) < new Date()
+  ).length;
 
   // Get the primary contact from the contacts list
   const primaryContact = selectedCompanyContacts?.find(c => c.isPrimary) || selectedCompanyContacts?.[0];
@@ -1795,22 +1815,33 @@ export default function MyCompanies() {
                 {selectedCompany?.companyName}
               </DialogTitle>
               {selectedCompany && (
-                <Button 
-                  onClick={() => setShowConvertDialog(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  size="sm"
-                  data-testid="button-convert-to-lead"
-                >
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Convert to Lead
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFollowUpScheduler(true)}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    <AlarmClock className="h-4 w-4 mr-1" />
+                    + Follow-up
+                  </Button>
+                  <Button 
+                    onClick={() => setShowConvertDialog(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                    data-testid="button-convert-to-lead"
+                  >
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Convert to Lead
+                  </Button>
+                </div>
               )}
             </div>
           </DialogHeader>
 
           {selectedCompany && (
             <Tabs value={dialogTab} onValueChange={setDialogTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="info">Info</TabsTrigger>
                 <TabsTrigger value="contacts" className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
@@ -1825,6 +1856,15 @@ export default function MyCompanies() {
                   Calls
                 </TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="followups" className="flex items-center gap-1 relative">
+                  <AlarmClock className="h-3 w-3" />
+                  Follow-ups
+                  {pendingFollowUpCount > 0 && (
+                    <span className={`ml-1 text-xs font-semibold px-1 py-0.5 rounded-full ${overdueFollowUpCount > 0 ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'}`}>
+                      {pendingFollowUpCount}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
               </TabsList>
 
@@ -2136,6 +2176,18 @@ export default function MyCompanies() {
               </TabsContent>
 
               <TabsContent value="calls" className="mt-4">
+                <div className="mb-3 flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">After each call, schedule your next follow-up to keep the conversation going.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-3 border-amber-400 text-amber-700 hover:bg-amber-100 flex-shrink-0"
+                    onClick={() => setShowFollowUpScheduler(true)}
+                  >
+                    <Phone className="w-3.5 h-3.5 mr-1" />
+                    Schedule Next Follow-up
+                  </Button>
+                </div>
                 <CompanyCallsTab companyId={selectedCompany.id} />
               </TabsContent>
 
@@ -2144,6 +2196,152 @@ export default function MyCompanies() {
                   companyId={selectedCompany.id} 
                   currentUserId={user?.id || ''} 
                 />
+              </TabsContent>
+
+              <TabsContent value="followups" className="mt-4">
+                <div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <AlarmClock className="w-4 h-4 text-amber-500" />
+                        Follow-up Schedule
+                      </h3>
+                      {selectedCompany.nextFollowUpDate && (
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Next scheduled: <span className="font-medium text-gray-700">{format(new Date(selectedCompany.nextFollowUpDate), "MMM d, yyyy")}</span>
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => setShowFollowUpScheduler(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Schedule Follow-up
+                    </Button>
+                  </div>
+
+                  {/* Overdue tasks */}
+                  {companyFollowUpTasks.filter(t => (t.status === 'pending' || t.status === 'in_progress') && t.dueDate && new Date(t.dueDate) < new Date()).length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-red-600 mb-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Overdue
+                      </div>
+                      <div className="space-y-2">
+                        {companyFollowUpTasks
+                          .filter(t => (t.status === 'pending' || t.status === 'in_progress') && t.dueDate && new Date(t.dueDate) < new Date())
+                          .map((task) => {
+                            const daysOverdue = differenceInDays(new Date(), new Date(task.dueDate));
+                            return (
+                              <div key={task.id} className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900">{task.title}</p>
+                                  {task.dueDate && <p className="text-xs text-red-600">{daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue — was due {format(new Date(task.dueDate), "MMM d")}</p>}
+                                  {task.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>}
+                                </div>
+                                <Button size="sm" className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white flex-shrink-0" onClick={() => setCompleteFollowUpTask({ ...task, companyName: selectedCompany.companyName })}>
+                                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                  Done
+                                </Button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upcoming/scheduled tasks */}
+                  {companyFollowUpTasks.filter(t => (t.status === 'pending' || t.status === 'in_progress') && (!t.dueDate || new Date(t.dueDate) >= new Date())).length > 0 && (
+                    <div>
+                      <div className="text-sm font-semibold text-amber-700 mb-2">Scheduled</div>
+                      <div className="space-y-2">
+                        {companyFollowUpTasks
+                          .filter(t => (t.status === 'pending' || t.status === 'in_progress') && (!t.dueDate || new Date(t.dueDate) >= new Date()))
+                          .sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0))
+                          .map((task) => (
+                            <div key={task.id} className="flex items-center gap-3 p-3 bg-amber-50/60 border border-amber-200 rounded-lg">
+                              <AlarmClock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-gray-900">{task.title}</p>
+                                {task.dueDate && <p className="text-xs text-gray-500">{format(new Date(task.dueDate), "EEE, MMM d, yyyy")}</p>}
+                                {task.description && <p className="text-xs text-gray-400 truncate">{task.description}</p>}
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {task.priority && task.priority !== 'medium' && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${task.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {task.priority}
+                                  </span>
+                                )}
+                                <Button size="sm" className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => setCompleteFollowUpTask({ ...task, companyName: selectedCompany.companyName })}>
+                                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                  Done
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Completed tasks */}
+                  {companyFollowUpTasks.filter(t => t.status === 'completed').length > 0 && (
+                    <details>
+                      <summary className="flex items-center gap-1 text-sm font-semibold text-green-700 cursor-pointer list-none">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Completed ({companyFollowUpTasks.filter(t => t.status === 'completed').length})
+                      </summary>
+                      <div className="space-y-2 mt-2">
+                        {companyFollowUpTasks
+                          .filter(t => t.status === 'completed')
+                          .slice(0, 10)
+                          .map((task) => (
+                            <div key={task.id} className="flex items-center gap-3 p-3 bg-green-50/50 border border-green-200 rounded-lg opacity-70">
+                              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-gray-700 line-through">{task.title}</p>
+                                {task.completedAt && <p className="text-xs text-gray-400">Done {format(new Date(task.completedAt), "MMM d, yyyy")}</p>}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Empty state */}
+                  {companyFollowUpTasks.length === 0 && (
+                    <div className="text-center py-10 text-gray-500">
+                      <AlarmClock className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">No follow-ups scheduled</p>
+                      <p className="text-sm mt-1">After a call, click "Schedule Follow-up" to plan your next contact.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Follow-up Scheduler Dialog */}
+                <FollowUpScheduler
+                  companyId={selectedCompany.id}
+                  companyName={selectedCompany.companyName}
+                  open={showFollowUpScheduler}
+                  onOpenChange={setShowFollowUpScheduler}
+                  onScheduled={() => refetchTasks()}
+                />
+
+                {/* Complete Follow-up Dialog */}
+                {completeFollowUpTask && (
+                  <CompleteFollowUpDialog
+                    open={!!completeFollowUpTask}
+                    onOpenChange={(open) => { if (!open) setCompleteFollowUpTask(null); }}
+                    task={completeFollowUpTask}
+                    onCompleted={() => {
+                      setCompleteFollowUpTask(null);
+                      refetchTasks();
+                    }}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="activity" className="mt-4">

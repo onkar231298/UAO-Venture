@@ -58,6 +58,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
 import { NotificationBell } from "@/components/NotificationBell";
+import { TodayFollowUpsWidget } from "@/components/crm/TodayFollowUpsWidget";
 
 interface DashboardData {
   summary: {
@@ -392,6 +393,9 @@ export default function SalesPersonDashboard() {
 
           {activeTab === 'overview' && (
             <>
+              {/* Today's Follow-ups Widget */}
+              <TodayFollowUpsWidget />
+
               {/* Activity Status Widget */}
               <div className="mb-6">
                 <MyActivityWidget />

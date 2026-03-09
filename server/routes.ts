@@ -68,7 +68,7 @@ import {
   qualityTestingRequests,
   users,
 } from "@shared/schema";
-import { eq, and, ne, isNotNull, desc, inArray, sql } from "drizzle-orm";
+import { eq, and, ne, isNotNull, desc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -7150,6 +7150,274 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error('Error fetching user tasks:', error);
       res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  // ========================================
+  // CRM - FOLLOW-UP SYSTEM ROUTES
+  // ========================================
+
+  // Today's follow-ups for current user (or team for admin/manager)
+  app.get('/api/crm/follow-ups/today', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user && ['super_admin','admin','sales_manager'].includes(user.role || '');
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      const upcomingEnd = new Date();
+      upcomingEnd.setDate(upcomingEnd.getDate() + 6);
+      upcomingEnd.setHours(23, 59, 59, 999);
+
+      // Fetch tasks with company info joined
+      const rawTasks = await db
+        .select({
+          id: companyTasks.id,
+          companyId: companyTasks.companyId,
+          companyName: companies.companyName,
+          primaryPhone: companies.primaryPhone,
+          primaryEmail: companies.primaryEmail,
+          taskType: companyTasks.taskType,
+          title: companyTasks.title,
+          description: companyTasks.description,
+          dueDate: companyTasks.dueDate,
+          priority: companyTasks.priority,
+          status: companyTasks.status,
+          assignedTo: companyTasks.assignedTo,
+          completedAt: companyTasks.completedAt,
+          createdAt: companyTasks.createdAt,
+        })
+        .from(companyTasks)
+        .leftJoin(companies, eq(companyTasks.companyId, companies.id))
+        .where(
+          and(
+            isAdmin ? undefined : eq(companyTasks.assignedTo, userId),
+            sql`${companyTasks.status} IN ('pending', 'in_progress')`
+          )
+        )
+        .orderBy(companyTasks.dueDate);
+
+      const overdue = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) < todayStart);
+      const today = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) >= todayStart && new Date(t.dueDate) <= todayEnd);
+      const upcoming = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) > todayEnd && new Date(t.dueDate) <= upcomingEnd);
+
+      // Completed today
+      const completedToday = await db
+        .select({
+          id: companyTasks.id,
+          companyName: companies.companyName,
+          taskType: companyTasks.taskType,
+          title: companyTasks.title,
+          completedAt: companyTasks.completedAt,
+        })
+        .from(companyTasks)
+        .leftJoin(companies, eq(companyTasks.companyId, companies.id))
+        .where(
+          and(
+            isAdmin ? undefined : eq(companyTasks.assignedTo, userId),
+            eq(companyTasks.status, 'completed'),
+            gte(companyTasks.completedAt, todayStart),
+            lte(companyTasks.completedAt, todayEnd)
+          )
+        );
+
+      res.json({
+        overdue,
+        today,
+        upcoming,
+        completedToday,
+        overdueCount: overdue.length,
+        todayCount: today.length,
+        upcomingCount: upcoming.length,
+        completedTodayCount: completedToday.length,
+      });
+    } catch (error) {
+      console.error('Error fetching today follow-ups:', error);
+      res.status(500).json({ message: "Failed to fetch follow-ups" });
+    }
+  });
+
+  // Team follow-up overview (admin/manager only)
+  app.get('/api/crm/follow-ups/team', isAuthenticated, async (req: any, res) => {
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const tasks = await db
+        .select({
+          id: companyTasks.id,
+          companyName: companies.companyName,
+          taskType: companyTasks.taskType,
+          title: companyTasks.title,
+          dueDate: companyTasks.dueDate,
+          priority: companyTasks.priority,
+          status: companyTasks.status,
+          assignedTo: companyTasks.assignedTo,
+          assigneeName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        })
+        .from(companyTasks)
+        .leftJoin(companies, eq(companyTasks.companyId, companies.id))
+        .leftJoin(users, eq(companyTasks.assignedTo, users.id))
+        .where(sql`${companyTasks.status} IN ('pending', 'in_progress')`)
+        .orderBy(companyTasks.dueDate);
+
+      const overdue = tasks.filter(t => t.dueDate && new Date(t.dueDate) < todayStart);
+      const today = tasks.filter(t => t.dueDate && new Date(t.dueDate) >= todayStart && new Date(t.dueDate) <= todayEnd);
+
+      // Group by assignee
+      const byAgent: Record<string, { name: string; overdue: number; today: number; upcoming: number }> = {};
+      for (const t of tasks) {
+        const key = t.assignedTo || 'unassigned';
+        if (!byAgent[key]) byAgent[key] = { name: t.assigneeName || key, overdue: 0, today: 0, upcoming: 0 };
+        if (t.dueDate && new Date(t.dueDate) < todayStart) byAgent[key].overdue++;
+        else if (t.dueDate && new Date(t.dueDate) >= todayStart && new Date(t.dueDate) <= todayEnd) byAgent[key].today++;
+        else byAgent[key].upcoming++;
+      }
+
+      res.json({ tasks, byAgent, overdueCount: overdue.length, todayCount: today.length });
+    } catch (error) {
+      console.error('Error fetching team follow-ups:', error);
+      res.status(500).json({ message: "Failed to fetch team follow-ups" });
+    }
+  });
+
+  // Send daily follow-up notifications (called once per day from frontend)
+  app.post('/api/crm/follow-ups/notify-due', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // Check if we already created notifications today for this user
+      const existingToday = await db
+        .select({ id: sql<number>`count(*)` })
+        .from(sql`notifications`)
+        .where(sql`user_id = ${userId} AND type = 'follow_up_due' AND created_at >= ${todayStart.toISOString()} AND created_at <= ${todayEnd.toISOString()}`);
+
+      if (Number(existingToday[0]?.id) > 0) {
+        return res.json({ notificationsCreated: 0, alreadySent: true });
+      }
+
+      // Get overdue + today tasks
+      const tasks = await db
+        .select({
+          id: companyTasks.id,
+          companyId: companyTasks.companyId,
+          companyName: companies.companyName,
+          title: companyTasks.title,
+          dueDate: companyTasks.dueDate,
+        })
+        .from(companyTasks)
+        .leftJoin(companies, eq(companyTasks.companyId, companies.id))
+        .where(
+          and(
+            eq(companyTasks.assignedTo, userId),
+            sql`${companyTasks.status} IN ('pending', 'in_progress')`,
+            lte(companyTasks.dueDate, todayEnd)
+          )
+        );
+
+      let created = 0;
+      for (const task of tasks) {
+        const isOverdue = task.dueDate && new Date(task.dueDate) < todayStart;
+        await storage.createNotification({
+          userId,
+          type: isOverdue ? 'follow_up_overdue' : 'follow_up_due',
+          title: isOverdue ? 'Overdue Follow-up' : 'Follow-up Due Today',
+          message: `${task.companyName || 'Company'} — ${task.title}`,
+          entityType: 'company_task',
+          entityId: task.id,
+          link: `/sales/my-companies?company=${task.companyId}&tab=followups`,
+          isRead: false,
+        });
+        created++;
+      }
+
+      res.json({ notificationsCreated: created });
+    } catch (error) {
+      console.error('Error creating follow-up notifications:', error);
+      res.status(500).json({ message: "Failed to create notifications" });
+    }
+  });
+
+  // Complete task with outcome notes + optional next follow-up scheduling
+  app.patch('/api/crm/company-tasks/:id/complete-with-notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const taskId = parseInt(req.params.id);
+      const { outcomeType, outcomeNotes, callDuration, scheduleNext, nextTask } = req.body;
+
+      // Get existing task to know companyId
+      const [existingTask] = await db
+        .select()
+        .from(companyTasks)
+        .where(eq(companyTasks.id, taskId));
+
+      if (!existingTask) return res.status(404).json({ message: "Task not found" });
+
+      // Complete the task
+      const [completedTask] = await db
+        .update(companyTasks)
+        .set({
+          status: 'completed',
+          completedAt: new Date(),
+          completedBy: userId,
+          updatedAt: new Date(),
+        })
+        .where(eq(companyTasks.id, taskId))
+        .returning();
+
+      // Log activity in company_activities
+      await storage.createCompanyActivity({
+        companyId: existingTask.companyId,
+        activityType: existingTask.taskType === 'meeting' ? 'meeting' : 'call',
+        subject: existingTask.title,
+        description: outcomeNotes || null,
+        outcome: outcomeType || null,
+        duration: callDuration ? String(callDuration) : null,
+        createdBy: userId,
+        activityDate: new Date(),
+      });
+
+      // Create next task if requested
+      let createdNextTask = null;
+      if (scheduleNext && nextTask) {
+        const [newTask] = await db
+          .insert(companyTasks)
+          .values({
+            companyId: existingTask.companyId,
+            taskType: nextTask.taskType || 'call',
+            title: nextTask.title || `Follow-up with company`,
+            description: nextTask.description || null,
+            dueDate: nextTask.dueDate ? new Date(nextTask.dueDate) : null,
+            priority: nextTask.priority || 'medium',
+            status: 'pending',
+            assignedTo: nextTask.assignedTo || userId,
+            createdBy: userId,
+          })
+          .returning();
+        createdNextTask = newTask;
+
+        // Update company nextFollowUpDate
+        if (newTask.dueDate) {
+          await db
+            .update(companies)
+            .set({ nextFollowUpDate: new Date(newTask.dueDate) })
+            .where(eq(companies.id, existingTask.companyId));
+        }
+      }
+
+      res.json({ completedTask, nextTask: createdNextTask });
+    } catch (error) {
+      console.error('Error completing task with notes:', error);
+      res.status(500).json({ message: "Failed to complete task" });
     }
   });
 
