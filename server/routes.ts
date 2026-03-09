@@ -7106,14 +7106,22 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.post('/api/crm/companies/:id/tasks', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const taskData = {
-        ...req.body,
-        companyId: parseInt(req.params.id),
-        createdBy: userId,
-        assignedTo: req.body.assignedTo || userId,
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
-      };
-      const task = await storage.createCompanyTask(taskData);
+      const companyId = parseInt(req.params.id);
+      const rawDueDate = req.body.dueDate;
+      const parsedDueDate = rawDueDate ? new Date(rawDueDate) : null;
+      const taskType = req.body.taskType || 'call';
+      const title = req.body.title || '';
+      const description = req.body.description || null;
+      const priority = req.body.priority || 'medium';
+      const status = req.body.status || 'pending';
+      const assignedTo = req.body.assignedTo || userId;
+
+      const result = await db.execute(sql`
+        INSERT INTO company_tasks (company_id, task_type, title, description, due_date, priority, status, assigned_to, created_by)
+        VALUES (${companyId}, ${taskType}, ${title}, ${description}, ${parsedDueDate}, ${priority}, ${status}, ${assignedTo}, ${userId})
+        RETURNING *
+      `);
+      const task = (result as any).rows?.[0] ?? result[0];
       res.json(task);
     } catch (error: any) {
       console.error('Error creating company task:', error?.message || error);
