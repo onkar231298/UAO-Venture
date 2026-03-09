@@ -7111,6 +7111,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         companyId: parseInt(req.params.id),
         createdBy: userId,
         assignedTo: req.body.assignedTo || userId,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
       };
       const task = await storage.createCompanyTask(taskData);
       res.json(task);
