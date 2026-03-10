@@ -297,8 +297,8 @@ export default function LeadManagement() {
     enabled: !!user,
   });
 
-  // Check if user can assign leads (admin or manager)
-  const canAssignLeads = user && ['admin', 'super_admin', 'sales_manager'].includes(user.role);
+  // Check if user can assign leads (admin only)
+  const canAssignLeads = user && ['admin', 'super_admin'].includes(user.role);
 
   // Assignment mutation
   const assignLeadMutation = useMutation({

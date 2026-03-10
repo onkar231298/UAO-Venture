@@ -227,13 +227,9 @@ export default function SalesLeadManagement() {
     enabled: !!user,
   });
 
-  // Fetch sales reps for assignment functionality (not for filtering)
-  const { data: salesReps = [] } = useQuery<any[]>({
-    queryKey: ["/api/crm/sales-reps"],
-    enabled: !!user && isSalesManager,
-  });
-
-  const canAssignLeads = isSalesManager;
+  // Lead assignment is admin-only; sales portal never shows assignment
+  const salesReps: any[] = [];
+  const canAssignLeads = false;
 
   const assignLeadMutation = useMutation({
     mutationFn: async ({ leadId, assignedTo }: { leadId: number; assignedTo: string }) => {

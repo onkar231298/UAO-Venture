@@ -7883,8 +7883,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(401).json({ message: "User not found" });
       }
       
-      // Only admins and managers can assign leads
-      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      // Only admins can assign leads
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
       if (!isAdmin) {
         return res.status(403).json({ message: "Insufficient permissions to assign leads" });
       }
@@ -7954,8 +7954,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(401).json({ message: "User not found" });
       }
       
-      // Only admins and managers can bulk assign leads
-      const isAdmin = user.role === 'admin' || user.role === 'super_admin' || user.role === 'sales_manager';
+      // Only admins can bulk assign leads
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
       if (!isAdmin) {
         return res.status(403).json({ message: "Insufficient permissions to bulk assign leads" });
       }
