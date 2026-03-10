@@ -12744,10 +12744,18 @@ We look forward to hearing from you.`;
   // Quality Document Requests
   app.get('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
       const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
-      if (requesterId) filters.requesterId = requesterId;
+      // Sales roles only see their own requests; quality/admin see all
+      if (isSalesRole) {
+        filters.requesterId = userId;
+      } else {
+        if (requesterId) filters.requesterId = requesterId;
+      }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityDocumentRequests(filters);
       const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
@@ -12821,11 +12829,19 @@ We look forward to hearing from you.`;
   // Quality Testing Requests
   app.get('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
       const { status, requestType, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
       if (requestType) filters.requestType = requestType;
-      if (requesterId) filters.requesterId = requesterId;
+      // Sales roles only see their own requests; quality/admin see all
+      if (isSalesRole) {
+        filters.requesterId = userId;
+      } else {
+        if (requesterId) filters.requesterId = requesterId;
+      }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityTestingRequests(filters);
       const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
@@ -13183,10 +13199,18 @@ We look forward to hearing from you.`;
   // Customer Vendor Approvals
   app.get('/api/quality/customer-vendor-approvals', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
       const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
-      if (requesterId) filters.requesterId = requesterId;
+      // Sales roles only see their own requests; quality/admin see all
+      if (isSalesRole) {
+        filters.requesterId = userId;
+      } else {
+        if (requesterId) filters.requesterId = requesterId;
+      }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityCustomerVendorApprovals(filters);
       res.json(result);
