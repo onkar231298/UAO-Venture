@@ -6624,12 +6624,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const primaryContact = companyWithDetails.primaryContact;
       const productIds = productsList.map(p => p.productId);
       const productNames = productsList.map(p => p.productName).join(', ');
+      const truncatedProductName = productNames.length > 250
+        ? productNames.substring(0, 247) + '...'
+        : productNames;
       const firstProduct = productsList[0];
       
       const leadData = {
         companyId,
         contactPersonId: primaryContact?.id || null,
-        productName: productNames,
+        productName: truncatedProductName,
         productDescription: productsList.length > 1 ? `Multiple products: ${productNames}` : (productDescription || null),
         productsInterested: productIds,
         requiredQuantity: firstProduct.quantity,
