@@ -24,7 +24,12 @@ import {
   Cog,
   Thermometer,
   Gauge,
-  Zap
+  Zap,
+  Warehouse,
+  Lock,
+  Layers,
+  ScanLine,
+  BadgeCheck
 } from "lucide-react";
 
 import officeBuildingImg from "@assets/WhatsApp_Image_2026-02-10_at_10.45.28_AM_(2)_1770700935405.jpeg";
@@ -64,6 +69,7 @@ const sections = [
   { id: "packaging", label: "Packaging" },
   { id: "quality", label: "Quality Control" },
   { id: "organic", label: "Organic Division" },
+  { id: "eu-facility", label: "EU Facility" },
   { id: "logistics", label: "Export Logistics" },
   { id: "leadership", label: "Leadership" },
   { id: "value", label: "Why Bright Fame" },
@@ -1269,10 +1275,200 @@ export default function Presentation() {
         </div>
       </section>
 
+      <div className="pres-divider" style={{ background: `linear-gradient(90deg, transparent, ${COLORS.herbalGreen}, transparent)` }} />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          9. EU ORGANIC FACILITY & STORAGE CAPACITY
+         ═══════════════════════════════════════════════════════════════════ */}
+      <section id="eu-facility" className="py-16 sm:py-24 md:py-32 relative overflow-hidden" style={{ background: `linear-gradient(160deg, #1a3d28 0%, ${COLORS.herbalGreen} 40%, #1e4a30 100%)` }}>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-5" style={{ background: COLORS.turmericGold, filter: "blur(80px)" }} />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full opacity-5" style={{ background: COLORS.turmericGold, filter: "blur(60px)" }} />
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.5) 40px, rgba(255,255,255,0.5) 41px),
+                              repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.5) 40px, rgba(255,255,255,0.5) 41px)`,
+          }} />
+        </div>
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+          {/* Section Header */}
+          <Anim type="scale-up">
+            <div className="text-center mb-10 sm:mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 text-xs font-semibold tracking-widest uppercase" style={{ background: `${COLORS.turmericGold}20`, border: `1px solid ${COLORS.turmericGold}50`, color: COLORS.turmericGold }}>
+                <Warehouse className="w-3.5 h-3.5" />
+                EU Market Capability
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
+                EU Organic Facility &amp; Storage Capacity
+              </h2>
+              <p className="text-sm sm:text-base text-white/70 max-w-3xl mx-auto mb-4 sm:mb-6 leading-relaxed">
+                Our dedicated EU-organic infrastructure is purpose-built for the European market's stringent 
+                segregation, traceability, and zero-contamination standards. Every square foot is certified, 
+                monitored, and audited under EU Regulation 2018/848.
+              </p>
+              <div className="w-16 sm:w-20 h-1 mx-auto rounded-full pres-line-grow" style={{ background: COLORS.turmericGold }} />
+            </div>
+          </Anim>
+
+          {/* Photo Gallery */}
+          <Anim type="fade-up" delay={200}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-12 sm:mb-16">
+              {[
+                { img: cleanroomFacilityImg, caption: "EU-Compliant Clean Room", sub: "GMP-grade processing area" },
+                { img: aerialFactoryImg, caption: "Organic Facility Aerial View", sub: "Dedicated organic campus" },
+                { img: ffsMachineImg, caption: "FFS Packaging Line", sub: "EU-spec form-fill-seal" },
+                { img: buhlerMachineryImg, caption: "Bühler Processing System", sub: "Zero cross-contamination design" },
+              ].map((item, i) => (
+                <Anim key={i} type="bounce-in" delay={300 + i * 150}>
+                  <div className="rounded-xl overflow-hidden pres-card-hover-light group" style={{ border: `1px solid rgba(200,155,43,0.25)` }}>
+                    <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                      <img
+                        src={item.img}
+                        alt={item.caption}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 transition-opacity duration-300" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 50%)" }} />
+                      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
+                        <p className="text-white font-semibold text-[10px] sm:text-xs leading-tight">{item.caption}</p>
+                        <p className="text-white/60 text-[9px] sm:text-[10px] mt-0.5">{item.sub}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Anim>
+              ))}
+            </div>
+          </Anim>
+
+          {/* Storage Capacity Stat Cards */}
+          <Anim type="fade-down" delay={300}>
+            <div className="text-center mb-6 sm:mb-8">
+              <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Infrastructure at a Glance
+              </p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mt-1">EU Storage Capacity</h3>
+            </div>
+          </Anim>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-12 sm:mb-16">
+            {[
+              { icon: <Warehouse className="w-5 h-5 sm:w-6 sm:h-6" />, value: 15000, suffix: " sq ft", label: "Dedicated Organic Storage", sub: "EU-segregated area" },
+              { icon: <Package className="w-5 h-5 sm:w-6 sm:h-6" />, value: 500, suffix: " MT", label: "Warehouse Capacity", sub: "Total storage volume" },
+              { icon: <Thermometer className="w-5 h-5 sm:w-6 sm:h-6" />, value: 3, suffix: "", label: "Temp-Controlled Zones", sub: "Climate zones" },
+              { icon: <FlaskConical className="w-5 h-5 sm:w-6 sm:h-6" />, value: 120, suffix: "+", label: "EU Batches / Month", sub: "Certified output" },
+              { icon: <ScanLine className="w-5 h-5 sm:w-6 sm:h-6" />, value: 2500, suffix: " sq ft", label: "Clean Room Area", sub: "GMP-grade facility" },
+              { icon: <Layers className="w-5 h-5 sm:w-6 sm:h-6" />, value: 8, suffix: "", label: "Segregated Organic Bays", sub: "Dedicated storage bays" },
+            ].map((item, i) => (
+              <Anim key={i} type="scale-up" delay={200 + i * 100}>
+                <div className="p-3 sm:p-4 rounded-2xl text-center pres-card-hover-light flex flex-col items-center gap-2" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center" style={{ background: `${COLORS.turmericGold}20`, color: COLORS.turmericGold }}>
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-none">
+                      <CountUp target={item.value} suffix={item.suffix} />
+                    </p>
+                    <p className="text-[10px] sm:text-xs font-semibold text-white mt-1 leading-tight">{item.label}</p>
+                    <p className="text-[9px] sm:text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{item.sub}</p>
+                  </div>
+                </div>
+              </Anim>
+            ))}
+          </div>
+
+          {/* Infographic Capacity Meters */}
+          <Anim type="fade-down" delay={200}>
+            <div className="text-center mb-6 sm:mb-8">
+              <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Live Capacity Utilisation
+              </p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mt-1">Storage Utilisation Overview</h3>
+            </div>
+          </Anim>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
+            {[
+              { label: "Organic Stock vs Total Capacity", pct: 72, color: COLORS.turmericGold, desc: "72% of dedicated organic zones actively stocked — peak-season readiness maintained" },
+              { label: "EU-Ready Finished Goods", pct: 88, color: "#4ade80", desc: "88% of finished goods inventory is EU regulation-compliant and dispatch-ready" },
+              { label: "Clean Room Utilisation", pct: 65, color: "#60a5fa", desc: "65% utilisation with 35% headroom for rapid scale-up of EU private-label orders" },
+            ].map((meter, i) => {
+              const r = 52;
+              const circ = 2 * Math.PI * r;
+              return (
+                <Anim key={i} type="zoom-in" delay={300 + i * 200}>
+                  <div className="flex flex-col items-center p-6 sm:p-8 rounded-2xl pres-card-hover-light" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                    <div className="relative w-36 h-36 sm:w-44 sm:h-44 mb-4">
+                      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                        <circle
+                          cx="60" cy="60" r={r}
+                          fill="none"
+                          stroke="rgba(255,255,255,0.1)"
+                          strokeWidth="10"
+                        />
+                        <circle
+                          cx="60" cy="60" r={r}
+                          fill="none"
+                          stroke={meter.color}
+                          strokeWidth="10"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(meter.pct / 100) * circ} ${circ}`}
+                          style={{
+                            transition: "stroke-dasharray 1.8s cubic-bezier(0.16, 1, 0.3, 1)",
+                            filter: `drop-shadow(0 0 6px ${meter.color}80)`,
+                          }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl sm:text-4xl font-bold text-white leading-none">
+                          <CountUp target={meter.pct} suffix="%" />
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm sm:text-base font-bold text-white text-center mb-2">{meter.label}</p>
+                    <p className="text-[11px] sm:text-xs text-white/60 text-center leading-relaxed">{meter.desc}</p>
+                  </div>
+                </Anim>
+              );
+            })}
+          </div>
+
+          {/* EU Compliance Badge Strip */}
+          <Anim type="fade-up" delay={400}>
+            <div className="rounded-2xl p-5 sm:p-7" style={{ background: "rgba(200,155,43,0.08)", border: `1px solid ${COLORS.turmericGold}30` }}>
+              <div className="text-center mb-5 sm:mb-6">
+                <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase" style={{ color: COLORS.turmericGold }}>
+                  EU Compliance at a Glance
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+                {[
+                  { icon: <FileCheck className="w-4 h-4 sm:w-5 sm:h-5" />, label: "EU Reg 2018/848", sub: "Full compliance" },
+                  { icon: <Lock className="w-4 h-4 sm:w-5 sm:h-5" />, label: "Segregated Storage", sub: "Zero cross-contamination" },
+                  { icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5" />, label: "Clean Room Protocol", sub: "GMP-grade ops" },
+                  { icon: <ScanLine className="w-4 h-4 sm:w-5 sm:h-5" />, label: "Farm-to-Pack Traceability", sub: "Full batch history" },
+                  { icon: <BadgeCheck className="w-4 h-4 sm:w-5 sm:h-5" />, label: "Third-Party Audited", sub: "Annual verification" },
+                ].map((badge, i) => (
+                  <Anim key={i} type="bounce-in" delay={500 + i * 100}>
+                    <div className="flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl pres-card-hover-light" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${COLORS.turmericGold}20`, color: COLORS.turmericGold }}>
+                        {badge.icon}
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold text-xs sm:text-sm leading-tight">{badge.label}</p>
+                        <p className="text-white/50 text-[9px] sm:text-[10px]">{badge.sub}</p>
+                      </div>
+                    </div>
+                  </Anim>
+                ))}
+              </div>
+            </div>
+          </Anim>
+        </div>
+      </section>
+
       <div className="pres-divider" style={{ background: `linear-gradient(90deg, transparent, ${COLORS.turmericGold}, transparent)` }} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          9. EXPORT LOGISTICS
+          10. EXPORT LOGISTICS
          ═══════════════════════════════════════════════════════════════════ */}
       <section id="logistics" className="py-16 sm:py-24 md:py-32" style={{ background: "white" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
