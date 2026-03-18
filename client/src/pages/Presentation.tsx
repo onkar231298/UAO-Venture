@@ -69,7 +69,7 @@ const sections = [
   { id: "packaging", label: "Packaging" },
   { id: "quality", label: "Quality Control" },
   { id: "organic", label: "Organic Division" },
-  { id: "eu-facility", label: "EU Facility" },
+  { id: "eu-facility", label: "EU Organic Facility" },
   { id: "logistics", label: "Export Logistics" },
   { id: "leadership", label: "Leadership" },
   { id: "value", label: "Why Bright Fame" },
@@ -243,6 +243,47 @@ function CountUp({ target, suffix = "", prefix = "" }: { target: number; suffix?
   }, [isVisible, target]);
 
   return <span ref={ref}>{prefix}{count}{suffix}</span>;
+}
+
+function CircularMeter({ pct, color, label, desc }: { pct: number; color: string; label: string; desc: string }) {
+  const { ref, isVisible } = useInView(0.2);
+  const r = 52;
+  const circ = 2 * Math.PI * r;
+  const filled = isVisible ? (pct / 100) * circ : 0;
+
+  return (
+    <div ref={ref} className="flex flex-col items-center p-6 sm:p-8 rounded-2xl pres-card-hover-light" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
+      <div className="relative w-36 h-36 sm:w-44 sm:h-44 mb-4">
+        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+          <circle
+            cx="60" cy="60" r={r}
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="10"
+          />
+          <circle
+            cx="60" cy="60" r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={`${filled} ${circ}`}
+            style={{
+              transition: isVisible ? "stroke-dasharray 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s" : "none",
+              filter: `drop-shadow(0 0 6px ${color}80)`,
+            }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl sm:text-4xl font-bold text-white leading-none">
+            <CountUp target={pct} suffix="%" />
+          </span>
+        </div>
+      </div>
+      <p className="text-sm sm:text-base font-bold text-white text-center mb-2">{label}</p>
+      <p className="text-[11px] sm:text-xs text-white/60 text-center leading-relaxed">{desc}</p>
+    </div>
+  );
 }
 
 export default function Presentation() {
@@ -1311,33 +1352,30 @@ export default function Presentation() {
           </Anim>
 
           {/* Photo Gallery */}
-          <Anim type="fade-up" delay={200}>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-12 sm:mb-16">
-              {[
-                { img: cleanroomFacilityImg, caption: "EU-Compliant Clean Room", sub: "GMP-grade processing area" },
-                { img: aerialFactoryImg, caption: "Organic Facility Aerial View", sub: "Dedicated organic campus" },
-                { img: ffsMachineImg, caption: "FFS Packaging Line", sub: "EU-spec form-fill-seal" },
-                { img: buhlerMachineryImg, caption: "Bühler Processing System", sub: "Zero cross-contamination design" },
-              ].map((item, i) => (
-                <Anim key={i} type="bounce-in" delay={300 + i * 150}>
-                  <div className="rounded-xl overflow-hidden pres-card-hover-light group" style={{ border: `1px solid rgba(200,155,43,0.25)` }}>
-                    <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                      <img
-                        src={item.img}
-                        alt={item.caption}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 transition-opacity duration-300" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 50%)" }} />
-                      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
-                        <p className="text-white font-semibold text-[10px] sm:text-xs leading-tight">{item.caption}</p>
-                        <p className="text-white/60 text-[9px] sm:text-[10px] mt-0.5">{item.sub}</p>
-                      </div>
-                    </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-12 sm:mb-16">
+            {[
+              { img: cleanroomFacilityImg, caption: "EU-Compliant Clean Room", sub: "GMP-grade processing area" },
+              { img: aerialFactoryImg, caption: "Organic Facility Aerial View", sub: "Dedicated organic campus" },
+              { img: ffsMachineImg, caption: "FFS Packaging Line", sub: "EU-spec form-fill-seal" },
+              { img: buhlerMachineryImg, caption: "Bühler Processing System", sub: "Zero cross-contamination design" },
+            ].map((item, i) => (
+              <Anim key={i} type="bounce-in" delay={200 + i * 150}>
+                <div className="rounded-xl overflow-hidden pres-card-hover-light group flex flex-col" style={{ border: `1px solid rgba(200,155,43,0.25)` }}>
+                  <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                    <img
+                      src={item.img}
+                      alt={item.caption}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                   </div>
-                </Anim>
-              ))}
-            </div>
-          </Anim>
+                  <div className="px-2.5 sm:px-3 py-2 sm:py-2.5" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <p className="font-semibold text-[10px] sm:text-xs leading-tight" style={{ color: COLORS.turmericGold }}>{item.caption}</p>
+                    <p className="text-[9px] sm:text-[10px] mt-0.5 text-white/50">{item.sub}</p>
+                  </div>
+                </div>
+              </Anim>
+            ))}
+          </div>
 
           {/* Storage Capacity Stat Cards */}
           <Anim type="fade-down" delay={300}>
@@ -1386,49 +1424,9 @@ export default function Presentation() {
           </Anim>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
-            {[
-              { label: "Organic Stock vs Total Capacity", pct: 72, color: COLORS.turmericGold, desc: "72% of dedicated organic zones actively stocked — peak-season readiness maintained" },
-              { label: "EU-Ready Finished Goods", pct: 88, color: "#4ade80", desc: "88% of finished goods inventory is EU regulation-compliant and dispatch-ready" },
-              { label: "Clean Room Utilisation", pct: 65, color: "#60a5fa", desc: "65% utilisation with 35% headroom for rapid scale-up of EU private-label orders" },
-            ].map((meter, i) => {
-              const r = 52;
-              const circ = 2 * Math.PI * r;
-              return (
-                <Anim key={i} type="zoom-in" delay={300 + i * 200}>
-                  <div className="flex flex-col items-center p-6 sm:p-8 rounded-2xl pres-card-hover-light" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
-                    <div className="relative w-36 h-36 sm:w-44 sm:h-44 mb-4">
-                      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                        <circle
-                          cx="60" cy="60" r={r}
-                          fill="none"
-                          stroke="rgba(255,255,255,0.1)"
-                          strokeWidth="10"
-                        />
-                        <circle
-                          cx="60" cy="60" r={r}
-                          fill="none"
-                          stroke={meter.color}
-                          strokeWidth="10"
-                          strokeLinecap="round"
-                          strokeDasharray={`${(meter.pct / 100) * circ} ${circ}`}
-                          style={{
-                            transition: "stroke-dasharray 1.8s cubic-bezier(0.16, 1, 0.3, 1)",
-                            filter: `drop-shadow(0 0 6px ${meter.color}80)`,
-                          }}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl sm:text-4xl font-bold text-white leading-none">
-                          <CountUp target={meter.pct} suffix="%" />
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm sm:text-base font-bold text-white text-center mb-2">{meter.label}</p>
-                    <p className="text-[11px] sm:text-xs text-white/60 text-center leading-relaxed">{meter.desc}</p>
-                  </div>
-                </Anim>
-              );
-            })}
+            <CircularMeter pct={72} color={COLORS.turmericGold} label="Organic Stock vs Total Capacity" desc="72% of dedicated organic zones actively stocked — peak-season readiness maintained" />
+            <CircularMeter pct={88} color="#4ade80" label="EU-Ready Finished Goods" desc="88% of finished goods inventory is EU regulation-compliant and dispatch-ready" />
+            <CircularMeter pct={65} color="#60a5fa" label="Clean Room Utilisation" desc="65% utilisation with 35% headroom for rapid scale-up of EU private-label orders" />
           </div>
 
           {/* EU Compliance Badge Strip */}
