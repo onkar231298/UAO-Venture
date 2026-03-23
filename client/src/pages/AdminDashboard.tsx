@@ -522,18 +522,22 @@ export default function AdminDashboard() {
                       </div>
                       <div className="font-semibold text-sm text-gray-900 dark:text-white mb-0.5">{dept.label}</div>
                       <div className="text-xs text-muted-foreground mb-2">{dept.metric}</div>
-                      {dept.label === 'Sales & CRM' && dept.extra && dept.extra.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {dept.extra.slice(0, 3).map((s) => (
-                            <span
-                              key={s.stage}
-                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                            >
-                              {s.stage}: {s.count.toLocaleString()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      {dept.label === 'Sales & CRM' && (() => {
+                        const requiredStages = ['prospect', 'qualified', 'negotiation', 'won', 'lost'];
+                        const stageMap = new Map((dept.extra ?? []).map(s => [s.stage, s.count]));
+                        return (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {requiredStages.map((stage) => (
+                              <span
+                                key={stage}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                              >
+                                {stage}: {(stageMap.get(stage) ?? 0).toLocaleString()}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       <div className={`flex items-center text-xs font-medium ${dept.color}`}>
                         Go <ArrowRight className="h-3 w-3 ml-1" />
                       </div>
@@ -586,9 +590,14 @@ export default function AdminDashboard() {
                               <span className="text-xs text-muted-foreground">Inquiry: </span>
                               <span className="text-sm font-medium truncate">{inq.companyName || 'Unknown'}</span>
                             </div>
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 flex-shrink-0">
-                              {inq.status}
-                            </Badge>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                {inq.status}
+                              </Badge>
+                              <span className="text-xs text-gray-400">
+                                {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                              </span>
+                            </div>
                           </div>
                         ))}
                         {!(overview?.recentCompanies?.length) && !(overview?.recentInquiries?.length) && (

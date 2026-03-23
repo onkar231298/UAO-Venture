@@ -4340,6 +4340,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.get('/api/dashboard/overview', isAuthenticated, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const overview = await storage.getDashboardOverview();
       res.json(overview);
     } catch (error) {
