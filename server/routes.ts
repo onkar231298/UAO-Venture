@@ -4330,7 +4330,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+      if (!user || user.role === 'customer') {
         return res.status(403).json({ message: "Access denied" });
       }
       const stats = await storage.getDashboardStats(user.id);
