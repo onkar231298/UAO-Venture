@@ -67,8 +67,8 @@ export default function HomeStructuredData() {
         "@type": "QuantitativeValue",
         "value": "50-100"
       },
-      "vatID": "24AABCB1234A1ZX",
-      "taxID": "AABCB1234A",
+      "vatID": "24AQUPP6733F1ZF",
+      "taxID": "AQUPP6733F",
       "areaServed": {
         "@type": "Country",
         "name": ["United States", "India", "United Kingdom", "Germany", "France", "Canada", "Australia"]
