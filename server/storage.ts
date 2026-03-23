@@ -5454,6 +5454,7 @@ export class DatabaseStorage implements IStorage {
     dateTo?: string;
     assignedDateFrom?: string;
     assignedDateTo?: string;
+    country?: string;
     limit?: number;
     offset?: number;
     user?: { id: string; role: string };
@@ -5567,6 +5568,10 @@ export class DatabaseStorage implements IStorage {
       const toDate = new Date(filters.assignedDateTo);
       toDate.setHours(23, 59, 59, 999);
       conditions.push(lte(companies.assignedAt, toDate));
+    }
+
+    if (filters?.country) {
+      conditions.push(ilike(companies.addressCountry, `%${filters.country}%`));
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;

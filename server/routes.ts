@@ -5837,6 +5837,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         search, industryType, needsEnrichment, origin, status, 
         companyStage, priority, assignedTo, createdFrom,
         dateFrom, dateTo, assignedDateFrom, assignedDateTo,
+        country,
         limit = '1000', offset = '0' 
       } = req.query;
       
@@ -5870,6 +5871,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (dateTo) filters.dateTo = dateTo;
       if (assignedDateFrom) filters.assignedDateFrom = assignedDateFrom;
       if (assignedDateTo) filters.assignedDateTo = assignedDateTo;
+      if (country) filters.country = country as string;
       
       const result = await storage.getCompanies(filters);
       console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));
@@ -5877,6 +5879,24 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error('Error fetching companies:', error);
       res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  // Get distinct countries from companies (for filter dropdown)
+  app.get('/api/crm/companies/distinct-countries', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db
+        .selectDistinct({ country: companies.addressCountry })
+        .from(companies)
+        .where(isNotNull(companies.addressCountry))
+        .orderBy(companies.addressCountry);
+      const countries = rows
+        .map((r: any) => r.country as string)
+        .filter((c: string) => c && c.trim() !== '');
+      res.json(countries);
+    } catch (error) {
+      console.error('Error fetching distinct countries:', error);
+      res.status(500).json({ message: 'Failed to fetch countries' });
     }
   });
 

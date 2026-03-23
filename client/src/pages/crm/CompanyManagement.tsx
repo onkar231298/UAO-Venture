@@ -754,6 +754,7 @@ export default function CompanyManagement() {
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [assignedToFilter, setAssignedToFilter] = useState<string>("all");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
@@ -1067,6 +1068,16 @@ export default function CompanyManagement() {
     queryKey: ["/api/users/sales-reps"],
   });
 
+  // Fetch distinct countries for the country filter dropdown
+  const { data: distinctCountries = [] } = useQuery<string[]>({
+    queryKey: ["/api/crm/companies/distinct-countries"],
+    queryFn: async () => {
+      const response = await fetch("/api/crm/companies/distinct-countries", { credentials: "include" });
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
   // Fetch products for the Convert to Lead dropdown
   const { data: productsData } = useQuery<{ products: Array<{ id: number; productId: string; name: string; description: string | null }> }>({
     queryKey: ['/api/products', { limit: 1000 }],
@@ -1118,12 +1129,13 @@ export default function CompanyManagement() {
     if (stageFilter && stageFilter !== "all") params.append("companyStage", stageFilter);
     if (priorityFilter && priorityFilter !== "all") params.append("priority", priorityFilter);
     if (assignedToFilter && assignedToFilter !== "all") params.append("assignedTo", assignedToFilter);
+    if (countryFilter && countryFilter !== "all") params.append("country", countryFilter);
     if (dateFrom) params.append("dateFrom", dateFrom.toISOString());
     if (dateTo) params.append("dateTo", dateTo.toISOString());
     return `/api/crm/companies?${params.toString()}`;
   };
 
-  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, dateFrom?.toISOString(), dateTo?.toISOString()];
+  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, countryFilter, dateFrom?.toISOString(), dateTo?.toISOString()];
 
   const { data: companiesData, isLoading } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: companiesQueryKey,
@@ -1477,6 +1489,19 @@ export default function CompanyManagement() {
                   </SelectContent>
                 </Select>
               )}
+
+              {/* Country Filter */}
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger className="w-[160px]" data-testid="select-country-filter">
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries</SelectItem>
+                  {distinctCountries.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               
               {/* Date Range Filter */}
               <div className="flex items-center gap-2">
