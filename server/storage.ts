@@ -472,6 +472,19 @@ export interface IStorage {
     totalQuotations: number;
     totalOrders: number;
     revenueThisMonth: number;
+    totalCompanies: number;
+    activeCompanies: number;
+    totalLeads: number;
+    pendingInquiries: number;
+    pendingSampleRequests: number;
+    pendingQuotations: number;
+    totalStaff: number;
+    totalContacts: number;
+  }>;
+  getDashboardOverview(): Promise<{
+    recentCompanies: { id: number; companyName: string; createdAt: Date | null }[];
+    recentInquiries: { id: number; companyName: string | null; status: string | null; createdAt: Date | null }[];
+    stageDistribution: { stage: string; count: number }[];
   }>;
 
   // Product FAQ methods
