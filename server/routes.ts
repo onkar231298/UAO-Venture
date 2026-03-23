@@ -5893,7 +5893,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(403).json({ message: 'Only super admins can export company data' });
       }
 
-      // Sheet 1: Companies — use correlated subqueries to get user names without double join issues
+      // Sheet 1: Companies
       const companiesRows = await db
         .select({
           id: companies.id,
@@ -5921,9 +5921,6 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           origin: companies.origin,
           assignedToName: sql<string>`(SELECT COALESCE(first_name || ' ' || last_name, '') FROM users WHERE id = ${companies.assignedTo})`,
           createdByName: sql<string>`(SELECT COALESCE(first_name || ' ' || last_name, '') FROM users WHERE id = ${companies.createdBy})`,
-          allContactEmails: sql<string>`(SELECT STRING_AGG(email, ', ' ORDER BY is_primary DESC, id) FROM company_contacts WHERE company_id = ${companies.id} AND email IS NOT NULL AND email <> '')`,
-          allContactPhones: sql<string>`(SELECT STRING_AGG(CASE WHEN country_code IS NOT NULL AND country_code <> '' THEN country_code || phone ELSE phone END, ', ' ORDER BY is_primary DESC, id) FROM company_contacts WHERE company_id = ${companies.id} AND phone IS NOT NULL AND phone <> '')`,
-          allContactNames: sql<string>`(SELECT STRING_AGG(contact_name, ', ' ORDER BY is_primary DESC, id) FROM company_contacts WHERE company_id = ${companies.id} AND contact_name IS NOT NULL AND contact_name <> '')`,
           lastContactDate: companies.lastContactDate,
           nextFollowUpDate: companies.nextFollowUpDate,
           notes: companies.notes,
@@ -5932,6 +5929,26 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         })
         .from(companies)
         .orderBy(companies.id);
+
+      // Aggregate contacts per company using a raw GROUP BY query, then merge by company ID
+      const contactAggRows = await db.execute<{ company_id: number; all_names: string | null; all_emails: string | null; all_phones: string | null }>(sql`
+        SELECT
+          company_id,
+          STRING_AGG(contact_name, ', ' ORDER BY is_primary DESC, id) FILTER (WHERE contact_name IS NOT NULL AND contact_name <> '') AS all_names,
+          STRING_AGG(email, ', ' ORDER BY is_primary DESC, id) FILTER (WHERE email IS NOT NULL AND email <> '') AS all_emails,
+          STRING_AGG(
+            CASE WHEN country_code IS NOT NULL AND country_code <> '' THEN country_code || phone ELSE phone END,
+            ', ' ORDER BY is_primary DESC, id
+          ) FILTER (WHERE phone IS NOT NULL AND phone <> '') AS all_phones
+        FROM company_contacts
+        GROUP BY company_id
+      `);
+      const contactAggMap = new Map(
+        contactAggRows.rows.map((r) => [
+          r.company_id,
+          { allNames: r.all_names ?? '', allEmails: r.all_emails ?? '', allPhones: r.all_phones ?? '' },
+        ])
+      );
 
       // Sheet 2: Contacts
       const contactsRows = await db
@@ -5979,9 +5996,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         'Company Name': c.companyName ?? '',
         'Primary Email': c.primaryEmail ?? '',
         'Primary Phone': c.primaryPhone ?? '',
-        'All Contact Names': c.allContactNames ?? '',
-        'All Contact Emails': c.allContactEmails ?? '',
-        'All Contact Phones': c.allContactPhones ?? '',
+        'All Contact Names': contactAggMap.get(c.id)?.allNames ?? '',
+        'All Contact Emails': contactAggMap.get(c.id)?.allEmails ?? '',
+        'All Contact Phones': contactAggMap.get(c.id)?.allPhones ?? '',
         'GST Number': c.gstNumber ?? '',
         'Industry Type': c.industryType ?? '',
         'Company Size': c.companySize ?? '',
