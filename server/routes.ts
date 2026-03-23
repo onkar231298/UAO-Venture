@@ -5936,10 +5936,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           company_id,
           STRING_AGG(contact_name, ', ' ORDER BY is_primary DESC, id) FILTER (WHERE contact_name IS NOT NULL AND contact_name <> '') AS all_names,
           STRING_AGG(email, ', ' ORDER BY is_primary DESC, id) FILTER (WHERE email IS NOT NULL AND email <> '') AS all_emails,
-          STRING_AGG(
-            CASE WHEN country_code IS NOT NULL AND country_code <> '' THEN country_code || phone ELSE phone END,
-            ', ' ORDER BY is_primary DESC, id
-          ) FILTER (WHERE phone IS NOT NULL AND phone <> '') AS all_phones
+          STRING_AGG(COALESCE(NULLIF(phone, ''), NULLIF(whatsapp, '')), ', ' ORDER BY is_primary DESC, id) FILTER (WHERE COALESCE(NULLIF(phone, ''), NULLIF(whatsapp, '')) IS NOT NULL) AS all_phones
         FROM company_contacts
         GROUP BY company_id
       `);
