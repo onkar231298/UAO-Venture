@@ -5997,11 +5997,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         'Origin': c.origin ?? '',
         'Assigned To': c.assignedToName ?? '',
         'Created By': c.createdByName ?? '',
-        'Last Contact Date': c.lastContactDate ? new Date(c.lastContactDate).toLocaleDateString() : '',
-        'Next Follow-Up Date': c.nextFollowUpDate ? new Date(c.nextFollowUpDate).toLocaleDateString() : '',
+        'Last Contact Date': c.lastContactDate ? new Date(c.lastContactDate).toISOString().slice(0, 10) : '',
+        'Next Follow-Up Date': c.nextFollowUpDate ? new Date(c.nextFollowUpDate).toISOString().slice(0, 10) : '',
         'Notes': c.notes ?? '',
-        'Created At': c.createdAt ? new Date(c.createdAt).toLocaleString() : '',
-        'Updated At': c.updatedAt ? new Date(c.updatedAt).toLocaleString() : '',
+        'Created At': c.createdAt ? new Date(c.createdAt).toISOString() : '',
+        'Updated At': c.updatedAt ? new Date(c.updatedAt).toISOString() : '',
       })));
       xlsx.utils.book_append_sheet(wb, companiesSheet, 'Companies');
 
@@ -6017,7 +6017,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         'Role': c.role ?? '',
         'Is Primary': c.isPrimary ? 'Yes' : 'No',
         'Is Active': c.isActive ? 'Yes' : 'No',
-        'Created At': c.createdAt ? new Date(c.createdAt).toLocaleString() : '',
+        'Created At': c.createdAt ? new Date(c.createdAt).toISOString() : '',
       })));
       xlsx.utils.book_append_sheet(wb, contactsSheet, 'Contacts');
 
@@ -6031,7 +6031,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         'Is Pinned': n.isPinned ? 'Yes' : 'No',
         'Is Private': n.isPrivate ? 'Yes' : 'No',
         'Created By': n.createdByName ?? '',
-        'Created At': n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
+        'Created At': n.createdAt ? new Date(n.createdAt).toISOString() : '',
       })));
       xlsx.utils.book_append_sheet(wb, notesSheet, 'Notes');
 
