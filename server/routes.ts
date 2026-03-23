@@ -4329,8 +4329,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Dashboard analytics
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const stats = await storage.getDashboardStats(userId);
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const stats = await storage.getDashboardStats(user.id);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);

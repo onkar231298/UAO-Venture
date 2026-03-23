@@ -523,16 +523,23 @@ export default function AdminDashboard() {
                       <div className="font-semibold text-sm text-gray-900 dark:text-white mb-0.5">{dept.label}</div>
                       <div className="text-xs text-muted-foreground mb-2">{dept.metric}</div>
                       {dept.label === 'Sales & CRM' && (() => {
-                        const requiredStages = ['prospect', 'qualified', 'negotiation', 'won', 'lost'];
+                        const canonicalStages = [
+                          { id: 'new', label: 'New' },
+                          { id: 'contacted', label: 'Contacted' },
+                          { id: 'qualified', label: 'Qualified' },
+                          { id: 'active', label: 'Active' },
+                          { id: 'inactive', label: 'Inactive' },
+                          { id: 'churned', label: 'Churned' },
+                        ];
                         const stageMap = new Map((dept.extra ?? []).map(s => [s.stage, s.count]));
                         return (
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {requiredStages.map((stage) => (
+                            {canonicalStages.map(({ id, label }) => (
                               <span
-                                key={stage}
+                                key={id}
                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                               >
-                                {stage}: {(stageMap.get(stage) ?? 0).toLocaleString()}
+                                {label}: {(stageMap.get(id) ?? 0).toLocaleString()}
                               </span>
                             ))}
                           </div>
