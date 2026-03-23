@@ -5971,7 +5971,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Build xlsx workbook
       const wb = xlsx.utils.book_new();
 
-      const companiesSheet = xlsx.utils.json_to_sheet(companiesRows.map((c: any) => ({
+      const companiesSheet = xlsx.utils.json_to_sheet(companiesRows.map((c) => ({
         'Company ID': c.id,
         'Company Name': c.companyName ?? '',
         'Primary Email': c.primaryEmail ?? '',
@@ -6005,7 +6005,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       })));
       xlsx.utils.book_append_sheet(wb, companiesSheet, 'Companies');
 
-      const contactsSheet = xlsx.utils.json_to_sheet(contactsRows.map((c: any) => ({
+      const contactsSheet = xlsx.utils.json_to_sheet(contactsRows.map((c) => ({
         'Company ID': c.companyId,
         'Company Name': c.companyName ?? '',
         'Contact Name': c.contactName ?? '',
@@ -6021,7 +6021,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       })));
       xlsx.utils.book_append_sheet(wb, contactsSheet, 'Contacts');
 
-      const notesSheet = xlsx.utils.json_to_sheet(notesRows.map((n: any) => ({
+      const notesSheet = xlsx.utils.json_to_sheet(notesRows.map((n) => ({
         'Company ID': n.companyId,
         'Company Name': n.companyName ?? '',
         'Note Type': n.noteType ?? '',
