@@ -60,7 +60,7 @@ export async function setupAuth(app: Express) {
     async (email, password, done) => {
       try {
         // Check for admin credentials
-        if (email === 'admin@bfiorganic.com' && password === 'onkar231298') {
+        if (email === 'admin@bfiorganic.com' && password === 'Change%^&*()') {
           const adminUser = await storage.getUser('admin_001');
           if (adminUser) {
             const userSession = {
