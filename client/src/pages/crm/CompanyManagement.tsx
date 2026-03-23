@@ -49,7 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle, ArrowRight, ChevronDown, Send, Eye, Reply, CheckCircle, PhoneMissed, Clock, User, ChevronsUpDown, Check } from "lucide-react";
+import { Building2, Search, Plus, MapPin, Globe, Users, X, Phone, Mail, RefreshCw, Filter, UserPlus, MoreVertical, List, Kanban, Upload, Calendar, History, CheckSquare, StickyNote, Pin, Trash2, Edit2, AlertTriangle, ArrowRight, ChevronDown, Send, Eye, Reply, CheckCircle, PhoneMissed, Clock, User, ChevronsUpDown, Check, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -760,6 +760,7 @@ export default function CompanyManagement() {
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
@@ -1300,6 +1301,30 @@ export default function CompanyManagement() {
     }, 500);
   };
 
+  // Download all companies as Excel (super admin only)
+  const handleDownloadAll = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch("/api/crm/companies/export", { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const today = new Date().toISOString().slice(0, 10);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `companies_export_${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Download started", description: "The Excel file is being downloaded." });
+    } catch {
+      toast({ title: "Download failed", description: "Could not export company data.", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1354,6 +1379,22 @@ export default function CompanyManagement() {
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
           
+          {isSuperAdmin && (
+            <Button
+              variant="outline"
+              onClick={handleDownloadAll}
+              disabled={isDownloading}
+              data-testid="button-download-all-companies"
+            >
+              {isDownloading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isDownloading ? "Exporting..." : "Download All"}
+            </Button>
+          )}
+
           <Button 
             variant="outline"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}

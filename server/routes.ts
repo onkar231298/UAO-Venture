@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
+import xlsx from "xlsx";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import hrRoutes from "./hrRoutes";
 import { 
@@ -5879,6 +5880,169 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error('Error fetching companies:', error);
       res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  // Export all companies as multi-sheet Excel file (super_admin only)
+  app.get('/api/crm/companies/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const userRole = user?.role || '';
+      if (userRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Only super admins can export company data' });
+      }
+
+      // Sheet 1: Companies — use correlated subqueries to get user names without double join issues
+      const companiesRows = await db
+        .select({
+          id: companies.id,
+          companyName: companies.companyName,
+          primaryEmail: companies.primaryEmail,
+          primaryPhone: companies.primaryPhone,
+          gstNumber: companies.gstNumber,
+          industryType: companies.industryType,
+          companySize: companies.companySize,
+          annualTurnover: companies.annualTurnover,
+          website: companies.website,
+          addressStreet: companies.addressStreet,
+          addressCity: companies.addressCity,
+          addressState: companies.addressState,
+          addressCountry: companies.addressCountry,
+          addressZip: companies.addressZip,
+          factoryAddressStreet: companies.factoryAddressStreet,
+          factoryAddressCity: companies.factoryAddressCity,
+          factoryAddressState: companies.factoryAddressState,
+          factoryAddressCountry: companies.factoryAddressCountry,
+          factoryAddressZip: companies.factoryAddressZip,
+          status: companies.status,
+          companyStage: companies.companyStage,
+          priority: companies.priority,
+          origin: companies.origin,
+          assignedToName: sql<string>`(SELECT COALESCE(first_name || ' ' || last_name, '') FROM users WHERE id = ${companies.assignedTo})`,
+          createdByName: sql<string>`(SELECT COALESCE(first_name || ' ' || last_name, '') FROM users WHERE id = ${companies.createdBy})`,
+          lastContactDate: companies.lastContactDate,
+          nextFollowUpDate: companies.nextFollowUpDate,
+          notes: companies.notes,
+          createdAt: companies.createdAt,
+          updatedAt: companies.updatedAt,
+        })
+        .from(companies)
+        .orderBy(companies.id);
+
+      // Sheet 2: Contacts
+      const contactsRows = await db
+        .select({
+          companyId: companyContacts.companyId,
+          companyName: companies.companyName,
+          contactName: companyContacts.contactName,
+          designation: companyContacts.designation,
+          email: companyContacts.email,
+          countryCode: companyContacts.countryCode,
+          phone: companyContacts.phone,
+          whatsapp: companyContacts.whatsapp,
+          role: companyContacts.role,
+          isPrimary: companyContacts.isPrimary,
+          isActive: companyContacts.isActive,
+          createdAt: companyContacts.createdAt,
+        })
+        .from(companyContacts)
+        .leftJoin(companies, eq(companyContacts.companyId, companies.id))
+        .orderBy(companyContacts.companyId, companyContacts.id);
+
+      // Sheet 3: Notes
+      const notesRows = await db
+        .select({
+          companyId: companyNotes.companyId,
+          companyName: companies.companyName,
+          noteType: companyNotes.noteType,
+          title: companyNotes.title,
+          content: companyNotes.content,
+          priority: companyNotes.priority,
+          isPinned: companyNotes.isPinned,
+          isPrivate: companyNotes.isPrivate,
+          createdByName: sql<string>`(SELECT COALESCE(first_name || ' ' || last_name, '') FROM users WHERE id = ${companyNotes.createdBy})`,
+          createdAt: companyNotes.createdAt,
+        })
+        .from(companyNotes)
+        .leftJoin(companies, eq(companyNotes.companyId, companies.id))
+        .orderBy(companyNotes.companyId, companyNotes.id);
+
+      // Build xlsx workbook
+      const wb = xlsx.utils.book_new();
+
+      const companiesSheet = xlsx.utils.json_to_sheet(companiesRows.map((c: any) => ({
+        'Company ID': c.id,
+        'Company Name': c.companyName ?? '',
+        'Primary Email': c.primaryEmail ?? '',
+        'Primary Phone': c.primaryPhone ?? '',
+        'GST Number': c.gstNumber ?? '',
+        'Industry Type': c.industryType ?? '',
+        'Company Size': c.companySize ?? '',
+        'Annual Turnover': c.annualTurnover ?? '',
+        'Website': c.website ?? '',
+        'Address Street': c.addressStreet ?? '',
+        'Address City': c.addressCity ?? '',
+        'Address State': c.addressState ?? '',
+        'Address Country': c.addressCountry ?? '',
+        'Address ZIP': c.addressZip ?? '',
+        'Factory Street': c.factoryAddressStreet ?? '',
+        'Factory City': c.factoryAddressCity ?? '',
+        'Factory State': c.factoryAddressState ?? '',
+        'Factory Country': c.factoryAddressCountry ?? '',
+        'Factory ZIP': c.factoryAddressZip ?? '',
+        'Status': c.status ?? '',
+        'Stage': c.companyStage ?? '',
+        'Priority': c.priority ?? '',
+        'Origin': c.origin ?? '',
+        'Assigned To': c.assignedToName ?? '',
+        'Created By': c.createdByName ?? '',
+        'Last Contact Date': c.lastContactDate ? new Date(c.lastContactDate).toLocaleDateString() : '',
+        'Next Follow-Up Date': c.nextFollowUpDate ? new Date(c.nextFollowUpDate).toLocaleDateString() : '',
+        'Notes': c.notes ?? '',
+        'Created At': c.createdAt ? new Date(c.createdAt).toLocaleString() : '',
+        'Updated At': c.updatedAt ? new Date(c.updatedAt).toLocaleString() : '',
+      })));
+      xlsx.utils.book_append_sheet(wb, companiesSheet, 'Companies');
+
+      const contactsSheet = xlsx.utils.json_to_sheet(contactsRows.map((c: any) => ({
+        'Company ID': c.companyId,
+        'Company Name': c.companyName ?? '',
+        'Contact Name': c.contactName ?? '',
+        'Designation': c.designation ?? '',
+        'Email': c.email ?? '',
+        'Country Code': c.countryCode ?? '',
+        'Phone': c.phone ?? '',
+        'WhatsApp': c.whatsapp ?? '',
+        'Role': c.role ?? '',
+        'Is Primary': c.isPrimary ? 'Yes' : 'No',
+        'Is Active': c.isActive ? 'Yes' : 'No',
+        'Created At': c.createdAt ? new Date(c.createdAt).toLocaleString() : '',
+      })));
+      xlsx.utils.book_append_sheet(wb, contactsSheet, 'Contacts');
+
+      const notesSheet = xlsx.utils.json_to_sheet(notesRows.map((n: any) => ({
+        'Company ID': n.companyId,
+        'Company Name': n.companyName ?? '',
+        'Note Type': n.noteType ?? '',
+        'Title': n.title ?? '',
+        'Content': n.content ?? '',
+        'Priority': n.priority ?? '',
+        'Is Pinned': n.isPinned ? 'Yes' : 'No',
+        'Is Private': n.isPrivate ? 'Yes' : 'No',
+        'Created By': n.createdByName ?? '',
+        'Created At': n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
+      })));
+      xlsx.utils.book_append_sheet(wb, notesSheet, 'Notes');
+
+      const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      const today = new Date().toISOString().slice(0, 10);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="companies_export_${today}.xlsx"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error exporting companies:', error);
+      res.status(500).json({ message: 'Failed to export company data' });
     }
   });
 
