@@ -522,29 +522,18 @@ export default function AdminDashboard() {
                       </div>
                       <div className="font-semibold text-sm text-gray-900 dark:text-white mb-0.5">{dept.label}</div>
                       <div className="text-xs text-muted-foreground mb-2">{dept.metric}</div>
-                      {dept.label === 'Sales & CRM' && (() => {
-                        const canonicalStages = [
-                          { id: 'new', label: 'New' },
-                          { id: 'contacted', label: 'Contacted' },
-                          { id: 'qualified', label: 'Qualified' },
-                          { id: 'active', label: 'Active' },
-                          { id: 'inactive', label: 'Inactive' },
-                          { id: 'churned', label: 'Churned' },
-                        ];
-                        const stageMap = new Map((dept.extra ?? []).map(s => [s.stage, s.count]));
-                        return (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {canonicalStages.map(({ id, label }) => (
-                              <span
-                                key={id}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                              >
-                                {label}: {(stageMap.get(id) ?? 0).toLocaleString()}
-                              </span>
-                            ))}
-                          </div>
-                        );
-                      })()}
+                      {dept.label === 'Sales & CRM' && (dept.extra ?? []).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {(dept.extra ?? []).map(({ stage, count }) => (
+                            <span
+                              key={stage}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                            >
+                              {stage.charAt(0).toUpperCase() + stage.slice(1)}: {count.toLocaleString()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className={`flex items-center text-xs font-medium ${dept.color}`}>
                         Go <ArrowRight className="h-3 w-3 ml-1" />
                       </div>
