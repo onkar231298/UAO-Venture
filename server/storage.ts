@@ -4167,12 +4167,29 @@ export class DatabaseStorage implements IStorage {
     totalQuotations: number;
     totalOrders: number;
     revenueThisMonth: number;
+    totalCompanies: number;
+    activeCompanies: number;
+    totalLeads: number;
+    pendingInquiries: number;
+    pendingSampleRequests: number;
+    pendingQuotations: number;
+    totalStaff: number;
+    totalContacts: number;
   }> {
     const [totalProductsCount] = await db.select({ count: count() }).from(products);
     const [activeProductsCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
     const [inquiriesCount] = await db.select({ count: count() }).from(inquiries);
     const [quotationsCount] = await db.select({ count: count() }).from(quotations);
     const [ordersCount] = await db.select({ count: count() }).from(salesOrders);
+    const [totalCompaniesCount] = await db.select({ count: count() }).from(companies);
+    const [activeCompaniesCount] = await db.select({ count: count() }).from(companies).where(eq(companies.status, 'active'));
+    const [totalLeadsCount] = await db.select({ count: count() }).from(leads);
+    const [pendingInquiriesCount] = await db.select({ count: count() }).from(inquiries).where(eq(inquiries.status, 'pending'));
+    const [pendingSampleRequestsCount] = await db.select({ count: count() }).from(sampleRequests).where(eq(sampleRequests.status, 'pending'));
+    const [pendingQuotationsCount] = await db.select({ count: count() }).from(quotations).where(eq(quotations.status, 'draft'));
+    const staffResult = await db.execute(sql`SELECT COUNT(*) FROM users WHERE role != 'customer'`);
+    const totalStaffCount = parseInt((staffResult.rows[0] as any).count, 10);
+    const [totalContactsCount] = await db.select({ count: count() }).from(companyContacts);
 
     return {
       totalProducts: totalProductsCount.count,
@@ -4180,8 +4197,45 @@ export class DatabaseStorage implements IStorage {
       totalInquiries: inquiriesCount.count,
       totalQuotations: quotationsCount.count,
       totalOrders: ordersCount.count,
-      revenueThisMonth: 0, // TODO: Calculate from actual data
+      revenueThisMonth: 0,
+      totalCompanies: totalCompaniesCount.count,
+      activeCompanies: activeCompaniesCount.count,
+      totalLeads: totalLeadsCount.count,
+      pendingInquiries: pendingInquiriesCount.count,
+      pendingSampleRequests: pendingSampleRequestsCount.count,
+      pendingQuotations: pendingQuotationsCount.count,
+      totalStaff: totalStaffCount,
+      totalContacts: totalContactsCount.count,
     };
+  }
+
+  async getDashboardOverview(): Promise<{
+    recentCompanies: { id: number; companyName: string; createdAt: Date | null }[];
+    recentInquiries: { id: number; companyName: string | null; status: string | null; createdAt: Date | null }[];
+    stageDistribution: { stage: string; count: number }[];
+  }> {
+    const recentCompanies = await db
+      .select({ id: companies.id, companyName: companies.companyName, createdAt: companies.createdAt })
+      .from(companies)
+      .orderBy(desc(companies.createdAt))
+      .limit(7);
+
+    const recentInquiries = await db
+      .select({ id: inquiries.id, companyName: inquiries.companyName, status: inquiries.status, createdAt: inquiries.createdAt })
+      .from(inquiries)
+      .orderBy(desc(inquiries.createdAt))
+      .limit(5);
+
+    const stageResult = await db.execute(sql`
+      SELECT company_stage AS stage, COUNT(*)::int AS count
+      FROM companies
+      WHERE company_stage IS NOT NULL
+      GROUP BY company_stage
+      ORDER BY count DESC
+    `);
+    const stageDistribution = (stageResult.rows as any[]).map(r => ({ stage: r.stage, count: r.count }));
+
+    return { recentCompanies, recentInquiries, stageDistribution };
   }
 
   // Bulk upload products from CSV/Excel

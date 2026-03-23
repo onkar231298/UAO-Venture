@@ -4338,6 +4338,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  app.get('/api/dashboard/overview', isAuthenticated, async (req: any, res) => {
+    try {
+      const overview = await storage.getDashboardOverview();
+      res.json(overview);
+    } catch (error) {
+      console.error("Error fetching dashboard overview:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard overview" });
+    }
+  });
+
   // AWS S3 Image Upload Routes
 
   // Upload hero slider media (images with WebP processing and videos)

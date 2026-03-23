@@ -43,7 +43,14 @@ import {
   Clock,
   ClipboardCheck,
   Menu,
-  X
+  X,
+  Briefcase,
+  FlaskConical,
+  UserCheck,
+  ArrowRight,
+  AlertCircle,
+  CheckSquare,
+  MessageSquare
 } from "lucide-react";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
@@ -124,6 +131,15 @@ export default function AdminDashboard() {
       }
       return failureCount < 3;
     }
+  });
+
+  const { data: overview, isLoading: overviewLoading } = useQuery<{
+    recentCompanies: { id: number; companyName: string; createdAt: string }[];
+    recentInquiries: { id: number; companyName: string | null; status: string | null; createdAt: string }[];
+    stageDistribution: { stage: string; count: number }[];
+  }>({
+    queryKey: ["/api/dashboard/overview"],
+    enabled: !!adminUser,
   });
 
   if (authLoading) {
@@ -335,110 +351,308 @@ export default function AdminDashboard() {
             <>
               {/* Welcome Section */}
               <div className="mb-6 sm:mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   Welcome back, {(adminUser as any).firstName || 'Admin'}!
                 </h2>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                  Manage your B2B organic ingredients platform from this dashboard.
+                  Here's a live snapshot of your B2B organic ingredients platform.
                 </p>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
-                <Card className="p-4 sm:p-6">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="p-0 pt-2">
-                    <div className="text-2xl font-bold">{(stats as any)?.totalProducts || 0}</div>
-                    <p className="text-xs text-muted-foreground">Active in catalog</p>
-                  </CardContent>
+              {/* KPI Row 1 — CRM & Sales */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <Card className="p-4 sm:p-5 border-l-4 border-l-blue-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Companies</span>
+                    <Building2 className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.totalCompanies ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {((stats as any)?.activeCompanies ?? 0).toLocaleString()} active
+                  </p>
                 </Card>
 
-                <Card className="p-4 sm:p-6">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="p-0 pt-2">
-                    <div className="text-2xl font-bold">{(stats as any)?.totalInquiries || 0}</div>
-                    <p className="text-xs text-muted-foreground">Customer inquiries</p>
-                  </CardContent>
+                <Card className="p-4 sm:p-5 border-l-4 border-l-purple-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contacts</span>
+                    <Users className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.totalContacts ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Across all companies</p>
                 </Card>
 
-                <Card className="p-4 sm:p-6">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="p-0 pt-2">
-                    <div className="text-2xl font-bold">{(stats as any)?.totalUsers || 0}</div>
-                    <p className="text-xs text-muted-foreground">Registered users</p>
-                  </CardContent>
+                <Card className="p-4 sm:p-5 border-l-4 border-l-orange-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active Leads</span>
+                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.totalLeads ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">In pipeline</p>
                 </Card>
 
-                <Card className="p-4 sm:p-6">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                    <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="p-0 pt-2">
-                    <div className="text-2xl font-bold">$0</div>
-                    <p className="text-xs text-muted-foreground">This month</p>
-                  </CardContent>
+                <Card className="p-4 sm:p-5 border-l-4 border-l-green-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Staff</span>
+                    <UserCheck className="h-4 w-4 text-green-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.totalStaff ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Internal users</p>
                 </Card>
               </div>
 
-              {/* Recent Activities and Quick Actions */}
+              {/* KPI Row 2 — Operations */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <Card className="p-4 sm:p-5 border-l-4 border-l-emerald-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Products</span>
+                    <Package className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.totalProducts ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {((stats as any)?.activeProducts ?? 0).toLocaleString()} active
+                  </p>
+                </Card>
+
+                <Card className="p-4 sm:p-5 border-l-4 border-l-yellow-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pending Inquiries</span>
+                    <MessageSquare className="h-4 w-4 text-yellow-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.pendingInquiries ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Awaiting response</p>
+                </Card>
+
+                <Card className="p-4 sm:p-5 border-l-4 border-l-pink-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sample Requests</span>
+                    <CheckSquare className="h-4 w-4 text-pink-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.pendingSampleRequests ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Pending dispatch</p>
+                </Card>
+
+                <Card className="p-4 sm:p-5 border-l-4 border-l-red-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quotations</span>
+                    <FileText className="h-4 w-4 text-red-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {statsLoading ? '—' : ((stats as any)?.pendingQuotations ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Draft / pending</p>
+                </Card>
+              </div>
+
+              {/* Department Quick-Launch */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Departments</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {[
+                    {
+                      label: 'Sales & CRM',
+                      icon: <Briefcase className="h-5 w-5" />,
+                      color: 'text-blue-600',
+                      bg: 'bg-blue-50 dark:bg-blue-950',
+                      section: 'company-management',
+                      metric: `${((stats as any)?.totalCompanies ?? 0).toLocaleString()} companies`,
+                      extra: overview?.stageDistribution,
+                    },
+                    {
+                      label: 'Products',
+                      icon: <Package className="h-5 w-5" />,
+                      color: 'text-emerald-600',
+                      bg: 'bg-emerald-50 dark:bg-emerald-950',
+                      section: 'website',
+                      metric: `${((stats as any)?.activeProducts ?? 0).toLocaleString()} active`,
+                    },
+                    {
+                      label: 'Quality',
+                      icon: <FlaskConical className="h-5 w-5" />,
+                      color: 'text-purple-600',
+                      bg: 'bg-purple-50 dark:bg-purple-950',
+                      section: 'quality-management',
+                      metric: 'Batches & QC',
+                    },
+                    {
+                      label: 'HR',
+                      icon: <UserCheck className="h-5 w-5" />,
+                      color: 'text-orange-600',
+                      bg: 'bg-orange-50 dark:bg-orange-950',
+                      section: 'hr-management',
+                      metric: `${((stats as any)?.totalStaff ?? 0)} staff`,
+                    },
+                    {
+                      label: 'Website',
+                      icon: <Globe className="h-5 w-5" />,
+                      color: 'text-teal-600',
+                      bg: 'bg-teal-50 dark:bg-teal-950',
+                      section: 'website',
+                      metric: 'Content & SEO',
+                    },
+                    {
+                      label: 'Users',
+                      icon: <Users className="h-5 w-5" />,
+                      color: 'text-rose-600',
+                      bg: 'bg-rose-50 dark:bg-rose-950',
+                      section: 'users',
+                      metric: `${((stats as any)?.totalStaff ?? 0)} staff accounts`,
+                    },
+                  ].map((dept) => (
+                    <Card
+                      key={dept.label}
+                      className="p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => setActiveSection(dept.section)}
+                    >
+                      <div className={`inline-flex p-2 rounded-lg ${dept.bg} ${dept.color} mb-2`}>
+                        {dept.icon}
+                      </div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white mb-0.5">{dept.label}</div>
+                      <div className="text-xs text-muted-foreground mb-2">{dept.metric}</div>
+                      {dept.label === 'Sales & CRM' && dept.extra && dept.extra.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {dept.extra.slice(0, 3).map((s) => (
+                            <span
+                              key={s.stage}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                            >
+                              {s.stage}: {s.count.toLocaleString()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className={`flex items-center text-xs font-medium ${dept.color}`}>
+                        Go <ArrowRight className="h-3 w-3 ml-1" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent Activity Feed + Quick Actions */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Recent Activity */}
                 <Card className="p-4 sm:p-6">
                   <CardHeader className="p-0 pb-4">
-                    <CardTitle>Recent Activities</CardTitle>
-                    <CardDescription>Latest platform activities and updates</CardDescription>
+                    <CardTitle className="text-base">Recent Activity</CardTitle>
+                    <CardDescription>Latest companies and inquiries</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4 p-0">
-                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
-                      <div className="text-sm flex-1 min-w-0">
-                        <span className="font-medium">New product added:</span> Organic Turmeric Extract
+                  <CardContent className="p-0">
+                    {overviewLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} className="h-9 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                        ))}
                       </div>
-                      <span className="text-xs text-gray-500 flex-shrink-0">2h ago</span>
-                    </div>
-                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
-                      <div className="text-sm flex-1 min-w-0">
-                        <span className="font-medium">Customer inquiry:</span> Bulk pricing request
+                    ) : (
+                      <div className="space-y-1">
+                        {/* Recent companies */}
+                        {(overview?.recentCompanies ?? []).slice(0, 5).map((c) => (
+                          <div
+                            key={`company-${c.id}`}
+                            className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                          >
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">New company: </span>
+                              <span className="text-sm font-medium truncate">{c.companyName}</span>
+                            </div>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                            </span>
+                          </div>
+                        ))}
+                        {/* Recent inquiries */}
+                        {(overview?.recentInquiries ?? []).map((inq) => (
+                          <div
+                            key={`inq-${inq.id}`}
+                            className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                          >
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">Inquiry: </span>
+                              <span className="text-sm font-medium truncate">{inq.companyName || 'Unknown'}</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 flex-shrink-0">
+                              {inq.status}
+                            </Badge>
+                          </div>
+                        ))}
+                        {!(overview?.recentCompanies?.length) && !(overview?.recentInquiries?.length) && (
+                          <p className="text-sm text-muted-foreground text-center py-4">No recent activity yet.</p>
+                        )}
                       </div>
-                      <span className="text-xs text-gray-500 flex-shrink-0">4h ago</span>
-                    </div>
-                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-1 sm:mt-0 flex-shrink-0"></div>
-                      <div className="text-sm flex-1 min-w-0">
-                        <span className="font-medium">Stock update:</span> Ashwagandha Powder restocked
-                      </div>
-                      <span className="text-xs text-gray-500 flex-shrink-0">1d ago</span>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
+                {/* Quick Actions */}
                 <Card className="p-4 sm:p-6">
                   <CardHeader className="p-0 pb-4">
-                    <CardTitle>Quick Actions</CardTitle>
-                    <CardDescription>Frequently used administrative functions</CardDescription>
+                    <CardTitle className="text-base">Quick Actions</CardTitle>
+                    <CardDescription>Jump to frequently used sections</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3 p-0">
-                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('website')}
+                    >
                       <Plus className="mr-2 h-4 w-4" />
-                      Add New Product
+                      Add / Manage Products
                     </Button>
-                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('users')}
+                    >
                       <Users className="mr-2 h-4 w-4" />
                       Manage Users
                     </Button>
-                    <Button className="w-full justify-start min-h-[44px]" variant="outline">
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('enquiry-sample')}
+                    >
                       <FileText className="mr-2 h-4 w-4" />
                       View Inquiries
+                    </Button>
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('company-management')}
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Company Management
+                    </Button>
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('quality-management')}
+                    >
+                      <FlaskConical className="mr-2 h-4 w-4" />
+                      Quality Management
+                    </Button>
+                    <Button
+                      className="w-full justify-start min-h-[44px]"
+                      variant="outline"
+                      onClick={() => setActiveSection('hr-management')}
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      HR Management
                     </Button>
                   </CardContent>
                 </Card>
