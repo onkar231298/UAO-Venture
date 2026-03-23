@@ -191,7 +191,7 @@ import {
   type InsertBatchMaterialConsumption,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
+import { eq, like, ilike, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -5571,7 +5571,8 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters?.country) {
-      conditions.push(ilike(companies.addressCountry, `%${filters.country}%`));
+      // Normalize both sides so INITCAP-displayed values match messy DB data (e.g. "BULGARIA." → "Bulgaria")
+      conditions.push(sql`LOWER(BTRIM(${companies.addressCountry})) = LOWER(BTRIM(${filters.country}))`);
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;

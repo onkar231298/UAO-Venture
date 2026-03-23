@@ -68,7 +68,7 @@ import {
   qualityTestingRequests,
   users,
 } from "@shared/schema";
-import { eq, and, ne, isNotNull, desc, inArray, sql, gte, lte, lt } from "drizzle-orm";
+import { eq, and, or, ne, isNotNull, desc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -5882,17 +5882,51 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Get distinct countries from companies (for filter dropdown)
+  // Get distinct countries from companies (for filter dropdown) — RBAC-aware
   app.get('/api/crm/companies/distinct-countries', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const userRole = user?.role || 'sales_executive';
+
+      const adminRoles = ['admin', 'super_admin', 'sales_manager'];
+      const isAdminRole = adminRoles.includes(userRole);
+      const crmIntakeRoles = ['admin', 'super_admin', 'sales_manager', 'sales_executive', 'sales'];
+      const canSeeWebsite = crmIntakeRoles.includes(userRole);
+
+      const conditions: any[] = [
+        isNotNull(companies.addressCountry),
+        sql`BTRIM(${companies.addressCountry}) != ''`,
+      ];
+
+      if (!isAdminRole) {
+        if (canSeeWebsite) {
+          conditions.push(
+            or(
+              eq(companies.assignedTo, userId),
+              eq(companies.createdBy, userId),
+              eq(companies.origin, 'website')
+            )
+          );
+        } else {
+          conditions.push(
+            or(
+              eq(companies.assignedTo, userId),
+              eq(companies.createdBy, userId)
+            )
+          );
+        }
+      }
+
+      // Normalise: trim + title-case, deduplicate case-insensitively via GROUP BY
       const rows = await db
-        .selectDistinct({ country: companies.addressCountry })
+        .select({ country: sql<string>`INITCAP(LOWER(BTRIM(${companies.addressCountry})))` })
         .from(companies)
-        .where(isNotNull(companies.addressCountry))
-        .orderBy(companies.addressCountry);
-      const countries = rows
-        .map((r: any) => r.country as string)
-        .filter((c: string) => c && c.trim() !== '');
+        .where(and(...conditions))
+        .groupBy(sql`LOWER(BTRIM(${companies.addressCountry}))`)
+        .orderBy(sql`LOWER(BTRIM(${companies.addressCountry}))`);
+
+      const countries = rows.map((r: any) => r.country as string).filter(Boolean);
       res.json(countries);
     } catch (error) {
       console.error('Error fetching distinct countries:', error);
