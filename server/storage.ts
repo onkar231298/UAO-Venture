@@ -807,6 +807,7 @@ export interface IStorage {
   // Security & Activity Monitoring
   createUserLoginLog(data: InsertUserLoginLog): Promise<UserLoginLog>;
   getRecentLoginCities(userId: string, limit?: number): Promise<string[]>;
+  getRecentLoginFromDifferentIp(userId: string, currentIp: string, sinceMinutes: number): Promise<UserLoginLog | null>;
   getLoginLogs(filters?: {
     userId?: string;
     dateFrom?: Date;
@@ -7833,6 +7834,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(userLoginLogs.timestamp))
       .limit(limit);
     return results.map(r => r.city!).filter(Boolean);
+  }
+
+  async getRecentLoginFromDifferentIp(userId: string, currentIp: string, sinceMinutes: number): Promise<UserLoginLog | null> {
+    const since = new Date(Date.now() - sinceMinutes * 60 * 1000);
+    const results = await db
+      .select()
+      .from(userLoginLogs)
+      .where(
+        and(
+          eq(userLoginLogs.userId, userId),
+          ne(userLoginLogs.ipAddress, currentIp),
+          gte(userLoginLogs.timestamp, since)
+        )
+      )
+      .orderBy(desc(userLoginLogs.timestamp))
+      .limit(1);
+    return results[0] ?? null;
   }
 
   async getLoginLogs(filters?: {

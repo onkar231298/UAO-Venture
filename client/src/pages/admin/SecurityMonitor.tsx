@@ -122,6 +122,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   off_hours_login: "Off-Hours Login",
   new_location_login: "New Location Login",
   rapid_company_access: "Rapid Data Access",
+  concurrent_login: "Multi-Device Login",
 };
 
 const ENTITY_ICONS: Record<string, any> = {

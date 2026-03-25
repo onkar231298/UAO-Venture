@@ -216,6 +216,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Create alerts for flagged conditions
             const staffName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || userId;
             const securityLink = '/admin/dashboard?section=security-monitor';
+
+            // Check for concurrent login from a different device/IP (within last 8 hours)
+            const concurrentLogin = await storage.getRecentLoginFromDifferentIp(userId, ip, 480);
+            if (concurrentLogin) {
+              await storage.createUserSecurityAlert({
+                userId,
+                alertType: 'concurrent_login',
+                severity: 'high',
+                description: `Account logged in from multiple devices simultaneously. Previous device IP: ${concurrentLogin.ipAddress || 'unknown'}${concurrentLogin.city ? ` (${concurrentLogin.city})` : ''}. New device IP: ${ip}${city ? ` (${city})` : ''}`,
+                isResolved: false,
+              });
+              await storage.createNotificationsForRole({
+                type: 'security_alert',
+                title: '🔴 Multi-Device Login Detected',
+                message: `${staffName} is logged in from multiple devices — previous IP: ${concurrentLogin.ipAddress || 'unknown'}, new IP: ${ip}`,
+                entityType: 'security',
+                link: securityLink,
+                isRead: false,
+              }, ['admin', 'super_admin']);
+            }
+
             if (isOffHours) {
               await storage.createUserSecurityAlert({
                 userId,
