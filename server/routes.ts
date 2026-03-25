@@ -258,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createUserSecurityAlert({
                 userId,
                 alertType: 'new_location_login',
-                severity: 'medium',
+                severity: 'high',
                 description: `First login detected from ${city}, ${country || ''}. Previous logins from: ${recentCities.slice(0,3).join(', ') || 'N/A'}`,
                 isResolved: false,
               });
