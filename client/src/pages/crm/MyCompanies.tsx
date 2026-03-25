@@ -1044,6 +1044,7 @@ export default function MyCompanies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
   const [assignedDateFilter, setAssignedDateFilter] = useState<'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'custom'>('all');
   const [customDateFrom, setCustomDateFrom] = useState<string>('');
   const [customDateTo, setCustomDateTo] = useState<string>('');
@@ -1405,12 +1406,20 @@ export default function MyCompanies() {
     updateStageMutation.mutate({ companyId, stage: newStage });
   };
 
+  const distinctCountries = useMemo(() => {
+    const countries = myCompanies
+      .map(c => c.addressCountry?.trim())
+      .filter((c): c is string => !!c && c.length > 0);
+    return [...new Set(countries)].sort();
+  }, [myCompanies]);
+
   const filteredCompanies = myCompanies.filter((company) => {
     const matchesSearch = company.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (company.primaryEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesPriority = priorityFilter === "all" || company.priority === priorityFilter;
     const matchesStage = stageFilter === "all" || company.companyStage === stageFilter;
-    return matchesSearch && matchesPriority && matchesStage;
+    const matchesCountry = countryFilter === "all" || (company.addressCountry?.trim().toLowerCase() === countryFilter.toLowerCase());
+    return matchesSearch && matchesPriority && matchesStage && matchesCountry;
   });
 
   const getCompaniesByStage = (stageId: string) => {
@@ -1545,6 +1554,18 @@ export default function MyCompanies() {
             <SelectItem value="all">All Stages</SelectItem>
             {COMPANY_STAGES.map(stage => (
               <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={countryFilter} onValueChange={setCountryFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-country">
+            <SelectValue placeholder="All Countries" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Countries</SelectItem>
+            {distinctCountries.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>
