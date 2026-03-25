@@ -186,6 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId).catch(() => null);
       if (!user || user.role === 'customer') return;
       const ip = extractClientIp(req);
+      console.log(`[ActivityLog] ${userId} (${user.role}) → ${entityType} #${entityId} "${entityName}" from ${ip}`);
       await storage.createUserAccessEvent({ userId, entityType, entityId, entityName, ipAddress: ip, page: `/${entityType}/${entityId}` });
       const recentCount = await storage.getRecentAccessEventCount(userId, entityType, 5);
       if (recentCount > 0 && recentCount % 9 === 0) { // alert at 9, 18, 27...
@@ -6357,11 +6358,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Client-side view tracking endpoint — supplementary tracking for leads/contacts
+  // Client-side view tracking endpoint — tracks all entity types including companies
   app.post('/api/crm/track-view', isAuthenticated, async (req: any, res) => {
     res.json({ ok: true });
     const { entityType, entityId, entityName } = req.body;
-    if (!entityType || !entityId || entityType === 'company') return; // companies tracked server-side via contacts endpoint
+    if (!entityType || !entityId) return;
     logStaffAccess(req, String(entityType), Number(entityId), String(entityName || ''));
   });
 
