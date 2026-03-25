@@ -3033,3 +3033,76 @@ export const insertQualityAttachmentSchema = createInsertSchema(qualityAttachmen
 });
 export type QualityAttachment = typeof qualityAttachments.$inferSelect;
 export type InsertQualityAttachment = z.infer<typeof insertQualityAttachmentSchema>;
+
+// ─── Security & Activity Monitoring ───────────────────────────────────────────
+
+export const userLoginLogs = pgTable("user_login_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  city: varchar("city", { length: 100 }),
+  country: varchar("country", { length: 100 }),
+  userAgent: text("user_agent"),
+  isOffHours: boolean("is_off_hours").default(false),
+  isNewLocation: boolean("is_new_location").default(false),
+}, (table) => [
+  index("idx_login_log_user").on(table.userId),
+  index("idx_login_log_ts").on(table.timestamp),
+  index("idx_login_log_user_ts").on(table.userId, table.timestamp),
+]);
+
+export const insertUserLoginLogSchema = createInsertSchema(userLoginLogs).omit({
+  id: true,
+  timestamp: true,
+});
+export type UserLoginLog = typeof userLoginLogs.$inferSelect;
+export type InsertUserLoginLog = z.infer<typeof insertUserLoginLogSchema>;
+
+export const userAccessEvents = pgTable("user_access_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  entityType: varchar("entity_type", { length: 30 }).notNull(),
+  entityId: integer("entity_id"),
+  entityName: varchar("entity_name", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  page: varchar("page", { length: 255 }),
+}, (table) => [
+  index("idx_access_event_user").on(table.userId),
+  index("idx_access_event_ts").on(table.timestamp),
+  index("idx_access_event_user_ts").on(table.userId, table.timestamp),
+  index("idx_access_event_entity").on(table.entityType, table.entityId),
+]);
+
+export const insertUserAccessEventSchema = createInsertSchema(userAccessEvents).omit({
+  id: true,
+  timestamp: true,
+});
+export type UserAccessEvent = typeof userAccessEvents.$inferSelect;
+export type InsertUserAccessEvent = z.infer<typeof insertUserAccessEventSchema>;
+
+export const userSecurityAlerts = pgTable("user_security_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  alertType: varchar("alert_type", { length: 50 }).notNull(),
+  severity: varchar("severity", { length: 20 }).notNull().default("low"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isResolved: boolean("is_resolved").default(false),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+}, (table) => [
+  index("idx_sec_alert_user").on(table.userId),
+  index("idx_sec_alert_resolved").on(table.isResolved),
+  index("idx_sec_alert_ts").on(table.createdAt),
+]);
+
+export const insertUserSecurityAlertSchema = createInsertSchema(userSecurityAlerts).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+  resolvedBy: true,
+});
+export type UserSecurityAlert = typeof userSecurityAlerts.$inferSelect;
+export type InsertUserSecurityAlert = z.infer<typeof insertUserSecurityAlertSchema>;
