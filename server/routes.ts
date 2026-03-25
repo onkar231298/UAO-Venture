@@ -178,6 +178,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return req.headers['x-real-ip'] as string || req.ip || '127.0.0.1';
   }
 
+  // Helper: log staff access events and check for rapid browsing alerts
+  async function logStaffAccess(req: any, entityType: string, entityId: number, entityName: string) {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return;
+      const user = await storage.getUser(userId).catch(() => null);
+      if (!user || user.role === 'customer') return;
+      const ip = extractClientIp(req);
+      await storage.createUserAccessEvent({ userId, entityType, entityId, entityName, ipAddress: ip, page: `/${entityType}/${entityId}` });
+      const recentCount = await storage.getRecentAccessEventCount(userId, entityType, 5);
+      if (recentCount > 0 && recentCount % 9 === 0) { // alert at 9, 18, 27...
+        const staffName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || userId;
+        await storage.createUserSecurityAlert({ userId, alertType: 'rapid_company_access', severity: 'high', description: `Opened ${recentCount} ${entityType} records in 5 minutes`, isResolved: false });
+        await storage.createNotificationsForRole({ type: 'security_alert', title: '🔴 Rapid Data Access Alert', message: `${staffName} opened ${recentCount} ${entityType} records in 5 minutes`, entityType: 'security', link: '/admin/dashboard?section=security-monitor', isRead: false }, ['admin', 'super_admin']);
+      }
+    } catch (e) {
+      console.error('[logStaffAccess] error:', e);
+    }
+  }
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -6337,50 +6357,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Client-side view tracking endpoint — fires when a user opens a company/contact/lead panel
+  // Client-side view tracking endpoint — supplementary tracking for leads/contacts
   app.post('/api/crm/track-view', isAuthenticated, async (req: any, res) => {
-    res.json({ ok: true }); // respond immediately, don't block the UI
-    const userId = req.user?.claims?.sub;
-    if (!userId) return;
+    res.json({ ok: true });
     const { entityType, entityId, entityName } = req.body;
-    if (!entityType || !entityId) return;
-    setImmediate(async () => {
-      try {
-        const user = await storage.getUser(userId).catch(() => null);
-        if (!user || user.role === 'customer') return; // only track staff
-        const ip = extractClientIp(req);
-        await storage.createUserAccessEvent({
-          userId,
-          entityType: String(entityType),
-          entityId: Number(entityId),
-          entityName: String(entityName || ''),
-          ipAddress: ip,
-          page: `/${entityType}/${entityId}`,
-        });
-        // Rapid-browsing check: ≥ 9 of same entity type in 5 minutes → high alert
-        const recentCount = await storage.getRecentAccessEventCount(userId, String(entityType), 5);
-        if (recentCount >= 9) {
-          const staffName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || userId;
-          await storage.createUserSecurityAlert({
-            userId,
-            alertType: 'rapid_company_access',
-            severity: 'high',
-            description: `Opened ${recentCount} ${entityType} records in 5 minutes — possible bulk data access`,
-            isResolved: false,
-          });
-          await storage.createNotificationsForRole({
-            type: 'security_alert',
-            title: '🔴 Rapid Data Access Alert',
-            message: `${staffName} opened ${recentCount} ${entityType} records in 5 minutes — possible bulk data theft`,
-            entityType: 'security',
-            link: '/admin/dashboard?section=security-monitor',
-            isRead: false,
-          }, ['admin', 'super_admin']);
-        }
-      } catch (e) {
-        console.error('Track-view error:', e);
-      }
-    });
+    if (!entityType || !entityId || entityType === 'company') return; // companies tracked server-side via contacts endpoint
+    logStaffAccess(req, String(entityType), Number(entityId), String(entityName || ''));
   });
 
   app.get('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
@@ -6582,14 +6564,21 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   // Get company contacts
   app.get('/api/crm/companies/:id/contacts', isAuthenticated, async (req: any, res) => {
+    const companyId = parseInt(req.params.id);
     try {
-      const companyId = parseInt(req.params.id);
       const contacts = await storage.getCompanyContacts(companyId);
       res.json(contacts);
     } catch (error) {
       console.error('Error fetching company contacts:', error);
       res.status(500).json({ message: "Failed to fetch contacts" });
+      return;
     }
+    // Log access event after response is sent — safe to run async after try-catch
+    storage.getCompany(companyId).then(company => {
+      logStaffAccess(req, 'company', companyId, company?.companyName || `Company ${companyId}`);
+    }).catch(() => {
+      logStaffAccess(req, 'company', companyId, `Company ${companyId}`);
+    });
   });
 
   // Bulk Company Import - Template Download
