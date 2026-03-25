@@ -208,7 +208,7 @@ export default function SecurityMonitor() {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("PUT", `/api/admin/security/alerts/${id}/resolve`),
+    mutationFn: (id: number) => apiRequest(`/api/admin/security/alerts/${id}/resolve`, { method: "PUT" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/security/alerts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/security/user-summary"] });
@@ -393,9 +393,9 @@ export default function SecurityMonitor() {
                 Clear dates
               </Button>
             )}
-            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => loginQuery.refetch()}>
-              <RefreshCcw className="h-3.5 w-3.5 mr-1" />
-              Refresh
+            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => loginQuery.refetch()} disabled={loginQuery.isFetching}>
+              <RefreshCcw className={`h-3.5 w-3.5 mr-1 ${loginQuery.isFetching ? "animate-spin" : ""}`} />
+              {loginQuery.isFetching ? "Refreshing…" : "Refresh"}
             </Button>
             <span className="text-xs text-muted-foreground self-end">{loginQuery.data?.total ?? 0} records</span>
           </div>
@@ -545,9 +545,9 @@ export default function SecurityMonitor() {
                 Clear dates
               </Button>
             )}
-            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => activityQuery.refetch()}>
-              <RefreshCcw className="h-3.5 w-3.5 mr-1" />
-              Refresh
+            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => activityQuery.refetch()} disabled={activityQuery.isFetching}>
+              <RefreshCcw className={`h-3.5 w-3.5 mr-1 ${activityQuery.isFetching ? "animate-spin" : ""}`} />
+              {activityQuery.isFetching ? "Refreshing…" : "Refresh"}
             </Button>
             <span className="text-xs text-muted-foreground self-end">{activityQuery.data?.total ?? 0} records</span>
           </div>
@@ -567,7 +567,15 @@ export default function SecurityMonitor() {
                 {activityQuery.isLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
                 ) : (activityQuery.data?.logs || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No activity records for the selected filters</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10">
+                      <Activity className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground font-medium">No activity records yet</p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                        This feed records when staff members open company, lead, or contact detail pages in the CRM. Activity will appear here as the team uses the system.
+                      </p>
+                    </TableCell>
+                  </TableRow>
                 ) : (activityQuery.data?.logs || []).map(log => {
                   const Icon = ENTITY_ICONS[log.entityType] || Activity;
                   const link = entityLink(log);
@@ -668,9 +676,9 @@ export default function SecurityMonitor() {
                 <SelectItem value="true">Resolved</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => alertsQuery.refetch()}>
-              <RefreshCcw className="h-3.5 w-3.5 mr-1" />
-              Refresh
+            <Button variant="outline" size="sm" onClick={() => alertsQuery.refetch()} disabled={alertsQuery.isFetching}>
+              <RefreshCcw className={`h-3.5 w-3.5 mr-1 ${alertsQuery.isFetching ? "animate-spin" : ""}`} />
+              {alertsQuery.isFetching ? "Refreshing…" : "Refresh"}
             </Button>
             <span className="text-xs text-muted-foreground ml-auto">
               {alertsQuery.data?.total ?? 0} alerts
