@@ -760,6 +760,15 @@ export default function CompanyManagement() {
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const trackView = (entityType: string, entityId: number, entityName: string) => {
+    fetch('/api/crm/track-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType, entityId, entityName }),
+      credentials: 'include',
+    }).catch(() => {});
+  };
   const [isDownloading, setIsDownloading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
@@ -1848,6 +1857,7 @@ export default function CompanyManagement() {
                                   onClick={() => {
                                     setSelectedCompany(company);
                                     setViewDetailsOpen(true);
+                                    trackView('company', company.id, company.companyName);
                                   }}
                                   data-testid={`button-view-company-${company.id}`}
                                 >

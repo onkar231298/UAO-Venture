@@ -1078,6 +1078,21 @@ export default function MyCompanies() {
   const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
   const [bulkSelectedIds, setBulkSelectedIds] = useState<number[]>([]);
 
+  // Track company/contact view for Security Monitor activity feed
+  const trackView = (entityType: string, entityId: number, entityName: string) => {
+    fetch('/api/crm/track-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entityType, entityId, entityName }),
+      credentials: 'include',
+    }).catch(() => {});
+  };
+
+  const handleOpenCompany = (company: Company) => {
+    setSelectedCompany(company);
+    trackView('company', company.id, company.companyName);
+  };
+
   // Edit company form
   const editForm = useForm<z.infer<typeof companyEditSchema>>({
     resolver: zodResolver(companyEditSchema),
@@ -1688,7 +1703,7 @@ export default function MyCompanies() {
                                 <DraggableCompanyCard
                                   key={company.id}
                                   company={company}
-                                  onClick={setSelectedCompany}
+                                  onClick={handleOpenCompany}
                                 />
                               ))
                             )}
@@ -1753,7 +1768,7 @@ export default function MyCompanies() {
                       <tr 
                         key={company.id} 
                         className="border-b hover:bg-gray-50 cursor-pointer"
-                        onClick={() => setSelectedCompany(company)}
+                        onClick={() => handleOpenCompany(company)}
                         data-testid={`row-company-${company.id}`}
                       >
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
@@ -1805,7 +1820,7 @@ export default function MyCompanies() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedCompany(company);
+                              handleOpenCompany(company);
                             }}
                           >
                             View

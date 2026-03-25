@@ -6337,6 +6337,52 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Client-side view tracking endpoint — fires when a user opens a company/contact/lead panel
+  app.post('/api/crm/track-view', isAuthenticated, async (req: any, res) => {
+    res.json({ ok: true }); // respond immediately, don't block the UI
+    const userId = req.user?.claims?.sub;
+    if (!userId) return;
+    const { entityType, entityId, entityName } = req.body;
+    if (!entityType || !entityId) return;
+    setImmediate(async () => {
+      try {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (!user || user.role === 'customer') return; // only track staff
+        const ip = extractClientIp(req);
+        await storage.createUserAccessEvent({
+          userId,
+          entityType: String(entityType),
+          entityId: Number(entityId),
+          entityName: String(entityName || ''),
+          ipAddress: ip,
+          page: `/${entityType}/${entityId}`,
+        });
+        // Rapid-browsing check: ≥ 9 of same entity type in 5 minutes → high alert
+        const recentCount = await storage.getRecentAccessEventCount(userId, String(entityType), 5);
+        if (recentCount >= 9) {
+          const staffName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || userId;
+          await storage.createUserSecurityAlert({
+            userId,
+            alertType: 'rapid_company_access',
+            severity: 'high',
+            description: `Opened ${recentCount} ${entityType} records in 5 minutes — possible bulk data access`,
+            isResolved: false,
+          });
+          await storage.createNotificationsForRole({
+            type: 'security_alert',
+            title: '🔴 Rapid Data Access Alert',
+            message: `${staffName} opened ${recentCount} ${entityType} records in 5 minutes — possible bulk data theft`,
+            entityType: 'security',
+            link: '/admin/dashboard?section=security-monitor',
+            isRead: false,
+          }, ['admin', 'super_admin']);
+        }
+      } catch (e) {
+        console.error('Track-view error:', e);
+      }
+    });
+  });
+
   app.get('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
       const company = await storage.getCompany(parseInt(req.params.id));
