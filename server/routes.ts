@@ -7939,6 +7939,39 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  app.get('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const contact = await storage.getCompanyContact(parseInt(req.params.id));
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      res.json(contact);
+
+      // Log contact detail access for staff users (non-blocking)
+      const userId = req.user?.claims?.sub;
+      if (userId) {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (user?.userType === 'staff') {
+          setImmediate(async () => {
+            try {
+              await storage.createUserAccessEvent({
+                userId,
+                entityType: 'contact',
+                entityId: contact.id,
+                entityName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || `Contact #${contact.id}`,
+                ipAddress: extractClientIp(req),
+                page: `/crm/contacts/${contact.id}`,
+              });
+            } catch (e) { /* ignore */ }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching contact:', error);
+      res.status(500).json({ message: "Failed to fetch contact" });
+    }
+  });
+
   app.patch('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const contact = await storage.updateCompanyContact(parseInt(req.params.id), req.body);

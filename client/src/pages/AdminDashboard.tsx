@@ -67,6 +67,18 @@ export default function AdminDashboard() {
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  const { data: securityAlertsCount } = useQuery<{ alerts: any[]; total: number }>({
+    queryKey: ["/api/admin/security/alerts", { isResolved: "false" }],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/security/alerts?isResolved=false&limit=1");
+      if (!res.ok) return { alerts: [], total: 0 };
+      return res.json();
+    },
+    staleTime: 30000,
+    enabled: !!(user && ((user as any).role === 'admin' || (user as any).role === 'super_admin')),
+  });
+  const unresolvedSecurityAlerts = securityAlertsCount?.total ?? 0;
+
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated || !user) {
@@ -286,7 +298,22 @@ export default function AdminDashboard() {
                 {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
                 {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
                 {navButton('quality-management', 'Quality Management', ClipboardCheck, activeSection === 'quality-management', () => setActiveSection('quality-management'))}
-                {navButton('security-monitor', 'Security & Activity', ShieldAlert, activeSection === 'security-monitor', () => setActiveSection('security-monitor'))}
+                <button
+                  onClick={() => handleNavClick('security-monitor', () => setActiveSection('security-monitor'))}
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeSection === 'security-monitor'
+                      ? "bg-blue-100 text-blue-900 border border-blue-200"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <ShieldAlert className="mr-3 flex-shrink-0 h-5 w-5" />
+                  <span className="truncate flex-1 text-left">Security &amp; Activity</span>
+                  {unresolvedSecurityAlerts > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-[10px] shrink-0 flex items-center justify-center">
+                      {unresolvedSecurityAlerts > 99 ? "99+" : unresolvedSecurityAlerts}
+                    </Badge>
+                  )}
+                </button>
               </div>
             </div>
 
