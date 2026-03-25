@@ -158,6 +158,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Security monitoring helpers ──────────────────────────────────────────
+  async function resolveIpLocation(ip: string): Promise<{ city: string | null; country: string | null }> {
+    try {
+      if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
+        return { city: null, country: null };
+      }
+      const res = await fetch(`http://ip-api.com/json/${ip}?fields=city,country,status`);
+      if (!res.ok) return { city: null, country: null };
+      const data = await res.json() as { status?: string; city?: string; country?: string };
+      if (data.status === 'success') return { city: data.city || null, country: data.country || null };
+    } catch { /* ignore */ }
+    return { city: null, country: null };
+  }
+
+  function extractClientIp(req: any): string {
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    if (forwarded) return forwarded.split(',')[0].trim();
+    return req.headers['x-real-ip'] as string || req.ip || '127.0.0.1';
+  }
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -167,6 +187,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       res.json(user);
+
+      // Log login event asynchronously for staff users only (non-blocking)
+      if (user.userType === 'staff' && !req.session?.loginLogged) {
+        req.session.loginLogged = true;
+        setImmediate(async () => {
+          try {
+            const ip = extractClientIp(req);
+            const userAgent = req.headers['user-agent'] || null;
+            const { city, country } = await resolveIpLocation(ip);
+            const now = new Date();
+            const hour = now.getHours();
+            const isOffHours = hour < 7 || hour >= 21;
+
+            const recentCities = await storage.getRecentLoginCities(userId, 5);
+            const isNewLocation = !!(city && recentCities.length > 0 && !recentCities.includes(city));
+
+            await storage.createUserLoginLog({
+              userId,
+              ipAddress: ip,
+              city,
+              country,
+              userAgent,
+              isOffHours,
+              isNewLocation,
+            });
+
+            // Create alerts for flagged conditions
+            if (isOffHours) {
+              await storage.createUserSecurityAlert({
+                userId,
+                alertType: 'off_hours_login',
+                severity: 'low',
+                description: `Login at ${now.toLocaleTimeString()} (${hour}:${String(now.getMinutes()).padStart(2,'0')}) from ${city || ip}`,
+                isResolved: false,
+              });
+            }
+            if (isNewLocation && city) {
+              await storage.createUserSecurityAlert({
+                userId,
+                alertType: 'new_location_login',
+                severity: 'medium',
+                description: `First login detected from ${city}, ${country || ''}. Previous logins from: ${recentCities.slice(0,3).join(', ') || 'N/A'}`,
+                isResolved: false,
+              });
+            }
+          } catch (e) {
+            console.error('Login log error:', e);
+          }
+        });
+      }
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -4355,6 +4425,99 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // ─── Admin Security & Activity Monitor ────────────────────────────────────
+
+  function requireAdmin(req: any, res: any, user: any): boolean {
+    if (!user || !['super_admin', 'admin'].includes(user.role || '')) {
+      res.status(403).json({ message: "Admin access required" });
+      return false;
+    }
+    return true;
+  }
+
+  app.get('/api/admin/security/login-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!requireAdmin(req, res, user)) return;
+      const { userId, dateFrom, dateTo, flaggedOnly, limit = '50', offset = '0' } = req.query;
+      const result = await storage.getLoginLogs({
+        userId: userId as string | undefined,
+        dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+        dateTo: dateTo ? new Date(dateTo as string) : undefined,
+        flaggedOnly: flaggedOnly === 'true',
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching login logs:', error);
+      res.status(500).json({ message: 'Failed to fetch login logs' });
+    }
+  });
+
+  app.get('/api/admin/security/activity-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!requireAdmin(req, res, user)) return;
+      const { userId, entityType, dateFrom, dateTo, limit = '50', offset = '0' } = req.query;
+      const result = await storage.getAccessLogs({
+        userId: userId as string | undefined,
+        entityType: entityType as string | undefined,
+        dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+        dateTo: dateTo ? new Date(dateTo as string) : undefined,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+      res.status(500).json({ message: 'Failed to fetch activity logs' });
+    }
+  });
+
+  app.get('/api/admin/security/alerts', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!requireAdmin(req, res, user)) return;
+      const { userId, isResolved, severity, limit = '50', offset = '0' } = req.query;
+      const result = await storage.getSecurityAlerts({
+        userId: userId as string | undefined,
+        isResolved: isResolved === 'true' ? true : isResolved === 'false' ? false : undefined,
+        severity: severity as string | undefined,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching security alerts:', error);
+      res.status(500).json({ message: 'Failed to fetch security alerts' });
+    }
+  });
+
+  app.put('/api/admin/security/alerts/:id/resolve', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!requireAdmin(req, res, user)) return;
+      const alert = await storage.resolveSecurityAlert(parseInt(req.params.id), req.user.claims.sub);
+      res.json(alert);
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+      res.status(500).json({ message: 'Failed to resolve alert' });
+    }
+  });
+
+  app.get('/api/admin/security/user-summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!requireAdmin(req, res, user)) return;
+      const summary = await storage.getSecurityUserSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching security user summary:', error);
+      res.status(500).json({ message: 'Failed to fetch user security summary' });
+    }
+  });
+
   // AWS S3 Image Upload Routes
 
   // Upload hero slider media (images with WebP processing and videos)
@@ -6155,6 +6318,41 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "Company not found" });
       }
       res.json(company);
+
+      // Log access event for staff users (non-blocking)
+      const userId = req.user?.claims?.sub;
+      if (userId) {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (user?.userType === 'staff') {
+          setImmediate(async () => {
+            try {
+              const ip = extractClientIp(req);
+              await storage.createUserAccessEvent({
+                userId,
+                entityType: 'company',
+                entityId: company.id,
+                entityName: company.companyName,
+                ipAddress: ip,
+                page: `/crm/companies/${company.id}`,
+              });
+              // Check for rapid browsing pattern (>8 company opens in 5 minutes)
+              const recentCount = await storage.getRecentAccessEventCount(userId, 'company', 5);
+              if (recentCount >= 9) {
+                // Only create alert if we don't have one from the last 10 mins
+                await storage.createUserSecurityAlert({
+                  userId,
+                  alertType: 'rapid_company_access',
+                  severity: 'high',
+                  description: `Opened ${recentCount} company records in 5 minutes — possible bulk data access`,
+                  isResolved: false,
+                });
+              }
+            } catch (e) {
+              console.error('Access event log error:', e);
+            }
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching company details:', error);
       res.status(500).json({ message: "Failed to fetch company details" });
@@ -7901,6 +8099,26 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "Lead not found" });
       }
       res.json(lead);
+
+      // Log access event for staff users (non-blocking)
+      const userId = req.user?.claims?.sub;
+      if (userId) {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (user?.userType === 'staff') {
+          setImmediate(async () => {
+            try {
+              await storage.createUserAccessEvent({
+                userId,
+                entityType: 'lead',
+                entityId: lead.id,
+                entityName: lead.companyName || `Lead #${lead.id}`,
+                ipAddress: extractClientIp(req),
+                page: `/crm/leads/${lead.id}`,
+              });
+            } catch (e) { /* ignore */ }
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching lead:', error);
       res.status(500).json({ message: "Failed to fetch lead" });

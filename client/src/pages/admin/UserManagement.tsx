@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, UserPlus, Building, Globe, Mail, Phone, Calendar, Download, Search, Edit, Trash2, Power, Key, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Users, UserCheck, UserPlus, Building, Globe, Mail, Phone, Calendar, Download, Search, Edit, Trash2, Power, Key, Eye, EyeOff, Loader2, Clock, MapPin, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { User } from "@shared/schema";
 import { STAFF_DEPARTMENTS, STAFF_ROLES, ALL_STAFF_ROLES } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
 
 interface CustomerFilters {
   search: string;
@@ -174,6 +175,20 @@ export default function UserManagement() {
       return response.json();
     },
   });
+
+  const { data: securitySummary } = useQuery<Array<{
+    userId: string;
+    lastLoginAt: string | null;
+    lastLoginCity: string | null;
+    lastLoginCountry: string | null;
+    loginCountThisMonth: number;
+    unresolvedAlerts: number;
+  }>>({
+    queryKey: ['/api/admin/security/user-summary'],
+    staleTime: 60000,
+  });
+
+  const getSecurityInfo = (userId: string) => securitySummary?.find(s => s.userId === userId);
 
   const { data: customersData, isLoading: customersLoading } = useQuery({
     queryKey: ['/api/admin/customers', customerFilters],
@@ -547,7 +562,7 @@ export default function UserManagement() {
                       <TableHead>Department</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>Last Login</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -587,7 +602,30 @@ export default function UserManagement() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {staff.createdAt ? new Date(staff.createdAt).toLocaleDateString() : "N/A"}
+                            {(() => {
+                              const sec = getSecurityInfo(staff.id);
+                              if (!sec?.lastLoginAt) return <span className="text-xs text-gray-400">Never</span>;
+                              return (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1 text-xs">
+                                    <Clock className="h-3 w-3 text-gray-400" />
+                                    {formatDistanceToNow(new Date(sec.lastLoginAt), { addSuffix: true })}
+                                  </div>
+                                  {sec.lastLoginCity && (
+                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                      <MapPin className="h-3 w-3 text-gray-400" />
+                                      {sec.lastLoginCity}
+                                    </div>
+                                  )}
+                                  {sec.unresolvedAlerts > 0 && (
+                                    <Badge variant="destructive" className="text-xs gap-1 h-4 px-1">
+                                      <AlertTriangle className="h-2.5 w-2.5" />
+                                      {sec.unresolvedAlerts} alert{sec.unresolvedAlerts > 1 ? "s" : ""}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">

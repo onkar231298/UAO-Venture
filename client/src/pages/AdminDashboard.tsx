@@ -19,6 +19,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import HRManagement from "@/pages/admin/HRManagement";
 import AdminQualityOverview from "@/pages/admin/AdminQualityOverview";
+import SecurityMonitor from "@/pages/admin/SecurityMonitor";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   Users,
@@ -50,7 +51,8 @@ import {
   ArrowRight,
   AlertCircle,
   CheckSquare,
-  MessageSquare
+  MessageSquare,
+  ShieldAlert
 } from "lucide-react";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
@@ -284,6 +286,7 @@ export default function AdminDashboard() {
                 {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
                 {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
                 {navButton('quality-management', 'Quality Management', ClipboardCheck, activeSection === 'quality-management', () => setActiveSection('quality-management'))}
+                {navButton('security-monitor', 'Security & Activity', ShieldAlert, activeSection === 'security-monitor', () => setActiveSection('security-monitor'))}
               </div>
             </div>
 
@@ -713,8 +716,20 @@ export default function AdminDashboard() {
           {activeSection === 'quality-management' && (
             <AdminQualityOverview />
           )}
+
+          {activeSection === 'security-monitor' && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Security &amp; Activity Monitor</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Track staff logins, data access patterns, and detect suspicious activity in real time.
+                </p>
+              </div>
+              <SecurityMonitor />
+            </div>
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

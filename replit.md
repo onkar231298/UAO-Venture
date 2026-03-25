@@ -65,6 +65,22 @@ Preferred communication style: Simple, everyday language.
 **Database Tables**: email_campaigns, email_campaign_recipients, email_templates
 **API Endpoints**: /api/email-campaigns, /api/email-templates, /api/webhooks/sendgrid
 
+### Sales User Activity & Security Monitor
+**Status**: Implemented
+**Roles**: super_admin, admin only
+**Features**:
+- Login tracking with IP geolocation (city/country via ip-api.com), browser/device, off-hours flag (before 7 AM / after 9 PM), new-location flag
+- Company detail access logging (`/api/crm/companies/:id/details`) and lead access logging (`/api/crm/leads/:id`)
+- Rapid-browsing detection: high-severity alert when ≥ 9 company records opened in 5 minutes
+- Session deduplication via `req.session.loginLogged`
+- SecurityMonitor.tsx: 3-tab page (Login History, Activity Feed, Security Alerts) with filters and one-click resolve
+- Admin sidebar: "Security & Activity" nav item under People & Compliance
+- UserManagement.tsx: Last Login column with time-ago, city, unresolved alert badge
+
+**Database Tables**: user_login_logs, user_access_events, user_security_alerts
+**API Endpoints**: GET /api/admin/security/login-logs, /activity-logs, /alerts, PUT /api/admin/security/alerts/:id/resolve, GET /api/admin/security/user-summary
+**Key Files**: client/src/pages/admin/SecurityMonitor.tsx
+
 ### Quality Management Module
 **Status**: Implemented
 **Roles**: quality_manager, quality_executive (in quality department)

@@ -189,9 +189,18 @@ import {
   type InsertBatchTestResult,
   type BatchMaterialConsumption,
   type InsertBatchMaterialConsumption,
+  userLoginLogs,
+  userAccessEvents,
+  userSecurityAlerts,
+  type UserLoginLog,
+  type InsertUserLoginLog,
+  type UserAccessEvent,
+  type InsertUserAccessEvent,
+  type UserSecurityAlert,
+  type InsertUserSecurityAlert,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, ilike, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull } from "drizzle-orm";
+import { eq, like, ilike, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull, isNotNull } from "drizzle-orm";
 import csv from "csv-parser";
 import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
@@ -794,6 +803,52 @@ export interface IStorage {
   getQualityAttachments(entityType: string, entityId: number): Promise<QualityAttachment[]>;
   createQualityAttachment(data: InsertQualityAttachment): Promise<QualityAttachment>;
   deleteQualityAttachment(id: number): Promise<void>;
+
+  // Security & Activity Monitoring
+  createUserLoginLog(data: InsertUserLoginLog): Promise<UserLoginLog>;
+  getRecentLoginCities(userId: string, limit?: number): Promise<string[]>;
+  getLoginLogs(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    flaggedOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ logs: (UserLoginLog & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }>;
+
+  createUserAccessEvent(data: InsertUserAccessEvent): Promise<UserAccessEvent>;
+  getRecentAccessEventCount(userId: string, entityType: string, sinceMinutes: number): Promise<number>;
+  getAccessLogs(filters?: {
+    userId?: string;
+    entityType?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ logs: (UserAccessEvent & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }>;
+
+  createUserSecurityAlert(data: InsertUserSecurityAlert): Promise<UserSecurityAlert>;
+  getSecurityAlerts(filters?: {
+    userId?: string;
+    isResolved?: boolean;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ alerts: (UserSecurityAlert & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }>;
+  resolveSecurityAlert(id: number, resolvedBy: string): Promise<UserSecurityAlert>;
+  getUnresolvedAlertCount(userId: string): Promise<number>;
+  getSecurityUserSummary(): Promise<Array<{
+    userId: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    role: string | null;
+    lastLoginAt: Date | null;
+    lastLoginCity: string | null;
+    lastLoginCountry: string | null;
+    loginCountThisMonth: number;
+    unresolvedAlerts: number;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7761,6 +7816,208 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQualityAttachment(id: number): Promise<void> {
     await db.delete(qualityAttachments).where(eq(qualityAttachments.id, id));
+  }
+
+  // ─── Security & Activity Monitoring ──────────────────────────────────────────
+
+  async createUserLoginLog(data: InsertUserLoginLog): Promise<UserLoginLog> {
+    const [log] = await db.insert(userLoginLogs).values(data).returning();
+    return log;
+  }
+
+  async getRecentLoginCities(userId: string, limit = 5): Promise<string[]> {
+    const results = await db
+      .select({ city: userLoginLogs.city })
+      .from(userLoginLogs)
+      .where(and(eq(userLoginLogs.userId, userId), isNotNull(userLoginLogs.city)))
+      .orderBy(desc(userLoginLogs.timestamp))
+      .limit(limit);
+    return results.map(r => r.city!).filter(Boolean);
+  }
+
+  async getLoginLogs(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    flaggedOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ logs: (UserLoginLog & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.userId) conditions.push(eq(userLoginLogs.userId, filters.userId));
+    if (filters?.dateFrom) conditions.push(gte(userLoginLogs.timestamp, filters.dateFrom));
+    if (filters?.dateTo) conditions.push(lte(userLoginLogs.timestamp, filters.dateTo));
+    if (filters?.flaggedOnly) conditions.push(or(eq(userLoginLogs.isOffHours, true), eq(userLoginLogs.isNewLocation, true)));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [rawLogs, countResult] = await Promise.all([
+      db.select({
+        log: userLoginLogs,
+        user: { firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role },
+      })
+        .from(userLoginLogs)
+        .leftJoin(users, eq(userLoginLogs.userId, users.id))
+        .where(where)
+        .orderBy(desc(userLoginLogs.timestamp))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(userLoginLogs).where(where),
+    ]);
+    const logs = rawLogs.map(r => ({ ...r.log, user: r.user }));
+    return { logs, total: countResult[0]?.count || 0 };
+  }
+
+  async createUserAccessEvent(data: InsertUserAccessEvent): Promise<UserAccessEvent> {
+    const [event] = await db.insert(userAccessEvents).values(data).returning();
+    return event;
+  }
+
+  async getRecentAccessEventCount(userId: string, entityType: string, sinceMinutes: number): Promise<number> {
+    const since = new Date(Date.now() - sinceMinutes * 60 * 1000);
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userAccessEvents)
+      .where(and(eq(userAccessEvents.userId, userId), eq(userAccessEvents.entityType, entityType), gte(userAccessEvents.timestamp, since)));
+    return result?.count || 0;
+  }
+
+  async getAccessLogs(filters?: {
+    userId?: string;
+    entityType?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ logs: (UserAccessEvent & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.userId) conditions.push(eq(userAccessEvents.userId, filters.userId));
+    if (filters?.entityType) conditions.push(eq(userAccessEvents.entityType, filters.entityType));
+    if (filters?.dateFrom) conditions.push(gte(userAccessEvents.timestamp, filters.dateFrom));
+    if (filters?.dateTo) conditions.push(lte(userAccessEvents.timestamp, filters.dateTo));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [rawLogs, countResult] = await Promise.all([
+      db.select({
+        log: userAccessEvents,
+        user: { firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role },
+      })
+        .from(userAccessEvents)
+        .leftJoin(users, eq(userAccessEvents.userId, users.id))
+        .where(where)
+        .orderBy(desc(userAccessEvents.timestamp))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(userAccessEvents).where(where),
+    ]);
+    const logs = rawLogs.map(r => ({ ...r.log, user: r.user }));
+    return { logs, total: countResult[0]?.count || 0 };
+  }
+
+  async createUserSecurityAlert(data: InsertUserSecurityAlert): Promise<UserSecurityAlert> {
+    const [alert] = await db.insert(userSecurityAlerts).values(data).returning();
+    return alert;
+  }
+
+  async getSecurityAlerts(filters?: {
+    userId?: string;
+    isResolved?: boolean;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ alerts: (UserSecurityAlert & { user: { firstName: string | null; lastName: string | null; email: string | null; role: string | null } })[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters?.userId) conditions.push(eq(userSecurityAlerts.userId, filters.userId));
+    if (filters?.isResolved !== undefined) conditions.push(eq(userSecurityAlerts.isResolved, filters.isResolved));
+    if (filters?.severity) conditions.push(eq(userSecurityAlerts.severity, filters.severity));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [rawAlerts, countResult] = await Promise.all([
+      db.select({
+        alert: userSecurityAlerts,
+        user: { firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role },
+      })
+        .from(userSecurityAlerts)
+        .leftJoin(users, eq(userSecurityAlerts.userId, users.id))
+        .where(where)
+        .orderBy(desc(userSecurityAlerts.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0),
+      db.select({ count: sql<number>`count(*)::int` }).from(userSecurityAlerts).where(where),
+    ]);
+    const alerts = rawAlerts.map(r => ({ ...r.alert, user: r.user }));
+    return { alerts, total: countResult[0]?.count || 0 };
+  }
+
+  async resolveSecurityAlert(id: number, resolvedBy: string): Promise<UserSecurityAlert> {
+    const [alert] = await db
+      .update(userSecurityAlerts)
+      .set({ isResolved: true, resolvedAt: new Date(), resolvedBy })
+      .where(eq(userSecurityAlerts.id, id))
+      .returning();
+    return alert;
+  }
+
+  async getUnresolvedAlertCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userSecurityAlerts)
+      .where(and(eq(userSecurityAlerts.userId, userId), eq(userSecurityAlerts.isResolved, false)));
+    return result?.count || 0;
+  }
+
+  async getSecurityUserSummary(): Promise<Array<{
+    userId: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    role: string | null;
+    lastLoginAt: Date | null;
+    lastLoginCity: string | null;
+    lastLoginCountry: string | null;
+    loginCountThisMonth: number;
+    unresolvedAlerts: number;
+  }>> {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const staffUsers = await db
+      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.userType, 'staff'));
+
+    const summaries = await Promise.all(staffUsers.map(async (u) => {
+      const [lastLogin] = await db
+        .select()
+        .from(userLoginLogs)
+        .where(eq(userLoginLogs.userId, u.id))
+        .orderBy(desc(userLoginLogs.timestamp))
+        .limit(1);
+
+      const [monthCountResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(userLoginLogs)
+        .where(and(eq(userLoginLogs.userId, u.id), gte(userLoginLogs.timestamp, monthStart)));
+
+      const [alertCountResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(userSecurityAlerts)
+        .where(and(eq(userSecurityAlerts.userId, u.id), eq(userSecurityAlerts.isResolved, false)));
+
+      return {
+        userId: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        role: u.role,
+        lastLoginAt: lastLogin?.timestamp || null,
+        lastLoginCity: lastLogin?.city || null,
+        lastLoginCountry: lastLogin?.country || null,
+        loginCountThisMonth: monthCountResult?.count || 0,
+        unresolvedAlerts: alertCountResult?.count || 0,
+      };
+    }));
+
+    return summaries;
   }
 }
 
