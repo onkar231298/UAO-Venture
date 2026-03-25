@@ -6305,6 +6305,40 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(404).json({ message: "Company not found" });
       }
       res.json(company);
+
+      // Log access event for staff users (non-blocking)
+      const userId = req.user?.claims?.sub;
+      if (userId) {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (user?.userType === 'staff') {
+          setImmediate(async () => {
+            try {
+              const ip = extractClientIp(req);
+              await storage.createUserAccessEvent({
+                userId,
+                entityType: 'company',
+                entityId: company.id,
+                entityName: company.companyName,
+                ipAddress: ip,
+                page: `/crm/companies/${company.id}`,
+              });
+              // Check for rapid browsing pattern (>8 company opens in 5 minutes)
+              const recentCount = await storage.getRecentAccessEventCount(userId, 'company', 5);
+              if (recentCount >= 9) {
+                await storage.createUserSecurityAlert({
+                  userId,
+                  alertType: 'rapid_company_access',
+                  severity: 'high',
+                  description: `Opened ${recentCount} company records in 5 minutes — possible bulk data access`,
+                  isResolved: false,
+                });
+              }
+            } catch (e) {
+              console.error('Access event log error:', e);
+            }
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching company:', error);
       res.status(500).json({ message: "Failed to fetch company" });

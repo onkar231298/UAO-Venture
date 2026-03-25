@@ -105,9 +105,10 @@ function parseUserAgent(ua: string | null): string {
 }
 
 function entityLink(log: AccessLog): string {
-  if (log.entityType === "company") return `/admin/dashboard/crm/companies`;
-  if (log.entityType === "lead") return `/admin/dashboard/crm/leads`;
-  if (log.entityType === "contact") return `/admin/dashboard/crm/companies`;
+  const id = log.entityId;
+  if (log.entityType === "company") return id ? `/admin/dashboard/crm/companies?highlight=${id}` : `/admin/dashboard/crm/companies`;
+  if (log.entityType === "lead") return id ? `/admin/dashboard/crm/leads?highlight=${id}` : `/admin/dashboard/crm/leads`;
+  if (log.entityType === "contact") return id ? `/admin/dashboard/crm/companies?contactId=${id}` : `/admin/dashboard/crm/companies`;
   return "#";
 }
 
