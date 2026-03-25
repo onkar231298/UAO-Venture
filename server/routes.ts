@@ -7892,8 +7892,30 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.get('/api/crm/companies/:companyId/contacts', isAuthenticated, async (req: any, res) => {
     try {
-      const contacts = await storage.getCompanyContacts(parseInt(req.params.companyId));
+      const companyId = parseInt(req.params.companyId);
+      const contacts = await storage.getCompanyContacts(companyId);
       res.json(contacts);
+
+      // Log contact access for staff users (non-blocking)
+      const userId = req.user?.claims?.sub;
+      if (userId && contacts.length > 0) {
+        const user = await storage.getUser(userId).catch(() => null);
+        if (user?.userType === 'staff') {
+          setImmediate(async () => {
+            try {
+              const company = await storage.getCompany(companyId).catch(() => null);
+              await storage.createUserAccessEvent({
+                userId,
+                entityType: 'contact',
+                entityId: companyId,
+                entityName: company ? `${contacts.length} contacts — ${company.companyName}` : `Contacts for company #${companyId}`,
+                ipAddress: extractClientIp(req),
+                page: `/crm/companies/${companyId}/contacts`,
+              });
+            } catch (e) { /* ignore */ }
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching company contacts:', error);
       res.status(500).json({ message: "Failed to fetch contacts" });

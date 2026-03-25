@@ -604,19 +604,23 @@ export default function UserManagement() {
                           <TableCell>
                             {(() => {
                               const sec = getSecurityInfo(staff.id);
-                              if (!sec?.lastLoginAt) return <span className="text-xs text-gray-400">Never</span>;
+                              if (!sec?.lastLoginAt) return <span className="text-xs text-gray-400">Never logged in</span>;
+                              const location = [sec.lastLoginCity, sec.lastLoginCountry].filter(Boolean).join(", ");
                               return (
                                 <div className="space-y-0.5">
-                                  <div className="flex items-center gap-1 text-xs">
+                                  <div className="flex items-center gap-1 text-xs font-medium">
                                     <Clock className="h-3 w-3 text-gray-400" />
                                     {formatDistanceToNow(new Date(sec.lastLoginAt), { addSuffix: true })}
                                   </div>
-                                  {sec.lastLoginCity && (
+                                  {location && (
                                     <div className="flex items-center gap-1 text-xs text-gray-500">
                                       <MapPin className="h-3 w-3 text-gray-400" />
-                                      {sec.lastLoginCity}
+                                      {location}
                                     </div>
                                   )}
+                                  <div className="text-xs text-gray-400">
+                                    {sec.loginCountThisMonth} login{sec.loginCountThisMonth !== 1 ? "s" : ""} this month
+                                  </div>
                                   {sec.unresolvedAlerts > 0 && (
                                     <Badge variant="destructive" className="text-xs gap-1 h-4 px-1">
                                       <AlertTriangle className="h-2.5 w-2.5" />

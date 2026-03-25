@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,20 +17,20 @@ import {
   AlertTriangle,
   Clock,
   MapPin,
-  Monitor,
   CheckCircle,
   Building2,
   Users,
-  Search,
-  Filter,
   RefreshCcw,
   Moon,
   Globe,
   Zap,
+  ExternalLink,
+  CalendarRange,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow, format } from "date-fns";
+import { Link } from "wouter";
 
 type LoginLog = {
   id: number;
@@ -103,6 +104,13 @@ function parseUserAgent(ua: string | null): string {
   return ua.slice(0, 40);
 }
 
+function entityLink(log: AccessLog): string {
+  if (log.entityType === "company") return `/admin/dashboard/crm/companies`;
+  if (log.entityType === "lead") return `/admin/dashboard/crm/leads`;
+  if (log.entityType === "contact") return `/admin/dashboard/crm/companies`;
+  return "#";
+}
+
 const SEVERITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   low: { label: "Low", color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
   medium: { label: "Medium", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
@@ -124,10 +132,28 @@ const ENTITY_ICONS: Record<string, any> = {
 export default function SecurityMonitor() {
   const { toast } = useToast();
 
-  // Filter state
-  const [loginFilters, setLoginFilters] = useState({ userId: "", flaggedOnly: "all" });
-  const [activityFilters, setActivityFilters] = useState({ userId: "", entityType: "all" });
-  const [alertFilters, setAlertFilters] = useState({ userId: "", severity: "all", isResolved: "false" });
+  // Filter state — login
+  const [loginFilters, setLoginFilters] = useState({
+    userId: "",
+    flaggedOnly: "all",
+    dateFrom: "",
+    dateTo: "",
+  });
+
+  // Filter state — activity
+  const [activityFilters, setActivityFilters] = useState({
+    userId: "",
+    entityType: "all",
+    dateFrom: "",
+    dateTo: "",
+  });
+
+  // Filter state — alerts
+  const [alertFilters, setAlertFilters] = useState({
+    userId: "",
+    severity: "all",
+    isResolved: "false",
+  });
 
   // Queries
   const staffQuery = useQuery<UserSummary[]>({
@@ -138,9 +164,11 @@ export default function SecurityMonitor() {
   const loginQuery = useQuery<{ logs: LoginLog[]; total: number }>({
     queryKey: ["/api/admin/security/login-logs", loginFilters],
     queryFn: async () => {
-      const params = new URLSearchParams({ limit: "50", offset: "0" });
+      const params = new URLSearchParams({ limit: "100", offset: "0" });
       if (loginFilters.userId) params.set("userId", loginFilters.userId);
       if (loginFilters.flaggedOnly === "true") params.set("flaggedOnly", "true");
+      if (loginFilters.dateFrom) params.set("dateFrom", loginFilters.dateFrom);
+      if (loginFilters.dateTo) params.set("dateTo", loginFilters.dateTo);
       const res = await fetch(`/api/admin/security/login-logs?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -151,9 +179,11 @@ export default function SecurityMonitor() {
   const activityQuery = useQuery<{ logs: AccessLog[]; total: number }>({
     queryKey: ["/api/admin/security/activity-logs", activityFilters],
     queryFn: async () => {
-      const params = new URLSearchParams({ limit: "50", offset: "0" });
+      const params = new URLSearchParams({ limit: "100", offset: "0" });
       if (activityFilters.userId) params.set("userId", activityFilters.userId);
       if (activityFilters.entityType !== "all") params.set("entityType", activityFilters.entityType);
+      if (activityFilters.dateFrom) params.set("dateFrom", activityFilters.dateFrom);
+      if (activityFilters.dateTo) params.set("dateTo", activityFilters.dateTo);
       const res = await fetch(`/api/admin/security/activity-logs?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -164,7 +194,7 @@ export default function SecurityMonitor() {
   const alertsQuery = useQuery<{ alerts: SecurityAlert[]; total: number }>({
     queryKey: ["/api/admin/security/alerts", alertFilters],
     queryFn: async () => {
-      const params = new URLSearchParams({ limit: "50", offset: "0" });
+      const params = new URLSearchParams({ limit: "100", offset: "0" });
       if (alertFilters.userId) params.set("userId", alertFilters.userId);
       if (alertFilters.severity !== "all") params.set("severity", alertFilters.severity);
       if (alertFilters.isResolved !== "all") params.set("isResolved", alertFilters.isResolved);
@@ -218,7 +248,7 @@ export default function SecurityMonitor() {
             <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Access Events</span>
           </div>
           <div className="text-2xl font-bold">{activityQuery.data?.total ?? "—"}</div>
-          <p className="text-xs text-muted-foreground">Company / lead opens</p>
+          <p className="text-xs text-muted-foreground">Company / lead / contact opens</p>
         </Card>
         <Card className="p-4 border-l-4 border-l-red-500">
           <div className="flex items-center gap-2 mb-1">
@@ -254,11 +284,13 @@ export default function SecurityMonitor() {
                 <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <LogIn className="h-3 w-3" />
-                    <span>{s.loginCountThisMonth} logins / mo</span>
+                    <span>{s.loginCountThisMonth} logins this month</span>
                   </div>
                   <div className="flex items-center gap-1 truncate">
                     <MapPin className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{s.lastLoginCity || "—"}</span>
+                    <span className="truncate">
+                      {[s.lastLoginCity, s.lastLoginCountry].filter(Boolean).join(", ") || "—"}
+                    </span>
                   </div>
                   {s.lastLoginAt && (
                     <div className="col-span-2 flex items-center gap-1">
@@ -299,43 +331,71 @@ export default function SecurityMonitor() {
         </TabsList>
 
         {/* ── Login History ── */}
-        <TabsContent value="login-history" className="mt-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Select
-              value={loginFilters.userId || "all"}
-              onValueChange={v => setLoginFilters(f => ({ ...f, userId: v === "all" ? "" : v }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Staff</SelectItem>
-                {staffList.map(s => (
-                  <SelectItem key={s.userId} value={s.userId}>
-                    {[s.firstName, s.lastName].filter(Boolean).join(" ") || s.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={loginFilters.flaggedOnly}
-              onValueChange={v => setLoginFilters(f => ({ ...f, flaggedOnly: v }))}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Logins</SelectItem>
-                <SelectItem value="true">Flagged Only</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => loginQuery.refetch()}>
+        <TabsContent value="login-history" className="mt-4 space-y-3">
+          {/* Filters row */}
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Staff member</Label>
+              <Select
+                value={loginFilters.userId || "all"}
+                onValueChange={v => setLoginFilters(f => ({ ...f, userId: v === "all" ? "" : v }))}
+              >
+                <SelectTrigger className="w-[180px] h-8">
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+                  {staffList.map(s => (
+                    <SelectItem key={s.userId} value={s.userId}>
+                      {[s.firstName, s.lastName].filter(Boolean).join(" ") || s.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Flag filter</Label>
+              <Select
+                value={loginFilters.flaggedOnly}
+                onValueChange={v => setLoginFilters(f => ({ ...f, flaggedOnly: v }))}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Logins</SelectItem>
+                  <SelectItem value="true">Flagged Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><CalendarRange className="h-3 w-3" />From date</Label>
+              <Input
+                type="date"
+                className="h-8 w-[140px] text-sm"
+                value={loginFilters.dateFrom}
+                onChange={e => setLoginFilters(f => ({ ...f, dateFrom: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><CalendarRange className="h-3 w-3" />To date</Label>
+              <Input
+                type="date"
+                className="h-8 w-[140px] text-sm"
+                value={loginFilters.dateTo}
+                onChange={e => setLoginFilters(f => ({ ...f, dateTo: e.target.value }))}
+              />
+            </div>
+            {(loginFilters.dateFrom || loginFilters.dateTo) && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setLoginFilters(f => ({ ...f, dateFrom: "", dateTo: "" }))}>
+                Clear dates
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => loginQuery.refetch()}>
               <RefreshCcw className="h-3.5 w-3.5 mr-1" />
               Refresh
             </Button>
-            <span className="text-xs text-muted-foreground ml-auto">
-              {loginQuery.data?.total ?? 0} records
-            </span>
+            <span className="text-xs text-muted-foreground self-end">{loginQuery.data?.total ?? 0} records</span>
           </div>
 
           <div className="rounded-md border overflow-x-auto">
@@ -354,7 +414,7 @@ export default function SecurityMonitor() {
                 {loginQuery.isLoading ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
                 ) : (loginQuery.data?.logs || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No login records yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No login records for the selected filters</TableCell></TableRow>
                 ) : (loginQuery.data?.logs || []).map(log => (
                   <TableRow key={log.id} className={log.isOffHours || log.isNewLocation ? "bg-amber-50/40" : ""}>
                     <TableCell>
@@ -381,6 +441,7 @@ export default function SecurityMonitor() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      <p className="text-xs text-muted-foreground">{format(new Date(log.timestamp), "dd MMM yyyy")}</p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
@@ -421,45 +482,72 @@ export default function SecurityMonitor() {
         </TabsContent>
 
         {/* ── Activity Feed ── */}
-        <TabsContent value="activity-feed" className="mt-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Select
-              value={activityFilters.userId || "all"}
-              onValueChange={v => setActivityFilters(f => ({ ...f, userId: v === "all" ? "" : v }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Staff</SelectItem>
-                {staffList.map(s => (
-                  <SelectItem key={s.userId} value={s.userId}>
-                    {[s.firstName, s.lastName].filter(Boolean).join(" ") || s.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={activityFilters.entityType}
-              onValueChange={v => setActivityFilters(f => ({ ...f, entityType: v }))}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Entity type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="company">Companies</SelectItem>
-                <SelectItem value="lead">Leads</SelectItem>
-                <SelectItem value="contact">Contacts</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => activityQuery.refetch()}>
+        <TabsContent value="activity-feed" className="mt-4 space-y-3">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Staff member</Label>
+              <Select
+                value={activityFilters.userId || "all"}
+                onValueChange={v => setActivityFilters(f => ({ ...f, userId: v === "all" ? "" : v }))}
+              >
+                <SelectTrigger className="w-[180px] h-8">
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+                  {staffList.map(s => (
+                    <SelectItem key={s.userId} value={s.userId}>
+                      {[s.firstName, s.lastName].filter(Boolean).join(" ") || s.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Entity type</Label>
+              <Select
+                value={activityFilters.entityType}
+                onValueChange={v => setActivityFilters(f => ({ ...f, entityType: v }))}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue placeholder="Entity type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="company">Companies</SelectItem>
+                  <SelectItem value="lead">Leads</SelectItem>
+                  <SelectItem value="contact">Contacts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><CalendarRange className="h-3 w-3" />From date</Label>
+              <Input
+                type="date"
+                className="h-8 w-[140px] text-sm"
+                value={activityFilters.dateFrom}
+                onChange={e => setActivityFilters(f => ({ ...f, dateFrom: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><CalendarRange className="h-3 w-3" />To date</Label>
+              <Input
+                type="date"
+                className="h-8 w-[140px] text-sm"
+                value={activityFilters.dateTo}
+                onChange={e => setActivityFilters(f => ({ ...f, dateTo: e.target.value }))}
+              />
+            </div>
+            {(activityFilters.dateFrom || activityFilters.dateTo) && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setActivityFilters(f => ({ ...f, dateFrom: "", dateTo: "" }))}>
+                Clear dates
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-8 ml-auto" onClick={() => activityQuery.refetch()}>
               <RefreshCcw className="h-3.5 w-3.5 mr-1" />
               Refresh
             </Button>
-            <span className="text-xs text-muted-foreground ml-auto">
-              {activityQuery.data?.total ?? 0} records
-            </span>
+            <span className="text-xs text-muted-foreground self-end">{activityQuery.data?.total ?? 0} records</span>
           </div>
 
           <div className="rounded-md border overflow-x-auto">
@@ -477,9 +565,10 @@ export default function SecurityMonitor() {
                 {activityQuery.isLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
                 ) : (activityQuery.data?.logs || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No activity records yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No activity records for the selected filters</TableCell></TableRow>
                 ) : (activityQuery.data?.logs || []).map(log => {
                   const Icon = ENTITY_ICONS[log.entityType] || Activity;
+                  const link = entityLink(log);
                   return (
                     <TableRow key={log.id}>
                       <TableCell>
@@ -500,7 +589,10 @@ export default function SecurityMonitor() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium">{log.entityName || `#${log.entityId}`}</span>
+                        <Link href={link} className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                          {log.entityName || `#${log.entityId}`}
+                          <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <TooltipProvider>
@@ -515,6 +607,7 @@ export default function SecurityMonitor() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        <p className="text-xs text-muted-foreground">{format(new Date(log.timestamp), "dd MMM yyyy")}</p>
                       </TableCell>
                       <TableCell>
                         <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{log.ipAddress || "—"}</code>
