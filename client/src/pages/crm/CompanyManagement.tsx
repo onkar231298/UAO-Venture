@@ -1484,6 +1484,19 @@ export default function CompanyManagement() {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Country Filter — always visible */}
+            <Select value={countryFilter} onValueChange={setCountryFilter}>
+              <SelectTrigger className="w-[160px]" data-testid="select-country-filter">
+                <SelectValue placeholder="All Countries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {distinctCountries.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           {/* Advanced Filters */}
@@ -1531,19 +1544,6 @@ export default function CompanyManagement() {
                 </Select>
               )}
 
-              {/* Country Filter */}
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger className="w-[160px]" data-testid="select-country-filter">
-                  <SelectValue placeholder="All Countries" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {distinctCountries.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
               {/* Date Range Filter */}
               <div className="flex items-center gap-2">
                 <Popover>
