@@ -110,6 +110,8 @@ export function NotificationBell() {
         return '📞';
       case 'follow_up_overdue':
         return '🚨';
+      case 'security_alert':
+        return '🔴';
       default:
         return '🔔';
     }
@@ -117,6 +119,7 @@ export function NotificationBell() {
 
   const getNotificationColor = (type: string, isRead: boolean) => {
     if (isRead) return '';
+    if (type === 'security_alert') return 'bg-red-50/80 border-l-2 border-red-400';
     if (type === 'follow_up_overdue') return 'bg-red-50/60';
     if (type === 'follow_up_due') return 'bg-amber-50/60';
     return 'bg-blue-50/50';

@@ -61,7 +61,10 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [adminUser, setAdminUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('section') || 'overview';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [location, setLocation] = useLocation();
 

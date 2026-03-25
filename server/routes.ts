@@ -214,6 +214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
 
             // Create alerts for flagged conditions
+            const staffName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || userId;
+            const securityLink = '/admin/dashboard?section=security-monitor';
             if (isOffHours) {
               await storage.createUserSecurityAlert({
                 userId,
@@ -222,6 +224,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 description: `Login at ${now.toLocaleTimeString()} (${hour}:${String(now.getMinutes()).padStart(2,'0')}) from ${city || ip}`,
                 isResolved: false,
               });
+              await storage.createNotificationsForRole({
+                type: 'security_alert',
+                title: 'Off-hours Login Detected',
+                message: `${staffName} logged in at ${now.toLocaleTimeString()} from ${city || ip}`,
+                entityType: 'security',
+                link: securityLink,
+                isRead: false,
+              }, ['admin', 'super_admin']);
             }
             if (isNewLocation && city) {
               await storage.createUserSecurityAlert({
@@ -231,6 +241,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 description: `First login detected from ${city}, ${country || ''}. Previous logins from: ${recentCities.slice(0,3).join(', ') || 'N/A'}`,
                 isResolved: false,
               });
+              await storage.createNotificationsForRole({
+                type: 'security_alert',
+                title: 'New Location Login Detected',
+                message: `${staffName} logged in from a new location: ${city}, ${country || ''}`,
+                entityType: 'security',
+                link: securityLink,
+                isRead: false,
+              }, ['admin', 'super_admin']);
             }
           } catch (e) {
             console.error('Login log error:', e);
@@ -6332,6 +6350,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
                   description: `Opened ${recentCount} company records in 5 minutes — possible bulk data access`,
                   isResolved: false,
                 });
+                const staffName2 = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || userId;
+                await storage.createNotificationsForRole({
+                  type: 'security_alert',
+                  title: '🔴 Rapid Company Access Alert',
+                  message: `${staffName2} opened ${recentCount} company records in 5 minutes — possible bulk data theft`,
+                  entityType: 'security',
+                  link: '/admin/dashboard?section=security-monitor',
+                  isRead: false,
+                }, ['admin', 'super_admin']);
               }
             } catch (e) {
               console.error('Access event log error:', e);
@@ -6372,7 +6399,6 @@ If you didn't request a password reset, you can safely ignore this email. Your p
               // Check for rapid browsing pattern (>8 company opens in 5 minutes)
               const recentCount = await storage.getRecentAccessEventCount(userId, 'company', 5);
               if (recentCount >= 9) {
-                // Only create alert if we don't have one from the last 10 mins
                 await storage.createUserSecurityAlert({
                   userId,
                   alertType: 'rapid_company_access',
@@ -6380,6 +6406,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
                   description: `Opened ${recentCount} company records in 5 minutes — possible bulk data access`,
                   isResolved: false,
                 });
+                const staffName3 = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || userId;
+                await storage.createNotificationsForRole({
+                  type: 'security_alert',
+                  title: '🔴 Rapid Company Access Alert',
+                  message: `${staffName3} opened ${recentCount} company records in 5 minutes — possible bulk data theft`,
+                  entityType: 'security',
+                  link: '/admin/dashboard?section=security-monitor',
+                  isRead: false,
+                }, ['admin', 'super_admin']);
               }
             } catch (e) {
               console.error('Access event log error:', e);

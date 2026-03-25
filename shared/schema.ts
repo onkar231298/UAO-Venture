@@ -2068,6 +2068,7 @@ export const NOTIFICATION_TYPES = [
   'new_lead',              // New lead created
   'task_reminder',         // Task reminder
   'general',               // General notification
+  'security_alert',        // Security alert (off-hours login, new location, rapid browsing)
 ] as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[number];
