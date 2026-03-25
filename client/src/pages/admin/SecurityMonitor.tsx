@@ -26,6 +26,10 @@ import {
   Zap,
   ExternalLink,
   CalendarRange,
+  Mail,
+  FileText,
+  Eye,
+  Phone,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -106,9 +110,11 @@ function parseUserAgent(ua: string | null): string {
 
 function entityLink(log: AccessLog): string {
   const id = log.entityId;
-  if (log.entityType === "company") return id ? `/admin/dashboard/crm/companies?highlight=${id}` : `/admin/dashboard/crm/companies`;
-  if (log.entityType === "lead") return id ? `/admin/dashboard/crm/leads?highlight=${id}` : `/admin/dashboard/crm/leads`;
-  if (log.entityType === "contact") return id ? `/admin/dashboard/crm/companies?contactId=${id}` : `/admin/dashboard/crm/companies`;
+  const baseType = log.entityType.replace(/-sent$|-added$|-logged$|-made$/, "");
+  if (baseType === "company" || log.entityType.startsWith("email") || log.entityType.startsWith("note") || log.entityType.startsWith("activity") || log.entityType.startsWith("call"))
+    return id ? `/sales/my-companies` : `/sales/my-companies`;
+  if (log.entityType === "lead") return `/sales/leads`;
+  if (log.entityType === "contact") return `/sales/my-companies`;
   return "#";
 }
 
@@ -129,6 +135,20 @@ const ENTITY_ICONS: Record<string, any> = {
   company: Building2,
   lead: Users,
   contact: Users,
+  "email-sent": Mail,
+  "note-added": FileText,
+  "activity-logged": Zap,
+  "call-made": Phone,
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  company: "Viewed company",
+  lead: "Viewed lead",
+  contact: "Viewed contact",
+  "email-sent": "Sent email",
+  "note-added": "Added note",
+  "activity-logged": "Logged activity",
+  "call-made": "Made call",
 };
 
 export default function SecurityMonitor() {
@@ -516,9 +536,12 @@ export default function SecurityMonitor() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="company">Companies</SelectItem>
-                  <SelectItem value="lead">Leads</SelectItem>
-                  <SelectItem value="contact">Contacts</SelectItem>
+                  <SelectItem value="company">Viewed Company</SelectItem>
+                  <SelectItem value="lead">Viewed Lead</SelectItem>
+                  <SelectItem value="contact">Viewed Contact</SelectItem>
+                  <SelectItem value="email-sent">Sent Email</SelectItem>
+                  <SelectItem value="note-added">Added Note</SelectItem>
+                  <SelectItem value="activity-logged">Logged Activity</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -572,7 +595,7 @@ export default function SecurityMonitor() {
                       <Activity className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground font-medium">No activity records yet</p>
                       <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                        This feed records when staff members open company, lead, or contact detail pages in the CRM. Activity will appear here as the team uses the system.
+                        This feed records every action staff take in the CRM — opening companies, viewing leads and contacts, sending emails, adding notes, and logging activities.
                       </p>
                     </TableCell>
                   </TableRow>
@@ -595,7 +618,7 @@ export default function SecurityMonitor() {
                       <TableCell>
                         <Badge variant="secondary" className="text-xs gap-1">
                           <Icon className="h-3 w-3" />
-                          Viewed {log.entityType}
+                          {ACTION_LABELS[log.entityType] || `Viewed ${log.entityType}`}
                         </Badge>
                       </TableCell>
                       <TableCell>

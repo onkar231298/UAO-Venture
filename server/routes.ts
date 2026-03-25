@@ -7148,19 +7148,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   app.post('/api/crm/companies/:id/activities', isAuthenticated, async (req: any, res) => {
+    const companyId = parseInt(req.params.id);
     try {
       const userId = req.user.claims.sub;
-      const activityData = {
-        ...req.body,
-        companyId: parseInt(req.params.id),
-        createdBy: userId,
-      };
+      const activityData = { ...req.body, companyId, createdBy: userId };
       const activity = await storage.createCompanyActivity(activityData);
       res.json(activity);
     } catch (error) {
       console.error('Error creating company activity:', error);
       res.status(500).json({ message: "Failed to create activity" });
+      return;
     }
+    const company = await storage.getCompany(companyId).catch(() => null);
+    logStaffAccess(req, 'activity-logged', companyId, company?.companyName || `Company ${companyId}`);
   });
 
   // Convert company to lead (supports multiple products)
@@ -7643,6 +7643,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         threadId: thread.id,
         messageId: emailMessage2.id,
       });
+      // Track email send activity
+      const emailCompany = await storage.getCompany(companyId).catch(() => null);
+      logStaffAccess(req, 'email-sent', companyId, emailCompany?.companyName || `Company ${companyId}`);
     } catch (error: any) {
       console.error('[Company Email Send] Error:', error);
       
@@ -8065,36 +8068,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   app.get('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
+    const contactId = parseInt(req.params.id);
+    let contact: any = null;
     try {
-      const contact = await storage.getCompanyContact(parseInt(req.params.id));
-      if (!contact) {
-        return res.status(404).json({ message: "Contact not found" });
-      }
+      contact = await storage.getCompanyContact(contactId);
+      if (!contact) return res.status(404).json({ message: "Contact not found" });
       res.json(contact);
-
-      // Log contact detail access for staff users (non-blocking)
-      const userId = req.user?.claims?.sub;
-      if (userId) {
-        const user = await storage.getUser(userId).catch(() => null);
-        if (user?.userType === 'staff') {
-          setImmediate(async () => {
-            try {
-              await storage.createUserAccessEvent({
-                userId,
-                entityType: 'contact',
-                entityId: contact.id,
-                entityName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || `Contact #${contact.id}`,
-                ipAddress: extractClientIp(req),
-                page: `/crm/contacts/${contact.id}`,
-              });
-            } catch (e) { /* ignore */ }
-          });
-        }
-      }
     } catch (error) {
       console.error('Error fetching contact:', error);
       res.status(500).json({ message: "Failed to fetch contact" });
+      return;
     }
+    const contactName = [contact?.firstName, contact?.lastName].filter(Boolean).join(' ') || `Contact #${contactId}`;
+    logStaffAccess(req, 'contact', contactId, contactName);
   });
 
   app.patch('/api/crm/contacts/:id', isAuthenticated, async (req: any, res) => {
@@ -8148,21 +8134,24 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   app.post('/api/crm/companies/:companyId/notes', isAuthenticated, async (req: any, res) => {
+    const companyId = parseInt(req.params.companyId);
+    let noteSaved = false;
     try {
       const userId = req.user.claims.sub;
-      const noteData = insertCompanyNoteSchema.parse({
-        ...req.body,
-        companyId: parseInt(req.params.companyId),
-        createdBy: userId
-      });
+      const noteData = insertCompanyNoteSchema.parse({ ...req.body, companyId, createdBy: userId });
       const note = await storage.createCompanyNote(noteData);
       res.json(note);
+      noteSaved = true;
     } catch (error: any) {
       console.error('Error creating company note:', error);
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid note data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create note" });
+    }
+    if (noteSaved) {
+      const company = await storage.getCompany(companyId).catch(() => null);
+      logStaffAccess(req, 'note-added', companyId, company?.companyName || `Company ${companyId}`);
     }
   });
 
@@ -8273,36 +8262,18 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   app.get('/api/crm/leads/:id', isAuthenticated, async (req: any, res) => {
+    const leadId = parseInt(req.params.id);
+    let lead: any = null;
     try {
-      const lead = await storage.getLead(parseInt(req.params.id));
-      if (!lead) {
-        return res.status(404).json({ message: "Lead not found" });
-      }
+      lead = await storage.getLead(leadId);
+      if (!lead) return res.status(404).json({ message: "Lead not found" });
       res.json(lead);
-
-      // Log access event for staff users (non-blocking)
-      const userId = req.user?.claims?.sub;
-      if (userId) {
-        const user = await storage.getUser(userId).catch(() => null);
-        if (user?.userType === 'staff') {
-          setImmediate(async () => {
-            try {
-              await storage.createUserAccessEvent({
-                userId,
-                entityType: 'lead',
-                entityId: lead.id,
-                entityName: lead.companyName || `Lead #${lead.id}`,
-                ipAddress: extractClientIp(req),
-                page: `/crm/leads/${lead.id}`,
-              });
-            } catch (e) { /* ignore */ }
-          });
-        }
-      }
     } catch (error) {
       console.error('Error fetching lead:', error);
       res.status(500).json({ message: "Failed to fetch lead" });
+      return;
     }
+    logStaffAccess(req, 'lead', leadId, lead?.companyName || `Lead #${leadId}`);
   });
 
   // Get lead products

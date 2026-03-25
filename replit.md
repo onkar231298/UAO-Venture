@@ -76,6 +76,10 @@ Preferred communication style: Simple, everyday language.
 - SecurityMonitor.tsx: 3-tab page (Login History, Activity Feed, Security Alerts) with filters and one-click resolve
 - Admin sidebar: "Security & Activity" nav item under People & Compliance
 - UserManagement.tsx: Last Login column with time-ago, city, unresolved alert badge
+- Activity Feed tracks: company views, lead views, contact views, emails sent, notes added, activities logged
+- `logStaffAccess(req, entityType, entityId, entityName)` helper centralises all tracking (skips customers)
+- Action labels: "Viewed company", "Sent email", "Added note", "Logged activity" etc. (not generic "Viewed X")
+- Entity type filter dropdown covers all 6 tracked action types
 
 **Database Tables**: user_login_logs, user_access_events, user_security_alerts
 **API Endpoints**: GET /api/admin/security/login-logs, /activity-logs, /alerts, PUT /api/admin/security/alerts/:id/resolve, GET /api/admin/security/user-summary
