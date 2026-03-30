@@ -950,9 +950,11 @@ function DroppableColumn({ id, children }: DroppableColumnProps) {
 interface DraggableCompanyCardProps {
   company: Company;
   onClick: (company: Company) => void;
+  onMarkIrrelevant?: (company: Company) => void;
+  onMarkRelevant?: (companyId: number) => void;
 }
 
-function DraggableCompanyCard({ company, onClick }: DraggableCompanyCardProps) {
+function DraggableCompanyCard({ company, onClick, onMarkIrrelevant, onMarkRelevant }: DraggableCompanyCardProps) {
   const {
     attributes,
     listeners,
@@ -992,9 +994,31 @@ function DraggableCompanyCard({ company, onClick }: DraggableCompanyCardProps) {
                 </Badge>
               )}
             </div>
-            <Badge className={`text-xs ${priorityColor}`}>
-              {company.priority || "normal"}
-            </Badge>
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <Badge className={`text-xs ${priorityColor}`}>
+                {company.priority || "normal"}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 cursor-pointer">
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {company.isIrrelevant ? (
+                    <DropdownMenuItem onClick={() => onMarkRelevant?.(company.id)}>
+                      <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
+                      Mark as Relevant
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => onMarkIrrelevant?.(company)} className="text-gray-600">
+                      <X className="h-3 w-3 mr-2" />
+                      Mark as Not Relevant
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-0 space-y-1.5">
@@ -1789,6 +1813,8 @@ export default function MyCompanies() {
                                   key={company.id}
                                   company={company}
                                   onClick={handleOpenCompany}
+                                  onMarkIrrelevant={(c) => { setMarkIrrelevantCompany(c); setIrrelevantReasonInput(""); }}
+                                  onMarkRelevant={(id) => markIrrelevantMutation.mutate({ companyId: id, isIrrelevant: false })}
                                 />
                               ))
                             )}

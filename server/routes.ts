@@ -6113,7 +6113,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (assignedDateFrom) filters.assignedDateFrom = assignedDateFrom;
       if (assignedDateTo) filters.assignedDateTo = assignedDateTo;
       if (country) filters.country = country as string;
-      if (isIrrelevant !== undefined) filters.isIrrelevant = isIrrelevant === 'true';
+      // Support both ?isIrrelevant and ?irrelevant aliases
+      const irrelevantParam = req.query.irrelevant ?? isIrrelevant;
+      if (irrelevantParam !== undefined) filters.isIrrelevant = irrelevantParam === 'true';
       
       const result = await storage.getCompanies(filters);
       console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));
@@ -6587,6 +6589,18 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     try {
       const companyId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
+      const dbUser = await storage.getUser(userId);
+      const userRole = dbUser?.role || req.user.claims.role || 'customer';
+
+      // Authorization: sales agents may only mark their assigned companies
+      const adminRoles = ['super_admin', 'admin', 'sales_manager'];
+      if (!adminRoles.includes(userRole)) {
+        const targetCompany = await storage.getCompany(companyId);
+        if (!targetCompany || targetCompany.assignedTo !== userId) {
+          return res.status(403).json({ message: "You can only flag companies assigned to you" });
+        }
+      }
+
       const { isIrrelevant, irrelevantReason } = req.body;
       const updateData: any = { isIrrelevant };
       if (isIrrelevant) {
