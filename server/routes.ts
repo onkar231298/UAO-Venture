@@ -6604,7 +6604,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const { isIrrelevant, irrelevantReason } = req.body;
       const updateData: any = { isIrrelevant };
       if (isIrrelevant) {
-        updateData.irrelevantReason = irrelevantReason || null;
+        const trimmedReason = (irrelevantReason || '').slice(0, 200) || null;
+        updateData.irrelevantReason = trimmedReason;
         updateData.irrelevantMarkedBy = userId;
         updateData.irrelevantMarkedAt = new Date();
       } else {

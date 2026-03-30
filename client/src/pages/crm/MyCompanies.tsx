@@ -993,6 +993,11 @@ function DraggableCompanyCard({ company, onClick, onMarkIrrelevant, onMarkReleva
                   Website
                 </Badge>
               )}
+              {company.isIrrelevant && (
+                <Badge variant="outline" className="mt-1 text-xs bg-gray-100 text-gray-500 border-gray-200">
+                  Not Relevant
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <Badge className={`text-xs ${priorityColor}`}>
@@ -1278,23 +1283,22 @@ export default function MyCompanies() {
         body: JSON.stringify({ isIrrelevant, irrelevantReason: reason || null }),
       });
     },
-    onMutate: async ({ companyId, isIrrelevant }) => {
+    onMutate: async ({ companyId }) => {
       // Optimistic update: remove/restore company immediately from the visible list
-      await queryClient.cancelQueries({ queryKey: ['/api/crm/companies'] });
-      const prevData = queryClient.getQueryData<{ companies: Company[] }>(['/api/crm/companies', {
+      const activeQueryKey = ['/api/crm/companies', { 
         assignedTo: user?.id,
         isIrrelevant: showNotRelevant ? 'true' : 'false',
-      }]);
+        ...dateRange,
+      }];
+      await queryClient.cancelQueries({ queryKey: activeQueryKey });
+      const prevData = queryClient.getQueryData<{ companies: Company[] }>(activeQueryKey);
       if (prevData) {
-        queryClient.setQueryData(['/api/crm/companies', {
-          assignedTo: user?.id,
-          isIrrelevant: showNotRelevant ? 'true' : 'false',
-        }], {
+        queryClient.setQueryData(activeQueryKey, {
           ...prevData,
           companies: prevData.companies.filter(c => c.id !== companyId),
         });
       }
-      return { prevData };
+      return { prevData, activeQueryKey };
     },
     onSuccess: (_, { isIrrelevant }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
@@ -1306,11 +1310,8 @@ export default function MyCompanies() {
       });
     },
     onError: (_err, _vars, context: any) => {
-      if (context?.prevData) {
-        queryClient.setQueryData(['/api/crm/companies', {
-          assignedTo: user?.id,
-          isIrrelevant: showNotRelevant ? 'true' : 'false',
-        }], context.prevData);
+      if (context?.prevData && context?.activeQueryKey) {
+        queryClient.setQueryData(context.activeQueryKey, context.prevData);
       }
       toast({ title: "Failed to update company", variant: "destructive" });
     },
