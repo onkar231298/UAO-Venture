@@ -1236,6 +1236,13 @@ export default function MyCompanies() {
     }],
   });
 
+  // Separate query to always show not-relevant count badge
+  const { data: notRelevantCountData } = useQuery<{ companies: Company[]; total: number }>({
+    queryKey: ['/api/crm/companies', { assignedTo: user?.id, isIrrelevant: 'true' }],
+    enabled: !showNotRelevant,
+  });
+  const notRelevantCount = showNotRelevant ? (companiesData?.companies || []).filter(c => c.assignedTo === user?.id).length : (notRelevantCountData?.total || 0);
+
   const myCompanies = (companiesData?.companies || []).filter(
     (company) => company.assignedTo === user?.id
   );
@@ -1247,6 +1254,24 @@ export default function MyCompanies() {
         body: JSON.stringify({ isIrrelevant, irrelevantReason: reason || null }),
       });
     },
+    onMutate: async ({ companyId, isIrrelevant }) => {
+      // Optimistic update: remove/restore company immediately from the visible list
+      await queryClient.cancelQueries({ queryKey: ['/api/crm/companies'] });
+      const prevData = queryClient.getQueryData<{ companies: Company[] }>(['/api/crm/companies', {
+        assignedTo: user?.id,
+        isIrrelevant: showNotRelevant ? 'true' : 'false',
+      }]);
+      if (prevData) {
+        queryClient.setQueryData(['/api/crm/companies', {
+          assignedTo: user?.id,
+          isIrrelevant: showNotRelevant ? 'true' : 'false',
+        }], {
+          ...prevData,
+          companies: prevData.companies.filter(c => c.id !== companyId),
+        });
+      }
+      return { prevData };
+    },
     onSuccess: (_, { isIrrelevant }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
       setMarkIrrelevantCompany(null);
@@ -1256,7 +1281,13 @@ export default function MyCompanies() {
         description: isIrrelevant ? "Company moved to the Not Relevant list." : "Company moved back to the active list.",
       });
     },
-    onError: () => {
+    onError: (_err, _vars, context: any) => {
+      if (context?.prevData) {
+        queryClient.setQueryData(['/api/crm/companies', {
+          assignedTo: user?.id,
+          isIrrelevant: showNotRelevant ? 'true' : 'false',
+        }], context.prevData);
+      }
       toast({ title: "Failed to update company", variant: "destructive" });
     },
   });
@@ -1510,7 +1541,12 @@ export default function MyCompanies() {
                 onClick={() => setShowNotRelevant(true)}
                 className="rounded-l-none text-gray-500"
               >
-                Not Relevant {myCompanies.length > 0 && showNotRelevant && `(${myCompanies.length})`}
+                Not Relevant
+                {notRelevantCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-700 text-xs w-5 h-5">
+                    {notRelevantCount}
+                  </span>
+                )}
               </Button>
             </div>
 
@@ -2906,20 +2942,15 @@ export default function MyCompanies() {
             </p>
             <div>
               <Label className="text-sm font-medium">Reason (optional)</Label>
-              <Select value={irrelevantReasonInput} onValueChange={setIrrelevantReasonInput}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select a reason..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Wrong industry">Wrong industry</SelectItem>
-                  <SelectItem value="No budget">No budget</SelectItem>
-                  <SelectItem value="Unresponsive">Unresponsive</SelectItem>
-                  <SelectItem value="Too small">Too small</SelectItem>
-                  <SelectItem value="Competitor customer">Competitor customer</SelectItem>
-                  <SelectItem value="Location mismatch">Location mismatch</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Textarea
+                className="mt-1 resize-none"
+                placeholder="e.g. Wrong industry, unresponsive, too small..."
+                maxLength={200}
+                rows={3}
+                value={irrelevantReasonInput}
+                onChange={(e) => setIrrelevantReasonInput(e.target.value)}
+              />
+              <div className="text-xs text-muted-foreground text-right mt-1">{irrelevantReasonInput.length}/200</div>
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); }}>

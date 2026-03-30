@@ -151,7 +151,9 @@ interface Company {
   linkedUserId?: string | null;
   isIrrelevant?: boolean | null;
   irrelevantReason?: string | null;
+  irrelevantMarkedBy?: string | null;
   irrelevantMarkedAt?: string | null;
+  irrelevantMarkedByName?: string | null;
 }
 
 interface SalesRep {
@@ -1785,6 +1787,61 @@ export default function CompanyManagement() {
             <div className="p-8 text-center">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No companies found</p>
+            </div>
+          ) : showNotRelevant ? (
+            /* Not Relevant specialized table */
+            <div className="overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden sm:rounded-lg">
+                  <Table className="min-w-[900px]">
+                    <TableHeader className="md:sticky md:top-0 md:z-10 md:bg-white md:dark:bg-gray-800">
+                      <TableRow>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Flagged By</TableHead>
+                        <TableHead>Flagged Date</TableHead>
+                        <TableHead>Assigned Rep</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedCompanies.map((company) => {
+                        const assignedRep = salesReps.find(r => r.id === company.assignedTo);
+                        return (
+                          <TableRow key={company.id} className="opacity-75">
+                            <TableCell>
+                              <div className="font-medium text-gray-500">{company.companyName}</div>
+                              <div className="text-xs text-gray-400">{company.primaryEmail || ''}</div>
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-500 italic max-w-[200px] truncate">
+                              {company.irrelevantReason || <span className="text-gray-300">—</span>}
+                            </TableCell>
+                            <TableCell className="text-sm">{company.irrelevantMarkedByName || '—'}</TableCell>
+                            <TableCell className="text-sm">
+                              {company.irrelevantMarkedAt ? format(new Date(company.irrelevantMarkedAt), 'MMM dd, yyyy') : '—'}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {assignedRep ? `${assignedRep.firstName} ${assignedRep.lastName}` : <span className="text-gray-400">Unassigned</span>}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-700 border-green-300 hover:bg-green-50"
+                                onClick={() => markIrrelevantMutation.mutate({ companyId: company.id, isIrrelevant: false })}
+                                disabled={markIrrelevantMutation.isPending}
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Restore
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -3795,20 +3852,15 @@ export default function CompanyManagement() {
             </p>
             <div>
               <label className="text-sm font-medium block mb-1">Reason (optional)</label>
-              <Select value={irrelevantReasonInput} onValueChange={setIrrelevantReasonInput}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a reason..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Wrong industry">Wrong industry</SelectItem>
-                  <SelectItem value="No budget">No budget</SelectItem>
-                  <SelectItem value="Unresponsive">Unresponsive</SelectItem>
-                  <SelectItem value="Too small">Too small</SelectItem>
-                  <SelectItem value="Competitor customer">Competitor customer</SelectItem>
-                  <SelectItem value="Location mismatch">Location mismatch</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Textarea
+                className="resize-none"
+                placeholder="e.g. Wrong industry, unresponsive, too small..."
+                maxLength={200}
+                rows={3}
+                value={irrelevantReasonInput}
+                onChange={(e) => setIrrelevantReasonInput(e.target.value)}
+              />
+              <div className="text-xs text-muted-foreground text-right mt-1">{irrelevantReasonInput.length}/200</div>
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); }}>

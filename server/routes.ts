@@ -6117,7 +6117,25 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       const result = await storage.getCompanies(filters);
       console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));
-      res.json(result);
+
+      // Enrich irrelevantMarkedBy with user display name for Not Relevant view
+      let enrichedCompanies = result.companies;
+      if (isIrrelevant === 'true') {
+        const markerIds = [...new Set(result.companies.map(c => c.irrelevantMarkedBy).filter(Boolean))] as string[];
+        const markerMap: Record<string, string> = {};
+        await Promise.all(markerIds.map(async (mid) => {
+          const markerUser = await storage.getUser(mid);
+          if (markerUser) {
+            markerMap[mid] = [markerUser.firstName, markerUser.lastName].filter(Boolean).join(' ') || markerUser.email || mid;
+          }
+        }));
+        enrichedCompanies = result.companies.map(c => ({
+          ...c,
+          irrelevantMarkedByName: c.irrelevantMarkedBy ? (markerMap[c.irrelevantMarkedBy] || c.irrelevantMarkedBy) : null,
+        }));
+      }
+
+      res.json({ companies: enrichedCompanies, total: result.total });
     } catch (error) {
       console.error('Error fetching companies:', error);
       res.status(500).json({ message: "Failed to fetch companies" });
