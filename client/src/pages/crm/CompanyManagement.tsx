@@ -149,6 +149,9 @@ interface Company {
   companyStage?: string | null;
   priority?: string | null;
   linkedUserId?: string | null;
+  isIrrelevant?: boolean | null;
+  irrelevantReason?: string | null;
+  irrelevantMarkedAt?: string | null;
 }
 
 interface SalesRep {
@@ -801,6 +804,9 @@ export default function CompanyManagement() {
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [showNotRelevant, setShowNotRelevant] = useState(false);
+  const [markIrrelevantCompany, setMarkIrrelevantCompany] = useState<Company | null>(null);
+  const [irrelevantReasonInput, setIrrelevantReasonInput] = useState("");
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
@@ -1142,10 +1148,32 @@ export default function CompanyManagement() {
     if (countryFilter && countryFilter !== "all") params.append("country", countryFilter);
     if (dateFrom) params.append("dateFrom", dateFrom.toISOString());
     if (dateTo) params.append("dateTo", dateTo.toISOString());
+    params.append("isIrrelevant", showNotRelevant ? "true" : "false");
     return `/api/crm/companies?${params.toString()}`;
   };
 
-  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, countryFilter, dateFrom?.toISOString(), dateTo?.toISOString()];
+  const companiesQueryKey = ["/api/crm/companies", searchTerm, industryFilter, originFilter, statusFilter, stageFilter, priorityFilter, assignedToFilter, countryFilter, dateFrom?.toISOString(), dateTo?.toISOString(), showNotRelevant];
+
+  const markIrrelevantMutation = useMutation({
+    mutationFn: async ({ companyId, isIrrelevant, reason }: { companyId: number; isIrrelevant: boolean; reason?: string }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/mark-irrelevant`, {
+        method: "PATCH",
+        body: JSON.stringify({ isIrrelevant, irrelevantReason: reason || null }),
+      });
+    },
+    onSuccess: (_, { isIrrelevant }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setMarkIrrelevantCompany(null);
+      setIrrelevantReasonInput("");
+      toast({ 
+        title: isIrrelevant ? "Company marked as not relevant" : "Company restored", 
+        description: isIrrelevant ? "Company moved to the Not Relevant list." : "Company moved back to the active list.",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to update company", variant: "destructive" });
+    },
+  });
 
   const { data: companiesData, isLoading } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: companiesQueryKey,
@@ -1727,6 +1755,25 @@ export default function CompanyManagement() {
         </Card>
       )}
 
+      {/* Active / Not Relevant Toggle */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={!showNotRelevant ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowNotRelevant(false)}
+        >
+          Active Companies
+        </Button>
+        <Button
+          variant={showNotRelevant ? "default" : "outline"}
+          size="sm"
+          className={showNotRelevant ? "bg-gray-600 hover:bg-gray-700" : ""}
+          onClick={() => setShowNotRelevant(true)}
+        >
+          Not Relevant
+        </Button>
+      </div>
+
       {/* Companies Table */}
       <Card>
         <CardContent className="p-0">
@@ -1890,6 +1937,23 @@ export default function CompanyManagement() {
                                           {company.assignedTo === rep.id && " (current)"}
                                         </DropdownMenuItem>
                                       ))}
+                                      <DropdownMenuSeparator />
+                                      {company.isIrrelevant ? (
+                                        <DropdownMenuItem
+                                          onClick={() => markIrrelevantMutation.mutate({ companyId: company.id, isIrrelevant: false })}
+                                        >
+                                          <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
+                                          Mark as Relevant
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          onClick={() => { setMarkIrrelevantCompany(company); setIrrelevantReasonInput(""); }}
+                                          className="text-gray-600"
+                                        >
+                                          <X className="h-3 w-3 mr-2" />
+                                          Mark as Not Relevant
+                                        </DropdownMenuItem>
+                                      )}
                                       {isSuperAdmin && (
                                         <>
                                           <DropdownMenuSeparator />
@@ -3715,6 +3779,60 @@ export default function CompanyManagement() {
         onOpenChange={setShowBulkEmailComposer}
         preSelectedCompanyIds={selectedCompanies}
       />
+
+      {/* Mark as Not Relevant Dialog */}
+      <Dialog open={!!markIrrelevantCompany} onOpenChange={(open) => { if (!open) { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <X className="h-5 w-5 text-gray-500" />
+              Mark as Not Relevant
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{markIrrelevantCompany?.companyName}</span> will be moved to the Not Relevant list and hidden from the active view.
+            </p>
+            <div>
+              <label className="text-sm font-medium block mb-1">Reason (optional)</label>
+              <Select value={irrelevantReasonInput} onValueChange={setIrrelevantReasonInput}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Wrong industry">Wrong industry</SelectItem>
+                  <SelectItem value="No budget">No budget</SelectItem>
+                  <SelectItem value="Unresponsive">Unresponsive</SelectItem>
+                  <SelectItem value="Too small">Too small</SelectItem>
+                  <SelectItem value="Competitor customer">Competitor customer</SelectItem>
+                  <SelectItem value="Location mismatch">Location mismatch</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); }}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-gray-600 hover:bg-gray-700"
+                disabled={markIrrelevantMutation.isPending}
+                onClick={() => {
+                  if (markIrrelevantCompany) {
+                    markIrrelevantMutation.mutate({
+                      companyId: markIrrelevantCompany.id,
+                      isIrrelevant: true,
+                      reason: irrelevantReasonInput || undefined,
+                    });
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

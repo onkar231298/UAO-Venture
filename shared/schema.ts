@@ -1410,6 +1410,12 @@ export const companies = pgTable("companies", {
   status: varchar("status", { length: 20 }).default("active"), // active, inactive, blocked
   companyStage: varchar("company_stage", { length: 50 }).default("new"), // new, contacted, engaged, qualified, customer, churned
   priority: varchar("priority", { length: 20 }).default("normal"), // hot, warm, cold, normal
+
+  // Not Relevant flag
+  isIrrelevant: boolean("is_irrelevant").default(false),
+  irrelevantReason: text("irrelevant_reason"),
+  irrelevantMarkedBy: varchar("irrelevant_marked_by").references(() => users.id),
+  irrelevantMarkedAt: timestamp("irrelevant_marked_at"),
   
   // Linked website user (for website-registered customers)
   linkedUserId: varchar("linked_user_id").references(() => users.id),

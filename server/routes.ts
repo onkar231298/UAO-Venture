@@ -6078,7 +6078,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         search, industryType, needsEnrichment, origin, status, 
         companyStage, priority, assignedTo, createdFrom,
         dateFrom, dateTo, assignedDateFrom, assignedDateTo,
-        country,
+        country, isIrrelevant,
         limit = '1000', offset = '0' 
       } = req.query;
       
@@ -6113,6 +6113,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (assignedDateFrom) filters.assignedDateFrom = assignedDateFrom;
       if (assignedDateTo) filters.assignedDateTo = assignedDateTo;
       if (country) filters.country = country as string;
+      if (isIrrelevant !== undefined) filters.isIrrelevant = isIrrelevant === 'true';
       
       const result = await storage.getCompanies(filters);
       console.log('[Companies API] Found', result.total, 'companies, origins:', result.companies.map(c => c.origin).filter((v, i, a) => a.indexOf(v) === i));
@@ -6559,6 +6560,30 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       res.json(company);
     } catch (error) {
       console.error('Error updating company:', error);
+      res.status(500).json({ message: "Failed to update company" });
+    }
+  });
+
+  // Mark / Unmark company as irrelevant
+  app.patch('/api/crm/companies/:id/mark-irrelevant', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const { isIrrelevant, irrelevantReason } = req.body;
+      const updateData: any = { isIrrelevant };
+      if (isIrrelevant) {
+        updateData.irrelevantReason = irrelevantReason || null;
+        updateData.irrelevantMarkedBy = userId;
+        updateData.irrelevantMarkedAt = new Date();
+      } else {
+        updateData.irrelevantReason = null;
+        updateData.irrelevantMarkedBy = null;
+        updateData.irrelevantMarkedAt = null;
+      }
+      const company = await storage.updateCompany(companyId, updateData);
+      res.json(company);
+    } catch (error) {
+      console.error('Error updating company irrelevant status:', error);
       res.status(500).json({ message: "Failed to update company" });
     }
   });

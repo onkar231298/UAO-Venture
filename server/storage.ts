@@ -560,6 +560,7 @@ export interface IStorage {
     createdFrom?: string;
     dateFrom?: string;
     dateTo?: string;
+    isIrrelevant?: boolean;
     limit?: number; 
     offset?: number;
     user?: { id: string; role: string };
@@ -5660,6 +5661,18 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.priority) {
       conditions.push(eq(companies.priority, filters.priority));
+    }
+
+    // isIrrelevant filter: if explicitly set, filter by value; otherwise exclude irrelevant companies by default
+    if (filters?.isIrrelevant === true) {
+      conditions.push(eq(companies.isIrrelevant, true));
+    } else if (filters?.isIrrelevant === false || filters?.isIrrelevant === undefined) {
+      conditions.push(
+        or(
+          eq(companies.isIrrelevant, false),
+          isNull(companies.isIrrelevant)
+        )
+      );
     }
 
     if (filters?.assignedTo) {

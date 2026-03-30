@@ -20,7 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { 
   Building2, Search, List, Kanban, RefreshCw, Phone, Mail, MapPin, 
   Globe, Calendar, ExternalLink, User, Clock, ChevronDown, Send, CheckCircle, PhoneMissed,
-  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown, Edit2, Paperclip, Loader2, Trash2
+  Reply, X, Plus, Eye, ArrowRight, DollarSign, Package, Check, ChevronsUpDown, Edit2, Paperclip, Loader2, Trash2, MoreVertical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -893,6 +893,9 @@ interface Company {
   lastContactDate: string | null;
   nextFollowUpDate: string | null;
   website: string | null;
+  isIrrelevant?: boolean | null;
+  irrelevantReason?: string | null;
+  irrelevantMarkedAt?: string | null;
 }
 
 const COMPANY_STAGES = [
@@ -1078,6 +1081,11 @@ export default function MyCompanies() {
   const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
   const [bulkSelectedIds, setBulkSelectedIds] = useState<number[]>([]);
 
+  // Not Relevant state
+  const [showNotRelevant, setShowNotRelevant] = useState(false);
+  const [markIrrelevantCompany, setMarkIrrelevantCompany] = useState<Company | null>(null);
+  const [irrelevantReasonInput, setIrrelevantReasonInput] = useState("");
+
   // Track company/contact view for Security Monitor activity feed
   const trackView = (entityType: string, entityId: number, entityName: string) => {
     fetch('/api/crm/track-view', {
@@ -1223,6 +1231,7 @@ export default function MyCompanies() {
   const { data: companiesData, isLoading, refetch } = useQuery<{ companies: Company[] }>({
     queryKey: ['/api/crm/companies', { 
       assignedTo: user?.id,
+      isIrrelevant: showNotRelevant ? 'true' : 'false',
       ...dateRange,
     }],
   });
@@ -1230,6 +1239,27 @@ export default function MyCompanies() {
   const myCompanies = (companiesData?.companies || []).filter(
     (company) => company.assignedTo === user?.id
   );
+
+  const markIrrelevantMutation = useMutation({
+    mutationFn: async ({ companyId, isIrrelevant, reason }: { companyId: number; isIrrelevant: boolean; reason?: string }) => {
+      return apiRequest(`/api/crm/companies/${companyId}/mark-irrelevant`, {
+        method: "PATCH",
+        body: JSON.stringify({ isIrrelevant, irrelevantReason: reason || null }),
+      });
+    },
+    onSuccess: (_, { isIrrelevant }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
+      setMarkIrrelevantCompany(null);
+      setIrrelevantReasonInput("");
+      toast({ 
+        title: isIrrelevant ? "Company marked as not relevant" : "Company restored", 
+        description: isIrrelevant ? "Company moved to the Not Relevant list." : "Company moved back to the active list.",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to update company", variant: "destructive" });
+    },
+  });
 
   const updateStageMutation = useMutation({
     mutationFn: async ({ companyId, stage }: { companyId: number; stage: string }) => {
@@ -1465,6 +1495,25 @@ export default function MyCompanies() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <div className="flex items-center gap-2">
+            <div className="flex rounded-md border">
+              <Button
+                variant={!showNotRelevant ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setShowNotRelevant(false)}
+                className="rounded-r-none"
+              >
+                Active
+              </Button>
+              <Button
+                variant={showNotRelevant ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setShowNotRelevant(true)}
+                className="rounded-l-none text-gray-500"
+              >
+                Not Relevant {myCompanies.length > 0 && showNotRelevant && `(${myCompanies.length})`}
+              </Button>
+            </div>
+
             <Button
               variant="default"
               size="sm"
@@ -1784,11 +1833,19 @@ export default function MyCompanies() {
                           />
                         </td>
                         <td className="p-3">
-                          <div className="font-medium">{company.companyName}</div>
+                          <div className={`font-medium ${company.isIrrelevant ? 'text-gray-400' : ''}`}>{company.companyName}</div>
                           {company.origin === 'website' && (
                             <Badge variant="outline" className="text-xs bg-green-50 text-green-700 mt-1">
                               Website
                             </Badge>
+                          )}
+                          {company.isIrrelevant && (
+                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500 mt-1">
+                              Not Relevant
+                            </Badge>
+                          )}
+                          {company.irrelevantReason && (
+                            <div className="text-xs text-gray-400 mt-0.5 italic">{company.irrelevantReason}</div>
                           )}
                         </td>
                         <td className="p-3">
@@ -1815,16 +1872,46 @@ export default function MyCompanies() {
                           </Badge>
                         </td>
                         <td className="p-3">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenCompany(company);
-                            }}
-                          >
-                            View
-                          </Button>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenCompany(company);
+                              }}
+                            >
+                              View
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {company.isIrrelevant ? (
+                                  <DropdownMenuItem
+                                    onClick={() => markIrrelevantMutation.mutate({ companyId: company.id, isIrrelevant: false })}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    Mark as Relevant
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setMarkIrrelevantCompany(company);
+                                      setIrrelevantReasonInput("");
+                                    }}
+                                    className="text-gray-600"
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Mark as Not Relevant
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -2803,6 +2890,62 @@ export default function MyCompanies() {
         }}
         preSelectedCompanyIds={bulkSelectedIds}
       />
+
+      {/* Mark as Not Relevant Dialog */}
+      <Dialog open={!!markIrrelevantCompany} onOpenChange={(open) => { if (!open) { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <X className="h-5 w-5 text-gray-500" />
+              Mark as Not Relevant
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{markIrrelevantCompany?.companyName}</span> will be moved to the Not Relevant list and hidden from your active view.
+            </p>
+            <div>
+              <Label className="text-sm font-medium">Reason (optional)</Label>
+              <Select value={irrelevantReasonInput} onValueChange={setIrrelevantReasonInput}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Wrong industry">Wrong industry</SelectItem>
+                  <SelectItem value="No budget">No budget</SelectItem>
+                  <SelectItem value="Unresponsive">Unresponsive</SelectItem>
+                  <SelectItem value="Too small">Too small</SelectItem>
+                  <SelectItem value="Competitor customer">Competitor customer</SelectItem>
+                  <SelectItem value="Location mismatch">Location mismatch</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setMarkIrrelevantCompany(null); setIrrelevantReasonInput(""); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="default"
+                className="bg-gray-600 hover:bg-gray-700"
+                disabled={markIrrelevantMutation.isPending}
+                onClick={() => {
+                  if (markIrrelevantCompany) {
+                    markIrrelevantMutation.mutate({
+                      companyId: markIrrelevantCompany.id,
+                      isIrrelevant: true,
+                      reason: irrelevantReasonInput || undefined,
+                    });
+                  }
+                }}
+              >
+                {markIrrelevantMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </SalesLayout>
   );
