@@ -48,7 +48,9 @@ import {
   X,
   Monitor,
   Building2,
-  MessageSquare
+  MessageSquare,
+  Download,
+  Loader2
 } from "lucide-react";
 import type { Product, Category, ProductTag } from "@shared/schema";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -76,6 +78,64 @@ export default function WebsiteManagement() {
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadAllProducts = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch('/api/admin/products?limit=10000', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const data: any = await response.json();
+      const products: any[] = data.products || data || [];
+
+      const csvHeaders = [
+        'SKU', 'Name', 'Slug', 'Description', 'Status', 'Visible', 'Is Organic', 'Is Featured',
+        'Botanical Name', 'Plant Part', 'Form', 'Origin', 'HS Code', 'Mesh Size',
+        'MOQ', 'Stock Unit', 'Current Stock', 'Packing Size', 'Lead Time',
+        'Base Price (USD)', 'Price INR', 'Price EUR', 'Price GBP', 'Currency', 'Price Type', 'Price Location',
+        'Moisture', 'Bulk Density', 'Shelf Life', 'Storage Conditions',
+        'SEO Title', 'SEO Description', 'Certifications', 'Main Image', 'Created At',
+      ];
+
+      const escapeCSV = (val: any) => {
+        if (val === null || val === undefined) return '';
+        const str = Array.isArray(val) ? val.join('; ') : String(val);
+        const escaped = str.replace(/"/g, '""');
+        return escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') ? `"${escaped}"` : escaped;
+      };
+
+      const rows = products.map((p: any) => [
+        p.productId, p.name, p.slug, p.description, p.status,
+        p.isVisible ? 'Yes' : 'No', p.isOrganic ? 'Yes' : 'No', p.isFeatured ? 'Yes' : 'No',
+        p.botanicalName, p.plantPart, p.form, p.origin, p.hsCode, p.meshSize,
+        p.moq, p.stockUnit, p.currentStock, p.packingSize, p.leadTime,
+        p.priceUSD || p.basePrice, p.priceINR, p.priceEUR, p.priceGBP,
+        p.currency, p.priceType, p.priceLocation,
+        p.moisture, p.bulkDensity, p.shelfLife, p.storageConditions,
+        p.seoTitle, p.seoDescription,
+        Array.isArray(p.certifications) ? p.certifications.join('; ') : (p.certifications || ''),
+        p.mainImage,
+        p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '',
+      ].map(escapeCSV).join(','));
+
+      const csv = [csvHeaders.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bright-fame-products-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Download complete", description: `${products.length} products exported to CSV.` });
+    } catch {
+      toast({ title: "Download failed", description: "Could not export products. Please try again.", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Debug log
   console.log("WebsiteManagement component rendering", { searchQuery, activeTab });
@@ -366,6 +426,19 @@ export default function WebsiteManagement() {
                   <CardTitle className="flex items-center justify-between">
                     <span>Product Management</span>
                     <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={downloadAllProducts}
+                        disabled={isDownloading}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4 mr-2" />
+                        )}
+                        {isDownloading ? 'Downloading…' : 'Download All Products'}
+                      </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button size="sm" variant="outline">
