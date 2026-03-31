@@ -422,7 +422,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName, perDayDivisor, perDayDivisorMode } = req.body;
 
     // Helper to convert empty strings to "0" for numeric fields
     const toNumericStr = (val: any) => {
@@ -458,6 +458,8 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           ifscCode: ifscCode || "",
           panNumber: panNumber || "",
           salarySlipName: salarySlipName || "",
+          perDayDivisor: parseInt(perDayDivisor) || 30,
+          perDayDivisorMode: perDayDivisorMode || "fixed",
           updatedAt: new Date()
         })
         .where(eq(employeeSalaries.id, existing.id));
@@ -476,7 +478,9 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         bankName: bankName || "",
         ifscCode: ifscCode || "",
         panNumber: panNumber || "",
-        salarySlipName: salarySlipName || ""
+        salarySlipName: salarySlipName || "",
+        perDayDivisor: parseInt(perDayDivisor) || 30,
+        perDayDivisorMode: perDayDivisorMode || "fixed",
       });
     }
 
@@ -718,8 +722,10 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const paidDays = presentDays + leaveDays + weekendDays + holidayCount;
     const absentDaysCalc = Math.max(0, totalDaysInMonth - paidDays);
 
-    // Fixed per-day divisor (default 30 — standard Indian payroll)
-    const perDayDivisor = salaryConfig.perDayDivisor || 30;
+    // Per-day divisor: 'actual' = use real calendar days; 'fixed' = use stored divisor (26 or 30)
+    const divisorMode = (salaryConfig as any).perDayDivisorMode || 'fixed';
+    const fixedDivisor = salaryConfig.perDayDivisor || 30;
+    const effectiveDivisor = divisorMode === 'actual' ? totalDaysInMonth : fixedDivisor;
 
     // Full salary components — always show 100%, never prorate
     const fullBasic = parseFloat(salaryConfig.basicSalary || '0');
@@ -730,13 +736,13 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
     const fullDeductions = parseFloat(salaryConfig.deductions || '0');
 
-    // Per-day rate using fixed divisor — same every month regardless of calendar days
-    const perDaySalaryRate = fullGross / perDayDivisor;
-    const absentDeduction = perDaySalaryRate * absentDaysCalc;
+    // Per-day rate — capped so deductions never exceed gross (prevents negative net)
+    const perDaySalaryRate = effectiveDivisor > 0 ? fullGross / effectiveDivisor : 0;
+    const absentDeduction = Math.min(perDaySalaryRate * absentDaysCalc, fullGross);
     const netPayable = fullGross - fullDeductions - absentDeduction;
 
     console.log(`Salary Slip Generation for ${userId}:`);
-    console.log(`  Total Days in Month: ${totalDaysInMonth}, Per Day Divisor: ${perDayDivisor}`);
+    console.log(`  Total Days in Month: ${totalDaysInMonth}, Divisor Mode: ${divisorMode}, Effective Divisor: ${effectiveDivisor}`);
     console.log(`  Present Days: ${presentDays}, Leave Days: ${leaveDays}, Weekends: ${weekendDays}, Holidays: ${holidayCount}`);
     console.log(`  Paid Days: ${paidDays}, Absent Days: ${absentDaysCalc}`);
     console.log(`  Gross: ${fullGross}, Per Day: ${perDaySalaryRate.toFixed(2)}, Absent Deduction: ${absentDeduction.toFixed(2)}, Net: ${netPayable.toFixed(2)}`);
@@ -948,13 +954,15 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
     const configDeductions = parseFloat(salaryConfig?.deductions || '0');
     
-    // Calculate absent days deduction using fixed per-day divisor
+    // Calculate absent days deduction — respects divisor mode and caps at gross
     const totalDays = slip.workingDays || 30;
     const paidDays = slip.presentDays || 0;
     const absentDays = Math.max(0, totalDays - paidDays);
-    const perDayDivisorPDF = salaryConfig?.perDayDivisor || 30;
-    const perDaySalary = fullGross / perDayDivisorPDF;
-    const absentDeduction = perDaySalary * absentDays;
+    const divisorModePDF = (salaryConfig as any)?.perDayDivisorMode || 'fixed';
+    const fixedDivisorPDF = salaryConfig?.perDayDivisor || 30;
+    const effectiveDivisorPDF = divisorModePDF === 'actual' ? totalDays : fixedDivisorPDF;
+    const perDaySalary = effectiveDivisorPDF > 0 ? fullGross / effectiveDivisorPDF : 0;
+    const absentDeduction = Math.min(perDaySalary * absentDays, fullGross);
     
     // Particulars Section Header
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#000');

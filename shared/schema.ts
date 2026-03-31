@@ -2517,6 +2517,7 @@ export const employeeSalaries = pgTable("employee_salaries", {
   deductions: decimal("deductions", { precision: 12, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 12, scale: 2 }).default("0"),
   perDayDivisor: integer("per_day_divisor").default(30),
+  perDayDivisorMode: varchar("per_day_divisor_mode", { length: 20 }).default("fixed"), // 'fixed' | 'actual'
   bankAccountNumber: varchar("bank_account_number", { length: 50 }),
   bankName: varchar("bank_name", { length: 100 }),
   ifscCode: varchar("ifsc_code", { length: 20 }),

@@ -202,6 +202,7 @@ export default function HRManagement() {
     specialAllowance: "",
     deductions: "",
     perDayDivisor: "30",
+    perDayDivisorMode: "fixed",
     bankAccountNumber: "",
     bankName: "",
     ifscCode: "",
@@ -274,6 +275,7 @@ export default function HRManagement() {
           specialAllowance: currentSalary.specialAllowance || "",
           deductions: currentSalary.deductions || "",
           perDayDivisor: (currentSalary.perDayDivisor || 30).toString(),
+          perDayDivisorMode: (currentSalary as any).perDayDivisorMode || "fixed",
           bankAccountNumber: currentSalary.bankAccountNumber || "",
           bankName: currentSalary.bankName || "",
           ifscCode: (currentSalary as any).ifscCode || "",
@@ -290,6 +292,7 @@ export default function HRManagement() {
           specialAllowance: "",
           deductions: "",
           perDayDivisor: "30",
+          perDayDivisorMode: "fixed",
           bankAccountNumber: "",
           bankName: "",
           ifscCode: "",
@@ -1335,19 +1338,36 @@ export default function HRManagement() {
                 placeholder="0"
               />
             </div>
-            <div>
-              <Label>Per Day Divisor</Label>
+            <div className="space-y-2">
+              <Label>Absent Deduction Method</Label>
               <select
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                value={salaryForm.perDayDivisor}
-                onChange={(e) => setSalaryForm({ ...salaryForm, perDayDivisor: e.target.value })}
+                value={salaryForm.perDayDivisorMode}
+                onChange={(e) => setSalaryForm({ ...salaryForm, perDayDivisorMode: e.target.value })}
               >
-                <option value="26">26 days (factories / 6-day week)</option>
-                <option value="30">30 days (standard / service sector)</option>
+                <option value="fixed">Fixed divisor (same per-day rate every month)</option>
+                <option value="actual">Actual calendar days (auto: 28/29/30/31 per month)</option>
               </select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Per Day = Gross ÷ {salaryForm.perDayDivisor} — same rate every month regardless of calendar days
-              </p>
+              {salaryForm.perDayDivisorMode === "fixed" ? (
+                <div className="mt-2">
+                  <Label className="text-xs text-muted-foreground">Fixed Divisor</Label>
+                  <select
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm mt-1"
+                    value={salaryForm.perDayDivisor}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, perDayDivisor: e.target.value })}
+                  >
+                    <option value="26">26 days (factory / 6-day week)</option>
+                    <option value="30">30 days (standard Indian payroll)</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Per day = Gross ÷ {salaryForm.perDayDivisor} — consistent rate every month. Absent deduction is capped at gross salary.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Per day = Gross ÷ actual days in month (e.g. ÷28 in Feb, ÷31 in March). Always fair — absent deduction can never exceed gross salary.
+                </p>
+              )}
             </div>
             <div>
               <Label>Bank Account</Label>
