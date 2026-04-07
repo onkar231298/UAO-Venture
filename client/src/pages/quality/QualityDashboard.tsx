@@ -2509,9 +2509,10 @@ function NCRsSection() {
 // ==================== FIELD QUALITY RECORDS SECTION ====================
 type FQRFormType = "all" | "IRF" | "TRF" | "loading_inspection";
 
+const TERMINAL_STATUSES = ["completed", "cleared", "rejected", "on_hold", "results_received"];
 function isOverdue(rec: any) {
   if (!rec.scheduledDate) return false;
-  if (["completed", "on_hold", "results_received"].includes(rec.status)) return false;
+  if (TERMINAL_STATUSES.includes(rec.status)) return false;
   return new Date(rec.scheduledDate) < new Date();
 }
 
@@ -3357,6 +3358,10 @@ function CreateFieldQualityRecordDialog({
   const handleSubmit = () => {
     if (!form.productName) return;
     const payload: any = { ...form };
+    // TRF workflow starts at "sent", LI and IRF start at "scheduled"
+    if (formType === "TRF" && payload.status === "scheduled") {
+      payload.status = "sent";
+    }
     if (formType === "loading_inspection") {
       payload.formData = { ...liFormData };
     }

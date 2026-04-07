@@ -136,7 +136,7 @@ export default function AdminQualityOverview() {
           <TabsTrigger value="vendors" className="text-xs">Vendors</TabsTrigger>
           <TabsTrigger value="approvals" className="text-xs">Approvals</TabsTrigger>
           <TabsTrigger value="ncrs" className="text-xs">NCRs</TabsTrigger>
-          <TabsTrigger value="field-records" className="text-xs">Field Records</TabsTrigger>
+          <TabsTrigger value="field-records" className="text-xs">Field Quality Records</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents">

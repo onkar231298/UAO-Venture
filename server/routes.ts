@@ -14217,7 +14217,8 @@ We look forward to hearing from you.`;
         invoiceNumber: body.invoiceNumber || null,
         invoiceDate: body.invoiceDate ? new Date(body.invoiceDate) : null,
         invoiceAmount: body.invoiceAmount ? body.invoiceAmount.toString() : null,
-        status: body.status || 'scheduled',
+        // TRF lifecycle starts at "sent"; IRF and LI start at "scheduled"
+        status: body.status || (body.formType === 'TRF' ? 'sent' : 'scheduled'),
         overallConclusion: body.overallConclusion || null,
         conclusionNotes: body.conclusionNotes || null,
         linkedBatchId: body.linkedBatchId ? parseInt(body.linkedBatchId) : null,
