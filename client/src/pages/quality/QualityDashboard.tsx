@@ -2559,7 +2559,7 @@ function FieldQualityRecordsSection() {
   const overdueCount = records.filter(isOverdue).length;
 
   // Sync invoice form data when selected record changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedRecord) {
       setInvoiceFormData({
         invoiceNumber: selectedRecord.invoiceNumber || "",
@@ -3298,7 +3298,7 @@ function CreateFieldQualityRecordDialog({
     labName: "", labAddress: "", labContactPerson: "", labPhone: "", labEmail: "",
     sampleId: "", invoiceNumber: "", invoiceDate: "", invoiceAmount: "",
     inspectorAssigned: "",
-    sourceIrfId: "",
+    linkedIrfId: "",
     notes: "", status: "scheduled",
     testParameters: [] as any[],
   });
@@ -3453,7 +3453,7 @@ function CreateFieldQualityRecordDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Linked IRF Record Number</Label>
-                  <Input value={form.sourceIrfId} onChange={(e) => f("sourceIrfId", e.target.value)} placeholder="e.g. BFO-IRF-2025-0001" />
+                  <Input value={form.linkedIrfId} onChange={(e) => f("linkedIrfId", e.target.value)} placeholder="e.g. BFO-IRF-2025-0001" />
                 </div>
               </div>
             </div>
