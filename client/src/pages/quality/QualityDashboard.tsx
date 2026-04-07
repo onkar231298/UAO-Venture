@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, ChangeEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -3237,10 +3237,43 @@ function FieldQualityRecordsSection() {
 
 // ==================== ATTACHMENT ADD BUTTON ====================
 function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: string, name: string) => void; isLoading: boolean }) {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [type, setType] = useState("invoice");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      // Get pre-signed upload URL from object storage
+      const res = await fetch("/api/objects/upload");
+      const { uploadURL } = await res.json();
+      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      // Derive public URL from upload URL (remove query params)
+      const publicUrl = uploadURL.split("?")[0];
+      setUrl(publicUrl);
+      if (!name) setName(file.name);
+      toast({ title: "File uploaded", description: file.name });
+    } catch {
+      toast({ title: "Upload failed", description: "Could not upload file. You can paste a URL instead.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAdd = () => {
+    if (!url || !name) return;
+    onAdd(url, type, name);
+    setOpen(false);
+    setUrl(""); setName(""); setType("invoice");
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   return (
     <>
       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setOpen(true)} disabled={isLoading}>
@@ -3250,8 +3283,14 @@ function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: 
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Add Attachment</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Document Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Invoice_Aug_2025.pdf" /></div>
+            <div>
+              <Label>Upload File</Label>
+              <input ref={fileRef} type="file" className="block w-full text-xs mt-1 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700" onChange={handleFileChange} disabled={uploading} />
+              {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading…</p>}
+            </div>
+            <div className="relative flex items-center gap-2 text-xs text-muted-foreground"><div className="flex-1 border-t" /><span>or paste URL</span><div className="flex-1 border-t" /></div>
             <div><Label>Document URL</Label><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /></div>
+            <div><Label>Document Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Invoice_Aug_2025.pdf" /></div>
             <div>
               <Label>Type</Label>
               <Select value={type} onValueChange={setType}>
@@ -3268,7 +3307,7 @@ function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={!url || !name || isLoading} onClick={() => { onAdd(url, type, name); setOpen(false); setUrl(""); setName(""); }}>Add</Button>
+            <Button disabled={!url || !name || isLoading || uploading} onClick={handleAdd}>Add Attachment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

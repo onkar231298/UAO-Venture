@@ -14182,7 +14182,8 @@ We look forward to hearing from you.`;
         quantity: body.quantity ? body.quantity.toString() : null,
         unit: body.unit || null,
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
-        actualDate: body.actualDate ? new Date(body.actualDate) : null,
+        // For IRF, samplingDate is stored as actualDate (the date sampling physically occurred)
+        actualDate: (body.samplingDate || body.actualDate) ? new Date(body.samplingDate || body.actualDate) : null,
         expectedDueDate: body.expectedDueDate ? new Date(body.expectedDueDate) : null,
         samplingLocation: body.samplingLocation || null,
         samplingCity: body.samplingCity || null,
@@ -14203,7 +14204,14 @@ We look forward to hearing from you.`;
         labPhone: body.labPhone || null,
         labEmail: body.labEmail || null,
         sampleId: body.sampleId || null,
-        linkedIrfId: body.linkedIrfId ? parseInt(body.linkedIrfId) : null,
+        linkedIrfId: await (async () => {
+          if (!body.linkedIrfId) return null;
+          const asInt = parseInt(body.linkedIrfId);
+          if (!isNaN(asInt)) return asInt;
+          // Lookup by record number string
+          const rows = await db.execute(sql`SELECT id FROM field_quality_records WHERE record_number = ${body.linkedIrfId} LIMIT 1`);
+          return rows.rows?.[0]?.id || null;
+        })(),
         testParameters: body.testParameters || [],
         formData: body.formData || {},
         invoiceNumber: body.invoiceNumber || null,
@@ -14213,7 +14221,8 @@ We look forward to hearing from you.`;
         overallConclusion: body.overallConclusion || null,
         conclusionNotes: body.conclusionNotes || null,
         linkedBatchId: body.linkedBatchId ? parseInt(body.linkedBatchId) : null,
-        inspectorId: body.inspectorId || null,
+        // inspectorAssigned is a display name (free text) stored in inspectorId which is VARCHAR
+        inspectorId: body.inspectorAssigned || body.inspectorId || null,
         createdById: userId,
         notes: body.notes || null,
       };
@@ -14240,9 +14249,13 @@ We look forward to hearing from you.`;
         if (body[f] !== undefined) updateData[f] = body[f];
       }
       if (body.scheduledDate !== undefined) updateData.scheduledDate = body.scheduledDate ? new Date(body.scheduledDate) : null;
-      if (body.actualDate !== undefined) updateData.actualDate = body.actualDate ? new Date(body.actualDate) : null;
+      // samplingDate (from IRF form) maps to actualDate
+      if (body.samplingDate !== undefined) updateData.actualDate = body.samplingDate ? new Date(body.samplingDate) : null;
+      else if (body.actualDate !== undefined) updateData.actualDate = body.actualDate ? new Date(body.actualDate) : null;
       if (body.expectedDueDate !== undefined) updateData.expectedDueDate = body.expectedDueDate ? new Date(body.expectedDueDate) : null;
       if (body.invoiceDate !== undefined) updateData.invoiceDate = body.invoiceDate ? new Date(body.invoiceDate) : null;
+      // inspectorAssigned (text) maps to inspectorId (which is VARCHAR in DB)
+      if (body.inspectorAssigned !== undefined) updateData.inspectorId = body.inspectorAssigned;
       const [updated] = await db.update(fqrTable).set(updateData).where(eq(fqrTable.id, id)).returning();
       res.json(updated);
     } catch (error) {
