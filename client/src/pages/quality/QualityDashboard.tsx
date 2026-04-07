@@ -2647,10 +2647,14 @@ function FieldQualityRecordsSection() {
     { value: "", label: "All Statuses" },
     { value: "scheduled", label: "Scheduled" },
     { value: "in_progress", label: "In Progress" },
+    { value: "sampled", label: "Sampled" },
+    { value: "in_testing", label: "In Testing" },
     { value: "sent", label: "Sent to Lab" },
     { value: "results_received", label: "Results Received" },
+    { value: "cleared", label: "Cleared" },
     { value: "completed", label: "Completed" },
     { value: "on_hold", label: "On Hold" },
+    { value: "rejected", label: "Rejected" },
   ];
 
   const conclusionColors: Record<string, string> = {
@@ -2660,9 +2664,9 @@ function FieldQualityRecordsSection() {
   };
 
   const statusSteps: Record<string, string[]> = {
-    IRF: ["scheduled", "in_progress", "sent", "results_received", "completed"],
-    TRF: ["scheduled", "sent", "results_received", "completed"],
-    loading_inspection: ["scheduled", "in_progress", "completed"],
+    IRF: ["scheduled", "in_progress", "sampled", "in_testing", "completed"],
+    TRF: ["sent", "results_received", "completed"],
+    loading_inspection: ["scheduled", "in_progress", "cleared"],
   };
 
   const currentSteps = selectedRecord ? (statusSteps[selectedRecord.formType] || statusOptions.filter(o => o.value).map(o => o.value)) : [];
@@ -2874,6 +2878,26 @@ function FieldQualityRecordsSection() {
                       </div>
                     );
                   })}
+                  {/* Terminal states */}
+                  <div className="ml-2 flex gap-1">
+                    {(["on_hold", "rejected"] as const).map((ts) => (
+                      <button
+                        key={ts}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          selectedRecord.status === ts
+                            ? ts === "rejected" ? "bg-red-600 text-white border-red-600" : "bg-amber-500 text-white border-amber-500"
+                            : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
+                        }`}
+                        onClick={() => {
+                          setSelectedRecord({ ...selectedRecord, status: ts });
+                          updateMutation.mutate({ id: selectedRecord.id, status: ts });
+                        }}
+                        disabled={updateMutation.isPending}
+                      >
+                        {ts.replace(/_/g, " ")}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -3230,10 +3254,10 @@ function CreateFieldQualityRecordDialog({
   const [form, setForm] = useState({
     productName: "", productCode: "", quantity: "", unit: "MT",
     scheduledDate: "", expectedDueDate: "",
-    partyName: "", partyGst: "", partyCity: "", partyState: "", partyContact: "",
+    partyName: "", partyGst: "", partyAddress: "", partyCity: "", partyState: "", partyPincode: "", partyContact: "",
     samplingLocation: "",
-    labName: "", labContactPerson: "", labPhone: "", labEmail: "",
-    sampleId: "", invoiceNumber: "",
+    labName: "", labAddress: "", labContactPerson: "", labPhone: "", labEmail: "",
+    sampleId: "", invoiceNumber: "", invoiceDate: "", invoiceAmount: "",
     notes: "", status: "scheduled",
     testParameters: [] as any[],
   });
@@ -3294,10 +3318,6 @@ function CreateFieldQualityRecordDialog({
                 <Input value={form.productCode} onChange={(e) => f("productCode", e.target.value)} placeholder="e.g. BFO-CS-001" />
               </div>
               <div>
-                <Label>Invoice / Challan #</Label>
-                <Input value={form.invoiceNumber} onChange={(e) => f("invoiceNumber", e.target.value)} />
-              </div>
-              <div>
                 <Label>Quantity</Label>
                 <Input type="number" value={form.quantity} onChange={(e) => f("quantity", e.target.value)} />
               </div>
@@ -3344,8 +3364,16 @@ function CreateFieldQualityRecordDialog({
                   <Label>State</Label>
                   <Input value={form.partyState} onChange={(e) => f("partyState", e.target.value)} />
                 </div>
+                <div className="col-span-2">
+                  <Label>Address</Label>
+                  <Input value={form.partyAddress} onChange={(e) => f("partyAddress", e.target.value)} placeholder="Street address" />
+                </div>
+                <div>
+                  <Label>Pincode</Label>
+                  <Input value={form.partyPincode} onChange={(e) => f("partyPincode", e.target.value)} />
+                </div>
                 {!isLI && (
-                  <div className="col-span-2">
+                  <div>
                     <Label>Sampling Location</Label>
                     <Input value={form.samplingLocation} onChange={(e) => f("samplingLocation", e.target.value)} placeholder="Where the sample was collected" />
                   </div>
@@ -3435,6 +3463,10 @@ function CreateFieldQualityRecordDialog({
                 <Label>Email</Label>
                 <Input value={form.labEmail} onChange={(e) => f("labEmail", e.target.value)} />
               </div>
+              <div className="col-span-2">
+                <Label>Lab Address</Label>
+                <Input value={form.labAddress} onChange={(e) => f("labAddress", e.target.value)} placeholder="Full lab address" />
+              </div>
               <div>
                 <Label>Scheduled Date *</Label>
                 <Input type="date" value={form.scheduledDate} onChange={(e) => f("scheduledDate", e.target.value)} />
@@ -3445,6 +3477,25 @@ function CreateFieldQualityRecordDialog({
                   <Input type="date" value={form.expectedDueDate} onChange={(e) => f("expectedDueDate", e.target.value)} />
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Invoice / Challan Details */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Invoice / Challan</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Invoice / Challan #</Label>
+                <Input value={form.invoiceNumber} onChange={(e) => f("invoiceNumber", e.target.value)} />
+              </div>
+              <div>
+                <Label>Invoice Date</Label>
+                <Input type="date" value={form.invoiceDate} onChange={(e) => f("invoiceDate", e.target.value)} />
+              </div>
+              <div>
+                <Label>Invoice Amount</Label>
+                <Input type="number" value={form.invoiceAmount} onChange={(e) => f("invoiceAmount", e.target.value)} placeholder="Amount" />
+              </div>
             </div>
           </div>
 

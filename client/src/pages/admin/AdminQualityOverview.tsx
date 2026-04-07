@@ -390,20 +390,33 @@ export default function AdminQualityOverview() {
         </TabsContent>
 
         <TabsContent value="field-records">
+          {/* Stat cards */}
+          {stats?.fieldQualityRecords && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              {[
+                { label: "Total Records", value: stats.fieldQualityRecords.total, color: "text-indigo-700", bg: "bg-indigo-50" },
+                { label: "IRF", value: stats.fieldQualityRecords.irf, color: "text-blue-700", bg: "bg-blue-50" },
+                { label: "TRF", value: stats.fieldQualityRecords.trf, color: "text-purple-700", bg: "bg-purple-50" },
+                { label: "Loading Inspection", value: stats.fieldQualityRecords.loadingInspection, color: "text-cyan-700", bg: "bg-cyan-50" },
+                { label: "In Testing", value: stats.fieldQualityRecords.inTesting, color: "text-amber-700", bg: "bg-amber-50" },
+                { label: "Completed", value: stats.fieldQualityRecords.completed, color: "text-green-700", bg: "bg-green-50" },
+                { label: "Accepted", value: stats.fieldQualityRecords.accepted, color: "text-emerald-700", bg: "bg-emerald-50" },
+                { label: "Rejected", value: stats.fieldQualityRecords.rejected, color: "text-red-700", bg: "bg-red-50" },
+              ].map(({ label, value, color, bg }) => (
+                <div key={label} className={`${bg} rounded-lg p-3 text-center`}>
+                  <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-indigo-600" />
                 Field Quality Records
               </CardTitle>
-              <CardDescription>
-                Recent IRF, TRF and Loading Inspection records —&nbsp;
-                {stats?.fieldQualityRecords ? (
-                  <span>
-                    {stats.fieldQualityRecords.irf} IRF · {stats.fieldQualityRecords.trf} TRF · {stats.fieldQualityRecords.loadingInspection} Loading Inspections
-                  </span>
-                ) : 'Loading stats...'}
-              </CardDescription>
+              <CardDescription>Recent IRF, TRF and Loading Inspection records</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>

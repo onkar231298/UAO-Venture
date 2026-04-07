@@ -14031,6 +14031,72 @@ We look forward to hearing from you.`;
   });
 
   // ==================== FIELD QUALITY RECORDS (IRF / TRF / Loading Inspection) ====================
+  // Ensure tables exist (idempotent bootstrap for fresh environments)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS field_quality_records (
+      id SERIAL PRIMARY KEY,
+      record_number VARCHAR(50) NOT NULL UNIQUE,
+      form_type VARCHAR(30) NOT NULL,
+      product_name VARCHAR(255) NOT NULL,
+      product_code VARCHAR(100),
+      quantity DECIMAL(12,3),
+      unit VARCHAR(30),
+      scheduled_date TIMESTAMP,
+      actual_date TIMESTAMP,
+      expected_due_date TIMESTAMP,
+      sampling_location VARCHAR(500),
+      sampling_city VARCHAR(100),
+      sampling_state VARCHAR(100),
+      contact_person_name VARCHAR(255),
+      contact_person_phone VARCHAR(30),
+      contact_person_email VARCHAR(255),
+      party_name VARCHAR(500),
+      party_gst VARCHAR(20),
+      party_address TEXT,
+      party_city VARCHAR(100),
+      party_state VARCHAR(100),
+      party_pincode VARCHAR(20),
+      party_contact VARCHAR(255),
+      lab_name VARCHAR(255),
+      lab_address TEXT,
+      lab_contact_person VARCHAR(255),
+      lab_phone VARCHAR(30),
+      lab_email VARCHAR(255),
+      sample_id VARCHAR(100),
+      linked_irf_id INTEGER,
+      test_parameters JSONB,
+      form_data JSONB,
+      invoice_number VARCHAR(100),
+      invoice_date TIMESTAMP,
+      invoice_amount DECIMAL(12,2),
+      status VARCHAR(30) NOT NULL DEFAULT 'scheduled',
+      overall_conclusion VARCHAR(30),
+      conclusion_notes TEXT,
+      linked_batch_id INTEGER,
+      inspector_id VARCHAR,
+      created_by_id VARCHAR,
+      notes TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `).catch(() => {}); // ignore if already exists
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS field_quality_test_results (
+      id SERIAL PRIMARY KEY,
+      record_id INTEGER NOT NULL REFERENCES field_quality_records(id),
+      parameter_name VARCHAR(255) NOT NULL,
+      method VARCHAR(255),
+      spec_limit VARCHAR(255),
+      result_value VARCHAR(255),
+      unit VARCHAR(50),
+      pass_or_fail VARCHAR(20),
+      notes TEXT,
+      tested_by_id VARCHAR,
+      tested_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `).catch(() => {}); // ignore if already exists
+
   const fqrTable = fieldQualityRecords;
   const fqtrTable = fieldQualityTestResults;
 
