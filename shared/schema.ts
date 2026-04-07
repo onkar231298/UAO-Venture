@@ -3114,3 +3114,103 @@ export const insertUserSecurityAlertSchema = createInsertSchema(userSecurityAler
 });
 export type UserSecurityAlert = typeof userSecurityAlerts.$inferSelect;
 export type InsertUserSecurityAlert = z.infer<typeof insertUserSecurityAlertSchema>;
+
+// ==================== FIELD QUALITY RECORDS (IRF / TRF / Loading Inspection) ====================
+export const fieldQualityRecords = pgTable("field_quality_records", {
+  id: serial("id").primaryKey(),
+  recordNumber: varchar("record_number", { length: 50 }).notNull().unique(), // BFO-IRF-2025-0001
+  formType: varchar("form_type", { length: 30 }).notNull(), // IRF | TRF | loading_inspection
+  // Product details
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  productCode: varchar("product_code", { length: 100 }),
+  quantity: decimal("quantity", { precision: 12, scale: 3 }),
+  unit: varchar("unit", { length: 30 }),
+  // Dates
+  scheduledDate: timestamp("scheduled_date"),
+  actualDate: timestamp("actual_date"),
+  expectedDueDate: timestamp("expected_due_date"), // TRF: when results expected
+  // Location (IRF / Loading Inspection)
+  samplingLocation: varchar("sampling_location", { length: 500 }),
+  samplingCity: varchar("sampling_city", { length: 100 }),
+  samplingState: varchar("sampling_state", { length: 100 }),
+  // Contact person at location (IRF / Loading Inspection)
+  contactPersonName: varchar("contact_person_name", { length: 255 }),
+  contactPersonPhone: varchar("contact_person_phone", { length: 30 }),
+  contactPersonEmail: varchar("contact_person_email", { length: 255 }),
+  // Sampling Party / Supplier (IRF / Loading Inspection)
+  partyName: varchar("party_name", { length: 500 }),
+  partyGst: varchar("party_gst", { length: 20 }),
+  partyAddress: text("party_address"),
+  partyCity: varchar("party_city", { length: 100 }),
+  partyState: varchar("party_state", { length: 100 }),
+  partyPincode: varchar("party_pincode", { length: 20 }),
+  partyContact: varchar("party_contact", { length: 255 }),
+  // Lab details (all types)
+  labName: varchar("lab_name", { length: 255 }),
+  labAddress: text("lab_address"),
+  labContactPerson: varchar("lab_contact_person", { length: 255 }),
+  labPhone: varchar("lab_phone", { length: 30 }),
+  labEmail: varchar("lab_email", { length: 255 }),
+  // TRF-specific
+  sampleId: varchar("sample_id", { length: 100 }),
+  linkedIrfId: integer("linked_irf_id"), // TRF can link to source IRF
+  // Parameters for testing (all types) [{ parameterName, method, specLimit }]
+  testParameters: jsonb("test_parameters"),
+  // Loading Inspection extra data (jsonb)
+  formData: jsonb("form_data"), // vehicle number, weights, checklist, ordered qty, etc.
+  // Invoice / Challan
+  invoiceNumber: varchar("invoice_number", { length: 100 }),
+  invoiceDate: timestamp("invoice_date"),
+  invoiceAmount: decimal("invoice_amount", { precision: 12, scale: 2 }),
+  // Status
+  status: varchar("status", { length: 30 }).default("scheduled").notNull(),
+  // Conclusion (IRF, TRF)
+  overallConclusion: varchar("overall_conclusion", { length: 30 }), // accepted | rejected | conditional
+  conclusionNotes: text("conclusion_notes"),
+  // Link to quality batch
+  linkedBatchId: integer("linked_batch_id"),
+  // Inspector
+  inspectorId: varchar("inspector_id").references(() => users.id),
+  // Created by
+  createdById: varchar("created_by_id").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_fqr_form_type").on(table.formType),
+  index("idx_fqr_status").on(table.status),
+  index("idx_fqr_record_number").on(table.recordNumber),
+  index("idx_fqr_created_by").on(table.createdById),
+]);
+
+export const insertFieldQualityRecordSchema = createInsertSchema(fieldQualityRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type FieldQualityRecord = typeof fieldQualityRecords.$inferSelect;
+export type InsertFieldQualityRecord = z.infer<typeof insertFieldQualityRecordSchema>;
+
+export const fieldQualityTestResults = pgTable("field_quality_test_results", {
+  id: serial("id").primaryKey(),
+  recordId: integer("record_id").notNull().references(() => fieldQualityRecords.id),
+  parameterName: varchar("parameter_name", { length: 255 }).notNull(),
+  method: varchar("method", { length: 255 }),
+  specLimit: varchar("spec_limit", { length: 255 }),
+  resultValue: varchar("result_value", { length: 255 }),
+  unit: varchar("unit", { length: 50 }),
+  passOrFail: varchar("pass_or_fail", { length: 20 }), // pass | fail | conditional
+  notes: text("notes"),
+  testedById: varchar("tested_by_id").references(() => users.id),
+  testedAt: timestamp("tested_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_fqtr_record").on(table.recordId),
+]);
+
+export const insertFieldQualityTestResultSchema = createInsertSchema(fieldQualityTestResults).omit({
+  id: true,
+  createdAt: true,
+});
+export type FieldQualityTestResult = typeof fieldQualityTestResults.$inferSelect;
+export type InsertFieldQualityTestResult = z.infer<typeof insertFieldQualityTestResultSchema>;

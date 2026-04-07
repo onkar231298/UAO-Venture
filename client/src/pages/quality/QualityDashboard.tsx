@@ -87,6 +87,7 @@ const sidebarSections = [
       { key: "sample-requests", label: "Sample Requests", icon: Package },
       { key: "document-requests", label: "Document Requests", icon: FileText },
       { key: "testing-requests", label: "Testing Requests (IRF/TRF)", icon: FlaskConical },
+      { key: "field-quality-records", label: "Field Quality Records", icon: MapPin },
       { key: "test-reports", label: "Test Reports", icon: ClipboardList },
       { key: "batch-management", label: "Batch Management", icon: Boxes },
     ],
@@ -171,6 +172,7 @@ export default function QualityDashboard() {
     "sample-requests": "Sample Requests",
     "document-requests": "Document Requests",
     "testing-requests": "Testing Requests (IRF/TRF)",
+    "field-quality-records": "Field Quality Records",
     "test-reports": "Test Reports",
     "batch-management": "Batch Management",
     "material-vendors": "Material Vendors",
@@ -279,6 +281,7 @@ export default function QualityDashboard() {
           {activeSection === "sample-requests" && <SampleRequestsSection />}
           {activeSection === "document-requests" && <DocumentRequestsSection />}
           {activeSection === "testing-requests" && <TestingRequestsSection />}
+          {activeSection === "field-quality-records" && <FieldQualityRecordsSection />}
           {activeSection === "test-reports" && <TestReportsSection />}
           {activeSection === "batch-management" && <BatchManagementSection />}
           {activeSection === "material-vendors" && <MaterialVendorsSection />}
@@ -415,6 +418,19 @@ function DashboardOverview({ user }: { user: any }) {
           <CardContent>
             <div className="text-2xl font-bold">{isLoading ? "..." : s.customerVendorApprovals?.received ?? 0}</div>
             <p className="text-xs text-muted-foreground">Pending customer approvals</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Field Quality Records</CardTitle>
+            <MapPin className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{isLoading ? "..." : s.fieldQualityRecords?.total ?? 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {isLoading ? "" : `${s.fieldQualityRecords?.inTesting ?? 0} in testing`}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -2487,5 +2503,704 @@ function NCRsSection() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ==================== FIELD QUALITY RECORDS SECTION ====================
+function FieldQualityRecordsSection() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"IRF" | "TRF" | "loading_inspection">("IRF");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+
+  const { data, isLoading, refetch } = useQuery<any>({
+    queryKey: ["/api/quality/field-records", { formType: activeTab, status: statusFilter, search }],
+    queryFn: async () => {
+      const params = new URLSearchParams({ formType: activeTab });
+      if (statusFilter) params.set("status", statusFilter);
+      if (search) params.set("search", search);
+      const res = await fetch(`/api/quality/field-records?${params}`);
+      return res.json();
+    },
+  });
+
+  const { data: detailData, refetch: refetchDetail } = useQuery<any>({
+    queryKey: ["/api/quality/field-records", selectedRecord?.id],
+    queryFn: async () => {
+      if (!selectedRecord?.id) return null;
+      const res = await fetch(`/api/quality/field-records/${selectedRecord.id}`);
+      return res.json();
+    },
+    enabled: !!selectedRecord?.id && showDetailDialog,
+  });
+
+  const records: any[] = data?.records || [];
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async (body: any) => {
+      const res = await apiRequest("/api/quality/field-records", { method: "POST", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Record created successfully" });
+      setShowCreateDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
+    },
+    onError: () => toast({ title: "Failed to create record", variant: "destructive" }),
+  });
+
+  // Update status mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...body }: any) => {
+      const res = await apiRequest(`/api/quality/field-records/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Record updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      if (selectedRecord) refetchDetail();
+    },
+    onError: () => toast({ title: "Failed to update record", variant: "destructive" }),
+  });
+
+  // Add test result mutation
+  const addResultMutation = useMutation({
+    mutationFn: async ({ recordId, ...body }: any) => {
+      const res = await apiRequest(`/api/quality/field-records/${recordId}/test-results`, { method: "POST", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Test result added" });
+      setShowResultDialog(false);
+      refetchDetail();
+    },
+    onError: () => toast({ title: "Failed to add test result", variant: "destructive" }),
+  });
+
+  const tabLabels: Record<string, string> = {
+    IRF: "Incoming Raw Material (IRF)",
+    TRF: "Testing Request (TRF)",
+    loading_inspection: "Loading Inspection",
+  };
+
+  const statusOptions = [
+    { value: "", label: "All Statuses" },
+    { value: "scheduled", label: "Scheduled" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "sent", label: "Sent to Lab" },
+    { value: "results_received", label: "Results Received" },
+    { value: "completed", label: "Completed" },
+    { value: "on_hold", label: "On Hold" },
+  ];
+
+  const conclusionColors: Record<string, string> = {
+    accepted: "bg-green-100 text-green-800",
+    rejected: "bg-red-100 text-red-800",
+    conditional: "bg-orange-100 text-orange-800",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-semibold">Field Quality Records</h3>
+          <p className="text-sm text-muted-foreground">Incoming Raw Material Forms (IRF), Testing Request Forms (TRF) and Loading Inspections</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> New Record
+        </Button>
+      </div>
+
+      {/* Tab selector */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+        {(["IRF", "TRF", "loading_inspection"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setActiveTab(tab); setStatusFilter(""); setSearch(""); }}
+            className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === tab ? "bg-white shadow font-medium" : "text-gray-600 hover:text-gray-900"}`}
+          >
+            {tab === "loading_inspection" ? "Loading Inspection" : tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search product, record #, party, lab..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((o) => (
+              <SelectItem key={o.value || "all"} value={o.value || "all"}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Records Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Record #</TableHead>
+                <TableHead>Product</TableHead>
+                {activeTab !== "TRF" && <TableHead>Party / Supplier</TableHead>}
+                {activeTab === "TRF" && <TableHead>Sample ID</TableHead>}
+                <TableHead>Lab</TableHead>
+                <TableHead>Scheduled Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Conclusion</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={9} className="text-center py-8">Loading...</TableCell></TableRow>
+              ) : records.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    No {tabLabels[activeTab]} records found. Click "New Record" to create one.
+                  </TableCell>
+                </TableRow>
+              ) : records.map((rec: any) => (
+                <TableRow key={rec.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}>
+                  <TableCell className="font-mono font-medium text-xs">{rec.recordNumber}</TableCell>
+                  <TableCell>
+                    <div className="font-medium text-sm">{rec.productName}</div>
+                    {rec.productCode && <div className="text-xs text-muted-foreground">{rec.productCode}</div>}
+                  </TableCell>
+                  {activeTab !== "TRF" && <TableCell className="text-sm">{rec.partyName || "-"}</TableCell>}
+                  {activeTab === "TRF" && <TableCell className="font-mono text-sm">{rec.sampleId || "-"}</TableCell>}
+                  <TableCell className="text-sm">{rec.labName || "-"}</TableCell>
+                  <TableCell className="text-sm">{rec.scheduledDate ? new Date(rec.scheduledDate).toLocaleDateString() : "-"}</TableCell>
+                  <TableCell>{getStatusBadge(rec.status)}</TableCell>
+                  <TableCell>
+                    {rec.overallConclusion ? (
+                      <Badge className={conclusionColors[rec.overallConclusion] || "bg-gray-100 text-gray-800"}>
+                        {rec.overallConclusion}
+                      </Badge>
+                    ) : <span className="text-muted-foreground text-xs">Pending</span>}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="ghost" onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* CREATE DIALOG */}
+      <CreateFieldQualityRecordDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        formType={activeTab}
+        onSubmit={(data) => createMutation.mutate({ ...data, formType: activeTab })}
+        isLoading={createMutation.isPending}
+      />
+
+      {/* DETAIL DIALOG */}
+      {showDetailDialog && selectedRecord && (
+        <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-mono">{selectedRecord.recordNumber}</DialogTitle>
+              <DialogDescription>{tabLabels[activeTab as string] || selectedRecord.formType} — {selectedRecord.productName}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Status & Conclusion */}
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Status:</span>
+                  {getStatusBadge(selectedRecord.status)}
+                </div>
+                {selectedRecord.overallConclusion && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Conclusion:</span>
+                    <Badge className={conclusionColors[selectedRecord.overallConclusion] || "bg-gray-100"}>
+                      {selectedRecord.overallConclusion}
+                    </Badge>
+                  </div>
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <Select
+                    value={selectedRecord.status}
+                    onValueChange={(v) => {
+                      setSelectedRecord({ ...selectedRecord, status: v });
+                      updateMutation.mutate({ id: selectedRecord.id, status: v });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.filter(o => o.value).map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={selectedRecord.overallConclusion || "none"}
+                    onValueChange={(v) => {
+                      const val = v === "none" ? null : v;
+                      setSelectedRecord({ ...selectedRecord, overallConclusion: val });
+                      updateMutation.mutate({ id: selectedRecord.id, overallConclusion: val });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-[130px]"><SelectValue placeholder="Conclusion" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Conclusion</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="conditional">Conditional</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Product Details</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Product:</dt><dd className="font-medium">{selectedRecord.productName}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Code:</dt><dd>{selectedRecord.productCode || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Quantity:</dt><dd>{selectedRecord.quantity ? `${selectedRecord.quantity} ${selectedRecord.unit || ""}` : "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Invoice #:</dt><dd className="font-mono">{selectedRecord.invoiceNumber || "-"}</dd></div>
+                    {selectedRecord.formType === "TRF" && <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Sample ID:</dt><dd className="font-mono">{selectedRecord.sampleId || "-"}</dd></div>}
+                  </dl>
+                </div>
+                {selectedRecord.formType !== "TRF" && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Party / Supplier</h4>
+                    <dl className="space-y-1 text-sm">
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Party:</dt><dd className="font-medium">{selectedRecord.partyName || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">GST:</dt><dd className="font-mono">{selectedRecord.partyGst || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">City:</dt><dd>{selectedRecord.partyCity || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Contact:</dt><dd>{selectedRecord.partyContact || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Location:</dt><dd>{selectedRecord.samplingLocation || "-"}</dd></div>
+                    </dl>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Lab Information</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Lab:</dt><dd className="font-medium">{selectedRecord.labName || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Contact:</dt><dd>{selectedRecord.labContactPerson || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Phone:</dt><dd>{selectedRecord.labPhone || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Email:</dt><dd>{selectedRecord.labEmail || "-"}</dd></div>
+                    {selectedRecord.expectedDueDate && (
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Due Date:</dt><dd>{new Date(selectedRecord.expectedDueDate).toLocaleDateString()}</dd></div>
+                    )}
+                  </dl>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Schedule</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Scheduled:</dt><dd>{selectedRecord.scheduledDate ? new Date(selectedRecord.scheduledDate).toLocaleDateString() : "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Actual Date:</dt><dd>{selectedRecord.actualDate ? new Date(selectedRecord.actualDate).toLocaleDateString() : "-"}</dd></div>
+                  </dl>
+                </div>
+              </div>
+
+              {selectedRecord.notes && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Notes</h4>
+                  <p className="text-sm bg-gray-50 rounded p-3">{selectedRecord.notes}</p>
+                </div>
+              )}
+
+              {selectedRecord.conclusionNotes && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Conclusion Notes</h4>
+                  <p className="text-sm bg-gray-50 rounded p-3">{selectedRecord.conclusionNotes}</p>
+                </div>
+              )}
+
+              {/* Test Parameters (planned) */}
+              {Array.isArray(selectedRecord.testParameters) && selectedRecord.testParameters.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Test Parameters (Planned)</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Parameter</th>
+                          <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Method</th>
+                          <th className="text-left py-2 text-muted-foreground font-medium">Spec Limit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedRecord.testParameters.map((p: any, i: number) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="py-2 pr-4 font-medium">{p.parameterName || p.name}</td>
+                            <td className="py-2 pr-4 text-muted-foreground">{p.method || "-"}</td>
+                            <td className="py-2 text-muted-foreground">{p.specLimit || p.spec || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Test Results */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Test Results</h4>
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowResultDialog(true)}>
+                    <Plus className="h-4 w-4" /> Add Result
+                  </Button>
+                </div>
+                {detailData?.testResults && detailData.testResults.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse border border-gray-200 rounded">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left py-2 px-3 border-b font-medium">Parameter</th>
+                          <th className="text-left py-2 px-3 border-b font-medium">Method</th>
+                          <th className="text-left py-2 px-3 border-b font-medium">Spec Limit</th>
+                          <th className="text-left py-2 px-3 border-b font-medium">Result</th>
+                          <th className="text-left py-2 px-3 border-b font-medium">Unit</th>
+                          <th className="text-left py-2 px-3 border-b font-medium">Verdict</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailData.testResults.map((r: any) => (
+                          <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="py-2 px-3 font-medium">{r.parameterName}</td>
+                            <td className="py-2 px-3 text-muted-foreground text-xs">{r.method || "-"}</td>
+                            <td className="py-2 px-3 text-xs">{r.specLimit || "-"}</td>
+                            <td className="py-2 px-3 font-mono text-xs">{r.resultValue || "-"}</td>
+                            <td className="py-2 px-3 text-xs">{r.unit || "-"}</td>
+                            <td className="py-2 px-3">
+                              {r.passOrFail ? (
+                                <Badge className={r.passOrFail === "pass" ? "bg-green-100 text-green-800" : r.passOrFail === "fail" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}>
+                                  {r.passOrFail}
+                                </Badge>
+                              ) : "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6 border rounded bg-gray-50">No test results yet. Add results when received from the lab.</p>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ADD TEST RESULT DIALOG */}
+      {showResultDialog && selectedRecord && (
+        <AddTestResultDialog
+          open={showResultDialog}
+          onOpenChange={setShowResultDialog}
+          onSubmit={(data) => addResultMutation.mutate({ ...data, recordId: selectedRecord.id })}
+          isLoading={addResultMutation.isPending}
+          plannedParams={selectedRecord.testParameters || []}
+        />
+      )}
+    </div>
+  );
+}
+
+// ==================== CREATE FIELD QUALITY RECORD DIALOG ====================
+function CreateFieldQualityRecordDialog({
+  open, onOpenChange, formType, onSubmit, isLoading
+}: { open: boolean; onOpenChange: (v: boolean) => void; formType: string; onSubmit: (data: any) => void; isLoading: boolean }) {
+  const [form, setForm] = useState({
+    productName: "", productCode: "", quantity: "", unit: "MT",
+    scheduledDate: "", expectedDueDate: "",
+    partyName: "", partyGst: "", partyCity: "", partyState: "", partyContact: "",
+    samplingLocation: "", samplingCity: "", samplingState: "",
+    contactPersonName: "", contactPersonPhone: "",
+    labName: "", labContactPerson: "", labPhone: "", labEmail: "",
+    sampleId: "", invoiceNumber: "",
+    notes: "", status: "scheduled",
+    testParameters: [] as any[],
+  });
+  const [newParam, setNewParam] = useState({ parameterName: "", method: "", specLimit: "" });
+
+  const f = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleSubmit = () => {
+    if (!form.productName) return;
+    onSubmit({ ...form });
+  };
+
+  const addParam = () => {
+    if (!newParam.parameterName) return;
+    setForm(prev => ({ ...prev, testParameters: [...prev.testParameters, { ...newParam }] }));
+    setNewParam({ parameterName: "", method: "", specLimit: "" });
+  };
+
+  const removeParam = (i: number) => {
+    setForm(prev => ({ ...prev, testParameters: prev.testParameters.filter((_, idx) => idx !== i) }));
+  };
+
+  const isIRF = formType === "IRF";
+  const isTRF = formType === "TRF";
+  const isLI = formType === "loading_inspection";
+  const typeLabel = isIRF ? "IRF" : isTRF ? "TRF" : "Loading Inspection";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New {typeLabel} Record</DialogTitle>
+          <DialogDescription>Fill in the details for this {typeLabel === "Loading Inspection" ? "loading inspection" : "field quality form"}.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Product Info */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600">Product Information</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Product Name *</Label>
+                <Input value={form.productName} onChange={(e) => f("productName", e.target.value)} placeholder="e.g. Coriander Seeds" />
+              </div>
+              <div>
+                <Label>Product Code</Label>
+                <Input value={form.productCode} onChange={(e) => f("productCode", e.target.value)} placeholder="e.g. BFO-CS-001" />
+              </div>
+              <div>
+                <Label>Invoice / Challan #</Label>
+                <Input value={form.invoiceNumber} onChange={(e) => f("invoiceNumber", e.target.value)} />
+              </div>
+              <div>
+                <Label>Quantity</Label>
+                <Input type="number" value={form.quantity} onChange={(e) => f("quantity", e.target.value)} />
+              </div>
+              <div>
+                <Label>Unit</Label>
+                <Select value={form.unit} onValueChange={(v) => f("unit", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MT">MT</SelectItem>
+                    <SelectItem value="KG">KG</SelectItem>
+                    <SelectItem value="Bags">Bags</SelectItem>
+                    <SelectItem value="Boxes">Boxes</SelectItem>
+                    <SelectItem value="Litres">Litres</SelectItem>
+                    <SelectItem value="Units">Units</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* TRF-specific: Sample ID */}
+          {isTRF && (
+            <div>
+              <Label>Sample ID</Label>
+              <Input value={form.sampleId} onChange={(e) => f("sampleId", e.target.value)} placeholder="e.g. SMPL-2025-001" />
+            </div>
+          )}
+
+          {/* Party / Supplier (IRF + Loading Inspection) */}
+          {!isTRF && (
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600">Party / Supplier</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label>Party Name</Label>
+                  <Input value={form.partyName} onChange={(e) => f("partyName", e.target.value)} placeholder="Supplier company name" />
+                </div>
+                <div>
+                  <Label>GST Number</Label>
+                  <Input value={form.partyGst} onChange={(e) => f("partyGst", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Contact Person</Label>
+                  <Input value={form.partyContact} onChange={(e) => f("partyContact", e.target.value)} />
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input value={form.partyCity} onChange={(e) => f("partyCity", e.target.value)} />
+                </div>
+                <div>
+                  <Label>State</Label>
+                  <Input value={form.partyState} onChange={(e) => f("partyState", e.target.value)} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Sampling Location</Label>
+                  <Input value={form.samplingLocation} onChange={(e) => f("samplingLocation", e.target.value)} placeholder="Where the sample was collected" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Lab Information */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600">Lab Information</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Lab Name</Label>
+                <Input value={form.labName} onChange={(e) => f("labName", e.target.value)} placeholder="Testing laboratory name" />
+              </div>
+              <div>
+                <Label>Contact Person</Label>
+                <Input value={form.labContactPerson} onChange={(e) => f("labContactPerson", e.target.value)} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={form.labPhone} onChange={(e) => f("labPhone", e.target.value)} />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input value={form.labEmail} onChange={(e) => f("labEmail", e.target.value)} />
+              </div>
+              <div>
+                <Label>Scheduled Date</Label>
+                <Input type="date" value={form.scheduledDate} onChange={(e) => f("scheduledDate", e.target.value)} />
+              </div>
+              {isTRF && (
+                <div>
+                  <Label>Expected Due Date</Label>
+                  <Input type="date" value={form.expectedDueDate} onChange={(e) => f("expectedDueDate", e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Test Parameters */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600">Test Parameters</h4>
+            <div className="flex gap-2 mb-3">
+              <Input placeholder="Parameter name" value={newParam.parameterName} onChange={(e) => setNewParam(p => ({ ...p, parameterName: e.target.value }))} className="flex-1" />
+              <Input placeholder="Method" value={newParam.method} onChange={(e) => setNewParam(p => ({ ...p, method: e.target.value }))} className="w-32" />
+              <Input placeholder="Spec limit" value={newParam.specLimit} onChange={(e) => setNewParam(p => ({ ...p, specLimit: e.target.value }))} className="w-32" />
+              <Button type="button" size="sm" onClick={addParam} variant="outline"><Plus className="h-4 w-4" /></Button>
+            </div>
+            {form.testParameters.length > 0 && (
+              <div className="border rounded divide-y">
+                {form.testParameters.map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
+                    <span className="flex-1 font-medium">{p.parameterName}</span>
+                    <span className="text-muted-foreground">{p.method || "-"}</span>
+                    <span className="text-muted-foreground">{p.specLimit || "-"}</span>
+                    <Button size="sm" variant="ghost" onClick={() => removeParam(i)} className="h-6 w-6 p-0 text-red-500"><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} placeholder="Additional notes or instructions" rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={isLoading || !form.productName}>
+            {isLoading ? "Creating..." : `Create ${typeLabel}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ==================== ADD TEST RESULT DIALOG ====================
+function AddTestResultDialog({
+  open, onOpenChange, onSubmit, isLoading, plannedParams
+}: { open: boolean; onOpenChange: (v: boolean) => void; onSubmit: (d: any) => void; isLoading: boolean; plannedParams: any[] }) {
+  const [form, setForm] = useState({ parameterName: "", method: "", specLimit: "", resultValue: "", unit: "", passOrFail: "", notes: "" });
+  const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleParamSelect = (name: string) => {
+    const p = plannedParams.find((pp: any) => (pp.parameterName || pp.name) === name);
+    if (p) setForm(prev => ({ ...prev, parameterName: p.parameterName || p.name, method: p.method || "", specLimit: p.specLimit || p.spec || "" }));
+    else setForm(prev => ({ ...prev, parameterName: name }));
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add Test Result</DialogTitle>
+          <DialogDescription>Enter the result value received from the lab.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Parameter Name *</Label>
+            {plannedParams.length > 0 ? (
+              <Select value={form.parameterName} onValueChange={handleParamSelect}>
+                <SelectTrigger><SelectValue placeholder="Select or type parameter" /></SelectTrigger>
+                <SelectContent>
+                  {plannedParams.map((p: any, i: number) => (
+                    <SelectItem key={i} value={p.parameterName || p.name}>{p.parameterName || p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={form.parameterName} onChange={(e) => f("parameterName", e.target.value)} placeholder="e.g. Moisture content" />
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Method</Label>
+              <Input value={form.method} onChange={(e) => f("method", e.target.value)} placeholder="e.g. AOAC 925.10" />
+            </div>
+            <div>
+              <Label>Spec Limit</Label>
+              <Input value={form.specLimit} onChange={(e) => f("specLimit", e.target.value)} placeholder="e.g. Max 12%" />
+            </div>
+            <div>
+              <Label>Result Value *</Label>
+              <Input value={form.resultValue} onChange={(e) => f("resultValue", e.target.value)} placeholder="e.g. 11.2" />
+            </div>
+            <div>
+              <Label>Unit</Label>
+              <Input value={form.unit} onChange={(e) => f("unit", e.target.value)} placeholder="e.g. %, ppm, mg/kg" />
+            </div>
+          </div>
+          <div>
+            <Label>Pass / Fail / Conditional</Label>
+            <Select value={form.passOrFail} onValueChange={(v) => f("passOrFail", v)}>
+              <SelectTrigger><SelectValue placeholder="Select verdict" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pass">Pass</SelectItem>
+                <SelectItem value="fail">Fail</SelectItem>
+                <SelectItem value="conditional">Conditional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onSubmit(form)} disabled={isLoading || !form.parameterName || !form.resultValue}>
+            {isLoading ? "Adding..." : "Add Result"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

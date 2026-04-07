@@ -67,9 +67,11 @@ import {
   emailMessages,
   qualityDocumentRequests,
   qualityTestingRequests,
+  fieldQualityRecords,
+  fieldQualityTestResults,
   users,
 } from "@shared/schema";
-import { eq, and, or, ne, isNotNull, desc, inArray, sql, gte, lte, lt } from "drizzle-orm";
+import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -14028,6 +14030,221 @@ We look forward to hearing from you.`;
     }
   });
 
+  // ==================== FIELD QUALITY RECORDS (IRF / TRF / Loading Inspection) ====================
+  const fqrTable = fieldQualityRecords;
+  const fqtrTable = fieldQualityTestResults;
+
+  // Auto-generate record number
+  async function generateFieldQualityRecordNumber(formType: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = formType === 'IRF' ? 'IRF' : formType === 'TRF' ? 'TRF' : 'LI';
+    const [row] = await db.execute(sql`
+      SELECT COUNT(*) as cnt FROM field_quality_records
+      WHERE form_type = ${formType} AND EXTRACT(YEAR FROM created_at) = ${year}
+    `).then((r: any) => r.rows);
+    const seq = (parseInt(row?.cnt || '0') + 1).toString().padStart(4, '0');
+    return `BFO-${prefix}-${year}-${seq}`;
+  }
+
+  // List field quality records
+  app.get('/api/quality/field-records', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const { formType, status, search, limit = '100', offset = '0' } = req.query;
+      const conditions: any[] = [];
+      if (formType) conditions.push(eq(fqrTable.formType, formType as string));
+      if (status) conditions.push(eq(fqrTable.status, status as string));
+      if (search) {
+        conditions.push(
+          sql`(${fqrTable.productName} ILIKE ${'%' + search + '%'} OR ${fqrTable.recordNumber} ILIKE ${'%' + search + '%'} OR ${fqrTable.partyName} ILIKE ${'%' + search + '%'} OR ${fqrTable.labName} ILIKE ${'%' + search + '%'})`
+        );
+      }
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const [records, countResult] = await Promise.all([
+        db.select().from(fqrTable).where(whereClause).orderBy(desc(fqrTable.createdAt)).limit(parseInt(limit as string)).offset(parseInt(offset as string)),
+        db.select({ count: sql<number>`COUNT(*)` }).from(fqrTable).where(whereClause),
+      ]);
+      // Enrich with inspector name
+      const enriched = await Promise.all(records.map(async (r: any) => {
+        let inspectorName = null;
+        if (r.inspectorId) {
+          const u = await storage.getUser(r.inspectorId);
+          if (u) inspectorName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
+        }
+        return { ...r, inspectorName };
+      }));
+      res.json({ records: enriched, total: Number(countResult[0]?.count || 0) });
+    } catch (error) {
+      console.error('Error fetching field quality records:', error);
+      res.status(500).json({ message: 'Failed to fetch field quality records' });
+    }
+  });
+
+  // Get single field quality record with test results and attachments
+  app.get('/api/quality/field-records/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [record] = await db.select().from(fqrTable).where(eq(fqrTable.id, id));
+      if (!record) return res.status(404).json({ message: 'Record not found' });
+      const [testResults, attachments] = await Promise.all([
+        db.select().from(fqtrTable).where(eq(fqtrTable.recordId, id)).orderBy(asc(fqtrTable.id)),
+        db.execute(sql`SELECT * FROM quality_attachments WHERE entity_type = 'field_quality_record' AND entity_id = ${id} ORDER BY created_at DESC`).then((r: any) => r.rows),
+      ]);
+      res.json({ ...record, testResults, attachments });
+    } catch (error) {
+      console.error('Error fetching field quality record:', error);
+      res.status(500).json({ message: 'Failed to fetch field quality record' });
+    }
+  });
+
+  // Create field quality record
+  app.post('/api/quality/field-records', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const body = req.body;
+      const recordNumber = await generateFieldQualityRecordNumber(body.formType);
+      const insertData: any = {
+        recordNumber,
+        formType: body.formType,
+        productName: body.productName,
+        productCode: body.productCode || null,
+        quantity: body.quantity ? body.quantity.toString() : null,
+        unit: body.unit || null,
+        scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
+        actualDate: body.actualDate ? new Date(body.actualDate) : null,
+        expectedDueDate: body.expectedDueDate ? new Date(body.expectedDueDate) : null,
+        samplingLocation: body.samplingLocation || null,
+        samplingCity: body.samplingCity || null,
+        samplingState: body.samplingState || null,
+        contactPersonName: body.contactPersonName || null,
+        contactPersonPhone: body.contactPersonPhone || null,
+        contactPersonEmail: body.contactPersonEmail || null,
+        partyName: body.partyName || null,
+        partyGst: body.partyGst || null,
+        partyAddress: body.partyAddress || null,
+        partyCity: body.partyCity || null,
+        partyState: body.partyState || null,
+        partyPincode: body.partyPincode || null,
+        partyContact: body.partyContact || null,
+        labName: body.labName || null,
+        labAddress: body.labAddress || null,
+        labContactPerson: body.labContactPerson || null,
+        labPhone: body.labPhone || null,
+        labEmail: body.labEmail || null,
+        sampleId: body.sampleId || null,
+        linkedIrfId: body.linkedIrfId ? parseInt(body.linkedIrfId) : null,
+        testParameters: body.testParameters || [],
+        formData: body.formData || {},
+        invoiceNumber: body.invoiceNumber || null,
+        invoiceDate: body.invoiceDate ? new Date(body.invoiceDate) : null,
+        invoiceAmount: body.invoiceAmount ? body.invoiceAmount.toString() : null,
+        status: body.status || 'scheduled',
+        overallConclusion: body.overallConclusion || null,
+        conclusionNotes: body.conclusionNotes || null,
+        linkedBatchId: body.linkedBatchId ? parseInt(body.linkedBatchId) : null,
+        inspectorId: body.inspectorId || null,
+        createdById: userId,
+        notes: body.notes || null,
+      };
+      const [created] = await db.insert(fqrTable).values(insertData).returning();
+      res.json(created);
+    } catch (error) {
+      console.error('Error creating field quality record:', error);
+      res.status(500).json({ message: 'Failed to create field quality record' });
+    }
+  });
+
+  // Update field quality record
+  app.patch('/api/quality/field-records/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const body = req.body;
+      const updateData: any = { updatedAt: new Date() };
+      const fields = ['status', 'overallConclusion', 'conclusionNotes', 'notes', 'invoiceNumber', 'invoiceAmount',
+        'linkedBatchId', 'linkedIrfId', 'inspectorId', 'labName', 'labAddress', 'labContactPerson', 'labPhone', 'labEmail',
+        'productName', 'productCode', 'quantity', 'unit', 'samplingLocation', 'samplingCity', 'samplingState',
+        'contactPersonName', 'contactPersonPhone', 'contactPersonEmail', 'partyName', 'partyGst', 'partyAddress',
+        'partyCity', 'partyState', 'partyPincode', 'partyContact', 'sampleId', 'testParameters', 'formData'];
+      for (const f of fields) {
+        if (body[f] !== undefined) updateData[f] = body[f];
+      }
+      if (body.scheduledDate !== undefined) updateData.scheduledDate = body.scheduledDate ? new Date(body.scheduledDate) : null;
+      if (body.actualDate !== undefined) updateData.actualDate = body.actualDate ? new Date(body.actualDate) : null;
+      if (body.expectedDueDate !== undefined) updateData.expectedDueDate = body.expectedDueDate ? new Date(body.expectedDueDate) : null;
+      if (body.invoiceDate !== undefined) updateData.invoiceDate = body.invoiceDate ? new Date(body.invoiceDate) : null;
+      const [updated] = await db.update(fqrTable).set(updateData).where(eq(fqrTable.id, id)).returning();
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating field quality record:', error);
+      res.status(500).json({ message: 'Failed to update field quality record' });
+    }
+  });
+
+  // Get test results for a record
+  app.get('/api/quality/field-records/:id/test-results', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const results = await db.select().from(fqtrTable).where(eq(fqtrTable.recordId, id)).orderBy(asc(fqtrTable.id));
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch test results' });
+    }
+  });
+
+  // Add test result to a record
+  app.post('/api/quality/field-records/:id/test-results', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const recordId = parseInt(req.params.id);
+      const userId = req.user?.claims?.sub;
+      const { parameterName, method, specLimit, resultValue, unit, passOrFail, notes } = req.body;
+      const [created] = await db.insert(fqtrTable).values({
+        recordId,
+        parameterName,
+        method: method || null,
+        specLimit: specLimit || null,
+        resultValue: resultValue || null,
+        unit: unit || null,
+        passOrFail: passOrFail || null,
+        notes: notes || null,
+        testedById: userId,
+        testedAt: new Date(),
+      }).returning();
+      res.json(created);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to add test result' });
+    }
+  });
+
+  // Update a single test result
+  app.patch('/api/quality/field-test-results/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { parameterName, method, specLimit, resultValue, unit, passOrFail, notes } = req.body;
+      const [updated] = await db.update(fqtrTable).set({
+        parameterName: parameterName ?? undefined,
+        method: method ?? undefined,
+        specLimit: specLimit ?? undefined,
+        resultValue: resultValue ?? undefined,
+        unit: unit ?? undefined,
+        passOrFail: passOrFail ?? undefined,
+        notes: notes ?? undefined,
+      }).where(eq(fqtrTable.id, id)).returning();
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update test result' });
+    }
+  });
+
+  // Delete a test result
+  app.delete('/api/quality/field-test-results/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(fqtrTable).where(eq(fqtrTable.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to delete test result' });
+    }
+  });
+
   // Quality Dashboard Stats
   app.get('/api/quality/dashboard-stats', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
@@ -14039,6 +14256,13 @@ We look forward to hearing from you.`;
         storage.getQualityNcrs({ limit: 1000, offset: 0 }),
         storage.getQualityCustomerVendorApprovals({ limit: 1000, offset: 0 }),
       ]);
+
+      // Field quality records stats
+      const fqrRows = await db.select({
+        formType: fqrTable.formType,
+        status: fqrTable.status,
+        overallConclusion: fqrTable.overallConclusion,
+      }).from(fqrTable);
 
       const stats = {
         documentRequests: {
@@ -14064,6 +14288,16 @@ We look forward to hearing from you.`;
         customerVendorApprovals: {
           total: customerVendorApprovals.total,
           received: customerVendorApprovals.approvals.filter((a: any) => a.status === 'received' || a.status === 'pending').length,
+        },
+        fieldQualityRecords: {
+          total: fqrRows.length,
+          irf: fqrRows.filter((r: any) => r.formType === 'IRF').length,
+          trf: fqrRows.filter((r: any) => r.formType === 'TRF').length,
+          loadingInspection: fqrRows.filter((r: any) => r.formType === 'loading_inspection').length,
+          inTesting: fqrRows.filter((r: any) => ['in_testing', 'sent', 'results_received'].includes(r.status)).length,
+          completed: fqrRows.filter((r: any) => r.status === 'completed').length,
+          accepted: fqrRows.filter((r: any) => r.overallConclusion === 'accepted').length,
+          rejected: fqrRows.filter((r: any) => r.overallConclusion === 'rejected').length,
         },
       };
 

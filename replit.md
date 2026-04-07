@@ -91,6 +91,7 @@ Preferred communication style: Simple, everyday language.
 **Features**:
 - Document requests (COA, specs, MSDS, organic certs, allergen statements, vendor questionnaires)
 - Testing requests (IRF - Incoming Raw Material, TRF - Testing Request Form)
+- **Field Quality Records**: Full module for Incoming Raw Material (IRF), Testing Request (TRF), and Loading Inspection forms — see below
 - Test reports with pass/fail/conditional conclusions
 - **Batch Lifecycle Management**: Full RM-to-FG batch lifecycle with:
   - Batch number format: BFO-[O/C]-[MaterialCode]-[Form]-[MMYY] (auto-generated)
@@ -112,9 +113,25 @@ Preferred communication style: Simple, everyday language.
 - Super Admin overview of all quality operations via AdminDashboard
 - Dedicated Quality Dashboard at /quality/dashboard for quality roles
 
-**Database Tables**: quality_document_requests, quality_testing_requests, quality_test_reports, quality_batch_numbers, batch_test_results, batch_material_consumption, quality_vendors, quality_customer_vendor_approvals, quality_ncrs, quality_attachments
-**API Endpoints**: /api/quality/* (document-requests, testing-requests, test-reports, batches, batches/approved-rm, batches/:id/approve, batches/:id/reject, batches/:id/test-results, batches/:id/consumptions, batches/transfer-rm-to-fg, vendors, customer-vendor-approvals, ncrs, attachments, dashboard-stats)
+**Database Tables**: quality_document_requests, quality_testing_requests, quality_test_reports, quality_batch_numbers, batch_test_results, batch_material_consumption, quality_vendors, quality_customer_vendor_approvals, quality_ncrs, quality_attachments, field_quality_records, field_quality_test_results
+**API Endpoints**: /api/quality/* (document-requests, testing-requests, test-reports, batches, batches/approved-rm, batches/:id/approve, batches/:id/reject, batches/:id/test-results, batches/:id/consumptions, batches/transfer-rm-to-fg, vendors, customer-vendor-approvals, ncrs, attachments, dashboard-stats, field-records, field-records/:id, field-records/:id/test-results, field-test-results/:id)
 **Key Files**: client/src/pages/quality/QualityDashboard.tsx, client/src/pages/admin/AdminQualityOverview.tsx, client/src/components/quality/QualityRequestDialog.tsx
+
+### Field Quality Records Module
+**Status**: Implemented
+**Form Types**: IRF (Incoming Raw Material), TRF (Testing Request Form), Loading Inspection
+**Record Number Format**: BFO-IRF-YYYY-NNNN / BFO-TRF-YYYY-NNNN / BFO-LI-YYYY-NNNN (auto-generated)
+**Features**:
+- Unified module covering all 3 field quality form types with tabbed UI (IRF / TRF / Loading Inspection)
+- Full party/supplier details (name, GST, address, contact) for IRF and Loading Inspection
+- Lab details (name, address, contact, phone, email) for all types
+- Planned test parameters list (parameter name, method, spec limit) added at creation
+- Test results entry: result value, unit, pass/fail verdict (stored in field_quality_test_results)
+- Status workflow: scheduled → in_progress → sent → results_received → completed / on_hold
+- Overall conclusion: accepted / rejected / conditional with notes
+- Quality Dashboard sidebar: "Field Quality Records" nav item under QUALITY OPERATIONS
+- Admin Quality Overview: Field Records stat card + dedicated "Field Records" tab
+- Dashboard overview stat card showing total and in-testing count
 
 ## Pending Features (To Be Continued)
 

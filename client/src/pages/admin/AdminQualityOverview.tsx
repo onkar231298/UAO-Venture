@@ -15,7 +15,8 @@ import {
   ClipboardCheck,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  MapPin,
 } from "lucide-react";
 
 function getStatusBadge(status: string) {
@@ -50,6 +51,14 @@ export default function AdminQualityOverview() {
     queryKey: ["/api/quality/dashboard-stats"],
   });
 
+  const { data: fieldRecords } = useQuery<any>({
+    queryKey: ["/api/quality/field-records", { limit: 10 }],
+    queryFn: async () => {
+      const res = await fetch("/api/quality/field-records?limit=10");
+      return res.json();
+    },
+  });
+
   const { data: docRequests } = useQuery<any>({
     queryKey: ["/api/quality/document-requests", { limit: 5 }],
   });
@@ -81,6 +90,7 @@ export default function AdminQualityOverview() {
     { title: "Material Vendors", icon: Building2, total: stats?.vendorApprovals?.total || 0, open: stats?.vendorApprovals?.pending || 0, color: "text-orange-600" },
     { title: "Open NCRs", icon: AlertTriangle, total: stats?.ncrs?.total || 0, open: stats?.ncrs?.open || 0, color: "text-red-600" },
     { title: "Vendor Approvals", icon: ShieldCheck, total: stats?.customerVendorApprovals?.total || 0, open: stats?.customerVendorApprovals?.received || 0, color: "text-teal-600" },
+    { title: "Field Quality Records", icon: MapPin, total: stats?.fieldQualityRecords?.total || 0, open: stats?.fieldQualityRecords?.inTesting || 0, color: "text-indigo-600" },
   ];
 
   return (
@@ -119,13 +129,14 @@ export default function AdminQualityOverview() {
       </div>
 
       <Tabs defaultValue="documents" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
           <TabsTrigger value="testing" className="text-xs">Testing</TabsTrigger>
           <TabsTrigger value="batches" className="text-xs">Batches</TabsTrigger>
           <TabsTrigger value="vendors" className="text-xs">Vendors</TabsTrigger>
           <TabsTrigger value="approvals" className="text-xs">Approvals</TabsTrigger>
           <TabsTrigger value="ncrs" className="text-xs">NCRs</TabsTrigger>
+          <TabsTrigger value="field-records" className="text-xs">Field Records</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents">
@@ -369,6 +380,77 @@ export default function AdminQualityOverview() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                         No NCRs reported yet
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="field-records">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-indigo-600" />
+                Field Quality Records
+              </CardTitle>
+              <CardDescription>
+                Recent IRF, TRF and Loading Inspection records —&nbsp;
+                {stats?.fieldQualityRecords ? (
+                  <span>
+                    {stats.fieldQualityRecords.irf} IRF · {stats.fieldQualityRecords.trf} TRF · {stats.fieldQualityRecords.loadingInspection} Loading Inspections
+                  </span>
+                ) : 'Loading stats...'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Record #</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Party / Lab</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Conclusion</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(fieldRecords?.records || []).map((rec: any) => (
+                    <TableRow key={rec.id}>
+                      <TableCell className="font-mono font-medium text-xs">{rec.recordNumber}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {rec.formType === 'loading_inspection' ? 'L.I.' : rec.formType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">{rec.productName}</div>
+                        {rec.productCode && <div className="text-xs text-muted-foreground">{rec.productCode}</div>}
+                      </TableCell>
+                      <TableCell className="text-sm">{rec.partyName || rec.labName || '-'}</TableCell>
+                      <TableCell>{getStatusBadge(rec.status)}</TableCell>
+                      <TableCell>
+                        {rec.overallConclusion ? (
+                          <Badge className={
+                            rec.overallConclusion === 'accepted' ? 'bg-green-100 text-green-800' :
+                            rec.overallConclusion === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-orange-100 text-orange-800'
+                          }>
+                            {rec.overallConclusion}
+                          </Badge>
+                        ) : <span className="text-xs text-muted-foreground">Pending</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">{new Date(rec.createdAt).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                  {(!fieldRecords?.records || fieldRecords.records.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No field quality records yet
                       </TableCell>
                     </TableRow>
                   )}
