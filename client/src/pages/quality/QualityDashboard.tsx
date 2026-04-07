@@ -86,8 +86,7 @@ const sidebarSections = [
     items: [
       { key: "sample-requests", label: "Sample Requests", icon: Package },
       { key: "document-requests", label: "Document Requests", icon: FileText },
-      { key: "testing-requests", label: "Testing Requests (IRF/TRF)", icon: FlaskConical },
-      { key: "field-quality-records", label: "Field Quality Records", icon: MapPin },
+      { key: "field-quality-records", label: "Testing Records", icon: MapPin },
       { key: "test-reports", label: "Test Reports", icon: ClipboardList },
       { key: "batch-management", label: "Batch Management", icon: Boxes },
     ],
@@ -171,8 +170,7 @@ export default function QualityDashboard() {
     overview: "Dashboard",
     "sample-requests": "Sample Requests",
     "document-requests": "Document Requests",
-    "testing-requests": "Testing Requests (IRF/TRF)",
-    "field-quality-records": "Field Quality Records",
+    "field-quality-records": "Testing Records",
     "test-reports": "Test Reports",
     "batch-management": "Batch Management",
     "material-vendors": "Material Vendors",
@@ -280,7 +278,6 @@ export default function QualityDashboard() {
           {activeSection === "overview" && <DashboardOverview user={qualityUser} />}
           {activeSection === "sample-requests" && <SampleRequestsSection />}
           {activeSection === "document-requests" && <DocumentRequestsSection />}
-          {activeSection === "testing-requests" && <TestingRequestsSection />}
           {activeSection === "field-quality-records" && <FieldQualityRecordsSection />}
           {activeSection === "test-reports" && <TestReportsSection />}
           {activeSection === "batch-management" && <BatchManagementSection />}
@@ -368,17 +365,6 @@ function DashboardOverview({ user }: { user: any }) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Testing Requests</CardTitle>
-            <FlaskConical className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : s.testingRequests?.pending ?? 0}</div>
-            <p className="text-xs text-muted-foreground">IRF/TRF pending</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Batches</CardTitle>
             <Boxes className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -423,7 +409,7 @@ function DashboardOverview({ user }: { user: any }) {
 
         <Card className="border-l-4 border-l-indigo-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Field Quality Records</CardTitle>
+            <CardTitle className="text-sm font-medium">Testing Records</CardTitle>
             <MapPin className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
@@ -960,193 +946,6 @@ function DocumentRequestsSection() {
                   </Button>
                 </CardContent>
               </Card>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// ==================== TESTING REQUESTS SECTION ====================
-function TestingRequestsSection() {
-  const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ requestType: "IRF", sampleName: "", batchNumber: "", testParameters: "", priority: "normal", description: "" });
-
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["/api/quality/testing-requests", { status: statusFilter, requestType: typeFilter }],
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (body: any) => {
-      const res = await apiRequest("/api/quality/testing-requests", { method: "POST", body: JSON.stringify(body) });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quality/testing-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
-      toast({ title: "Testing request created" });
-      setShowCreateDialog(false);
-      setFormData({ requestType: "IRF", sampleName: "", batchNumber: "", testParameters: "", priority: "normal", description: "" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...body }: any) => {
-      const res = await apiRequest(`/api/quality/testing-requests/${id}`, { method: "PATCH", body: JSON.stringify(body) });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quality/testing-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
-      toast({ title: "Testing request updated" });
-      setShowDetailDialog(false);
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  const items = (data as any)?.requests || (Array.isArray(data) ? data : []);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="sample_received">Sample Received</SelectItem>
-              <SelectItem value="in_testing">In Testing</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="All Types" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="IRF">IRF</SelectItem>
-              <SelectItem value="TRF">TRF</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4" /></Button>
-        </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Create New</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Testing Request</DialogTitle>
-              <DialogDescription>Submit an IRF or TRF testing request.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Request Type</Label>
-                <Select value={formData.requestType} onValueChange={(v) => setFormData({ ...formData, requestType: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IRF">IRF (Incoming Raw material Form)</SelectItem>
-                    <SelectItem value="TRF">TRF (Testing Request Form)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Sample Name</Label><Input value={formData.sampleName} onChange={(e) => setFormData({ ...formData, sampleName: e.target.value })} placeholder="e.g., Turmeric Powder Sample" /></div>
-              <div><Label>Batch Number</Label><Input value={formData.batchNumber} onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })} placeholder="e.g., BFO-O-TUR-PWD-0226" /></div>
-              <div><Label>Test Parameters</Label><Textarea value={formData.testParameters} onChange={(e) => setFormData({ ...formData, testParameters: e.target.value })} placeholder="List test parameters (moisture, ash, microbial, etc.)" /></div>
-              <div><Label>Priority</Label>
-                <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Description</Label><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Additional details" /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-              <Button onClick={() => createMutation.mutate(formData)} disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creating..." : "Submit Request"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Sample</TableHead>
-                <TableHead>Batch #</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8">Loading...</TableCell></TableRow>
-              ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No testing requests found</TableCell></TableRow>
-              ) : (
-                items.map((item: any) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">#{item.id}</TableCell>
-                    <TableCell><Badge variant="outline">{item.requestType}</Badge></TableCell>
-                    <TableCell>{item.sampleName}</TableCell>
-                    <TableCell className="font-mono text-sm">{item.batchNumber || "-"}</TableCell>
-                    <TableCell><Badge variant={item.priority === "urgent" ? "destructive" : "secondary"}>{item.priority}</Badge></TableCell>
-                    <TableCell>{getStatusBadge(item.status)}</TableCell>
-                    <TableCell className="text-sm">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => { setSelectedItem(item); setShowDetailDialog(true); }}><Eye className="h-4 w-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: item.id, status: "in_testing" })}><Edit className="h-4 w-4" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Testing Request #{selectedItem?.id}</DialogTitle></DialogHeader>
-          {selectedItem && (
-            <div className="space-y-3">
-              <div><Label>Type</Label><p className="text-sm">{selectedItem.requestType}</p></div>
-              <div><Label>Sample</Label><p className="text-sm">{selectedItem.sampleName}</p></div>
-              <div><Label>Batch #</Label><p className="text-sm font-mono">{selectedItem.batchNumber || "N/A"}</p></div>
-              <div><Label>Test Parameters</Label><p className="text-sm">{selectedItem.testParameters || "N/A"}</p></div>
-              <div><Label>Status</Label><div className="mt-1">{getStatusBadge(selectedItem.status)}</div></div>
-              <div><Label>Update Status</Label>
-                <Select onValueChange={(v) => updateMutation.mutate({ id: selectedItem.id, status: v })}>
-                  <SelectTrigger><SelectValue placeholder="Change status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="sample_received">Sample Received</SelectItem>
-                    <SelectItem value="in_testing">In Testing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           )}
         </DialogContent>
@@ -2690,7 +2489,7 @@ function FieldQualityRecordsSection() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-semibold">Field Quality Records</h3>
+          <h3 className="text-xl font-semibold">Testing Records</h3>
           <p className="text-sm text-muted-foreground">IRF, TRF and Loading Inspection forms</p>
         </div>
         <div className="flex items-center gap-2">

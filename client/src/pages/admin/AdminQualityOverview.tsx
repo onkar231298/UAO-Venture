@@ -90,7 +90,7 @@ export default function AdminQualityOverview() {
     { title: "Material Vendors", icon: Building2, total: stats?.vendorApprovals?.total || 0, open: stats?.vendorApprovals?.pending || 0, color: "text-orange-600" },
     { title: "Open NCRs", icon: AlertTriangle, total: stats?.ncrs?.total || 0, open: stats?.ncrs?.open || 0, color: "text-red-600" },
     { title: "Vendor Approvals", icon: ShieldCheck, total: stats?.customerVendorApprovals?.total || 0, open: stats?.customerVendorApprovals?.received || 0, color: "text-teal-600" },
-    { title: "Field Quality Records", icon: MapPin, total: stats?.fieldQualityRecords?.total || 0, open: stats?.fieldQualityRecords?.inTesting || 0, color: "text-indigo-600" },
+    { title: "Testing Records", icon: MapPin, total: stats?.fieldQualityRecords?.total || 0, open: stats?.fieldQualityRecords?.inTesting || 0, color: "text-indigo-600" },
   ];
 
   return (
@@ -414,7 +414,7 @@ export default function AdminQualityOverview() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-indigo-600" />
-                Field Quality Records
+                Testing Records
               </CardTitle>
               <CardDescription>Recent IRF, TRF and Loading Inspection records</CardDescription>
             </CardHeader>
@@ -463,7 +463,7 @@ export default function AdminQualityOverview() {
                   {(!fieldRecords?.records || fieldRecords.records.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No field quality records yet
+                        No testing records yet
                       </TableCell>
                     </TableRow>
                   )}
