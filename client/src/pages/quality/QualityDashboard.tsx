@@ -3617,8 +3617,8 @@ function CreateFieldQualityRecordDialog({
             </div>
           </div>
 
-          {/* Invoice / Challan Details */}
-          <div>
+          {/* Invoice / Challan Details (TRF & Loading Inspection only — not IRF) */}
+          {!isIRF && <div>
             <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Invoice / Challan</h4>
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -3634,7 +3634,7 @@ function CreateFieldQualityRecordDialog({
                 <Input type="number" value={form.invoiceAmount} onChange={(e) => f("invoiceAmount", e.target.value)} placeholder="Amount" />
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Test Parameters (IRF + TRF) */}
           {!isLI && (
