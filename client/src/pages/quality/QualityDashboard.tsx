@@ -2528,6 +2528,8 @@ function FieldQualityRecordsSection() {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [editingResult, setEditingResult] = useState<any>(null);
+  const [invoiceEditing, setInvoiceEditing] = useState(false);
+  const [invoiceFormData, setInvoiceFormData] = useState({ invoiceNumber: "", invoiceDate: "", invoiceAmount: "" });
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/quality/field-records", { formType: activeTab, status: statusFilter, search, dateFrom, dateTo }],
@@ -2555,6 +2557,18 @@ function FieldQualityRecordsSection() {
 
   const records: any[] = data?.records || [];
   const overdueCount = records.filter(isOverdue).length;
+
+  // Sync invoice form data when selected record changes
+  React.useEffect(() => {
+    if (selectedRecord) {
+      setInvoiceFormData({
+        invoiceNumber: selectedRecord.invoiceNumber || "",
+        invoiceDate: selectedRecord.invoiceDate ? selectedRecord.invoiceDate.split("T")[0] : "",
+        invoiceAmount: selectedRecord.invoiceAmount || "",
+      });
+      setInvoiceEditing(false);
+    }
+  }, [selectedRecord?.id]);
 
   // Approved RM batches for batch-link selector
   const { data: approvedBatches } = useQuery<any>({
@@ -2680,7 +2694,7 @@ function FieldQualityRecordsSection() {
         </div>
         <div className="flex items-center gap-2">
           {overdueCount > 0 && (
-            <Badge className="bg-red-100 text-red-800 gap-1">
+            <Badge className="bg-amber-100 text-amber-800 gap-1">
               <AlertTriangle className="h-3 w-3" /> {overdueCount} overdue
             </Badge>
           )}
@@ -2756,12 +2770,12 @@ function FieldQualityRecordsSection() {
                 return (
                   <TableRow
                     key={rec.id}
-                    className={`cursor-pointer ${overdue ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}`}
+                    className={`cursor-pointer ${overdue ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-gray-50"}`}
                     onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}
                   >
                     <TableCell>
                       <div className="font-mono font-medium text-xs">{rec.recordNumber}</div>
-                      {overdue && <div className="text-xs text-red-600 font-medium mt-0.5 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Overdue</div>}
+                      {overdue && <div className="text-xs text-amber-600 font-medium mt-0.5 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Overdue</div>}
                     </TableCell>
                     {activeTab === "all" && (
                       <TableCell>
@@ -2933,7 +2947,6 @@ function FieldQualityRecordsSection() {
                     <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Name:</dt><dd className="font-medium">{selectedRecord.productName}</dd></div>
                     <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Code:</dt><dd>{selectedRecord.productCode || "-"}</dd></div>
                     <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Quantity:</dt><dd>{selectedRecord.quantity ? `${selectedRecord.quantity} ${selectedRecord.unit || ""}` : "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Invoice #:</dt><dd className="font-mono text-xs">{selectedRecord.invoiceNumber || "-"}</dd></div>
                     {selectedRecord.formType === "TRF" && (
                       <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Sample ID:</dt><dd className="font-mono text-xs">{selectedRecord.sampleId || "-"}</dd></div>
                     )}
@@ -3039,8 +3052,33 @@ function FieldQualityRecordsSection() {
                 </div>
               )}
 
-              {/* Planned Test Parameters */}
-              {Array.isArray(selectedRecord.testParameters) && selectedRecord.testParameters.length > 0 && (
+              {/* Editable Invoice / Challan */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Invoice / Challan</h4>
+                  {!invoiceEditing && <Button size="sm" variant="ghost" className="h-6 text-xs gap-1" onClick={() => setInvoiceEditing(true)}><Edit className="h-3 w-3" /> Edit</Button>}
+                </div>
+                {invoiceEditing ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-xs">Invoice #</Label><Input className="h-7 text-xs" value={invoiceFormData.invoiceNumber} onChange={(e) => setInvoiceFormData(p => ({ ...p, invoiceNumber: e.target.value }))} placeholder="Invoice or challan number" /></div>
+                    <div><Label className="text-xs">Date</Label><Input type="date" className="h-7 text-xs" value={invoiceFormData.invoiceDate} onChange={(e) => setInvoiceFormData(p => ({ ...p, invoiceDate: e.target.value }))} /></div>
+                    <div><Label className="text-xs">Amount</Label><Input type="number" className="h-7 text-xs" value={invoiceFormData.invoiceAmount} onChange={(e) => setInvoiceFormData(p => ({ ...p, invoiceAmount: e.target.value }))} placeholder="Amount" /></div>
+                    <div className="col-span-3 flex gap-2">
+                      <Button size="sm" className="h-7 text-xs" onClick={() => { updateMutation.mutate({ id: selectedRecord.id, ...invoiceFormData }); setInvoiceEditing(false); }} disabled={updateMutation.isPending}>Save</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setInvoiceEditing(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <dl className="flex gap-6 text-sm">
+                    <div className="flex gap-1"><dt className="text-muted-foreground">Invoice #:</dt><dd className="font-mono text-xs">{selectedRecord.invoiceNumber || "-"}</dd></div>
+                    <div className="flex gap-1"><dt className="text-muted-foreground">Date:</dt><dd>{selectedRecord.invoiceDate ? new Date(selectedRecord.invoiceDate).toLocaleDateString() : "-"}</dd></div>
+                    <div className="flex gap-1"><dt className="text-muted-foreground">Amount:</dt><dd>{selectedRecord.invoiceAmount ? `₹${selectedRecord.invoiceAmount}` : "-"}</dd></div>
+                  </dl>
+                )}
+              </div>
+
+              {/* Planned Test Parameters (IRF / TRF only) */}
+              {selectedRecord.formType !== "loading_inspection" && Array.isArray(selectedRecord.testParameters) && selectedRecord.testParameters.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Planned Test Parameters</h4>
                   <div className="overflow-x-auto">
@@ -3066,8 +3104,8 @@ function FieldQualityRecordsSection() {
                 </div>
               )}
 
-              {/* Test Results */}
-              <div>
+              {/* Test Results (IRF / TRF only — LI uses visual checklist instead) */}
+              {selectedRecord.formType !== "loading_inspection" && <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Test Results</h4>
                   <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => setShowResultDialog(true)}>
@@ -3146,7 +3184,7 @@ function FieldQualityRecordsSection() {
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-4 border rounded bg-gray-50">No test results yet.</p>
                 )}
-              </div>
+              </div>}
 
               {/* Attachments */}
               <div>
@@ -3253,17 +3291,22 @@ function CreateFieldQualityRecordDialog({
 }: { open: boolean; onOpenChange: (v: boolean) => void; formType: string; onSubmit: (data: any) => void; isLoading: boolean }) {
   const [form, setForm] = useState({
     productName: "", productCode: "", quantity: "", unit: "MT",
-    scheduledDate: "", expectedDueDate: "",
+    scheduledDate: "", samplingDate: "", expectedDueDate: "",
     partyName: "", partyGst: "", partyAddress: "", partyCity: "", partyState: "", partyPincode: "", partyContact: "",
     samplingLocation: "",
+    contactPersonName: "", contactPersonPhone: "", contactPersonEmail: "",
     labName: "", labAddress: "", labContactPerson: "", labPhone: "", labEmail: "",
     sampleId: "", invoiceNumber: "", invoiceDate: "", invoiceAmount: "",
+    inspectorAssigned: "",
+    sourceIrfId: "",
     notes: "", status: "scheduled",
     testParameters: [] as any[],
   });
   const [liFormData, setLiFormData] = useState({
     vehicleNumber: "", sealNumber: "",
     grossWeight: "", netWeight: "", tareWeight: "",
+    orderedQuantity: "", loadedQuantity: "",
+    driverName: "", driverPhone: "",
     loadingSupervisor: "",
     visualChecklist: {} as Record<string, "pass" | "fail" | "na">,
   });
@@ -3382,6 +3425,40 @@ function CreateFieldQualityRecordDialog({
             </div>
           )}
 
+          {/* Contact Person at Location (IRF only) */}
+          {isIRF && (
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Contact Person at Location</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={form.contactPersonName} onChange={(e) => f("contactPersonName", e.target.value)} placeholder="Contact at sampling site" />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input value={form.contactPersonPhone} onChange={(e) => f("contactPersonPhone", e.target.value)} placeholder="+91..." />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={form.contactPersonEmail} onChange={(e) => f("contactPersonEmail", e.target.value)} placeholder="contact@example.com" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Source IRF Reference (TRF only) */}
+          {isTRF && (
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Source IRF Reference</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Linked IRF Record Number</Label>
+                  <Input value={form.sourceIrfId} onChange={(e) => f("sourceIrfId", e.target.value)} placeholder="e.g. BFO-IRF-2025-0001" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Loading Inspection specific section */}
           {isLI && (
             <div>
@@ -3406,6 +3483,22 @@ function CreateFieldQualityRecordDialog({
                 <div>
                   <Label>Net Weight (kg)</Label>
                   <Input type="number" value={liFormData.netWeight} onChange={(e) => lif("netWeight", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Ordered Quantity</Label>
+                  <Input type="number" value={liFormData.orderedQuantity} onChange={(e) => lif("orderedQuantity", e.target.value)} placeholder="Qty from PO/order" />
+                </div>
+                <div>
+                  <Label>Loaded Quantity</Label>
+                  <Input type="number" value={liFormData.loadedQuantity} onChange={(e) => lif("loadedQuantity", e.target.value)} placeholder="Actual qty loaded" />
+                </div>
+                <div>
+                  <Label>Driver Name</Label>
+                  <Input value={liFormData.driverName} onChange={(e) => lif("driverName", e.target.value)} placeholder="Driver's full name" />
+                </div>
+                <div>
+                  <Label>Driver Phone</Label>
+                  <Input value={liFormData.driverPhone} onChange={(e) => lif("driverPhone", e.target.value)} placeholder="+91..." />
                 </div>
                 <div>
                   <Label>Loading Supervisor</Label>
@@ -3524,7 +3617,19 @@ function CreateFieldQualityRecordDialog({
             </div>
           )}
 
-          {/* Notes */}
+          {/* Inspector & Notes */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Inspector Assigned</Label>
+              <Input value={form.inspectorAssigned} onChange={(e) => f("inspectorAssigned", e.target.value)} placeholder="Name of inspector / analyst" />
+            </div>
+            {isIRF && (
+              <div>
+                <Label>Sampling Date</Label>
+                <Input type="date" value={form.samplingDate} onChange={(e) => f("samplingDate", e.target.value)} />
+              </div>
+            )}
+          </div>
           <div>
             <Label>Notes / Instructions</Label>
             <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} placeholder="Additional instructions or observations" rows={2} />
