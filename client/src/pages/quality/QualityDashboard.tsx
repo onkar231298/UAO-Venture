@@ -2507,22 +2507,37 @@ function NCRsSection() {
 }
 
 // ==================== FIELD QUALITY RECORDS SECTION ====================
+type FQRFormType = "all" | "IRF" | "TRF" | "loading_inspection";
+
+function isOverdue(rec: any) {
+  if (!rec.scheduledDate) return false;
+  if (["completed", "on_hold", "results_received"].includes(rec.status)) return false;
+  return new Date(rec.scheduledDate) < new Date();
+}
+
 function FieldQualityRecordsSection() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"IRF" | "TRF" | "loading_inspection">("IRF");
+  const [activeTab, setActiveTab] = useState<FQRFormType>("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showTypePickerDialog, setShowTypePickerDialog] = useState(false);
+  const [createFormType, setCreateFormType] = useState<"IRF" | "TRF" | "loading_inspection" | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
+  const [editingResult, setEditingResult] = useState<any>(null);
 
-  const { data, isLoading, refetch } = useQuery<any>({
-    queryKey: ["/api/quality/field-records", { formType: activeTab, status: statusFilter, search }],
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/quality/field-records", { formType: activeTab, status: statusFilter, search, dateFrom, dateTo }],
     queryFn: async () => {
-      const params = new URLSearchParams({ formType: activeTab });
+      const params = new URLSearchParams();
+      if (activeTab !== "all") params.set("formType", activeTab);
       if (statusFilter) params.set("status", statusFilter);
       if (search) params.set("search", search);
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
       const res = await fetch(`/api/quality/field-records?${params}`);
       return res.json();
     },
@@ -2539,8 +2554,25 @@ function FieldQualityRecordsSection() {
   });
 
   const records: any[] = data?.records || [];
+  const overdueCount = records.filter(isOverdue).length;
 
-  // Create mutation
+  // Approved RM batches for batch-link selector
+  const { data: approvedBatches } = useQuery<any>({
+    queryKey: ["/api/quality/batches/approved-rm"],
+    enabled: showDetailDialog,
+  });
+
+  // Attachments for selected record
+  const { data: attachments, refetch: refetchAttachments } = useQuery<any>({
+    queryKey: ["/api/quality/attachments", "field_quality_record", selectedRecord?.id],
+    queryFn: async () => {
+      if (!selectedRecord?.id) return [];
+      const res = await fetch(`/api/quality/attachments/field_quality_record/${selectedRecord.id}`);
+      return res.json();
+    },
+    enabled: !!selectedRecord?.id && showDetailDialog,
+  });
+
   const createMutation = useMutation({
     mutationFn: async (body: any) => {
       const res = await apiRequest("/api/quality/field-records", { method: "POST", body: JSON.stringify(body) });
@@ -2548,28 +2580,27 @@ function FieldQualityRecordsSection() {
     },
     onSuccess: () => {
       toast({ title: "Record created successfully" });
-      setShowCreateDialog(false);
+      setCreateFormType(null);
       queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
       queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
     },
     onError: () => toast({ title: "Failed to create record", variant: "destructive" }),
   });
 
-  // Update status mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...body }: any) => {
       const res = await apiRequest(`/api/quality/field-records/${id}`, { method: "PATCH", body: JSON.stringify(body) });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
       toast({ title: "Record updated" });
+      setSelectedRecord((prev: any) => prev ? { ...prev, ...updated } : prev);
       queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
-      if (selectedRecord) refetchDetail();
+      refetchDetail();
     },
     onError: () => toast({ title: "Failed to update record", variant: "destructive" }),
   });
 
-  // Add test result mutation
   const addResultMutation = useMutation({
     mutationFn: async ({ recordId, ...body }: any) => {
       const res = await apiRequest(`/api/quality/field-records/${recordId}/test-results`, { method: "POST", body: JSON.stringify(body) });
@@ -2583,7 +2614,30 @@ function FieldQualityRecordsSection() {
     onError: () => toast({ title: "Failed to add test result", variant: "destructive" }),
   });
 
+  const updateResultMutation = useMutation({
+    mutationFn: async ({ id, ...body }: any) => {
+      const res = await apiRequest(`/api/quality/field-test-results/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Test result updated" });
+      setEditingResult(null);
+      refetchDetail();
+    },
+    onError: () => toast({ title: "Failed to update test result", variant: "destructive" }),
+  });
+
+  const addAttachmentMutation = useMutation({
+    mutationFn: async (body: any) => {
+      const res = await apiRequest("/api/quality/attachments", { method: "POST", body: JSON.stringify(body) });
+      return res.json();
+    },
+    onSuccess: () => { toast({ title: "Attachment added" }); refetchAttachments(); },
+    onError: () => toast({ title: "Failed to add attachment", variant: "destructive" }),
+  });
+
   const tabLabels: Record<string, string> = {
+    all: "All Records",
     IRF: "Incoming Raw Material (IRF)",
     TRF: "Testing Request (TRF)",
     loading_inspection: "Loading Inspection",
@@ -2605,52 +2659,66 @@ function FieldQualityRecordsSection() {
     conditional: "bg-orange-100 text-orange-800",
   };
 
+  const statusSteps: Record<string, string[]> = {
+    IRF: ["scheduled", "in_progress", "sent", "results_received", "completed"],
+    TRF: ["scheduled", "sent", "results_received", "completed"],
+    loading_inspection: ["scheduled", "in_progress", "completed"],
+  };
+
+  const currentSteps = selectedRecord ? (statusSteps[selectedRecord.formType] || statusOptions.filter(o => o.value).map(o => o.value)) : [];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-semibold">Field Quality Records</h3>
-          <p className="text-sm text-muted-foreground">Incoming Raw Material Forms (IRF), Testing Request Forms (TRF) and Loading Inspections</p>
+          <p className="text-sm text-muted-foreground">IRF, TRF and Loading Inspection forms</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> New Record
-        </Button>
+        <div className="flex items-center gap-2">
+          {overdueCount > 0 && (
+            <Badge className="bg-red-100 text-red-800 gap-1">
+              <AlertTriangle className="h-3 w-3" /> {overdueCount} overdue
+            </Badge>
+          )}
+          <Button onClick={() => setShowTypePickerDialog(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> New Record
+          </Button>
+        </div>
       </div>
 
-      {/* Tab selector */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {(["IRF", "TRF", "loading_inspection"] as const).map((tab) => (
+      {/* Tab selector (All + 3 types) */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit flex-wrap">
+        {(["all", "IRF", "TRF", "loading_inspection"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setStatusFilter(""); setSearch(""); }}
-            className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === tab ? "bg-white shadow font-medium" : "text-gray-600 hover:text-gray-900"}`}
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === tab ? "bg-white shadow font-medium" : "text-gray-600 hover:text-gray-900"}`}
           >
-            {tab === "loading_inspection" ? "Loading Inspection" : tab}
+            {tab === "all" ? "All" : tab === "loading_inspection" ? "Loading" : tab}
           </button>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search product, record #, party, lab..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Search record #, product, party, lab..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
+        <Select value={statusFilter || "all_s"} onValueChange={(v) => setStatusFilter(v === "all_s" ? "" : v)}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
           <SelectContent>
-            {statusOptions.map((o) => (
-              <SelectItem key={o.value || "all"} value={o.value || "all"}>{o.label}</SelectItem>
+            <SelectItem value="all_s">All Statuses</SelectItem>
+            {statusOptions.filter(o => o.value).map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Input type="date" placeholder="From" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px]" />
+        <Input type="date" placeholder="To" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px]" />
+        {(dateFrom || dateTo) && (
+          <Button size="sm" variant="ghost" onClick={() => { setDateFrom(""); setDateTo(""); }}>Clear dates</Button>
+        )}
       </div>
 
       {/* Records Table */}
@@ -2660,14 +2728,14 @@ function FieldQualityRecordsSection() {
             <TableHeader>
               <TableRow>
                 <TableHead>Record #</TableHead>
+                {activeTab === "all" && <TableHead>Type</TableHead>}
                 <TableHead>Product</TableHead>
-                {activeTab !== "TRF" && <TableHead>Party / Supplier</TableHead>}
-                {activeTab === "TRF" && <TableHead>Sample ID</TableHead>}
+                <TableHead>Party / Sample</TableHead>
                 <TableHead>Lab</TableHead>
-                <TableHead>Scheduled Date</TableHead>
+                <TableHead>Scheduled</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Conclusion</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2676,184 +2744,296 @@ function FieldQualityRecordsSection() {
               ) : records.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                    No {tabLabels[activeTab]} records found. Click "New Record" to create one.
+                    No records found. Click "New Record" to create one.
                   </TableCell>
                 </TableRow>
-              ) : records.map((rec: any) => (
-                <TableRow key={rec.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}>
-                  <TableCell className="font-mono font-medium text-xs">{rec.recordNumber}</TableCell>
-                  <TableCell>
-                    <div className="font-medium text-sm">{rec.productName}</div>
-                    {rec.productCode && <div className="text-xs text-muted-foreground">{rec.productCode}</div>}
-                  </TableCell>
-                  {activeTab !== "TRF" && <TableCell className="text-sm">{rec.partyName || "-"}</TableCell>}
-                  {activeTab === "TRF" && <TableCell className="font-mono text-sm">{rec.sampleId || "-"}</TableCell>}
-                  <TableCell className="text-sm">{rec.labName || "-"}</TableCell>
-                  <TableCell className="text-sm">{rec.scheduledDate ? new Date(rec.scheduledDate).toLocaleDateString() : "-"}</TableCell>
-                  <TableCell>{getStatusBadge(rec.status)}</TableCell>
-                  <TableCell>
-                    {rec.overallConclusion ? (
-                      <Badge className={conclusionColors[rec.overallConclusion] || "bg-gray-100 text-gray-800"}>
-                        {rec.overallConclusion}
-                      </Badge>
-                    ) : <span className="text-muted-foreground text-xs">Pending</span>}
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" variant="ghost" onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              ) : records.map((rec: any) => {
+                const overdue = isOverdue(rec);
+                return (
+                  <TableRow
+                    key={rec.id}
+                    className={`cursor-pointer ${overdue ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}`}
+                    onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}
+                  >
+                    <TableCell>
+                      <div className="font-mono font-medium text-xs">{rec.recordNumber}</div>
+                      {overdue && <div className="text-xs text-red-600 font-medium mt-0.5 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Overdue</div>}
+                    </TableCell>
+                    {activeTab === "all" && (
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {rec.formType === "loading_inspection" ? "L.I." : rec.formType}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <div className="font-medium text-sm">{rec.productName}</div>
+                      {rec.productCode && <div className="text-xs text-muted-foreground">{rec.productCode}</div>}
+                    </TableCell>
+                    <TableCell className="text-sm">{rec.partyName || rec.sampleId || "-"}</TableCell>
+                    <TableCell className="text-sm">{rec.labName || "-"}</TableCell>
+                    <TableCell className="text-sm">{rec.scheduledDate ? new Date(rec.scheduledDate).toLocaleDateString() : "-"}</TableCell>
+                    <TableCell>{getStatusBadge(rec.status)}</TableCell>
+                    <TableCell>
+                      {rec.overallConclusion ? (
+                        <Badge className={conclusionColors[rec.overallConclusion] || "bg-gray-100 text-gray-800"}>
+                          {rec.overallConclusion}
+                        </Badge>
+                      ) : <span className="text-muted-foreground text-xs">–</span>}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="ghost" onClick={() => { setSelectedRecord(rec); setShowDetailDialog(true); }}><Eye className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
+      {/* TYPE PICKER DIALOG */}
+      <Dialog open={showTypePickerDialog} onOpenChange={setShowTypePickerDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Select Record Type</DialogTitle>
+            <DialogDescription>Choose the type of field quality record to create.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 py-2">
+            {([
+              { type: "IRF", label: "Incoming Raw Material (IRF)", desc: "Record for sampling raw materials at supplier / farm", icon: Package },
+              { type: "TRF", label: "Testing Request (TRF)", desc: "Send sample to external lab for detailed testing", icon: FlaskConical },
+              { type: "loading_inspection", label: "Loading Inspection", desc: "Inspection during loading / dispatch at warehouse or farm", icon: Truck },
+            ] as const).map(({ type, label, desc, icon: Icon }) => (
+              <button
+                key={type}
+                className="flex items-start gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-left"
+                onClick={() => { setCreateFormType(type); setShowTypePickerDialog(false); }}
+              >
+                <Icon className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-sm">{label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* CREATE DIALOG */}
-      <CreateFieldQualityRecordDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        formType={activeTab}
-        onSubmit={(data) => createMutation.mutate({ ...data, formType: activeTab })}
-        isLoading={createMutation.isPending}
-      />
+      {createFormType && (
+        <CreateFieldQualityRecordDialog
+          open={!!createFormType}
+          onOpenChange={(v) => { if (!v) setCreateFormType(null); }}
+          formType={createFormType}
+          onSubmit={(formData) => createMutation.mutate({ ...formData, formType: createFormType })}
+          isLoading={createMutation.isPending}
+        />
+      )}
 
       {/* DETAIL DIALOG */}
       {showDetailDialog && selectedRecord && (
-        <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <Dialog open={showDetailDialog} onOpenChange={(v) => { setShowDetailDialog(v); if (!v) { setEditingResult(null); } }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-mono">{selectedRecord.recordNumber}</DialogTitle>
-              <DialogDescription>{tabLabels[activeTab as string] || selectedRecord.formType} — {selectedRecord.productName}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* Status & Conclusion */}
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Status:</span>
-                  {getStatusBadge(selectedRecord.status)}
-                </div>
-                {selectedRecord.overallConclusion && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Conclusion:</span>
-                    <Badge className={conclusionColors[selectedRecord.overallConclusion] || "bg-gray-100"}>
-                      {selectedRecord.overallConclusion}
-                    </Badge>
-                  </div>
+              <DialogTitle className="font-mono text-base">{selectedRecord.recordNumber}</DialogTitle>
+              <DialogDescription>
+                {tabLabels[selectedRecord.formType as string] || selectedRecord.formType} — {selectedRecord.productName}
+                {isOverdue(selectedRecord) && (
+                  <span className="ml-2 text-red-600 font-medium">⚠ Overdue</span>
                 )}
-                <div className="flex gap-2 ml-auto">
-                  <Select
-                    value={selectedRecord.status}
-                    onValueChange={(v) => {
-                      setSelectedRecord({ ...selectedRecord, status: v });
-                      updateMutation.mutate({ id: selectedRecord.id, status: v });
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.filter(o => o.value).map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={selectedRecord.overallConclusion || "none"}
-                    onValueChange={(v) => {
-                      const val = v === "none" ? null : v;
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Status workflow steps */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Status Workflow</p>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {currentSteps.map((step, idx) => {
+                    const isCurrent = selectedRecord.status === step;
+                    const isPast = currentSteps.indexOf(selectedRecord.status) > idx;
+                    return (
+                      <div key={step} className="flex items-center gap-1">
+                        <button
+                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            isCurrent ? "bg-blue-600 text-white border-blue-600" :
+                            isPast ? "bg-green-100 text-green-700 border-green-300" :
+                            "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
+                          }`}
+                          onClick={() => {
+                            setSelectedRecord({ ...selectedRecord, status: step });
+                            updateMutation.mutate({ id: selectedRecord.id, status: step });
+                          }}
+                          disabled={updateMutation.isPending}
+                        >
+                          {isPast ? "✓ " : ""}{step.replace(/_/g, " ")}
+                        </button>
+                        {idx < currentSteps.length - 1 && <ChevronRight className="h-3 w-3 text-gray-400" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Conclusion */}
+              <div className="flex flex-wrap gap-3 items-center border-t pt-4">
+                <span className="text-sm font-medium">Conclusion:</span>
+                {(["accepted", "rejected", "conditional"] as const).map((c) => (
+                  <button
+                    key={c}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      selectedRecord.overallConclusion === c
+                        ? c === "accepted" ? "bg-green-600 text-white border-green-600"
+                          : c === "rejected" ? "bg-red-600 text-white border-red-600"
+                          : "bg-orange-500 text-white border-orange-500"
+                        : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                    }`}
+                    onClick={() => {
+                      const val = selectedRecord.overallConclusion === c ? null : c;
                       setSelectedRecord({ ...selectedRecord, overallConclusion: val });
                       updateMutation.mutate({ id: selectedRecord.id, overallConclusion: val });
                     }}
                   >
-                    <SelectTrigger className="h-8 text-xs w-[130px]"><SelectValue placeholder="Conclusion" /></SelectTrigger>
+                    {c}
+                  </button>
+                ))}
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Product</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Name:</dt><dd className="font-medium">{selectedRecord.productName}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Code:</dt><dd>{selectedRecord.productCode || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Quantity:</dt><dd>{selectedRecord.quantity ? `${selectedRecord.quantity} ${selectedRecord.unit || ""}` : "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Invoice #:</dt><dd className="font-mono text-xs">{selectedRecord.invoiceNumber || "-"}</dd></div>
+                    {selectedRecord.formType === "TRF" && (
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Sample ID:</dt><dd className="font-mono text-xs">{selectedRecord.sampleId || "-"}</dd></div>
+                    )}
+                  </dl>
+                </div>
+                {selectedRecord.formType !== "TRF" && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Party / Supplier</h4>
+                    <dl className="space-y-1 text-sm">
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Party:</dt><dd className="font-medium">{selectedRecord.partyName || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">GST:</dt><dd className="font-mono text-xs">{selectedRecord.partyGst || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">City/State:</dt><dd>{[selectedRecord.partyCity, selectedRecord.partyState].filter(Boolean).join(", ") || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Contact:</dt><dd>{selectedRecord.partyContact || "-"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Location:</dt><dd>{selectedRecord.samplingLocation || "-"}</dd></div>
+                    </dl>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Lab</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Lab:</dt><dd className="font-medium">{selectedRecord.labName || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Contact:</dt><dd>{selectedRecord.labContactPerson || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Phone:</dt><dd>{selectedRecord.labPhone || "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Email:</dt><dd>{selectedRecord.labEmail || "-"}</dd></div>
+                    {selectedRecord.expectedDueDate && (
+                      <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Due Date:</dt><dd>{new Date(selectedRecord.expectedDueDate).toLocaleDateString()}</dd></div>
+                    )}
+                  </dl>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Schedule</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Scheduled:</dt><dd>{selectedRecord.scheduledDate ? new Date(selectedRecord.scheduledDate).toLocaleDateString() : "-"}</dd></div>
+                    <div className="flex gap-2"><dt className="text-muted-foreground w-24 shrink-0">Actual:</dt><dd>{selectedRecord.actualDate ? new Date(selectedRecord.actualDate).toLocaleDateString() : "-"}</dd></div>
+                  </dl>
+                </div>
+              </div>
+
+              {/* Loading Inspection extra data */}
+              {selectedRecord.formType === "loading_inspection" && selectedRecord.formData && Object.keys(selectedRecord.formData).length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Loading Inspection Details</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm bg-gray-50 rounded p-3">
+                    {selectedRecord.formData.vehicleNumber && <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-medium">{selectedRecord.formData.vehicleNumber}</span></div>}
+                    {selectedRecord.formData.sealNumber && <div><span className="text-muted-foreground">Seal #:</span> <span className="font-medium">{selectedRecord.formData.sealNumber}</span></div>}
+                    {selectedRecord.formData.grossWeight && <div><span className="text-muted-foreground">Gross:</span> <span className="font-medium">{selectedRecord.formData.grossWeight}</span></div>}
+                    {selectedRecord.formData.netWeight && <div><span className="text-muted-foreground">Net:</span> <span className="font-medium">{selectedRecord.formData.netWeight}</span></div>}
+                    {selectedRecord.formData.tareWeight && <div><span className="text-muted-foreground">Tare:</span> <span className="font-medium">{selectedRecord.formData.tareWeight}</span></div>}
+                    {selectedRecord.formData.loadingSupervisor && <div><span className="text-muted-foreground">Supervisor:</span> <span className="font-medium">{selectedRecord.formData.loadingSupervisor}</span></div>}
+                  </div>
+                  {selectedRecord.formData.visualChecklist && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">Visual Inspection Checklist:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(selectedRecord.formData.visualChecklist).map(([k, v]: [string, any]) => (
+                          <Badge key={k} className={v === "pass" ? "bg-green-100 text-green-700" : v === "fail" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}>
+                            {k}: {v}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Batch link */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">Linked Batch:</span>
+                  {selectedRecord.linkedBatchId ? (
+                    <Badge variant="outline" className="font-mono">Batch #{selectedRecord.linkedBatchId}</Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not linked</span>
+                  )}
+                  <Select
+                    value={selectedRecord.linkedBatchId?.toString() || "none"}
+                    onValueChange={(v) => {
+                      const val = v === "none" ? null : parseInt(v);
+                      setSelectedRecord({ ...selectedRecord, linkedBatchId: val });
+                      updateMutation.mutate({ id: selectedRecord.id, linkedBatchId: val });
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-[200px]"><SelectValue placeholder="Link to batch" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No Conclusion</SelectItem>
-                      <SelectItem value="accepted">Accepted</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                      <SelectItem value="conditional">Conditional</SelectItem>
+                      <SelectItem value="none">No batch linked</SelectItem>
+                      {(approvedBatches?.batches || []).map((b: any) => (
+                        <SelectItem key={b.id} value={b.id.toString()}>{b.batchNumber} — {b.materialName}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Product Details</h4>
-                  <dl className="space-y-1 text-sm">
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Product:</dt><dd className="font-medium">{selectedRecord.productName}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Code:</dt><dd>{selectedRecord.productCode || "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Quantity:</dt><dd>{selectedRecord.quantity ? `${selectedRecord.quantity} ${selectedRecord.unit || ""}` : "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Invoice #:</dt><dd className="font-mono">{selectedRecord.invoiceNumber || "-"}</dd></div>
-                    {selectedRecord.formType === "TRF" && <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Sample ID:</dt><dd className="font-mono">{selectedRecord.sampleId || "-"}</dd></div>}
-                  </dl>
-                </div>
-                {selectedRecord.formType !== "TRF" && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Party / Supplier</h4>
-                    <dl className="space-y-1 text-sm">
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Party:</dt><dd className="font-medium">{selectedRecord.partyName || "-"}</dd></div>
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">GST:</dt><dd className="font-mono">{selectedRecord.partyGst || "-"}</dd></div>
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">City:</dt><dd>{selectedRecord.partyCity || "-"}</dd></div>
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Contact:</dt><dd>{selectedRecord.partyContact || "-"}</dd></div>
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Location:</dt><dd>{selectedRecord.samplingLocation || "-"}</dd></div>
-                    </dl>
-                  </div>
-                )}
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Lab Information</h4>
-                  <dl className="space-y-1 text-sm">
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Lab:</dt><dd className="font-medium">{selectedRecord.labName || "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Contact:</dt><dd>{selectedRecord.labContactPerson || "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Phone:</dt><dd>{selectedRecord.labPhone || "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Email:</dt><dd>{selectedRecord.labEmail || "-"}</dd></div>
-                    {selectedRecord.expectedDueDate && (
-                      <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Due Date:</dt><dd>{new Date(selectedRecord.expectedDueDate).toLocaleDateString()}</dd></div>
-                    )}
-                  </dl>
-                </div>
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Schedule</h4>
-                  <dl className="space-y-1 text-sm">
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Scheduled:</dt><dd>{selectedRecord.scheduledDate ? new Date(selectedRecord.scheduledDate).toLocaleDateString() : "-"}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted-foreground w-28 shrink-0">Actual Date:</dt><dd>{selectedRecord.actualDate ? new Date(selectedRecord.actualDate).toLocaleDateString() : "-"}</dd></div>
-                  </dl>
-                </div>
-              </div>
-
+              {/* Notes */}
               {selectedRecord.notes && (
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Notes</h4>
+                <div><h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-1">Notes</h4>
                   <p className="text-sm bg-gray-50 rounded p-3">{selectedRecord.notes}</p>
                 </div>
               )}
-
               {selectedRecord.conclusionNotes && (
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Conclusion Notes</h4>
+                <div><h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-1">Conclusion Notes</h4>
                   <p className="text-sm bg-gray-50 rounded p-3">{selectedRecord.conclusionNotes}</p>
                 </div>
               )}
 
-              {/* Test Parameters (planned) */}
+              {/* Planned Test Parameters */}
               {Array.isArray(selectedRecord.testParameters) && selectedRecord.testParameters.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Test Parameters (Planned)</h4>
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Planned Test Parameters</h4>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Parameter</th>
-                          <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Method</th>
-                          <th className="text-left py-2 text-muted-foreground font-medium">Spec Limit</th>
+                    <table className="w-full text-sm border-collapse border border-gray-200 rounded">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Parameter</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Method</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Spec Limit</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedRecord.testParameters.map((p: any, i: number) => (
                           <tr key={i} className="border-b last:border-0">
-                            <td className="py-2 pr-4 font-medium">{p.parameterName || p.name}</td>
-                            <td className="py-2 pr-4 text-muted-foreground">{p.method || "-"}</td>
-                            <td className="py-2 text-muted-foreground">{p.specLimit || p.spec || "-"}</td>
+                            <td className="py-1.5 px-3 font-medium text-xs">{p.parameterName || p.name}</td>
+                            <td className="py-1.5 px-3 text-muted-foreground text-xs">{p.method || "-"}</td>
+                            <td className="py-1.5 px-3 text-muted-foreground text-xs">{p.specLimit || p.spec || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2864,10 +3044,10 @@ function FieldQualityRecordsSection() {
 
               {/* Test Results */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Test Results</h4>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowResultDialog(true)}>
-                    <Plus className="h-4 w-4" /> Add Result
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Test Results</h4>
+                  <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => setShowResultDialog(true)}>
+                    <Plus className="h-3 w-3" /> Add Result
                   </Button>
                 </div>
                 {detailData?.testResults && detailData.testResults.length > 0 ? (
@@ -2875,36 +3055,103 @@ function FieldQualityRecordsSection() {
                     <table className="w-full text-sm border-collapse border border-gray-200 rounded">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="text-left py-2 px-3 border-b font-medium">Parameter</th>
-                          <th className="text-left py-2 px-3 border-b font-medium">Method</th>
-                          <th className="text-left py-2 px-3 border-b font-medium">Spec Limit</th>
-                          <th className="text-left py-2 px-3 border-b font-medium">Result</th>
-                          <th className="text-left py-2 px-3 border-b font-medium">Unit</th>
-                          <th className="text-left py-2 px-3 border-b font-medium">Verdict</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Parameter</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Spec</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Result</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Unit</th>
+                          <th className="text-left py-1.5 px-3 border-b font-medium text-xs">Verdict</th>
+                          <th className="py-1.5 px-3 border-b"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {detailData.testResults.map((r: any) => (
                           <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
-                            <td className="py-2 px-3 font-medium">{r.parameterName}</td>
-                            <td className="py-2 px-3 text-muted-foreground text-xs">{r.method || "-"}</td>
-                            <td className="py-2 px-3 text-xs">{r.specLimit || "-"}</td>
-                            <td className="py-2 px-3 font-mono text-xs">{r.resultValue || "-"}</td>
-                            <td className="py-2 px-3 text-xs">{r.unit || "-"}</td>
-                            <td className="py-2 px-3">
-                              {r.passOrFail ? (
-                                <Badge className={r.passOrFail === "pass" ? "bg-green-100 text-green-800" : r.passOrFail === "fail" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}>
-                                  {r.passOrFail}
-                                </Badge>
-                              ) : "-"}
-                            </td>
+                            {editingResult?.id === r.id ? (
+                              <>
+                                <td className="py-1 px-2 text-xs" colSpan={4}>
+                                  <div className="flex gap-1 flex-wrap">
+                                    <Input className="h-6 text-xs w-28" value={editingResult.parameterName || ""} onChange={(e) => setEditingResult({ ...editingResult, parameterName: e.target.value })} placeholder="Parameter" />
+                                    <Input className="h-6 text-xs w-20" value={editingResult.specLimit || ""} onChange={(e) => setEditingResult({ ...editingResult, specLimit: e.target.value })} placeholder="Spec" />
+                                    <Input className="h-6 text-xs w-20" value={editingResult.resultValue || ""} onChange={(e) => setEditingResult({ ...editingResult, resultValue: e.target.value })} placeholder="Result" />
+                                    <Input className="h-6 text-xs w-16" value={editingResult.unit || ""} onChange={(e) => setEditingResult({ ...editingResult, unit: e.target.value })} placeholder="Unit" />
+                                  </div>
+                                </td>
+                                <td className="py-1 px-2 text-xs">
+                                  <Select value={editingResult.passOrFail || "none"} onValueChange={(v) => setEditingResult({ ...editingResult, passOrFail: v === "none" ? "" : v })}>
+                                    <SelectTrigger className="h-6 text-xs w-24"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">—</SelectItem>
+                                      <SelectItem value="pass">Pass</SelectItem>
+                                      <SelectItem value="fail">Fail</SelectItem>
+                                      <SelectItem value="conditional">Cond.</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="py-1 px-2">
+                                  <div className="flex gap-1">
+                                    <Button size="sm" className="h-6 text-xs px-2" onClick={() => updateResultMutation.mutate({ id: r.id, ...editingResult })} disabled={updateResultMutation.isPending}>Save</Button>
+                                    <Button size="sm" variant="ghost" className="h-6 text-xs px-1" onClick={() => setEditingResult(null)}>✕</Button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="py-1.5 px-3 font-medium text-xs">{r.parameterName}</td>
+                                <td className="py-1.5 px-3 text-xs text-muted-foreground">{r.specLimit || "-"}</td>
+                                <td className="py-1.5 px-3 font-mono text-xs">{r.resultValue || "-"}</td>
+                                <td className="py-1.5 px-3 text-xs">{r.unit || "-"}</td>
+                                <td className="py-1.5 px-3">
+                                  {r.passOrFail ? (
+                                    <Badge className={`text-xs ${r.passOrFail === "pass" ? "bg-green-100 text-green-800" : r.passOrFail === "fail" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}`}>
+                                      {r.passOrFail}
+                                    </Badge>
+                                  ) : "-"}
+                                </td>
+                                <td className="py-1.5 px-2">
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingResult({ ...r })}>
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-6 border rounded bg-gray-50">No test results yet. Add results when received from the lab.</p>
+                  <p className="text-xs text-muted-foreground text-center py-4 border rounded bg-gray-50">No test results yet.</p>
+                )}
+              </div>
+
+              {/* Attachments */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Attachments / Documents</h4>
+                  <AttachmentAddButton
+                    onAdd={(url, type, name) => addAttachmentMutation.mutate({
+                      entityType: "field_quality_record",
+                      entityId: selectedRecord.id,
+                      attachmentType: type,
+                      fileName: name,
+                      fileUrl: url,
+                    })}
+                    isLoading={addAttachmentMutation.isPending}
+                  />
+                </div>
+                {(attachments || []).length > 0 ? (
+                  <div className="space-y-1">
+                    {(attachments || []).map((att: any) => (
+                      <div key={att.id} className="flex items-center gap-2 text-sm p-2 border rounded hover:bg-gray-50">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-blue-600 hover:underline truncate">{att.fileName}</a>
+                        <Badge variant="outline" className="text-xs shrink-0">{att.attachmentType?.replace(/_/g, " ")}</Badge>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-4 border rounded bg-gray-50">No attachments. Add invoice, test report, or photos.</p>
                 )}
               </div>
             </div>
@@ -2917,7 +3164,7 @@ function FieldQualityRecordsSection() {
         <AddTestResultDialog
           open={showResultDialog}
           onOpenChange={setShowResultDialog}
-          onSubmit={(data) => addResultMutation.mutate({ ...data, recordId: selectedRecord.id })}
+          onSubmit={(d) => addResultMutation.mutate({ ...d, recordId: selectedRecord.id })}
           isLoading={addResultMutation.isPending}
           plannedParams={selectedRecord.testParameters || []}
         />
@@ -2926,7 +3173,57 @@ function FieldQualityRecordsSection() {
   );
 }
 
+// ==================== ATTACHMENT ADD BUTTON ====================
+function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: string, name: string) => void; isLoading: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [type, setType] = useState("invoice");
+  return (
+    <>
+      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setOpen(true)} disabled={isLoading}>
+        <Plus className="h-3 w-3" /> Add
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Attachment</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Document Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Invoice_Aug_2025.pdf" /></div>
+            <div><Label>Document URL</Label><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /></div>
+            <div>
+              <Label>Type</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="invoice">Invoice / Challan</SelectItem>
+                  <SelectItem value="test_report">Test Report</SelectItem>
+                  <SelectItem value="photo">Photo</SelectItem>
+                  <SelectItem value="certificate">Certificate</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button disabled={!url || !name || isLoading} onClick={() => { onAdd(url, type, name); setOpen(false); setUrl(""); setName(""); }}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // ==================== CREATE FIELD QUALITY RECORD DIALOG ====================
+const LI_CHECKLIST_ITEMS = [
+  "Cleanliness of vehicle",
+  "No foreign odour",
+  "No moisture / dampness",
+  "Proper stacking",
+  "Seal intact",
+  "Bags in good condition",
+];
+
 function CreateFieldQualityRecordDialog({
   open, onOpenChange, formType, onSubmit, isLoading
 }: { open: boolean; onOpenChange: (v: boolean) => void; formType: string; onSubmit: (data: any) => void; isLoading: boolean }) {
@@ -2934,20 +3231,30 @@ function CreateFieldQualityRecordDialog({
     productName: "", productCode: "", quantity: "", unit: "MT",
     scheduledDate: "", expectedDueDate: "",
     partyName: "", partyGst: "", partyCity: "", partyState: "", partyContact: "",
-    samplingLocation: "", samplingCity: "", samplingState: "",
-    contactPersonName: "", contactPersonPhone: "",
+    samplingLocation: "",
     labName: "", labContactPerson: "", labPhone: "", labEmail: "",
     sampleId: "", invoiceNumber: "",
     notes: "", status: "scheduled",
     testParameters: [] as any[],
   });
+  const [liFormData, setLiFormData] = useState({
+    vehicleNumber: "", sealNumber: "",
+    grossWeight: "", netWeight: "", tareWeight: "",
+    loadingSupervisor: "",
+    visualChecklist: {} as Record<string, "pass" | "fail" | "na">,
+  });
   const [newParam, setNewParam] = useState({ parameterName: "", method: "", specLimit: "" });
 
   const f = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+  const lif = (key: string, val: string) => setLiFormData(prev => ({ ...prev, [key]: val }));
 
   const handleSubmit = () => {
     if (!form.productName) return;
-    onSubmit({ ...form });
+    const payload: any = { ...form };
+    if (formType === "loading_inspection") {
+      payload.formData = { ...liFormData };
+    }
+    onSubmit(payload);
   };
 
   const addParam = () => {
@@ -2963,19 +3270,20 @@ function CreateFieldQualityRecordDialog({
   const isIRF = formType === "IRF";
   const isTRF = formType === "TRF";
   const isLI = formType === "loading_inspection";
-  const typeLabel = isIRF ? "IRF" : isTRF ? "TRF" : "Loading Inspection";
+  const typeLabel = isIRF ? "IRF — Incoming Raw Material" : isTRF ? "TRF — Testing Request" : "Loading Inspection";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New {typeLabel} Record</DialogTitle>
-          <DialogDescription>Fill in the details for this {typeLabel === "Loading Inspection" ? "loading inspection" : "field quality form"}.</DialogDescription>
+          <DialogDescription>Fill in all relevant details. Record number will be auto-generated.</DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
+
           {/* Product Info */}
           <div>
-            <h4 className="font-semibold text-sm mb-3 text-gray-600">Product Information</h4>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Product Information</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Product Name *</Label>
@@ -2998,34 +3306,27 @@ function CreateFieldQualityRecordDialog({
                 <Select value={form.unit} onValueChange={(v) => f("unit", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MT">MT</SelectItem>
-                    <SelectItem value="KG">KG</SelectItem>
-                    <SelectItem value="Bags">Bags</SelectItem>
-                    <SelectItem value="Boxes">Boxes</SelectItem>
-                    <SelectItem value="Litres">Litres</SelectItem>
-                    <SelectItem value="Units">Units</SelectItem>
+                    {["MT", "KG", "Bags", "Boxes", "Litres", "Units"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              {isTRF && (
+                <div className="col-span-2">
+                  <Label>Sample ID</Label>
+                  <Input value={form.sampleId} onChange={(e) => f("sampleId", e.target.value)} placeholder="e.g. SMPL-2025-001" />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* TRF-specific: Sample ID */}
-          {isTRF && (
-            <div>
-              <Label>Sample ID</Label>
-              <Input value={form.sampleId} onChange={(e) => f("sampleId", e.target.value)} placeholder="e.g. SMPL-2025-001" />
-            </div>
-          )}
-
-          {/* Party / Supplier (IRF + Loading Inspection) */}
+          {/* Party / Supplier (IRF + LI) */}
           {!isTRF && (
             <div>
-              <h4 className="font-semibold text-sm mb-3 text-gray-600">Party / Supplier</h4>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">{isLI ? "Consignor / Supplier" : "Party / Supplier"}</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>Party Name</Label>
-                  <Input value={form.partyName} onChange={(e) => f("partyName", e.target.value)} placeholder="Supplier company name" />
+                  <Input value={form.partyName} onChange={(e) => f("partyName", e.target.value)} placeholder="Supplier or consignor company name" />
                 </div>
                 <div>
                   <Label>GST Number</Label>
@@ -3043,9 +3344,72 @@ function CreateFieldQualityRecordDialog({
                   <Label>State</Label>
                   <Input value={form.partyState} onChange={(e) => f("partyState", e.target.value)} />
                 </div>
-                <div className="col-span-2">
-                  <Label>Sampling Location</Label>
-                  <Input value={form.samplingLocation} onChange={(e) => f("samplingLocation", e.target.value)} placeholder="Where the sample was collected" />
+                {!isLI && (
+                  <div className="col-span-2">
+                    <Label>Sampling Location</Label>
+                    <Input value={form.samplingLocation} onChange={(e) => f("samplingLocation", e.target.value)} placeholder="Where the sample was collected" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Loading Inspection specific section */}
+          {isLI && (
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Vehicle & Loading Details</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Vehicle Number</Label>
+                  <Input value={liFormData.vehicleNumber} onChange={(e) => lif("vehicleNumber", e.target.value)} placeholder="e.g. GJ-01-AB-1234" />
+                </div>
+                <div>
+                  <Label>Seal Number</Label>
+                  <Input value={liFormData.sealNumber} onChange={(e) => lif("sealNumber", e.target.value)} placeholder="Container seal #" />
+                </div>
+                <div>
+                  <Label>Gross Weight (kg)</Label>
+                  <Input type="number" value={liFormData.grossWeight} onChange={(e) => lif("grossWeight", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tare Weight (kg)</Label>
+                  <Input type="number" value={liFormData.tareWeight} onChange={(e) => lif("tareWeight", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Net Weight (kg)</Label>
+                  <Input type="number" value={liFormData.netWeight} onChange={(e) => lif("netWeight", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Loading Supervisor</Label>
+                  <Input value={liFormData.loadingSupervisor} onChange={(e) => lif("loadingSupervisor", e.target.value)} placeholder="Name of supervisor" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label className="mb-2 block">Visual Inspection Checklist</Label>
+                <div className="space-y-2">
+                  {LI_CHECKLIST_ITEMS.map((item) => (
+                    <div key={item} className="flex items-center justify-between border rounded px-3 py-2 text-sm">
+                      <span>{item}</span>
+                      <div className="flex gap-1">
+                        {(["pass", "fail", "na"] as const).map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setLiFormData(prev => ({ ...prev, visualChecklist: { ...prev.visualChecklist, [item]: v } }))}
+                            className={`px-2 py-0.5 rounded text-xs font-medium border transition-colors ${
+                              liFormData.visualChecklist[item] === v
+                                ? v === "pass" ? "bg-green-600 text-white border-green-600"
+                                  : v === "fail" ? "bg-red-600 text-white border-red-600"
+                                  : "bg-gray-400 text-white border-gray-400"
+                                : "bg-white text-gray-500 border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {v.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -3053,11 +3417,11 @@ function CreateFieldQualityRecordDialog({
 
           {/* Lab Information */}
           <div>
-            <h4 className="font-semibold text-sm mb-3 text-gray-600">Lab Information</h4>
+            <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Lab / Inspection Details</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Lab Name</Label>
-                <Input value={form.labName} onChange={(e) => f("labName", e.target.value)} placeholder="Testing laboratory name" />
+                <Label>{isLI ? "Inspection Lab / Agency" : "Lab Name"}</Label>
+                <Input value={form.labName} onChange={(e) => f("labName", e.target.value)} placeholder="Testing laboratory or inspection agency" />
               </div>
               <div>
                 <Label>Contact Person</Label>
@@ -3072,10 +3436,10 @@ function CreateFieldQualityRecordDialog({
                 <Input value={form.labEmail} onChange={(e) => f("labEmail", e.target.value)} />
               </div>
               <div>
-                <Label>Scheduled Date</Label>
+                <Label>Scheduled Date *</Label>
                 <Input type="date" value={form.scheduledDate} onChange={(e) => f("scheduledDate", e.target.value)} />
               </div>
-              {isTRF && (
+              {(isTRF || isIRF) && (
                 <div>
                   <Label>Expected Due Date</Label>
                   <Input type="date" value={form.expectedDueDate} onChange={(e) => f("expectedDueDate", e.target.value)} />
@@ -3084,39 +3448,41 @@ function CreateFieldQualityRecordDialog({
             </div>
           </div>
 
-          {/* Test Parameters */}
-          <div>
-            <h4 className="font-semibold text-sm mb-3 text-gray-600">Test Parameters</h4>
-            <div className="flex gap-2 mb-3">
-              <Input placeholder="Parameter name" value={newParam.parameterName} onChange={(e) => setNewParam(p => ({ ...p, parameterName: e.target.value }))} className="flex-1" />
-              <Input placeholder="Method" value={newParam.method} onChange={(e) => setNewParam(p => ({ ...p, method: e.target.value }))} className="w-32" />
-              <Input placeholder="Spec limit" value={newParam.specLimit} onChange={(e) => setNewParam(p => ({ ...p, specLimit: e.target.value }))} className="w-32" />
-              <Button type="button" size="sm" onClick={addParam} variant="outline"><Plus className="h-4 w-4" /></Button>
-            </div>
-            {form.testParameters.length > 0 && (
-              <div className="border rounded divide-y">
-                {form.testParameters.map((p, i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
-                    <span className="flex-1 font-medium">{p.parameterName}</span>
-                    <span className="text-muted-foreground">{p.method || "-"}</span>
-                    <span className="text-muted-foreground">{p.specLimit || "-"}</span>
-                    <Button size="sm" variant="ghost" onClick={() => removeParam(i)} className="h-6 w-6 p-0 text-red-500"><X className="h-3 w-3" /></Button>
-                  </div>
-                ))}
+          {/* Test Parameters (IRF + TRF) */}
+          {!isLI && (
+            <div>
+              <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Test Parameters</h4>
+              <div className="flex gap-2 mb-3 flex-wrap">
+                <Input placeholder="Parameter name" value={newParam.parameterName} onChange={(e) => setNewParam(p => ({ ...p, parameterName: e.target.value }))} className="flex-1 min-w-[140px]" />
+                <Input placeholder="Method" value={newParam.method} onChange={(e) => setNewParam(p => ({ ...p, method: e.target.value }))} className="w-28" />
+                <Input placeholder="Spec limit" value={newParam.specLimit} onChange={(e) => setNewParam(p => ({ ...p, specLimit: e.target.value }))} className="w-28" />
+                <Button type="button" size="sm" onClick={addParam} variant="outline"><Plus className="h-4 w-4" /></Button>
               </div>
-            )}
-          </div>
+              {form.testParameters.length > 0 && (
+                <div className="border rounded divide-y">
+                  {form.testParameters.map((p, i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
+                      <span className="flex-1 font-medium">{p.parameterName}</span>
+                      <span className="text-muted-foreground text-xs">{p.method || "-"}</span>
+                      <span className="text-muted-foreground text-xs">{p.specLimit || "-"}</span>
+                      <Button size="sm" variant="ghost" onClick={() => removeParam(i)} className="h-6 w-6 p-0 text-red-500"><X className="h-3 w-3" /></Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div>
-            <Label>Notes</Label>
-            <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} placeholder="Additional notes or instructions" rows={2} />
+            <Label>Notes / Instructions</Label>
+            <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} placeholder="Additional instructions or observations" rows={2} />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={isLoading || !form.productName}>
-            {isLoading ? "Creating..." : `Create ${typeLabel}`}
+            {isLoading ? "Creating..." : `Create ${isLI ? "Loading Inspection" : formType} Record`}
           </Button>
         </DialogFooter>
       </DialogContent>

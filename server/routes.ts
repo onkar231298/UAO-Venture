@@ -14049,10 +14049,16 @@ We look forward to hearing from you.`;
   // List field quality records
   app.get('/api/quality/field-records', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const { formType, status, search, limit = '100', offset = '0' } = req.query;
+      const { formType, status, search, dateFrom, dateTo, limit = '100', offset = '0' } = req.query;
       const conditions: any[] = [];
       if (formType) conditions.push(eq(fqrTable.formType, formType as string));
       if (status) conditions.push(eq(fqrTable.status, status as string));
+      if (dateFrom) conditions.push(gte(fqrTable.createdAt, new Date(dateFrom as string)));
+      if (dateTo) {
+        const to = new Date(dateTo as string);
+        to.setHours(23, 59, 59, 999);
+        conditions.push(lte(fqrTable.createdAt, to));
+      }
       if (search) {
         conditions.push(
           sql`(${fqrTable.productName} ILIKE ${'%' + search + '%'} OR ${fqrTable.recordNumber} ILIKE ${'%' + search + '%'} OR ${fqrTable.partyName} ILIKE ${'%' + search + '%'} OR ${fqrTable.labName} ILIKE ${'%' + search + '%'})`
