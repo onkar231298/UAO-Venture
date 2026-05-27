@@ -14692,38 +14692,40 @@ We look forward to hearing from you.`;
       }
 
       const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
-      const conditions: any[] = [];
-      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
-      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
-      if (staffId) conditions.push(eq(salesCallLogs.userId, staffId));
-      if (type) conditions.push(eq(salesCallLogs.activityType, type));
+      const conds: string[] = [];
+      if (dateFrom) conds.push(`scl.log_date >= '${String(dateFrom).replace(/'/g, "''")}'`);
+      if (dateTo) conds.push(`scl.log_date <= '${String(dateTo).replace(/'/g, "''")}'`);
+      if (staffId) conds.push(`scl.user_id = '${String(staffId).replace(/'/g, "''")}'`);
+      if (type) conds.push(`scl.activity_type = '${String(type).replace(/'/g, "''")}'`);
 
-      const rows = await db
-        .select({
-          logId: salesCallLogs.logId,
-          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
-          companyName: companies.name,
-          companyCountry: companies.addressCountry,
-          companyStage: companies.companyStage,
-          logDate: salesCallLogs.logDate,
-          logTime: salesCallLogs.logTime,
-          activityType: salesCallLogs.activityType,
-          callType: salesCallLogs.callType,
-          callOutcome: salesCallLogs.callOutcome,
-          contactPersonName: salesCallLogs.contactPersonName,
-          contactPhone: salesCallLogs.contactPhone,
-          contactEmail: salesCallLogs.contactEmail,
-          productsDiscussed: salesCallLogs.productsDiscussed,
-          interestLevel: salesCallLogs.interestLevel,
-          buyerResponse: salesCallLogs.buyerResponse,
-          buyerRequirement: salesCallLogs.buyerRequirement,
-          discussionSummary: salesCallLogs.discussionSummary,
-        })
-        .from(salesCallLogs)
-        .leftJoin(users, eq(salesCallLogs.userId, users.id))
-        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
-        .where(conditions.length ? and(...conditions) : undefined)
-        .orderBy(asc(salesCallLogs.userId), desc(salesCallLogs.logDate));
+      const whereClause = conds.length ? sql.raw(`WHERE ${conds.join(" AND ")}`) : sql``;
+      const result = await db.execute(sql`
+        SELECT
+          scl.log_id AS "logId",
+          COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email, 'Unknown') AS "userName",
+          c.company_name AS "companyName",
+          c.address_country AS "companyCountry",
+          c.company_stage AS "companyStage",
+          scl.log_date AS "logDate",
+          scl.log_time AS "logTime",
+          scl.activity_type AS "activityType",
+          scl.call_type AS "callType",
+          scl.call_outcome AS "callOutcome",
+          scl.contact_person_name AS "contactPersonName",
+          scl.contact_phone AS "contactPhone",
+          scl.contact_email AS "contactEmail",
+          scl.products_discussed AS "productsDiscussed",
+          scl.interest_level AS "interestLevel",
+          scl.buyer_response AS "buyerResponse",
+          scl.buyer_requirement AS "buyerRequirement",
+          scl.discussion_summary AS "discussionSummary"
+        FROM sales_call_logs scl
+        LEFT JOIN users u ON scl.user_id = u.id
+        LEFT JOIN companies c ON scl.company_id = c.id
+        ${whereClause}
+        ORDER BY scl.user_id ASC, scl.log_date DESC
+      `);
+      const rows = result.rows as any[];
 
       const activityLabels: Record<string, string> = {
         cold_call: "Cold Call", warm_call: "Warm Call",
