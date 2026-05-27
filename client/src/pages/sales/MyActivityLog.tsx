@@ -189,8 +189,14 @@ export default function MyActivityLog() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs">
-                            {log.callOutcome === "done" ? <span className="text-green-700">Done ✓</span> :
-                             log.callOutcome === "not_connected" ? <span className="text-orange-600">Not Connected</span> : "—"}
+                            {log.callOutcome ? (
+                              (() => {
+                                const o = log.callOutcome.toLowerCase();
+                                const negative = ["not_connected", "not connected", "no answer", "busy", "voicemail", "bounced", "no reply yet", "wrong number", "opt-out"].some(x => o.includes(x));
+                                const display = log.callOutcome === "done" ? "Done ✓" : log.callOutcome === "not_connected" ? "Not Connected" : log.callOutcome;
+                                return <span className={negative ? "text-orange-600" : "text-green-700"}>{display}</span>;
+                              })()
+                            ) : "—"}
                           </TableCell>
                           <TableCell className="text-xs">
                             {log.contactPersonName || "—"}

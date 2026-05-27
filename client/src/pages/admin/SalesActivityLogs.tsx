@@ -51,6 +51,15 @@ const callOutcomeLabel: Record<string, string> = {
   done: "Done ✓",
   not_connected: "Not Connected",
 };
+const formatOutcome = (o: string | null) => {
+  if (!o) return null;
+  return callOutcomeLabel[o] || o;
+};
+const isNegativeOutcome = (o: string | null) => {
+  if (!o) return false;
+  const lower = o.toLowerCase();
+  return ["not_connected", "not connected", "no answer", "busy", "voicemail", "bounced", "no reply yet", "wrong number", "opt-out"].some(x => lower.includes(x));
+};
 
 const interestColor: Record<string, string> = {
   hot: "bg-red-100 text-red-700 border border-red-300",
@@ -115,7 +124,10 @@ export default function SalesActivityLogs() {
 
   const callCount = filtered.filter(l => ["cold_call", "warm_call"].includes(l.activityType)).length;
   const emailCount = filtered.filter(l => ["cold_email", "warm_email", "enquiry_email", "reply_email"].includes(l.activityType)).length;
-  const connectedCount = filtered.filter(l => l.callOutcome === "done").length;
+  const connectedCount = filtered.filter(l => {
+    const o = (l.callOutcome || "").toLowerCase();
+    return o === "done" || o === "connected" || o === "replied" || o === "sent";
+  }).length;
   const hotCount = filtered.filter(l => l.interestLevel === "hot").length;
 
   return (
@@ -244,8 +256,8 @@ export default function SalesActivityLogs() {
                         </TableCell>
                         <TableCell className="text-xs">
                           {log.callOutcome ? (
-                            <span className={log.callOutcome === "done" ? "text-green-700" : "text-orange-600"}>
-                              {callOutcomeLabel[log.callOutcome]}
+                            <span className={isNegativeOutcome(log.callOutcome) ? "text-orange-600" : "text-green-700"}>
+                              {formatOutcome(log.callOutcome)}
                             </span>
                           ) : "—"}
                         </TableCell>

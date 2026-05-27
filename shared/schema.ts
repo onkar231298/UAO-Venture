@@ -3223,7 +3223,7 @@ export const salesCallLogs = pgTable("sales_call_logs", {
   companyId: integer("company_id").notNull().references(() => companies.id),
   activityType: varchar("activity_type", { length: 30 }).notNull(), // cold_call | warm_call | cold_email | warm_email | enquiry_email | reply_email
   callType: varchar("call_type", { length: 30 }), // cold_call | follow_up | introduction | pitch | inquiry (calls only)
-  callOutcome: varchar("call_outcome", { length: 20 }), // done | not_connected (calls only)
+  callOutcome: varchar("call_outcome", { length: 100 }), // generic outcome (call or email), supports custom text
   contactPersonName: varchar("contact_person_name", { length: 255 }),
   contactPhone: varchar("contact_phone", { length: 50 }),
   contactEmail: varchar("contact_email", { length: 255 }),

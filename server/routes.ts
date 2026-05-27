@@ -14470,79 +14470,105 @@ We look forward to hearing from you.`;
       }
 
       const VALID_ACTIVITY_TYPES = ["cold_call", "warm_call", "cold_email", "warm_email", "enquiry_email", "reply_email"];
-      const VALID_CALL_OUTCOMES = ["done", "not_connected"];
       const VALID_INTEREST_LEVELS = ["hot", "warm", "cold"];
 
-      const { companyId, activityType, callType, callOutcome, contactPersonName, contactPhone, contactEmail,
-              productsDiscussed, discussionSummary, buyerRequirement, interestLevel, buyerResponse } = req.body;
+      const { companyId, activities, contactPersonName, contactPhone, contactEmail,
+              productsDiscussed, discussionSummary, buyerRequirement, interestLevel, buyerResponse,
+              // Legacy single-entry support
+              activityType: legacyActivityType, callType: legacyCallType, callOutcome: legacyCallOutcome } = req.body;
 
-      if (!companyId || !activityType) {
-        return res.status(400).json({ message: "companyId and activityType are required" });
+      // Normalize to activities[] format (supports both new multi-entry and legacy single-entry)
+      const entriesInput: Array<{ activityType: string; callType?: string | null; callOutcome?: string | null }> =
+        Array.isArray(activities) && activities.length > 0
+          ? activities
+          : legacyActivityType
+            ? [{ activityType: legacyActivityType, callType: legacyCallType, callOutcome: legacyCallOutcome }]
+            : [];
+
+      const companyIdNum = parseInt(companyId);
+      if (!companyId || isNaN(companyIdNum) || entriesInput.length === 0) {
+        return res.status(400).json({ message: "Valid companyId and at least one activity are required" });
       }
-      if (!VALID_ACTIVITY_TYPES.includes(activityType)) {
-        return res.status(400).json({ message: `Invalid activityType. Must be one of: ${VALID_ACTIVITY_TYPES.join(", ")}` });
+      if (entriesInput.length > 5) {
+        return res.status(400).json({ message: "At most 5 activities per submission" });
       }
-      if (callOutcome && !VALID_CALL_OUTCOMES.includes(callOutcome)) {
-        return res.status(400).json({ message: `Invalid callOutcome. Must be one of: ${VALID_CALL_OUTCOMES.join(", ")}` });
+      for (const e of entriesInput) {
+        if (!VALID_ACTIVITY_TYPES.includes(e.activityType)) {
+          return res.status(400).json({ message: `Invalid activityType "${e.activityType}". Must be one of: ${VALID_ACTIVITY_TYPES.join(", ")}` });
+        }
       }
       if (interestLevel && !VALID_INTEREST_LEVELS.includes(interestLevel)) {
         return res.status(400).json({ message: `Invalid interestLevel. Must be one of: ${VALID_INTEREST_LEVELS.join(", ")}` });
       }
 
-      // Generate logId: LD-YYYYMMDDHHMMSS-firstname-XXXX (random suffix prevents same-second collisions)
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
-      const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const tsBase = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
       const firstName = ((user as any)?.firstName || (user as any)?.email?.split("@")[0] || "user").toLowerCase().replace(/\s+/g, "").slice(0, 10);
-      const randSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-      const logId = `LD-${ts}-${firstName}-${randSuffix}`;
-
       const logDate = now.toISOString().slice(0, 10);
       const logTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-      const [entry] = await db.insert(salesCallLogs).values({
-        logId,
-        userId,
-        companyId: parseInt(companyId),
-        activityType,
-        callType: callType || null,
-        callOutcome: callOutcome || null,
-        contactPersonName: contactPersonName || null,
-        contactPhone: contactPhone || null,
-        contactEmail: contactEmail || null,
-        productsDiscussed: Array.isArray(productsDiscussed) && productsDiscussed.length > 0 ? productsDiscussed : null,
-        discussionSummary: discussionSummary || null,
-        buyerRequirement: buyerRequirement || null,
-        interestLevel: interestLevel || null,
-        buyerResponse: buyerResponse || null,
-        logDate,
-        logTime,
-      }).returning();
-
-      // Auto-create a company note summarising the activity
-      const isCallActivity = ["cold_call", "warm_call"].includes(activityType);
       const activityLabels: Record<string, string> = {
         cold_call: "Cold Call", warm_call: "Warm Call",
         cold_email: "Cold Email", warm_email: "Warm Email",
         enquiry_email: "Enquiry Email", reply_email: "Reply Email",
       };
-      const noteLines: string[] = [`[${activityLabels[activityType] || activityType}]`];
-      if (contactPersonName) noteLines.push(`Contact: ${contactPersonName}${contactPhone ? ` (${contactPhone})` : ""}`);
-      if (isCallActivity && callOutcome) noteLines.push(`Outcome: ${callOutcome === "done" ? "Connected ✓" : "Not Connected"}`);
-      if (productsDiscussed?.length) noteLines.push(`Products: ${productsDiscussed.join(", ")}`);
-      if (interestLevel) noteLines.push(`Interest: ${interestLevel.toUpperCase()}`);
-      if (buyerResponse) noteLines.push(`Buyer Response: ${buyerResponse}`);
-      if (buyerRequirement) noteLines.push(`Requirement: ${buyerRequirement}`);
-      if (discussionSummary) noteLines.push(`\n${discussionSummary}`);
 
-      await db.insert(companyNotes).values({
-        companyId: parseInt(companyId),
-        noteType: isCallActivity ? "call_log" : "email_log",
-        content: noteLines.join("\n"),
-        createdBy: userId,
+      // Wrap multi-insert + note creation in a transaction so partial writes don't persist
+      const createdEntries = await db.transaction(async (tx) => {
+        const created: any[] = [];
+        for (let i = 0; i < entriesInput.length; i++) {
+          const e = entriesInput[i];
+          const randSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+          const logId = `LD-${tsBase}${i > 0 ? `-${i}` : ""}-${firstName}-${randSuffix}`;
+          const trimmedOutcome = (e.callOutcome || "").toString().trim().slice(0, 100) || null;
+
+          const [entry] = await tx.insert(salesCallLogs).values({
+            logId,
+            userId,
+            companyId: companyIdNum,
+            activityType: e.activityType,
+            callType: e.callType ? String(e.callType).slice(0, 30) : null,
+            callOutcome: trimmedOutcome,
+            contactPersonName: contactPersonName || null,
+            contactPhone: contactPhone || null,
+            contactEmail: contactEmail || null,
+            productsDiscussed: Array.isArray(productsDiscussed) && productsDiscussed.length > 0 ? productsDiscussed : null,
+            discussionSummary: discussionSummary || null,
+            buyerRequirement: buyerRequirement || null,
+            interestLevel: interestLevel || null,
+            buyerResponse: buyerResponse || null,
+            logDate,
+            logTime,
+          }).returning();
+          created.push(entry);
+        }
+
+        // Auto-create a single combined company note summarising the activity/activities
+        const channelsLabel = entriesInput.map(e => activityLabels[e.activityType] || e.activityType).join(" + ");
+        const noteLines: string[] = [`[${channelsLabel}]`];
+        if (contactPersonName) noteLines.push(`Contact: ${contactPersonName}${contactPhone ? ` (${contactPhone})` : ""}`);
+        for (const e of entriesInput) {
+          if (e.callOutcome) noteLines.push(`${activityLabels[e.activityType] || e.activityType} Outcome: ${e.callOutcome}`);
+        }
+        if (productsDiscussed?.length) noteLines.push(`Products: ${productsDiscussed.join(", ")}`);
+        if (interestLevel) noteLines.push(`Interest: ${interestLevel.toUpperCase()}`);
+        if (buyerResponse) noteLines.push(`Buyer Response: ${buyerResponse}`);
+        if (buyerRequirement) noteLines.push(`Requirement: ${buyerRequirement}`);
+        if (discussionSummary) noteLines.push(`\n${discussionSummary}`);
+
+        const hasCall = entriesInput.some(e => ["cold_call", "warm_call"].includes(e.activityType));
+        await tx.insert(companyNotes).values({
+          companyId: companyIdNum,
+          noteType: hasCall ? "call_log" : "email_log",
+          content: noteLines.join("\n"),
+          createdBy: userId,
+        });
+
+        return created;
       });
 
-      res.json(entry);
+      res.json(createdEntries.length === 1 ? createdEntries[0] : createdEntries);
     } catch (error) {
       console.error("Error creating sales log:", error);
       res.status(500).json({ message: "Failed to create log entry" });
@@ -14561,13 +14587,13 @@ We look forward to hearing from you.`;
       }
 
       const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
-      const conds: string[] = [];
-      if (dateFrom) conds.push(`scl.log_date >= '${String(dateFrom).replace(/'/g, "''")}'`);
-      if (dateTo) conds.push(`scl.log_date <= '${String(dateTo).replace(/'/g, "''")}'`);
-      if (staffId) conds.push(`scl.user_id = '${String(staffId).replace(/'/g, "''")}'`);
-      if (type) conds.push(`scl.activity_type = '${String(type).replace(/'/g, "''")}'`);
+      const conds: any[] = [];
+      if (dateFrom) conds.push(sql`scl.log_date >= ${dateFrom}`);
+      if (dateTo) conds.push(sql`scl.log_date <= ${dateTo}`);
+      if (staffId) conds.push(sql`scl.user_id = ${staffId}`);
+      if (type) conds.push(sql`scl.activity_type = ${type}`);
 
-      const whereClause = conds.length ? sql.raw(`WHERE ${conds.join(" AND ")}`) : sql``;
+      const whereClause = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
       const rows = await db.execute(sql`
         SELECT
           scl.id,
@@ -14610,11 +14636,11 @@ We look forward to hearing from you.`;
       const userId = req.user.claims.sub;
       const { dateFrom, dateTo, type, companyId } = req.query as Record<string, string>;
 
-      const myConditions: string[] = [`scl.user_id = '${userId.replace(/'/g, "''")}'`];
-      if (dateFrom) myConditions.push(`scl.log_date >= '${dateFrom}'`);
-      if (dateTo) myConditions.push(`scl.log_date <= '${dateTo}'`);
-      if (type) myConditions.push(`scl.activity_type = '${type.replace(/'/g, "''")}'`);
-      if (companyId) myConditions.push(`scl.company_id = ${parseInt(companyId)}`);
+      const myConditions: any[] = [sql`scl.user_id = ${userId}`];
+      if (dateFrom) myConditions.push(sql`scl.log_date >= ${dateFrom}`);
+      if (dateTo) myConditions.push(sql`scl.log_date <= ${dateTo}`);
+      if (type) myConditions.push(sql`scl.activity_type = ${type}`);
+      if (companyId && !isNaN(parseInt(companyId))) myConditions.push(sql`scl.company_id = ${parseInt(companyId)}`);
 
       const rows = await db.execute(sql`
         SELECT
@@ -14692,13 +14718,13 @@ We look forward to hearing from you.`;
       }
 
       const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
-      const conds: string[] = [];
-      if (dateFrom) conds.push(`scl.log_date >= '${String(dateFrom).replace(/'/g, "''")}'`);
-      if (dateTo) conds.push(`scl.log_date <= '${String(dateTo).replace(/'/g, "''")}'`);
-      if (staffId) conds.push(`scl.user_id = '${String(staffId).replace(/'/g, "''")}'`);
-      if (type) conds.push(`scl.activity_type = '${String(type).replace(/'/g, "''")}'`);
+      const conds: any[] = [];
+      if (dateFrom) conds.push(sql`scl.log_date >= ${dateFrom}`);
+      if (dateTo) conds.push(sql`scl.log_date <= ${dateTo}`);
+      if (staffId) conds.push(sql`scl.user_id = ${staffId}`);
+      if (type) conds.push(sql`scl.activity_type = ${type}`);
 
-      const whereClause = conds.length ? sql.raw(`WHERE ${conds.join(" AND ")}`) : sql``;
+      const whereClause = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
       const result = await db.execute(sql`
         SELECT
           scl.log_id AS "logId",
@@ -14745,8 +14771,8 @@ We look forward to hearing from you.`;
         "Date": r.logDate || "",
         "Time": r.logTime || "",
         "Activity Type": activityLabels[r.activityType] || r.activityType,
-        "Call Type": r.callType || "",
-        "Call Outcome": r.callOutcome === "done" ? "Done" : r.callOutcome === "not_connected" ? "Not Connected" : "",
+        "Call Sub-Type": r.callType || "",
+        "Outcome": r.callOutcome || "",
         "Contact Person": r.contactPersonName || "",
         "Contact Phone": r.contactPhone || "",
         "Contact Email": r.contactEmail || "",

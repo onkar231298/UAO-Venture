@@ -86,6 +86,7 @@ app.use((req, res, next) => {
       CREATE INDEX IF NOT EXISTS idx_scl_company ON sales_call_logs(company_id);
       CREATE INDEX IF NOT EXISTS idx_scl_date ON sales_call_logs(log_date);
       CREATE INDEX IF NOT EXISTS idx_scl_type ON sales_call_logs(activity_type);
+      ALTER TABLE sales_call_logs ALTER COLUMN call_outcome TYPE VARCHAR(100);
     `);
     console.log("[Migration] sales_call_logs table ready");
   } catch (err) {
