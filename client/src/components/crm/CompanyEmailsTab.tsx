@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mail, Plus, RefreshCw, X, Send, Eye, Reply, Paperclip, Loader2, CheckCircle } from "lucide-react";
+import { Mail, Plus, RefreshCw, X, Send, Eye, Reply, Paperclip, Loader2, CheckCircle, Phone } from "lucide-react";
+import { SalesLogDialog } from "./SalesLogDialog";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
 import EmailViewDialog from "@/components/EmailViewDialog";
@@ -50,10 +51,12 @@ interface CompanyEmailsTabProps {
   companyEmail: string | null;
 }
 
-export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabProps) {
+export function CompanyEmailsTab({ companyId, companyEmail, companyName }: CompanyEmailsTabProps & { companyName?: string }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCompose, setShowCompose] = useState(false);
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [logDialogType, setLogDialogType] = useState<"call" | "email">("email");
   const [emailTo, setEmailTo] = useState(companyEmail || '');
   const [emailCc, setEmailCc] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
@@ -417,10 +420,18 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
               <h3 className="font-semibold flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email History
+                {emailThreads.length > 0 && <Badge variant="outline">{emailThreads.length} thread{emailThreads.length !== 1 ? 's' : ''}</Badge>}
               </h3>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{emailThreads.length} thread{emailThreads.length !== 1 ? 's' : ''}</Badge>
-                <Button variant="outline" size="sm" onClick={handleNewEmail}>
+                <Button variant="outline" size="sm" onClick={() => { setLogDialogType("call"); setLogDialogOpen(true); }}>
+                  <Phone className="h-4 w-4 mr-1" />
+                  + Log Call
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setLogDialogType("email"); setLogDialogOpen(true); }}>
+                  <Mail className="h-4 w-4 mr-1" />
+                  + Log Email
+                </Button>
+                <Button size="sm" onClick={handleNewEmail}>
                   <Plus className="h-4 w-4 mr-1" />
                   Compose
                 </Button>
@@ -613,6 +624,16 @@ export function CompanyEmailsTab({ companyId, companyEmail }: CompanyEmailsTabPr
           </div>
         </DialogContent>
       </Dialog>
+
+      {logDialogOpen && (
+        <SalesLogDialog
+          open={logDialogOpen}
+          onOpenChange={setLogDialogOpen}
+          companyId={companyId}
+          companyName={companyName || "Company"}
+          defaultType={logDialogType}
+        />
+      )}
     </div>
   );
 }

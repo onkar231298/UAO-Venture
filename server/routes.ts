@@ -14470,12 +14470,13 @@ We look forward to hearing from you.`;
         return res.status(400).json({ message: "companyId and activityType are required" });
       }
 
-      // Generate logId: LD-YYYYMMDDHHMMSS-firstname
+      // Generate logId: LD-YYYYMMDDHHMMSS-firstname-XXXX (random suffix prevents same-second collisions)
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
       const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      const firstName = ((user as any)?.firstName || (user as any)?.email?.split("@")[0] || "user").toLowerCase().replace(/\s+/g, "");
-      const logId = `LD-${ts}-${firstName}`;
+      const firstName = ((user as any)?.firstName || (user as any)?.email?.split("@")[0] || "user").toLowerCase().replace(/\s+/g, "").slice(0, 10);
+      const randSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const logId = `LD-${ts}-${firstName}-${randSuffix}`;
 
       const logDate = now.toISOString().slice(0, 10);
       const logTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -14657,8 +14658,8 @@ We look forward to hearing from you.`;
     }
   });
 
-  // GET /api/sales-logs/export — Excel download (admin only)
-  app.get("/api/sales-logs/export", isAuthenticated, async (req: any, res) => {
+  // GET /api/admin/sales-logs/export — Excel download (admin only)
+  app.get("/api/admin/sales-logs/export", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -14680,6 +14681,8 @@ We look forward to hearing from you.`;
           logId: salesCallLogs.logId,
           userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
           companyName: companies.name,
+          companyCountry: companies.addressCountry,
+          companyStage: companies.companyStage,
           logDate: salesCallLogs.logDate,
           logTime: salesCallLogs.logTime,
           activityType: salesCallLogs.activityType,
@@ -14712,7 +14715,9 @@ We look forward to hearing from you.`;
       const toRow = (r: any) => ({
         "Log ID": r.logId,
         "Staff Name": r.userName,
-        "Company": r.companyName || "",
+        "Company Name": r.companyName || "",
+        "Country": r.companyCountry || "",
+        "Company Stage": r.companyStage || "",
         "Date": r.logDate || "",
         "Time": r.logTime || "",
         "Activity Type": activityLabels[r.activityType] || r.activityType,
@@ -14725,7 +14730,7 @@ We look forward to hearing from you.`;
         "Interest Level": r.interestLevel || "",
         "Buyer Response": r.buyerResponse || "",
         "Buyer Requirement": r.buyerRequirement || "",
-        "Discussion Summary": r.discussionSummary || "",
+        "Discussion Summary / Notes": r.discussionSummary || "",
       });
 
       // All Staff sheet

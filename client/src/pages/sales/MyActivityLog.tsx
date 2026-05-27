@@ -50,12 +50,9 @@ const interestColor: Record<string, string> = {
 };
 
 export default function MyActivityLog() {
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
-  });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
 

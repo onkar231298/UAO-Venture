@@ -59,12 +59,9 @@ const interestColor: Record<string, string> = {
 };
 
 export default function SalesActivityLogs() {
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   const [staffFilter, setStaffFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -100,7 +97,7 @@ export default function SalesActivityLogs() {
     const params = new URLSearchParams({ dateFrom, dateTo, format: "xlsx" });
     if (staffFilter !== "all") params.set("staffId", staffFilter);
     if (typeFilter !== "all") params.set("type", typeFilter);
-    const res = await fetch(`/api/sales-logs/export?${params}`, { credentials: "include" });
+    const res = await fetch(`/api/admin/sales-logs/export?${params}`, { credentials: "include" });
     if (!res.ok) { alert("Export failed"); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
