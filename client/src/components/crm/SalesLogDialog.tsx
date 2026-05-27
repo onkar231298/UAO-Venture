@@ -171,6 +171,16 @@ export function SalesLogDialog({ open, onOpenChange, companyId, companyName, def
       toast({ title: "Missing field", description: "Please select an Email Type.", variant: "destructive" });
       return;
     }
+    if (form.logCall && form.callType === "cold_call") {
+      if (!form.contactPersonName.trim()) {
+        toast({ title: "Contact required", description: "For a Cold Call, please enter the contact person's name.", variant: "destructive" });
+        return;
+      }
+      if (!form.contactPhone.trim() && !form.contactEmail.trim()) {
+        toast({ title: "Contact required", description: "For a Cold Call, please enter the contact person's phone or email.", variant: "destructive" });
+        return;
+      }
+    }
 
     const activities: any[] = [];
     if (form.logCall) {
@@ -301,7 +311,13 @@ export function SalesLogDialog({ open, onOpenChange, companyId, companyName, def
 
           {/* Contact person */}
           <div>
-            <Label>Contact Person</Label>
+            <Label>
+              Contact Person
+              {form.logCall && form.callType === "cold_call" && <span className="text-red-500"> *</span>}
+            </Label>
+            {form.logCall && form.callType === "cold_call" && (
+              <p className="text-xs text-red-600 mt-0.5">Required for Cold Calls — name + phone or email.</p>
+            )}
             <Select value={form.selectedContactId} onValueChange={selectContact}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder={contacts.length > 0 ? "Select from company contacts..." : "No saved contacts — type below"} />
