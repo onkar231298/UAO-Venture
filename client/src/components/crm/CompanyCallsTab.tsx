@@ -155,16 +155,19 @@ export function CompanyCallsTab({ companyId, companyName = "Company" }: CompanyC
         </CardContent>
       </Card>
 
-      <SalesLogDialog
-        open={logDialogOpen}
-        onOpenChange={(open) => {
-          setLogDialogOpen(open);
-          if (!open) refetch();
-        }}
-        companyId={companyId}
-        companyName={companyName}
-        defaultType={logDialogType}
-      />
+      {logDialogOpen && (
+        <SalesLogDialog
+          key={`${logDialogType}-${logDialogOpen}`}
+          open={logDialogOpen}
+          onOpenChange={(open) => {
+            setLogDialogOpen(open);
+            if (!open) refetch();
+          }}
+          companyId={companyId}
+          companyName={companyName}
+          defaultType={logDialogType}
+        />
+      )}
     </>
   );
 }

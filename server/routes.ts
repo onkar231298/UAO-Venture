@@ -14463,11 +14463,30 @@ We look forward to hearing from you.`;
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      const userRole = (user as any)?.role || "sales_executive";
+      const allowedRoles = ["sales_executive", "sales_manager", "admin", "super_admin"];
+      if (!allowedRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Only sales staff can create activity logs" });
+      }
+
+      const VALID_ACTIVITY_TYPES = ["cold_call", "warm_call", "cold_email", "warm_email", "enquiry_email", "reply_email"];
+      const VALID_CALL_OUTCOMES = ["done", "not_connected"];
+      const VALID_INTEREST_LEVELS = ["hot", "warm", "cold"];
+
       const { companyId, activityType, callType, callOutcome, contactPersonName, contactPhone, contactEmail,
               productsDiscussed, discussionSummary, buyerRequirement, interestLevel, buyerResponse } = req.body;
 
       if (!companyId || !activityType) {
         return res.status(400).json({ message: "companyId and activityType are required" });
+      }
+      if (!VALID_ACTIVITY_TYPES.includes(activityType)) {
+        return res.status(400).json({ message: `Invalid activityType. Must be one of: ${VALID_ACTIVITY_TYPES.join(", ")}` });
+      }
+      if (callOutcome && !VALID_CALL_OUTCOMES.includes(callOutcome)) {
+        return res.status(400).json({ message: `Invalid callOutcome. Must be one of: ${VALID_CALL_OUTCOMES.join(", ")}` });
+      }
+      if (interestLevel && !VALID_INTEREST_LEVELS.includes(interestLevel)) {
+        return res.status(400).json({ message: `Invalid interestLevel. Must be one of: ${VALID_INTEREST_LEVELS.join(", ")}` });
       }
 
       // Generate logId: LD-YYYYMMDDHHMMSS-firstname-XXXX (random suffix prevents same-second collisions)
@@ -14658,15 +14677,15 @@ We look forward to hearing from you.`;
     }
   });
 
-  // GET /api/admin/sales-logs/export — Excel download (admin only)
+  // GET /api/admin/sales-logs/export — Excel download (admin/super_admin only)
   app.get("/api/admin/sales-logs/export", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const userRole = (user as any)?.role || "sales_executive";
-      const adminRoles = ["super_admin", "admin", "sales_manager"];
-      if (!adminRoles.includes(userRole)) {
-        return res.status(403).json({ message: "Access denied" });
+      const adminOnlyRoles = ["super_admin", "admin"];
+      if (!adminOnlyRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Access denied. Admin only." });
       }
 
       const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
