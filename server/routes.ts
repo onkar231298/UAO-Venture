@@ -14561,13 +14561,13 @@ We look forward to hearing from you.`;
       }
 
       const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
-      const conditions: any[] = [];
-      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
-      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
-      if (staffId) conditions.push(eq(salesCallLogs.userId, staffId));
-      if (type) conditions.push(eq(salesCallLogs.activityType, type));
+      const conds: string[] = [];
+      if (dateFrom) conds.push(`scl.log_date >= '${String(dateFrom).replace(/'/g, "''")}'`);
+      if (dateTo) conds.push(`scl.log_date <= '${String(dateTo).replace(/'/g, "''")}'`);
+      if (staffId) conds.push(`scl.user_id = '${String(staffId).replace(/'/g, "''")}'`);
+      if (type) conds.push(`scl.activity_type = '${String(type).replace(/'/g, "''")}'`);
 
-      const whereClause = conditions.length ? sql`WHERE ${and(...conditions)}` : sql``;
+      const whereClause = conds.length ? sql.raw(`WHERE ${conds.join(" AND ")}`) : sql``;
       const rows = await db.execute(sql`
         SELECT
           scl.id,
