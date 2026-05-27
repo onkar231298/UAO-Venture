@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1257,10 +1257,17 @@ export default function MyCompanies() {
 
   const dateRange = getAssignedDateRange();
 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   const { data: companiesData, isLoading, refetch } = useQuery<{ companies: Company[] }>({
-    queryKey: ['/api/crm/companies', { 
+    queryKey: ['/api/crm/companies', {
       assignedTo: user?.id,
       isIrrelevant: showNotRelevant ? 'true' : 'false',
+      search: debouncedSearch || undefined,
       ...dateRange,
     }],
   });
@@ -1515,8 +1522,11 @@ export default function MyCompanies() {
   }, [myCompanies]);
 
   const filteredCompanies = myCompanies.filter((company) => {
-    const matchesSearch = company.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (company.primaryEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch = !q ||
+      company.companyName.toLowerCase().includes(q) ||
+      (company.primaryEmail?.toLowerCase().includes(q) ?? false) ||
+      ((company as any).primaryPhone?.toLowerCase().includes(q) ?? false);
     const matchesPriority = priorityFilter === "all" || company.priority === priorityFilter;
     const matchesStage = stageFilter === "all" || company.companyStage === stageFilter;
     const matchesCountry = countryFilter === "all" || (company.addressCountry?.trim().toLowerCase() === countryFilter.toLowerCase());

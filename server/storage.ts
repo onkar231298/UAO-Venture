@@ -5617,12 +5617,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters?.search) {
+      const term = `%${filters.search}%`;
       conditions.push(
         or(
-          like(companies.companyName, `%${filters.search}%`),
-          like(companies.gstNumber, `%${filters.search}%`),
-          like(companies.website, `%${filters.search}%`),
-          like(companies.primaryEmail, `%${filters.search}%`)
+          ilike(companies.companyName, term),
+          ilike(companies.gstNumber, term),
+          ilike(companies.website, term),
+          ilike(companies.primaryEmail, term),
+          ilike(companies.primaryPhone, term),
+          sql`EXISTS (SELECT 1 FROM company_contacts cc WHERE cc.company_id = ${companies.id} AND (cc.email ILIKE ${term} OR cc.phone ILIKE ${term} OR cc.whatsapp ILIKE ${term} OR cc.contact_name ILIKE ${term}))`
         )
       );
     }
