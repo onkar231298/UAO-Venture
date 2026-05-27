@@ -60,14 +60,17 @@ const interestColor: Record<string, string> = {
 
 export default function SalesActivityLogs() {
   const today = new Date().toISOString().slice(0, 10);
-  const [dateFrom, setDateFrom] = useState(today);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(sevenDaysAgo);
   const [dateTo, setDateTo] = useState(today);
   const [staffFilter, setStaffFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  const { data: staffList = [] } = useQuery<StaffMember[]>({
+  const { data: staffList = [], refetch: refetchStaff } = useQuery<StaffMember[]>({
     queryKey: ["/api/sales-logs/staff-list"],
+    staleTime: 0,
+    refetchOnMount: "always" as const,
   });
 
   const { data: logs = [], isLoading, refetch } = useQuery<SalesLogEntry[]>({
@@ -80,6 +83,8 @@ export default function SalesActivityLogs() {
       if (!res.ok) throw new Error("Failed to fetch logs");
       return res.json();
     },
+    staleTime: 0,
+    refetchOnMount: "always" as const,
   });
 
   const filtered = logs.filter(l => {
@@ -185,7 +190,7 @@ export default function SalesActivityLogs() {
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7" />
               </div>
-              <Button variant="outline" size="icon" onClick={() => refetch()}><RefreshCw className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => { refetch(); refetchStaff(); }}><RefreshCw className="h-4 w-4" /></Button>
             </div>
           </div>
         </CardContent>
