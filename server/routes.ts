@@ -14575,7 +14575,7 @@ We look forward to hearing from you.`;
           scl.user_id AS "userId",
           COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email, 'Unknown') AS "userName",
           scl.company_id AS "companyId",
-          c.name AS "companyName",
+          c.company_name AS "companyName",
           scl.activity_type AS "activityType",
           scl.call_type AS "callType",
           scl.call_outcome AS "callOutcome",
@@ -14623,7 +14623,7 @@ We look forward to hearing from you.`;
           scl.user_id AS "userId",
           COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email, 'Unknown') AS "userName",
           scl.company_id AS "companyId",
-          c.name AS "companyName",
+          c.company_name AS "companyName",
           scl.activity_type AS "activityType",
           scl.call_type AS "callType",
           scl.call_outcome AS "callOutcome",
@@ -14664,12 +14664,13 @@ We look forward to hearing from you.`;
       }
 
       const rows = await db.execute(sql`
-        SELECT DISTINCT ON (u.id)
+        SELECT
           u.id,
           COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email) AS name
-        FROM sales_call_logs scl
-        INNER JOIN users u ON scl.user_id = u.id
-        ORDER BY u.id
+        FROM users u
+        WHERE u.is_active = true
+          AND (u.role IN ('sales_executive', 'sales_manager') OR u.department = 'sales')
+        ORDER BY name
       `);
 
       res.json(rows.rows);
