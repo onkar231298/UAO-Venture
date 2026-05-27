@@ -69,6 +69,7 @@ import {
   qualityTestingRequests,
   fieldQualityRecords,
   fieldQualityTestResults,
+  salesCallLogs,
   users,
 } from "@shared/schema";
 import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
@@ -14452,6 +14453,305 @@ We look forward to hearing from you.`;
     } catch (error) {
       console.error('Error applying company document:', error);
       res.status(500).json({ message: 'Failed to apply document' });
+    }
+  });
+
+  // ==================== SALES CALL / EMAIL LOG ROUTES ====================
+
+  // POST /api/sales-logs — create a new log entry
+  app.post("/api/sales-logs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const { companyId, activityType, callType, callOutcome, contactPersonName, contactPhone, contactEmail,
+              productsDiscussed, discussionSummary, buyerRequirement, interestLevel, buyerResponse } = req.body;
+
+      if (!companyId || !activityType) {
+        return res.status(400).json({ message: "companyId and activityType are required" });
+      }
+
+      // Generate logId: LD-YYYYMMDDHHMMSS-firstname
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const firstName = ((user as any)?.firstName || (user as any)?.email?.split("@")[0] || "user").toLowerCase().replace(/\s+/g, "");
+      const logId = `LD-${ts}-${firstName}`;
+
+      const logDate = now.toISOString().slice(0, 10);
+      const logTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      const [entry] = await db.insert(salesCallLogs).values({
+        logId,
+        userId,
+        companyId: parseInt(companyId),
+        activityType,
+        callType: callType || null,
+        callOutcome: callOutcome || null,
+        contactPersonName: contactPersonName || null,
+        contactPhone: contactPhone || null,
+        contactEmail: contactEmail || null,
+        productsDiscussed: Array.isArray(productsDiscussed) && productsDiscussed.length > 0 ? productsDiscussed : null,
+        discussionSummary: discussionSummary || null,
+        buyerRequirement: buyerRequirement || null,
+        interestLevel: interestLevel || null,
+        buyerResponse: buyerResponse || null,
+        logDate,
+        logTime,
+      }).returning();
+
+      // Auto-create a company note summarising the activity
+      const isCallActivity = ["cold_call", "warm_call"].includes(activityType);
+      const activityLabels: Record<string, string> = {
+        cold_call: "Cold Call", warm_call: "Warm Call",
+        cold_email: "Cold Email", warm_email: "Warm Email",
+        enquiry_email: "Enquiry Email", reply_email: "Reply Email",
+      };
+      const noteLines: string[] = [`[${activityLabels[activityType] || activityType}]`];
+      if (contactPersonName) noteLines.push(`Contact: ${contactPersonName}${contactPhone ? ` (${contactPhone})` : ""}`);
+      if (isCallActivity && callOutcome) noteLines.push(`Outcome: ${callOutcome === "done" ? "Connected ✓" : "Not Connected"}`);
+      if (productsDiscussed?.length) noteLines.push(`Products: ${productsDiscussed.join(", ")}`);
+      if (interestLevel) noteLines.push(`Interest: ${interestLevel.toUpperCase()}`);
+      if (buyerResponse) noteLines.push(`Buyer Response: ${buyerResponse}`);
+      if (buyerRequirement) noteLines.push(`Requirement: ${buyerRequirement}`);
+      if (discussionSummary) noteLines.push(`\n${discussionSummary}`);
+
+      await db.insert(companyNotes).values({
+        companyId: parseInt(companyId),
+        noteType: isCallActivity ? "call_log" : "email_log",
+        content: noteLines.join("\n"),
+        createdBy: userId,
+      });
+
+      res.json(entry);
+    } catch (error) {
+      console.error("Error creating sales log:", error);
+      res.status(500).json({ message: "Failed to create log entry" });
+    }
+  });
+
+  // GET /api/sales-logs — admin/manager fetch all logs with filters
+  app.get("/api/sales-logs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const userRole = (user as any)?.role || "sales_executive";
+      const adminRoles = ["super_admin", "admin", "sales_manager"];
+      if (!adminRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
+      const conditions: any[] = [];
+      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
+      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
+      if (staffId) conditions.push(eq(salesCallLogs.userId, staffId));
+      if (type) conditions.push(eq(salesCallLogs.activityType, type));
+
+      const rows = await db
+        .select({
+          id: salesCallLogs.id,
+          logId: salesCallLogs.logId,
+          userId: salesCallLogs.userId,
+          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
+          companyId: salesCallLogs.companyId,
+          companyName: companies.name,
+          activityType: salesCallLogs.activityType,
+          callType: salesCallLogs.callType,
+          callOutcome: salesCallLogs.callOutcome,
+          contactPersonName: salesCallLogs.contactPersonName,
+          contactPhone: salesCallLogs.contactPhone,
+          contactEmail: salesCallLogs.contactEmail,
+          productsDiscussed: salesCallLogs.productsDiscussed,
+          discussionSummary: salesCallLogs.discussionSummary,
+          buyerRequirement: salesCallLogs.buyerRequirement,
+          interestLevel: salesCallLogs.interestLevel,
+          buyerResponse: salesCallLogs.buyerResponse,
+          logDate: salesCallLogs.logDate,
+          logTime: salesCallLogs.logTime,
+          createdAt: salesCallLogs.createdAt,
+        })
+        .from(salesCallLogs)
+        .leftJoin(users, eq(salesCallLogs.userId, users.id))
+        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(desc(salesCallLogs.logDate), desc(salesCallLogs.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching sales logs:", error);
+      res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  });
+
+  // GET /api/sales-logs/my — own logs for sales user
+  app.get("/api/sales-logs/my", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { dateFrom, dateTo, type, companyId } = req.query as Record<string, string>;
+      const conditions: any[] = [eq(salesCallLogs.userId, userId)];
+      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
+      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
+      if (type) conditions.push(eq(salesCallLogs.activityType, type));
+      if (companyId) conditions.push(eq(salesCallLogs.companyId, parseInt(companyId)));
+
+      const rows = await db
+        .select({
+          id: salesCallLogs.id,
+          logId: salesCallLogs.logId,
+          userId: salesCallLogs.userId,
+          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
+          companyId: salesCallLogs.companyId,
+          companyName: companies.name,
+          activityType: salesCallLogs.activityType,
+          callType: salesCallLogs.callType,
+          callOutcome: salesCallLogs.callOutcome,
+          contactPersonName: salesCallLogs.contactPersonName,
+          contactPhone: salesCallLogs.contactPhone,
+          contactEmail: salesCallLogs.contactEmail,
+          productsDiscussed: salesCallLogs.productsDiscussed,
+          discussionSummary: salesCallLogs.discussionSummary,
+          buyerRequirement: salesCallLogs.buyerRequirement,
+          interestLevel: salesCallLogs.interestLevel,
+          buyerResponse: salesCallLogs.buyerResponse,
+          logDate: salesCallLogs.logDate,
+          logTime: salesCallLogs.logTime,
+          createdAt: salesCallLogs.createdAt,
+        })
+        .from(salesCallLogs)
+        .leftJoin(users, eq(salesCallLogs.userId, users.id))
+        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
+        .where(and(...conditions))
+        .orderBy(desc(salesCallLogs.logDate), desc(salesCallLogs.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching my sales logs:", error);
+      res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  });
+
+  // GET /api/sales-logs/staff-list — list of staff who have logs (for filter dropdown)
+  app.get("/api/sales-logs/staff-list", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const userRole = (user as any)?.role || "sales_executive";
+      const adminRoles = ["super_admin", "admin", "sales_manager"];
+      if (!adminRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const rows = await db
+        .selectDistinct({
+          id: users.id,
+          name: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || COALESCE(${users.lastName},'')), ''), ${users.email})`,
+        })
+        .from(salesCallLogs)
+        .innerJoin(users, eq(salesCallLogs.userId, users.id))
+        .orderBy(users.firstName);
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching staff list:", error);
+      res.status(500).json({ message: "Failed to fetch staff list" });
+    }
+  });
+
+  // GET /api/sales-logs/export — Excel download (admin only)
+  app.get("/api/sales-logs/export", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const userRole = (user as any)?.role || "sales_executive";
+      const adminRoles = ["super_admin", "admin", "sales_manager"];
+      if (!adminRoles.includes(userRole)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { dateFrom, dateTo, staffId, type } = req.query as Record<string, string>;
+      const conditions: any[] = [];
+      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
+      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
+      if (staffId) conditions.push(eq(salesCallLogs.userId, staffId));
+      if (type) conditions.push(eq(salesCallLogs.activityType, type));
+
+      const rows = await db
+        .select({
+          logId: salesCallLogs.logId,
+          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
+          companyName: companies.name,
+          logDate: salesCallLogs.logDate,
+          logTime: salesCallLogs.logTime,
+          activityType: salesCallLogs.activityType,
+          callType: salesCallLogs.callType,
+          callOutcome: salesCallLogs.callOutcome,
+          contactPersonName: salesCallLogs.contactPersonName,
+          contactPhone: salesCallLogs.contactPhone,
+          contactEmail: salesCallLogs.contactEmail,
+          productsDiscussed: salesCallLogs.productsDiscussed,
+          interestLevel: salesCallLogs.interestLevel,
+          buyerResponse: salesCallLogs.buyerResponse,
+          buyerRequirement: salesCallLogs.buyerRequirement,
+          discussionSummary: salesCallLogs.discussionSummary,
+        })
+        .from(salesCallLogs)
+        .leftJoin(users, eq(salesCallLogs.userId, users.id))
+        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(asc(salesCallLogs.userId), desc(salesCallLogs.logDate));
+
+      const activityLabels: Record<string, string> = {
+        cold_call: "Cold Call", warm_call: "Warm Call",
+        cold_email: "Cold Email", warm_email: "Warm Email",
+        enquiry_email: "Enquiry Email", reply_email: "Reply Email",
+      };
+
+      // Build workbook: one sheet per staff + one "All Staff" sheet
+      const wb = xlsx.utils.book_new();
+
+      const toRow = (r: any) => ({
+        "Log ID": r.logId,
+        "Staff Name": r.userName,
+        "Company": r.companyName || "",
+        "Date": r.logDate || "",
+        "Time": r.logTime || "",
+        "Activity Type": activityLabels[r.activityType] || r.activityType,
+        "Call Type": r.callType || "",
+        "Call Outcome": r.callOutcome === "done" ? "Done" : r.callOutcome === "not_connected" ? "Not Connected" : "",
+        "Contact Person": r.contactPersonName || "",
+        "Contact Phone": r.contactPhone || "",
+        "Contact Email": r.contactEmail || "",
+        "Products Discussed": Array.isArray(r.productsDiscussed) ? r.productsDiscussed.join(", ") : "",
+        "Interest Level": r.interestLevel || "",
+        "Buyer Response": r.buyerResponse || "",
+        "Buyer Requirement": r.buyerRequirement || "",
+        "Discussion Summary": r.discussionSummary || "",
+      });
+
+      // All Staff sheet
+      const allSheet = xlsx.utils.json_to_sheet(rows.map(toRow));
+      xlsx.utils.book_append_sheet(wb, allSheet, "All Staff");
+
+      // Per-staff sheets
+      const byStaff = new Map<string, typeof rows>();
+      for (const row of rows) {
+        const name = (row.userName || "Unknown").slice(0, 28);
+        if (!byStaff.has(name)) byStaff.set(name, []);
+        byStaff.get(name)!.push(row);
+      }
+      for (const [name, staffRows] of byStaff) {
+        const sheet = xlsx.utils.json_to_sheet(staffRows.map(toRow));
+        xlsx.utils.book_append_sheet(wb, sheet, name);
+      }
+
+      const buffer = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
+      const today = new Date().toISOString().slice(0, 10);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="sales_activity_log_${today}.xlsx"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error exporting sales logs:", error);
+      res.status(500).json({ message: "Failed to export logs" });
     }
   });
 

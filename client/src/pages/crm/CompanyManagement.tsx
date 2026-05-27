@@ -2900,7 +2900,7 @@ export default function CompanyManagement() {
                 </TabsContent>
 
                 <TabsContent value="calls" className="mt-4">
-                  <CompanyCallsTab companyId={selectedCompany.id} />
+                  <CompanyCallsTab companyId={selectedCompany.id} companyName={selectedCompany.companyName || selectedCompany.name} />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-4">

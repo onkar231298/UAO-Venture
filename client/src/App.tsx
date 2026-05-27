@@ -71,6 +71,7 @@ import MyCompanies from "@/pages/crm/MyCompanies";
 import MySalesAndQuotations from "@/pages/crm/MySalesAndQuotations";
 import MyAttendancePage from "@/pages/sales/MyAttendancePage";
 import QualityRequestsPage from "@/pages/sales/QualityRequestsPage";
+import MyActivityLog from "@/pages/sales/MyActivityLog";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
@@ -177,6 +178,7 @@ function Router() {
               <Route path="/sales/my-sales" component={MySalesAndQuotations} />
               <Route path="/sales/my-attendance" component={MyAttendancePage} />
               <Route path="/sales/quality-requests" component={QualityRequestsPage} />
+              <Route path="/sales/my-activity-log" component={MyActivityLog} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
               <Route path="/crm/email-settings" component={EmailSettings} />
             </>

@@ -2374,7 +2374,7 @@ export default function MyCompanies() {
                     Schedule Next Follow-up
                   </Button>
                 </div>
-                <CompanyCallsTab companyId={selectedCompany.id} />
+                <CompanyCallsTab companyId={selectedCompany.id} companyName={selectedCompany.companyName || selectedCompany.name} />
               </TabsContent>
 
               <TabsContent value="notes" className="mt-4">

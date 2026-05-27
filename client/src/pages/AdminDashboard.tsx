@@ -20,6 +20,7 @@ import SystemSettings from "@/pages/admin/SystemSettings";
 import HRManagement from "@/pages/admin/HRManagement";
 import AdminQualityOverview from "@/pages/admin/AdminQualityOverview";
 import SecurityMonitor from "@/pages/admin/SecurityMonitor";
+import SalesActivityLogs from "@/pages/admin/SalesActivityLogs";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   Users,
@@ -52,7 +53,8 @@ import {
   AlertCircle,
   CheckSquare,
   MessageSquare,
-  ShieldAlert
+  ShieldAlert,
+  ClipboardList
 } from "lucide-react";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
@@ -301,6 +303,7 @@ export default function AdminDashboard() {
                 {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
                 {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
                 {navButton('quality-management', 'Quality Management', ClipboardCheck, activeSection === 'quality-management', () => setActiveSection('quality-management'))}
+                {navButton('sales-activity-logs', 'Sales Activity Logs', ClipboardList, activeSection === 'sales-activity-logs', () => setActiveSection('sales-activity-logs'))}
                 <button
                   onClick={() => handleNavClick('security-monitor', () => setActiveSection('security-monitor'))}
                   className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
@@ -747,6 +750,10 @@ export default function AdminDashboard() {
             <AdminQualityOverview />
           )}
 
+          {activeSection === 'sales-activity-logs' && (
+            <SalesActivityLogs />
+          )}
+
           {activeSection === 'security-monitor' && (
             <div className="space-y-4">
               <div>
@@ -759,7 +766,7 @@ export default function AdminDashboard() {
             </div>
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

@@ -3214,3 +3214,42 @@ export const insertFieldQualityTestResultSchema = createInsertSchema(fieldQualit
 });
 export type FieldQualityTestResult = typeof fieldQualityTestResults.$inferSelect;
 export type InsertFieldQualityTestResult = z.infer<typeof insertFieldQualityTestResultSchema>;
+
+// ==================== SALES CALL / EMAIL LOG ====================
+export const salesCallLogs = pgTable("sales_call_logs", {
+  id: serial("id").primaryKey(),
+  logId: varchar("log_id", { length: 50 }).notNull().unique(), // e.g. LD-20260527132722-keith
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  activityType: varchar("activity_type", { length: 30 }).notNull(), // cold_call | warm_call | cold_email | warm_email | enquiry_email | reply_email
+  callType: varchar("call_type", { length: 30 }), // cold_call | follow_up | introduction | pitch | inquiry (calls only)
+  callOutcome: varchar("call_outcome", { length: 20 }), // done | not_connected (calls only)
+  contactPersonName: varchar("contact_person_name", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  productsDiscussed: text("products_discussed").array(),
+  discussionSummary: text("discussion_summary"),
+  buyerRequirement: varchar("buyer_requirement", { length: 500 }),
+  interestLevel: varchar("interest_level", { length: 20 }), // hot | warm | cold
+  buyerResponse: varchar("buyer_response", { length: 500 }),
+  logDate: date("log_date").notNull(),
+  logTime: varchar("log_time", { length: 10 }).notNull(), // HH:MM
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_scl_user").on(table.userId),
+  index("idx_scl_company").on(table.companyId),
+  index("idx_scl_date").on(table.logDate),
+  index("idx_scl_type").on(table.activityType),
+]);
+
+export const salesCallLogsRelations = relations(salesCallLogs, ({ one }) => ({
+  user: one(users, { fields: [salesCallLogs.userId], references: [users.id] }),
+  company: one(companies, { fields: [salesCallLogs.companyId], references: [companies.id] }),
+}));
+
+export const insertSalesCallLogSchema = createInsertSchema(salesCallLogs).omit({
+  id: true,
+  createdAt: true,
+});
+export type SalesCallLog = typeof salesCallLogs.$inferSelect;
+export type InsertSalesCallLog = z.infer<typeof insertSalesCallLogSchema>;
