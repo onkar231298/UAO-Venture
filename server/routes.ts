@@ -14567,36 +14567,37 @@ We look forward to hearing from you.`;
       if (staffId) conditions.push(eq(salesCallLogs.userId, staffId));
       if (type) conditions.push(eq(salesCallLogs.activityType, type));
 
-      const rows = await db
-        .select({
-          id: salesCallLogs.id,
-          logId: salesCallLogs.logId,
-          userId: salesCallLogs.userId,
-          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
-          companyId: salesCallLogs.companyId,
-          companyName: companies.name,
-          activityType: salesCallLogs.activityType,
-          callType: salesCallLogs.callType,
-          callOutcome: salesCallLogs.callOutcome,
-          contactPersonName: salesCallLogs.contactPersonName,
-          contactPhone: salesCallLogs.contactPhone,
-          contactEmail: salesCallLogs.contactEmail,
-          productsDiscussed: salesCallLogs.productsDiscussed,
-          discussionSummary: salesCallLogs.discussionSummary,
-          buyerRequirement: salesCallLogs.buyerRequirement,
-          interestLevel: salesCallLogs.interestLevel,
-          buyerResponse: salesCallLogs.buyerResponse,
-          logDate: salesCallLogs.logDate,
-          logTime: salesCallLogs.logTime,
-          createdAt: salesCallLogs.createdAt,
-        })
-        .from(salesCallLogs)
-        .leftJoin(users, eq(salesCallLogs.userId, users.id))
-        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
-        .where(conditions.length ? and(...conditions) : undefined)
-        .orderBy(desc(salesCallLogs.logDate), desc(salesCallLogs.createdAt));
+      const whereClause = conditions.length ? sql`WHERE ${and(...conditions)}` : sql``;
+      const rows = await db.execute(sql`
+        SELECT
+          scl.id,
+          scl.log_id AS "logId",
+          scl.user_id AS "userId",
+          COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email, 'Unknown') AS "userName",
+          scl.company_id AS "companyId",
+          c.name AS "companyName",
+          scl.activity_type AS "activityType",
+          scl.call_type AS "callType",
+          scl.call_outcome AS "callOutcome",
+          scl.contact_person_name AS "contactPersonName",
+          scl.contact_phone AS "contactPhone",
+          scl.contact_email AS "contactEmail",
+          scl.products_discussed AS "productsDiscussed",
+          scl.discussion_summary AS "discussionSummary",
+          scl.buyer_requirement AS "buyerRequirement",
+          scl.interest_level AS "interestLevel",
+          scl.buyer_response AS "buyerResponse",
+          scl.log_date AS "logDate",
+          scl.log_time AS "logTime",
+          scl.created_at AS "createdAt"
+        FROM sales_call_logs scl
+        LEFT JOIN users u ON scl.user_id = u.id
+        LEFT JOIN companies c ON scl.company_id = c.id
+        ${whereClause}
+        ORDER BY scl.log_date DESC, scl.created_at DESC
+      `);
 
-      res.json(rows);
+      res.json(rows.rows);
     } catch (error) {
       console.error("Error fetching sales logs:", error);
       res.status(500).json({ message: "Failed to fetch logs" });
@@ -14608,42 +14609,43 @@ We look forward to hearing from you.`;
     try {
       const userId = req.user.claims.sub;
       const { dateFrom, dateTo, type, companyId } = req.query as Record<string, string>;
-      const conditions: any[] = [eq(salesCallLogs.userId, userId)];
-      if (dateFrom) conditions.push(gte(salesCallLogs.logDate, dateFrom));
-      if (dateTo) conditions.push(lte(salesCallLogs.logDate, dateTo));
-      if (type) conditions.push(eq(salesCallLogs.activityType, type));
-      if (companyId) conditions.push(eq(salesCallLogs.companyId, parseInt(companyId)));
 
-      const rows = await db
-        .select({
-          id: salesCallLogs.id,
-          logId: salesCallLogs.logId,
-          userId: salesCallLogs.userId,
-          userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email}, 'Unknown')`,
-          companyId: salesCallLogs.companyId,
-          companyName: companies.name,
-          activityType: salesCallLogs.activityType,
-          callType: salesCallLogs.callType,
-          callOutcome: salesCallLogs.callOutcome,
-          contactPersonName: salesCallLogs.contactPersonName,
-          contactPhone: salesCallLogs.contactPhone,
-          contactEmail: salesCallLogs.contactEmail,
-          productsDiscussed: salesCallLogs.productsDiscussed,
-          discussionSummary: salesCallLogs.discussionSummary,
-          buyerRequirement: salesCallLogs.buyerRequirement,
-          interestLevel: salesCallLogs.interestLevel,
-          buyerResponse: salesCallLogs.buyerResponse,
-          logDate: salesCallLogs.logDate,
-          logTime: salesCallLogs.logTime,
-          createdAt: salesCallLogs.createdAt,
-        })
-        .from(salesCallLogs)
-        .leftJoin(users, eq(salesCallLogs.userId, users.id))
-        .leftJoin(companies, eq(salesCallLogs.companyId, companies.id))
-        .where(and(...conditions))
-        .orderBy(desc(salesCallLogs.logDate), desc(salesCallLogs.createdAt));
+      const myConditions: string[] = [`scl.user_id = '${userId.replace(/'/g, "''")}'`];
+      if (dateFrom) myConditions.push(`scl.log_date >= '${dateFrom}'`);
+      if (dateTo) myConditions.push(`scl.log_date <= '${dateTo}'`);
+      if (type) myConditions.push(`scl.activity_type = '${type.replace(/'/g, "''")}'`);
+      if (companyId) myConditions.push(`scl.company_id = ${parseInt(companyId)}`);
 
-      res.json(rows);
+      const rows = await db.execute(sql`
+        SELECT
+          scl.id,
+          scl.log_id AS "logId",
+          scl.user_id AS "userId",
+          COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email, 'Unknown') AS "userName",
+          scl.company_id AS "companyId",
+          c.name AS "companyName",
+          scl.activity_type AS "activityType",
+          scl.call_type AS "callType",
+          scl.call_outcome AS "callOutcome",
+          scl.contact_person_name AS "contactPersonName",
+          scl.contact_phone AS "contactPhone",
+          scl.contact_email AS "contactEmail",
+          scl.products_discussed AS "productsDiscussed",
+          scl.discussion_summary AS "discussionSummary",
+          scl.buyer_requirement AS "buyerRequirement",
+          scl.interest_level AS "interestLevel",
+          scl.buyer_response AS "buyerResponse",
+          scl.log_date AS "logDate",
+          scl.log_time AS "logTime",
+          scl.created_at AS "createdAt"
+        FROM sales_call_logs scl
+        LEFT JOIN users u ON scl.user_id = u.id
+        LEFT JOIN companies c ON scl.company_id = c.id
+        WHERE ${sql.raw(myConditions.join(" AND "))}
+        ORDER BY scl.log_date DESC, scl.created_at DESC
+      `);
+
+      res.json(rows.rows);
     } catch (error) {
       console.error("Error fetching my sales logs:", error);
       res.status(500).json({ message: "Failed to fetch logs" });
@@ -14661,16 +14663,16 @@ We look forward to hearing from you.`;
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const rows = await db
-        .selectDistinct({
-          id: users.id,
-          name: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || COALESCE(${users.lastName},'')), ''), ${users.email})`,
-        })
-        .from(salesCallLogs)
-        .innerJoin(users, eq(salesCallLogs.userId, users.id))
-        .orderBy(users.firstName);
+      const rows = await db.execute(sql`
+        SELECT DISTINCT ON (u.id)
+          u.id,
+          COALESCE(NULLIF(TRIM(u.first_name || ' ' || COALESCE(u.last_name,'')), ''), u.email) AS name
+        FROM sales_call_logs scl
+        INNER JOIN users u ON scl.user_id = u.id
+        ORDER BY u.id
+      `);
 
-      res.json(rows);
+      res.json(rows.rows);
     } catch (error) {
       console.error("Error fetching staff list:", error);
       res.status(500).json({ message: "Failed to fetch staff list" });
