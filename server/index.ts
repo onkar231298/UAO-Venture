@@ -58,7 +58,40 @@ app.use((req, res, next) => {
 (async () => {
   // Validate environment before starting
   validateEnvironment();
-  
+
+  // Bootstrap migration: ensure sales_call_logs table exists (safe IF NOT EXISTS)
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS sales_call_logs (
+        id SERIAL PRIMARY KEY,
+        log_id VARCHAR(50) NOT NULL UNIQUE,
+        user_id VARCHAR NOT NULL REFERENCES users(id),
+        company_id INTEGER NOT NULL REFERENCES companies(id),
+        activity_type VARCHAR(30) NOT NULL,
+        call_type VARCHAR(30),
+        call_outcome VARCHAR(20),
+        contact_person_name VARCHAR(255),
+        contact_phone VARCHAR(50),
+        contact_email VARCHAR(255),
+        products_discussed TEXT[],
+        discussion_summary TEXT,
+        buyer_requirement VARCHAR(500),
+        interest_level VARCHAR(20),
+        buyer_response VARCHAR(500),
+        log_date DATE NOT NULL,
+        log_time VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_scl_user ON sales_call_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_scl_company ON sales_call_logs(company_id);
+      CREATE INDEX IF NOT EXISTS idx_scl_date ON sales_call_logs(log_date);
+      CREATE INDEX IF NOT EXISTS idx_scl_type ON sales_call_logs(activity_type);
+    `);
+    console.log("[Migration] sales_call_logs table ready");
+  } catch (err) {
+    console.error("[Migration] sales_call_logs bootstrap error:", err);
+  }
+
   // 301 Redirect www to non-www for all requests (MUST be before registerRoutes)
   app.use((req, res, next) => {
     const host = req.get('host') || '';
