@@ -117,15 +117,25 @@ export function PunchInOutButton() {
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current) return;
-    
+
     setIsCapturing(true);
+    // Downscale to a fixed max dimension so the uploaded photo stays small
+    // regardless of the device camera resolution. Large payloads can be
+    // rejected at the deployment edge (403) before reaching the server.
+    const MAX_DIMENSION = 640;
+    const srcWidth = videoRef.current.videoWidth || 640;
+    const srcHeight = videoRef.current.videoHeight || 480;
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(srcWidth, srcHeight));
+    const targetWidth = Math.round(srcWidth * scale);
+    const targetHeight = Math.round(srcHeight * scale);
+
     const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
     const ctx = canvas.getContext("2d");
     if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      ctx.drawImage(videoRef.current, 0, 0, targetWidth, targetHeight);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
       setPhotoData(dataUrl);
     }
     stopCamera();
