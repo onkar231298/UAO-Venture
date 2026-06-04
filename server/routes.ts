@@ -14667,7 +14667,7 @@ We look forward to hearing from you.`;
         FROM sales_call_logs scl
         LEFT JOIN users u ON scl.user_id = u.id
         LEFT JOIN companies c ON scl.company_id = c.id
-        WHERE ${sql.raw(myConditions.join(" AND "))}
+        WHERE ${sql.join(myConditions, sql` AND `)}
         ORDER BY scl.log_date DESC, scl.created_at DESC
       `);
 
