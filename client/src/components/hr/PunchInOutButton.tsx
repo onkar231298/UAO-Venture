@@ -59,11 +59,42 @@ export function PunchInOutButton() {
   const canPunchIn = !todayAttendance?.punchInTime;
   const isDayOff = dayOffInfo?.isDayOff || false;
 
+  // Upload the captured photo directly to object storage via a presigned URL,
+  // so the large image never travels in the punch-in/out request body (which the
+  // deployment edge can reject with a 403). Returns the stored object path.
+  const uploadPhoto = async (
+    type: "in" | "out",
+    photoBase64: string
+  ): Promise<string> => {
+    const urlRes = await apiRequest("/api/hr/attendance/photo-upload-url", {
+      method: "POST",
+      body: JSON.stringify({ type }),
+    });
+    const { uploadURL, photoPath } = await urlRes.json();
+
+    const blob = await (await fetch(photoBase64)).blob();
+    const putRes = await fetch(uploadURL, {
+      method: "PUT",
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob,
+    });
+    if (!putRes.ok) {
+      throw new Error("Failed to upload attendance photo. Please try again.");
+    }
+    return photoPath as string;
+  };
+
   const punchInMutation = useMutation({
     mutationFn: async (data: { photoBase64: string; latitude: number; longitude: number; address: string }) => {
+      const photoPath = await uploadPhoto("in", data.photoBase64);
       return apiRequest("/api/hr/attendance/punch-in", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          photoPath,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address,
+        }),
       });
     },
     onSuccess: () => {
@@ -78,9 +109,15 @@ export function PunchInOutButton() {
 
   const punchOutMutation = useMutation({
     mutationFn: async (data: { photoBase64: string; latitude: number; longitude: number; address: string }) => {
+      const photoPath = await uploadPhoto("out", data.photoBase64);
       return apiRequest("/api/hr/attendance/punch-out", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          photoPath,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address,
+        }),
       });
     },
     onSuccess: () => {

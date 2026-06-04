@@ -86,6 +86,38 @@ function getPrivateObjectDir(): string {
   return process.env.PRIVATE_OBJECT_DIR || '';
 }
 
+const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+
+// Sign a direct-to-storage URL so the browser can upload the attendance photo
+// straight to object storage. This keeps the large image out of the app's
+// request body (which can be rejected at the deployment edge with a 403).
+async function signObjectURL(opts: {
+  bucketName: string;
+  objectName: string;
+  method: "GET" | "PUT" | "DELETE" | "HEAD";
+  ttlSec: number;
+}): Promise<string> {
+  const request = {
+    bucket_name: opts.bucketName,
+    object_name: opts.objectName,
+    method: opts.method,
+    expires_at: new Date(Date.now() + opts.ttlSec * 1000).toISOString(),
+  };
+  const response = await fetch(
+    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to sign object URL, errorcode: ${response.status}`);
+  }
+  const { signed_url: signedURL } = await response.json();
+  return signedURL;
+}
+
 // Get today's date in YYYY-MM-DD format
 function getTodayDate(): string {
   const now = new Date();
@@ -121,6 +153,66 @@ router.get("/api/hr/attendance/today", isAuthenticated, async (req: Request, res
   }
 });
 
+// Get a presigned URL so the browser can upload the attendance photo directly
+// to object storage, instead of sending a large base64 image in the request
+// body (which the deployment edge can reject with a 403).
+router.post("/api/hr/attendance/photo-upload-url", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const type = req.body?.type === "out" ? "out" : "in";
+    const privateDir = getPrivateObjectDir();
+    if (!privateDir) {
+      return res.status(500).json({ error: "Object storage not configured" });
+    }
+
+    const today = getTodayDate();
+    const timestamp = Date.now();
+    const photoPath = `${privateDir}/attendance/${userId}/punch_${type}_${today}_${timestamp}.jpg`;
+    const { bucketName, objectName } = parseObjectPath(photoPath);
+    const uploadURL = await signObjectURL({ bucketName, objectName, method: "PUT", ttlSec: 900 });
+
+    res.json({ uploadURL, photoPath });
+  } catch (error) {
+    console.error("Error generating attendance photo upload URL:", error);
+    res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+// Validate that a provided photo path belongs to the requesting user, lives
+// under the expected attendance directory, matches the strict naming pattern,
+// and that the object was actually uploaded — before persisting it. This stops
+// a client from punching with a fabricated/never-uploaded path.
+async function resolveAttendancePhotoPath(
+  providedPath: string | undefined | null,
+  userId: string,
+  type: "in" | "out"
+): Promise<string | null> {
+  if (!providedPath || typeof providedPath !== "string") return null;
+  const privateDir = getPrivateObjectDir();
+  const expectedPrefix = `${privateDir}/attendance/${userId}/`;
+  if (!providedPath.startsWith(expectedPrefix)) return null;
+
+  const fileName = providedPath.slice(expectedPrefix.length);
+  // Strict format: punch_{in|out}_{YYYY-MM-DD}_{timestamp}.jpg
+  const pattern = new RegExp(`^punch_${type}_\\d{4}-\\d{2}-\\d{2}_\\d+\\.jpg$`);
+  if (!pattern.test(fileName)) return null;
+
+  // Confirm the object was actually uploaded to storage.
+  try {
+    const { bucketName, objectName } = parseObjectPath(providedPath);
+    const [exists] = await objectStorageClient.bucket(bucketName).file(objectName).exists();
+    if (!exists) return null;
+  } catch {
+    return null;
+  }
+
+  return providedPath;
+}
+
 // Punch In
 router.post("/api/hr/attendance/punch-in", isAuthenticated, async (req: Request, res: Response) => {
   try {
@@ -129,9 +221,9 @@ router.post("/api/hr/attendance/punch-in", isAuthenticated, async (req: Request,
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { photoBase64, latitude, longitude, address } = req.body;
+    const { photoBase64, photoPath: providedPhotoPath, latitude, longitude, address } = req.body;
 
-    if (!photoBase64) {
+    if (!photoBase64 && !providedPhotoPath) {
       return res.status(400).json({ error: "Photo is required for punch in" });
     }
 
@@ -149,16 +241,22 @@ router.post("/api/hr/attendance/punch-in", isAuthenticated, async (req: Request,
       return res.status(400).json({ error: "Already punched in today" });
     }
 
-    // Upload photo to object storage
-    const timestamp = Date.now();
+    // Prefer a photo already uploaded directly to object storage; fall back to
+    // base64 in the body for backward compatibility with older clients.
     const privateDir = getPrivateObjectDir();
-    const photoPath = `${privateDir}/attendance/${userId}/punch_in_${today}_${timestamp}.jpg`;
-    const photoBuffer = Buffer.from(photoBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-    
-    const { bucketName, objectName } = parseObjectPath(photoPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
-    await file.save(photoBuffer, { contentType: 'image/jpeg' });
+    let photoPath = await resolveAttendancePhotoPath(providedPhotoPath, userId, "in");
+    if (!photoPath) {
+      if (!photoBase64) {
+        return res.status(400).json({ error: "Photo is required for punch in" });
+      }
+      const timestamp = Date.now();
+      photoPath = `${privateDir}/attendance/${userId}/punch_in_${today}_${timestamp}.jpg`;
+      const photoBuffer = Buffer.from(photoBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      const { bucketName, objectName } = parseObjectPath(photoPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(photoBuffer, { contentType: 'image/jpeg' });
+    }
 
     const punchInTime = new Date();
 
@@ -210,9 +308,9 @@ router.post("/api/hr/attendance/punch-out", isAuthenticated, async (req: Request
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { photoBase64, latitude, longitude, address } = req.body;
+    const { photoBase64, photoPath: providedPhotoPath, latitude, longitude, address } = req.body;
 
-    if (!photoBase64) {
+    if (!photoBase64 && !providedPhotoPath) {
       return res.status(400).json({ error: "Photo is required for punch out" });
     }
 
@@ -234,16 +332,22 @@ router.post("/api/hr/attendance/punch-out", isAuthenticated, async (req: Request
       return res.status(400).json({ error: "Already punched out today" });
     }
 
-    // Upload photo to object storage
-    const timestamp = Date.now();
+    // Prefer a photo already uploaded directly to object storage; fall back to
+    // base64 in the body for backward compatibility with older clients.
     const privateDir = getPrivateObjectDir();
-    const photoPath = `${privateDir}/attendance/${userId}/punch_out_${today}_${timestamp}.jpg`;
-    const photoBuffer = Buffer.from(photoBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-    
-    const { bucketName, objectName } = parseObjectPath(photoPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
-    await file.save(photoBuffer, { contentType: 'image/jpeg' });
+    let photoPath = await resolveAttendancePhotoPath(providedPhotoPath, userId, "out");
+    if (!photoPath) {
+      if (!photoBase64) {
+        return res.status(400).json({ error: "Photo is required for punch out" });
+      }
+      const timestamp = Date.now();
+      photoPath = `${privateDir}/attendance/${userId}/punch_out_${today}_${timestamp}.jpg`;
+      const photoBuffer = Buffer.from(photoBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      const { bucketName, objectName } = parseObjectPath(photoPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(photoBuffer, { contentType: 'image/jpeg' });
+    }
 
     const punchOutTime = new Date();
     const workingHours = calculateWorkingHours(new Date(existing.punchInTime), punchOutTime);

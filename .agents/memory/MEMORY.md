@@ -1,0 +1,1 @@
+- [Attendance photo upload (edge 403)](attendance-photo-upload.md) — punch-in/out must upload photo via presigned URL, not base64-in-JSON, or the deployment edge/WAF returns 403.
