@@ -30,7 +30,6 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
       "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
       "sku": product.productId,
       "mpn": product.productId,
-      "gtin": product.productId,
       "brand": {
         "@type": "Brand",
         "name": "Bright Fame Organic",
