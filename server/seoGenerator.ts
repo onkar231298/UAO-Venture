@@ -61,31 +61,14 @@ export function generateProductSEO(product: ProductForSEO): {
   const categoryBenefit = getCategoryBenefit(product.category);
 
   // ─── SEO TITLE ────────────────────────────────────────────────────────────
-  // Target: max 78 chars. No pipe separators — natural sentence flow.
-  // Organic:       "[Name] India's Top Manufacturer EU Organic Certified"
-  // Conventional:  "[Name] India's Top Manufacturer EU Food Grade Bulk"
-  const ORGANIC_SUFFIX = " India's Top Manufacturer EU Organic Certified";
-  const CONV_SUFFIX = " India's Top Manufacturer EU Food Grade Bulk";
-
-  let seoTitle: string;
-
-  if (organic) {
-    const full = product.name + ORGANIC_SUFFIX;
-    if (full.length <= 78) {
-      seoTitle = full;
-    } else {
-      const maxName = 78 - ORGANIC_SUFFIX.length;
-      seoTitle = truncate(product.name, maxName) + ORGANIC_SUFFIX;
-    }
-  } else {
-    const full = product.name + CONV_SUFFIX;
-    if (full.length <= 78) {
-      seoTitle = full;
-    } else {
-      const maxName = 78 - CONV_SUFFIX.length;
-      seoTitle = truncate(product.name, maxName) + CONV_SUFFIX;
-    }
-  }
+  // Unified format for all products:
+  //   "TOP [Name] manufacturer and exporter from India"
+  const SEO_PREFIX = "TOP ";
+  const SEO_SUFFIX = " manufacturer and exporter from India";
+  const maxName = 255 - SEO_PREFIX.length - SEO_SUFFIX.length;
+  const name =
+    product.name.length <= maxName ? product.name : truncate(product.name, maxName);
+  const seoTitle = SEO_PREFIX + name + SEO_SUFFIX;
 
   // ─── SEO DESCRIPTION ──────────────────────────────────────────────────────
   // Target: 150–160 chars. Unique per category + organic/conventional split.
