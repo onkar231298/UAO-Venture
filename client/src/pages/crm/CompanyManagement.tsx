@@ -777,7 +777,6 @@ export default function CompanyManagement() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
-  const [isSyncingAssignments, setIsSyncingAssignments] = useState(false);
   const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -1447,41 +1446,6 @@ export default function CompanyManagement() {
                 <Download className="h-4 w-4 mr-2" />
               )}
               {isDownloading ? "Exporting..." : "Download All"}
-            </Button>
-          )}
-
-          {isSuperAdmin && (
-            <Button
-              variant="outline"
-              className="border-amber-400 text-amber-700 hover:bg-amber-50"
-              disabled={isSyncingAssignments}
-              onClick={async () => {
-                if (!window.confirm(
-                  "Apply workspace assignments to THIS environment?\n\n" +
-                  "This will UNASSIGN all companies, then assign the 99 companies to Gary, Sharon, Keith and Rose.\n\n" +
-                  "On the LIVE site this replaces ALL existing assignments. Continue?"
-                )) return;
-                setIsSyncingAssignments(true);
-                try {
-                  const res = await apiRequest('/api/admin/apply-live-assignment-sync', { method: 'POST' });
-                  const data = await res.json();
-                  const summary = (data.reps || []).map((r: any) => `${r.repName}: ${r.assigned}`).join(', ');
-                  toast({ title: "Assignments applied", description: `Unassigned ${data.unassigned}. ${summary}` });
-                  queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
-                } catch (e: any) {
-                  toast({ title: "Failed to apply assignments", description: e?.message || 'Error', variant: 'destructive' });
-                } finally {
-                  setIsSyncingAssignments(false);
-                }
-              }}
-              data-testid="button-apply-assignment-sync"
-            >
-              {isSyncingAssignments ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <UserPlus className="h-4 w-4 mr-2" />
-              )}
-              {isSyncingAssignments ? "Applying..." : "Apply Assignments"}
             </Button>
           )}
 

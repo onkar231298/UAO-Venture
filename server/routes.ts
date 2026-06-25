@@ -7147,55 +7147,6 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // ONE-TIME: mirror the workspace's company-assignment state into the current
-  // environment's data (super_admin only). Unassigns ALL companies, then assigns
-  // the agreed 99 companies (matched by name) to the four sales reps.
-  app.post('/api/admin/apply-live-assignment-sync', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user || user.role !== 'super_admin') {
-        return res.status(403).json({ message: "Only super admins can run this" });
-      }
-
-      const ASSIGNMENT_PLAN = [
-        {
-          repId: 'staff_1771228519608_tqiydkijq2',
-          repName: 'Gary Gabriel',
-          names: ["ALL SPICE Spices and Technology","Albanian Herbs Sh.a.","Aplantis Natural Ingredients","Aromi","BLIFE SRL","Chili Product Ltd","European Spice Service NV","Feloomena","Freeworld Trading Ltd.","Giellepi Ingredients Powdered by Science","Giza Seeds & Herbs","Licofarma","Organic Herbs Company","Pharmanager Ingredients","ROSE OFFICE GmbH","Santosflora","Sous Chef","Spice Winners Sp. z o.o.","SpiceMarket Kft","Treatt","Unique Moments Group Sp. z o.o. (Smaki z Daleka)","Wolf Spices Ltd","Bauer Srl (Bauer 1884)","Bağdat Baharat","Demar Srl","DRYFO - MENEXOPOULOS BROS. SA S.A.","Fairoils Group","Forest Super Foods","Le Comptoir & Co","Prodpol Sp. z o.o.","Agrícola Knelsen","Bull Organic / EspeciasEcológicas","Cape Herb & Spice","cobo Botanical Specialities","KANDY SPICES ApS","Mawa Nuts & Spices UK Ltd","Yes Spices Srl"],
-        },
-        {
-          repId: 'staff_1767070093347_ehet8zlki08',
-          repName: 'Sharon Palmer',
-          names: ["Abbott Blackstone International","Aduna Superfoods","Aura Herbals","Bio PAK Contract Manufacturing Ltd.","Busy Beans Foods Limited","Camstar Herbs Ltd","Camstar Ingredients Ltd","Dein-Naturshop","FALCON Ingredients","FLAVEX Naturextrakte GmbH","H.A.N.S. Spices GmbH","Health Link s.r.o.","JOSH Naturals","Joh. Gottfr. Schütte GmbH und Co KG","Karya Agro","Kräutertempel GmbH","MORINGA WORLD","Maya Gold Trading B.V.","Moringa Initiative","Nuts in Bulk","Prymat Group","RAPS GmbH & Co. KG","Rüther Gewürze GmbH","SAMSKARA TRIBE, SL","SC Aronia Charlottenburg SRL","STOP Spices","Schütte Herbal Solutions GmbH & Co. KG","Sierra Naturals","Smart Organic","Spice United GmbH","Tihl GmbH","Türer Tarım","ULRICK + SHORT","Van Rees B.V.","Willows Ingredients Ltd","Worlée NaturProdukte GmbH","interTee Handelsgesellschaft mbH","NaturMed Scientific","GB FOODS GMBH","Herbes del Moli, S.L."],
-        },
-        {
-          repId: 'staff_1770627063624_zjmwvra7hzk',
-          repName: 'Keith Palmer',
-          names: ["Diaspolis","Velibaba Spice","APOTEC BAY","GreenPharm s.r.o.","Suntree Foods","DBS Gida","Agri Food Ingredients","LEOSPICE LLC","EcoVeraa","Global Organic Food (Global kuruyemiş)"],
-        },
-        {
-          repId: 'staff_1770627227881_cmw30crhz3s',
-          repName: 'Rose Smith',
-          names: ["Rain Nutrience Ltd","Lord Spices Group, S.L","green origins","Teavision","BioGround","Biova Exotic Spices","Cha Dô Teehandels GmbH","Metro Doğal DBA Metro Baharat","Dani Organic Foods Ltd","Farmeks Tarim Urunleri Ltd.","FLAVORS AND COMMODITIES","Santa Maria dba Paulig Group"],
-        },
-      ];
-
-      const result = await storage.applyAssignmentMigrationByName(ASSIGNMENT_PLAN, userId);
-      res.json(result);
-    } catch (error: any) {
-      if (error?.preflight) {
-        // Nothing was changed — every name must match exactly one company.
-        return res.status(400).json({
-          message: "Preflight failed — no changes were made. Some company names did not match exactly one record.",
-          problems: error.preflight,
-        });
-      }
-      console.error('Error applying assignment sync:', error);
-      res.status(500).json({ message: "Failed to apply assignment sync" });
-    }
-  });
-
   // Bulk delete companies (admin only)
   app.post('/api/crm/companies/bulk-delete', isAuthenticated, async (req: any, res) => {
     try {

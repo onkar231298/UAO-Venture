@@ -573,7 +573,6 @@ export interface IStorage {
   getCompanyByGST(gstNumber: string): Promise<Company | undefined>;
   assignCompany(companyId: number, assignedTo: string, assignedBy: string): Promise<Company>;
   bulkAssignCompanies(companyIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number; errors: { companyId: number; error: string }[] }>;
-  applyAssignmentMigrationByName(plan: { repId: string; repName: string; names: string[] }[], actorId: string): Promise<{ unassigned: number; reps: { repName: string; assigned: number; notFound: string[] }[] }>;
   updateCompanyStage(companyId: number, stage: string, userId: string): Promise<Company>;
   
   // CRM - Company activity methods
@@ -6055,70 +6054,6 @@ export class DatabaseStorage implements IStorage {
       }
       return { success: 0, errors };
     }
-  }
-
-  async applyAssignmentMigrationByName(
-    plan: { repId: string; repName: string; names: string[] }[],
-    actorId: string,
-  ): Promise<{ unassigned: number; reps: { repName: string; assigned: number; notFound: string[] }[] }> {
-    const now = new Date();
-    return await db.transaction(async (tx) => {
-      // 1. Build a name -> ids lookup (case-insensitive, trimmed) BEFORE any writes
-      const all = await tx.select({ id: companies.id, name: companies.companyName }).from(companies);
-      const byName = new Map<string, number[]>();
-      for (const c of all) {
-        const key = (c.name || '').trim().toLowerCase();
-        const arr = byName.get(key);
-        if (arr) arr.push(c.id); else byName.set(key, [c.id]);
-      }
-
-      // 2. Preflight: every planned name must resolve to EXACTLY one company.
-      //    If any name has 0 or >1 matches, abort WITHOUT touching any data
-      //    (throwing rolls back this transaction before the destructive clear).
-      const resolved: { repId: string; repName: string; ids: number[] }[] = [];
-      const problems: { repName: string; name: string; matches: number }[] = [];
-      for (const { repId, repName, names } of plan) {
-        const ids: number[] = [];
-        for (const n of names) {
-          const matched = byName.get(n.trim().toLowerCase()) || [];
-          if (matched.length === 1) ids.push(matched[0]);
-          else problems.push({ repName, name: n, matches: matched.length });
-        }
-        resolved.push({ repId, repName, ids });
-      }
-      if (problems.length > 0) {
-        const err: any = new Error('Preflight failed: some company names did not match exactly one record');
-        err.preflight = problems;
-        throw err;
-      }
-
-      // 3. Unassign ALL companies
-      const cleared = await tx.update(companies)
-        .set({ assignedTo: null, assignedBy: null, assignedAt: null, updatedAt: now })
-        .returning({ id: companies.id });
-
-      // 4. Apply each rep's assignments
-      const reps: { repName: string; assigned: number; notFound: string[] }[] = [];
-      for (const { repId, repName, ids } of resolved) {
-        if (ids.length > 0) {
-          await tx.update(companies)
-            .set({ assignedTo: repId, assignedBy: actorId, assignedAt: now, updatedAt: now })
-            .where(inArray(companies.id, ids));
-          await tx.insert(companyActivities).values(
-            ids.map((id) => ({
-              companyId: id,
-              activityType: 'assignment',
-              subject: 'Company Assigned',
-              description: `Company assigned to ${repName}`,
-              createdBy: actorId,
-            }))
-          );
-        }
-        reps.push({ repName, assigned: ids.length, notFound: [] });
-      }
-
-      return { unassigned: cleared.length, reps };
-    });
   }
 
   async updateCompanyStage(companyId: number, stage: string, userId: string): Promise<Company> {
