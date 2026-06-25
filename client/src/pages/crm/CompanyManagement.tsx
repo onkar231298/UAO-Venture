@@ -1151,6 +1151,8 @@ export default function CompanyManagement() {
     if (dateFrom) params.append("dateFrom", dateFrom.toISOString());
     if (dateTo) params.append("dateTo", dateTo.toISOString());
     params.append("isIrrelevant", showNotRelevant ? "true" : "false");
+    // Load the full filtered set so client-side pagination and "select all" cover every matching company
+    params.append("limit", "100000");
     return `/api/crm/companies?${params.toString()}`;
   };
 
@@ -1240,16 +1242,28 @@ export default function CompanyManagement() {
         method: "POST",
         body: JSON.stringify({ companyIds, assignedTo }),
       });
-      return response;
+      return response.json() as Promise<{ success: number; errors: { companyId: number; error: string }[] }>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
       setSelectedCompanies([]);
       setBulkAssignDialogOpen(false);
-      toast({
-        title: "Companies Assigned",
-        description: `${selectedCompanies.length} companies have been assigned successfully`,
-      });
+      const failed = result?.errors?.length || 0;
+      if (result?.success > 0) {
+        toast({
+          title: "Companies Assigned",
+          description: failed > 0
+            ? `${result.success} assigned, ${failed} could not be assigned.`
+            : `${result.success} ${result.success === 1 ? "company" : "companies"} assigned successfully.`,
+          variant: failed > 0 ? "destructive" : undefined,
+        });
+      } else {
+        toast({
+          title: "Bulk Assignment Failed",
+          description: "No companies were assigned. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -1270,7 +1284,8 @@ export default function CompanyManagement() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCompanies(paginatedCompanies.map(c => c.id));
+      // Select ALL companies matching the current filter, not just the current page
+      setSelectedCompanies(companies.map(c => c.id));
     } else {
       setSelectedCompanies([]);
     }
@@ -1852,7 +1867,7 @@ export default function CompanyManagement() {
                       <TableRow>
                         <TableHead className="w-[50px]">
                           <Checkbox 
-                            checked={selectedCompanies.length === paginatedCompanies.length && paginatedCompanies.length > 0}
+                            checked={companies.length > 0 && selectedCompanies.length === companies.length}
                             onCheckedChange={(checked) => handleSelectAll(!!checked)}
                             data-testid="checkbox-select-all"
                           />

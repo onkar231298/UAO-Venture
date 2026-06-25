@@ -5679,7 +5679,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters?.assignedTo) {
-      conditions.push(eq(companies.assignedTo, filters.assignedTo));
+      if (filters.assignedTo === 'unassigned') {
+        conditions.push(isNull(companies.assignedTo));
+      } else {
+        conditions.push(eq(companies.assignedTo, filters.assignedTo));
+      }
     }
 
     if (filters?.createdFrom) {
@@ -6015,18 +6019,41 @@ export class DatabaseStorage implements IStorage {
 
   async bulkAssignCompanies(companyIds: number[], assignedTo: string, assignedBy: string): Promise<{ success: number; errors: { companyId: number; error: string }[] }> {
     const errors: { companyId: number; error: string }[] = [];
-    let successCount = 0;
 
-    for (const companyId of companyIds) {
-      try {
-        await this.assignCompany(companyId, assignedTo, assignedBy);
-        successCount++;
-      } catch (error) {
-        errors.push({ companyId, error: error instanceof Error ? error.message : 'Unknown error' });
-      }
+    if (!companyIds || companyIds.length === 0) {
+      return { success: 0, errors };
     }
 
-    return { success: successCount, errors };
+    try {
+      const now = new Date();
+      const updated = await db.transaction(async (tx) => {
+        const rows = await tx.update(companies)
+          .set({ assignedTo, assignedBy, assignedAt: now, updatedAt: now })
+          .where(inArray(companies.id, companyIds))
+          .returning({ id: companies.id });
+
+        if (rows.length > 0) {
+          await tx.insert(companyActivities).values(
+            rows.map(({ id }) => ({
+              companyId: id,
+              activityType: 'assignment',
+              subject: 'Company Assigned',
+              description: 'Company assigned to sales representative',
+              createdBy: assignedBy,
+            }))
+          );
+        }
+
+        return rows;
+      });
+
+      return { success: updated.length, errors };
+    } catch (error) {
+      for (const companyId of companyIds) {
+        errors.push({ companyId, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+      return { success: 0, errors };
+    }
   }
 
   async updateCompanyStage(companyId: number, stage: string, userId: string): Promise<Company> {
