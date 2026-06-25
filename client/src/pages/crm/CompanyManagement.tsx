@@ -1283,11 +1283,12 @@ export default function CompanyManagement() {
   };
 
   const handleSelectAll = (checked: boolean) => {
+    // Only affect the companies visible on the current page, not every filtered company.
+    const pageIds = paginatedCompanies.map(c => c.id);
     if (checked) {
-      // Select ALL companies matching the current filter, not just the current page
-      setSelectedCompanies(companies.map(c => c.id));
+      setSelectedCompanies(prev => Array.from(new Set([...prev, ...pageIds])));
     } else {
-      setSelectedCompanies([]);
+      setSelectedCompanies(prev => prev.filter(id => !pageIds.includes(id)));
     }
   };
 
@@ -1867,7 +1868,7 @@ export default function CompanyManagement() {
                       <TableRow>
                         <TableHead className="w-[50px]">
                           <Checkbox 
-                            checked={companies.length > 0 && selectedCompanies.length === companies.length}
+                            checked={paginatedCompanies.length > 0 && paginatedCompanies.every(c => selectedCompanies.includes(c.id))}
                             onCheckedChange={(checked) => handleSelectAll(!!checked)}
                             data-testid="checkbox-select-all"
                           />
