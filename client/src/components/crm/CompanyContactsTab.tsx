@@ -43,6 +43,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Users, Phone, Mail, RefreshCw, UserPlus, MoreVertical, Edit2, Pin, Trash2 } from "lucide-react";
+import { WhatsAppButton } from "@/components/crm/Dialer";
 
 interface CompanyContact {
   id: number;
@@ -315,12 +316,22 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
                           <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
                             {contact.phone}
                           </a>
+                          <WhatsAppButton
+                            phoneNumber={contact.phone}
+                            contactName={contact.contactName}
+                            companyName={companyDetails?.companyName}
+                          />
                         </div>
                       )}
                       {contact.whatsapp && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3 text-green-600" />
-                          <span className="text-green-600">WhatsApp: {contact.whatsapp}</span>
+                          <span className="text-green-600">WhatsApp:</span>
+                          <WhatsAppButton
+                            phoneNumber={contact.whatsapp}
+                            contactName={contact.contactName}
+                            companyName={companyDetails?.companyName}
+                            showNumber
+                          />
                         </div>
                       )}
                     </div>

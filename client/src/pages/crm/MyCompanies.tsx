@@ -39,7 +39,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
-import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
+import { ClickToCall, SendSmsButton, WhatsAppButton, Dialer } from "@/components/crm/Dialer";
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
@@ -2148,6 +2148,11 @@ export default function MyCompanies() {
                                 phoneNumber={primaryContact?.phone || selectedCompany.primaryPhone || ''}
                                 contactName={primaryContact?.contactName || selectedCompany.companyName}
                                 companyId={selectedCompany.id}
+                              />
+                              <WhatsAppButton
+                                phoneNumber={primaryContact?.phone || selectedCompany.primaryPhone || ''}
+                                contactName={primaryContact?.contactName}
+                                companyName={selectedCompany.companyName}
                               />
                             </>
                           ) : (
