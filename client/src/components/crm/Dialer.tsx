@@ -38,6 +38,7 @@ import {
   PauseCircle,
   User,
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 
 interface DialerProps {
   leadId?: number;
@@ -1352,6 +1353,52 @@ export function SendSmsButton({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function WhatsAppButton({
+  phoneNumber,
+  contactName,
+  companyName,
+  showNumber = false,
+}: {
+  phoneNumber: string;
+  contactName?: string;
+  companyName?: string;
+  showNumber?: boolean;
+}) {
+  const { toast } = useToast();
+
+  const handleClick = () => {
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (!digits) {
+      toast({
+        title: "Invalid Number",
+        description: "This phone number can't be opened in WhatsApp.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const who = [companyName, contactName].filter(Boolean).join(" / ");
+    const message = who
+      ? `Hi, is this ${who}? I'm just trying to connect with someone from your team.`
+      : `Hi, I'm just trying to connect with someone from your team.`;
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+      onClick={handleClick}
+      title={`Message ${phoneNumber} on WhatsApp`}
+      data-testid="whatsapp-btn"
+    >
+      <SiWhatsapp className="h-4 w-4" />
+      {showNumber && phoneNumber}
+    </Button>
   );
 }
 

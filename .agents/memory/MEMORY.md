@@ -1,1 +1,1 @@
-- [Dev vs prod DB data sync](dev-prod-db-data-sync.md) — dev & prod use SEPARATE databases; publish syncs schema only, NOT data; agent can't write prod, so push data changes via a super_admin-guarded one-time app endpoint clicked on the LIVE site.
+- [Dev vs prod DB data sync](dev-prod-db-data-sync.md) — dev & prod are SEPARATE DBs; publish syncs schema only, not data; push prod data via a temporary super_admin app endpoint on the LIVE site.

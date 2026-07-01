@@ -58,7 +58,7 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CompanyNotes } from "@/components/crm/CompanyNotes";
-import { ClickToCall, SendSmsButton, Dialer } from "@/components/crm/Dialer";
+import { ClickToCall, SendSmsButton, WhatsAppButton, Dialer } from "@/components/crm/Dialer";
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
@@ -420,12 +420,22 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
                         <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
                           {contact.phone}
                         </a>
+                        <WhatsAppButton
+                          phoneNumber={contact.phone}
+                          contactName={contact.contactName}
+                          companyName={companyDetails?.companyName}
+                        />
                       </div>
                     )}
                     {contact.whatsapp && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-3 w-3 text-green-600" />
-                        <span className="text-green-600">WhatsApp: {contact.whatsapp}</span>
+                        <span className="text-green-600">WhatsApp:</span>
+                        <WhatsAppButton
+                          phoneNumber={contact.whatsapp}
+                          contactName={contact.contactName}
+                          companyName={companyDetails?.companyName}
+                          showNumber
+                        />
                       </div>
                     )}
                   </div>
@@ -2837,6 +2847,10 @@ export default function CompanyManagement() {
                                   phoneNumber={selectedCompany.primaryPhone}
                                   contactName={selectedCompany.companyName}
                                   companyId={selectedCompany.id}
+                                />
+                                <WhatsAppButton
+                                  phoneNumber={selectedCompany.primaryPhone}
+                                  companyName={selectedCompany.companyName}
                                 />
                               </>
                             ) : (
