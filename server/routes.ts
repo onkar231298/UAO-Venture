@@ -71,6 +71,8 @@ import {
   fieldQualityTestResults,
   salesCallLogs,
   users,
+  uploadedDocuments,
+  insertUploadedDocumentSchema,
 } from "@shared/schema";
 import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
@@ -80,6 +82,7 @@ import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
+import QRCode from "qrcode";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
@@ -14807,6 +14810,135 @@ We look forward to hearing from you.`;
     } catch (error) {
       console.error("Error exporting sales logs:", error);
       res.status(500).json({ message: "Failed to export logs" });
+    }
+  });
+
+  // ========================================
+  // DOCUMENT UPLOAD ROUTES (Super Admin only)
+  // ========================================
+
+  // Get presigned URL for direct S3 upload
+  app.post("/api/documents/presign", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can upload documents." });
+      }
+
+      const { fileName, contentType = 'application/octet-stream' } = req.body;
+      if (!fileName) {
+        return res.status(400).json({ message: "fileName is required" });
+      }
+
+      const ext = fileName.includes('.') ? fileName.split('.').pop() : 'bin';
+      const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const s3Key = `documents/${Date.now()}-${safeName}`;
+
+      const presignedUrl = await generatePresignedUrl(s3Key, contentType);
+      const cdnUrl = `${process.env.AWS_CLOUDFRONT_URL || `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com`}/${s3Key}`;
+
+      res.json({ presignedUrl, s3Key, cdnUrl });
+    } catch (error) {
+      console.error("Error generating document presigned URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+  });
+
+  // Save document metadata after upload
+  app.post("/api/documents", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can save documents." });
+      }
+
+      const validated = insertUploadedDocumentSchema.parse(req.body);
+      const doc = await storage.createUploadedDocument({
+        ...validated,
+        uploadedBy: req.user.claims.sub,
+      });
+      res.status(201).json(doc);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error saving document:", error);
+      res.status(500).json({ message: "Failed to save document" });
+    }
+  });
+
+  // List all uploaded documents
+  app.get("/api/documents", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can view documents." });
+      }
+
+      const docs = await storage.getUploadedDocuments();
+      res.json(docs);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  // Delete a document
+  app.delete("/api/documents/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can delete documents." });
+      }
+
+      const doc = await storage.getUploadedDocument(parseInt(req.params.id));
+      if (!doc) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Try to delete from S3 if s3Key exists
+      if (doc.s3Key) {
+        try {
+          await deleteFromS3(doc.s3Key);
+        } catch (s3Error) {
+          console.warn("S3 delete failed (key may not exist):", s3Error);
+        }
+      }
+
+      await storage.deleteUploadedDocument(parseInt(req.params.id));
+      res.json({ message: "Document deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // Generate QR code for a document
+  app.get("/api/documents/:id/qr-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Only Super Admin can generate QR codes." });
+      }
+
+      const doc = await storage.getUploadedDocument(parseInt(req.params.id));
+      if (!doc) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const qrDataUrl = await QRCode.toDataURL(doc.fileUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+
+      res.json({ qrCodeDataUrl: qrDataUrl, documentId: doc.id, fileUrl: doc.fileUrl });
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      res.status(500).json({ message: "Failed to generate QR code" });
     }
   });
 

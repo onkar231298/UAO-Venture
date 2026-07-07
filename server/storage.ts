@@ -31,8 +31,11 @@ import {
   leadTasks,
   assignmentRules,
   documentNumberSettings,
+  uploadedDocuments,
   type DocumentNumberSettings,
   type InsertDocumentNumberSettings,
+  type UploadedDocument,
+  type InsertUploadedDocument,
   type User,
   type InsertUser,
   type Product,
@@ -851,6 +854,12 @@ export interface IStorage {
     loginCountThisMonth: number;
     unresolvedAlerts: number;
   }>>;
+
+  // Uploaded documents
+  createUploadedDocument(doc: InsertUploadedDocument): Promise<UploadedDocument>;
+  getUploadedDocuments(): Promise<UploadedDocument[]>;
+  getUploadedDocument(id: number): Promise<UploadedDocument | undefined>;
+  deleteUploadedDocument(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -8079,6 +8088,25 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return summaries;
+  }
+
+  // Uploaded documents
+  async createUploadedDocument(doc: InsertUploadedDocument): Promise<UploadedDocument> {
+    const [result] = await db.insert(uploadedDocuments).values(doc).returning();
+    return result;
+  }
+
+  async getUploadedDocuments(): Promise<UploadedDocument[]> {
+    return db.select().from(uploadedDocuments).orderBy(desc(uploadedDocuments.createdAt));
+  }
+
+  async getUploadedDocument(id: number): Promise<UploadedDocument | undefined> {
+    const [result] = await db.select().from(uploadedDocuments).where(eq(uploadedDocuments.id, id));
+    return result;
+  }
+
+  async deleteUploadedDocument(id: number): Promise<void> {
+    await db.delete(uploadedDocuments).where(eq(uploadedDocuments.id, id));
   }
 }
 

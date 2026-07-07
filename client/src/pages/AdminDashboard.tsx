@@ -21,6 +21,7 @@ import HRManagement from "@/pages/admin/HRManagement";
 import AdminQualityOverview from "@/pages/admin/AdminQualityOverview";
 import SecurityMonitor from "@/pages/admin/SecurityMonitor";
 import SalesActivityLogs from "@/pages/admin/SalesActivityLogs";
+import DocumentUpload from "@/pages/admin/DocumentUpload";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   Users,
@@ -54,7 +55,8 @@ import {
   CheckSquare,
   MessageSquare,
   ShieldAlert,
-  ClipboardList
+  ClipboardList,
+  Upload,
 } from "lucide-react";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
@@ -198,6 +200,7 @@ export default function AdminDashboard() {
       case 'blog': return 'Blog Management';
       case 'settings': return 'System Settings';
       case 'hr-management': return 'HR Management';
+      case 'documents': return 'Document Upload';
       default: return 'Dashboard';
     }
   };
@@ -329,6 +332,15 @@ export default function AdminDashboard() {
                 {navButton('analytics', 'Analytics & Reports', BarChart3, activeSection === 'analytics', () => setActiveSection('analytics'))}
               </div>
             </div>
+
+            {(adminUser as any)?.role === 'super_admin' && (
+              <div>
+                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ADMIN TOOLS</h3>
+                <div className="space-y-1">
+                  {navButton('documents', 'Document Upload', Upload, activeSection === 'documents', () => setActiveSection('documents'))}
+                </div>
+              </div>
+            )}
 
             <div>
               <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PROFILE</h3>
@@ -765,8 +777,12 @@ export default function AdminDashboard() {
               <SecurityMonitor />
             </div>
           )}
+
+          {activeSection === 'documents' && (
+            <DocumentUpload />
+          )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && activeSection !== 'documents' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

@@ -3253,3 +3253,30 @@ export const insertSalesCallLogSchema = createInsertSchema(salesCallLogs).omit({
 });
 export type SalesCallLog = typeof salesCallLogs.$inferSelect;
 export type InsertSalesCallLog = z.infer<typeof insertSalesCallLogSchema>;
+
+// Admin document uploads with QR code support
+export const uploadedDocuments = pgTable("uploaded_documents", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+  s3Key: varchar("s3_key", { length: 500 }).notNull(),
+  fileSize: integer("file_size"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  qrCodeDataUrl: text("qr_code_data_url"), // Generated QR code as base64 PNG data URL
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const uploadedDocumentsRelations = relations(uploadedDocuments, ({ one }) => ({
+  user: one(users, { fields: [uploadedDocuments.uploadedBy], references: [users.id] }),
+}));
+
+export const insertUploadedDocumentSchema = createInsertSchema(uploadedDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type UploadedDocument = typeof uploadedDocuments.$inferSelect;
+export type InsertUploadedDocument = z.infer<typeof insertUploadedDocumentSchema>;
