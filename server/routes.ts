@@ -78,7 +78,7 @@ import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } fro
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
-import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3 } from "./s3Upload";
+import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
@@ -14834,8 +14834,8 @@ We look forward to hearing from you.`;
       const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
       const s3Key = `documents/${Date.now()}-${safeName}`;
 
-      const presignedUrl = await generatePresignedUrl(s3Key, contentType);
-      const cdnUrl = `${process.env.AWS_CLOUDFRONT_URL || `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com`}/${s3Key}`;
+      const presignedUrl = await generateDocumentPresignedUrl(s3Key, contentType);
+      const cdnUrl = getDocumentPublicUrl(s3Key);
 
       res.json({ presignedUrl, s3Key, cdnUrl });
     } catch (error) {
@@ -14896,10 +14896,10 @@ We look forward to hearing from you.`;
         return res.status(404).json({ message: "Document not found" });
       }
 
-      // Try to delete from S3 if s3Key exists
+      // Try to delete from documents bucket if s3Key exists
       if (doc.s3Key) {
         try {
-          await deleteFromS3(doc.s3Key);
+          await deleteDocumentFromS3(doc.s3Key);
         } catch (s3Error) {
           console.warn("S3 delete failed (key may not exist):", s3Error);
         }

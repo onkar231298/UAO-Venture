@@ -122,3 +122,36 @@ export const heroSliderUpload = uploadToS3.fields([
   { name: 'slideImage', maxCount: 1 },
   { name: 'slideVideo', maxCount: 1 },
 ]);
+
+// ── Documents bucket (separate from image bucket) ─────────────────────────
+const DOCUMENTS_BUCKET = process.env.AWS_DOCUMENTS_BUCKET_NAME || 'eurka-unjha-bucket-production';
+const DOCUMENTS_BUCKET_REGION = 'eu-north-1';
+
+const docsS3Client = new S3Client({
+  region: DOCUMENTS_BUCKET_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+export async function generateDocumentPresignedUrl(s3Key: string, contentType: string): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: DOCUMENTS_BUCKET,
+    Key: s3Key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(docsS3Client, command, { expiresIn: 3600 });
+}
+
+export function getDocumentPublicUrl(s3Key: string): string {
+  return `https://${DOCUMENTS_BUCKET}.s3.${DOCUMENTS_BUCKET_REGION}.amazonaws.com/${s3Key}`;
+}
+
+export async function deleteDocumentFromS3(s3Key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: DOCUMENTS_BUCKET,
+    Key: s3Key,
+  });
+  await docsS3Client.send(command);
+}
