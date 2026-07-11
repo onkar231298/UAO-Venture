@@ -1,1 +1,1 @@
-- [Dev vs prod DB data sync](dev-prod-db-data-sync.md) — dev & prod are SEPARATE DBs; publish syncs schema only, not data; push prod data via a temporary super_admin app endpoint on the LIVE site.
+- [Country cleanup rules](country-cleanup.md) — 2,452 companies cleaned; normalized 825 rows + filled 160 missing via TLD/city detection; 15 remain blank (test entries + truly unknown).
