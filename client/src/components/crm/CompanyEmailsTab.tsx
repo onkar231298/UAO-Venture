@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import DOMPurify from "dompurify";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -588,7 +589,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
                   {email.bodyHtml ? (
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: email.bodyHtml.substring(0, 500) + (email.bodyHtml.length > 500 ? '...' : '') }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.bodyHtml.substring(0, 500) + (email.bodyHtml.length > 500 ? '...' : '')) }}
                     />
                   ) : (
                     <p className="text-gray-600 whitespace-pre-wrap">

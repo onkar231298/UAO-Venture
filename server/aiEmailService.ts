@@ -247,6 +247,9 @@ function generateInternally(params: {
         mode = "body";
         continue;
       }
+      // Any other content heading returns parsing to normal body mode
+      // (e.g. a section that appears after a footer or button block).
+      mode = "body";
       if (!bannerHeadline) {
         bannerHeadline = h;
         continue;

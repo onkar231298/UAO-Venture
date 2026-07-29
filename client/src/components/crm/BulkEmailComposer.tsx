@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -245,6 +246,12 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
+  // Designed emails (AI-generated, table-based layouts) must never be loaded
+  // into the visual editor — it strips tables, colors, buttons and inline styles.
+  // Narrow marker: only our designed layouts use role="presentation" tables;
+  // TipTap-authored content never does, so plain emails stay fully editable.
+  const isDesignedHtml = (html: string) => html.includes('role="presentation"');
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -290,13 +297,15 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     content: htmlContent,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      setHtmlContent(html);
-      setRawHtml(html);
+      // Never let the visual editor overwrite a designed (table-based) email —
+      // its normalized output would destroy the layout.
+      setHtmlContent((prev) => (isDesignedHtml(prev) ? prev : html));
+      setRawHtml((prev) => (isDesignedHtml(prev) ? prev : html));
     },
   });
 
   useEffect(() => {
-    if (editor && htmlContent !== editor.getHTML()) {
+    if (editor && !isDesignedHtml(htmlContent) && htmlContent !== editor.getHTML()) {
       editor.commands.setContent(htmlContent);
     }
   }, [editor, htmlContent]);
@@ -435,7 +444,11 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       setSubject(template.subject);
       setHtmlContent(template.htmlContent);
       setRawHtml(template.htmlContent);
-      editor?.commands.setContent(template.htmlContent);
+      if (isDesignedHtml(template.htmlContent)) {
+        setEditorMode('preview');
+      } else {
+        editor?.commands.setContent(template.htmlContent);
+      }
     }
   };
 
@@ -652,9 +665,14 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
 
   const handleApplyHtml = () => {
     setHtmlContent(rawHtml);
-    editor?.commands.setContent(rawHtml);
-    setEditorMode('visual');
-    toast({ title: "HTML applied successfully" });
+    if (isDesignedHtml(rawHtml)) {
+      setEditorMode('preview');
+      toast({ title: "HTML applied", description: "Showing preview to keep the email design intact." });
+    } else {
+      editor?.commands.setContent(rawHtml);
+      setEditorMode('visual');
+      toast({ title: "HTML applied successfully" });
+    }
   };
 
   const handlePasteHtml = async () => {
@@ -1208,7 +1226,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       </Button>
                     </div>
 
-                    {editorMode === 'visual' && editor && (
+                    {editorMode === 'visual' && editor && !isDesignedHtml(htmlContent) && (
                       <>
                         <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
                           <ToolbarButton onClick={() => editor.chain().focus().undo().run()} tooltip="Undo">
@@ -1463,7 +1481,24 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                   </div>
 
                   <div className="flex-1 overflow-auto">
-                    {editorMode === 'visual' && (
+                    {editorMode === 'visual' && isDesignedHtml(htmlContent) && (
+                      <div className="h-full overflow-auto bg-gray-50">
+                        <div className="m-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                          <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span>
+                            This is a designed email — the visual editor would remove its colors, buttons and layout,
+                            so it's shown as a live preview. To change the text or links, use the <strong>HTML</strong> tab
+                            or regenerate with <strong>Write with AI</strong>.
+                          </span>
+                        </div>
+                        <div
+                          className="max-w-none pb-4"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
+                        />
+                      </div>
+                    )}
+
+                    {editorMode === 'visual' && !isDesignedHtml(htmlContent) && (
                       <div
                         className="h-full"
                         onDragEnter={handleDragEnter}
@@ -1505,7 +1540,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           </div>
                           <div 
                             className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: htmlContent || '<p class="text-gray-400">No content yet...</p>' }}
+                            dangerouslySetInnerHTML={{ __html: htmlContent ? DOMPurify.sanitize(htmlContent) : '<p class="text-gray-400">No content yet...</p>' }}
                           />
                         </div>
                       </div>
