@@ -28,15 +28,31 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// Restore personalization variables that escaping doesn't touch anyway,
-// and linkify plain URLs left in text.
+// Inline formatting: markdown links, bare URLs, and **bold**.
 function formatInline(text: string): string {
   let out = escapeHtml(text);
+  // Markdown links [text](url) — url may be http(s) or mailto
   out = out.replace(
-    /(https?:\/\/[^\s&]+(?:&amp;[^\s&]+)*)/gi,
-    (m) => `<a href="${m.replace(/&amp;/g, "&")}" target="_blank" rel="noopener" style="color:#1a73e8; text-decoration:underline;">${m}</a>`
+    /\[([^\]]+)\]\((mailto:[^)\s]+|https?:[^)\s]+)\)/gi,
+    (_m, t, u) => `<a href="${u.replace(/&amp;/g, "&")}" target="_blank" rel="noopener" style="color:#1a73e8; text-decoration:underline;">${t}</a>`
   );
+  // Bare URLs (not already inside an attribute)
+  out = out.replace(
+    /(^|[^"'>=\]])(https?:\/\/[^\s<&]+(?:&amp;[^\s<&]+)*)/gi,
+    (_m, pre, u) => `${pre}<a href="${u.replace(/&amp;/g, "&")}" target="_blank" rel="noopener" style="color:#1a73e8; text-decoration:underline;">${u}</a>`
+  );
+  // **bold**
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#1b3a1f;">$1</strong>');
   return out;
+}
+
+// Strip markdown decorations for plain-text contexts (subjects, headlines)
+function stripMd(s: string): string {
+  return s
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/\*\*/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .trim();
 }
 
 const IMG_STYLE =
@@ -69,6 +85,42 @@ function checkmarkPanel(items: string[]): string {
   </table>`;
 }
 
+// Centered section heading with a small gold underline
+function sectionHeading(text: string): string {
+  return `<div style="margin:28px 0 8px 0; text-align:center;">
+    <div style="font-size:19px; font-weight:bold; color:#1b3a1f;">${formatInline(text)}</div>
+    <div style="width:46px; height:3px; background-color:#c9a227; border-radius:2px; margin:10px auto 0 auto;"></div>
+  </div>`;
+}
+
+type ButtonDef = { label: string; url: string; style: "green" | "blue" | "outline" };
+
+const BTN_STYLES: Record<ButtonDef["style"], { td: string; color: string }> = {
+  green: { td: "background-color:#2e7d32; border:2px solid #2e7d32;", color: "#ffffff" },
+  blue: { td: "background-color:#1a73e8; border:2px solid #1a73e8;", color: "#ffffff" },
+  outline: { td: "background-color:#ffffff; border:2px solid #2e7d32;", color: "#2e7d32" },
+};
+
+// Stack of large, modern CTA buttons with an optional trust line beneath
+function buttonStack(buttons: ButtonDef[], trustLine: string): string {
+  const rows = buttons
+    .map((b) => {
+      const s = BTN_STYLES[b.style] || BTN_STYLES.green;
+      return `<tr><td align="center" style="padding:7px 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td style="${s.td} border-radius:10px; box-shadow:0 2px 6px rgba(27,58,31,0.18);">
+          <a href="${escapeHtml(b.url)}" target="_blank" rel="noopener" style="display:inline-block; min-width:230px; text-align:center; padding:14px 34px; color:${s.color}; font-size:15px; font-weight:bold; text-decoration:none; font-family:Arial, Helvetica, sans-serif;">${formatInline(b.label)}</a>
+        </td>
+      </tr></table>
+    </td></tr>`;
+    })
+    .join("");
+  const trust = trustLine
+    ? `<tr><td align="center" style="padding:10px 0 0 0;"><p style="margin:0; color:#8a978b; font-size:12px;">${formatInline(trustLine)}</p></td></tr>`
+    : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">${rows}${trust}</table>`;
+}
+
 /**
  * Internal smart formatter: turns a free-text brief into a clean,
  * professional HTML email. Rules:
@@ -97,65 +149,239 @@ function generateInternally(params: {
 
   const rawLines = text.split(/\r?\n/);
   let subject = params.currentSubject?.trim() || "";
-  const lines: string[] = [];
-  for (const line of rawLines) {
-    const m = line.match(/^\s*subject\s*[:\-]\s*(.+)$/i);
-    if (m && !subject) {
-      subject = m[1].trim();
-    } else {
-      lines.push(line);
+
+  // ---- Structured brief parser (markdown-aware, PropDocx-style) ----
+  const blocks: Array<{ type: "para" | "heading" | "panel" | "buttons"; html: string }> = [];
+  let paraBuf: string[] = [];
+  let bulletBuf: string[] = [];
+  let pendingButtons: ButtonDef[] = [];
+  let currentBtn: Partial<ButtonDef> | null = null;
+  let trustLine = "";
+  let bannerHeadline = "";
+  let mode: "body" | "footer" | "trust" = "body";
+  const footerLines: string[] = [];
+  const footerLinks: Array<{ label: string; href: string }> = [];
+  let footerCompany = "";
+  let pendingFooterLabel = "";
+  let firstBodyLine = "";
+  const allSentenceSources: string[] = [];
+
+  const isMetaHeading = (h: string) =>
+    /update the|html email|email prompt|^instructions?$|^notes?$|^requirements?$/i.test(h);
+  const isMetaInstruction = (s: string) =>
+    /^(use|include|ensure|make sure|keep|design|style|add)\b/i.test(s) &&
+    /(button|icon|responsive|optimi[sz]|gmail|outlook|apple mail|email client|inline css|rounded|shadow|mobile)/i.test(s);
+
+  const flushPara = () => {
+    if (paraBuf.length) {
+      const joined = paraBuf.join(" ");
+      if (!firstBodyLine) firstBodyLine = joined;
+      allSentenceSources.push(joined);
+      blocks.push({
+        type: "para",
+        html: `<p style="margin:16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">${formatInline(joined)}</p>`,
+      });
+      paraBuf = [];
     }
+  };
+  const flushBullets = () => {
+    if (bulletBuf.length) {
+      blocks.push({ type: "panel", html: checkmarkPanel(bulletBuf) });
+      bulletBuf = [];
+    }
+  };
+  const finishCurrentBtn = () => {
+    if (currentBtn && currentBtn.label && currentBtn.url) {
+      pendingButtons.push(currentBtn as ButtonDef);
+    }
+    currentBtn = null;
+  };
+  const flushButtons = () => {
+    finishCurrentBtn();
+    if (pendingButtons.length) {
+      blocks.push({ type: "buttons", html: buttonStack(pendingButtons, trustLine) });
+      pendingButtons = [];
+      trustLine = "";
+    }
+  };
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (!line) {
+      flushPara();
+      flushBullets();
+      continue;
+    }
+
+    const subjM = line.match(/^\s*subject\s*[:\-]\s*(.+)$/i);
+    if (subjM) {
+      if (!subject) subject = stripMd(subjM[1]);
+      continue;
+    }
+
+    const headM = line.match(/^#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (headM) {
+      const h = stripMd(headM[1]);
+      flushPara();
+      flushBullets();
+      if (isMetaHeading(h)) continue;
+      if (/trust message|reassurance/i.test(h)) {
+        finishCurrentBtn();
+        mode = "trust";
+        continue;
+      }
+      if (/^footer\b/i.test(h)) {
+        flushButtons();
+        mode = "footer";
+        continue;
+      }
+      if (/button/i.test(h)) {
+        finishCurrentBtn();
+        const styleM = h.match(/green|blue|white|outline/i);
+        const s = (styleM ? styleM[0] : "green").toLowerCase();
+        currentBtn = { style: s === "blue" ? "blue" : s === "white" || s === "outline" ? "outline" : "green" };
+        mode = "body";
+        continue;
+      }
+      if (/call.?to.?action|^cta\b/i.test(h)) {
+        mode = "body";
+        continue;
+      }
+      if (!bannerHeadline) {
+        bannerHeadline = h;
+        continue;
+      }
+      blocks.push({ type: "heading", html: sectionHeading(h) });
+      continue;
+    }
+
+    if (mode === "trust") {
+      trustLine = stripMd(line);
+      mode = "body";
+      continue;
+    }
+
+    if (mode === "footer") {
+      if (isMetaInstruction(line)) continue;
+      const boldOnly = line.match(/^\*\*(.+)\*\*$/);
+      if (boldOnly) {
+        const t = stripMd(boldOnly[1]);
+        if (/^https?:\/\/\S+$/.test(t)) {
+          footerLinks.push({ label: pendingFooterLabel || "Website", href: t });
+          pendingFooterLabel = "";
+        } else if (!footerCompany) {
+          footerCompany = t;
+        } else {
+          footerLines.push(t);
+        }
+        continue;
+      }
+      const labelOnly = line.match(/^([A-Za-z][A-Za-z ]{1,40}):$/);
+      if (labelOnly) {
+        pendingFooterLabel = labelOnly[1].trim();
+        continue;
+      }
+      const urlOnly = line.match(/^(https?:\/\/\S+)$/);
+      if (urlOnly) {
+        footerLinks.push({ label: pendingFooterLabel || "Website", href: urlOnly[1].replace(/[.,;]+$/, "") });
+        pendingFooterLabel = "";
+        continue;
+      }
+      const mdLink = line.match(/^\[([^\]]+)\]\((mailto:[^)\s]+|https?:[^)\s]+)\)$/);
+      if (mdLink) {
+        footerLinks.push({ label: pendingFooterLabel || mdLink[1], href: mdLink[2] });
+        pendingFooterLabel = "";
+        continue;
+      }
+      const inline = line.match(/^([A-Za-z][A-Za-z ]{1,40}):\s*(.+)$/);
+      if (inline) {
+        const val = inline[2].trim();
+        const valMd = val.match(/^\[([^\]]+)\]\((mailto:[^)\s]+|https?:[^)\s]+)\)$/);
+        const valUrl = val.match(/^(https?:\/\/\S+)$/);
+        if (valMd) {
+          footerLinks.push({ label: inline[1].trim(), href: valMd[2] });
+          continue;
+        }
+        if (valUrl) {
+          footerLinks.push({ label: inline[1].trim(), href: valUrl[1] });
+          continue;
+        }
+      }
+      footerLines.push(stripMd(line));
+      continue;
+    }
+
+    // body mode — button definition in progress
+    if (currentBtn) {
+      if (/^link\s*:?\s*$/i.test(line)) continue;
+      const urlM = line.match(/^\*{0,2}(https?:\/\/[^\s*]+)\*{0,2}$/);
+      if (urlM && !currentBtn.url) {
+        currentBtn.url = urlM[1];
+        finishCurrentBtn();
+        continue;
+      }
+      const mdLinkM = line.match(/^\[([^\]]+)\]\((https?:[^)\s]+)\)$/);
+      if (mdLinkM && !currentBtn.url) {
+        if (!currentBtn.label) currentBtn.label = mdLinkM[1];
+        currentBtn.url = mdLinkM[2];
+        finishCurrentBtn();
+        continue;
+      }
+      const boldOnly = line.match(/^\*\*(.+)\*\*$/);
+      if (boldOnly && !currentBtn.label) {
+        currentBtn.label = stripMd(boldOnly[1]);
+        continue;
+      }
+      if (!currentBtn.label && !/^https?:/i.test(line)) {
+        currentBtn.label = stripMd(line);
+        continue;
+      }
+    }
+
+    if (isMetaInstruction(line)) continue;
+
+    if (/^[-*•]\s+/.test(line)) {
+      flushPara();
+      bulletBuf.push(line.replace(/^[-*•]\s+/, ""));
+      continue;
+    }
+    flushBullets();
+    paraBuf.push(line);
   }
+  flushPara();
+  flushBullets();
+  flushButtons();
 
-  const cleaned = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const hasButtons = blocks.some((b) => b.type === "buttons");
+  const hasGreeting = /^(dear|hi|hello|greetings|good\s(morning|afternoon|evening))\b/i.test(firstBodyLine);
 
+  // Subject: explicit > banner headline > first non-greeting sentence
+  if (!subject && bannerHeadline) subject = bannerHeadline;
   if (!subject) {
-    // Derive from the first sentence that is NOT a greeting line
-    const sentences = cleaned.split(/(?<=[.!?])\s+|\n/).map((s) => s.trim()).filter(Boolean);
+    const sentences = allSentenceSources
+      .join(" ")
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => stripMd(s))
+      .filter(Boolean);
     const candidate = sentences.find(
       (s) => !/^(dear|hi|hello|greetings|good\s(morning|afternoon|evening))\b/i.test(s) && s.length > 12
     );
-    subject = (candidate || "Premium Organic Spices & Herbs from Bright Organic")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 78);
-    if (subject.length === 78) subject = subject.replace(/\s+\S*$/, "") + "…";
+    subject = candidate || "Premium Organic Spices & Herbs from Bright Organic";
   }
+  subject = subject.replace(/\s+/g, " ").trim().slice(0, 78);
+  if (subject.length === 78) subject = subject.replace(/\s+\S*$/, "") + "…";
 
-  const hasGreeting = /^(dear|hi|hello|greetings|good\s(morning|afternoon|evening))\b/i.test(cleaned);
-
-  // Build content blocks (paragraphs + bullet lists)
-  const blocks: string[] = [];
-  const paragraphs = cleaned.split(/\n\s*\n/);
-  for (const para of paragraphs) {
-    const paraLines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
-    if (paraLines.length === 0) continue;
-
-    const bulletLines = paraLines.filter((l) => /^[-*•]\s+/.test(l));
-    if (bulletLines.length > 0) {
-      // Leading text (if any) then a styled checkmark panel
-      const textPart = paraLines.filter((l) => !/^[-*•]\s+/.test(l)).join(" ");
-      if (textPart) {
-        blocks.push(`<p style="margin:16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">${formatInline(textPart)}</p>`);
-      }
-      blocks.push(checkmarkPanel(bulletLines.map((l) => l.replace(/^[-*•]\s+/, ""))));
-    } else {
-      blocks.push(
-        `<p style="margin:16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">${formatInline(paraLines.join(" "))}</p>`
-      );
-    }
-  }
-
-  // Insert images: first image after the first paragraph, the rest spread
-  // between remaining blocks (or appended at the end).
+  // Insert images: first image after the first paragraph, the rest at the end.
   const contentParts: string[] = [];
   let imgIdx = 0;
-  blocks.forEach((block, i) => {
-    contentParts.push(block);
-    if (imgIdx < allImages.length && (i === 0 || i === Math.floor(blocks.length / 2))) {
-      contentParts.push(imageBlock(allImages[imgIdx++]));
+  let firstParaSeen = false;
+  for (const b of blocks) {
+    contentParts.push(b.html);
+    if (!firstParaSeen && b.type === "para") {
+      firstParaSeen = true;
+      if (imgIdx < allImages.length) contentParts.push(imageBlock(allImages[imgIdx++]));
     }
-  });
+  }
   while (imgIdx < allImages.length) {
     contentParts.push(imageBlock(allImages[imgIdx++]));
   }
@@ -164,11 +390,59 @@ function generateInternally(params: {
     ? ""
     : `<p style="margin:0 0 16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">Dear Purchaser,</p>`;
 
-  // Headline for the green banner: prefer subject-like text, else first sentence
-  let headline = subject && !/^dear\b/i.test(subject) ? subject : "";
+  // Headline for the green banner: parsed heading > subject > default
+  let headline = bannerHeadline || (subject && !/^dear\b/i.test(subject) ? subject : "");
   if (!headline) {
     headline = "Premium Organic Spices & Herbs for Your Business";
   }
+
+  // Default CTA only when the brief didn't define its own buttons
+  const defaultCtaRow = hasButtons
+    ? ""
+    : `<tr>
+          <td align="center" style="padding:8px 36px 6px 36px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background-color:#2e7d32; border-radius:8px;">
+                  <a href="mailto:info@bfiorganic.com" style="display:inline-block; padding:14px 40px; color:#ffffff; font-size:15px; font-weight:bold; text-decoration:none;">&#9993;&nbsp; Get in Touch Today</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:12px 0 0 0; color:#8a978b; font-size:12px;">Free Samples Available &bull; Fast Response &bull; Export Quality Assured</p>
+          </td>
+        </tr>`;
+
+  // Footer: custom (parsed from the brief) or the default branded one
+  const iconFor = (label: string, href: string) => {
+    const k = `${label} ${href}`.toLowerCase();
+    if (k.includes("linkedin")) return "&#128188;";
+    if (k.includes("mailto:") || k.includes("email")) return "&#9993;";
+    if (k.includes("register") || k.includes("sample")) return "&#128230;";
+    return "&#127760;";
+  };
+  const hasCustomFooter = Boolean(footerCompany || footerLinks.length || footerLines.length);
+  const footerLinksRow = footerLinks
+    .map(
+      (l) =>
+        `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener" style="color:#2e7d32; text-decoration:none; font-size:12px; font-weight:bold; margin:0 10px; white-space:nowrap;">${iconFor(l.label, l.href)}&nbsp;${escapeHtml(l.label)}</a>`
+    )
+    .join(" ");
+  const footerRow = hasCustomFooter
+    ? `<tr>
+          <td align="center" style="background-color:#f5f8f5; padding:22px 32px; border-top:1px solid #e5ece5;">
+            <p style="margin:0 0 6px 0; color:#2e7d32; font-size:14px; font-weight:bold; letter-spacing:1px;">${formatInline((footerCompany || "Bright Organic").toUpperCase())}</p>
+            ${footerLines.map((l) => `<p style="margin:0 0 6px 0; color:#6b7a6c; font-size:12px;">${formatInline(l)}</p>`).join("\n            ")}
+            ${footerLinksRow ? `<p style="margin:10px 0 8px 0;">${footerLinksRow}</p>` : ""}
+            <p style="margin:0; color:#9aa79b; font-size:11px;">You are receiving this email as a valued business contact. If you'd prefer not to receive these emails, simply reply and let us know.</p>
+          </td>
+        </tr>`
+    : `<tr>
+          <td align="center" style="background-color:#f5f8f5; padding:20px 32px; border-top:1px solid #e5ece5;">
+            <p style="margin:0 0 6px 0; color:#2e7d32; font-size:13px; font-weight:bold; letter-spacing:1px;">BRIGHT ORGANIC</p>
+            <p style="margin:0 0 6px 0; color:#6b7a6c; font-size:12px;">100% Certified Organic &bull; Farm to Table &bull; Export Quality</p>
+            <p style="margin:0; color:#9aa79b; font-size:11px;">You are receiving this email as a valued business contact of Bright Organic. If you'd prefer not to receive these emails, simply reply and let us know.</p>
+          </td>
+        </tr>`;
 
   const html = `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef2ee; padding:32px 0;">
@@ -195,32 +469,15 @@ function generateInternally(params: {
             ${contentParts.join("\n            ")}
           </td>
         </tr>
-        <tr>
-          <td align="center" style="padding:8px 36px 6px 36px;">
-            <table role="presentation" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="background-color:#2e7d32; border-radius:8px;">
-                  <a href="mailto:info@bfiorganic.com" style="display:inline-block; padding:14px 40px; color:#ffffff; font-size:15px; font-weight:bold; text-decoration:none;">&#9993;&nbsp; Get in Touch Today</a>
-                </td>
-              </tr>
-            </table>
-            <p style="margin:12px 0 0 0; color:#8a978b; font-size:12px;">Free Samples Available &bull; Fast Response &bull; Export Quality Assured</p>
-          </td>
-        </tr>
+        ${defaultCtaRow}
         <tr>
           <td style="padding:18px 36px 26px 36px;">
             <p style="margin:14px 0 4px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">Warm regards,</p>
-            <p style="margin:0; color:#1b3a1f; font-size:15px; line-height:1.7; font-weight:bold;">The Bright Organic Team</p>
+            <p style="margin:0; color:#1b3a1f; font-size:15px; line-height:1.7; font-weight:bold;">The ${footerCompany ? formatInline(footerCompany) : "Bright Organic"} Team</p>
             <p style="margin:2px 0 0 0; color:#8a978b; font-size:13px;">Premium Organic Spices &amp; Herbs Supplier</p>
           </td>
         </tr>
-        <tr>
-          <td align="center" style="background-color:#f5f8f5; padding:20px 32px; border-top:1px solid #e5ece5;">
-            <p style="margin:0 0 6px 0; color:#2e7d32; font-size:13px; font-weight:bold; letter-spacing:1px;">BRIGHT ORGANIC</p>
-            <p style="margin:0 0 6px 0; color:#6b7a6c; font-size:12px;">100% Certified Organic &bull; Farm to Table &bull; Export Quality</p>
-            <p style="margin:0; color:#9aa79b; font-size:11px;">You are receiving this email as a valued business contact of Bright Organic. If you'd prefer not to receive these emails, simply reply and let us know.</p>
-          </td>
-        </tr>
+        ${footerRow}
       </table>
     </td>
   </tr>
