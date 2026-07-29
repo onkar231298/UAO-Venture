@@ -13210,6 +13210,58 @@ We look forward to hearing from you.`;
   });
 
   // ============================================
+  // AI EMAIL GENERATION
+  // ============================================
+
+  const aiEmailRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+  app.post('/api/ai/generate-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || user.userType === 'customer') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      const allowedRoles = ['admin', 'super_admin', 'sales_manager', 'sales_executive'];
+      if (!allowedRoles.includes(user.role || '')) {
+        return res.status(403).json({ message: 'Access denied. Only sales and admin staff can use AI email generation.' });
+      }
+
+      // Simple per-user rate limit: 20 generations per 10 minutes
+      const now = Date.now();
+      const rl = aiEmailRateLimit.get(userId);
+      if (!rl || now > rl.resetAt) {
+        aiEmailRateLimit.set(userId, { count: 1, resetAt: now + 10 * 60 * 1000 });
+      } else if (rl.count >= 20) {
+        return res.status(429).json({ message: 'Too many AI generations. Please wait a few minutes and try again.' });
+      } else {
+        rl.count++;
+      }
+
+      const aiSchema = z.object({
+        prompt: z.string().min(5, "Please describe the email you want to write").max(8000),
+        imageUrls: z.array(z.string().url()).max(20).optional(),
+        currentSubject: z.string().max(500).optional(),
+      });
+
+      const validationResult = aiSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: 'Validation failed',
+          errors: validationResult.error.errors,
+        });
+      }
+
+      const { generateEmailWithAI } = await import('./aiEmailService');
+      const result = await generateEmailWithAI(validationResult.data);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error generating AI email:', error);
+      res.status(500).json({ message: error?.message || 'Failed to generate email with AI' });
+    }
+  });
+
+  // ============================================
   // EMAIL TEMPLATES
   // ============================================
 
