@@ -11,6 +11,10 @@ The bulk-email AI generator (OpenAI gpt-4o) **silently drops trailing brief fact
 
 **How to apply:** If the system prompt in the email-generator route is ever rewritten, keep (a) the sentence-by-sentence self-check instruction, (b) the "shipping/logistics facts must appear somewhere (hero, extra row, or closing)" rule. Re-test with a brief whose LAST sentence is a logistics fact — that's the part gpt-4o drops first.
 
+**Image hallucination:** gpt-4o fabricates image URLs (e.g. `https://example.com/chilli-powder-image.jpg`) when a brief asks for product/hero imagery, even with explicit "never invent image URLs" prompt rules. The server-side allowlist filter (only the logo URL or URLs literally present in the submitted brief/currentHtml survive) is the real protection — prompt rules alone failed in testing. Don't remove that filter.
+
+**Brief-first prompts:** Users submit long structured markdown briefs (own sections, multiple CTA buttons with URLs, color directions). The prompt must let the brief override the default template/palette or the model force-fits content into the rigid structure and drops buttons/colors.
+
 Related decisions:
 - Logo (dark green on transparent) must sit on a WHITE band, not the green #15803d band, or it's invisible. Served from the production domain so email clients can load it (`EMAIL_LOGO_URL` shared env var).
 - `{{contact_name}}`/`{{company_name}}` personalization is opt-in per user request (default OFF); the SendGrid send pipeline substitutes real values at send time, so tokens are safe when enabled.
