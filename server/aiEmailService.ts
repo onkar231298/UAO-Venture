@@ -216,11 +216,9 @@ function buildAiUserMessage(params: {
 
 const AI_SYSTEM_PROMPT = `You are an elite B2B email marketing copywriter and premium HTML email designer, producing agency-quality newsletter designs like those from Mailchimp's best templates.
 
-Generate a professional marketing email as JSON with exactly these keys:
-{
-  "subject": "compelling subject line (max 80 chars)",
-  "html": "complete email body HTML"
-}
+OUTPUT FORMAT (critical — follow exactly):
+Line 1: SUBJECT: <compelling subject line, max 80 chars>
+Then from line 2 onward: the complete email body HTML, raw, with NO markdown fences, NO JSON, NO commentary. Just the subject line followed by the HTML.
 
 BRAND: The sender is Bright Organic / BFI Organic — a premium organic spices & herbs supplier. Brand palette:
 - Primary green: #2e7d32, dark green: #1b5e20, light green tint: #e8f5e9
@@ -249,14 +247,46 @@ TECHNICAL RULES (critical — real email clients like Gmail/Outlook):
 - Do NOT invent image URLs; only use exact URLs provided.
 - Copy: professional, warm, persuasive, specific to the brief. No spammy language.
 
-Return ONLY valid JSON. No markdown fences, no commentary.`;
+Remember: first line "SUBJECT: ...", then raw HTML. Nothing else.`;
 
 function parseAiJson(raw: string): { subject: string; html: string } {
   // Strip accidental markdown fences
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
-  const parsed = JSON.parse(cleaned);
-  if (!parsed.subject || !parsed.html) throw new Error("AI response missing subject or body.");
-  return { subject: String(parsed.subject), html: String(parsed.html) };
+  let cleaned = raw.trim()
+    .replace(/^```(?:json|html)?\s*/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+
+  // Preferred format: "SUBJECT: ..." on the first line, HTML after
+  const subjectMatch = cleaned.match(/^\s*SUBJECT\s*:\s*(.+?)\s*$/im);
+  if (subjectMatch) {
+    const html = cleaned
+      .slice(cleaned.indexOf(subjectMatch[0]) + subjectMatch[0].length)
+      .trim();
+    if (html.includes("<")) {
+      return { subject: subjectMatch[1].trim(), html };
+    }
+  }
+
+  // Legacy/fallback: JSON object { subject, html }
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    try {
+      const parsed = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1));
+      if (parsed.subject && parsed.html) {
+        return { subject: String(parsed.subject), html: String(parsed.html) };
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  // Last resort: response is raw HTML without a subject line
+  if (cleaned.includes("<table") || cleaned.includes("<div")) {
+    return { subject: "", html: cleaned };
+  }
+
+  throw new Error("AI response missing subject or body.");
 }
 
 async function generateWithGemini(params: {
@@ -278,9 +308,8 @@ async function generateWithGemini(params: {
         systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
         contents: [{ role: "user", parts: [{ text: userMessage }] }],
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4000,
-          responseMimeType: "application/json",
+          temperature: 0.6,
+          maxOutputTokens: 16384,
         },
       }),
     }
@@ -313,9 +342,8 @@ async function generateWithOpenAI(params: {
       { role: "system", content: AI_SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ],
-    response_format: { type: "json_object" },
-    temperature: 0.7,
-    max_tokens: 4000,
+    temperature: 0.6,
+    max_tokens: 8000,
   });
 
   const raw = response.choices[0]?.message?.content;
@@ -334,8 +362,16 @@ export async function generateEmailWithAI(params: {
     try {
       result = await generateWithGemini(params);
     } catch (err) {
-      console.error("[AI Email] Gemini generation failed, falling back to internal formatter:", err);
-      result = generateInternally(params);
+      console.error("[AI Email] Gemini attempt 1 failed, retrying once:", err);
+      try {
+        result = await generateWithGemini(params);
+      } catch (err2) {
+        console.error("[AI Email] Gemini generation failed, falling back to internal formatter:", err2);
+        result = generateInternally(params);
+      }
+    }
+    if (!result.subject) {
+      result.subject = params.currentSubject || "A message from Bright Organic";
     }
   } else if (process.env.OPENAI_API_KEY) {
     try {
