@@ -283,7 +283,7 @@ DESIGN SPEC (mandatory — the email must look richly designed, never plain):
 2. Main card: centered 600px table, background #ffffff, border-radius:12px, overflow:hidden, box-shadow via border: 1px solid #dfe7df.
 3. HEADER BANNER (always include): a full-width <td> with background:linear-gradient(135deg,#1b5e20,#2e7d32) AND fallback background-color:#2e7d32, padding 28px 32px. Inside: company name "Bright Organic" in #ffffff, 22px, bold, letter-spacing:1px, plus a small tagline line in #c8e6c9, 12px, uppercase, letter-spacing:2px (e.g. "PREMIUM ORGANIC SPICES & HERBS").
 4. A thin 4px accent bar <td> with background-color:#c9a227 directly under the header.
-5. HERO SECTION: padding 32px; a large headline (22-26px, bold, color #1b3a1f) capturing the email's core message, then greeting "Dear {{contact_name}},".
+5. HERO SECTION: padding 32px; a large headline (22-26px, bold, color #1b3a1f) capturing the email's core message, then greeting "Dear Purchaser,".
 6. Body paragraphs: 15px, line-height 1.7, color #3d4a3e, margin 0 0 16px.
 7. FEATURE/BENEFIT BLOCK: present key points as a styled table with background:#e8f5e9, border-left:4px solid #2e7d32, border-radius:8px, padding 20px 24px. Each point on its own row with a green "✔" or "•" in #2e7d32 bold, followed by benefit text (bold lead-in phrase, then normal text).
 8. IMAGES: if product image URLs are provided, embed EACH one inside its own centered <td> with padding 8px 32px, using <img> with style="${IMG_STYLE}" plus border:1px solid #e0e0e0, and a caption line under it (12px, italic, color #6b7a6c) naming the product. Never skip a provided image URL. If two+ images, you may place two side by side in a 2-column table (each width 48%).
@@ -295,7 +295,7 @@ DESIGN SPEC (mandatory — the email must look richly designed, never plain):
 TECHNICAL RULES (critical — real email clients like Gmail/Outlook):
 - Only email-safe HTML: nested tables for ALL layout, inline CSS on every element. No <style> blocks, classes, external CSS, or JavaScript. Use role="presentation" cellpadding="0" cellspacing="0" on layout tables.
 - Font stack: Georgia, 'Times New Roman', serif for the big headline is allowed; everything else Arial, Helvetica, sans-serif.
-- Use personalization variables {{contact_name}} and {{company_name}} where natural.
+- Do NOT use any personalization placeholders like {{contact_name}} or {{company_name}}. Address the reader as "Dear Purchaser," and refer to their company generically (e.g. "your business"). Sign off as "The Bright Organic Team".
 - Do NOT include <html>, <head>, or <body> tags — only inner body content.
 - Do NOT invent image URLs; only use exact URLs provided.
 - Copy: professional, warm, persuasive, specific to the brief. No spammy language.
@@ -411,10 +411,9 @@ export async function generateEmailWithAI(params: {
 }): Promise<{ subject: string; html: string }> {
   let result: { subject: string; html: string };
 
-  // Per user preference the built-in designer is the default — it produces the
-  // branded PropDocx-style layout deterministically. Set AI_EMAIL_PROVIDER=gemini
-  // or =openai to opt back into external AI generation.
-  const provider = (process.env.AI_EMAIL_PROVIDER || "internal").toLowerCase();
+  // Per user preference: ChatGPT (OpenAI) is the primary generator, with the
+  // built-in designer as fallback. Set AI_EMAIL_PROVIDER=gemini or =internal to override.
+  const provider = (process.env.AI_EMAIL_PROVIDER || (process.env.OPENAI_API_KEY ? "openai" : "internal")).toLowerCase();
 
   if (provider === "gemini" && process.env.GEMINI_API_KEY) {
     try {
