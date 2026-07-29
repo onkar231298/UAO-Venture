@@ -98,6 +98,15 @@ export async function sendSingleEmail(options: SendEmailOptions): Promise<BulkEm
       subject: options.subject,
       text: textContent,
       html: htmlContent,
+      // Click tracking is DISABLED on purpose: SendGrid rewrites every link
+      // through url####.bright-organic.com, and that tracking subdomain serves
+      // SendGrid's *.sendgrid.net SSL cert (no branded-link SSL provisioned),
+      // so browsers block the redirect and recipients can't open any link.
+      // Re-enable only after branded-link SSL is set up in SendGrid.
+      // Open tracking is left at the account default (unaffected by this).
+      trackingSettings: {
+        clickTracking: { enable: false, enableText: false },
+      },
     };
 
     // Add attachments if provided

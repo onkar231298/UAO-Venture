@@ -1,3 +1,4 @@
 - [Country cleanup rules](country-cleanup.md) — 2,452 companies cleaned; normalized 825 rows + filled 160 missing via TLD/city detection; 15 remain blank (test entries + truly unknown).
 - [TipTap v3 setContent gotcha](tiptap-setcontent-v3.md) — v3 defaults emitUpdate:true; state→editor sync must pass {emitUpdate:false} or full-document email HTML gets mangled before send.
 - [AI email prompt completeness](ai-email-prompt-completeness.md) — gpt-4o drops trailing brief facts; the sentence-by-sentence self-check line in the prompt is load-bearing, don't trim it.
+- [SendGrid click tracking SSL](sendgrid-click-tracking-ssl.md) — click tracking disabled per-message: branded link subdomain has no SSL cert, https clicks get browser-blocked; don't re-enable without branded-link SSL.
