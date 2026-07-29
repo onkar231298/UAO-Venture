@@ -1,2 +1,1 @@
 - [Country cleanup rules](country-cleanup.md) — 2,452 companies cleaned; normalized 825 rows + filled 160 missing via TLD/city detection; 15 remain blank (test entries + truly unknown).
-- [TipTap destroys designed email HTML](tiptap-email-design.md) — never load table-based email designs into the visual editor; preview + HTML tab only, guard onUpdate.

@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import DOMPurify from "dompurify";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -720,7 +719,7 @@ function CompanyEmailsTabLocal({ companyId, companyEmail }: { companyId: number;
                   {email.bodyHtml ? (
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.bodyHtml.substring(0, 500) + (email.bodyHtml.length > 500 ? '...' : '')) }}
+                      dangerouslySetInnerHTML={{ __html: email.bodyHtml.substring(0, 500) + (email.bodyHtml.length > 500 ? '...' : '') }}
                     />
                   ) : (
                     <p className="text-gray-600 whitespace-pre-wrap">
