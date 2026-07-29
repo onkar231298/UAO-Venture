@@ -237,6 +237,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSubjectInput, setAiSubjectInput] = useState("");
+  const [aiPersonalize, setAiPersonalize] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -355,7 +356,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   });
 
   const generateAiMutation = useMutation({
-    mutationFn: async (data: { prompt: string; subject?: string; currentHtml?: string }) => {
+    mutationFn: async (data: { prompt: string; subject?: string; currentHtml?: string; usePersonalization?: boolean }) => {
       const res = await apiRequest('/api/email-generator/generate', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -395,6 +396,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       prompt: aiPrompt.trim(),
       subject: aiSubjectInput.trim() || undefined,
       currentHtml: existingContent ? htmlContent : undefined,
+      usePersonalization: aiPersonalize,
     });
   };
 
@@ -1423,9 +1425,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                     {editorMode === 'preview' && (
                       <div className="h-full p-4 bg-gray-50">
                         <div className="bg-white border rounded-lg p-6 max-w-2xl mx-auto shadow-sm">
-                          <div className="border-b pb-3 mb-4">
-                            <p className="text-sm text-gray-500">Subject: <span className="text-gray-900 font-medium">{subject || '(No subject)'}</span></p>
-                          </div>
                           <div 
                             className="prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: htmlContent || '<p class="text-gray-400">No content yet...</p>' }}
@@ -1556,6 +1555,25 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                   disabled={generateAiMutation.isPending}
                   data-testid="input-ai-subject"
                 />
+              </div>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="aiPersonalize"
+                  checked={aiPersonalize}
+                  onCheckedChange={(v) => setAiPersonalize(v === true)}
+                  disabled={generateAiMutation.isPending}
+                  className="mt-0.5"
+                  data-testid="checkbox-ai-personalize"
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="aiPersonalize" className="cursor-pointer">
+                    Personalize greeting for each recipient
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    On: uses {'{{contact_name}}'}, replaced with each recipient's real name when sent.
+                    Off: a generic greeting like "Dear Partner".
+                  </p>
+                </div>
               </div>
               {htmlContent.replace(/<p>\s*<\/p>/g, '').trim() !== '' && (
                 <p className="text-xs text-muted-foreground">

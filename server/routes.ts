@@ -13215,7 +13215,7 @@ We look forward to hearing from you.`;
 
   app.post('/api/email-generator/generate', isAuthenticated, async (req: any, res) => {
     try {
-      const { prompt, subject, currentHtml } = req.body || {};
+      const { prompt, subject, currentHtml, usePersonalization } = req.body || {};
 
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.status(400).json({ message: 'Please describe what the email should say' });
@@ -13227,20 +13227,29 @@ We look forward to hearing from you.`;
 
       const logoUrl = process.env.EMAIL_LOGO_URL;
 
-      let systemPrompt = `You are a world-class HTML email designer for BFI, a premium B2B spice and food ingredient exporter. Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
+      let systemPrompt = `You are a world-class HTML email designer and senior B2B copywriter for Bright Fame Organic, a premium B2B spice and food ingredient exporter. Never use the abbreviation "BFI" anywhere — the company is always called "Bright Fame Organic". Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
 
-STRUCTURE — every email must have these sections in order: 1. LOGO HEADER BAND: A full-width table row with background color #15803d (dark green). Inside it, center the BFI logo image using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="BFI" width="160" style="display:block;width:160px;max-width:55%;height:auto;border:0;margin:0 auto;padding:18px 0;">. If no logo URL is provided, render a styled text header instead: white bold 26px company name centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: 2–4 feature or product highlight rows. Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280, e.g. "Trusted by 500+ food exporters across 40 countries" — styled with a subtle top and bottom border in #d1fae5. 5. CTA BUTTON: A prominent button centered in its own table row. The <a> tag must have: background-color #15803d; color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). 6. CLOSING: A warm 2-sentence closing paragraph, sign-off with a name placeholder, and the BFI team name. 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text: company address placeholder, and a plain "Unsubscribe" hyperlink.
+STRUCTURE — every email must have these sections in order: 1. LOGO HEADER BAND: If a logo URL is provided, the band background must be WHITE (#ffffff) with a 4px solid #15803d bottom border, and the logo centered using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="Bright Fame Organic" width="200" style="display:block;width:200px;max-width:65%;height:auto;border:0;margin:0 auto;padding:20px 0;">. If no logo URL is provided, render a full-width band with background color #15803d and a styled text header instead: white bold 26px company name "Bright Fame Organic" centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: One highlight row per product or key point in the brief — create as many rows as the brief requires (minimum 2, no upper limit). Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280 — use a real fact from the brief if one is given, otherwise a modest generic line like "Your trusted partner for premium organic ingredients" — styled with a subtle top and bottom border in #d1fae5. Never invent statistics. 5. CTA BUTTON: A prominent button centered in its own table row. The <a> tag must have: background-color #15803d; color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). 6. CLOSING: A warm 2-sentence closing paragraph, a sign-off with a name placeholder, and "The Bright Fame Organic Team". 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text containing EXACTLY this company info (never a placeholder): line 1: "Bright Fame Organic Pvt. Ltd." — line 2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India" — line 3: "+91-7249847439 | admin@bright-organic.com" — then a plain "Unsubscribe" hyperlink.
 
-DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;padding:40px 0;"> — this creates the gray page background. - Inner email card: centered table, max-width 600px, background #ffffff, border-radius 10px, overflow hidden, box-shadow 0 4px 24px rgba(0,0,0,0.08). - ALL CSS must be inline on every element — no <style> blocks, no class names, no external CSS. - Font stack everywhere: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif. - Never use <img> tags for icons, illustrations, bullets, or decorations — build all visual interest with colored table cells, borders, background colors, and typography. - If revising existing HTML that has other <img> tags, remove those images (keep their text) and keep only the official logo. - Personalization variables available: {{contact_name}}, {{company_name}}, {{email}}. Use {{contact_name}} in the opening greeting. - Never include script tags, external CSS links, or email-provider merge tags. - Respond with ONLY the raw HTML document starting with <!DOCTYPE html> and ending with </html>. Zero explanation, zero markdown fences.`;
+CONTENT COMPLETENESS — HIGHEST PRIORITY: The user's brief is the single source of truth. Include EVERY fact from the brief: product names, specifications, numbers, certifications, prices, MOQs, packaging details, dates, AND all shipping/logistics/timeline/location/contact details — nothing may be dropped, shortened away or vaguely summarized. If the brief lists many items, create one highlight row per item rather than omitting any. Shipping, delivery and logistics facts that do not fit a product row must still appear — put them in the hero paragraph, an extra highlight row, or the closing paragraph. Before you output, silently re-read the brief sentence by sentence and confirm each fact appears somewhere in the email; if any fact is missing, add it. Never invent products, certifications, statistics or claims that are not in the brief.
+
+WRITING QUALITY: Write specific, benefit-led B2B copy aimed at bulk buyers and food manufacturers: lead with what they care about (quality, certifications, consistency of supply, pricing, logistics). Short paragraphs of at most 3 sentences. Concrete facts over adjectives — avoid empty filler like "we are committed to excellence". The hero headline must deliver the core promise of the brief.
+
+PERSONALIZATION: Only when the request explicitly states that personalization is ENABLED may you use the variables {{contact_name}} and {{company_name}} (they are replaced with each recipient's real details at send time) — in that case greet with {{contact_name}}. When personalization is DISABLED, do NOT output any {{...}} tokens anywhere in the email — write a natural generic greeting such as "Dear Partner," instead.
+
+DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;padding:40px 0;"> — this creates the gray page background. - Inner email card: centered table, max-width 600px, background #ffffff, border-radius 10px, overflow hidden, box-shadow 0 4px 24px rgba(0,0,0,0.08). - ALL CSS must be inline on every element — no <style> blocks, no class names, no external CSS. - Font stack everywhere: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif. - Never use <img> tags for icons, illustrations, bullets, or decorations — build all visual interest with colored table cells, borders, background colors, and typography. - If revising existing HTML that has other <img> tags, remove those images (keep their text) and keep only the official logo. - Never include script tags, external CSS links, or email-provider merge tags. - Respond with ONLY the raw HTML document starting with <!DOCTYPE html> and ending with </html>. Zero explanation, zero markdown fences.`;
 
       if (logoUrl) {
         systemPrompt = systemPrompt.replace('REPLACE_WITH_YOUR_LOGO_URL', logoUrl);
       }
 
-      let userMessage = prompt.trim();
+      let userMessage = `EMAIL BRIEF (include every detail from it):\n${prompt.trim()}`;
       if (subject && typeof subject === 'string' && subject.trim()) {
         userMessage += `\n\nEmail subject line: ${subject.trim()}`;
       }
+      userMessage += usePersonalization === true
+        ? `\n\nPersonalization is ENABLED — greet with {{contact_name}}.`
+        : `\n\nPersonalization is DISABLED — do not use any {{...}} variables anywhere in the email.`;
       if (currentHtml && typeof currentHtml === 'string' && currentHtml.trim()) {
         userMessage += `\n\nHere is the current HTML to revise — keep what works and apply the requested changes: ${currentHtml}`;
       }
@@ -13257,7 +13266,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         body: JSON.stringify({
           model: 'gpt-4o',
           temperature: 0.6,
-          max_tokens: 4000,
+          max_tokens: 8000,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
@@ -13273,7 +13282,13 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       }
 
       const data = await openaiRes.json();
-      let html: string = data?.choices?.[0]?.message?.content || '';
+      const choice = data?.choices?.[0];
+      let html: string = choice?.message?.content || '';
+
+      if (choice?.finish_reason === 'length') {
+        console.warn('[AI Email] Output hit the token limit — likely truncated');
+        return res.status(502).json({ message: 'The generated email was cut off — please try a slightly shorter brief.' });
+      }
 
       // Strip accidental markdown fences
       html = html.trim()
