@@ -251,7 +251,7 @@ async function generateWithGemini(params: {
   const { userMessage } = buildAiUserMessage(params);
 
   const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
     {
       method: "POST",
       headers: {
