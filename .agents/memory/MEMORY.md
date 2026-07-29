@@ -1,2 +1,1 @@
 - [Country cleanup rules](country-cleanup.md) — 2,452 companies cleaned; normalized 825 rows + filled 160 missing via TLD/city detection; 15 remain blank (test entries + truly unknown).
-- [AI email generation providers](ai-email-generation.md) — user's OpenAI key has no quota; Gemini free tier only accepts `gemini-flash-latest`; service falls back OpenAI→Gemini.

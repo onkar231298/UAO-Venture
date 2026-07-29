@@ -138,8 +138,6 @@ import {
   Minus,
   Rows,
   Columns,
-  Sparkles,
-  Save,
 } from "lucide-react";
 
 interface CompanyContact {
@@ -235,13 +233,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
-  const [showAiDialog, setShowAiDialog] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiSubject, setAiSubject] = useState("");
-  const [aiImageUrls, setAiImageUrls] = useState("");
-  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [templateDescription, setTemplateDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -438,105 +429,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       setRawHtml(template.htmlContent);
       editor?.commands.setContent(template.htmlContent);
     }
-  };
-
-  const generateAiEmailMutation = useMutation({
-    mutationFn: async (data: { prompt: string; imageUrls?: string[]; subject?: string; currentHtml?: string }) => {
-      const res = await apiRequest('/api/email-generator/generate', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      return res.json();
-    },
-    onSuccess: (result: any) => {
-      if (result?.html) {
-        setHtmlContent(result.html);
-        setRawHtml(result.html);
-        editor?.commands.setContent(result.html);
-      }
-      if (result?.subject) {
-        setSubject(result.subject);
-      }
-      setShowAiDialog(false);
-      toast({
-        title: "Email generated!",
-        description: "Review the content and edit it as needed before sending.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "AI generation failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleGenerateWithAi = () => {
-    if (!aiPrompt.trim() || aiPrompt.trim().length < 5) {
-      toast({ title: "Please describe the email you want to write", variant: "destructive" });
-      return;
-    }
-    const imageUrls = aiImageUrls
-      .split(/[\n,]+/)
-      .map((u) => u.trim())
-      .filter((u) => /^https?:\/\//i.test(u));
-    const currentHtml = htmlContent.trim();
-    const isEmptyContent = !currentHtml || currentHtml === '<p></p>';
-    generateAiEmailMutation.mutate({
-      prompt: aiPrompt.trim(),
-      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-      subject: aiSubject.trim() || undefined,
-      currentHtml: isEmptyContent ? undefined : currentHtml,
-    });
-  };
-
-  const saveTemplateMutation = useMutation({
-    mutationFn: async (data: { name: string; subject: string; htmlContent: string; description?: string }) => {
-      const res = await apiRequest('/api/email-templates', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/email-templates'] });
-      setShowSaveTemplateDialog(false);
-      setTemplateName("");
-      setTemplateDescription("");
-      toast({
-        title: "Template saved!",
-        description: "You can now reuse it from the Template dropdown.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to save template",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSaveTemplate = () => {
-    if (!templateName.trim()) {
-      toast({ title: "Please enter a template name", variant: "destructive" });
-      return;
-    }
-    if (!subject.trim()) {
-      toast({ title: "Please enter an email subject first", variant: "destructive" });
-      return;
-    }
-    if (!htmlContent.trim()) {
-      toast({ title: "Please add email content first", variant: "destructive" });
-      return;
-    }
-    saveTemplateMutation.mutate({
-      name: templateName.trim(),
-      subject: subject.trim(),
-      htmlContent,
-      description: templateDescription.trim() || undefined,
-    });
   };
 
   const handleSendCampaign = () => {
@@ -1180,39 +1072,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       </ToolbarButton>
                     </div>
 
-                    <div className="flex items-center gap-1 border-r pr-1 mr-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs bg-gradient-to-r from-violet-50 to-blue-50 border-violet-200 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800"
-                        onClick={() => {
-                          setAiSubject(subject);
-                          setShowAiDialog(true);
-                        }}
-                      >
-                        <Sparkles className="h-3.5 w-3.5 mr-1" />
-                        Generate with AI
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => {
-                          if (!subject.trim() || !htmlContent.trim()) {
-                            toast({ title: "Add a subject and email content before saving a template", variant: "destructive" });
-                            return;
-                          }
-                          setTemplateName(campaignName || "");
-                          setShowSaveTemplateDialog(true);
-                        }}
-                      >
-                        <Save className="h-3.5 w-3.5 mr-1" />
-                        Save as Template
-                      </Button>
-                    </div>
-
                     {editorMode === 'visual' && editor && (
                       <>
                         <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
@@ -1604,137 +1463,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
           </TabsContent>
         </Tabs>
       </DialogContent>
-
-      {/* Write with AI Dialog */}
-      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-violet-600" />
-              Generate with AI
-            </DialogTitle>
-            <DialogDescription>
-              Describe the email you want. AI will write it as a properly formatted, professional HTML email with your product images embedded.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="aiPrompt" className="text-xs">Describe the email you want *</Label>
-              <Textarea
-                id="aiPrompt"
-                placeholder="e.g., Announce our new organic product range to food exporters. Highlight certifications, bulk pricing, and free samples. You can also paste product image links directly here."
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                rows={6}
-                className="text-sm mt-1"
-              />
-              {htmlContent.trim() && htmlContent.trim() !== '<p></p>' && (
-                <p className="text-[11px] text-violet-600 mt-1 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Your editor already has content — AI will revise it based on your instructions instead of starting over.
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="aiSubject" className="text-xs">Subject line (optional)</Label>
-              <Input
-                id="aiSubject"
-                placeholder="Leave blank and AI will write one for you"
-                value={aiSubject}
-                onChange={(e) => setAiSubject(e.target.value)}
-                className="text-sm mt-1 h-8"
-              />
-            </div>
-            <div>
-              <Label htmlFor="aiImages" className="text-xs">Product image links (optional)</Label>
-              <Textarea
-                id="aiImages"
-                placeholder={"https://example.com/product1.jpg\nhttps://example.com/product2.png"}
-                value={aiImageUrls}
-                onChange={(e) => setAiImageUrls(e.target.value)}
-                rows={3}
-                className="text-sm mt-1 font-mono"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                One link per line. These images will be embedded and formatted inside the email.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAiDialog(false)} disabled={generateAiEmailMutation.isPending}>
-              Cancel
-            </Button>
-            <Button onClick={handleGenerateWithAi} disabled={generateAiEmailMutation.isPending} className="min-w-[140px]">
-              {generateAiEmailMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Email
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Save as Template Dialog */}
-      <Dialog open={showSaveTemplateDialog} onOpenChange={setShowSaveTemplateDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Save className="h-5 w-5" />
-              Save as Template
-            </DialogTitle>
-            <DialogDescription>
-              Save the current subject and email content as a reusable template.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="templateName" className="text-xs">Template Name *</Label>
-              <Input
-                id="templateName"
-                placeholder="e.g., Product Introduction — Turmeric"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="templateDescription" className="text-xs">Description (optional)</Label>
-              <Input
-                id="templateDescription"
-                placeholder="What is this template for?"
-                value={templateDescription}
-                onChange={(e) => setTemplateDescription(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveTemplateDialog(false)} disabled={saveTemplateMutation.isPending}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveTemplate} disabled={saveTemplateMutation.isPending} className="min-w-[130px]">
-              {saveTemplateMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Template
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Dialog>
   );
 }
