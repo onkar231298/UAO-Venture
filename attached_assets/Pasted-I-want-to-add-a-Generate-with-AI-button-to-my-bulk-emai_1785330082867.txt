@@ -1,0 +1,43 @@
+I want to add a "✨ Generate with AI" button to my bulk email composer that generates a super-professional, visually rich HTML email — not plain text. This is for a spice trading / food export B2B business (BFI). Here is everything you need to build it from scratch:
+
+1. ADD THE OPENAI SECRET
+Add OPENAI_API_KEY to the Replit Secrets. I will fill in the value myself.
+
+2. BACKEND ROUTE
+Create a new POST route at /api/email-generator/generate that accepts JSON body { prompt, subject, currentHtml }.
+
+prompt (required) — what the user wants the email to say
+subject (optional) — the email subject line
+currentHtml (optional) — existing HTML if the user wants to revise it
+Call the OpenAI Chat Completions API with model gpt-4o using process.env.OPENAI_API_KEY. Use temperature: 0.6 and max_tokens: 4000.
+
+Use this exact system prompt (do not shorten or paraphrase it):
+
+You are a world-class HTML email designer for BFI, a premium B2B spice and food ingredient exporter. Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
+
+STRUCTURE — every email must have these sections in order: 1. LOGO HEADER BAND: A full-width table row with background color #15803d (dark green). Inside it, center the BFI logo image using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="BFI" width="160" style="display:block;width:160px;max-width:55%;height:auto;border:0;margin:0 auto;padding:18px 0;">. If no logo URL is provided, render a styled text header instead: white bold 26px company name centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: 2–4 feature or product highlight rows. Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280, e.g. "Trusted by 500+ food exporters across 40 countries" — styled with a subtle top and bottom border in #d1fae5. 5. CTA BUTTON: A prominent button centered in its own table row. The <a> tag must have: background-color #15803d; color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). 6. CLOSING: A warm 2-sentence closing paragraph, sign-off with a name placeholder, and the BFI team name. 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text: company address placeholder, and a plain "Unsubscribe" hyperlink.
+
+DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;padding:40px 0;"> — this creates the gray page background. - Inner email card: centered table, max-width 600px, background #ffffff, border-radius 10px, overflow hidden, box-shadow 0 4px 24px rgba(0,0,0,0.08). - ALL CSS must be inline on every element — no <style> blocks, no class names, no external CSS. - Font stack everywhere: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif. - Never use <img> tags for icons, illustrations, bullets, or decorations — build all visual interest with colored table cells, borders, background colors, and typography. - If revising existing HTML that has other <img> tags, remove those images (keep their text) and keep only the official logo. - Personalization variables available: {{contact_name}}, {{company_name}}, {{email}}. Use {{contact_name}} in the opening greeting. - Never include script tags, external CSS links, or email-provider merge tags. - Respond with ONLY the raw HTML document starting with <!DOCTYPE html> and ending with </html>. Zero explanation, zero markdown fences.
+After receiving the OpenAI response, strip any accidental markdown fences (```html / ```), then return { html } as JSON.
+
+If currentHtml is provided, include it in the user message as: "Here is the current HTML to revise — keep what works and apply the requested changes: [html]"
+
+3. FRONTEND BUTTON
+In the bulk email composer page, add a "✨ Generate with AI" button near the top of the email body editor (above or beside the toolbar).
+
+When clicked, show a modal dialog with:
+
+A heading: "Generate Email with AI"
+A textarea labelled "What should this email say?" with placeholder "e.g. Promote our new Kashmiri saffron range to food manufacturers, highlight purity certification and bulk pricing"
+A text input labelled "Subject line (optional)"
+A "Generate" button (green, matches the app style) and a "Cancel" button
+While loading: show a spinner and disable the Generate button with text "Generating…"
+On success, insert the returned HTML into the email body editor using the correct method for whichever editor library is already used in this project (check the existing code — use setContent, dangerouslyPasteHTML, .innerHTML =, or the editor's HTML/source mode as appropriate). Do not change the editor library.
+
+If there is already content in the editor when the user clicks "Generate with AI", pass that existing HTML as currentHtml so the AI revises it instead of starting over.
+
+4. LOGO URL
+In the backend route, use an environment variable EMAIL_LOGO_URL for the logo. If it is not set, fall back to a text-only header (no broken image). I will set the actual URL in Replit Secrets after you build it.
+
+Do not change anything else in the app. Only add the button, the modal, and the backend route.
+

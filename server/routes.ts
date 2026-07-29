@@ -13210,6 +13210,100 @@ We look forward to hearing from you.`;
   });
 
   // ============================================
+  // AI EMAIL GENERATOR
+  // ============================================
+
+  app.post('/api/email-generator/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, subject, currentHtml } = req.body || {};
+
+      if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+        return res.status(400).json({ message: 'Please describe what the email should say' });
+      }
+
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: 'OpenAI API key is not configured. Add OPENAI_API_KEY to Secrets.' });
+      }
+
+      const logoUrl = process.env.EMAIL_LOGO_URL;
+
+      let systemPrompt = `You are a world-class HTML email designer for BFI, a premium B2B spice and food ingredient exporter. Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
+
+STRUCTURE — every email must have these sections in order: 1. LOGO HEADER BAND: A full-width table row with background color #15803d (dark green). Inside it, center the BFI logo image using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="BFI" width="160" style="display:block;width:160px;max-width:55%;height:auto;border:0;margin:0 auto;padding:18px 0;">. If no logo URL is provided, render a styled text header instead: white bold 26px company name centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: 2–4 feature or product highlight rows. Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280, e.g. "Trusted by 500+ food exporters across 40 countries" — styled with a subtle top and bottom border in #d1fae5. 5. CTA BUTTON: A prominent button centered in its own table row. The <a> tag must have: background-color #15803d; color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). 6. CLOSING: A warm 2-sentence closing paragraph, sign-off with a name placeholder, and the BFI team name. 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text: company address placeholder, and a plain "Unsubscribe" hyperlink.
+
+DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;padding:40px 0;"> — this creates the gray page background. - Inner email card: centered table, max-width 600px, background #ffffff, border-radius 10px, overflow hidden, box-shadow 0 4px 24px rgba(0,0,0,0.08). - ALL CSS must be inline on every element — no <style> blocks, no class names, no external CSS. - Font stack everywhere: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif. - Never use <img> tags for icons, illustrations, bullets, or decorations — build all visual interest with colored table cells, borders, background colors, and typography. - If revising existing HTML that has other <img> tags, remove those images (keep their text) and keep only the official logo. - Personalization variables available: {{contact_name}}, {{company_name}}, {{email}}. Use {{contact_name}} in the opening greeting. - Never include script tags, external CSS links, or email-provider merge tags. - Respond with ONLY the raw HTML document starting with <!DOCTYPE html> and ending with </html>. Zero explanation, zero markdown fences.`;
+
+      if (logoUrl) {
+        systemPrompt = systemPrompt.replace('REPLACE_WITH_YOUR_LOGO_URL', logoUrl);
+      }
+
+      let userMessage = prompt.trim();
+      if (subject && typeof subject === 'string' && subject.trim()) {
+        userMessage += `\n\nEmail subject line: ${subject.trim()}`;
+      }
+      if (currentHtml && typeof currentHtml === 'string' && currentHtml.trim()) {
+        userMessage += `\n\nHere is the current HTML to revise — keep what works and apply the requested changes: ${currentHtml}`;
+      }
+      if (!logoUrl) {
+        userMessage += `\n\nNote: No logo URL is provided — use the styled text header on the green band instead of an image.`;
+      }
+
+      const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          temperature: 0.6,
+          max_tokens: 4000,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+
+      if (!openaiRes.ok) {
+        const errText = await openaiRes.text();
+        console.error('[AI Email] OpenAI API error:', openaiRes.status, errText.slice(0, 500));
+        return res.status(502).json({ message: `AI generation failed (OpenAI error ${openaiRes.status}). Please try again.` });
+      }
+
+      const data = await openaiRes.json();
+      let html: string = data?.choices?.[0]?.message?.content || '';
+
+      // Strip accidental markdown fences
+      html = html.trim()
+        .replace(/^```(?:html)?\s*/i, '')
+        .replace(/```\s*$/, '')
+        .trim();
+
+      // Defense in depth: the model is instructed never to emit scripts, but strip
+      // any script tags / inline event handlers / javascript: URLs before returning
+      html = html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/javascript:/gi, '');
+
+      if (!html) {
+        return res.status(502).json({ message: 'AI returned an empty response. Please try again.' });
+      }
+
+      res.json({ html });
+    } catch (error: any) {
+      console.error('[AI Email] Generation error:', error);
+      const isTimeout = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+      res.status(500).json({
+        message: isTimeout ? 'AI generation timed out. Please try again.' : 'Failed to generate email',
+        error: error?.message || 'Unknown error',
+      });
+    }
+  });
+
+  // ============================================
   // EMAIL TEMPLATES
   // ============================================
 

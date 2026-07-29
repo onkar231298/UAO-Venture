@@ -138,6 +138,7 @@ import {
   Minus,
   Rows,
   Columns,
+  Sparkles,
 } from "lucide-react";
 
 interface CompanyContact {
@@ -233,6 +234,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiSubjectInput, setAiSubjectInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -289,7 +293,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
 
   useEffect(() => {
     if (editor && htmlContent !== editor.getHTML()) {
-      editor.commands.setContent(htmlContent);
+      // emitUpdate: false — otherwise onUpdate would overwrite htmlContent with
+      // TipTap's simplified HTML, destroying full-document emails (AI-generated/pasted)
+      editor.commands.setContent(htmlContent, { emitUpdate: false });
     }
   }, [editor, htmlContent]);
 
@@ -347,6 +353,50 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       });
     },
   });
+
+  const generateAiMutation = useMutation({
+    mutationFn: async (data: { prompt: string; subject?: string; currentHtml?: string }) => {
+      const res = await apiRequest('/api/email-generator/generate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return res.json() as Promise<{ html: string }>;
+    },
+    onSuccess: ({ html }) => {
+      setHtmlContent(html);
+      setRawHtml(html);
+      setEditorMode('preview');
+      setShowAiDialog(false);
+      setAiPrompt("");
+      if (aiSubjectInput.trim() && !subject.trim()) {
+        setSubject(aiSubjectInput.trim());
+      }
+      toast({
+        title: "Email generated!",
+        description: "Showing preview. Use HTML mode to fine-tune if needed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Generation failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGenerateWithAi = () => {
+    if (!aiPrompt.trim()) {
+      toast({ title: "Please describe what the email should say", variant: "destructive" });
+      return;
+    }
+    const existingContent = htmlContent.replace(/<p>\s*<\/p>/g, '').trim();
+    generateAiMutation.mutate({
+      prompt: aiPrompt.trim(),
+      subject: aiSubjectInput.trim() || undefined,
+      currentHtml: existingContent ? htmlContent : undefined,
+    });
+  };
 
   const resetForm = () => {
     setCampaignName("");
@@ -1048,6 +1098,15 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
 
                 <div className="flex-1 flex flex-col min-h-0 border rounded-lg overflow-hidden">
                   <div className="border-b bg-gray-50 p-1.5 flex items-center gap-1 flex-wrap flex-shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() => { setAiSubjectInput(subject); setShowAiDialog(true); }}
+                      className="h-7 text-xs bg-green-700 hover:bg-green-800 text-white mr-1"
+                      data-testid="button-generate-ai"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 mr-1" />
+                      Generate with AI
+                    </Button>
                     <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
                       <ToolbarButton
                         onClick={() => setEditorMode('visual')}
@@ -1462,6 +1521,78 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
             )}
           </TabsContent>
         </Tabs>
+
+        <Dialog open={showAiDialog} onOpenChange={(o) => { if (!generateAiMutation.isPending) setShowAiDialog(o); }}>
+          <DialogContent className="sm:max-w-[540px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-green-700" />
+                Generate Email with AI
+              </DialogTitle>
+              <DialogDescription>
+                Describe what you want and AI will design a professional, ready-to-send HTML email.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="aiPrompt">What should this email say?</Label>
+                <Textarea
+                  id="aiPrompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="e.g. Promote our new Kashmiri saffron range to food manufacturers, highlight purity certification and bulk pricing"
+                  className="min-h-[110px]"
+                  disabled={generateAiMutation.isPending}
+                  data-testid="input-ai-prompt"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="aiSubject">Subject line (optional)</Label>
+                <Input
+                  id="aiSubject"
+                  value={aiSubjectInput}
+                  onChange={(e) => setAiSubjectInput(e.target.value)}
+                  placeholder="e.g. Premium Kashmiri Saffron — Now Available in Bulk"
+                  disabled={generateAiMutation.isPending}
+                  data-testid="input-ai-subject"
+                />
+              </div>
+              {htmlContent.replace(/<p>\s*<\/p>/g, '').trim() !== '' && (
+                <p className="text-xs text-muted-foreground">
+                  Your current email content will be revised, not replaced from scratch.
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowAiDialog(false)}
+                disabled={generateAiMutation.isPending}
+                data-testid="button-ai-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateWithAi}
+                disabled={generateAiMutation.isPending || !aiPrompt.trim()}
+                className="bg-green-700 hover:bg-green-800 text-white min-w-[130px]"
+                data-testid="button-ai-generate"
+              >
+                {generateAiMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
