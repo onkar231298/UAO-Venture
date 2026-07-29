@@ -194,14 +194,11 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedSchemesByTag: { img: ["http", "https"] },
 };
 
-async function generateWithOpenAI(params: {
+function buildAiUserMessage(params: {
   prompt: string;
   imageUrls?: string[];
   currentSubject?: string;
-}): Promise<{ subject: string; html: string }> {
-  const { default: OpenAI } = await import("openai");
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+}): { userMessage: string } {
   const promptUrls = extractImageUrls(params.prompt).filter(isLikelyImageUrl);
   const allImages = Array.from(new Set([...(params.imageUrls || []), ...promptUrls]));
 
@@ -214,8 +211,10 @@ async function generateWithOpenAI(params: {
   if (params.currentSubject) {
     userMessage += `\n\nThe user already has this subject line (improve it only if clearly better): "${params.currentSubject}"`;
   }
+  return { userMessage };
+}
 
-  const SYSTEM_PROMPT = `You are an expert B2B email marketing copywriter and HTML email designer.
+const AI_SYSTEM_PROMPT = `You are an expert B2B email marketing copywriter and HTML email designer.
 
 Generate a professional marketing email as JSON with exactly these keys:
 {
@@ -236,10 +235,66 @@ HTML rules (critical — this is for real email clients like Gmail/Outlook):
 
 Return ONLY valid JSON. No markdown fences, no commentary.`;
 
+function parseAiJson(raw: string): { subject: string; html: string } {
+  // Strip accidental markdown fences
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  const parsed = JSON.parse(cleaned);
+  if (!parsed.subject || !parsed.html) throw new Error("AI response missing subject or body.");
+  return { subject: String(parsed.subject), html: String(parsed.html) };
+}
+
+async function generateWithGemini(params: {
+  prompt: string;
+  imageUrls?: string[];
+  currentSubject?: string;
+}): Promise<{ subject: string; html: string }> {
+  const { userMessage } = buildAiUserMessage(params);
+
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY as string,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4000,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
+  }
+
+  const data: any = await res.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!raw) throw new Error("Gemini returned an empty response.");
+  return parseAiJson(raw);
+}
+
+async function generateWithOpenAI(params: {
+  prompt: string;
+  imageUrls?: string[];
+  currentSubject?: string;
+}): Promise<{ subject: string; html: string }> {
+  const { default: OpenAI } = await import("openai");
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const { userMessage } = buildAiUserMessage(params);
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: AI_SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ],
     response_format: { type: "json_object" },
@@ -249,9 +304,7 @@ Return ONLY valid JSON. No markdown fences, no commentary.`;
 
   const raw = response.choices[0]?.message?.content;
   if (!raw) throw new Error("AI returned an empty response.");
-  const parsed = JSON.parse(raw);
-  if (!parsed.subject || !parsed.html) throw new Error("AI response missing subject or body.");
-  return { subject: String(parsed.subject), html: String(parsed.html) };
+  return parseAiJson(raw);
 }
 
 export async function generateEmailWithAI(params: {
@@ -261,7 +314,14 @@ export async function generateEmailWithAI(params: {
 }): Promise<{ subject: string; html: string }> {
   let result: { subject: string; html: string };
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      result = await generateWithGemini(params);
+    } catch (err) {
+      console.error("[AI Email] Gemini generation failed, falling back to internal formatter:", err);
+      result = generateInternally(params);
+    }
+  } else if (process.env.OPENAI_API_KEY) {
     try {
       result = await generateWithOpenAI(params);
     } catch (err) {
