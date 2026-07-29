@@ -237,6 +237,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [aiSubject, setAiSubject] = useState("");
   const [aiImageUrls, setAiImageUrls] = useState("");
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
@@ -440,8 +441,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   };
 
   const generateAiEmailMutation = useMutation({
-    mutationFn: async (data: { prompt: string; imageUrls?: string[]; currentSubject?: string }) => {
-      const res = await apiRequest('/api/ai/generate-email', {
+    mutationFn: async (data: { prompt: string; imageUrls?: string[]; subject?: string; currentHtml?: string }) => {
+      const res = await apiRequest('/api/email-generator/generate', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -480,10 +481,13 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       .split(/[\n,]+/)
       .map((u) => u.trim())
       .filter((u) => /^https?:\/\//i.test(u));
+    const currentHtml = htmlContent.trim();
+    const isEmptyContent = !currentHtml || currentHtml === '<p></p>';
     generateAiEmailMutation.mutate({
       prompt: aiPrompt.trim(),
       imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-      currentSubject: subject.trim() || undefined,
+      subject: aiSubject.trim() || undefined,
+      currentHtml: isEmptyContent ? undefined : currentHtml,
     });
   };
 
@@ -1182,10 +1186,13 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                         size="sm"
                         variant="outline"
                         className="h-7 px-2 text-xs bg-gradient-to-r from-violet-50 to-blue-50 border-violet-200 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800"
-                        onClick={() => setShowAiDialog(true)}
+                        onClick={() => {
+                          setAiSubject(subject);
+                          setShowAiDialog(true);
+                        }}
                       >
                         <Sparkles className="h-3.5 w-3.5 mr-1" />
-                        Write with AI
+                        Generate with AI
                       </Button>
                       <Button
                         type="button"
@@ -1604,7 +1611,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-600" />
-              Write with AI
+              Generate with AI
             </DialogTitle>
             <DialogDescription>
               Describe the email you want. AI will write it as a properly formatted, professional HTML email with your product images embedded.
@@ -1612,14 +1619,30 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="aiPrompt" className="text-xs">What should the email say? *</Label>
+              <Label htmlFor="aiPrompt" className="text-xs">Describe the email you want *</Label>
               <Textarea
                 id="aiPrompt"
-                placeholder="e.g., Introduce our new organic turmeric powder to spice importers. Highlight certifications, bulk pricing, and free samples. You can also paste product image links directly here."
+                placeholder="e.g., Announce our new organic product range to food exporters. Highlight certifications, bulk pricing, and free samples. You can also paste product image links directly here."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 rows={6}
                 className="text-sm mt-1"
+              />
+              {htmlContent.trim() && htmlContent.trim() !== '<p></p>' && (
+                <p className="text-[11px] text-violet-600 mt-1 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Your editor already has content — AI will revise it based on your instructions instead of starting over.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="aiSubject" className="text-xs">Subject line (optional)</Label>
+              <Input
+                id="aiSubject"
+                placeholder="Leave blank and AI will write one for you"
+                value={aiSubject}
+                onChange={(e) => setAiSubject(e.target.value)}
+                className="text-sm mt-1 h-8"
               />
             </div>
             <div>

@@ -13215,7 +13215,7 @@ We look forward to hearing from you.`;
 
   const aiEmailRateLimit = new Map<string, { count: number; resetAt: number }>();
 
-  app.post('/api/ai/generate-email', isAuthenticated, async (req: any, res) => {
+  app.post('/api/email-generator/generate', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -13241,7 +13241,8 @@ We look forward to hearing from you.`;
       const aiSchema = z.object({
         prompt: z.string().min(5, "Please describe the email you want to write").max(8000),
         imageUrls: z.array(z.string().url()).max(20).optional(),
-        currentSubject: z.string().max(500).optional(),
+        subject: z.string().max(500).optional(),
+        currentHtml: z.string().max(200000).optional(),
       });
 
       const validationResult = aiSchema.safeParse(req.body);
