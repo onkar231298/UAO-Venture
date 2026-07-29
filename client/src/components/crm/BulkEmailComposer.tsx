@@ -512,7 +512,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       htmlContent,
       companyIds: selectedCompanyIds,
       scheduledAt,
-      replyTo: user?.email || undefined,
+      // No replyTo override: the server defaults reply-to to sales@bright-organic.com.
+      // (Previously this sent the logged-in user's email, e.g. admin@bfiorganic.com.)
       attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
     });
   };
