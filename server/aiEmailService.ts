@@ -46,6 +46,29 @@ function imageBlock(url: string): string {
   return `<img src="${escapeHtml(url)}" alt="Product image" style="${IMG_STYLE}" />`;
 }
 
+// PropDocx-style benefits panel: white card, green left border, green checkmarks
+function checkmarkPanel(items: string[]): string {
+  const rows = items
+    .map((item) => {
+      // Bold the lead-in phrase before a colon, if present
+      const colonIdx = item.indexOf(":");
+      const content =
+        colonIdx > 0 && colonIdx < 60
+          ? `<strong style="color:#1b3a1f;">${formatInline(item.slice(0, colonIdx + 1))}</strong> ${formatInline(item.slice(colonIdx + 1).trim())}`
+          : formatInline(item);
+      return `<tr>
+        <td valign="top" style="width:26px; padding:7px 0; color:#2e7d32; font-size:15px; font-weight:bold;">&#10004;</td>
+        <td style="padding:7px 0; color:#3d4a3e; font-size:14px; line-height:1.6;">${content}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0; background-color:#ffffff; border:1px solid #e0e8e0; border-left:4px solid #2e7d32; border-radius:8px;">
+    <tr><td style="padding:16px 22px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    </td></tr>
+  </table>`;
+}
+
 /**
  * Internal smart formatter: turns a free-text brief into a clean,
  * professional HTML email. Rules:
@@ -87,8 +110,15 @@ function generateInternally(params: {
   const cleaned = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
   if (!subject) {
-    const firstSentence = cleaned.split(/(?<=[.!?])\s+/)[0] || "A message from {{company_name}}";
-    subject = firstSentence.replace(/\s+/g, " ").trim().slice(0, 78);
+    // Derive from the first sentence that is NOT a greeting line
+    const sentences = cleaned.split(/(?<=[.!?])\s+|\n/).map((s) => s.trim()).filter(Boolean);
+    const candidate = sentences.find(
+      (s) => !/^(dear|hi|hello|greetings|good\s(morning|afternoon|evening))\b/i.test(s) && s.length > 12
+    );
+    subject = (candidate || "Premium Organic Spices & Herbs from Bright Organic")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 78);
     if (subject.length === 78) subject = subject.replace(/\s+\S*$/, "") + "…";
   }
 
@@ -102,26 +132,16 @@ function generateInternally(params: {
     if (paraLines.length === 0) continue;
 
     const bulletLines = paraLines.filter((l) => /^[-*•]\s+/.test(l));
-    if (bulletLines.length > 0 && bulletLines.length === paraLines.length) {
-      const items = paraLines
-        .map((l) => l.replace(/^[-*•]\s+/, ""))
-        .map((l) => `<li style="margin:6px 0;">${formatInline(l)}</li>`)
-        .join("");
-      blocks.push(`<ul style="margin:14px 0; padding-left:22px; color:#333333;">${items}</ul>`);
-    } else if (bulletLines.length > 0) {
-      // Mixed: leading text then bullets
+    if (bulletLines.length > 0) {
+      // Leading text (if any) then a styled checkmark panel
       const textPart = paraLines.filter((l) => !/^[-*•]\s+/.test(l)).join(" ");
       if (textPart) {
-        blocks.push(`<p style="margin:14px 0; color:#333333; font-size:15px; line-height:1.6;">${formatInline(textPart)}</p>`);
+        blocks.push(`<p style="margin:16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">${formatInline(textPart)}</p>`);
       }
-      const items = bulletLines
-        .map((l) => l.replace(/^[-*•]\s+/, ""))
-        .map((l) => `<li style="margin:6px 0;">${formatInline(l)}</li>`)
-        .join("");
-      blocks.push(`<ul style="margin:14px 0; padding-left:22px; color:#333333;">${items}</ul>`);
+      blocks.push(checkmarkPanel(bulletLines.map((l) => l.replace(/^[-*•]\s+/, ""))));
     } else {
       blocks.push(
-        `<p style="margin:14px 0; color:#333333; font-size:15px; line-height:1.6;">${formatInline(paraLines.join(" "))}</p>`
+        `<p style="margin:16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">${formatInline(paraLines.join(" "))}</p>`
       );
     }
   }
@@ -142,30 +162,63 @@ function generateInternally(params: {
 
   const greeting = hasGreeting
     ? ""
-    : `<p style="margin:0 0 14px 0; color:#333333; font-size:15px; line-height:1.6;">Dear {{contact_name}},</p>`;
+    : `<p style="margin:0 0 16px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">Dear Purchaser,</p>`;
+
+  // Headline for the green banner: prefer subject-like text, else first sentence
+  let headline = subject && !/^dear\b/i.test(subject) ? subject : "";
+  if (!headline) {
+    headline = "Premium Organic Spices & Herbs for Your Business";
+  }
 
   const html = `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding:24px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef2ee; padding:32px 0;">
   <tr>
     <td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden; font-family:Arial, Helvetica, sans-serif;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #dfe7df; font-family:Arial, Helvetica, sans-serif;">
         <tr>
-          <td style="padding:8px 32px 0 32px;">
-            <div style="height:4px; background:linear-gradient(90deg,#2e7d32,#66bb6a); border-radius:2px; margin-bottom:20px;"></div>
+          <td align="center" style="padding:26px 32px 18px 32px; background-color:#ffffff;">
+            <div style="font-size:24px; font-weight:bold; color:#1b5e20; letter-spacing:2px;">BRIGHT ORGANIC</div>
+            <div style="font-size:11px; color:#c9a227; letter-spacing:3px; margin-top:6px; text-transform:uppercase;">Premium Organic Spices &amp; Herbs</div>
           </td>
         </tr>
         <tr>
-          <td style="padding:8px 32px 8px 32px;">
+          <td align="center" style="background:linear-gradient(135deg,#1b5e20,#2e7d32); background-color:#2e7d32; padding:30px 36px;">
+            <div style="font-size:24px; line-height:1.35; font-weight:bold; color:#ffffff;">${formatInline(headline)}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="height:4px; line-height:4px; font-size:0; background-color:#c9a227;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="padding:30px 36px 8px 36px;">
             ${greeting}
             ${contentParts.join("\n            ")}
           </td>
         </tr>
         <tr>
-          <td style="padding:8px 32px 28px 32px;">
-            <p style="margin:18px 0 4px 0; color:#333333; font-size:15px; line-height:1.6;">Best regards,</p>
-            <p style="margin:0; color:#333333; font-size:15px; line-height:1.6; font-weight:bold;">The {{company_name}} Team</p>
-            <hr style="border:none; border-top:1px solid #eeeeee; margin:20px 0 12px 0;" />
-            <p style="margin:0; color:#999999; font-size:12px; line-height:1.5;">You are receiving this email because of your business relationship with us. If you'd prefer not to receive these emails, simply reply and let us know.</p>
+          <td align="center" style="padding:8px 36px 6px 36px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background-color:#2e7d32; border-radius:8px;">
+                  <a href="mailto:info@bfiorganic.com" style="display:inline-block; padding:14px 40px; color:#ffffff; font-size:15px; font-weight:bold; text-decoration:none;">&#9993;&nbsp; Get in Touch Today</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:12px 0 0 0; color:#8a978b; font-size:12px;">Free Samples Available &bull; Fast Response &bull; Export Quality Assured</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 36px 26px 36px;">
+            <p style="margin:14px 0 4px 0; color:#3d4a3e; font-size:15px; line-height:1.7;">Warm regards,</p>
+            <p style="margin:0; color:#1b3a1f; font-size:15px; line-height:1.7; font-weight:bold;">The Bright Organic Team</p>
+            <p style="margin:2px 0 0 0; color:#8a978b; font-size:13px;">Premium Organic Spices &amp; Herbs Supplier</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="background-color:#f5f8f5; padding:20px 32px; border-top:1px solid #e5ece5;">
+            <p style="margin:0 0 6px 0; color:#2e7d32; font-size:13px; font-weight:bold; letter-spacing:1px;">BRIGHT ORGANIC</p>
+            <p style="margin:0 0 6px 0; color:#6b7a6c; font-size:12px;">100% Certified Organic &bull; Farm to Table &bull; Export Quality</p>
+            <p style="margin:0; color:#9aa79b; font-size:11px;">You are receiving this email as a valued business contact of Bright Organic. If you'd prefer not to receive these emails, simply reply and let us know.</p>
           </td>
         </tr>
       </table>
@@ -358,7 +411,12 @@ export async function generateEmailWithAI(params: {
 }): Promise<{ subject: string; html: string }> {
   let result: { subject: string; html: string };
 
-  if (process.env.GEMINI_API_KEY) {
+  // Per user preference the built-in designer is the default — it produces the
+  // branded PropDocx-style layout deterministically. Set AI_EMAIL_PROVIDER=gemini
+  // or =openai to opt back into external AI generation.
+  const provider = (process.env.AI_EMAIL_PROVIDER || "internal").toLowerCase();
+
+  if (provider === "gemini" && process.env.GEMINI_API_KEY) {
     try {
       result = await generateWithGemini(params);
     } catch (err) {
@@ -373,7 +431,7 @@ export async function generateEmailWithAI(params: {
     if (!result.subject) {
       result.subject = params.currentSubject || "A message from Bright Organic";
     }
-  } else if (process.env.OPENAI_API_KEY) {
+  } else if (provider === "openai" && process.env.OPENAI_API_KEY) {
     try {
       result = await generateWithOpenAI(params);
     } catch (err) {

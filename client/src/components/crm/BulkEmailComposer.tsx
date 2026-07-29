@@ -451,7 +451,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       if (result?.html) {
         setHtmlContent(result.html);
         setRawHtml(result.html);
-        editor?.commands.setContent(result.html);
+        // Don't load into the visual editor — it strips the email design
+        // (tables, colors, inline styles). Show the rendered preview instead.
+        setEditorMode('preview');
       }
       if (result?.subject) {
         setSubject(result.subject);
