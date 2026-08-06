@@ -13279,17 +13279,66 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         signal: AbortSignal.timeout(120000),
       });
 
-      if (!openaiRes.ok) {
+      let html = '';
+      let truncated = false;
+
+      if (openaiRes.ok) {
+        const data = await openaiRes.json();
+        const choice = data?.choices?.[0];
+        html = choice?.message?.content || '';
+        truncated = choice?.finish_reason === 'length';
+      } else {
         const errText = await openaiRes.text();
         console.error('[AI Email] OpenAI API error:', openaiRes.status, errText.slice(0, 500));
-        return res.status(502).json({ message: `AI generation failed (OpenAI error ${openaiRes.status}). Please try again.` });
+        const quotaExhausted = openaiRes.status === 429 && /insufficient_quota|credit_balance_exhausted/i.test(errText);
+        const retriable = openaiRes.status === 429 || openaiRes.status >= 500;
+        if (!retriable) {
+          return res.status(502).json({ message: `AI generation failed (OpenAI error ${openaiRes.status}). Please try again.` });
+        }
+
+        // OpenAI is out of credits or rate-limited — fall back to Gemini
+        // (GEMINI_API_KEY is already configured) so generation keeps working.
+        console.warn('[AI Email] OpenAI unavailable — falling back to Gemini');
+        // Two-model cascade: flash-latest can throw transient 503s under load.
+        const geminiModels = ['gemini-flash-latest', 'gemini-3-flash-preview'];
+        let gData: any = null;
+        let gLastErr = '';
+        for (const gModel of geminiModels) {
+          const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent`, {
+            method: 'POST',
+            headers: {
+              'x-goog-api-key': process.env.GEMINI_API_KEY || '',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+              generationConfig: { temperature: 0.6, maxOutputTokens: 16000 },
+            }),
+            signal: AbortSignal.timeout(120000),
+          });
+          if (geminiRes.ok) {
+            gData = await geminiRes.json();
+            console.log(`[AI Email] Gemini fallback served the request (${gModel})`);
+            break;
+          }
+          gLastErr = `${geminiRes.status} ${(await geminiRes.text()).slice(0, 300)}`;
+          console.error(`[AI Email] Gemini ${gModel} error:`, gLastErr);
+        }
+
+        if (!gData) {
+          if (quotaExhausted && gLastErr.startsWith('429')) {
+            return res.status(502).json({ message: 'The OpenAI account is out of credits, and the Gemini backup hit its daily limit too. Add OpenAI credits at platform.openai.com → Settings → Billing, then try again.' });
+          }
+          return res.status(502).json({ message: 'AI generation is temporarily unavailable — wait a minute and try again. (For full reliability, add OpenAI credits at platform.openai.com → Settings → Billing.)' });
+        }
+
+        const gCand = gData?.candidates?.[0];
+        html = (gCand?.content?.parts || []).map((p: any) => p?.text || '').join('');
+        truncated = gCand?.finishReason === 'MAX_TOKENS';
       }
 
-      const data = await openaiRes.json();
-      const choice = data?.choices?.[0];
-      let html: string = choice?.message?.content || '';
-
-      if (choice?.finish_reason === 'length') {
+      if (truncated) {
         console.warn('[AI Email] Output hit the token limit — likely truncated');
         return res.status(502).json({ message: 'The generated email was cut off — please try a slightly shorter brief.' });
       }
