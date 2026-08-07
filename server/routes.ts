@@ -7861,6 +7861,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const overdue = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) < todayStart);
       const today = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) >= todayStart && new Date(t.dueDate) <= todayEnd);
       const upcoming = rawTasks.filter(t => t.dueDate && new Date(t.dueDate) > todayEnd && new Date(t.dueDate) <= upcomingEnd);
+      // Tasks due beyond this week, or without a due date — surfaced on the Follow-ups page
+      const later = rawTasks.filter(t => !t.dueDate || new Date(t.dueDate) > upcomingEnd);
 
       // Completed today — also only for current user
       const completedToday = await db
@@ -7886,10 +7888,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         overdue,
         today,
         upcoming,
+        later,
         completedToday,
         overdueCount: overdue.length,
         todayCount: today.length,
         upcomingCount: upcoming.length,
+        laterCount: later.length,
         completedTodayCount: completedToday.length,
       });
     } catch (error) {

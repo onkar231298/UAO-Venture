@@ -77,7 +77,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
       items: [
         { key: "/sales/leads", label: "My Leads", icon: Target, badge: summary.activeLeads > 0 ? summary.activeLeads : undefined },
         { key: "/sales/my-companies", label: "My Companies", icon: Building2 },
-        { key: "/sales/my-companies?tab=followups", label: "Follow-ups", icon: AlarmClock, badge: followUpBadge > 0 ? followUpBadge : undefined, badgeColor: (followUpData?.overdueCount || 0) > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white" },
+        { key: "/sales/follow-ups", label: "Follow-ups", icon: AlarmClock, badge: followUpBadge > 0 ? followUpBadge : undefined, badgeColor: (followUpData?.overdueCount || 0) > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white" },
         { key: "/sales/my-sales", label: "My Sales & Quotations", icon: FileText },
       ],
     },

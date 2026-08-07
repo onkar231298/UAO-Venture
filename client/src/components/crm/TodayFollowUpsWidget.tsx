@@ -27,7 +27,7 @@ import {
   PartyPopper,
   AlertTriangle,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const TYPE_ICONS: Record<string, React.ComponentType<any>> = {
   call: Phone,
@@ -73,6 +73,7 @@ interface TodayFollowUpsData {
 export function TodayFollowUpsWidget() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [completeTask, setCompleteTask] = useState<FollowUpTask | null>(null);
@@ -116,6 +117,12 @@ export function TodayFollowUpsWidget() {
     !isLoading && !hasAnyTasks && (data?.completedTodayCount || 0) > 0;
   const totalPending = (data?.overdueCount || 0) + (data?.todayCount || 0);
 
+  // Open the company details dialog (on its Follow-ups tab) for this task
+  const openCompany = (task: FollowUpTask) => {
+    if (!task.companyId) return;
+    setLocation(`/sales/my-companies?openCompany=${task.companyId}&tab=followups`);
+  };
+
   function renderTaskRow(task: FollowUpTask, isOverdue: boolean) {
     const Icon = TYPE_ICONS[task.taskType] || Phone;
     const daysOverdue = task.dueDate
@@ -125,18 +132,30 @@ export function TodayFollowUpsWidget() {
     return (
       <div
         key={task.id}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
-          isOverdue ? "bg-red-50" : "bg-amber-50/60"
+        onClick={() => openCompany(task)}
+        data-testid={`row-followup-${task.id}`}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+          isOverdue ? "bg-red-50 hover:bg-red-100" : "bg-amber-50/60 hover:bg-amber-100/70"
         }`}
       >
         <Icon className={`w-4 h-4 flex-shrink-0 ${isOverdue ? "text-red-500" : "text-amber-600"}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm text-gray-900 truncate max-w-[140px]">
+            <span
+              className="font-medium text-sm text-gray-900 truncate max-w-[140px]"
+              title={task.companyName || undefined}
+            >
               {task.companyName || "Unknown"}
             </span>
-            <span className="text-xs text-gray-500 truncate max-w-[160px]">{task.title}</span>
+            <span className="text-xs text-gray-500 truncate max-w-[160px]" title={task.title}>
+              {task.title}
+            </span>
           </div>
+          {task.description && (
+            <div className="text-xs text-gray-500 truncate mt-0.5" title={task.description}>
+              {task.description}
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-0.5">
             {isOverdue && daysOverdue > 0 && (
               <Badge className="bg-red-100 text-red-700 text-xs py-0">{daysOverdue}d overdue</Badge>
@@ -155,7 +174,10 @@ export function TodayFollowUpsWidget() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div
+          className="flex items-center gap-1 flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Snooze */}
           <Popover>
             <PopoverTrigger asChild>
@@ -248,8 +270,8 @@ export function TodayFollowUpsWidget() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/sales/my-companies">
-                <Button variant="ghost" size="sm" className="text-xs h-7">
+              <Link href="/sales/follow-ups">
+                <Button variant="ghost" size="sm" className="text-xs h-7" data-testid="link-view-all-followups">
                   View All
                 </Button>
               </Link>
@@ -318,7 +340,12 @@ export function TodayFollowUpsWidget() {
                     {data?.upcoming.slice(0, 5).map((t) => {
                       const Icon = TYPE_ICONS[t.taskType] || Phone;
                       return (
-                        <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded text-xs">
+                        <div
+                          key={t.id}
+                          onClick={() => openCompany(t)}
+                          data-testid={`row-upcoming-${t.id}`}
+                          className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 hover:bg-gray-100 rounded text-xs cursor-pointer transition-colors"
+                        >
                           <Icon className="w-3.5 h-3.5 text-gray-400" />
                           <span className="text-gray-600 font-medium">{t.dueDate ? format(new Date(t.dueDate), "EEE, MMM d") : ""}</span>
                           <span className="text-gray-500 truncate">{t.companyName}</span>

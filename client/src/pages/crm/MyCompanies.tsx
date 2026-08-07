@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useSearch, useLocation } from "wouter";
 import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1282,6 +1283,55 @@ export default function MyCompanies() {
   const myCompanies = (companiesData?.companies || []).filter(
     (company) => company.assignedTo === user?.id
   );
+
+  // Auto-open a company dialog when arriving with ?openCompany=<id> (e.g. from follow-up lists)
+  const searchParamsString = useSearch();
+  const [, setLocation] = useLocation();
+  const openParamHandled = useRef(false);
+  useEffect(() => {
+    if (openParamHandled.current) return;
+    const params = new URLSearchParams(searchParamsString);
+    const openCompanyId = params.get("openCompany");
+    if (!openCompanyId) return;
+    openParamHandled.current = true;
+
+    const tab = params.get("tab");
+    const applyTab = () => {
+      if (tab && ["info", "contacts", "emails", "calls", "notes", "followups", "activity"].includes(tab)) {
+        setDialogTab(tab);
+      }
+    };
+    // Clean the URL through the router once resolution is terminal, so closing
+    // the dialog / refreshing / going back doesn't re-open it
+    const cleanUrl = () => setLocation("/sales/my-companies", { replace: true });
+
+    const id = Number(openCompanyId);
+    if (!Number.isInteger(id) || id <= 0) {
+      cleanUrl();
+      return;
+    }
+
+    // Resolve the company directly by id — the visible list may exclude it
+    // (marked not-relevant, filtered by search/date, or still loading). The
+    // server logs the staff access event for this endpoint, so no separate
+    // track-view call here (avoids double-counting toward security alerts).
+    (async () => {
+      try {
+        const res = await apiRequest(`/api/crm/companies/${id}`);
+        const company: Company = await res.json();
+        applyTab();
+        setSelectedCompany(company);
+      } catch {
+        toast({
+          title: "Couldn't open company",
+          description: "It may have been removed, or you no longer have access to it.",
+          variant: "destructive",
+        });
+      } finally {
+        cleanUrl();
+      }
+    })();
+  }, [searchParamsString]);
 
   const markIrrelevantMutation = useMutation({
     mutationFn: async ({ companyId, isIrrelevant, reason }: { companyId: number; isIrrelevant: boolean; reason?: string }) => {

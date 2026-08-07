@@ -3,3 +3,4 @@
 - [AI email prompt completeness](ai-email-prompt-completeness.md) — gpt-4o drops trailing brief facts; the sentence-by-sentence self-check line in the prompt is load-bearing, don't trim it.
 - [SendGrid click tracking SSL](sendgrid-click-tracking-ssl.md) — click tracking disabled per-message: branded link subdomain has no SSL cert, https clicks get browser-blocked; don't re-enable without branded-link SSL.
 - [Gemini email fallback](gemini-email-fallback.md) — gpt-4o primary, Gemini flash cascade backup; free-tier key: only -latest aliases callable, thinking eats token budget, transient 503s.
+- [CRM company deep-links](crm-deeplink-company-open.md) — resolve ?openCompany via GET :id, not the filtered list; that GET logs staff access itself — adding track-view double-counts security alerts.
