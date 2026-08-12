@@ -19,6 +19,18 @@ function validateEnvironment() {
 }
 
 const app = express();
+
+// Canonical host: send www.bright-organic.com visitors to bright-organic.com.
+// Only takes effect in production once www is linked in Publishing → Domains;
+// dev domains and the apex domain are untouched.
+app.use((req, res, next) => {
+  const host = (req.headers.host || "").toLowerCase();
+  if (host === "www.bright-organic.com") {
+    return res.redirect(301, `https://bright-organic.com${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
