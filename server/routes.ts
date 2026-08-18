@@ -78,7 +78,7 @@ import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } fro
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
-import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
+import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, isAllowedAttachmentExt, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
@@ -101,13 +101,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
     fileFilter: (req, file, cb) => {
       const mimeType = file.mimetype;
-      if (ImageProcessor.isValidImageFormat(mimeType)) {
+      // Images pass by MIME; documents pass by extension allowlist (bytes are validated in the route before S3)
+      if (ImageProcessor.isValidImageFormat(mimeType) || isAllowedAttachmentExt(file.originalname)) {
         cb(null, true);
       } else {
-        cb(new Error(`Unsupported image format: ${mimeType}. Supported: JPEG, PNG, GIF, TIFF, BMP, WebP`));
+        cb(new Error(`Unsupported file type: ${file.originalname}. Supported: images (JPEG, PNG, GIF, TIFF, BMP, WebP) and documents (PDF, Word, Excel, CSV)`));
       }
     }
   });
+
+  // Decides how an uploaded product file must be handled. Any file whose extension is on
+  // the attachment allowlist gets its real bytes validated against that extension first —
+  // the client-declared MIME type must never route a file around byte validation.
+  const IMAGE_ATTACHMENT_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+  const classifyUploadedFile = (file: Express.Multer.File): { kind: 'image' | 'document'; error?: string } => {
+    const dot = file.originalname.lastIndexOf('.');
+    const ext = dot >= 0 ? file.originalname.slice(dot).toLowerCase() : '';
+    const isImageMime = ImageProcessor.isValidImageFormat(file.mimetype);
+    if (isAllowedAttachmentExt(file.originalname)) {
+      const invalid = validateQualityFileBytes(file.buffer, file.originalname);
+      if (invalid) return { kind: 'document', error: `${file.originalname}: ${invalid}` };
+      // Image extensions ALWAYS take the decode pipeline — the signature check alone is not
+      // proof of a real image, and a forged non-image MIME must not divert bytes to a raw write
+      return { kind: IMAGE_ATTACHMENT_EXTS.has(ext) ? 'image' : 'document' };
+    }
+    // Not an allowlisted extension: only image MIMEs pass the multer filter (e.g. TIFF/BMP).
+    // These must decode as images downstream — decode failure is rejected, never raw-uploaded.
+    if (isImageMime) return { kind: 'image' };
+    return { kind: 'document', error: `${file.originalname}: unsupported file type` };
+  };
 
   // Auth middleware
   await setupAuth(app);
@@ -4615,7 +4637,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       for (const file of files) {
         const fieldName = file.fieldname;
         console.log(`Processing field: ${fieldName}, file: ${file.originalname}`);
-        
+
+        // Hero slides only accept images. The shared upload filter also admits document
+        // extensions (for the product form) — those must never reach raw upload paths here.
+        if (!ImageProcessor.isValidImageFormat(file.mimetype)) {
+          return res.status(400).json({ message: `${file.originalname}: only image files can be used for hero slides` });
+        }
+
         if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
           // Process images with WebP conversion
           console.log(`📸 Processing hero slider image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
@@ -4658,20 +4686,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
             console.log(`✅ Successfully processed hero slider image ${file.originalname} -> ${largeUrl}`);
             
           } catch (error) {
-            console.error(`❌ Failed to process hero slider image ${file.originalname}:`, error);
-            // Fallback: upload original image without WebP processing
-            const objectKey = `hero-slides/${slideId}/${file.originalname}-${Date.now()}`;
-            const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-            const command = new PutObjectCommand({
-              Bucket: process.env.AWS_S3_BUCKET_NAME!,
-              Key: objectKey,
-              Body: file.buffer,
-              ContentType: file.mimetype,
-            });
-            
-            const { s3Client } = await import('./awsS3Service');
-            await s3Client.send(command);
-            uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+            // Decode failure means the bytes are not a real image — never raw-upload them
+            console.error(`❌ Not a decodable hero slider image ${file.originalname}:`, error);
+            return res.status(400).json({ message: `${file.originalname}: file is not a valid image` });
           }
         } else if (file.mimetype.startsWith('video/')) {
           // Process videos without conversion - upload as-is
@@ -4724,7 +4741,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Upload product images and documents with WebP processing for images
-  app.post('/api/admin/products/upload', isAuthenticated, isAdminOrWebsiteManager, webpUpload.any(), async (req: any, res) => {
+  // Multer is invoked manually so filter/size rejections return a clean 400 (not a generic 500)
+  app.post('/api/admin/products/upload', isAuthenticated, isAdminOrWebsiteManager, (req: any, res, next) => {
+    webpUpload.any()(req, res, (err: any) => {
+      if (err) {
+        console.error('Product upload rejected:', err?.message);
+        const message = err?.code === 'LIMIT_FILE_SIZE'
+          ? 'File is too large (max 10MB)'
+          : (err?.message || 'Upload failed');
+        return res.status(400).json({ message });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -4764,53 +4793,31 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           const processedUrls: string[] = [];
           
           for (const file of fileArray) {
-            if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
-              console.log(`📸 Processing image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
-              
+            const route = classifyUploadedFile(file);
+            if (route.error) {
+              return res.status(400).json({ message: route.error });
+            }
+            if (route.kind === 'image') {
+              console.log(`📸 Processing image: ${file.originalname} (${file.size} bytes)`);
+              let processedImages;
               try {
-                // Process image into 3 WebP sizes
-                const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
-                
-                // Upload all 3 sizes to S3
-                const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
-                
-                // Use medium size for gallery
-                processedUrls.push(uploadedUrls.medium);
-                console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
-                
+                // Decode + convert into 3 WebP sizes — decode failure means the bytes are not a real image
+                processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
               } catch (error) {
-                console.error(`❌ Failed to process image ${file.originalname}:`, error);
-                // Fallback: upload original image without WebP processing
-                const objectKey = `products/${productId}/${file.originalname}-${Date.now()}`;
-                const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-                const command = new PutObjectCommand({
-                  Bucket: process.env.AWS_S3_BUCKET_NAME!,
-                  Key: objectKey,
-                  Body: file.buffer,
-                  ContentType: file.mimetype,
-                });
-                
-                const { s3Client } = await import('./awsS3Service');
-                await s3Client.send(command);
-                processedUrls.push(s3Service.getObjectURL(objectKey));
+                console.error(`❌ Not a decodable image ${file.originalname}:`, error);
+                return res.status(400).json({ message: `${file.originalname}: file is not a valid image` });
               }
+              // S3 errors here fall through to the route's catch (500) — never a raw-bytes fallback
+              const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
+              processedUrls.push(uploadedUrls.medium);
+              console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
             } else {
-              // Non-image files (documents) - upload as-is
-              console.log(`📄 Processing document: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
-              
-              const objectKey = `products/${productId}/documents/${file.originalname}-${Date.now()}`;
-              const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-              const command = new PutObjectCommand({
-                Bucket: process.env.AWS_S3_BUCKET_NAME!,
-                Key: objectKey,
-                Body: file.buffer,
-                ContentType: file.mimetype,
-              });
-              
-              const { s3Client } = await import('./awsS3Service');
-              await s3Client.send(command);
-              processedUrls.push(s3Service.getObjectURL(objectKey));
-              
+              // Document — bytes already validated by classifyUploadedFile; stored
+              // Content-Type is chosen server-side (client MIME/filename are untrusted)
+              console.log(`📄 Processing document: ${file.originalname} (${file.size} bytes)`);
+              const safeProductId = String(productId).replace(/[^a-zA-Z0-9_-]/g, '_');
+              const { url } = await uploadQualityAttachment(file.buffer, file.originalname, `products/${safeProductId}/documents`);
+              processedUrls.push(url);
               console.log(`✅ Successfully uploaded document ${file.originalname}`);
             }
           }
@@ -4820,55 +4827,32 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           // Single file - includes secondImage, thirdImage, mainImage, documents
           const file = fileArray[0];
           if (!file) continue;
-          
-          if (file.mimetype.startsWith('image/') && ImageProcessor.isValidImageFormat(file.mimetype)) {
-            console.log(`📸 Processing image: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
-            
+
+          const route = classifyUploadedFile(file);
+          if (route.error) {
+            return res.status(400).json({ message: route.error });
+          }
+          if (route.kind === 'image') {
+            console.log(`📸 Processing image: ${file.originalname} (${file.size} bytes)`);
+            let processedImages;
             try {
-              // Process image into 3 WebP sizes
-              const processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
-              
-              // Upload all 3 sizes to S3
-              const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
-              
-              // Store the medium size URL as the main URL for this field
-              uploadedFiles[fieldName] = uploadedUrls.medium;
-              
-              console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
-              
+              // Decode + convert into 3 WebP sizes — decode failure means the bytes are not a real image
+              processedImages = await imageProcessor.processProductImage(file.buffer, file.originalname);
             } catch (error) {
-              console.error(`❌ Failed to process image ${file.originalname}:`, error);
-              // Fallback: upload original image without WebP processing
-              const objectKey = `products/${productId}/${file.originalname}-${Date.now()}`;
-              const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-              const command = new PutObjectCommand({
-                Bucket: process.env.AWS_S3_BUCKET_NAME!,
-                Key: objectKey,
-                Body: file.buffer,
-                ContentType: file.mimetype,
-              });
-              
-              const { s3Client } = await import('./awsS3Service');
-              await s3Client.send(command);
-              uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
+              console.error(`❌ Not a decodable image ${file.originalname}:`, error);
+              return res.status(400).json({ message: `${file.originalname}: file is not a valid image` });
             }
+            // S3 errors here fall through to the route's catch (500) — never a raw-bytes fallback
+            const uploadedUrls = await s3Service.uploadProductImages(processedImages, productId);
+            uploadedFiles[fieldName] = uploadedUrls.medium;
+            console.log(`✅ Successfully processed image ${file.originalname} -> ${uploadedUrls.medium}`);
           } else {
-            // Non-image files (documents) - upload as-is
-            console.log(`📄 Processing document: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
-            
-            const objectKey = `products/${productId}/documents/${file.originalname}-${Date.now()}`;
-            const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-            const command = new PutObjectCommand({
-              Bucket: process.env.AWS_S3_BUCKET_NAME!,
-              Key: objectKey,
-              Body: file.buffer,
-              ContentType: file.mimetype,
-            });
-            
-            const { s3Client } = await import('./awsS3Service');
-            await s3Client.send(command);
-            uploadedFiles[fieldName] = s3Service.getObjectURL(objectKey);
-            
+            // Document — bytes already validated by classifyUploadedFile; stored
+            // Content-Type is chosen server-side (client MIME/filename are untrusted)
+            console.log(`📄 Processing document: ${file.originalname} (${file.size} bytes)`);
+            const safeProductId = String(productId).replace(/[^a-zA-Z0-9_-]/g, '_');
+            const { url } = await uploadQualityAttachment(file.buffer, file.originalname, `products/${safeProductId}/documents`);
+            uploadedFiles[fieldName] = url;
             console.log(`✅ Successfully uploaded document ${file.originalname}`);
           }
         }
@@ -14697,21 +14681,8 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         return res.status(400).json({ message: "No document file provided" });
       }
 
-      // Upload to S3
-      const objectKey = `products/company-documents/${fieldName}-${Date.now()}.pdf`;
-      const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-      const command = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME!,
-        Key: objectKey,
-        Body: file.buffer,
-        ContentType: file.mimetype || 'application/pdf',
-      });
-      const { s3Client } = await import('./awsS3Service');
-      await s3Client.send(command);
-
-      const s3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${objectKey}`;
-
-      // Map camelCase field names to snake_case column names
+      // Map camelCase field names to snake_case column names.
+      // Checked BEFORE uploading so a bad request never stores an orphaned file.
       const columnMap: Record<string, string> = {
         exportHouseCert: 'export_house_cert',
         exportCert: 'export_cert',
@@ -14727,6 +14698,25 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       if (!columnName) {
         return res.status(400).json({ message: `Unknown field: ${fieldName}` });
       }
+
+      // Company documents are stored as .pdf on a public bucket — verify the real
+      // bytes are a PDF and force the Content-Type (client MIME is untrusted)
+      if (!file.originalname.toLowerCase().endsWith('.pdf') || validateQualityFileBytes(file.buffer, file.originalname) !== null) {
+        return res.status(400).json({ message: "Only PDF files are allowed for company documents" });
+      }
+
+      const objectKey = `products/company-documents/${fieldName}-${Date.now()}-${crypto.randomUUID()}.pdf`;
+      const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const command = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Key: objectKey,
+        Body: file.buffer,
+        ContentType: 'application/pdf',
+      });
+      const { s3Client } = await import('./awsS3Service');
+      await s3Client.send(command);
+
+      const s3Url = getImageUrl(objectKey);
 
       // Update all products with this document URL using drizzle update
       const result = await db.update(products).set({ [fieldName]: s3Url });

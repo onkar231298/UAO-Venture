@@ -295,7 +295,12 @@ export default function ComprehensiveProductForm({
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        let message = 'Upload failed';
+        try {
+          const errJson = await response.json();
+          if (errJson?.message) message = errJson.message;
+        } catch {}
+        throw new Error(message);
       }
 
       const result = await response.json();
@@ -329,9 +334,10 @@ export default function ComprehensiveProductForm({
     } catch (error) {
       console.error('Upload error:', error);
       const fileType = fieldName.includes('Document') || fieldName.includes('Docs') ? 'document' : 'image';
+      const serverMessage = error instanceof Error && error.message !== 'Upload failed' ? error.message : '';
       toast({
         title: "Upload Failed",
-        description: `Failed to upload ${fileType} to AWS S3. Please try again.`,
+        description: serverMessage || `Failed to upload ${fileType} to AWS S3. Please try again.`,
         variant: "destructive",
       });
     } finally {

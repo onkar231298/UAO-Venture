@@ -144,6 +144,11 @@ const QUALITY_FILE_TYPES: Record<string, string> = {
   '.csv': 'text/csv',
 };
 
+// True if the filename's extension is on the closed attachment allowlist (never svg/html).
+export function isAllowedAttachmentExt(originalName: string): boolean {
+  return !!QUALITY_FILE_TYPES[path.extname(originalName).toLowerCase()];
+}
+
 // Buffers in memory (10MB cap) so bytes are validated BEFORE anything reaches S3.
 export const qualityAttachmentUpload = multer({
   storage: multer.memoryStorage(),
@@ -204,13 +209,14 @@ export function validateQualityFileBytes(buf: Buffer, originalName: string): str
 }
 
 // Uploads a validated buffer with a server-chosen Content-Type from the allowlist.
-export async function uploadQualityAttachment(buf: Buffer, originalName: string): Promise<{ key: string; url: string }> {
+// keyPrefix lets other features (e.g. product documents) reuse the same hardened path.
+export async function uploadQualityAttachment(buf: Buffer, originalName: string, keyPrefix = 'quality-attachments'): Promise<{ key: string; url: string }> {
   const ext = path.extname(originalName).toLowerCase();
   const contentType = QUALITY_FILE_TYPES[ext];
   if (!contentType) throw new Error('Unsupported file type');
   const safeName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, '_');
   // UUID guarantees key uniqueness — same-named simultaneous uploads must never overwrite each other
-  const key = `quality-attachments/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const key = `${keyPrefix.replace(/\/+$/, '')}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
   await s3Client.send(new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
