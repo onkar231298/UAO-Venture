@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
+import { SpecificationSheetViewer } from "@/components/SpecificationSheetViewer";
 import ProductFAQs from "@/components/ProductFAQs";
 import { ProductAEO } from "@/components/ProductAEO";
 import OptimizedImage from "@/components/OptimizedImage";
@@ -654,9 +655,10 @@ export default function ProductDetailBFI() {
                           </p>
                         </div>
                       ) : (
-                        <div 
-                          className="prose prose-sm max-w-none w-full"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.specificationSheet) }}
+                        <SpecificationSheetViewer
+                          html={product.specificationSheet}
+                          className="w-full"
+                          testId="spec-sheet-public"
                         />
                       )}
                     </div>

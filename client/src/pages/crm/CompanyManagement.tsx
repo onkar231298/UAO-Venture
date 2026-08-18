@@ -1,3 +1,4 @@
+import { CANONICAL_COUNTRIES } from "@shared/countries";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -760,6 +761,28 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
 
 export default function CompanyManagement() {
   const { user } = useAuth();
+
+  const normalizeCountriesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("/api/crm/companies/normalize-countries", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Cleanup failed");
+      }
+      return await res.json();
+    },
+    onSuccess: (result: any) => {
+      toast({
+        title: "Country cleanup finished",
+        description: `Checked ${result.scanned} companies — fixed ${result.updated}${result.updated > 0 ? ` (e.g. ${result.changes?.[0]?.from} → ${result.changes?.[0]?.to})` : ""}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies/distinct-countries"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Cleanup failed", description: error?.message || "Please try again.", variant: "destructive" });
+    },
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -1460,6 +1483,26 @@ export default function CompanyManagement() {
             </Button>
           )}
 
+          {isSuperAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (window.confirm("Clean up all company country names? Variants like 'UK', 'Uk' and 'United Kingdome' become 'United Kingdom'. Safe to run more than once.")) {
+                  normalizeCountriesMutation.mutate();
+                }
+              }}
+              disabled={normalizeCountriesMutation.isPending}
+              data-testid="button-clean-countries"
+            >
+              {normalizeCountriesMutation.isPending ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 mr-2" />
+              )}
+              {normalizeCountriesMutation.isPending ? "Cleaning..." : "Clean Up Countries"}
+            </Button>
+          )}
+
           <Button 
             variant="outline"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -1492,6 +1535,12 @@ export default function CompanyManagement() {
         </div>
       </div>
       
+      <datalist id="country-suggestions">
+        {CANONICAL_COUNTRIES.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+
       {/* Stage Filter Tabs */}
       <Tabs value={stageFilter} onValueChange={setStageFilter} className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1">
@@ -2530,7 +2579,7 @@ export default function CompanyManagement() {
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <Input placeholder="Country" {...field} data-testid="input-address-country" />
+                          <Input placeholder="Country" {...field} list="country-suggestions" data-testid="input-address-country" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -2604,7 +2653,7 @@ export default function CompanyManagement() {
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <Input placeholder="Country" {...field} data-testid="input-factory-country" />
+                          <Input placeholder="Country" {...field} list="country-suggestions" data-testid="input-factory-country" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -3464,7 +3513,7 @@ export default function CompanyManagement() {
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <Input {...field} data-testid="input-edit-country" />
+                          <Input {...field} list="country-suggestions" data-testid="input-edit-country" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -3536,7 +3585,7 @@ export default function CompanyManagement() {
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <Input {...field} data-testid="input-edit-factory-country" />
+                          <Input {...field} list="country-suggestions" data-testid="input-edit-factory-country" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

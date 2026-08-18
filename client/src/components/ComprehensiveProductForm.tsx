@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DOMPurify from "dompurify";
+import { SpecificationSheetViewer } from "@/components/SpecificationSheetViewer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -505,7 +505,7 @@ export default function ComprehensiveProductForm({
               Product Specifications (HTML)
             </Label>
             <p className="text-xs text-gray-500 mt-1 mb-2">
-              Paste your HTML spec sheet here (tables, headings and inline styles are supported).
+              Paste your HTML spec sheet here — tables, colours and CSS styling are kept exactly as copied.
               It appears on the website under Product Information → <span className="font-medium">Product Spec</span> tab.
             </p>
             <Tabs defaultValue="edit" className="w-full">
@@ -526,10 +526,10 @@ export default function ComprehensiveProductForm({
               </TabsContent>
               <TabsContent value="preview" className="mt-2">
                 {formData.specificationSheet.trim() ? (
-                  <div
-                    className="prose prose-sm max-w-none w-full border rounded-md bg-white p-4 min-h-[200px] overflow-auto"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.specificationSheet) }}
-                    data-testid="preview-specification-sheet"
+                  <SpecificationSheetViewer
+                    html={formData.specificationSheet}
+                    className="w-full border rounded-md bg-white p-4 min-h-[200px] overflow-auto"
+                    testId="preview-specification-sheet"
                   />
                 ) : (
                   <div className="border rounded-md bg-gray-50 p-8 text-center text-sm text-gray-500 min-h-[200px] flex items-center justify-center">

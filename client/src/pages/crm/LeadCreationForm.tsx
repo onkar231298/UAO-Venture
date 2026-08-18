@@ -1,3 +1,4 @@
+import { CANONICAL_COUNTRIES } from "@shared/countries";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -537,8 +538,13 @@ export default function LeadCreationForm({ open, onOpenChange }: LeadCreationFor
                         <FormItem>
                           <FormLabel>Country</FormLabel>
                           <FormControl>
-                            <Input data-testid="input-country" placeholder="Country" {...field} />
+                            <Input data-testid="input-country" placeholder="Country" list="country-suggestions-lead" {...field} />
                           </FormControl>
+                          <datalist id="country-suggestions-lead">
+                            {CANONICAL_COUNTRIES.map((c) => (
+                              <option key={c} value={c} />
+                            ))}
+                          </datalist>
                           <FormMessage />
                         </FormItem>
                       )}

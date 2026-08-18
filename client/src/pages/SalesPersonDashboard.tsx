@@ -1,3 +1,4 @@
+import { CANONICAL_COUNTRIES } from "@shared/countries";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -1155,8 +1156,13 @@ export default function SalesPersonDashboard() {
                         <FormItem>
                           <FormLabel>Country</FormLabel>
                           <FormControl>
-                            <Input placeholder="Country" {...field} data-testid="input-address-country" />
+                            <Input placeholder="Country" {...field} list="country-suggestions-sales" data-testid="input-address-country" />
                           </FormControl>
+                          <datalist id="country-suggestions-sales">
+                            {CANONICAL_COUNTRIES.map((c) => (
+                              <option key={c} value={c} />
+                            ))}
+                          </datalist>
                           <FormMessage />
                         </FormItem>
                       )}

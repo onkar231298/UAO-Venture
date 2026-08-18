@@ -2693,7 +2693,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           companyData.addressStreet = customerDetails.streetAddress || customerDetails.address || null;
           companyData.addressCity = customerDetails.city || null;
           companyData.addressState = customerDetails.state || null;
-          companyData.addressCountry = customerDetails.country || null;
+          const { normalizeCountryOrNull } = await import('@shared/countries');
+          companyData.addressCountry = normalizeCountryOrNull(customerDetails.country);
           companyData.addressZip = customerDetails.postalCode || null;
           companyData.linkedUserId = customerDetails.id;
         }
@@ -2723,7 +2724,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
             updateData.addressState = customerDetails.state;
           }
           if (!existingCompany.addressCountry && customerDetails.country) {
-            updateData.addressCountry = customerDetails.country;
+            const { normalizeCountryOrNull } = await import('@shared/countries');
+            updateData.addressCountry = normalizeCountryOrNull(customerDetails.country);
           }
           if (!existingCompany.addressZip && customerDetails.postalCode) {
             updateData.addressZip = customerDetails.postalCode;
@@ -6399,9 +6401,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
       }
 
-      // Normalise: trim + title-case, deduplicate case-insensitively via GROUP BY
+      // Return stored values as-is (canonical after cleanup) — INITCAP produced
+      // artifacts like "Usa"/"Uk". Trim + case-insensitive dedupe stays as a safety net.
       const rows = await db
-        .select({ country: sql<string>`INITCAP(LOWER(BTRIM(${companies.addressCountry})))` })
+        .select({ country: sql<string>`MIN(BTRIM(${companies.addressCountry}))` })
         .from(companies)
         .where(and(...conditions))
         .groupBy(sql`LOWER(BTRIM(${companies.addressCountry}))`)
@@ -6412,6 +6415,25 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error('Error fetching distinct countries:', error);
       res.status(500).json({ message: 'Failed to fetch countries' });
+    }
+  });
+
+  // Super-admin maintenance action: normalize every company's country values to
+  // canonical names (idempotent — safe to run repeatedly, e.g. once on production
+  // after republishing). Returns per-mapping change counts.
+  app.post('/api/crm/companies/normalize-countries', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: 'Only the super admin can run this cleanup' });
+      }
+      const result = await storage.normalizeAllCompanyCountries();
+      console.log(`[CountryCleanup] run by ${userId}: scanned=${result.scanned} updated=${result.updated}`);
+      res.json(result);
+    } catch (error) {
+      console.error('Error normalizing company countries:', error);
+      res.status(500).json({ message: 'Failed to normalize countries' });
     }
   });
 

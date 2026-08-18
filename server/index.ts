@@ -71,6 +71,25 @@ app.use((req, res, next) => {
   // Validate environment before starting
   validateEnvironment();
 
+  // One-time data reconciliation: products.status varchar drifted from is_active
+  // (is_active is the operational truth — the public site filters on it). Idempotent:
+  // touches 0 rows on every run after the first. Runs on production at next republish.
+  try {
+    const syncedActive = await db.execute(sql`
+      UPDATE products SET status = 'active'
+      WHERE is_active = true AND status IS DISTINCT FROM 'active'
+    `);
+    const syncedInactive = await db.execute(sql`
+      UPDATE products SET status = 'inactive'
+      WHERE is_active = false AND COALESCE(status, '') NOT IN ('draft', 'inactive')
+    `);
+    const a = (syncedActive as any).rowCount ?? 0;
+    const i = (syncedInactive as any).rowCount ?? 0;
+    if (a + i > 0) console.log(`[Migration] product status synced: ${a} -> active, ${i} -> inactive`);
+  } catch (err) {
+    console.error("[Migration] product status sync error:", err);
+  }
+
   // Bootstrap migration: ensure sales_call_logs table exists (safe IF NOT EXISTS)
   try {
     await db.execute(sql`

@@ -1,3 +1,4 @@
+import { CANONICAL_COUNTRIES } from "@shared/countries";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -1565,10 +1566,15 @@ export default function MyCompanies() {
   };
 
   const distinctCountries = useMemo(() => {
-    const countries = myCompanies
-      .map(c => c.addressCountry?.trim())
-      .filter((c): c is string => !!c && c.length > 0);
-    return [...new Set(countries)].sort();
+    // Dedupe case-insensitively — data is canonical after cleanup; this guards stray variants
+    const seen = new Map<string, string>();
+    for (const company of myCompanies) {
+      const country = company.addressCountry?.trim();
+      if (!country) continue;
+      const key = country.toLowerCase();
+      if (!seen.has(key)) seen.set(key, country);
+    }
+    return [...seen.values()].sort((a, b) => a.localeCompare(b));
   }, [myCompanies]);
 
   const filteredCompanies = myCompanies.filter((company) => {
@@ -2961,8 +2967,13 @@ export default function MyCompanies() {
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Country" />
+                          <Input {...field} placeholder="Country" list="country-suggestions-mycompanies" />
                         </FormControl>
+                        <datalist id="country-suggestions-mycompanies">
+                          {CANONICAL_COUNTRIES.map((c) => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
                         <FormMessage />
                       </FormItem>
                     )}

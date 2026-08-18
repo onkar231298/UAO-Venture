@@ -480,6 +480,7 @@ export interface IStorage {
   getDashboardStats(userId: string): Promise<{
     totalProducts: number;
     activeProducts: number;
+    draftProducts: number;
     totalInquiries: number;
     totalQuotations: number;
     totalOrders: number;
@@ -1544,13 +1545,18 @@ export class DatabaseStorage implements IStorage {
     // For admin API, show all products but respect status filter
     const conditions = [];
     
-    // Handle status filter for active/inactive products
+    // Handle status filter: active = live (isActive), draft = not live + still marked
+    // draft, inactive = not live and not a draft. Same rule as the UI badge and export.
     if (filters?.status === 'active') {
       conditions.push(eq(products.isActive, true));
     } else if (filters?.status === 'inactive') {
       conditions.push(eq(products.isActive, false));
+      conditions.push(sql`COALESCE(${products.status}, '') <> 'draft'`);
+    } else if (filters?.status === 'draft') {
+      conditions.push(eq(products.isActive, false));
+      conditions.push(eq(products.status, 'draft'));
     }
-    // If no status filter or "all", don't add isActive condition to show all products
+    // If no status filter or "all", don't add conditions so all products show
     
     if (filters?.category && !isNaN(parseInt(filters.category))) {
       conditions.push(eq(products.categoryId, parseInt(filters.category)));
@@ -1753,6 +1759,19 @@ export class DatabaseStorage implements IStorage {
     
     // Process array fields to ensure they're properly formatted for PostgreSQL
     const processedProduct = { ...product };
+
+    // Keep status varchar and isActive boolean in sync on create (isActive = operational truth)
+    if (processedProduct.isActive === false) {
+      // created unpublished: it is a draft unless explicitly marked inactive
+      processedProduct.status = processedProduct.status === 'inactive' ? 'inactive' : 'draft';
+    } else if (processedProduct.status === 'draft') {
+      // explicit draft (isActive not explicitly false): a draft is not live
+      processedProduct.isActive = false;
+    } else {
+      // default: live product
+      processedProduct.isActive = true;
+      processedProduct.status = 'active';
+    }
     
     // Handle PostgreSQL text[] array for additionalDocs
     if (processedProduct.additionalDocs !== undefined) {
@@ -1829,6 +1848,26 @@ export class DatabaseStorage implements IStorage {
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
     // Process array fields to ensure they're properly formatted for PostgreSQL
     const processedProduct = { ...product };
+
+    // Keep status varchar and isActive boolean in sync (isActive = operational truth:
+    // it is what the public site filters on). Prevents drift like status='active'
+    // rows that are not actually live.
+    if (processedProduct.status !== undefined && processedProduct.status !== null &&
+        !['draft', 'active', 'inactive'].includes(processedProduct.status)) {
+      // only draft/active/inactive are valid; drop anything else instead of persisting junk
+      delete processedProduct.status;
+    }
+    if (processedProduct.isActive === true) {
+      processedProduct.status = 'active';
+    } else if (processedProduct.isActive === false) {
+      if (processedProduct.status !== 'draft' && processedProduct.status !== 'inactive') {
+        // keep an existing draft as draft; anything else becomes inactive
+        (processedProduct as any).status = sql`CASE WHEN ${products.status} = 'draft' THEN 'draft' ELSE 'inactive' END`;
+      }
+    } else if (processedProduct.status !== undefined && processedProduct.status !== null) {
+      // status-only update: sync the boolean from the requested status
+      processedProduct.isActive = processedProduct.status === 'active';
+    }
     
     // Handle PostgreSQL text[] array for additionalDocs
     if (processedProduct.additionalDocs !== undefined) {
@@ -4242,6 +4281,7 @@ export class DatabaseStorage implements IStorage {
   async getDashboardStats(userId: string): Promise<{
     totalProducts: number;
     activeProducts: number;
+    draftProducts: number;
     totalInquiries: number;
     totalQuotations: number;
     totalOrders: number;
@@ -4257,6 +4297,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     const [totalProductsCount] = await db.select({ count: count() }).from(products);
     const [activeProductsCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
+    const [draftProductsCount] = await db.select({ count: count() }).from(products).where(and(eq(products.isActive, false), eq(products.status, 'draft')));
     const [inquiriesCount] = await db.select({ count: count() }).from(inquiries);
     const [quotationsCount] = await db.select({ count: count() }).from(quotations);
     const [ordersCount] = await db.select({ count: count() }).from(salesOrders);
@@ -4273,6 +4314,7 @@ export class DatabaseStorage implements IStorage {
     return {
       totalProducts: totalProductsCount.count,
       activeProducts: activeProductsCount.count,
+      draftProducts: draftProductsCount.count,
       totalInquiries: inquiriesCount.count,
       totalQuotations: quotationsCount.count,
       totalOrders: ordersCount.count,
@@ -4469,8 +4511,10 @@ export class DatabaseStorage implements IStorage {
             priceLocation: row.priceLocation || 'Warehouse India',
             sampleAvailable: this.parseBooleanFromCsv(row.sampleAvailable, true),
             stopSell: this.parseBooleanFromCsv(row.stopSell, false),
-            status: row.status || 'active',
-            isActive: true,
+            // Keep status/isActive in sync (isActive = operational truth). CSV rows
+            // marked draft/inactive are created not-live; anything else -> live+active.
+            status: ['draft', 'inactive'].includes(String(row.status || '').trim().toLowerCase()) ? String(row.status).trim().toLowerCase() : 'active',
+            isActive: !['draft', 'inactive'].includes(String(row.status || '').trim().toLowerCase()),
             isVisible: true,
             createdBy: userId,
             updatedBy: userId,
@@ -5767,6 +5811,15 @@ export class DatabaseStorage implements IStorage {
       primaryEmail: companyData.primaryEmail === '' ? null : companyData.primaryEmail,
       website: companyData.website === '' ? null : companyData.website,
     };
+
+    // Normalize country fields to canonical names on every create path
+    const { normalizeCountryOrNull } = await import('@shared/countries');
+    if (sanitizedData.addressCountry !== undefined) {
+      sanitizedData.addressCountry = normalizeCountryOrNull(sanitizedData.addressCountry);
+    }
+    if (sanitizedData.factoryAddressCountry !== undefined) {
+      sanitizedData.factoryAddressCountry = normalizeCountryOrNull(sanitizedData.factoryAddressCountry);
+    }
     
     // Auto-set assignedAt when a company is assigned to someone
     const assignedAt = companyData.assignedTo ? new Date() : null;
@@ -5794,6 +5847,17 @@ export class DatabaseStorage implements IStorage {
       updateData.website = null;
     }
     
+    // Normalize country fields to canonical names on every update path
+    if ('addressCountry' in updateData || 'factoryAddressCountry' in updateData) {
+      const { normalizeCountryOrNull } = await import('@shared/countries');
+      if ('addressCountry' in updateData) {
+        updateData.addressCountry = normalizeCountryOrNull(updateData.addressCountry);
+      }
+      if ('factoryAddressCountry' in updateData) {
+        updateData.factoryAddressCountry = normalizeCountryOrNull(updateData.factoryAddressCountry);
+      }
+    }
+    
     // Update assignedAt when assignedTo changes
     if (companyData.assignedTo !== undefined) {
       updateData.assignedAt = companyData.assignedTo ? new Date() : null;
@@ -5815,6 +5879,79 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companies.id, id))
       .returning();
     return company;
+  }
+
+  /**
+   * Idempotent maintenance routine: normalize address + factory country values
+   * for ALL companies to canonical names. Safe to re-run; unresolvable values
+   * are left untouched and blanks stay blank.
+   */
+  async normalizeAllCompanyCountries(): Promise<{
+    scanned: number;
+    updated: number;
+    addressChanged: number;
+    factoryChanged: number;
+    changes: Array<{ from: string; to: string; count: number }>;
+  }> {
+    const { normalizeCountry } = await import('@shared/countries');
+    const rows = await db.select({
+      id: companies.id,
+      addressCountry: companies.addressCountry,
+      factoryAddressCountry: companies.factoryAddressCountry,
+    }).from(companies);
+
+    const changeCounts = new Map<string, number>();
+    const pending: Array<{ id: number; set: any }> = [];
+    let addressChanged = 0;
+    let factoryChanged = 0;
+
+    const record = (from: string, to: string | null) => {
+      const key = `${from}||${to ?? '(blank)'}`;
+      changeCounts.set(key, (changeCounts.get(key) || 0) + 1);
+    };
+
+    for (const row of rows) {
+      const set: any = {};
+      if (row.addressCountry !== null) {
+        const norm = normalizeCountry(row.addressCountry) || null;
+        if (norm !== row.addressCountry) {
+          set.addressCountry = norm;
+          addressChanged++;
+          record(row.addressCountry, norm);
+        }
+      }
+      if (row.factoryAddressCountry !== null) {
+        const norm = normalizeCountry(row.factoryAddressCountry) || null;
+        if (norm !== row.factoryAddressCountry) {
+          set.factoryAddressCountry = norm;
+          factoryChanged++;
+          record(row.factoryAddressCountry, norm);
+        }
+      }
+      if (Object.keys(set).length > 0) {
+        set.updatedAt = new Date();
+        pending.push({ id: row.id, set });
+      }
+    }
+
+    // Apply in small parallel chunks — fast without hammering the DB
+    const CHUNK = 25;
+    for (let i = 0; i < pending.length; i += CHUNK) {
+      await Promise.all(
+        pending.slice(i, i + CHUNK).map(({ id, set }) =>
+          db.update(companies).set(set).where(eq(companies.id, id))
+        )
+      );
+    }
+
+    const changes = Array.from(changeCounts.entries())
+      .map(([mapping, count]) => {
+        const [from, to] = mapping.split('||');
+        return { from, to, count };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return { scanned: rows.length, updated: pending.length, addressChanged, factoryChanged, changes };
   }
 
   async deleteCompany(id: number): Promise<void> {

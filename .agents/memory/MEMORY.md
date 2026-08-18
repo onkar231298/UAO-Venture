@@ -1,7 +1,8 @@
-- [Country cleanup rules](country-cleanup.md) — 2,452 companies cleaned; normalized 825 rows + filled 160 missing via TLD/city detection; 15 remain blank (test entries + truly unknown).
+- [Country cleanup](country-cleanup.md) — dev DB fully canonical; normalization centralized in shared/countries.ts on all write paths; PROD stays messy until owner runs the super-admin cleanup button post-republish.
 - [TipTap v3 setContent gotcha](tiptap-setcontent-v3.md) — v3 defaults emitUpdate:true; state→editor sync must pass {emitUpdate:false} or full-document email HTML gets mangled before send.
 - [AI email prompt completeness](ai-email-prompt-completeness.md) — gpt-4o drops trailing brief facts; the sentence-by-sentence self-check line in the prompt is load-bearing, don't trim it.
 - [SendGrid click tracking SSL](sendgrid-click-tracking-ssl.md) — click tracking disabled per-message: branded link subdomain has no SSL cert, https clicks get browser-blocked; don't re-enable without branded-link SSL.
 - [Gemini email fallback](gemini-email-fallback.md) — gpt-4o primary, Gemini flash cascade backup; free-tier key: only -latest aliases callable, thinking eats token budget, transient 503s.
 - [CRM company deep-links](crm-deeplink-company-open.md) — resolve ?openCompany via GET :id, not the filtered list; that GET logs staff access itself — adding track-view double-counts security alerts.
 - [Authz middleware gotchas](authz-middleware-gotchas.md) — never trust a guard by its name: some only check login; read bodies and grep for isAuthenticated-only staff routes.
+- [Product status model](product-status-model.md) — isActive boolean is the truth (public site filters on it); status varchar is derived+synced in storage; new product write paths must not bypass the sync.

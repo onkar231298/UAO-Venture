@@ -60,6 +60,13 @@ import { z } from "zod";
 
 
 
+// isActive is the operational truth (it drives the public site). A product counts as
+// Draft only when it is not live AND still marked draft; otherwise not-live = Inactive.
+// Keep in sync with the server-side filter mapping in storage.getAdminProducts.
+function getEffectiveProductStatus(p: { isActive?: boolean | null; status?: string | null }): "Active" | "Inactive" | "Draft" {
+  return p.isActive ? "Active" : p.status === "draft" ? "Draft" : "Inactive";
+}
+
 export default function WebsiteManagement() {
   const { user } = useAuth();
   const userRole = (user as any)?.role as string | undefined;
@@ -110,7 +117,7 @@ export default function WebsiteManagement() {
       };
 
       const rows = products.map((p: any) => [
-        p.productId, p.name, p.slug, p.description, p.status,
+        p.productId, p.name, p.slug, p.description, getEffectiveProductStatus(p),
         p.isVisible ? 'Yes' : 'No', p.isOrganic ? 'Yes' : 'No', p.isFeatured ? 'Yes' : 'No',
         p.botanicalName, p.plantPart, p.form, p.origin, p.hsCode, p.meshSize,
         p.moq, p.stockUnit, p.currentStock, p.packingSize, p.leadTime,
@@ -361,7 +368,9 @@ export default function WebsiteManagement() {
                     <p className="text-2xl font-bold text-green-600">
                       {dashboardStats?.activeProducts || 0}
                     </p>
-                    <p className="text-xs text-green-600">Live on website</p>
+                    <p className="text-xs text-gray-500">
+                      Live on website · {Math.max((dashboardStats?.totalProducts || 0) - (dashboardStats?.activeProducts || 0) - (dashboardStats?.draftProducts || 0), 0)} inactive · {dashboardStats?.draftProducts || 0} draft
+                    </p>
                   </div>
                   <Package className="w-8 h-8 text-green-600" />
                 </div>
@@ -519,6 +528,7 @@ export default function WebsiteManagement() {
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
                         </SelectContent>
                       </Select>
 
@@ -654,8 +664,8 @@ export default function WebsiteManagement() {
                                   {category?.name || "Uncategorized"}
                                 </td>
                                 <td className="border border-gray-200 p-3">
-                                  <Badge variant={product.isActive ? "default" : "secondary"}>
-                                    {product.isActive ? "Active" : "Inactive"}
+                                  <Badge variant={product.isActive ? "default" : product.status === "draft" ? "outline" : "secondary"}>
+                                    {getEffectiveProductStatus(product)}
                                   </Badge>
                                 </td>
                                 <td className="border border-gray-200 p-3">
