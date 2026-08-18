@@ -1688,13 +1688,12 @@ export class DatabaseStorage implements IStorage {
         .orderBy(orderBy)
         .limit(filters?.limit || 100)
         .offset(filters?.offset || 0),
-      // Optimized count query - only count when needed for pagination
-      filters?.offset && filters.offset > 0 ? 
-        db
-          .select({ count: count() })
-          .from(products)
-          .where(whereClause || undefined)
-        : Promise.resolve([{ count: 0 }]) // Skip count for first page to improve performance
+      // Always run the count: the admin UI's pagination bar needs the real total
+      // (the old "skip count on first page" shortcut returned total=0 for page 1).
+      db
+        .select({ count: count() })
+        .from(products)
+        .where(whereClause || undefined)
     ]);
 
     return {

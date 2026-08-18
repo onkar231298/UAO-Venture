@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +67,19 @@ function getEffectiveProductStatus(p: { isActive?: boolean | null; status?: stri
   return p.isActive ? "Active" : p.status === "draft" ? "Draft" : "Inactive";
 }
 
+const PRODUCTS_PER_PAGE = 50;
+
+// Compact page list for the pagination bar: 1 ... around-current ... last
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
+}
+
 export default function WebsiteManagement() {
   const { user } = useAuth();
   const userRole = (user as any)?.role as string | undefined;
@@ -87,10 +100,10 @@ export default function WebsiteManagement() {
   
   // Multiple selection state
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const downloadAllProducts = async () => {
     setIsDownloading(true);
@@ -167,9 +180,11 @@ export default function WebsiteManagement() {
       search: searchQuery, 
       category: categoryFilter !== "all" ? categoryFilter : undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
-      sort: sortBy,
+      sortBy: sortBy,
       dateFilter: dateFilter !== "all" ? dateFilter : undefined,
-      visibility: visibilityFilter !== "all" ? visibilityFilter : undefined
+      visibility: visibilityFilter !== "all" ? visibilityFilter : undefined,
+      limit: PRODUCTS_PER_PAGE,
+      offset: (currentPage - 1) * PRODUCTS_PER_PAGE
     }],
   });
 
@@ -276,6 +291,34 @@ export default function WebsiteManagement() {
   const products = Array.isArray(productsData?.products) ? productsData.products as Product[] : [];
   const filteredProducts = products;
 
+  // Server-side pagination numbers
+  const totalProducts = productsData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / PRODUCTS_PER_PAGE));
+  const showingStart = totalProducts === 0 ? 0 : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
+  const showingEnd = (currentPage - 1) * PRODUCTS_PER_PAGE + products.length;
+  const allOnPageSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.includes(p.id));
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
+  // One effect owns the page number. A search/filter/sort change ALWAYS resets to
+  // page 1 and skips the shrink check that cycle (a cached result for the new filter
+  // could otherwise snap to its last page first). Only afterwards, if deletions
+  // shrink the list below the current page, snap back to the last page.
+  const filterKey = JSON.stringify([searchQuery, categoryFilter, statusFilter, dateFilter, visibilityFilter, sortBy]);
+  const prevFilterKeyRef = useRef(filterKey);
+  useEffect(() => {
+    if (prevFilterKeyRef.current !== filterKey) {
+      prevFilterKeyRef.current = filterKey;
+      setCurrentPage(1);
+      return;
+    }
+    if (!productsLoading && totalProducts > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filterKey, productsLoading, totalProducts, currentPage, totalPages]);
+
   const handleToggleVisibility = (productId: number, isActive: boolean) => {
     updateProductMutation.mutate({
       id: productId,
@@ -301,12 +344,14 @@ export default function WebsiteManagement() {
 
   // Handle select all functionality
   const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedProducts([]);
+    const pageIds = filteredProducts.map(p => p.id);
+    if (allOnPageSelected) {
+      // Uncheck: drop only this page's products from the selection
+      setSelectedProducts(prev => prev.filter(id => !pageIds.includes(id)));
     } else {
-      setSelectedProducts(filteredProducts.map(p => p.id));
+      // Check: add this page's products to whatever is already selected
+      setSelectedProducts(prev => Array.from(new Set([...prev, ...pageIds])));
     }
-    setSelectAll(!selectAll);
   };
 
   // Bulk update products
@@ -331,7 +376,6 @@ export default function WebsiteManagement() {
       });
       
       setSelectedProducts([]);
-      setSelectAll(false);
     } catch (error) {
       console.error('Bulk update failed:', error);
       toast({
@@ -562,7 +606,7 @@ export default function WebsiteManagement() {
                   
                   {/* Results Count */}
                   <div className="mb-4 text-sm text-gray-600">
-                    Showing {filteredProducts?.length || 0} of {products?.length || 0} products
+                    {totalProducts === 0 ? "No products" : "Showing " + showingStart + "-" + showingEnd + " of " + totalProducts + " products"}
                   </div>
 
                   {/* Product Count and Selection */}
@@ -571,12 +615,12 @@ export default function WebsiteManagement() {
                       <input 
                         type="checkbox" 
                         id="select-all"
-                        checked={selectAll}
+                        checked={allOnPageSelected}
                         onChange={handleSelectAll}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <Label htmlFor="select-all" className="font-medium">
-                        Select All Products ({filteredProducts?.length || 0})
+                        Select All on Page ({filteredProducts?.length || 0})
                       </Label>
                       
                       {/* Bulk Actions */}
@@ -600,7 +644,7 @@ export default function WebsiteManagement() {
                       )}
                     </div>
                     <div className="text-sm text-gray-600">
-                      Showing {filteredProducts?.length || 0} of {products?.length || 0} products
+                      Page {currentPage} of {totalPages}
                     </div>
                   </div>
 
@@ -619,7 +663,7 @@ export default function WebsiteManagement() {
                             <th className="border border-gray-200 p-3 text-left">
                               <input 
                                 type="checkbox" 
-                                checked={selectAll}
+                                checked={allOnPageSelected}
                                 onChange={handleSelectAll}
                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               />
@@ -743,6 +787,44 @@ export default function WebsiteManagement() {
                       <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
                       <p className="text-gray-600">Start by adding your first product</p>
+                    </div>
+                  )}
+                  {!productsLoading && filteredProducts.length > 0 && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 mt-4 flex-wrap" data-testid="pagination-products">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        data-testid="button-prev-page"
+                      >
+                        Previous
+                      </Button>
+                      {getPageNumbers(currentPage, totalPages).map((p, i) =>
+                        p === "..." ? (
+                          <span key={"ellipsis-" + i} className="px-2 text-gray-500">...</span>
+                        ) : (
+                          <Button
+                            key={p}
+                            variant={p === currentPage ? "default" : "outline"}
+                            size="sm"
+                            className="min-w-[36px]"
+                            onClick={() => goToPage(p as number)}
+                            data-testid={"button-page-" + p}
+                          >
+                            {p}
+                          </Button>
+                        )
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        data-testid="button-next-page"
+                      >
+                        Next
+                      </Button>
                     </div>
                   )}
                 </CardContent>
