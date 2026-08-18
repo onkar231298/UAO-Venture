@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Leaf,
   Shield,
@@ -7,15 +6,12 @@ import {
   Package,
   Factory,
   Award,
-  CheckCircle,
   FlaskConical,
   Truck,
-  FileText,
   Box,
   Beaker,
   Heart,
   Star,
-  ClipboardList,
 } from "lucide-react";
 
 interface ProductAEOProps {
@@ -42,7 +38,6 @@ interface ProductAEOProps {
 
 export function ProductAEO({ product }: ProductAEOProps) {
   const certifications = Array.isArray(product.certifications) ? product.certifications : [];
-  const specs = product.specifications || {};
 
   const industryApplications = [
     {
@@ -80,206 +75,6 @@ export function ProductAEO({ product }: ProductAEOProps) {
       data-product-name={product.name}
       data-product-id={product.productId}
     >
-      <Card className="border-emerald-200 bg-emerald-50/30">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-emerald-800">
-            <ClipboardList className="h-5 w-5" />
-            Product Entity Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <article
-            aria-label={`${product.name} product identification and classification`}
-            className="space-y-3"
-          >
-            <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
-            {product.botanicalName && (
-              <p className="text-sm text-gray-600 italic">
-                Botanical Name: {product.botanicalName}
-              </p>
-            )}
-
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              {product.productId && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">SKU / Product ID:</dt>
-                  <dd className="text-gray-900">{product.productId}</dd>
-                </div>
-              )}
-              {product.category?.name && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Category:</dt>
-                  <dd className="text-gray-900">{product.category.name}</dd>
-                </div>
-              )}
-              {product.form && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Form:</dt>
-                  <dd className="text-gray-900">{product.form}</dd>
-                </div>
-              )}
-              {product.plantPart && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Plant Part Used:</dt>
-                  <dd className="text-gray-900">{product.plantPart}</dd>
-                </div>
-              )}
-              {product.origin && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Origin:</dt>
-                  <dd className="text-gray-900">{product.origin}</dd>
-                </div>
-              )}
-              {product.healthSupport && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Functional Category:</dt>
-                  <dd className="text-gray-900">{product.healthSupport}</dd>
-                </div>
-              )}
-              {product.moq && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">Minimum Order Quantity:</dt>
-                  <dd className="text-gray-900">{product.moq} kg</dd>
-                </div>
-              )}
-              {product.hsCode && (
-                <div className="flex gap-2">
-                  <dt className="font-medium text-gray-700">HS Code:</dt>
-                  <dd className="text-gray-900">{product.hsCode}</dd>
-                </div>
-              )}
-            </dl>
-
-            {certifications.length > 0 && (
-              <div className="pt-2">
-                <p className="text-sm font-medium text-gray-700 mb-2">Certifications:</p>
-                <div className="flex flex-wrap gap-2">
-                  {certifications.map((cert: string, index: number) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className="border-emerald-300 text-emerald-800 bg-emerald-50"
-                    >
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {cert}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <p className="text-sm font-medium text-gray-700 mb-1">Available Packaging:</p>
-              <p className="text-sm text-gray-600">
-                25 kg HDPE bags, 50 kg fiber drums, custom packaging (100g to 1kg pouches available on request)
-              </p>
-            </div>
-          </article>
-        </CardContent>
-      </Card>
-
-      <Card className="border-emerald-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-emerald-800">
-            <FileText className="h-5 w-5" />
-            Product Specifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table
-              className="w-full text-sm border-collapse"
-              aria-label={`Technical specifications for ${product.name}`}
-            >
-              <thead>
-                <tr className="border-b border-emerald-200">
-                  <th className="text-left py-2 px-3 font-semibold text-emerald-800 bg-emerald-50 w-2/5">
-                    Parameter
-                  </th>
-                  <th className="text-left py-2 px-3 font-semibold text-emerald-800 bg-emerald-50">
-                    Value
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {product.botanicalName && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Botanical Name</td>
-                    <td className="py-2 px-3 text-gray-900 italic">{product.botanicalName}</td>
-                  </tr>
-                )}
-                {product.name && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Common Name</td>
-                    <td className="py-2 px-3 text-gray-900">{product.name}</td>
-                  </tr>
-                )}
-                {specs.family && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Family</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.family}</td>
-                  </tr>
-                )}
-                {specs.activeCompounds && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Active Compounds / Key Constituents</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.activeCompounds}</td>
-                  </tr>
-                )}
-                {product.form && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Product Form</td>
-                    <td className="py-2 px-3 text-gray-900">{product.form}</td>
-                  </tr>
-                )}
-                {specs.extractionMethod && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Extraction Method</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.extractionMethod}</td>
-                  </tr>
-                )}
-                {product.meshSize && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Mesh Size</td>
-                    <td className="py-2 px-3 text-gray-900">{product.meshSize}</td>
-                  </tr>
-                )}
-                {(product.moistureContent || specs.moisture) && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Moisture Content</td>
-                    <td className="py-2 px-3 text-gray-900">{product.moistureContent || specs.moisture}</td>
-                  </tr>
-                )}
-                {specs.ashContent && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Ash Content</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.ashContent}</td>
-                  </tr>
-                )}
-                {product.shelfLife && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Shelf Life</td>
-                    <td className="py-2 px-3 text-gray-900">{product.shelfLife}</td>
-                  </tr>
-                )}
-                {specs.storageConditions && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Storage Conditions</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.storageConditions}</td>
-                  </tr>
-                )}
-                {specs.grade && (
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-3 font-medium text-gray-700">Grade</td>
-                    <td className="py-2 px-3 text-gray-900">{specs.grade}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card className="border-emerald-200">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-emerald-800">
