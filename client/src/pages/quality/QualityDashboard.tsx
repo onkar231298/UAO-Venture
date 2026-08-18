@@ -3050,17 +3050,20 @@ function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: 
     if (!file) return;
     setUploading(true);
     try {
-      // Get pre-signed upload URL from object storage
-      const res = await fetch("/api/objects/upload");
-      const { uploadURL } = await res.json();
-      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      // Derive public URL from upload URL (remove query params)
-      const publicUrl = uploadURL.split("?")[0];
-      setUrl(publicUrl);
-      if (!name) setName(file.name);
-      toast({ title: "File uploaded", description: file.name });
-    } catch {
-      toast({ title: "Upload failed", description: "Could not upload file. You can paste a URL instead.", variant: "destructive" });
+      // Upload through our server to AWS S3 (quality-attachments folder)
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/quality/attachments/upload", { method: "POST", body: formData });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.fileUrl) {
+        throw new Error(data?.message || "Could not upload file.");
+      }
+      setUrl(data.fileUrl);
+      // Always reflect the newly uploaded file so a re-pick can't keep a stale name
+      setName(data.fileName || file.name);
+      toast({ title: "File uploaded", description: data.fileName || file.name });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: `${err?.message || "Could not upload file."} You can paste a URL instead.`, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -3085,7 +3088,7 @@ function AttachmentAddButton({ onAdd, isLoading }: { onAdd: (url: string, type: 
           <div className="space-y-3">
             <div>
               <Label>Upload File</Label>
-              <input ref={fileRef} type="file" className="block w-full text-xs mt-1 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700" onChange={handleFileChange} disabled={uploading} />
+              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv" className="block w-full text-xs mt-1 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700" onChange={handleFileChange} disabled={uploading} />
               {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading…</p>}
             </div>
             <div className="relative flex items-center gap-2 text-xs text-muted-foreground"><div className="flex-1 border-t" /><span>or paste URL</span><div className="flex-1 border-t" /></div>

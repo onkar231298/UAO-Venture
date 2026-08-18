@@ -7,3 +7,5 @@
 - [Authz middleware gotchas](authz-middleware-gotchas.md) — never trust a guard by its name: some only check login; read bodies and grep for isAuthenticated-only staff routes.
 - [Product status model](product-status-model.md) — isActive boolean is the truth (public site filters on it); status varchar is derived+synced in storage; new product write paths must not bypass the sync.
 - [DOMPurify style deletion](dompurify-style-forcebody.md) — keeping <style> needs ADD_TAGS AND FORCE_BODY:true, else it's silently hoisted to head and dropped; includes browser test-harness pattern.
+- [S3 bucket uploads](s3-bucket-uploads.md) — images bucket is public-read on EVERY prefix; proxy uploads via server multer (browser PUT CORS unverified); closed ext+mime allowlists, never svg/html.
+- [Staff auth e2e testing](staff-auth-e2e-testing.md) — seed bcrypt user + form POST /admin/login → cookie jar unlocks authenticated API tests; delete user_login_logs before user (FK).

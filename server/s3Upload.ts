@@ -123,6 +123,104 @@ export const heroSliderUpload = uploadToS3.fields([
   { name: 'slideVideo', maxCount: 1 },
 ]);
 
+// ── Quality report/attachment uploads → quality-attachments/ folder ───────
+// The bucket is public-read, so active content (SVG/HTML) must never be hosted.
+// Multipart metadata (claimed MIME type, filename) is attacker-controlled, so:
+//  1. extension must be on a closed allowlist,
+//  2. the actual file BYTES are validated against that extension (magic numbers),
+//  3. the stored Content-Type is set by the server from the allowlist — never
+//     from the client and never sniffed from content.
+const QUALITY_FILE_TYPES: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.csv': 'text/csv',
+};
+
+// Buffers in memory (10MB cap) so bytes are validated BEFORE anything reaches S3.
+export const qualityAttachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for reports/documents
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (QUALITY_FILE_TYPES[ext]) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, image (JPG/PNG/WebP/GIF), Word, Excel, or CSV files are allowed'));
+    }
+  },
+});
+
+// Returns an error message if the file's real bytes don't match its extension, else null.
+export function validateQualityFileBytes(buf: Buffer, originalName: string): string | null {
+  const ext = path.extname(originalName).toLowerCase();
+  const startsWith = (sig: number[] | string, offset = 0): boolean => {
+    if (typeof sig === 'string') {
+      return buf.length >= offset + sig.length && buf.slice(offset, offset + sig.length).toString('latin1') === sig;
+    }
+    return buf.length >= offset + sig.length && sig.every((b, i) => buf[offset + i] === b);
+  };
+  switch (ext) {
+    case '.pdf':
+      return startsWith('%PDF-') ? null : 'File content is not a valid PDF';
+    case '.jpg':
+    case '.jpeg':
+      return startsWith([0xff, 0xd8, 0xff]) ? null : 'File content is not a valid JPEG image';
+    case '.png':
+      return startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ? null : 'File content is not a valid PNG image';
+    case '.gif':
+      return startsWith('GIF87a') || startsWith('GIF89a') ? null : 'File content is not a valid GIF image';
+    case '.webp':
+      return startsWith('RIFF') && startsWith('WEBP', 8) ? null : 'File content is not a valid WebP image';
+    case '.doc':
+    case '.xls':
+      // Legacy Office = OLE compound file
+      return startsWith([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]) ? null : 'File content is not a valid Office document';
+    case '.docx':
+    case '.xlsx':
+      // OOXML = ZIP that must contain [Content_Types].xml — arbitrary ZIPs are rejected
+      if (!startsWith([0x50, 0x4b, 0x03, 0x04])) return 'File content is not a valid Office document';
+      return buf.includes('[Content_Types].xml') ? null : 'File content is not a valid Office document';
+    case '.csv': {
+      const head = buf.subarray(0, 8192);
+      if (head.includes(0)) return 'CSV must be a plain text file';
+      const text = head.toString('utf8').replace(/^\uFEFF/, '').trimStart();
+      // Reject markup masquerading as CSV (HTML/SVG/XML)
+      if (text.startsWith('<')) return 'CSV must be a plain text file';
+      return null;
+    }
+    default:
+      return 'Only PDF, image (JPG/PNG/WebP/GIF), Word, Excel, or CSV files are allowed';
+  }
+}
+
+// Uploads a validated buffer with a server-chosen Content-Type from the allowlist.
+export async function uploadQualityAttachment(buf: Buffer, originalName: string): Promise<{ key: string; url: string }> {
+  const ext = path.extname(originalName).toLowerCase();
+  const contentType = QUALITY_FILE_TYPES[ext];
+  if (!contentType) throw new Error('Unsupported file type');
+  const safeName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, '_');
+  // UUID guarantees key uniqueness — same-named simultaneous uploads must never overwrite each other
+  const key = `quality-attachments/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  await s3Client.send(new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buf,
+    ContentType: contentType,
+  }));
+  console.log(`Uploaded quality attachment to S3: ${key} (${contentType}, ${buf.length} bytes)`);
+  return { key, url: getImageUrl(key) };
+}
+
 // ── Documents bucket (separate from image bucket) ─────────────────────────
 const DOCUMENTS_BUCKET = process.env.AWS_DOCUMENTS_BUCKET_NAME || 'eurka-unjha-bucket-production';
 const DOCUMENTS_BUCKET_REGION = 'eu-north-1';

@@ -78,7 +78,7 @@ import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } fro
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
-import { productImageUpload, heroSliderUpload, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
+import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
@@ -14278,6 +14278,40 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       console.error('Error deleting quality attachment:', error);
       res.status(500).json({ message: 'Failed to delete attachment' });
     }
+  });
+
+  // Upload a quality attachment file to AWS S3 (stored under quality-attachments/).
+  // File bytes are validated against the extension BEFORE anything reaches S3, and
+  // the stored Content-Type is set server-side — client MIME/filename are untrusted.
+  app.post('/api/quality/attachments/upload', isAuthenticated, isQualityAuthorized, (req: any, res) => {
+    qualityAttachmentUpload.single('file')(req, res, async (err: any) => {
+      if (err) {
+        console.error('Quality attachment upload error:', err);
+        const message = err?.code === 'LIMIT_FILE_SIZE'
+          ? 'File is too large (max 10MB)'
+          : (err?.message || 'Upload failed');
+        return res.status(400).json({ message });
+      }
+      const file = req.file as Express.Multer.File | undefined;
+      if (!file || !file.buffer) {
+        return res.status(400).json({ message: 'No file received' });
+      }
+      try {
+        const invalid = validateQualityFileBytes(file.buffer, file.originalname);
+        if (invalid) {
+          return res.status(400).json({ message: invalid });
+        }
+        const { url } = await uploadQualityAttachment(file.buffer, file.originalname);
+        res.status(201).json({
+          fileUrl: url,
+          fileName: file.originalname,
+          size: file.size,
+        });
+      } catch (uploadErr) {
+        console.error('Quality attachment upload error:', uploadErr);
+        res.status(500).json({ message: 'Upload failed' });
+      }
+    });
   });
 
   // ==================== FIELD QUALITY RECORDS (IRF / TRF / Loading Inspection) ====================
