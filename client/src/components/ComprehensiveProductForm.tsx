@@ -528,7 +528,7 @@ export default function ComprehensiveProductForm({
                 {formData.specificationSheet.trim() ? (
                   <SpecificationSheetViewer
                     html={formData.specificationSheet}
-                    className="w-full border rounded-md bg-white p-4 min-h-[200px] overflow-auto"
+                    className="w-full border rounded-md bg-white p-4 min-h-[200px] max-h-[500px] overflow-y-auto overflow-x-auto"
                     testId="preview-specification-sheet"
                   />
                 ) : (

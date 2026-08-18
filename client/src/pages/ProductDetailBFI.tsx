@@ -657,7 +657,7 @@ export default function ProductDetailBFI() {
                       ) : (
                         <SpecificationSheetViewer
                           html={product.specificationSheet}
-                          className="w-full"
+                          className="w-full max-h-[70vh] overflow-y-auto overflow-x-auto border rounded-md"
                           testId="spec-sheet-public"
                         />
                       )}
