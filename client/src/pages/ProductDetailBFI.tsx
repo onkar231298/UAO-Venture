@@ -1,5 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import ProductFAQs from "@/components/ProductFAQs";
 import { ProductAEO } from "@/components/ProductAEO";
 import OptimizedImage from "@/components/OptimizedImage";
@@ -655,7 +656,7 @@ export default function ProductDetailBFI() {
                       ) : (
                         <div 
                           className="prose prose-sm max-w-none w-full"
-                          dangerouslySetInnerHTML={{ __html: product.specificationSheet }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.specificationSheet) }}
                         />
                       )}
                     </div>
@@ -668,7 +669,7 @@ export default function ProductDetailBFI() {
                           <h2 className="text-lg font-semibold text-gray-900 mb-3">Product Overview</h2>
                           <div 
                             className="text-gray-700 text-sm leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br />') }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description.replace(/\n/g, '<br />')) }}
                           />
                           
 

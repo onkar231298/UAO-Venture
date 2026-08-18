@@ -1553,7 +1553,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/product-types', isAuthenticated, async (req, res) => {
+  app.post('/api/product-types', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const typeData = insertProductTypeSchema.parse(req.body);
       const newType = await storage.createProductType(typeData);
@@ -1564,7 +1564,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/product-types/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/product-types/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const typeId = parseInt(req.params.id);
       const typeData = insertProductTypeSchema.partial().parse(req.body);
@@ -1576,7 +1576,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/product-types/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/product-types/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const typeId = parseInt(req.params.id);
       await storage.deleteProductType(typeId);
@@ -1588,7 +1588,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Product-Type relationship routes
-  app.post('/api/products/:productId/types', isAuthenticated, async (req, res) => {
+  app.post('/api/products/:productId/types', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const { typeId, isPrimary } = insertProductTypeRelationSchema.parse(req.body);
@@ -1600,7 +1600,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/products/:productId/types/:typeId', isAuthenticated, async (req, res) => {
+  app.delete('/api/products/:productId/types/:typeId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const typeId = parseInt(req.params.typeId);
@@ -1612,7 +1612,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/products/:productId/types/:typeId', isAuthenticated, async (req, res) => {
+  app.put('/api/products/:productId/types/:typeId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const typeId = parseInt(req.params.typeId);
@@ -1650,7 +1650,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Bulk assign primary product types to products that don't have any
-  app.post('/api/product-types/bulk-assign', isAuthenticated, async (req, res) => {
+  app.post('/api/product-types/bulk-assign', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1702,7 +1702,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/health-supports', isAuthenticated, async (req, res) => {
+  app.post('/api/health-supports', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const validatedData = insertHealthSupportSchema.parse(req.body);
       const newHealthSupport = await storage.createHealthSupport(validatedData);
@@ -1713,7 +1713,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/health-supports/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/health-supports/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertHealthSupportSchema.partial().parse(req.body);
@@ -1725,7 +1725,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/health-supports/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/health-supports/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteHealthSupport(id);
@@ -1748,7 +1748,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/products/:productId/health-supports', isAuthenticated, async (req, res) => {
+  app.post('/api/products/:productId/health-supports', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const { healthSupportId, isPrimary } = req.body;
@@ -1760,7 +1760,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/products/:productId/health-supports/:healthSupportId', isAuthenticated, async (req, res) => {
+  app.delete('/api/products/:productId/health-supports/:healthSupportId', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const healthSupportId = parseInt(req.params.healthSupportId);
@@ -1772,7 +1772,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/products/:productId/health-supports/bulk', isAuthenticated, async (req, res) => {
+  app.post('/api/products/:productId/health-supports/bulk', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const { healthSupportAssignments } = req.body;
@@ -1830,7 +1830,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // NEW: Direct WebP processing and upload endpoint for product images
-  app.post("/api/products/upload-webp", isAuthenticated, webpUpload.array('images', 10), async (req: any, res) => {
+  app.post("/api/products/upload-webp", isAuthenticated, isAdminOrWebsiteManager, webpUpload.array('images', 10), async (req: any, res) => {
     try {
       if (!process.env.AWS_S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID) {
         return res.status(503).json({ 
@@ -1906,7 +1906,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Legacy: Product image upload endpoint - AWS S3 only (kept for compatibility)
-  app.post("/api/products/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/products/upload", isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       // Check if AWS S3 is configured for product images
       if (process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID) {
@@ -1925,7 +1925,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Category image upload endpoint - uses public object storage
-  app.post("/api/categories/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/categories/upload", isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getPublicObjectUploadURL();
@@ -1936,7 +1936,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put("/api/category-images", isAuthenticated, async (req, res) => {
+  app.put("/api/category-images", isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     if (!req.body.imageUrl) {
       return res.status(400).json({ error: "imageUrl is required" });
     }
@@ -1986,7 +1986,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Product image handling endpoint - AWS S3 only
-  app.put("/api/product-images", isAuthenticated, async (req, res) => {
+  app.put("/api/product-images", isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     if (!req.body.imageUrl) {
       return res.status(400).json({ error: "imageUrl is required" });
     }
@@ -4722,7 +4722,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Upload product images and documents with WebP processing for images
-  app.post('/api/admin/products/upload', isAuthenticated, webpUpload.any(), async (req: any, res) => {
+  app.post('/api/admin/products/upload', isAuthenticated, isAdminOrWebsiteManager, webpUpload.any(), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -4886,7 +4886,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
 
   // Generate presigned URL for direct upload (alternative method)
-  app.post('/api/admin/products/presigned-url', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/products/presigned-url', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -4919,7 +4919,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Delete image from S3
-  app.delete('/api/admin/products/image/:s3Key', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/products/image/:s3Key', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -5029,13 +5029,34 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // ==========================================
 
   // Role validation middleware for admin-only routes
-  const isAdminOrWebsiteManager = (req: any, res: any, next: any) => {
-    const user = req.user;
-    if (!user?.claims?.sub) {
-      return res.status(401).json({ message: "Unauthorized" });
+  // Role guard for website-management endpoints (products, categories, tags, sliders).
+  // Reads (GET): any staff account — customers are blocked.
+  // Writes: admins, website managers, and quality roles (the quality team manages
+  // product content through their dashboard's Website Management section).
+  function canManageWebsiteContent(role?: string | null) {
+    return !!role && (role.includes('admin') || role === 'website_manager' || role === 'quality_manager' || role === 'quality_executive');
+  }
+
+  async function isAdminOrWebsiteManager(req: any, res: any, next: any) {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role === 'customer') {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      if (req.method !== 'GET' && !canManageWebsiteContent(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      req.staffUser = user;
+      next();
+    } catch (error) {
+      console.error("Error verifying website management permissions:", error);
+      res.status(500).json({ message: "Failed to verify permissions" });
     }
-    next();
-  };
+  }
 
   // Get all products (admin view with all fields)
   app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
@@ -5072,7 +5093,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Get multiple products by IDs (bulk fetch)
-  app.get('/api/admin/products/bulk', isAuthenticated, async (req, res) => {
+  app.get('/api/admin/products/bulk', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
       const { ids } = req.query;
       
@@ -5250,9 +5271,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Delete product
+  // Delete product (admins/website managers only — quality roles can edit but not delete)
   app.delete('/api/admin/products/:id', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
+      const role = (req as any).staffUser?.role as string | undefined;
+      if (!role || (!role.includes('admin') && role !== 'website_manager')) {
+        return res.status(403).json({ message: "Only administrators or website managers can delete products" });
+      }
       const productId = parseInt(req.params.id);
       await storage.deleteProduct(productId);
       res.json({ message: "Product deleted successfully" });
@@ -5465,7 +5490,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Bulk generate EU-focused SEO titles and descriptions for all active products
-  app.post('/api/admin/products/bulk-seo-generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/products/bulk-seo-generate', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const userRole = req.user?.claims?.role;
       if (!userRole || !['admin', 'super_admin'].includes(userRole)) {
@@ -5676,7 +5701,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/admin/products/:productId/faqs', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/products/:productId/faqs', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const faqData = insertProductFaqSchema.parse({ ...req.body, productId });
@@ -5688,7 +5713,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/products/faqs/:id', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -5703,7 +5728,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/admin/products/faqs/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/products/faqs/:id', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteProductFaq(id);
@@ -5751,7 +5776,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/admin/blog', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/blog', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const postData = insertBlogPostSchema.parse({
         ...req.body,
@@ -5765,7 +5790,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/blog/:id', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -5780,7 +5805,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.delete('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/blog/:id', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteBlogPost(id);
@@ -5792,6 +5817,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // SEO monitoring routes
+  // Read-only, intentionally not role-gated: exposes monitoring data with no mutation
+  // surface; the write route below is role-gated via isAdminOrWebsiteManager.
   app.get('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
     try {
       const { type } = req.query;
@@ -5803,7 +5830,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.post('/api/admin/seo/issues', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/seo/issues', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const issueData = insertSeoMonitoringSchema.parse(req.body);
       const issue = await storage.createSeoIssue(issueData);
@@ -5919,6 +5946,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Global SEO Settings routes
+  // Read-only, intentionally not role-gated: client/src/services/seoService.ts fetches
+  // this from public pages for any logged-in session (incl. customers) to render meta
+  // tags; blocking reads would break that. The PUT below is role-gated.
   app.get('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
     try {
       const settings = await storage.getGlobalSeoSettings();
@@ -5929,7 +5959,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/admin/seo/settings', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/seo/settings', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
       const settingsData = insertGlobalSeoSettingsSchema.parse(req.body);
       const settings = await storage.updateGlobalSeoSettings(settingsData);
@@ -14593,7 +14623,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   });
 
   // Admin: Apply a company document to all products (e.g., Export House Certificate)
-  app.post('/api/admin/products/apply-company-document', isAuthenticated, webpUpload.single('document'), async (req: any, res) => {
+  app.post('/api/admin/products/apply-company-document', isAuthenticated, isAdminOrWebsiteManager, webpUpload.single('document'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);

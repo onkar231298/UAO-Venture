@@ -4,3 +4,4 @@
 - [SendGrid click tracking SSL](sendgrid-click-tracking-ssl.md) — click tracking disabled per-message: branded link subdomain has no SSL cert, https clicks get browser-blocked; don't re-enable without branded-link SSL.
 - [Gemini email fallback](gemini-email-fallback.md) — gpt-4o primary, Gemini flash cascade backup; free-tier key: only -latest aliases callable, thinking eats token budget, transient 503s.
 - [CRM company deep-links](crm-deeplink-company-open.md) — resolve ?openCompany via GET :id, not the filtered list; that GET logs staff access itself — adding track-view double-counts security alerts.
+- [Authz middleware gotchas](authz-middleware-gotchas.md) — never trust a guard by its name: some only check login; read bodies and grep for isAuthenticated-only staff routes.

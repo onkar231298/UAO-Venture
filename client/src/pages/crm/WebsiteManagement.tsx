@@ -62,6 +62,10 @@ import { z } from "zod";
 
 export default function WebsiteManagement() {
   const { user } = useAuth();
+  const userRole = (user as any)?.role as string | undefined;
+  // Product deletion stays limited to admins/website managers; quality roles can
+  // list/create/edit but the server rejects their deletes, so hide the button too.
+  const canDeleteProducts = !!userRole && (userRole.includes('admin') || userRole === 'website_manager');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -699,20 +703,23 @@ export default function WebsiteManagement() {
                                         />
                                       </DialogContent>
                                     </Dialog>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => {
-                                        if (window.confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
-                                          deleteProductMutation.mutate(product.id);
-                                        }
-                                      }}
-                                      disabled={deleteProductMutation.isPending}
-                                      title="Delete Product"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    {canDeleteProducts && (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => {
+                                          if (window.confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+                                            deleteProductMutation.mutate(product.id);
+                                          }
+                                        }}
+                                        disabled={deleteProductMutation.isPending}
+                                        title="Delete Product"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        data-testid={`button-delete-product-${product.id}`}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>

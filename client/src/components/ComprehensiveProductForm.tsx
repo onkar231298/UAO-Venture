@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DOMPurify from "dompurify";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -497,19 +499,47 @@ export default function ComprehensiveProductForm({
             />
           </div>
 
-          {/* Specification Sheet Section */}
+          {/* Product Specifications (HTML) — feeds the website's Product Spec tab */}
           <div>
-            <Label htmlFor="specificationSheet">Detailed Specifications</Label>
-            <Textarea
-              id="specificationSheet"
-              value={formData.specificationSheet}
-              onChange={(e) => setFormData(prev => ({ ...prev, specificationSheet: e.target.value }))}
-              rows={6}
-              placeholder="Enter detailed product specifications in HTML format or plain text..."
-              className="font-mono text-sm"
-            />
+            <Label htmlFor="specificationSheet" className="text-sm font-medium text-gray-700">
+              Product Specifications (HTML)
+            </Label>
+            <p className="text-xs text-gray-500 mt-1 mb-2">
+              Paste your HTML spec sheet here (tables, headings and inline styles are supported).
+              It appears on the website under Product Information → <span className="font-medium">Product Spec</span> tab.
+            </p>
+            <Tabs defaultValue="edit" className="w-full">
+              <TabsList className="grid w-full max-w-xs grid-cols-2">
+                <TabsTrigger value="edit" data-testid="tab-spec-edit">Paste HTML</TabsTrigger>
+                <TabsTrigger value="preview" data-testid="tab-spec-preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="edit" className="mt-2">
+                <Textarea
+                  id="specificationSheet"
+                  value={formData.specificationSheet}
+                  onChange={(e) => setFormData(prev => ({ ...prev, specificationSheet: e.target.value }))}
+                  rows={12}
+                  placeholder="Paste the product specification HTML here (e.g. <table>...</table>), or write plain text..."
+                  className="font-mono text-sm"
+                  data-testid="input-specification-sheet"
+                />
+              </TabsContent>
+              <TabsContent value="preview" className="mt-2">
+                {formData.specificationSheet.trim() ? (
+                  <div
+                    className="prose prose-sm max-w-none w-full border rounded-md bg-white p-4 min-h-[200px] overflow-auto"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.specificationSheet) }}
+                    data-testid="preview-specification-sheet"
+                  />
+                ) : (
+                  <div className="border rounded-md bg-gray-50 p-8 text-center text-sm text-gray-500 min-h-[200px] flex items-center justify-center">
+                    Nothing to preview yet — paste your specification HTML in the "Paste HTML" tab.
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
             <p className="text-xs text-gray-500 mt-1">
-              You can use HTML formatting for better presentation
+              The preview shows exactly how it will look on the product page. Scripts are removed automatically for safety.
             </p>
           </div>
         </CardContent>
