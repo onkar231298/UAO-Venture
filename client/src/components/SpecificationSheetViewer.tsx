@@ -74,7 +74,14 @@ export function sanitizeSpecHtml(raw: string): string {
   }
   css = remapDocumentRootCss(css);
   const merged = (css.trim() ? `<style>${css}</style>` : "") + bodyHtml;
-  return DOMPurify.sanitize(merged, { ADD_TAGS: ["style"], ADD_ATTR: SPEC_EXTRA_ATTRS });
+  // FORCE_BODY is required: without it DOMPurify's parser hoists a leading
+  // <style> element into <head> and only body content is returned, silently
+  // deleting the entire stylesheet even though "style" is in ADD_TAGS.
+  return DOMPurify.sanitize(merged, {
+    ADD_TAGS: ["style"],
+    ADD_ATTR: SPEC_EXTRA_ATTRS,
+    FORCE_BODY: true,
+  });
 }
 
 /**

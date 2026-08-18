@@ -6,3 +6,4 @@
 - [CRM company deep-links](crm-deeplink-company-open.md) — resolve ?openCompany via GET :id, not the filtered list; that GET logs staff access itself — adding track-view double-counts security alerts.
 - [Authz middleware gotchas](authz-middleware-gotchas.md) — never trust a guard by its name: some only check login; read bodies and grep for isAuthenticated-only staff routes.
 - [Product status model](product-status-model.md) — isActive boolean is the truth (public site filters on it); status varchar is derived+synced in storage; new product write paths must not bypass the sync.
+- [DOMPurify style deletion](dompurify-style-forcebody.md) — keeping <style> needs ADD_TAGS AND FORCE_BODY:true, else it's silently hoisted to head and dropped; includes browser test-harness pattern.
