@@ -10,3 +10,4 @@
 - [S3 bucket uploads](s3-bucket-uploads.md) — images bucket is public-read on EVERY prefix; proxy uploads via server multer (browser PUT CORS unverified); closed ext+mime allowlists, never svg/html.
 - [Staff auth e2e testing](staff-auth-e2e-testing.md) — seed bcrypt user + form POST /admin/login → cookie jar unlocks authenticated API tests; delete user_login_logs before user (FK).
 - [Typecheck suppression](typecheck-suppression.md) — syntax-broken files hide ALL semantic tsc errors; baseline debt is huge, judge new work by changed lines; OOM abort ≠ pass.
+- [Internal chat integrity](internal-chat-integrity.md) — group lifecycle writes share a conversation lock; frequently polled chat summaries must remain bounded and set-based.

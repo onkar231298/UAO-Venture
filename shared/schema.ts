@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
   serial,
   integer,
   decimal,
@@ -2111,6 +2112,114 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 // Notification types
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// ========================================
+// INTERNAL TEAM CHAT
+// ========================================
+
+export const chatConversations = pgTable("chat_conversations", {
+  id: serial("id").primaryKey(),
+  type: varchar("type", { length: 20 }).notNull(), // direct | group
+  name: varchar("name", { length: 160 }),
+  department: varchar("department", { length: 50 }),
+  ownerId: varchar("owner_id").references(() => users.id, { onDelete: "set null" }),
+  directKey: varchar("direct_key", { length: 64 }).unique(),
+  lastMessageAt: timestamp("last_message_at"),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_chat_conversations_last_message").on(table.lastMessageAt),
+  index("idx_chat_conversations_owner").on(table.ownerId),
+]);
+
+export const chatConversationMembers = pgTable("chat_conversation_members", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id")
+    .notNull()
+    .references(() => chatConversations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 20 }).notNull().default("member"), // owner | member
+  lastReadMessageId: integer("last_read_message_id").notNull().default(0),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("uq_chat_conversation_member").on(table.conversationId, table.userId),
+  index("idx_chat_members_user").on(table.userId),
+]);
+
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id")
+    .notNull()
+    .references(() => chatConversations.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_chat_messages_conversation").on(table.conversationId, table.id),
+  index("idx_chat_messages_sender").on(table.senderId),
+]);
+
+export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [chatConversations.ownerId],
+    references: [users.id],
+    relationName: "chatConversationOwner",
+  }),
+  members: many(chatConversationMembers),
+  messages: many(chatMessages),
+}));
+
+export const chatConversationMembersRelations = relations(chatConversationMembers, ({ one }) => ({
+  conversation: one(chatConversations, {
+    fields: [chatConversationMembers.conversationId],
+    references: [chatConversations.id],
+  }),
+  user: one(users, {
+    fields: [chatConversationMembers.userId],
+    references: [users.id],
+    relationName: "chatMemberUser",
+  }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  conversation: one(chatConversations, {
+    fields: [chatMessages.conversationId],
+    references: [chatConversations.id],
+  }),
+  sender: one(users, {
+    fields: [chatMessages.senderId],
+    references: [users.id],
+    relationName: "chatMessageSender",
+  }),
+}));
+
+export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatConversationMemberSchema = createInsertSchema(chatConversationMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ChatConversation = typeof chatConversations.$inferSelect;
+export type ChatConversationMember = typeof chatConversationMembers.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatConversation = z.infer<typeof insertChatConversationSchema>;
+export type InsertChatConversationMember = z.infer<typeof insertChatConversationMemberSchema>;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 // ========================================
 // NET2PHONE INTEGRATION TABLES

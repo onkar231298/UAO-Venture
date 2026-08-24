@@ -195,6 +195,9 @@ import {
   userLoginLogs,
   userAccessEvents,
   userSecurityAlerts,
+  chatConversations,
+  chatConversationMembers,
+  chatMessages,
   type UserLoginLog,
   type InsertUserLoginLog,
   type UserAccessEvent,
@@ -1061,9 +1064,77 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStaff(id: string): Promise<void> {
-    await db
-      .delete(users)
-      .where(and(eq(users.id, id), eq(users.userType, 'staff')));
+    await db.transaction(async (tx) => {
+      // Block new chat writes by this session before cleaning up its chat history.
+      const [staff] = await tx
+        .update(users)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(eq(users.id, id), eq(users.userType, 'staff')))
+        .returning({ id: users.id });
+
+      if (!staff) {
+        throw new Error('Staff user not found');
+      }
+
+      const memberships = await tx
+        .select({
+          conversationId: chatConversationMembers.conversationId,
+          type: chatConversations.type,
+        })
+        .from(chatConversationMembers)
+        .innerJoin(
+          chatConversations,
+          eq(chatConversationMembers.conversationId, chatConversations.id),
+        )
+        .where(eq(chatConversationMembers.userId, id));
+
+      // Lock every related conversation in a stable order. Chat lifecycle routes
+      // use the same lock, so deletion cannot race a send, transfer, or closure.
+      const conversationIds = Array.from(
+        new Set(memberships.map((membership) => membership.conversationId)),
+      ).sort((left, right) => left - right);
+      for (const conversationId of conversationIds) {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${conversationId})`);
+      }
+
+      const now = new Date();
+      // A deleted owner cannot leave an open group without a manager. Close those
+      // groups and clear ownership before removing the account.
+      await tx
+        .update(chatConversations)
+        .set({ ownerId: null, closedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(chatConversations.ownerId, id),
+            eq(chatConversations.type, 'group'),
+          ),
+        );
+
+      const directConversationIds = memberships
+        .filter((membership) => membership.type === 'direct')
+        .map((membership) => membership.conversationId);
+      if (directConversationIds.length > 0) {
+        await tx
+          .delete(chatConversations)
+          .where(inArray(chatConversations.id, directConversationIds));
+      }
+
+      // Group messages by deleted staff are permanently removed along with their
+      // account. Direct message rows above are removed through conversation cascade.
+      await tx.delete(chatMessages).where(eq(chatMessages.senderId, id));
+      await tx
+        .delete(chatConversationMembers)
+        .where(eq(chatConversationMembers.userId, id));
+
+      // Existing staff security history also references the user restrictively.
+      await tx.delete(userSecurityAlerts).where(eq(userSecurityAlerts.userId, id));
+      await tx.delete(userAccessEvents).where(eq(userAccessEvents.userId, id));
+      await tx.delete(userLoginLogs).where(eq(userLoginLogs.userId, id));
+
+      await tx
+        .delete(users)
+        .where(and(eq(users.id, id), eq(users.userType, 'staff')));
+    });
   }
 
   // Customer operations

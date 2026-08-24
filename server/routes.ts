@@ -87,6 +87,7 @@ import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
 import * as gmailApi from "./gmail";
+import { registerChatRoutes } from "./chatRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services
@@ -133,6 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+  registerChatRoutes(app);
 
   // reCAPTCHA site key endpoint for frontend
   app.get('/api/recaptcha-site-key', (req, res) => {

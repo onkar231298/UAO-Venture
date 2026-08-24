@@ -17,6 +17,7 @@ import {
   X,
   AlarmClock,
   ClipboardList,
+  MessageCircle,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
@@ -56,6 +57,13 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
 
   const followUpBadge = (followUpData?.overdueCount || 0) + (followUpData?.todayCount || 0);
 
+  const { data: chatUnreadData } = useQuery<{ count: number }>({
+    queryKey: ['/api/chat/unread-count'],
+    enabled: !!user,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  });
+
   const summary = dashboardData?.summary || {
     activeLeads: 0,
     pendingInquiries: 0,
@@ -84,6 +92,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
     {
       label: "ACTIVITY",
       items: [
+        { key: "/chat", label: "Internal Chat", icon: MessageCircle, badge: (chatUnreadData?.count || 0) > 0 ? chatUnreadData?.count : undefined, badgeColor: "bg-emerald-600 text-white" },
         { key: "/sales/my-activity-log", label: "My Activity Log", icon: ClipboardList },
       ],
     },

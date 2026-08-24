@@ -74,6 +74,8 @@ import QualityRequestsPage from "@/pages/sales/QualityRequestsPage";
 import MyActivityLog from "@/pages/sales/MyActivityLog";
 import FollowUpsPage from "@/pages/sales/FollowUpsPage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
+import InternalChat from "@/pages/InternalChat";
+import { InternalChatLauncher } from "@/components/InternalChatLauncher";
 
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 
@@ -115,6 +117,7 @@ function Router() {
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/chat" component={InternalChat} />
 
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/customer/profile" component={CustomerProfile} />
@@ -235,6 +238,7 @@ function App() {
                 <Toaster />
 
                 <ActivityHeartbeatTracker />
+                 <InternalChatLauncher />
                 <Router />
               </TooltipProvider>
             </CallStateProvider>

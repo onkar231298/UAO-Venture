@@ -25,6 +25,7 @@ import {
   LogOut,
   Menu,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { MyAttendance } from "@/components/hr/MyAttendance";
@@ -89,6 +90,13 @@ export default function StaffDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
     enabled: !!staffUser,
+  });
+
+  const { data: chatUnreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/chat/unread-count"],
+    enabled: !!staffUser,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   if (authLoading) {
@@ -194,6 +202,18 @@ export default function StaffDashboard() {
                 >
                   <LayoutDashboard className="mr-3 h-5 w-5 flex-shrink-0" />
                   <span className="truncate">Dashboard</span>
+                </button>
+                <button
+                  onClick={() => { window.location.href = '/chat'; }}
+                  className="w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <MessageCircle className="mr-3 h-5 w-5 flex-shrink-0" />
+                  <span className="truncate">Internal Chat</span>
+                  {(chatUnreadData?.count || 0) > 0 && (
+                    <Badge className="ml-auto bg-emerald-600 text-white">
+                      {(chatUnreadData?.count || 0) > 99 ? '99+' : chatUnreadData?.count}
+                    </Badge>
+                  )}
                 </button>
               </div>
             </div>
