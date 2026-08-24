@@ -4411,7 +4411,12 @@ Packaging: Standard export packaging`,
                           Start New Email Thread
                         </span>
                       </SelectItem>
-                      {emailThreads?.filter((thread: any) => thread.threadId).map((thread: any) => (
+                      {emailThreads?.filter((thread: any) =>
+                        thread.threadId && (
+                          (typeof selectedSOToSend?.leadId === "number" && thread.leadId === selectedSOToSend.leadId) ||
+                          (typeof selectedSOToSend?.companyId === "number" && thread.companyId === selectedSOToSend.companyId)
+                        )
+                      ).map((thread: any) => (
                         <SelectItem key={thread.id} value={thread.id.toString()}>
                           {thread.subject || 'No Subject'} - {thread.customerEmail}
                         </SelectItem>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canSendSalesOrder,
+  isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
   renderCampaignRecipientSubject,
   stableInboundMessageId,
@@ -74,5 +75,33 @@ test("a unique sender contact can be linked while another representative is deni
   assert.equal(
     canSendSalesOrder("manager", "sales_manager", { assignedToUserId: "rep-a" }),
     true,
+  );
+});
+
+test("sales-order email threads must belong to the order's lead or company", () => {
+  const order = { leadId: 11, companyId: 22 };
+
+  assert.equal(
+    isSalesOrderEmailThreadCompatible(order, { leadId: 11, companyId: null }),
+    true,
+  );
+  assert.equal(
+    isSalesOrderEmailThreadCompatible(order, { leadId: null, companyId: 22 }),
+    true,
+  );
+  assert.equal(
+    isSalesOrderEmailThreadCompatible(order, { leadId: 99, companyId: 22 }),
+    true,
+  );
+  assert.equal(
+    isSalesOrderEmailThreadCompatible(order, { leadId: 99, companyId: 88 }),
+    false,
+  );
+  assert.equal(
+    isSalesOrderEmailThreadCompatible(
+      { leadId: null, companyId: null },
+      { leadId: null, companyId: null },
+    ),
+    false,
   );
 });

@@ -59,3 +59,12 @@ export function canSendSalesOrder(
     order.lead?.assignedSalesRep === userId ||
     order.company?.assignedTo === userId;
 }
+
+export function isSalesOrderEmailThreadCompatible(
+  order: { leadId?: number | null; companyId?: number | null },
+  thread: { leadId?: number | null; companyId?: number | null },
+): boolean {
+  const matchesLead = typeof order.leadId === "number" && thread.leadId === order.leadId;
+  const matchesCompany = typeof order.companyId === "number" && thread.companyId === order.companyId;
+  return matchesLead || matchesCompany;
+}

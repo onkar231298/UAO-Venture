@@ -92,6 +92,7 @@ import { encryptEmailCredential } from "./email/credentials";
 import { titanEmailProvider } from "./email/titan";
 import {
   canSendSalesOrder,
+  isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
   renderCampaignRecipientSubject,
   titanInboundProviderId,
@@ -4151,9 +4152,30 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
         text += `\n\n---\n${config.displayName || "Signature"}`;
       }
-      let thread = emailThreadId ? await storage.getEmailThread(Number(emailThreadId)) : undefined;
-      if (thread && (!order.leadId || thread.leadId !== order.leadId)) return res.status(400).json({ message: "Invalid email thread" });
-      if (!thread && order.leadId) thread = await storage.createEmailThread({ leadId: order.leadId, subject: emailSubject, participantEmails: [config.companyEmail, ...recipients], status: "active", lastMessageAt: new Date(), messageCount: 0, isRead: true });
+      const hasRequestedThread = emailThreadId !== undefined && emailThreadId !== null && emailThreadId !== "";
+      const requestedThreadId = hasRequestedThread ? Number(emailThreadId) : undefined;
+      if (requestedThreadId !== undefined && (!Number.isInteger(requestedThreadId) || requestedThreadId <= 0)) {
+        return res.status(400).json({ message: "Please select a valid email thread or start a new one." });
+      }
+      let thread = requestedThreadId !== undefined ? await storage.getEmailThread(requestedThreadId) : undefined;
+      if (requestedThreadId !== undefined && !thread) {
+        return res.status(400).json({ message: "The selected email thread is no longer available. Please choose another thread or start a new one." });
+      }
+      if (thread && !isSalesOrderEmailThreadCompatible(order, thread)) {
+        return res.status(400).json({ message: "This email thread does not belong to the sales order's lead or company." });
+      }
+      if (!thread && (order.leadId || order.companyId)) {
+        thread = await storage.createEmailThread({
+          leadId: order.leadId || undefined,
+          companyId: order.companyId || undefined,
+          subject: emailSubject,
+          participantEmails: [config.companyEmail, ...recipients],
+          status: "active",
+          lastMessageAt: new Date(),
+          messageCount: 0,
+          isRead: true,
+        });
+      }
       const parent = thread ? (await storage.getEmailMessages({ threadId: thread.id })).sort((a,b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0)).find(item => item.messageIdHeader) : undefined;
       const inReplyTo = parent?.messageIdHeader || undefined, references = inReplyTo ? [parent?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
       const pdf = await storage.generateSalesOrderPdf(orderId);
@@ -4167,6 +4189,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       await storage.updateSalesOrder(orderId, {
         status: "confirmed",
+        ...(thread ? { emailThreadId: thread.id } : {}),
       });
       await storage.addSalesOrderActivity({
         salesOrderId: orderId,
