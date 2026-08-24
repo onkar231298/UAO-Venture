@@ -18,6 +18,7 @@ import {
   AlarmClock,
   ClipboardList,
   MessageCircle,
+  Package,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 
@@ -87,6 +88,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
         { key: "/sales/my-companies", label: "My Companies", icon: Building2 },
         { key: "/sales/follow-ups", label: "Follow-ups", icon: AlarmClock, badge: followUpBadge > 0 ? followUpBadge : undefined, badgeColor: (followUpData?.overdueCount || 0) > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white" },
         { key: "/sales/my-sales", label: "My Sales & Quotations", icon: FileText },
+        { key: "/sales/sample-requests", label: "Sample Requests", icon: Package, badge: summary.samplesInProgress > 0 ? summary.samplesInProgress : undefined },
       ],
     },
     {

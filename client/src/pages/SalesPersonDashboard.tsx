@@ -147,6 +147,8 @@ export default function SalesPersonDashboard() {
   const { data: samplesData, isLoading: samplesLoading } = useQuery<{ requests: any[]; total: number }>({
     queryKey: ['/api/sales/my-samples'],
     enabled: isAuthenticated && !!user,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: bidsData, isLoading: bidsLoading } = useQuery<{ bids: any[]; total: number }>({
@@ -686,8 +688,18 @@ export default function SalesPersonDashboard() {
           {activeTab === 'samples' && (
             <Card>
               <CardHeader>
-                <CardTitle>My Sample Requests</CardTitle>
-                <CardDescription>Sample requests assigned to you for processing</CardDescription>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <CardTitle>My Sample Requests</CardTitle>
+                    <CardDescription>Sample requests assigned to you for processing</CardDescription>
+                  </div>
+                  <Link href="/sales/sample-requests">
+                    <Button variant="outline" size="sm">
+                      Manage sample requests
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
                 {samplesLoading ? (
@@ -721,6 +733,11 @@ export default function SalesPersonDashboard() {
                         </div>
                         <div className="flex items-center gap-3">
                           {getStatusBadge(sample.status || 'pending')}
+                          <Link href="/sales/sample-requests">
+                            <Button variant="ghost" size="sm">
+                              Manage
+                            </Button>
+                          </Link>
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -822,6 +839,9 @@ export default function SalesPersonDashboard() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Status:</span>
                 {getStatusBadge(selectedSample.status || 'pending')}
+                <Badge variant="outline" className="capitalize">
+                  {(selectedSample.source || "sales").replace(/_/g, " ")}
+                </Badge>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -863,6 +883,27 @@ export default function SalesPersonDashboard() {
                   <p className="mt-1 p-3 bg-gray-50 rounded text-sm">{selectedSample.message}</p>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Quality Response Notes</p>
+                  <p className="font-medium">{selectedSample.notes || "No Quality notes yet"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Tracking Number</p>
+                  <p className="font-medium">{selectedSample.trackingNumber || "Not available"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">DHL Number</p>
+                  <p className="font-medium">{selectedSample.dhlNumber || "Not available"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Processed Time</p>
+                  <p className="font-medium">
+                    {selectedSample.processedAt ? format(new Date(selectedSample.processedAt), "PPpp") : "Not processed"}
+                  </p>
+                </div>
+              </div>
 
               {selectedSample.shippingAddress && (
                 <div>

@@ -459,12 +459,14 @@ function SampleRequestsSection() {
   const [processNotes, setProcessNotes] = useState("");
   const [processStatus, setProcessStatus] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [dhlNumber, setDhlNumber] = useState("");
 
   useEffect(() => {
     if (selectedRequest) {
       setProcessNotes(selectedRequest.notes || "");
       setProcessStatus(selectedRequest.status || "pending");
       setTrackingNumber(selectedRequest.trackingNumber || "");
+      setDhlNumber(selectedRequest.dhlNumber || "");
     }
   }, [selectedRequest]);
 
@@ -646,13 +648,23 @@ function SampleRequestsSection() {
                   </Select>
                 </div>
                 {(processStatus === "shipped" || processStatus === "completed") && (
-                  <div>
-                    <Label>Tracking Number</Label>
-                    <Input
-                      value={trackingNumber}
-                      onChange={(e) => setTrackingNumber(e.target.value)}
-                      placeholder="Enter shipping tracking number"
-                    />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label>Tracking Number</Label>
+                      <Input
+                        value={trackingNumber}
+                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        placeholder="Enter shipping tracking number"
+                      />
+                    </div>
+                    <div>
+                      <Label>DHL Number</Label>
+                      <Input
+                        value={dhlNumber}
+                        onChange={(e) => setDhlNumber(e.target.value)}
+                        placeholder="Enter DHL shipment number"
+                      />
+                    </div>
                   </div>
                 )}
                 <div>
@@ -673,6 +685,12 @@ function SampleRequestsSection() {
                   </p>
                 </div>
               )}
+              <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                <div><Label className="text-xs text-gray-500">Tracking Number</Label><p>{selectedRequest.trackingNumber || "—"}</p></div>
+                <div><Label className="text-xs text-gray-500">DHL Number</Label><p>{selectedRequest.dhlNumber || "—"}</p></div>
+                <div className="sm:col-span-2"><Label className="text-xs text-gray-500">Quality Notes</Label><p>{selectedRequest.notes || "—"}</p></div>
+                <div className="sm:col-span-2"><Label className="text-xs text-gray-500">Processed Time</Label><p>{selectedRequest.processedAt ? new Date(selectedRequest.processedAt).toLocaleString() : "—"}</p></div>
+              </div>
             </div>
           )}
           <DialogFooter className="gap-2">
@@ -685,9 +703,13 @@ function SampleRequestsSection() {
                   status: processStatus,
                   notes: processNotes,
                   trackingNumber: trackingNumber || undefined,
+                  dhlNumber: dhlNumber || undefined,
                 });
               }}
-              disabled={updateMutation.isPending}
+              disabled={
+                updateMutation.isPending ||
+                (processStatus === "shipped" && (!trackingNumber || !dhlNumber))
+              }
             >
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>

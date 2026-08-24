@@ -2307,9 +2307,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.get('/api/customer/sample-requests/:customerId', async (req: any, res) => {
+  app.get('/api/customer/sample-requests/:customerId', isAuthenticated, async (req: any, res) => {
     try {
       const customerId = req.params.customerId;
+      const authenticatedCustomerId = req.user?.claims?.sub;
+      if (!authenticatedCustomerId || authenticatedCustomerId !== customerId) {
+        return res.status(403).json({ message: "You can only view your own sample requests" });
+      }
       const { status, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
@@ -2867,7 +2871,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       const requestData = insertSampleRequestSchema.parse({ 
         ...req.body, 
-        customerId 
+        customerId,
+        source: 'website',
       });
       
       const sampleRequest = await storage.createSampleRequest(requestData);
@@ -2920,25 +2925,30 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isSalesManager = user?.role === 'sales_manager';
+      const isSalesExecutive = user?.role === 'sales_executive';
+      const isQuality = user?.role === 'quality_manager' || user?.role === 'quality_executive';
+      if (!user || (!isAdmin && !isSalesManager && !isSalesExecutive && !isQuality)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const { status, limit = '50', offset = '0' } = req.query;
+      const { status, source, search, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
 
-      // Role-based filtering
-      if (user.role?.includes('sales') && !user.role?.includes('admin')) {
-        filters.assignedTo = userId;
-      }
+      // Quality, sales managers, and administrators can see all requests.
+      // Sales executives can see directly assigned requests and lead-linked requests.
+      if (isSalesExecutive) filters.salesUserId = userId;
 
       if (status) {
         filters.status = status as string;
       }
+      if (source) filters.source = source as string;
+      if (search) filters.search = search as string;
 
       const result = await storage.getSampleRequests(filters);
       res.json(result);
@@ -2948,24 +2958,65 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Update sample request (for admin/sales team)
+  // Update sample request fulfillment details (quality/admin only)
   app.put('/api/sample-requests/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.role?.includes('admin') && !user.role?.includes('sales') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isQuality = user?.role === 'quality_manager' || user?.role === 'quality_executive';
+      if (!user || (!isAdmin && !isQuality)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
       const requestId = parseInt(req.params.id);
-      const updateData = {
-        ...req.body,
-        updatedAt: new Date(),
-      };
+      if (isNaN(requestId)) {
+        return res.status(400).json({ message: "Invalid sample request ID" });
+      }
+      const existingRequest = await storage.getSampleRequest(requestId);
+      if (!existingRequest) {
+        return res.status(404).json({ message: "Sample request not found" });
+      }
+      const updateData: Record<string, any> = {};
+      for (const field of ['status', 'notes', 'trackingNumber', 'dhlNumber']) {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          updateData[field] = req.body[field];
+        }
+      }
+
+      const allowedStatuses = new Set([
+        'pending',
+        'approved',
+        'sample_received',
+        'in_testing',
+        'shipped',
+        'completed',
+        'rejected',
+      ]);
+      const hasStatusUpdate = Object.prototype.hasOwnProperty.call(updateData, 'status');
+      if (hasStatusUpdate && !allowedStatuses.has(updateData.status)) {
+        return res.status(400).json({ message: 'Invalid sample request status' });
+      }
+      const effectiveStatus = updateData.status ?? existingRequest.status;
+      if (effectiveStatus === 'shipped') {
+        const hasTrackingUpdate = Object.prototype.hasOwnProperty.call(updateData, 'trackingNumber');
+        const hasDhlUpdate = Object.prototype.hasOwnProperty.call(updateData, 'dhlNumber');
+        const trackingNumber = String(
+          (hasTrackingUpdate ? updateData.trackingNumber : existingRequest.trackingNumber) ?? '',
+        ).trim();
+        const dhlNumber = String(
+          (hasDhlUpdate ? updateData.dhlNumber : existingRequest.dhlNumber) ?? '',
+        ).trim();
+        if (!trackingNumber || !dhlNumber) {
+          return res.status(400).json({
+            message: 'Tracking number and DHL number are required when marking a sample shipped',
+          });
+        }
+      }
       
       // If status is being changed, add processing metadata
-      if (req.body.status && ['approved', 'rejected', 'shipped', 'completed'].includes(req.body.status)) {
+      if (updateData.status && updateData.status !== existingRequest.status) {
         updateData.processedBy = userId;
         updateData.processedAt = new Date();
       }
@@ -2975,6 +3026,104 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     } catch (error) {
       console.error("Error updating sample request:", error);
       res.status(500).json({ message: "Failed to update sample request" });
+    }
+  });
+
+  // Create a sample request from the sales workspace.
+  app.post('/api/sales/sample-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isSalesManager = user?.role === 'sales_manager';
+      const isSalesExecutive = user?.role === 'sales_executive';
+      if (!user || (!isAdmin && !isSalesManager && !isSalesExecutive)) {
+        return res.status(403).json({ message: 'Sales role required' });
+      }
+
+      const leadId = req.body.leadId === undefined || req.body.leadId === null || req.body.leadId === ''
+        ? undefined
+        : Number(req.body.leadId);
+      if (leadId !== undefined) {
+        if (!Number.isInteger(leadId)) {
+          return res.status(400).json({ message: 'Invalid lead ID' });
+        }
+        const lead = await storage.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({ message: 'Lead not found' });
+        }
+        if (isSalesExecutive && lead.assignedSalesRep !== userId) {
+          return res.status(403).json({ message: 'Lead is not assigned to you' });
+        }
+      }
+
+      const productId = Number(req.body.productId);
+      if (!Number.isInteger(productId) || productId <= 0) {
+        return res.status(400).json({ message: 'A valid product is required' });
+      }
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+
+      const {
+        leadId: _clientLeadId,
+        productId: _clientProductId,
+        customerId: _customerId,
+        assignedTo: _assignedTo,
+        source: _source,
+        status: _status,
+        notes: _notes,
+        trackingNumber: _trackingNumber,
+        dhlNumber: _dhlNumber,
+        processedAt: _processedAt,
+        processedBy: _processedBy,
+        ...clientData
+      } = req.body;
+      const requestData = insertSampleRequestSchema.parse({
+        ...clientData,
+        productId,
+        ...(leadId === undefined ? {} : { leadId }),
+        assignedTo: userId,
+        source: 'sales',
+      });
+      const sampleRequest = await storage.createSampleRequest(requestData);
+      res.status(201).json(sampleRequest);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid sample request data', errors: error.errors });
+      }
+      console.error('Error creating sales sample request:', error);
+      res.status(500).json({ message: 'Failed to create sample request' });
+    }
+  });
+
+  // Get sample requests from the sales workspace.
+  app.get('/api/sales/sample-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      const isSalesManager = user?.role === 'sales_manager';
+      const isSalesExecutive = user?.role === 'sales_executive';
+      if (!user || (!isAdmin && !isSalesManager && !isSalesExecutive)) {
+        return res.status(403).json({ message: 'Sales role required' });
+      }
+
+      const { status, source, search, limit = '50', offset = '0' } = req.query;
+      const filters: any = {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+      if (isSalesExecutive) filters.salesUserId = userId;
+      if (status) filters.status = status as string;
+      if (source) filters.source = source as string;
+      if (search) filters.search = search as string;
+
+      res.json(await storage.getSampleRequests(filters));
+    } catch (error) {
+      console.error('Error fetching sales sample requests:', error);
+      res.status(500).json({ message: 'Failed to fetch sample requests' });
     }
   });
 
@@ -9257,7 +9406,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const [leadsResult, inquiriesResult, samplesResult, bidsResult] = await Promise.all([
         storage.getLeads({ assignedTo: userId, limit: 1000 }),
         storage.getInquiries({ assignedTo: userId, limit: 1000 }),
-        storage.getSampleRequests({ assignedTo: userId, limit: 1000 }),
+        storage.getSampleRequests(
+          user.role === 'sales_manager' || user.role === 'admin' || user.role === 'super_admin'
+            ? { limit: 1000 }
+            : { salesUserId: userId, limit: 1000 }
+        ),
         storage.getInquiries({ assignedTo: userId, inquiryType: 'high_volume_bid', limit: 1000 }),
       ]);
 
@@ -9377,13 +9530,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(403).json({ message: "Access denied. Sales role required." });
       }
 
-      const { status, limit = '50', offset = '0' } = req.query;
+      const { status, source, search, limit = '50', offset = '0' } = req.query;
       const filters: any = {
-        assignedTo: userId,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
+      if (user.role !== 'sales_manager' && user.role !== 'admin' && user.role !== 'super_admin') {
+        filters.salesUserId = userId;
+      }
       if (status) filters.status = status;
+      if (source) filters.source = source;
+      if (search) filters.search = search;
 
       const result = await storage.getSampleRequests(filters);
       res.json(result);
@@ -11808,6 +11965,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'Lead not found' });
       }
 
+      const user = await storage.getUser(userId);
+      const canViewAllLeadSamples = [
+        'admin',
+        'super_admin',
+        'sales_manager',
+        'quality_manager',
+        'quality_executive',
+      ].includes(user?.role || '');
+      const isAssignedSalesRep = lead.assignedSalesRep === userId;
+      if (!canViewAllLeadSamples && !isAssignedSalesRep) {
+        return res.status(403).json({ message: 'Not authorized to view sample requests for this lead' });
+      }
+
       const result = await storage.getSampleRequests({ leadId });
       res.json(result);
     } catch (error: any) {
@@ -11847,6 +12017,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         leadId,
         assignedTo: userId,
         createdBy: userId,
+        source: 'lead',
       });
 
       // Log activity

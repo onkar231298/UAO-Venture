@@ -34,6 +34,11 @@ interface SampleRequest {
   country: string;
   status: string;
   assignedTo: string | null;
+  source?: string | null;
+  notes?: string | null;
+  trackingNumber?: string | null;
+  dhlNumber?: string | null;
+  processedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   productName?: string;
@@ -51,6 +56,7 @@ export default function SampleRequestsPage() {
   const [actionType, setActionType] = useState<"approve" | "reject" | "ship" | "deliver" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [dhlNumber, setDhlNumber] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: sampleRequests, isLoading } = useQuery<{ requests: SampleRequest[], total: number }>({
@@ -76,15 +82,17 @@ export default function SampleRequestsPage() {
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes, trackingNumber }: { 
+    mutationFn: async ({ id, status, notes, trackingNumber, dhlNumber }: {
       id: number; 
       status: string; 
       notes?: string;
       trackingNumber?: string;
+      dhlNumber?: string;
     }) => {
       const updateData: any = { status };
       if (notes) updateData.notes = notes;
       if (trackingNumber) updateData.trackingNumber = trackingNumber;
+      if (dhlNumber) updateData.dhlNumber = dhlNumber;
       
       return apiRequest(`/api/sample-requests/${id}`, {
         method: 'PUT',
@@ -101,6 +109,7 @@ export default function SampleRequestsPage() {
       setSelectedRequest(null);
       setActionNotes("");
       setTrackingNumber("");
+      setDhlNumber("");
     },
     onError: (error: any) => {
       toast({
@@ -131,6 +140,7 @@ export default function SampleRequestsPage() {
       status: newStatus,
       notes: actionNotes,
       trackingNumber: actionType === "ship" ? trackingNumber : undefined,
+      dhlNumber: actionType === "ship" ? dhlNumber : undefined,
     });
   };
 
@@ -397,6 +407,7 @@ export default function SampleRequestsPage() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Status:</span>
                 {getStatusBadge(selectedRequest.status)}
+                <Badge variant="outline" className="capitalize">{(selectedRequest.source || "sales").replace(/_/g, " ")}</Badge>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -450,6 +461,22 @@ export default function SampleRequestsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label className="text-gray-600">Quality Notes</Label>
+                  <p className="font-medium">{selectedRequest.notes || "No Quality notes yet"}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Tracking Number</Label>
+                  <p className="font-medium">{selectedRequest.trackingNumber || "Not available"}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">DHL Number</Label>
+                  <p className="font-medium">{selectedRequest.dhlNumber || "Not available"}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Processed Time</Label>
+                  <p className="font-medium">{selectedRequest.processedAt ? format(new Date(selectedRequest.processedAt), "PPpp") : "Not processed"}</p>
+                </div>
+                <div>
                   <Label className="text-gray-600">Created At</Label>
                   <p className="font-medium">
                     {format(new Date(selectedRequest.createdAt), "PPpp")}
@@ -488,15 +515,27 @@ export default function SampleRequestsPage() {
           </DialogHeader>
           <div className="space-y-4">
             {actionType === "ship" && (
-              <div>
-                <Label htmlFor="tracking">Tracking Number</Label>
-                <Input
-                  id="tracking"
-                  placeholder="Enter tracking number"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  data-testid="input-tracking-number"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="tracking">Tracking Number</Label>
+                  <Input
+                    id="tracking"
+                    placeholder="Enter tracking number"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    data-testid="input-tracking-number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dhl-number">DHL Number</Label>
+                  <Input
+                    id="dhl-number"
+                    placeholder="Enter DHL number"
+                    value={dhlNumber}
+                    onChange={(e) => setDhlNumber(e.target.value)}
+                    data-testid="input-dhl-number"
+                  />
+                </div>
               </div>
             )}
             <div>
@@ -517,7 +556,7 @@ export default function SampleRequestsPage() {
             </Button>
             <Button 
               onClick={handleConfirmAction}
-              disabled={updateStatusMutation.isPending || (actionType === "ship" && !trackingNumber)}
+              disabled={updateStatusMutation.isPending || (actionType === "ship" && (!trackingNumber || !dhlNumber))}
               data-testid="button-confirm-action"
             >
               {updateStatusMutation.isPending ? "Processing..." : "Confirm"}

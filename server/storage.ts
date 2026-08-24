@@ -386,7 +386,10 @@ export interface IStorage {
   getSampleRequests(filters?: {
     customerId?: string;
     status?: string;
+    source?: string;
+    search?: string;
     assignedTo?: string;
+    salesUserId?: string;
     leadId?: number;
     limit?: number;
     offset?: number;
@@ -3017,7 +3020,10 @@ export class DatabaseStorage implements IStorage {
   async getSampleRequests(filters?: {
     customerId?: string;
     status?: string;
+    source?: string;
+    search?: string;
     assignedTo?: string;
+    salesUserId?: string;
     leadId?: number;
     limit?: number;
     offset?: number;
@@ -3025,10 +3031,31 @@ export class DatabaseStorage implements IStorage {
     const conditions = [];
     if (filters?.customerId) conditions.push(eq(sampleRequests.customerId, filters.customerId));
     if (filters?.status) conditions.push(eq(sampleRequests.status, filters.status));
+    if (filters?.source) conditions.push(eq(sampleRequests.source, filters.source));
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      conditions.push(or(
+        ilike(sampleRequests.requestId, term),
+        ilike(sampleRequests.contactName, term),
+        ilike(sampleRequests.companyName, term),
+        ilike(sampleRequests.emailAddress, term),
+        ilike(sampleRequests.phoneNumber, term),
+      ));
+    }
     if (filters?.assignedTo) conditions.push(eq(sampleRequests.assignedTo, filters.assignedTo));
+    if (filters?.salesUserId) {
+      conditions.push(or(
+        eq(sampleRequests.assignedTo, filters.salesUserId),
+        eq(leads.assignedSalesRep, filters.salesUserId),
+      ));
+    }
     if (filters?.leadId) conditions.push(eq(sampleRequests.leadId, filters.leadId));
     
     const whereClause = conditions.length > 0 ? (conditions.length === 1 ? conditions[0] : and(...conditions)) : undefined;
+    const requestedLimit = Number(filters?.limit);
+    const requestedOffset = Number(filters?.offset);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.floor(requestedLimit), 1), 100) : 50;
+    const offset = Number.isFinite(requestedOffset) ? Math.max(Math.floor(requestedOffset), 0) : 0;
     
     const [requestsResult, totalResult] = await Promise.all([
       db
@@ -3051,8 +3078,10 @@ export class DatabaseStorage implements IStorage {
           postalCode: sampleRequests.postalCode,
           country: sampleRequests.country,
           status: sampleRequests.status,
+          source: sampleRequests.source,
           notes: sampleRequests.notes,
           trackingNumber: sampleRequests.trackingNumber,
+          dhlNumber: sampleRequests.dhlNumber,
           processedAt: sampleRequests.processedAt,
           processedBy: sampleRequests.processedBy,
           assignedTo: sampleRequests.assignedTo,
@@ -3065,13 +3094,15 @@ export class DatabaseStorage implements IStorage {
         })
         .from(sampleRequests)
         .leftJoin(products, eq(sampleRequests.productId, products.id))
+        .leftJoin(leads, eq(sampleRequests.leadId, leads.id))
         .where(whereClause)
         .orderBy(desc(sampleRequests.createdAt))
-        .limit(filters?.limit || 50)
-        .offset(filters?.offset || 0),
+        .limit(limit)
+        .offset(offset),
       db
         .select({ count: count() })
         .from(sampleRequests)
+        .leftJoin(leads, eq(sampleRequests.leadId, leads.id))
         .where(whereClause)
     ]);
     

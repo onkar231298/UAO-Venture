@@ -73,6 +73,7 @@ import MyAttendancePage from "@/pages/sales/MyAttendancePage";
 import QualityRequestsPage from "@/pages/sales/QualityRequestsPage";
 import MyActivityLog from "@/pages/sales/MyActivityLog";
 import FollowUpsPage from "@/pages/sales/FollowUpsPage";
+import SalesSampleRequestsPage from "@/pages/sales/SalesSampleRequestsPage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import InternalChat from "@/pages/InternalChat";
 import { InternalChatLauncher } from "@/components/InternalChatLauncher";
@@ -184,6 +185,7 @@ function Router() {
               <Route path="/sales/my-attendance" component={MyAttendancePage} />
               <Route path="/sales/quality-requests" component={QualityRequestsPage} />
               <Route path="/sales/my-activity-log" component={MyActivityLog} />
+              <Route path="/sales/sample-requests" component={SalesSampleRequestsPage} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
               <Route path="/crm/email-settings" component={EmailSettings} />
             </>

@@ -652,15 +652,22 @@ export const sampleRequests = pgTable("sample_requests", {
   
   // Processing Details
   status: varchar("status", { length: 50 }).default("pending"), // pending, approved, shipped, completed, rejected
+  source: varchar("source", { length: 50 }).default("website"),
   notes: text("notes"),
   trackingNumber: varchar("tracking_number", { length: 100 }),
+  dhlNumber: varchar("dhl_number", { length: 100 }),
   processedAt: timestamp("processed_at"),
   processedBy: varchar("processed_by").references(() => users.id),
   assignedTo: varchar("assigned_to").references(() => users.id),
   leadId: integer("lead_id"), // Optional link to CRM lead
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  statusIdx: index("sample_requests_status_idx").on(table.status),
+  sourceIdx: index("sample_requests_source_idx").on(table.source),
+  assignedToIdx: index("sample_requests_assigned_to_idx").on(table.assignedTo),
+  leadIdIdx: index("sample_requests_lead_id_idx").on(table.leadId),
+}));
 
 // Quotations
 export const quotations = pgTable("quotations", {
