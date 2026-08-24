@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +67,16 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
   const [showEmailView, setShowEmailView] = useState(false);
   const [showThreadView, setShowThreadView] = useState(false);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+
+  useEffect(() => {
+    setShowCompose(false);
+    setEmailTo(companyEmail || '');
+    setEmailCc('');
+    setEmailSubject('');
+    setEmailBody('');
+    setReplyToThread(null);
+    setAttachments([]);
+  }, [companyId, companyEmail]);
 
   const { data: emailThreads = [], isLoading, refetch } = useQuery<EmailThread[]>({
     queryKey: ['/api/crm/companies', companyId, 'emails'],
@@ -254,6 +264,12 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
     setShowCompose(true);
   };
 
+  const handleCloseCompose = () => {
+    setShowCompose(false);
+    setReplyToThread(null);
+    setAttachments([]);
+  };
+
   const handleViewEmail = (email: EmailMessage, closeThreadFirst: boolean = false) => {
     if (closeThreadFirst) {
       setShowThreadView(false);
@@ -298,7 +314,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
                 <Mail className="h-5 w-5" />
                 {replyToThread ? 'Reply to Email' : 'Compose New Email'}
               </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCompose(false)}>
+              <Button variant="ghost" size="sm" onClick={handleCloseCompose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>

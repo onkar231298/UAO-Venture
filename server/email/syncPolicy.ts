@@ -68,3 +68,9 @@ export function isSalesOrderEmailThreadCompatible(
   const matchesCompany = typeof order.companyId === "number" && thread.companyId === order.companyId;
   return matchesLead || matchesCompany;
 }
+
+export function requestedReplyThreadId(value: unknown, isReply: unknown): number | undefined {
+  if (isReply !== true) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}

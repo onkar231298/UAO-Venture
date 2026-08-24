@@ -94,6 +94,7 @@ import {
   canSendSalesOrder,
   isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
+  requestedReplyThreadId,
   renderCampaignRecipientSubject,
   titanInboundProviderId,
   uniquelyMatchedCampaignCompanyId,
@@ -7344,8 +7345,18 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) {
         return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
       }
-      let thread = requestedThreadId && isReply ? await storage.getEmailThread(Number(requestedThreadId)) : undefined;
-      if (thread?.companyId !== companyId) return res.status(400).json({ message: "Invalid email thread" });
+      const replyRequested = isReply === true;
+      const replyThreadId = requestedReplyThreadId(requestedThreadId, isReply);
+      if (replyRequested && replyThreadId === undefined) {
+        return res.status(400).json({ message: "Please select a valid email thread to reply to." });
+      }
+      let thread = replyThreadId !== undefined ? await storage.getEmailThread(replyThreadId) : undefined;
+      if (replyRequested && !thread) {
+        return res.status(400).json({ message: "The selected email thread is no longer available. Please start a new email." });
+      }
+      if (thread && thread.companyId !== companyId) {
+        return res.status(400).json({ message: "This email thread does not belong to the selected company." });
+      }
       if (!thread) thread = await storage.createEmailThread({
         companyId, subject, participantEmails: [config.companyEmail, ...(Array.isArray(to) ? to : [to])],
         lastMessageAt: new Date(), messageCount: 0, isRead: true, status: "active",
@@ -7371,7 +7382,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const prior = (await storage.getEmailMessages({ threadId: thread.id }))
         .sort((a, b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0))
         .find(message => message.messageIdHeader);
-      const inReplyTo = isReply ? prior?.messageIdHeader || undefined : undefined;
+      const inReplyTo = replyRequested ? prior?.messageIdHeader || undefined : undefined;
       const references = inReplyTo ? [prior?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
       const result = await titanEmailProvider.send(
         { email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted },

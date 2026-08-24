@@ -4,6 +4,7 @@ import {
   canSendSalesOrder,
   isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
+  requestedReplyThreadId,
   renderCampaignRecipientSubject,
   stableInboundMessageId,
   titanInboundProviderId,
@@ -104,4 +105,14 @@ test("sales-order email threads must belong to the order's lead or company", () 
     ),
     false,
   );
+});
+
+test("company email thread IDs are only used for explicit valid replies", () => {
+  assert.equal(requestedReplyThreadId(42, true), 42);
+  assert.equal(requestedReplyThreadId("42", true), 42);
+  assert.equal(requestedReplyThreadId(42, false), undefined);
+  assert.equal(requestedReplyThreadId(42, undefined), undefined);
+  assert.equal(requestedReplyThreadId(undefined, true), undefined);
+  assert.equal(requestedReplyThreadId("invalid", true), undefined);
+  assert.equal(requestedReplyThreadId(0, true), undefined);
 });
