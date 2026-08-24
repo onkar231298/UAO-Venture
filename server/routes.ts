@@ -65,6 +65,8 @@ import {
   smsMessages,
   emailThreads,
   emailMessages,
+  emailCampaigns,
+  emailCampaignRecipients,
   qualityDocumentRequests,
   qualityTestingRequests,
   fieldQualityRecords,
@@ -86,12 +88,37 @@ import QRCode from "qrcode";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
-import * as gmailApi from "./gmail";
+import { encryptEmailCredential } from "./email/credentials";
+import { titanEmailProvider } from "./email/titan";
+import {
+  canSendSalesOrder,
+  normalizeReplySubject,
+  renderCampaignRecipientSubject,
+  titanInboundProviderId,
+  uniquelyMatchedCampaignCompanyId,
+  uniquelyMatchingLeadBySender,
+} from "./email/syncPolicy";
 import { registerChatRoutes } from "./chatRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services
   const s3Service = new AWSS3Service();
+  const isEmailAdmin = (user: any) => ["admin", "super_admin"].includes(user?.role);
+  const activeTitanSyncConfigIds = new Set<number>();
+  const publicTitanStatus = (config: any) => ({
+    hasConfig: !!config,
+    configured: !!config,
+    connected: !!config?.isConnected && !!config?.titanAppPasswordEncrypted && config?.isActive !== false,
+    email: config?.companyEmail || null,
+    emailAddress: config?.companyEmail || null,
+    displayName: config?.displayName || null,
+    provider: "titan",
+    serviceType: config?.serviceType || "titan",
+    lastSyncAt: config?.imapLastSyncedAt || null,
+    lastSyncError: config?.imapLastSyncError || null,
+    syncStatus: config?.imapSyncStatus || "idle",
+    requiresEmailConnect: !!config && config.isActive !== false && (!config.isConnected || !config.titanAppPasswordEncrypted),
+  });
   
   // Multer configuration for WebP processing
   const webpUpload = multer({
@@ -147,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { token } = req.body;
       
       if (!token) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false, 
           message: 'reCAPTCHA token is required' 
         });
@@ -636,36 +663,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const emailConfigs = await storage.getUserEmailConfigs();
         // Prioritize admin@bright-organic.com for system emails
-        const connectedConfig = emailConfigs.find(config => 
-          config.isConnected && config.accessToken && config.companyEmail === 'admin@bright-organic.com'
-        ) || emailConfigs.find(config => config.isConnected && config.accessToken);
+        const connectedConfig = emailConfigs.find(config =>
+          config.isConnected && config.titanAppPasswordEncrypted && config.companyEmail === 'admin@bright-organic.com'
+        ) || emailConfigs.find(config => config.isConnected && config.titanAppPasswordEncrypted);
         
         if (connectedConfig) {
           console.log(`Using email config: ${connectedConfig.companyEmail} for password reset`);
           
-          // Get valid access token
-          const accessToken = await gmailApi.ensureValidAccessToken(
-            {
-              id: connectedConfig.id,
-              accessToken: connectedConfig.accessToken,
-              refreshToken: connectedConfig.refreshToken,
-              tokenExpiresAt: connectedConfig.tokenExpiresAt,
-            },
-            async (configId, tokens) => {
-              await storage.updateUserEmailConfig(configId, {
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-                tokenExpiresAt: tokens.tokenExpiresAt,
-              });
-            }
-          );
-          
           // Send password reset email
-          await gmailApi.sendEmail(accessToken, {
+          await titanEmailProvider.send({
+            email: connectedConfig.companyEmail,
+            encryptedAppPassword: connectedConfig.titanAppPasswordEncrypted!,
+          }, {
             to: [email],
             subject: 'Reset Your Password - Bright Fame Organic',
             fromName: 'Bright Fame Organic',
-            fromEmail: connectedConfig.companyEmail || 'noreply@brightfameorganic.com',
             bodyHtml: `
               <!DOCTYPE html>
               <html>
@@ -4120,336 +4132,69 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Send Sales Order to customer via email
   app.post('/api/sales-orders/:id/send', isAuthenticated, async (req: any, res) => {
     try {
-      const { id } = req.params;
-      const { emailThreadId, subject, body, to, cc } = req.body;
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      const orderId = Number(req.params.id), userId = req.user.claims.sub;
+      const { emailThreadId, subject, body, to, cc } = req.body || {};
+      const [user, order, config] = await Promise.all([storage.getUser(userId), storage.getSalesOrderWithDetails(orderId), storage.getUserEmailConfig(userId)]);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!(user.role?.includes("sales") || user.role?.includes("admin") || user.role === "super_admin")) return res.status(403).json({ message: "Insufficient permissions" });
+      if (!order) return res.status(404).json({ message: "Sales order not found" });
+      const mayAccessOrder = canSendSalesOrder(userId, user.role, order);
+      if (!mayAccessOrder) return res.status(403).json({ message: "Not authorized to send this sales order" });
+      if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
+      const recipients = Array.isArray(to) && to.length ? to : order.customerEmail ? [order.customerEmail] : [];
+      if (!recipients.length) return res.status(400).json({ message: "No customer email address found. Please enter a recipient email." });
+      const emailSubject = typeof subject === "string" && subject.trim() ? subject.trim() : `Sales Order ${order.soNumber}`;
+      let html = typeof body === "string" && body.trim() ? body : `<p>Please find sales order ${order.soNumber} attached.</p>`;
+      let text = html.replace(/<[^>]*>/g, "");
+      if (config.signatureImageUrl) {
+        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
+        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
+        text += `\n\n---\n${config.displayName || "Signature"}`;
+      }
+      let thread = emailThreadId ? await storage.getEmailThread(Number(emailThreadId)) : undefined;
+      if (thread && (!order.leadId || thread.leadId !== order.leadId)) return res.status(400).json({ message: "Invalid email thread" });
+      if (!thread && order.leadId) thread = await storage.createEmailThread({ leadId: order.leadId, subject: emailSubject, participantEmails: [config.companyEmail, ...recipients], status: "active", lastMessageAt: new Date(), messageCount: 0, isRead: true });
+      const parent = thread ? (await storage.getEmailMessages({ threadId: thread.id })).sort((a,b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0)).find(item => item.messageIdHeader) : undefined;
+      const inReplyTo = parent?.messageIdHeader || undefined, references = inReplyTo ? [parent?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
+      const pdf = await storage.generateSalesOrderPdf(orderId);
+      const ccRecipients = Array.isArray(cc) ? cc : cc ? [cc] : [];
+      const result = await titanEmailProvider.send({ email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted }, { to: recipients, cc: ccRecipients, subject: emailSubject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments: [{ filename: `${order.soNumber}.pdf`, mimeType: "application/pdf", base64Data: pdf.toString("base64") }] });
+      if (thread) {
+        if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: result.threadId });
+        await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, leadId: order.leadId || undefined, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: recipients, ccEmails: ccRecipients, subject: emailSubject, bodyHtml: html, bodyText: text, attachments: [{ filename: `${order.soNumber}.pdf`, mimeType: "application/pdf", size: pdf.length }], sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
+        await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
       }
 
-      // Check if user has permission
-      const hasPermission = user.role?.includes('sales') || user.role?.includes('admin') || user.role === 'super_admin';
-      if (!hasPermission) {
-        return res.status(403).json({ message: "Insufficient permissions" });
-      }
-
-      const order = await storage.getSalesOrderWithDetails(parseInt(id));
-      if (!order) {
-        return res.status(404).json({ message: "Sales order not found" });
-      }
-
-      // Get user's email configuration
-      const emailConfig = await storage.getUserEmailConfig(userId, 'gmail');
-      if (!emailConfig) {
-        return res.status(400).json({ message: "Please configure your Gmail account to send emails" });
-      }
-
-      // Use provided 'to' array first, then fallback to thread/order email
-      let toEmails: string[] = [];
-      if (to && Array.isArray(to) && to.length > 0) {
-        toEmails = to;
-      } else if (emailThreadId) {
-        const thread = await storage.getEmailThread(emailThreadId);
-        if (thread?.customerEmail) {
-          toEmails = [thread.customerEmail];
-        }
-      }
-      
-      // Fallback to order's customer email
-      if (toEmails.length === 0 && order.customerEmail) {
-        toEmails = [order.customerEmail];
-      }
-
-      if (toEmails.length === 0) {
-        return res.status(400).json({ message: "No customer email address found. Please enter a recipient email." });
-      }
-      
-      const ccEmails: string[] = cc && Array.isArray(cc) ? cc : [];
-
-      // Generate Sales Order PDF
-      const pdfBuffer = await storage.generateSalesOrderPdf(parseInt(id));
-
-      // Send email with PDF attachment
-      const { google } = await import('googleapis');
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET
-      );
-      oauth2Client.setCredentials({
-        access_token: emailConfig.accessToken,
-        refresh_token: emailConfig.refreshToken,
+      await storage.updateSalesOrder(orderId, {
+        status: "confirmed",
       });
-
-      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
-      // Get thread info for proper threading headers
-      let existingThread: any = null;
-      let parentMessageIdHeader: string | null = null;
-      let parentReferencesHeader: string | null = null;
-      let gmailThreadId: string | undefined;
-      
-      if (emailThreadId) {
-        existingThread = await storage.getEmailThread(emailThreadId);
-        gmailThreadId = existingThread?.threadId; // threadId is the Gmail thread ID in the schema
-        console.log('[SO Send] Thread found:', existingThread?.id, 'Gmail threadId:', gmailThreadId);
-        
-        // Fetch the messages for this thread (getEmailThread doesn't include messages)
-        const threadMessages = existingThread ? await storage.getEmailMessages({ threadId: existingThread.id }) : [];
-        console.log('[SO Send] Thread messages count:', threadMessages.length);
-        
-        // Get the proper RFC Message-ID header for threading (not Gmail's internal ID)
-        if (threadMessages.length > 0) {
-          // Sort messages by date (most recent first)
-          const sortedMessages = [...threadMessages].sort((a: any, b: any) => 
-            (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
-            (a.sentAt || a.receivedAt || new Date(0)).getTime()
-          );
-          
-          // Try to find a message with the Message-ID header stored
-          for (const msg of sortedMessages) {
-            if (msg.messageIdHeader) {
-              parentMessageIdHeader = msg.messageIdHeader;
-              parentReferencesHeader = msg.referencesHeader || null;
-              console.log('[SO Send] Found stored Message-ID header:', parentMessageIdHeader);
-              break;
-            }
-            
-            // If not stored but we have a Gmail message ID, try to fetch it
-            if (msg.gmailMessageId || msg.messageId) {
-              try {
-                const msgId = msg.gmailMessageId || msg.messageId;
-                const gmailMessage = await gmail.users.messages.get({
-                  userId: 'me',
-                  id: msgId,
-                  format: 'metadata',
-                  metadataHeaders: ['Message-ID', 'References'],
-                });
-                
-                const headers = gmailMessage.data.payload?.headers || [];
-                const messageIdH = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
-                const referencesH = headers.find((h: any) => h.name?.toLowerCase() === 'references');
-                
-                if (messageIdH?.value) {
-                  parentMessageIdHeader = messageIdH.value;
-                  parentReferencesHeader = referencesH?.value || null;
-                  console.log('[SO Send] Fetched Message-ID header from Gmail:', parentMessageIdHeader);
-                  break;
-                }
-              } catch (err) {
-                console.log('[SO Send] Could not fetch Message-ID from Gmail message:', err);
-              }
-            }
-          }
-        }
-      }
-
-      // Create email with attachment and proper threading headers
-      const boundary = 'boundary_' + Date.now();
-      const messageId = `<${Date.now()}.${Math.random().toString(36).substr(2)}@${emailConfig.emailAddress?.split('@')[1] || 'mail.gmail.com'}>`;
-      
-      const emailHeaders = [
-        `To: ${toEmails.join(', ')}`,
-        `From: ${emailConfig.emailAddress}`,
-        ...(ccEmails.length > 0 ? [`Cc: ${ccEmails.join(', ')}`] : []),
-        `Subject: ${subject}`,
-        `Message-ID: ${messageId}`,
-      ];
-      
-      // Add threading headers for replies using proper RFC Message-ID header
-      if (parentMessageIdHeader && gmailThreadId) {
-        // Use the Message-ID header as-is (it already includes angle brackets)
-        const inReplyTo = parentMessageIdHeader.startsWith('<') ? parentMessageIdHeader : `<${parentMessageIdHeader}>`;
-        emailHeaders.push(`In-Reply-To: ${inReplyTo}`);
-        
-        // Build References header
-        let references: string;
-        if (parentReferencesHeader) {
-          references = `${parentReferencesHeader} ${inReplyTo}`;
-        } else {
-          references = inReplyTo;
-        }
-        emailHeaders.push(`References: ${references}`);
-        console.log('[SO Send] Using threading headers - In-Reply-To:', inReplyTo, 'References:', references);
-      }
-      
-      const emailLines = [
-        ...emailHeaders,
-        'MIME-Version: 1.0',
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/html; charset=UTF-8',
-        '',
-        body,
-        '',
-        `--${boundary}`,
-        `Content-Type: application/pdf; name="${order.soNumber}.pdf"`,
-        'Content-Transfer-Encoding: base64',
-        `Content-Disposition: attachment; filename="${order.soNumber}.pdf"`,
-        '',
-        pdfBuffer.toString('base64'),
-        '',
-        `--${boundary}--`,
-      ];
-
-      const rawEmail = emailLines.join('\r\n');
-      const encodedEmail = Buffer.from(rawEmail)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      const sentResponse = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedEmail,
-          threadId: gmailThreadId,
-        },
-      });
-      
-      const sentMessageId = sentResponse.data.id;
-      const sentThreadId = sentResponse.data.threadId;
-
-      // Save the sent email message to the thread for tracking
-      let threadIdToUse = emailThreadId ? parseInt(emailThreadId) : null;
-      
-      // Verify the thread exists if one was provided
-      if (threadIdToUse) {
-        const existingThread = await storage.getEmailThread(threadIdToUse);
-        if (!existingThread) {
-          console.log('[SO Send] Selected thread not found, will create new one');
-          threadIdToUse = null;
-        } else {
-          console.log('[SO Send] Using existing thread:', threadIdToUse);
-        }
-      }
-      
-      // If no valid thread, try to find by gmailThreadId or create new one
-      if (!threadIdToUse && sentThreadId) {
-        const threadsByGmailId = await db.select()
-          .from(emailThreads)
-          .where(eq(emailThreads.gmailThreadId, sentThreadId))
-          .limit(1);
-        
-        if (threadsByGmailId.length > 0) {
-          threadIdToUse = threadsByGmailId[0].id;
-          console.log('[SO Send] Found thread by Gmail ID:', threadIdToUse);
-        } else if (order.leadId) {
-          // Create a new thread for this SO email
-          const newThread = await storage.createEmailThread({
-            leadId: order.leadId,
-            subject: subject,
-            customerEmail: toEmails[0],
-            status: 'active',
-            gmailThreadId: sentThreadId || undefined,
-            lastMessageAt: new Date(),
-            createdAt: new Date(),
-          });
-          threadIdToUse = newThread.id;
-          console.log('[SO Send] Created new thread:', threadIdToUse);
-        }
-      } else if (!threadIdToUse && order.leadId) {
-        // No gmail thread ID, create a new local thread
-        const newThread = await storage.createEmailThread({
-          leadId: order.leadId,
-          subject: subject,
-          customerEmail: toEmails[0],
-          status: 'active',
-          gmailThreadId: sentThreadId || undefined,
-          lastMessageAt: new Date(),
-          createdAt: new Date(),
-        });
-        threadIdToUse = newThread.id;
-        console.log('[SO Send] Created new thread (no gmail ID):', threadIdToUse);
-      }
-      
-      if (threadIdToUse) {
-        // Add the sent message to the thread with leadId for proper linking
-        await storage.createEmailMessage({
-          threadId: threadIdToUse,
-          leadId: order.leadId || undefined,
-          gmailMessageId: sentMessageId || undefined,
-          gmailThreadId: sentThreadId || undefined,
-          direction: 'outbound',
-          fromEmail: emailConfig.emailAddress || '',
-          toEmails: toEmails,
-          ccEmails: ccEmails,
-          subject: subject,
-          bodyHtml: body,
-          bodyText: body.replace(/<[^>]*>/g, ''),
-          hasAttachments: true,
-          attachments: [{ filename: `${order.soNumber}.pdf`, contentType: 'application/pdf' }],
-          sentAt: new Date(),
-          createdAt: new Date(),
-        });
-        
-        // Update thread's last message time and message count
-        await storage.updateEmailThread(threadIdToUse, {
-          lastMessageAt: new Date(),
-          gmailThreadId: sentThreadId || undefined,
-        });
-        
-        // Also increment message count
-        try {
-          await db.update(emailThreads)
-            .set({
-              messageCount: sql`${emailThreads.messageCount} + 1`,
-            })
-            .where(eq(emailThreads.id, threadIdToUse));
-        } catch (err) {
-          console.log('[SO Send] Could not update message count:', err);
-        }
-        
-        console.log('[SO Send] Email stored in thread:', threadIdToUse, 'gmail thread:', sentThreadId);
-      }
-
-      // Update sales order status to confirmed
-      await storage.updateSalesOrder(parseInt(id), {
-        status: 'confirmed',
-        updatedAt: new Date(),
-      });
-
-      // Log sales order activity
       await storage.addSalesOrderActivity({
-        salesOrderId: parseInt(id),
-        activityType: 'email_sent',
-        title: 'Sales Order Sent to Customer',
-        description: `Sales order ${order.soNumber} was sent to ${toEmails.join(', ')}`,
+        salesOrderId: orderId,
+        activityType: "email_sent",
+        title: "Sales Order Sent to Customer",
+        description: `Sales order ${order.soNumber} was sent to ${recipients.join(", ")}`,
         performedBy: userId,
-        metadata: { toEmails, ccEmails, subject },
-        createdAt: new Date(),
+        metadata: { toEmails: recipients, ccEmails: ccRecipients, subject: emailSubject } as any,
       });
-
-      // Log lead activity
       if (order.leadId) {
         await storage.createLeadActivity({
           leadId: order.leadId,
-          activityType: 'sales_order_sent',
-          title: 'Sales Order Sent',
-          description: `Sales Order ${order.soNumber} sent to ${toEmails.join(', ')}`,
-          performedBy: userId,
-          metadata: { salesOrderId: parseInt(id), soNumber: order.soNumber, toEmails, subject },
-          createdAt: new Date(),
+          activityType: "sales_order_sent",
+          subject: "Sales Order Sent",
+          description: `Sales Order ${order.soNumber} sent to ${recipients.join(", ")}`,
+          createdBy: userId,
         });
       }
-
-      // Add status history
       await storage.addSalesOrderStatusHistory({
-        salesOrderId: parseInt(id),
+        salesOrderId: orderId,
         fromStatus: order.status,
-        toStatus: 'confirmed',
+        toStatus: "confirmed",
         changedBy: userId,
-        notes: `Sent to customer at ${toEmails.join(', ')}`,
-        createdAt: new Date(),
+        notes: `Sent to customer at ${recipients.join(", ")}`,
       });
 
-      res.json({ success: true, message: "Sales order sent successfully" });
-    } catch (error) {
-      console.error("Error sending sales order:", error);
-      res.status(500).json({ message: "Failed to send sales order", error: error instanceof Error ? error.message : 'Unknown error' });
-    }
+      res.json({ success: true, provider: "titan", message: "Sales order sent successfully", messageId: result.messageId });
+    } catch (error) { console.error("Titan sales order send error:", error); res.status(500).json({ message: "Failed to send sales order email" }); }
   });
 
   // Update sales order
@@ -7529,6 +7274,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/crm/companies/:id/emails', isAuthenticated, async (req: any, res) => {
     try {
       const companyId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const [company, user, companyLeads] = await Promise.all([
+        storage.getCompany(companyId),
+        storage.getUser(userId),
+        db.select({ assignedSalesRep: leads.assignedSalesRep }).from(leads).where(eq(leads.companyId, companyId)),
+      ]);
+      if (!company) return res.status(404).json({ message: "Company not found" });
+      const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") ||
+        company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
+      if (!mayAccess) return res.status(403).json({ message: "Not authorized to read this company's email" });
       const threads = await storage.getEmailThreads({ companyId });
       
       // Get messages for each thread
@@ -7549,366 +7304,64 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Send email to a company
   app.post('/api/crm/companies/:id/emails/send', isAuthenticated, async (req: any, res) => {
     try {
-      const companyId = parseInt(req.params.id);
+      const companyId = Number(req.params.id);
       const userId = req.user.claims.sub;
-      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestThreadId, isReply } = req.body;
-
-      console.log('[Company Email Send] Starting - companyId:', companyId, 'threadId:', requestThreadId, 'isReply:', isReply);
-
-      if (!to || !subject || !bodyHtml) {
-        return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
+      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestedThreadId, isReply } = req.body || {};
+      if ((!Array.isArray(to) ? !to : !to.length) || !subject || !bodyHtml) {
+        return res.status(400).json({ message: "Missing required fields: to, subject, bodyHtml" });
       }
-
-      // Get sender's email config
-      const emailConfig = await storage.getUserEmailConfig(userId);
-      if (!emailConfig) {
-        return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
+      const [company, user, config] = await Promise.all([
+        storage.getCompany(companyId), storage.getUser(userId), storage.getUserEmailConfig(userId),
+      ]);
+      if (!company) return res.status(404).json({ message: "Company not found" });
+      const companyLeads = await db.select({ assignedSalesRep: leads.assignedSalesRep }).from(leads).where(eq(leads.companyId, companyId));
+      const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") ||
+        company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
+      if (!mayAccess) return res.status(403).json({ message: "Not authorized to email this company" });
+      if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) {
+        return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
       }
-
-      // Check if Gmail is connected
-      if (!emailConfig.isConnected || (!emailConfig.accessToken && !emailConfig.refreshToken)) {
-        return res.status(400).json({ 
-          message: 'Gmail is not connected. Please connect your Gmail account in Settings → Email Configuration to send emails.',
-          requiresGmailConnect: true,
-        });
+      let thread = requestedThreadId && isReply ? await storage.getEmailThread(Number(requestedThreadId)) : undefined;
+      if (thread?.companyId !== companyId) return res.status(400).json({ message: "Invalid email thread" });
+      if (!thread) thread = await storage.createEmailThread({
+        companyId, subject, participantEmails: [config.companyEmail, ...(Array.isArray(to) ? to : [to])],
+        lastMessageAt: new Date(), messageCount: 0, isRead: true, status: "active",
+      });
+      let html = bodyHtml;
+      let text = bodyText || bodyHtml.replace(/<[^>]*>/g, "");
+      if (config.signatureImageUrl) {
+        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
+        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
+        text += `\n\n---\n${config.displayName || "Signature"}`;
       }
-
-      // Get sender email - try multiple sources
-      let senderEmail = emailConfig.emailAddress;
-      if (!senderEmail) {
-        // Try to get email from Gmail API profile
-        const { google } = await import('googleapis');
-        const tempOauth2Client = new google.auth.OAuth2(
-          process.env.GMAIL_CLIENT_ID,
-          process.env.GMAIL_CLIENT_SECRET
-        );
-        tempOauth2Client.setCredentials({
-          access_token: emailConfig.accessToken,
-          refresh_token: emailConfig.refreshToken,
-        });
-        const gmail = google.gmail({ version: 'v1', auth: tempOauth2Client });
-        try {
-          const profile = await gmail.users.getProfile({ userId: 'me' });
-          senderEmail = profile.data.emailAddress;
-          // Update the config with the email address for future use
-          if (senderEmail) {
-            await storage.updateUserEmailConfig(userId, { emailAddress: senderEmail });
-          }
-        } catch (profileError) {
-          console.error('[Company Email Send] Failed to get Gmail profile:', profileError);
-        }
+      const titanAttachments: any[] = [];
+      for (const attachment of Array.isArray(attachments) ? attachments : []) {
+        if (!attachment.fileUrl) continue;
+        const service = new ObjectStorageService();
+        const path = attachment.fileUrl.startsWith("/objects/") ? attachment.fileUrl : service.normalizeObjectEntityPath(attachment.fileUrl);
+        const file = await service.getObjectEntityFile(path);
+        const [downloadResponse, metadataResponse] = await Promise.all([file.download(), file.getMetadata()]);
+        const [content] = downloadResponse;
+        const [metadata] = metadataResponse;
+        titanAttachments.push({ filename: attachment.fileName || "attachment", mimeType: metadata.contentType || "application/octet-stream", base64Data: Buffer.from(content).toString("base64") });
       }
-
-      if (!senderEmail) {
-        return res.status(400).json({ 
-          message: 'Unable to determine sender email address. Please reconnect your Gmail account.',
-          requiresGmailConnect: true,
-        });
-      }
-
-      console.log('[Company Email Send] Using sender email:', senderEmail);
-
-      // Get company details for context
-      const company = await storage.getCompany(companyId);
-      if (!company) {
-        return res.status(404).json({ message: 'Company not found' });
-      }
-
-      // Thread handling
-      let thread: any = null;
-      
-      if (requestThreadId && isReply) {
-        thread = await storage.getEmailThread(requestThreadId);
-        console.log('[Company Email Send] Using existing thread for reply:', thread?.id);
-      }
-      
-      if (!thread) {
-        thread = await storage.createEmailThread({
-          leadId: null,
-          companyId,
-          subject,
-          messageCount: 0,
-          isRead: true,
-          labels: [],
-        });
-        console.log('[Company Email Send] Created new thread:', thread.id);
-      }
-
-      // Build final email body with signature if configured
-      let finalBodyHtml = bodyHtml;
-      let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
-      let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
-      let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
-      
-      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
-      if (emailConfig.signatureImageUrl) {
-        try {
-          console.log('[Company Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
-          
-          // Ensure the signature URL starts with /objects/
-          let signaturePath = emailConfig.signatureImageUrl;
-          if (!signaturePath.startsWith('/objects/')) {
-            const objectStorageService = new ObjectStorageService();
-            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-          }
-          
-          // Build full public HTTPS URL for the signature
-          const baseUrl = getBaseUrl();
-          const signatureUrl = `${baseUrl}${signaturePath}`;
-          
-          console.log('[Company Email] Using signature URL:', signatureUrl);
-          
-          // Embed signature using public URL (works reliably across all email clients)
-          finalBodyHtml = `${bodyHtml}
-            <br><br>
-            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
-              <tr>
-                <td>
-                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
-                </td>
-              </tr>
-            </table>`;
-          
-          finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
-          
-          console.log('[Company Email] Signature image URL embedded successfully');
-        } catch (signatureError: any) {
-          console.error('[Company Email] Failed to embed signature image:', signatureError?.message || signatureError);
-          // Continue without signature if embedding fails
-        }
-      }
-
-      // Fetch file attachments from object storage
-      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        console.log('[Company Email] Processing', attachments.length, 'file attachments');
-        const objectStorageService = new ObjectStorageService();
-        
-        for (const att of attachments) {
-          try {
-            if (!att.fileUrl) {
-              console.log('[Company Email] Skipping attachment without fileUrl:', att.fileName);
-              continue;
-            }
-            
-            console.log('[Company Email] Loading attachment:', att.fileName, 'from path:', att.fileUrl);
-            
-            // Ensure the attachment URL starts with /objects/
-            let attachmentPath = att.fileUrl;
-            if (!attachmentPath.startsWith('/objects/')) {
-              attachmentPath = objectStorageService.normalizeObjectEntityPath(attachmentPath);
-              console.log('[Company Email] Normalized attachment path:', attachmentPath);
-            }
-            
-            if (!attachmentPath.startsWith('/objects/')) {
-              console.error('[Company Email] Invalid attachment path format:', attachmentPath);
-              continue;
-            }
-            
-            const attachmentFile = await objectStorageService.getObjectEntityFile(attachmentPath);
-            const [fileContent] = await attachmentFile.download();
-            const base64Data = fileContent.toString('base64');
-            
-            // Get file metadata for mime type
-            const [metadata] = await attachmentFile.getMetadata();
-            const mimeType = metadata.contentType || 'application/octet-stream';
-            
-            fileAttachments.push({
-              base64Data,
-              mimeType,
-              filename: att.fileName || 'attachment',
-            });
-            
-            console.log('[Company Email] File attachment loaded successfully:', att.fileName, 'size:', fileContent.length, 'bytes, mimeType:', mimeType);
-          } catch (attError: any) {
-            console.error('[Company Email] Failed to load attachment:', att.fileName, 'Error:', attError?.message || attError);
-            // Continue with other attachments even if one fails
-          }
-        }
-        
-        console.log('[Company Email] Successfully loaded', fileAttachments.length, 'of', attachments.length, 'attachments');
-      } else {
-        console.log('[Company Email] No file attachments to process');
-      }
-
-      // Build References and In-Reply-To headers for proper threading
-      let referencesHeader = '';
-      let inReplyToHeader = '';
-      
-      if (isReply && thread) {
-        const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
-        const messageIds = existingMessages
-          .filter((m: any) => m.gmailMessageId)
-          .map((m: any) => `<${m.gmailMessageId}@mail.gmail.com>`);
-        
-        if (messageIds.length > 0) {
-          referencesHeader = messageIds.join(' ');
-          inReplyToHeader = messageIds[messageIds.length - 1];
-        }
-      }
-
-      // Send email via Gmail API
-      const { google } = await import('googleapis');
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET
+      const prior = (await storage.getEmailMessages({ threadId: thread.id }))
+        .sort((a, b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0))
+        .find(message => message.messageIdHeader);
+      const inReplyTo = isReply ? prior?.messageIdHeader || undefined : undefined;
+      const references = inReplyTo ? [prior?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
+      const result = await titanEmailProvider.send(
+        { email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted },
+        { to: Array.isArray(to) ? to : [to], cc: Array.isArray(cc) ? cc : cc ? [cc] : [], bcc: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments: titanAttachments },
       );
-      
-      oauth2Client.setCredentials({
-        access_token: emailConfig.accessToken,
-        refresh_token: emailConfig.refreshToken,
-      });
-
-      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
-      // Build email message
-      const toAddresses = Array.isArray(to) ? to : [to];
-      const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
-      const bccAddresses = bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : [];
-
-      // Build multipart email with attachments if present
-      const boundary = '----=_Part_' + Date.now();
-      const relatedBoundary = '----=_Related_' + Date.now();
-      let emailRaw = '';
-      
-      emailRaw += `From: ${senderEmail}\r\n`;
-      emailRaw += `To: ${toAddresses.join(', ')}\r\n`;
-      if (ccAddresses.length > 0) emailRaw += `Cc: ${ccAddresses.join(', ')}\r\n`;
-      if (bccAddresses.length > 0) emailRaw += `Bcc: ${bccAddresses.join(', ')}\r\n`;
-      emailRaw += `Subject: ${subject}\r\n`;
-      emailRaw += 'MIME-Version: 1.0\r\n';
-      if (referencesHeader) emailRaw += `References: ${referencesHeader}\r\n`;
-      if (inReplyToHeader) emailRaw += `In-Reply-To: ${inReplyToHeader}\r\n`;
-      
-      const hasInline = inlineAttachments.length > 0;
-      const hasFiles = fileAttachments.length > 0;
-      
-      if (hasFiles || hasInline) {
-        // Use multipart/mixed as the outer container when we have file attachments
-        emailRaw += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
-        
-        if (hasInline) {
-          // If we have inline attachments, wrap body in multipart/related
-          emailRaw += `--${boundary}\r\n`;
-          emailRaw += `Content-Type: multipart/related; boundary="${relatedBoundary}"\r\n\r\n`;
-          
-          // HTML body part
-          emailRaw += `--${relatedBoundary}\r\n`;
-          emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
-          emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
-          emailRaw += finalBodyHtml + '\r\n';
-          
-          // Inline attachments (signature, etc.)
-          for (const att of inlineAttachments) {
-            emailRaw += `--${relatedBoundary}\r\n`;
-            emailRaw += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
-            emailRaw += 'Content-Transfer-Encoding: base64\r\n';
-            emailRaw += `Content-ID: <${att.contentId}>\r\n`;
-            emailRaw += 'Content-Disposition: inline\r\n\r\n';
-            emailRaw += att.base64Data + '\r\n';
-          }
-          
-          emailRaw += `--${relatedBoundary}--\r\n`;
-        } else {
-          // Just HTML body part
-          emailRaw += `--${boundary}\r\n`;
-          emailRaw += 'Content-Type: text/html; charset=utf-8\r\n';
-          emailRaw += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
-          emailRaw += finalBodyHtml + '\r\n';
-        }
-        
-        // File attachments
-        for (const att of fileAttachments) {
-          emailRaw += `--${boundary}\r\n`;
-          emailRaw += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
-          emailRaw += 'Content-Transfer-Encoding: base64\r\n';
-          emailRaw += `Content-Disposition: attachment; filename="${att.filename}"\r\n\r\n`;
-          emailRaw += att.base64Data + '\r\n';
-        }
-        
-        emailRaw += `--${boundary}--`;
-      } else {
-        // Simple HTML email
-        emailRaw += 'Content-Type: text/html; charset=utf-8\r\n\r\n';
-        emailRaw += finalBodyHtml;
-      }
-
-      const encodedMessage = Buffer.from(emailRaw)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      const gmailResponse = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedMessage,
-          threadId: thread.gmailThreadId || undefined,
-        },
-      });
-
-      console.log('[Company Email Send] Gmail API response:', gmailResponse.data);
-
-      // Update thread with Gmail thread ID if new
-      if (!thread.gmailThreadId && gmailResponse.data.threadId) {
-        await storage.updateEmailThread(thread.id, {
-          gmailThreadId: gmailResponse.data.threadId,
-        });
-      }
-
-      // Create email message record
-      const emailMessage2 = await storage.createEmailMessage({
-        threadId: thread.id,
-        gmailMessageId: gmailResponse.data.id || null,
-        direction: 'outbound',
-        fromEmail: senderEmail,
-        fromName: null,
-        toEmails: toAddresses,
-        ccEmails: ccAddresses.length > 0 ? ccAddresses : null,
-        subject,
-        bodyHtml: finalBodyHtml,
-        bodyText: bodyText || null,
-        sentAt: new Date(),
-        receivedAt: null,
-        status: 'sent',
-        labels: [],
-        hasAttachments: (attachments && attachments.length > 0) || false,
-      });
-
-      // Update thread
-      await storage.updateEmailThread(thread.id, {
-        lastMessageAt: new Date(),
-        messageCount: (thread.messageCount || 0) + 1,
-      });
-
-      // Log activity
-      await storage.createCompanyActivity({
-        companyId,
-        createdBy: userId,
-        activityType: 'email_sent',
-        subject: `Email sent: ${subject}`,
-        description: `Email sent to ${toAddresses.join(', ')}`,
-      });
-
-      res.json({ 
-        success: true, 
-        message: 'Email sent successfully',
-        threadId: thread.id,
-        messageId: emailMessage2.id,
-      });
-      // Track email send activity
-      const emailCompany = await storage.getCompany(companyId).catch(() => null);
-      logStaffAccess(req, 'email-sent', companyId, emailCompany?.companyName || `Company ${companyId}`);
-    } catch (error: any) {
-      console.error('[Company Email Send] Error:', error);
-      
-      if (error.code === 401 || (error.message && error.message.includes('invalid_grant'))) {
-        return res.status(401).json({ 
-          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
-          requiresGmailConnect: true,
-        });
-      }
-      
-      res.status(500).json({ message: 'Failed to send email: ' + (error.message || 'Unknown error') });
+      if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: result.threadId });
+      const message = await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: Array.isArray(to) ? to : [to], ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: titanAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
+      await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...(Array.isArray(to) ? to : [to])])) });
+      await storage.createCompanyActivity({ companyId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${(Array.isArray(to) ? to : [to]).join(", ")}`, createdBy: userId });
+      res.status(201).json({ success: true, provider: "titan", message: "Email sent successfully", emailMessage: message, threadId: thread.id, messageId: result.messageId });
+    } catch (error) {
+      console.error("Titan company email send error:", error);
+      res.status(500).json({ message: "Failed to send email" });
     }
   });
 
@@ -9749,9 +9202,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Get users for email configuration assignment
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
       // Use getSalesReps which returns users with admin, super_admin, sales_manager, sales_executive roles
       const eligibleUsers = await storage.getSalesReps();
-      res.json(eligibleUsers);
+      res.json(eligibleUsers.map(user => ({
+        id: user.id,
+        username: user.email || user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      })));
     } catch (error) {
       console.error('Error fetching users:', error);
       res.status(500).json({ message: 'Failed to fetch users' });
@@ -9762,7 +9224,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.get('/api/email/config', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const config = await storage.getUserEmailConfig(userId);
+      const config = await storage.getPublicUserEmailConfig(userId);
       res.json(config || null);
     } catch (error) {
       console.error('Error fetching email config:', error);
@@ -9770,37 +9232,31 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
-  // Self-service: Start Gmail OAuth for current user's email configuration
-  // This allows sales agents to connect their own Gmail account
-  app.get('/api/email/connect', isAuthenticated, async (req: any, res) => {
+  // Self-service Titan connection.  The assigned address is always the SMTP/IMAP username.
+  app.post('/api/email/connect', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const config = await storage.getUserEmailConfig(userId);
-      
       if (!config) {
-        return res.status(404).json({ 
-          message: 'No email configuration found. Please contact admin to set up your email address first.' 
-        });
+        return res.status(404).json({ message: 'No assigned Titan email configuration found. Contact an administrator.' });
       }
-
-      console.log('[Gmail OAuth] Starting self-service connect for user:', userId, 'config:', config.id);
-      
-      // Store the config ID and user ID in session for the callback
-      // Using a different session key to distinguish from admin-initiated connects
-      (req as any).session.gmailOAuthConfigId = config.id;
-      (req as any).session.gmailOAuthUserId = userId;
-      (req as any).session.gmailOAuthSource = 'self-service';
-      (req as any).session.save();
-      
-      const authUrl = gmailApi.getAuthUrl();
-      res.json({ authUrl });
+      if (config.isActive === false) {
+        return res.status(403).json({ message: "This Titan mailbox assignment is inactive. Contact an administrator." });
+      }
+      const appPassword = typeof req.body?.appPassword === "string" ? req.body.appPassword.trim() : "";
+      if (!appPassword) return res.status(400).json({ message: "Titan app password is required" });
+      // Encrypt before handing the temporary credential to the provider, so plaintext is
+      // never retained in an object beyond this request.
+      const encryptedAppPassword = encryptEmailCredential(appPassword);
+      await titanEmailProvider.verifyCredentials({ email: config.companyEmail, encryptedAppPassword });
+      await storage.updateTitanCredentials(config.id, appPassword);
+      res.json({ success: true, provider: "titan", connected: true, email: config.companyEmail });
     } catch (error) {
-      console.error('Error starting Gmail OAuth:', error);
-      res.status(500).json({ message: 'Failed to start Gmail connection' });
+      console.error('Titan credential verification failed:', error instanceof Error ? error.message : error);
+      res.status(400).json({ message: 'Unable to verify Titan SMTP/IMAP credentials. Check your assigned email and app password.' });
     }
   });
 
-  // Self-service: Disconnect Gmail from current user's email configuration
   app.post('/api/email/disconnect', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -9810,81 +9266,31 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'No email configuration found' });
       }
       
-      await storage.updateUserEmailConfig(config.id, {
-        accessToken: null,
-        refreshToken: null,
-        tokenExpiresAt: null,
-        isConnected: false,
-      });
-
-      console.log('[Gmail OAuth] User disconnected Gmail:', userId);
-      res.json({ success: true });
+      await storage.clearTitanCredentials(config.id);
+      res.json({ success: true, provider: "titan" });
     } catch (error) {
-      console.error('Error disconnecting Gmail:', error);
-      res.status(500).json({ message: 'Failed to disconnect Gmail' });
+      console.error('Error disconnecting Titan:', error);
+      res.status(500).json({ message: 'Failed to disconnect Titan' });
     }
   });
 
-  // Self-service: Check Gmail connection status for current user
   app.get('/api/email/status', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const config = await storage.getUserEmailConfig(userId);
       
-      if (!config) {
-        return res.json({ hasConfig: false, connected: false });
-      }
-
-      if (!config.isConnected || (!config.accessToken && !config.refreshToken)) {
-        return res.json({ hasConfig: true, connected: false, email: config.companyEmail });
-      }
-
-      // Try to verify connection is still valid
-      try {
-        const validAccessToken = await gmailApi.ensureValidAccessToken(
-          {
-            id: config.id,
-            accessToken: config.accessToken,
-            refreshToken: config.refreshToken,
-            tokenExpiresAt: config.tokenExpiresAt,
-          },
-          async (configId, tokens) => {
-            await storage.updateUserEmailConfig(configId, {
-              accessToken: tokens.accessToken,
-              refreshToken: tokens.refreshToken,
-              tokenExpiresAt: tokens.tokenExpiresAt,
-            });
-          }
-        );
-
-        const profile = await gmailApi.getProfile(validAccessToken);
-        res.json({ 
-          hasConfig: true, 
-          connected: true, 
-          email: config.companyEmail,
-          gmailAddress: profile.emailAddress,
-          tokensValid: true 
-        });
-      } catch (error) {
-        console.error('[Gmail OAuth] Failed to verify connection:', error);
-        res.json({ 
-          hasConfig: true, 
-          connected: false, 
-          email: config.companyEmail,
-          tokensValid: false,
-          error: 'Gmail connection expired. Please reconnect.'
-        });
-      }
+      res.json(publicTitanStatus(config));
     } catch (error) {
-      console.error('Error checking Gmail status:', error);
-      res.status(500).json({ message: 'Failed to check Gmail status' });
+      console.error('Error checking Titan status:', error);
+      res.status(500).json({ message: 'Failed to check Titan status' });
     }
   });
 
   // Admin: Get all email configurations
   app.get('/api/admin/email-configs', isAuthenticated, async (req: any, res) => {
     try {
-      const configs = await storage.getUserEmailConfigs();
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
+      const configs = await storage.getPublicUserEmailConfigs();
       res.json(configs);
     } catch (error) {
       console.error('Error fetching email configs:', error);
@@ -9895,8 +9301,11 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Create email configuration for user
   app.post('/api/admin/email-configs', isAuthenticated, async (req: any, res) => {
     try {
-      const config = await storage.createUserEmailConfig(req.body);
-      res.status(201).json(config);
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
+      const { userId, companyEmail, displayName, department, isPrimary, isActive } = req.body || {};
+      if (!userId || !companyEmail) return res.status(400).json({ message: "userId and companyEmail are required" });
+      const config = await storage.createUserEmailConfig({ userId, companyEmail, displayName, department, isPrimary, isActive, serviceType: "titan" });
+      res.status(201).json((await storage.getPublicUserEmailConfigs()).find(item => item.id === config.id));
     } catch (error) {
       console.error('Error creating email config:', error);
       res.status(500).json({ message: 'Failed to create email configuration' });
@@ -9906,9 +9315,25 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Update email configuration
   app.patch('/api/admin/email-configs/:id', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const id = parseInt(req.params.id);
-      const config = await storage.updateUserEmailConfig(id, req.body);
-      res.json(config);
+      const existing = await storage.getEmailConfigById(id);
+      if (!existing) return res.status(404).json({ message: "Email configuration not found" });
+      const { userId, companyEmail, displayName, department, isPrimary, isActive } = req.body || {};
+      const assignmentChanged = (typeof companyEmail === "string" &&
+        companyEmail.trim().toLowerCase() !== existing.companyEmail.toLowerCase()) ||
+        (typeof userId === "string" && userId !== existing.userId);
+      const config = await storage.updateUserEmailConfig(id, {
+        userId,
+        companyEmail: typeof companyEmail === "string" ? companyEmail.trim() : companyEmail,
+        displayName,
+        department,
+        isPrimary,
+        isActive,
+        serviceType: "titan",
+      });
+      if (assignmentChanged) await storage.clearTitanCredentials(id);
+      res.json((await storage.getPublicUserEmailConfigs()).find(item => item.id === config.id));
     } catch (error) {
       console.error('Error updating email config:', error);
       res.status(500).json({ message: 'Failed to update email configuration' });
@@ -9918,6 +9343,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Delete email configuration
   app.delete('/api/admin/email-configs/:id', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const id = parseInt(req.params.id);
       await storage.deleteUserEmailConfig(id);
       res.json({ success: true });
@@ -9931,6 +9357,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Recommended dimensions: 300x100px (max 400x150px)
   app.post('/api/admin/email-configs/:id/signature-upload-url', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const configId = parseInt(req.params.id);
       const config = await storage.getEmailConfigById(configId);
       
@@ -9960,6 +9387,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Update signature image URL for email configuration
   app.put('/api/admin/email-configs/:id/signature', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const configId = parseInt(req.params.id);
       const { signatureImageUrl } = req.body;
 
@@ -9998,7 +9426,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         res.json({ 
           success: true, 
           signatureImageUrl: cleanPath,
-          config: updatedConfig 
+          config: (await storage.getPublicUserEmailConfigs()).find(item => item.id === updatedConfig.id)
         });
       } catch (aclError) {
         console.error('Error setting signature image ACL:', aclError);
@@ -10017,7 +9445,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         res.json({ 
           success: true, 
           signatureImageUrl: cleanPath,
-          config: updatedConfig,
+          config: (await storage.getPublicUserEmailConfigs()).find(item => item.id === updatedConfig.id),
           warning: 'ACL policy not set, but signature should still be accessible'
         });
       }
@@ -10030,6 +9458,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Admin: Remove signature image from email configuration
   app.delete('/api/admin/email-configs/:id/signature', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const configId = parseInt(req.params.id);
       const config = await storage.getEmailConfigById(configId);
       
@@ -10042,7 +9471,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         signatureImageUrl: null,
       });
 
-      res.json({ success: true, config: updatedConfig });
+      res.json({ success: true, config: (await storage.getPublicUserEmailConfigs()).find(item => item.id === updatedConfig.id) });
     } catch (error) {
       console.error('Error removing signature:', error);
       res.status(500).json({ message: 'Failed to remove signature image' });
@@ -11045,141 +10474,36 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
   // ========================================
-  // GMAIL OAUTH ROUTES
+  // RETIRED GMAIL OAUTH ROUTES
   // ========================================
 
   // Start Gmail OAuth flow for an email configuration
   app.get('/api/admin/email-configs/:id/connect', isAuthenticated, async (req: any, res) => {
-    try {
-      const configId = parseInt(req.params.id);
-      const config = await storage.getEmailConfigById(configId);
-      
-      if (!config) {
-        return res.status(404).json({ message: 'Email configuration not found' });
-      }
-
-      // Store the config ID in session for the callback
-      (req as any).session.gmailOAuthConfigId = configId;
-      (req as any).session.save();
-      
-      const authUrl = gmailApi.getAuthUrl();
-      res.json({ authUrl });
-    } catch (error) {
-      console.error('Error starting Gmail OAuth:', error);
-      res.status(500).json({ message: 'Failed to start Gmail OAuth' });
-    }
+    res.status(410).json({ message: "Gmail OAuth has been retired. Each assigned staff member must connect their own Titan app password in Email Settings.", provider: "titan" });
   });
 
   // Gmail OAuth callback - handles both admin-initiated and self-service connections
   app.get('/api/auth/gmail/callback', async (req: any, res) => {
-    try {
-      const { code, error } = req.query;
-      
-      // Determine redirect URL based on source (self-service vs admin)
-      const oauthSource = req.session?.gmailOAuthSource;
-      const redirectBase = oauthSource === 'self-service' ? '/crm/email-settings' : '/admin';
-      
-      console.log('[Gmail OAuth Callback] Source:', oauthSource, 'Redirect base:', redirectBase);
-      
-      if (error) {
-        console.error('Gmail OAuth error:', error);
-        return res.redirect(`${redirectBase}?error=gmail_oauth_denied`);
-      }
-
-      if (!code) {
-        return res.redirect(`${redirectBase}?error=gmail_oauth_no_code`);
-      }
-
-      const configId = req.session?.gmailOAuthConfigId;
-      if (!configId) {
-        return res.redirect(`${redirectBase}?error=gmail_oauth_session_expired`);
-      }
-
-      // Exchange code for tokens
-      const tokens = await gmailApi.getTokensFromCode(code as string);
-      
-      if (!tokens.access_token) {
-        return res.redirect(`${redirectBase}?error=gmail_oauth_no_token`);
-      }
-
-      // Verify the Gmail account matches the expected email (for security)
-      // This is critical to prevent agents from accidentally connecting the wrong Gmail
-      try {
-        const profile = await gmailApi.getProfile(tokens.access_token);
-        const config = await storage.getEmailConfigById(configId);
-        
-        if (config) {
-          console.log('[Gmail OAuth Callback] Authenticated Gmail:', profile.emailAddress, 'Expected email:', config.companyEmail);
-          
-          // Check if the authenticated Gmail matches the configured email
-          const authenticatedEmail = profile.emailAddress.toLowerCase();
-          const configuredEmail = config.companyEmail.toLowerCase();
-          
-          if (authenticatedEmail !== configuredEmail) {
-            // Strictly enforce email matching for ALL connections
-            // This prevents admin from accidentally connecting their Gmail to an agent's config
-            console.error('[Gmail OAuth Callback] REJECTED: Email mismatch! Authenticated:', profile.emailAddress, 'Expected:', config.companyEmail);
-            // Clear session and reject
-            delete req.session.gmailOAuthConfigId;
-            delete req.session.gmailOAuthUserId;
-            delete req.session.gmailOAuthSource;
-            return res.redirect(`${redirectBase}?error=gmail_email_mismatch&expected=${encodeURIComponent(config.companyEmail)}&got=${encodeURIComponent(profile.emailAddress)}`);
-          }
-        }
-      } catch (profileError) {
-        console.error('[Gmail OAuth Callback] Failed to get Gmail profile:', profileError);
-        // We need to verify the email, so reject if we can't get profile
-        delete req.session.gmailOAuthConfigId;
-        delete req.session.gmailOAuthUserId;
-        delete req.session.gmailOAuthSource;
-        return res.redirect(`${redirectBase}?error=gmail_oauth_verification_failed`);
-      }
-
-      // Update the email configuration with the tokens
-      await storage.updateUserEmailConfig(configId, {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || undefined,
-        tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
-        isConnected: true,
-      });
-
-      console.log('[Gmail OAuth Callback] Successfully connected Gmail for config:', configId);
-
-      // Clear the session variables
-      delete req.session.gmailOAuthConfigId;
-      delete req.session.gmailOAuthUserId;
-      delete req.session.gmailOAuthSource;
-
-      res.redirect(`${redirectBase}?success=gmail_connected`);
-    } catch (error) {
-      console.error('Error in Gmail OAuth callback:', error);
-      const redirectBase = req.session?.gmailOAuthSource === 'self-service' ? '/crm/email-settings' : '/admin';
-      res.redirect(`${redirectBase}?error=gmail_oauth_failed`);
-    }
+    return res.status(410).json({ message: "Gmail OAuth has been retired. Connect Titan from Email Settings.", provider: "titan" });
   });
 
-  // Disconnect Gmail from an email configuration
+  // Administratively clear Titan credentials from an email configuration
   app.post('/api/admin/email-configs/:id/disconnect', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const configId = parseInt(req.params.id);
-      
-      await storage.updateUserEmailConfig(configId, {
-        accessToken: null,
-        refreshToken: null,
-        tokenExpiresAt: null,
-        isConnected: false,
-      });
-
-      res.json({ success: true });
+      await storage.clearTitanCredentials(configId);
+      res.json({ success: true, provider: "titan" });
     } catch (error) {
-      console.error('Error disconnecting Gmail:', error);
-      res.status(500).json({ message: 'Failed to disconnect Gmail' });
+      console.error('Error disconnecting Titan:', error);
+      res.status(500).json({ message: 'Failed to disconnect Titan' });
     }
   });
 
-  // Check Gmail connection status for an email config
+  // Check Titan connection status for an email config
   app.get('/api/admin/email-configs/:id/status', isAuthenticated, async (req: any, res) => {
     try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) return res.status(403).json({ message: "Administrator access required" });
       const configId = parseInt(req.params.id);
       const config = await storage.getEmailConfigById(configId);
       
@@ -11187,61 +10511,27 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'Email configuration not found' });
       }
 
-      if (!config.isConnected || (!config.accessToken && !config.refreshToken)) {
-        return res.json({ connected: false });
-      }
-
-      // Try to get Gmail profile to verify connection (with auto token refresh)
-      try {
-        const validAccessToken = await gmailApi.ensureValidAccessToken(
-          {
-            id: config.id,
-            accessToken: config.accessToken,
-            refreshToken: config.refreshToken,
-            tokenExpiresAt: config.tokenExpiresAt,
-          },
-          async (cfgId, tokens) => {
-            await storage.updateUserEmailConfig(cfgId, {
-              accessToken: tokens.accessToken,
-              refreshToken: tokens.refreshToken,
-              tokenExpiresAt: tokens.tokenExpiresAt,
-            });
-          }
-        );
-
-        const profile = await gmailApi.getProfile(validAccessToken);
-        res.json({ 
-          connected: true, 
-          email: profile.emailAddress,
-          messagesTotal: profile.messagesTotal,
-        });
-      } catch (error: any) {
-        console.error('Gmail status check error:', error.message);
-        // Authorization revoked or refresh failed - mark as disconnected
-        if (error.message?.includes('authorization revoked') || 
-            error.message?.includes('invalid_grant') ||
-            error.message?.includes('reconnect')) {
-          await storage.updateUserEmailConfig(configId, { 
-            isConnected: false,
-            accessToken: null,
-          });
-        }
-        res.json({ connected: false, error: 'Token expired or revoked' });
-      }
+      res.json(publicTitanStatus(config));
     } catch (error) {
-      console.error('Error checking Gmail status:', error);
-      res.status(500).json({ message: 'Failed to check Gmail status' });
+      console.error('Error checking Titan status:', error);
+      res.status(500).json({ message: 'Failed to check Titan status' });
     }
   });
 
   // ========================================
-  // END GMAIL OAUTH ROUTES
+  // END RETIRED GMAIL OAUTH ROUTES
   // ========================================
 
   // Get email threads for a lead
   app.get('/api/crm/leads/:leadId/emails', isAuthenticated, async (req: any, res) => {
     try {
       const leadId = parseInt(req.params.leadId);
+      const leadForAccess = await storage.getLead(leadId);
+      const accessUser = await storage.getUser(req.user.claims.sub);
+      if (!leadForAccess) return res.status(404).json({ message: "Lead not found" });
+      if (!["admin", "super_admin", "sales_manager"].includes(accessUser?.role || "") && leadForAccess.assignedSalesRep !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Not authorized to read this lead's email" });
+      }
       
       // Get lead-specific threads
       const leadThreads = await storage.getEmailThreads({ leadId });
@@ -11288,6 +10578,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.get('/api/crm/leads/:leadId/email-messages', isAuthenticated, async (req: any, res) => {
     try {
       const leadId = parseInt(req.params.leadId);
+      const lead = await storage.getLead(leadId);
+      const accessUser = await storage.getUser(req.user.claims.sub);
+      if (!lead) return res.status(404).json({ message: "Lead not found" });
+      if (!["admin", "super_admin", "sales_manager"].includes(accessUser?.role || "") && lead.assignedSalesRep !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Not authorized to read this lead's email" });
+      }
       const messages = await storage.getEmailMessages({ leadId });
       res.json(messages);
     } catch (error) {
@@ -11299,623 +10595,175 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Send email from lead context
   app.post('/api/crm/leads/:leadId/emails/send', isAuthenticated, async (req: any, res) => {
     try {
-      const leadId = parseInt(req.params.leadId);
-      const userId = req.user.claims.sub;
-      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestThreadId, isReply } = req.body;
-
-      console.log('[Email Send] Starting email send - leadId:', leadId, 'threadId:', requestThreadId, 'isReply:', isReply);
-      console.log('[Email Send] Attachments received:', attachments?.length || 0, JSON.stringify(attachments || []));
-
-      if (!to || !subject || !bodyHtml) {
-        return res.status(400).json({ message: 'Missing required fields: to, subject, bodyHtml' });
+      const leadId = Number(req.params.leadId), userId = req.user.claims.sub;
+      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestedThreadId, isReply } = req.body || {};
+      if ((!Array.isArray(to) ? !to : !to.length) || !subject || !bodyHtml) return res.status(400).json({ message: "Missing required fields: to, subject, bodyHtml" });
+      const [lead, user, config] = await Promise.all([storage.getLead(leadId), storage.getUser(userId), storage.getUserEmailConfig(userId)]);
+      if (!lead) return res.status(404).json({ message: "Lead not found" });
+      if (!["admin", "super_admin", "sales_manager"].includes(user?.role || "") && lead.assignedSalesRep !== userId) return res.status(403).json({ message: "Not authorized to email this lead" });
+      if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
+      const recipients = Array.isArray(to) ? to : [to];
+      let thread = requestedThreadId && isReply ? await storage.getEmailThread(Number(requestedThreadId)) : undefined;
+      if (thread && thread.leadId !== leadId && (!lead.companyId || thread.companyId !== lead.companyId)) return res.status(400).json({ message: "Invalid email thread" });
+      if (!thread) thread = await storage.createEmailThread({ leadId, companyId: lead.companyId, subject, participantEmails: [config.companyEmail, ...recipients], lastMessageAt: new Date(), messageCount: 0, isRead: true, status: "active" });
+      let html = bodyHtml, text = bodyText || bodyHtml.replace(/<[^>]*>/g, "");
+      if (config.signatureImageUrl) {
+        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
+        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
+        text += `\n\n---\n${config.displayName || "Signature"}`;
       }
-
-      // Get sender's email config
-      const emailConfig = await storage.getUserEmailConfig(userId);
-      if (!emailConfig) {
-        return res.status(400).json({ message: 'No email configuration found for user. Please contact admin.' });
+      const providerAttachments: any[] = [];
+      for (const item of Array.isArray(attachments) ? attachments : []) {
+        if (!item.fileUrl) continue;
+        const service = new ObjectStorageService(), path = item.fileUrl.startsWith("/objects/") ? item.fileUrl : service.normalizeObjectEntityPath(item.fileUrl);
+        const object = await service.getObjectEntityFile(path), [downloadResponse, metadataResponse] = await Promise.all([object.download(), object.getMetadata()]);
+        const [content] = downloadResponse;
+        const [metadata] = metadataResponse;
+        providerAttachments.push({ filename: item.fileName || "attachment", mimeType: metadata.contentType || "application/octet-stream", base64Data: Buffer.from(content).toString("base64") });
       }
-
-      console.log('[Email Send] Email config found, signature URL:', emailConfig.signatureImageUrl || 'none');
-
-      // Check if Gmail is connected
-      if (!emailConfig.isConnected || (!emailConfig.accessToken && !emailConfig.refreshToken)) {
-        return res.status(400).json({ 
-          message: 'Gmail is not connected. Please connect your Gmail account in Settings → Email Configuration to send emails.',
-          requiresGmailConnect: true,
-        });
-      }
-
-      // Get lead details for context
-      const lead = await storage.getLead(leadId);
-      if (!lead) {
-        return res.status(404).json({ message: 'Lead not found' });
-      }
-
-      // Thread handling: 
-      // - If replying to an existing thread (requestThreadId provided), use that thread
-      // - If starting a new email (no requestThreadId), ALWAYS create a new thread
-      let thread: any = null;
-      
-      if (requestThreadId && isReply) {
-        // This is a reply to an existing thread - fetch and use it
-        thread = await storage.getEmailThread(requestThreadId);
-        console.log('[Email Send] Using existing thread for reply:', thread?.id);
-      }
-      
-      if (!thread) {
-        // Create a new thread for this email
-        thread = await storage.createEmailThread({
-          leadId,
-          companyId: lead.companyId,
-          subject,
-          participantEmails: [emailConfig.companyEmail, ...(Array.isArray(to) ? to : [to])],
-          status: 'active',
-        });
-        console.log('[Email Send] Created new thread:', thread.id, 'for subject:', subject);
-      }
-
-      // Actually send email via Gmail API with automatic token refresh
-      let gmailResult: { messageId: string; threadId: string } | null = null;
-      let emailStatus = 'pending';
-      
-      // Build final email body with signature if configured
-      let finalBodyHtml = bodyHtml;
-      let finalBodyText = bodyText || bodyHtml.replace(/<[^>]*>/g, '');
-      let inlineAttachments: { contentId: string; base64Data: string; mimeType: string; filename: string }[] = [];
-      let fileAttachments: { base64Data: string; mimeType: string; filename: string }[] = [];
-      
-      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
-      if (emailConfig.signatureImageUrl) {
-        try {
-          console.log('[Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
-          
-          // Ensure the signature URL starts with /objects/
-          let signaturePath = emailConfig.signatureImageUrl;
-          if (!signaturePath.startsWith('/objects/')) {
-            const objectStorageService = new ObjectStorageService();
-            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-          }
-          
-          // Build full public HTTPS URL for the signature
-          const baseUrl = getBaseUrl();
-          const signatureUrl = `${baseUrl}${signaturePath}`;
-          
-          console.log('[Email] Using signature URL:', signatureUrl);
-          
-          // Embed signature using public URL (works reliably across all email clients)
-          finalBodyHtml = `${bodyHtml}
-            <br><br>
-            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
-              <tr>
-                <td>
-                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
-                </td>
-              </tr>
-            </table>`;
-          
-          // Add text signature placeholder
-          finalBodyText = `${finalBodyText}\n\n---\n${emailConfig.displayName || 'Signature'}`;
-          
-          console.log('[Email] Signature image URL embedded successfully');
-        } catch (signatureError: any) {
-          console.error('[Email] Failed to embed signature image:', signatureError?.message || signatureError);
-          // Continue without signature if embedding fails
-        }
-      } else {
-        console.log('[Email] No signature configured for this email config');
-      }
-
-      // Fetch file attachments from object storage
-      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        console.log('[Email] Processing', attachments.length, 'file attachments');
-        const objectStorageService = new ObjectStorageService();
-        
-        for (const att of attachments) {
-          try {
-            if (!att.fileUrl) {
-              console.log('[Email] Skipping attachment without fileUrl:', att.fileName);
-              continue;
-            }
-            
-            console.log('[Email] Loading attachment:', att.fileName, 'from path:', att.fileUrl);
-            
-            // Ensure the attachment URL starts with /objects/
-            let attachmentPath = att.fileUrl;
-            if (!attachmentPath.startsWith('/objects/')) {
-              // Try to normalize the path if it's a full URL
-              attachmentPath = objectStorageService.normalizeObjectEntityPath(attachmentPath);
-              console.log('[Email] Normalized attachment path:', attachmentPath);
-            }
-            
-            if (!attachmentPath.startsWith('/objects/')) {
-              console.error('[Email] Invalid attachment path format:', attachmentPath);
-              continue;
-            }
-            
-            const attachmentFile = await objectStorageService.getObjectEntityFile(attachmentPath);
-            const [fileContent] = await attachmentFile.download();
-            const base64Data = fileContent.toString('base64');
-            
-            // Get file metadata for mime type
-            const [metadata] = await attachmentFile.getMetadata();
-            const mimeType = metadata.contentType || 'application/octet-stream';
-            
-            fileAttachments.push({
-              base64Data,
-              mimeType,
-              filename: att.fileName || 'attachment',
-            });
-            
-            console.log('[Email] File attachment loaded successfully:', att.fileName, 'size:', fileContent.length, 'bytes, mimeType:', mimeType);
-          } catch (attError: any) {
-            console.error('[Email] Failed to load attachment:', att.fileName, 'Error:', attError?.message || attError);
-            // Continue with other attachments even if one fails
-          }
-        }
-        
-        console.log('[Email] Successfully loaded', fileAttachments.length, 'of', attachments.length, 'attachments');
-      } else {
-        console.log('[Email] No file attachments to process');
-      }
-
-      try {
-        // Get valid access token (refreshes if expired)
-        const validAccessToken = await gmailApi.ensureValidAccessToken(
-          {
-            id: emailConfig.id,
-            accessToken: emailConfig.accessToken,
-            refreshToken: emailConfig.refreshToken,
-            tokenExpiresAt: emailConfig.tokenExpiresAt,
-          },
-          async (configId, tokens) => {
-            // Update tokens in database
-            await storage.updateUserEmailConfig(configId, {
-              accessToken: tokens.accessToken,
-              refreshToken: tokens.refreshToken,
-              tokenExpiresAt: tokens.tokenExpiresAt,
-            });
-          }
-        );
-
-        // If replying to an existing thread that has a Gmail threadId, use replyToEmail
-        // Otherwise, send a new email
-        if (isReply && thread.threadId) {
-          console.log('[Email Send] Replying to existing Gmail thread:', thread.threadId);
-          
-          // Get the parent message's RFC Message-ID header for proper threading
-          // This is critical - recipients will only see the reply in the same thread
-          // if we include the correct In-Reply-To and References headers
-          let inReplyTo: string | undefined;
-          let references: string | undefined;
-          
-          const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
-          if (existingMessages.length > 0) {
-            // Sort messages by date (most recent first)
-            const sortedMessages = existingMessages.sort((a, b) => 
-              (b.sentAt || b.receivedAt || new Date(0)).getTime() - 
-              (a.sentAt || a.receivedAt || new Date(0)).getTime()
-            );
-            
-            // For proper email threading, we need to reply to the correct message:
-            // 1. First priority: the most recent INBOUND message (customer's reply)
-            // 2. Second priority: any outbound message we sent
-            // 3. Fallback: any message in the thread
-            const inboundMessages = sortedMessages.filter(m => m.direction === 'inbound');
-            const outboundMessages = sortedMessages.filter(m => m.direction === 'outbound');
-            
-            // Build a prioritized list of candidate messages to try
-            const candidateMessages = [
-              ...inboundMessages,  // Prefer inbound messages first
-              ...outboundMessages, // Then outbound messages
-              ...sortedMessages,   // Then any message as fallback
-            ];
-            
-            // Remove duplicates while preserving order
-            const seenIds = new Set<number>();
-            const uniqueCandidates = candidateMessages.filter(m => {
-              if (seenIds.has(m.id)) return false;
-              seenIds.add(m.id);
-              return true;
-            });
-            
-            console.log('[Email Send] Candidate messages for threading:', uniqueCandidates.map(m => ({
-              id: m.id,
-              direction: m.direction,
-              hasMessageIdHeader: !!m.messageIdHeader,
-              hasGmailId: !!m.messageId,
-            })));
-            
-            let parentMessageIdHeader: string | undefined;
-            let parentReferencesHeader: string | undefined;
-            
-            // Try each candidate message until we find one with a valid Message-ID header
-            for (const candidate of uniqueCandidates) {
-              // First, check if we already have the Message-ID header stored
-              if (candidate.messageIdHeader) {
-                parentMessageIdHeader = candidate.messageIdHeader;
-                parentReferencesHeader = candidate.referencesHeader || undefined;
-                console.log('[Email Send] Found stored Message-ID header from message', candidate.id, ':', parentMessageIdHeader);
-                break;
-              }
-              
-              // If not stored but we have a Gmail message ID, try to fetch it
-              if (candidate.messageId) {
-                console.log('[Email Send] Fetching Message-ID header from Gmail for message', candidate.id, ', Gmail ID:', candidate.messageId);
-                try {
-                  const gmailMessage = await gmailApi.getEmail(validAccessToken, candidate.messageId);
-                  const parsed = gmailApi.parseEmailMessage(gmailMessage);
-                  
-                  if (parsed.messageIdHeader) {
-                    parentMessageIdHeader = parsed.messageIdHeader;
-                    parentReferencesHeader = parsed.referencesHeader || undefined;
-                    
-                    // Store for future use
-                    await storage.updateEmailMessage(candidate.id, {
-                      messageIdHeader: parentMessageIdHeader,
-                      referencesHeader: parentReferencesHeader || undefined,
-                    });
-                    console.log('[Email Send] Fetched and stored Message-ID header:', parentMessageIdHeader);
-                    break;
-                  } else {
-                    console.log('[Email Send] Gmail message', candidate.messageId, 'has no Message-ID header');
-                  }
-                } catch (fetchErr) {
-                  console.error('[Email Send] Failed to fetch Message-ID from Gmail for message', candidate.id, ':', fetchErr);
-                  // Continue to next candidate
-                }
-              }
-            }
-            
-            if (parentMessageIdHeader) {
-              inReplyTo = parentMessageIdHeader;
-              console.log('[Email Send] Using In-Reply-To:', inReplyTo);
-              
-              // Build References chain from parent's references + parent's Message-ID
-              // Deduplicate Message-IDs to avoid repetition
-              if (parentReferencesHeader) {
-                // Parse existing references and add parent Message-ID if not already present
-                const existingRefs = parentReferencesHeader.split(/\s+/).filter(ref => ref.trim());
-                if (!existingRefs.includes(parentMessageIdHeader)) {
-                  existingRefs.push(parentMessageIdHeader);
-                }
-                references = existingRefs.join(' ');
-              } else {
-                references = parentMessageIdHeader;
-              }
-              console.log('[Email Send] Using References:', references);
-              console.log('[Email Send] Final threading headers - In-Reply-To:', inReplyTo, 'References:', references);
-            } else {
-              console.log('[Email Send] WARNING: Could not obtain any Message-ID header from any message - threading may not work for recipients');
-            }
-          }
-          
-          gmailResult = await gmailApi.replyToEmail(validAccessToken, thread.threadId, {
-            to: Array.isArray(to) ? to : [to],
-            cc: cc || [],
-            bcc: bcc || [],
-            subject,
-            bodyHtml: finalBodyHtml,
-            bodyText: finalBodyText,
-            fromName: emailConfig.displayName || undefined,
-            fromEmail: emailConfig.companyEmail,
-            inReplyTo,
-            references,
-            inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
-            fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
-          });
-        } else {
-          console.log('[Email Send] Sending new email (new thread)');
-          gmailResult = await gmailApi.sendEmail(validAccessToken, {
-            to: Array.isArray(to) ? to : [to],
-            cc: cc || [],
-            bcc: bcc || [],
-            subject,
-            bodyHtml: finalBodyHtml,
-            bodyText: finalBodyText,
-            fromName: emailConfig.displayName || undefined,
-            fromEmail: emailConfig.companyEmail,
-            inlineAttachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
-            fileAttachments: fileAttachments.length > 0 ? fileAttachments : undefined,
-          });
-        }
-        emailStatus = 'sent';
-        console.log('Email sent successfully via Gmail API:', gmailResult);
-      } catch (gmailError: any) {
-        console.error('Gmail API error:', gmailError);
-        
-        // Check if it's an auth error that requires reconnection
-        if (gmailError.message?.includes('authorization revoked') || 
-            gmailError.message?.includes('invalid_grant') ||
-            gmailError.message?.includes('reconnect')) {
-          // Mark email config as disconnected
-          await storage.updateUserEmailConfig(emailConfig.id, { 
-            isConnected: false,
-            accessToken: null,
-          });
-          return res.status(401).json({ 
-            message: 'Gmail authorization has expired or been revoked. Please reconnect your Gmail account in Settings.',
-            requiresGmailConnect: true,
-          });
-        }
-        
-        emailStatus = 'failed';
-        return res.status(500).json({ 
-          message: 'Failed to send email via Gmail. Please try again.',
-          error: gmailError.message,
-        });
-      }
-
-      // After sending, fetch the sent message to get its RFC Message-ID header
-      // This is essential for proper email threading with recipients
-      let sentMessageIdHeader: string | undefined;
-      let sentReferencesHeader: string | undefined;
-      
-      if (gmailResult?.messageId) {
-        try {
-          const validAccessTokenForFetch = await gmailApi.ensureValidAccessToken(
-            {
-              id: emailConfig.id,
-              accessToken: emailConfig.accessToken,
-              refreshToken: emailConfig.refreshToken,
-              tokenExpiresAt: emailConfig.tokenExpiresAt,
-            },
-            async (configId, tokens) => {
-              await storage.updateUserEmailConfig(configId, {
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-                tokenExpiresAt: tokens.tokenExpiresAt,
-              });
-            }
-          );
-          
-          const sentGmailMessage = await gmailApi.getEmail(validAccessTokenForFetch, gmailResult.messageId);
-          const parsedSentMessage = gmailApi.parseEmailMessage(sentGmailMessage);
-          sentMessageIdHeader = parsedSentMessage.messageIdHeader || undefined;
-          sentReferencesHeader = parsedSentMessage.referencesHeader || undefined;
-          console.log('[Email Send] Captured sent message Message-ID header:', sentMessageIdHeader);
-        } catch (fetchError) {
-          console.error('[Email Send] Could not fetch sent message for Message-ID header:', fetchError);
-        }
-      }
-      
-      // Store email message in database with Message-ID header for threading
-      const message = await storage.createEmailMessage({
-        messageId: gmailResult?.messageId || undefined,
-        messageIdHeader: sentMessageIdHeader,
-        referencesHeader: sentReferencesHeader,
-        threadId: thread.id,
-        leadId,
-        direction: 'outbound',
-        fromEmail: emailConfig.companyEmail,
-        fromName: emailConfig.displayName || undefined,
-        toEmails: Array.isArray(to) ? to : [to],
-        ccEmails: cc || [],
-        bccEmails: bcc || [],
-        subject,
-        bodyHtml: finalBodyHtml,
-        bodyText: finalBodyText,
-        sentAt: new Date(),
-        status: emailStatus,
-        senderId: userId,
-      });
-
-      // Update thread with Gmail thread ID if we got one
-      if (gmailResult?.threadId && !thread.threadId) {
-        await storage.updateEmailThread(thread.id, { threadId: gmailResult.threadId });
-      }
-
-      // Create lead activity for the email
-      await storage.createLeadActivity({
-        leadId,
-        activityType: 'email',
-        subject: `Email sent: ${subject}`,
-        description: `Email sent to ${Array.isArray(to) ? to.join(', ') : to}`,
-        createdBy: userId,
-      });
-
-      res.status(201).json({ 
-        success: true, 
-        message: 'Email sent successfully via Gmail',
-        emailMessage: message,
-        thread,
-        gmailMessageId: gmailResult?.messageId,
-      });
-    } catch (error) {
-      console.error('Error sending email:', error);
-      res.status(500).json({ message: 'Failed to send email' });
-    }
+      const parent = (await storage.getEmailMessages({ threadId: thread.id })).sort((a,b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0)).find(item => item.messageIdHeader);
+      const inReplyTo = isReply ? parent?.messageIdHeader || undefined : undefined;
+      const references = inReplyTo ? [parent?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
+      const sent = await titanEmailProvider.send({ email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted }, { to: recipients, cc: Array.isArray(cc) ? cc : cc ? [cc] : [], bcc: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments: providerAttachments });
+      if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: sent.threadId });
+      const message = await storage.createEmailMessage({ messageId: sent.messageId, messageIdHeader: sent.messageId, referencesHeader: references, threadId: thread.id, leadId, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: recipients, ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: providerAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
+      await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
+      await storage.createLeadActivity({ leadId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${recipients.join(", ")}`, createdBy: userId });
+      res.status(201).json({ success: true, provider: "titan", message: "Email sent successfully", emailMessage: message, threadId: thread.id, messageId: sent.messageId });
+    } catch (error) { console.error("Titan lead email send error:", error); res.status(500).json({ message: "Failed to send email" }); }
   });
 
-  // Record incoming email (webhook or manual)
+  // Retired manual provider-ingestion endpoint. Titan replies are imported through
+  // the authenticated mailbox sync route, which performs mailbox and CRM matching.
   app.post('/api/emails/receive', isAuthenticated, async (req: any, res) => {
-    try {
-      const { leadId, threadId, fromEmail, fromName, subject, bodyHtml, bodyText, externalMessageId, externalThreadId } = req.body;
-
-      // Find or create thread
-      let thread;
-      if (externalThreadId) {
-        thread = await storage.getEmailThreadByExternalId(externalThreadId);
-      }
-      
-      if (!thread && threadId) {
-        thread = await storage.getEmailThread(threadId);
-      }
-      
-      if (!thread && leadId) {
-        const lead = await storage.getLead(leadId);
-        if (lead) {
-          thread = await storage.createEmailThread({
-            threadId: externalThreadId || undefined,
-            leadId,
-            companyId: lead.companyId,
-            subject,
-            participantEmails: [fromEmail],
-            status: 'active',
-          });
-        }
-      }
-
-      if (!thread) {
-        return res.status(400).json({ message: 'Could not find or create email thread' });
-      }
-
-      // Store the message
-      const message = await storage.createEmailMessage({
-        messageId: externalMessageId || undefined,
-        threadId: thread.id,
-        leadId: thread.leadId || undefined,
-        direction: 'inbound',
-        fromEmail,
-        fromName,
-        toEmails: [],
-        subject,
-        bodyHtml,
-        bodyText,
-        receivedAt: new Date(),
-        status: 'received',
-      });
-
-      // Create activity if linked to lead
-      if (thread.leadId) {
-        await storage.createLeadActivity({
-          leadId: thread.leadId,
-          activityType: 'email',
-          subject: `Email received: ${subject}`,
-          description: `Email from ${fromName || fromEmail}`,
-          createdBy: 'system',
-        });
-      }
-
-      res.status(201).json({ success: true, message, thread });
-    } catch (error) {
-      console.error('Error receiving email:', error);
-      res.status(500).json({ message: 'Failed to record email' });
-    }
+    res.status(410).json({ message: "Manual email ingestion has been retired. Sync replies from the connected Titan mailbox.", provider: "titan" });
   });
 
-  // Sync email replies from Gmail for a lead's thread
+  // Sync the current user's Titan inbox, then report replies relevant to this lead.
   app.post('/api/crm/leads/:leadId/emails/sync', isAuthenticated, async (req: any, res) => {
+    const leadId = Number(req.params.leadId), userId = req.user?.id || req.user?.claims?.sub;
+    let config: any;
+    let activeSyncConfigId: number | undefined;
     try {
-      const leadId = parseInt(req.params.leadId);
-      const userId = req.user?.id || req.user?.claims?.sub;
-
-      if (!userId) {
-        return res.status(401).json({ message: 'User not authenticated' });
+      const [lead, user] = await Promise.all([storage.getLead(leadId), storage.getUser(userId)]);
+      if (!lead) return res.status(404).json({ message: "Lead not found" });
+      if (!["admin", "super_admin", "sales_manager"].includes(user?.role || "") && lead.assignedSalesRep !== userId) return res.status(403).json({ message: "Not authorized to sync this lead's email" });
+      config = await storage.getUserEmailConfig(userId);
+      if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
+      if (activeTitanSyncConfigIds.has(config.id)) return res.status(409).json({ message: "This Titan mailbox is already syncing. Please wait a moment and try again." });
+      activeTitanSyncConfigIds.add(config.id);
+      activeSyncConfigId = config.id;
+      await storage.updateImapSyncState(config.id, { status: "syncing", lastError: null });
+      const synced = await titanEmailProvider.syncInbox({ email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted }, { lastUid: config.imapLastUid, uidValidity: config.imapUidValidity });
+      const outbound = await db.select().from(emailMessages).where(and(
+        eq(emailMessages.direction, "outbound"),
+        sql`lower(${emailMessages.fromEmail}) = ${config.companyEmail.toLowerCase()}`,
+      ));
+      const candidateThreadIds = Array.from(new Set<number>(
+        outbound.reduce<number[]>((ids, message) => {
+          if (typeof message.threadId === "number") ids.push(message.threadId);
+          return ids;
+        }, []),
+      ));
+      const threads = candidateThreadIds.length
+        ? await db.select().from(emailThreads).where(inArray(emailThreads.id, candidateThreadIds))
+        : [];
+      const threadMessages = candidateThreadIds.length
+        ? await db.select().from(emailMessages).where(inArray(emailMessages.threadId, candidateThreadIds))
+        : [];
+      const messageToThread = new Map<string, number>();
+      for (const message of threadMessages) {
+        if (message.threadId === null) continue;
+        if (message.messageIdHeader) messageToThread.set(message.messageIdHeader, message.threadId);
+        if (message.messageId) messageToThread.set(message.messageId, message.threadId);
       }
 
-      // Get lead and its email thread
-      const lead = await storage.getLead(leadId);
-      if (!lead) {
-        return res.status(404).json({ message: 'Lead not found' });
-      }
-
-      const threads = await storage.getEmailThreads({ leadId });
-      if (threads.length === 0) {
-        return res.json({ success: true, message: 'No email threads to sync', newMessages: 0 });
-      }
-
-      // Get user's email config for Gmail access
-      const emailConfig = await storage.getUserEmailConfig(userId);
-      if (!emailConfig || !emailConfig.isConnected || !emailConfig.accessToken) {
-        return res.status(400).json({ 
-          message: 'Gmail not connected. Please connect your Gmail account in Settings.',
-          requiresGmailConnect: true,
-        });
-      }
-
-      // Get valid access token
-      const validAccessToken = await gmailApi.ensureValidAccessToken(
-        {
-          id: emailConfig.id,
-          accessToken: emailConfig.accessToken,
-          refreshToken: emailConfig.refreshToken,
-          tokenExpiresAt: emailConfig.tokenExpiresAt,
-        },
-        async (configId, tokens) => {
-          await storage.updateUserEmailConfig(configId, {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-            tokenExpiresAt: tokens.tokenExpiresAt,
+      let imported = 0, importedForLead = 0;
+      for (const inbound of synced.messages) {
+        if (!inbound.from.email || inbound.from.email.toLowerCase() === config.companyEmail.toLowerCase()) continue;
+        const mailboxMessageId = titanInboundProviderId(config.id, inbound.messageId);
+        if (await storage.getEmailMessageByExternalId(mailboxMessageId)) continue;
+        const referenceIds = `${inbound.inReplyTo} ${inbound.references}`.match(/<[^>]+>/g) || [];
+        const referencedThreadId = referenceIds.map(id => messageToThread.get(id)).find(Boolean);
+        let thread = referencedThreadId ? threads.find(candidate => candidate.id === referencedThreadId) : undefined;
+        if (!thread) {
+          const participants = new Set([inbound.from.email.toLowerCase(), ...inbound.to.map(item => item.toLowerCase()), ...inbound.cc.map(item => item.toLowerCase())]);
+          thread = threads.find(candidate => normalizeReplySubject(candidate.subject || "") === normalizeReplySubject(inbound.subject) && (candidate.participantEmails || []).some(item => participants.has(item.toLowerCase())));
+        }
+        if (!thread) {
+          const campaignMatches = await db
+            .select({
+              companyId: emailCampaignRecipients.companyId,
+              recipientEmail: emailCampaignRecipients.email,
+              contactName: emailCampaignRecipients.contactName,
+              companyName: emailCampaignRecipients.companyName,
+              recipientSentAt: emailCampaignRecipients.sentAt,
+              campaignSubject: emailCampaigns.subject,
+              replyToEmail: emailCampaigns.replyToEmail,
+              createdBy: emailCampaigns.createdBy,
+            })
+            .from(emailCampaignRecipients)
+            .innerJoin(emailCampaigns, eq(emailCampaignRecipients.campaignId, emailCampaigns.id))
+            .where(and(
+              sql`lower(${emailCampaignRecipients.email}) = ${inbound.from.email.toLowerCase()}`,
+              inArray(emailCampaignRecipients.status, ["sent", "delivered", "opened", "clicked"]),
+            ))
+            .orderBy(desc(emailCampaignRecipients.sentAt))
+            .limit(20);
+          const isManager = ["admin", "super_admin", "sales_manager"].includes(user?.role || "");
+          const exactCampaignMatches = campaignMatches.filter(match => {
+            const replyMailbox = (match.replyToEmail || "sales@bright-organic.com").toLowerCase();
+            const renderedSubject = renderCampaignRecipientSubject(match.campaignSubject, {
+              contactName: match.contactName,
+              companyName: match.companyName,
+              email: match.recipientEmail,
+            });
+            return replyMailbox === config.companyEmail.toLowerCase() &&
+              normalizeReplySubject(renderedSubject) === normalizeReplySubject(inbound.subject) &&
+              (isManager || match.createdBy === userId);
           });
-        }
-      );
-
-      let newMessagesCount = 0;
-
-      // For each thread with a Gmail thread ID, fetch messages
-      for (const thread of threads) {
-        if (!thread.threadId) continue;
-
-        try {
-          const gmailThread = await gmailApi.getThread(validAccessToken, thread.threadId);
-          
-          if (!gmailThread.messages) continue;
-
-          // Get existing message IDs in our database
-          const existingMessages = await storage.getEmailMessages({ threadId: thread.id });
-          const existingMessageIds = new Set(existingMessages.map(m => m.messageId).filter(Boolean));
-
-          for (const gmailMessage of gmailThread.messages) {
-            if (!gmailMessage.id || existingMessageIds.has(gmailMessage.id)) continue;
-
-            const parsedMessage = gmailApi.parseEmailMessage(gmailMessage);
-            
-            // Skip if this is an outbound message from our company email
-            if (parsedMessage.from.email === emailConfig.companyEmail) continue;
-
-            // This is an inbound reply from customer
-            await storage.createEmailMessage({
-              messageId: gmailMessage.id,
-              messageIdHeader: parsedMessage.messageIdHeader || undefined,
-              referencesHeader: parsedMessage.referencesHeader || undefined,
-              threadId: thread.id,
-              leadId,
-              direction: 'inbound',
-              fromEmail: parsedMessage.from.email,
-              fromName: parsedMessage.from.name || undefined,
-              toEmails: parsedMessage.to,
-              ccEmails: parsedMessage.cc,
-              subject: parsedMessage.subject,
-              bodyHtml: parsedMessage.bodyHtml,
-              bodyText: parsedMessage.bodyText,
-              receivedAt: parsedMessage.date,
-              status: 'received',
-            });
-
-            // Create lead activity for the received email
-            await storage.createLeadActivity({
-              leadId,
-              activityType: 'email',
-              subject: `Email received: ${parsedMessage.subject}`,
-              description: `Reply from ${parsedMessage.from.name || parsedMessage.from.email}`,
-              createdBy: 'system',
-            });
-
-            newMessagesCount++;
+          const companyId = uniquelyMatchedCampaignCompanyId(exactCampaignMatches);
+          if (companyId !== undefined) {
+            const companyThreads = await storage.getEmailThreads({ companyId });
+            const possibleLeads = (await storage.getLeads({ companyId, limit: 100 })).leads
+              .filter(candidate => isManager || candidate.assignedSalesRep === userId);
+            const matchedLead = uniquelyMatchingLeadBySender(possibleLeads, inbound.from.email);
+            thread = companyThreads.find(candidate =>
+              candidate.leadId === (matchedLead?.id || null) &&
+              normalizeReplySubject(candidate.subject || "") === normalizeReplySubject(inbound.subject) &&
+              (candidate.participantEmails || []).some(email => email.toLowerCase() === inbound.from.email.toLowerCase()),
+            );
+            if (!thread) {
+              thread = await storage.createEmailThread({ companyId, leadId: matchedLead?.id, subject: inbound.subject, participantEmails: [config.companyEmail, inbound.from.email], status: "active", lastMessageAt: inbound.receivedAt, messageCount: 0, isRead: inbound.flags.includes("\\Seen") });
+              threads.push(thread);
+            }
           }
-        } catch (threadError) {
-          console.error(`Error syncing thread ${thread.threadId}:`, threadError);
-          // Continue with other threads
         }
+        if (!thread) continue; // Leave unrelated mailbox traffic outside the CRM.
+        try {
+          await storage.createEmailMessage({ messageId: mailboxMessageId, messageIdHeader: /^<[^>]+>$/.test(inbound.messageId) ? inbound.messageId.slice(0, 500) : undefined, referencesHeader: inbound.references || undefined, threadId: thread.id, leadId: thread.leadId || undefined, direction: "inbound", fromEmail: inbound.from.email, fromName: inbound.from.name || undefined, toEmails: inbound.to, ccEmails: inbound.cc, bccEmails: inbound.bcc, subject: inbound.subject, bodyHtml: inbound.bodyHtml, bodyText: inbound.bodyText, attachments: inbound.attachments.map(item => ({ filename: item.filename, mimeType: item.mimeType, size: item.size })), receivedAt: inbound.receivedAt, status: "received", isRead: inbound.flags.includes("\\Seen") });
+        } catch (error: any) {
+          if (error?.code === "23505") continue;
+          throw error;
+        }
+        await storage.updateEmailThread(thread.id, { lastMessageAt: inbound.receivedAt, isRead: inbound.flags.includes("\\Seen"), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), inbound.from.email, ...inbound.to, ...inbound.cc])) });
+        if (thread.leadId) {
+          await storage.createLeadActivity({ leadId: thread.leadId, activityType: "email", subject: `Email received: ${inbound.subject}`, description: `Reply from ${inbound.from.name || inbound.from.email}`, createdBy: "system" });
+        } else if (thread.companyId) {
+          await storage.createCompanyActivity({ companyId: thread.companyId, activityType: "email", subject: `Email received: ${inbound.subject}`, description: `Reply from ${inbound.from.name || inbound.from.email}`, createdBy: userId });
+        }
+        messageToThread.set(inbound.messageId, thread.id);
+        imported++;
+        if (thread.leadId === leadId || (!!lead.companyId && thread.companyId === lead.companyId)) importedForLead++;
       }
-
-      res.json({ 
-        success: true, 
-        message: `Synced ${newMessagesCount} new email replies`,
-        newMessages: newMessagesCount,
-      });
-    } catch (error: any) {
-      console.error('Error syncing emails:', error);
-      
-      if (error.message?.includes('authorization') || error.message?.includes('invalid_grant')) {
-        return res.status(401).json({ 
-          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
-          requiresGmailConnect: true,
-        });
-      }
-      
-      res.status(500).json({ message: 'Failed to sync emails' });
+      await storage.updateImapSyncState(config.id, { status: "idle", lastUid: synced.lastUid, uidValidity: synced.uidValidity, lastSyncedAt: new Date(), lastError: null });
+      res.json({ success: true, provider: "titan", message: `Synced ${importedForLead} new replies for this lead`, newMessages: importedForLead, totalNewMessages: imported });
+    } catch (error) {
+      console.error("Titan IMAP sync error:", error);
+      if (config?.id) await storage.updateImapSyncState(config.id, { status: "error", lastError: error instanceof Error ? error.message.slice(0, 1000) : "Titan IMAP sync failed" }).catch(() => undefined);
+      res.status(500).json({ message: "Failed to sync email" });
+    } finally {
+      if (activeSyncConfigId !== undefined) activeTitanSyncConfigIds.delete(activeSyncConfigId);
     }
   });
 
@@ -11933,6 +10781,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const lead = await storage.getLead(leadId);
       if (!lead) {
         return res.status(404).json({ message: 'Lead not found' });
+      }
+      const user = await storage.getUser(userId);
+      if (!["admin", "super_admin", "sales_manager"].includes(user?.role || "") && lead.assignedSalesRep !== userId) {
+        return res.status(403).json({ message: "Not authorized to update this lead's email" });
       }
 
       // Mark all unread inbound emails for this lead as read
@@ -12147,499 +10999,130 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Send quotation via email
   app.post('/api/crm/leads/:leadId/quotations/:quotationId/send', isAuthenticated, async (req: any, res) => {
     try {
-      const leadId = parseInt(req.params.leadId);
-      const quotationId = parseInt(req.params.quotationId);
-      const userId = req.user?.id || req.user?.claims?.sub;
-
-      if (!userId) {
-        return res.status(401).json({ message: 'User not authenticated' });
-      }
-
-      // Verify lead exists
-      const lead = await storage.getLead(leadId);
-      if (!lead) {
-        return res.status(404).json({ message: 'Lead not found' });
-      }
-
-      // Verify quotation exists and belongs to this lead
-      const quotation = await storage.getQuotation(quotationId);
-      if (!quotation || quotation.leadId !== leadId) {
-        return res.status(404).json({ message: 'Quotation not found or does not belong to this lead' });
-      }
-
-      // Check user has permission (admin or assigned sales rep)
-      const user = await storage.getUser(userId);
-      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
-      const isAssignedSalesRep = lead.assignedSalesRep === userId;
-      
-      if (!isAdmin && !isAssignedSalesRep) {
-        return res.status(403).json({ message: 'Not authorized to send quotations for this lead' });
-      }
-
-      // Get email configuration for the sender
-      const emailConfig = await storage.getUserEmailConfig(userId);
-      if (!emailConfig?.accessToken) {
-        return res.status(400).json({ 
-          message: 'Gmail not connected. Please connect your Gmail account in Email Settings.',
-          requiresGmailConnect: true,
-        });
-      }
-
-      // Get company contact email for the lead
-      const { email, to, cc, subject, body, attachPdf, threadId } = req.body;
-      
-      // Support both single email (legacy) and to array (new)
-      const toEmails: string[] = to ? (Array.isArray(to) ? to : [to]) : (email ? [email] : []);
-      const ccEmails: string[] = cc ? (Array.isArray(cc) ? cc : [cc]) : [];
-      
-      if (toEmails.length === 0) {
-        return res.status(400).json({ message: 'Recipient email is required' });
-      }
-
-      // Get product name from lead's products interested
-      let productName = 'your inquiry';
-      if (lead.productsInterested && lead.productsInterested.length > 0) {
-        const productIds = lead.productsInterested;
-        const productsResult = await db.select({ name: products.name }).from(products).where(inArray(products.id, productIds));
-        productName = productsResult.map(p => p.name).join(', ') || 'your inquiry';
-      }
-      
-      // Get customer/contact name for greeting
-      const contactName = lead.contactPerson?.name || lead.company?.companyName || 'Valued Customer';
-      const companyName = lead.company?.companyName || '';
-      
-      // Get sales person name for signature
-      const salesRepName = user?.firstName && user?.lastName 
-        ? `${user.firstName} ${user.lastName}` 
-        : emailConfig.displayName || 'Sales Team';
-      
-      // Generate PDF if attachPdf is true (default to true)
-      let pdfAttachment: { base64Data: string; mimeType: string; filename: string } | null = null;
+      const leadId = Number(req.params.leadId), quotationId = Number(req.params.quotationId), userId = req.user?.id || req.user?.claims?.sub;
+      const { email, to, cc, subject, body, attachPdf, threadId } = req.body || {};
+      const [lead, quotation, user, config] = await Promise.all([storage.getLead(leadId), storage.getQuotation(quotationId), storage.getUser(userId), storage.getUserEmailConfig(userId)]);
+      if (!lead) return res.status(404).json({ message: "Lead not found" });
+      if (!quotation || quotation.leadId !== leadId) return res.status(404).json({ message: "Quotation not found or does not belong to this lead" });
+      if (!["admin", "super_admin"].includes(user?.role || "") && lead.assignedSalesRep !== userId) return res.status(403).json({ message: "Not authorized to send quotations for this lead" });
+      if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
+      const recipients = to ? (Array.isArray(to) ? to : [to]) : email ? [email] : [];
+      if (!recipients.length) return res.status(400).json({ message: "Recipient email is required" });
+      const attachments: { base64Data: string; mimeType: string; filename: string }[] = [];
       if (attachPdf !== false) {
-        try {
-          const { generateQuotationPDF } = await import('./pdf-generator');
-          
-          // Fetch quotation items
-          const quotationItemsResult = await db
-            .select()
-            .from(quotationItems)
-            .where(eq(quotationItems.quotationId, quotationId));
-          
-          const firstItem = quotationItemsResult.length > 0 ? quotationItemsResult[0] : null;
-          
-          // Prepare customer data
-          const customerData = {
-            name: companyName,
-            contactPerson: lead.contactPerson?.name || '',
-            email: lead.contactPerson?.email || lead.company?.primaryEmail || email,
-            companyName: companyName,
-            phone: lead.contactPerson?.phone || lead.company?.primaryPhone || '',
-            address: lead.company?.addressStreet || '',
-            city: lead.company?.addressCity || '',
-            state: lead.company?.addressState || '',
-            country: lead.company?.addressCountry || '',
-            postalCode: lead.company?.addressZip || '',
-            salesPersonName: salesRepName,
-          };
-          
-          // Get quantity and unit from lead
-          const quantity = firstItem?.quantity || lead.requiredQuantity || '1';
-          const unit = firstItem?.unit || lead.unit || 'units';
-          const totalAmount = quotation.totalAmount || '0';
-          const qty = parseFloat(String(quantity));
-          const unitPrice = firstItem?.unitPrice || (qty > 0 ? (parseFloat(totalAmount) / qty).toFixed(2) : '0');
-          
-          // Build items array from quotation items for multi-product PDFs
-          const emailPdfItems = quotationItemsResult.length > 0 
-            ? quotationItemsResult.map(item => ({
-                productName: item.productName || productName,
-                quantity: item.quantity || '1',
-                unit: item.unit || 'kg',
-                unitPrice: item.unitPrice || '0',
-                totalPrice: item.totalPrice || String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
-              }))
-            : undefined;
-
-          // Prepare quotation data
-          const quotationData = {
-            id: quotation.id,
-            quotationId: quotation.quotationId,
-            quotationDate: quotation.createdAt,
-            validUntil: quotation.validUntil,
-            productName: productName,
-            quantity: String(quantity),
-            unit: unit,
-            unitPrice: String(unitPrice),
-            totalAmount: totalAmount,
-            currency: quotation.currency || 'USD',
-            terms: quotation.terms || '',
-            notes: quotation.notes || '',
-            paymentTerms: quotation.paymentTerms || 'As per agreement',
-            deliveryTerms: quotation.deliveryTerms || quotation.priceType || 'Ex-Works',
-            subtotal: quotation.subtotal,
-            discountPercent: quotation.discountPercent,
-            discountAmount: quotation.discountAmount,
-            includeGst: quotation.includeGst,
-            gstNumber: quotation.gstNumber,
-            gstPercentage: quotation.gstPercentage,
-            gstAmount: quotation.gstAmount,
-            sellerGstin: quotation.sellerGstin,
-            sellerPan: quotation.sellerPan,
-            buyerGstin: quotation.buyerGstin,
-            buyerPan: quotation.buyerPan,
-            customerCompanyName: quotation.customerCompanyName,
-            customerAddress: quotation.customerAddress,
-            customerCity: quotation.customerCity,
-            customerState: quotation.customerState,
-            customerCountry: quotation.customerCountry,
-            customerPostalCode: quotation.customerPostalCode,
-            placeOfSupply: quotation.placeOfSupply,
-            countryOfSupply: quotation.countryOfSupply,
-            items: emailPdfItems,
-          };
-          
-          const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
-          pdfAttachment = {
-            base64Data: pdfBuffer.toString('base64'),
-            mimeType: 'application/pdf',
-            filename: `Quotation-${quotation.quotationId}.pdf`,
-          };
-        } catch (pdfError) {
-          console.error('Error generating PDF for email attachment:', pdfError);
-          // Continue without attachment if PDF generation fails
+        const { generateQuotationPDF } = await import('./pdf-generator');
+        const quotationItemsResult = await db
+          .select()
+          .from(quotationItems)
+          .where(eq(quotationItems.quotationId, quotationId));
+        const firstItem = quotationItemsResult[0];
+        let productName = 'your inquiry';
+        if (lead.productsInterested?.length) {
+          const productsResult = await db
+            .select({ name: products.name })
+            .from(products)
+            .where(inArray(products.id, lead.productsInterested));
+          productName = productsResult.map(product => product.name).join(', ') || productName;
         }
-      }
-      
-      // Build proper email template
-      const emailSubject = subject || `Quotation ${quotation.quotationId} - ${productName}`;
-      
-      // Use provided body or generate a proper professional template (without signature - will be added via image)
-      let emailBodyContent = body || `
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <p>Dear ${contactName},</p>
-  
-  <p>Greetings from Bright Fame Organic!</p>
-  
-  <p>Thank you for your interest in <strong>${productName}</strong>. We are pleased to send you the quotation as requested.</p>
-  
-  <p>Please find the quotation attached to this email for your reference.</p>
-  
-  <p>If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.</p>
-  
-  <p>We look forward to hearing from you.</p>
-</div>
-`;
-      
-      let emailBodyTextContent = `Dear ${contactName},
-
-Greetings from Bright Fame Organic!
-
-Thank you for your interest in ${productName}. We are pleased to send you the quotation as requested.
-
-Please find the quotation attached to this email for your reference.
-
-If you have any queries or require further clarification, please feel free to reply to this email or reach out to us directly.
-
-We look forward to hearing from you.`;
-
-      // Embed signature image using public HTTPS URL (Gmail strips large base64 data URIs)
-      if (emailConfig.signatureImageUrl) {
-        try {
-          console.log('[Quotation Email] Embedding signature image URL:', emailConfig.signatureImageUrl);
-          
-          // Ensure the signature URL starts with /objects/
-          let signaturePath = emailConfig.signatureImageUrl;
-          if (!signaturePath.startsWith('/objects/')) {
-            const objectStorageService = new ObjectStorageService();
-            signaturePath = objectStorageService.normalizeObjectEntityPath(signaturePath);
-          }
-          
-          // Build full public HTTPS URL for the signature
-          const baseUrl = getBaseUrl();
-          const signatureUrl = `${baseUrl}${signaturePath}`;
-          
-          console.log('[Quotation Email] Using signature URL:', signatureUrl);
-          
-          // Embed signature using public URL (works reliably across all email clients)
-          emailBodyContent = `${emailBodyContent}
-            <br><br>
-            <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
-              <tr>
-                <td>
-                  <img src="${signatureUrl}" alt="${emailConfig.displayName || 'Signature'}" style="max-width: 600px; display: block;" />
-                </td>
-              </tr>
-            </table>`;
-          
-          // Add text signature placeholder
-          emailBodyTextContent = `${emailBodyTextContent}\n\n---\n${emailConfig.displayName || salesRepName}\nBright Fame Organic Pvt. Ltd.`;
-          
-          console.log('[Quotation Email] Signature image URL embedded successfully');
-        } catch (signatureError: any) {
-          console.error('[Quotation Email] Failed to embed signature image:', signatureError?.message || signatureError);
-          // Fallback to text signature if embedding fails
-          emailBodyContent = `${emailBodyContent}
-  <p>Best Regards,<br/>
-  <strong>${salesRepName}</strong><br/>
-  Bright Fame Organic Pvt. Ltd.<br/>
-  Email: ${emailConfig.companyEmail}<br/>
-  Phone: +91-7249847439</p>`;
-          emailBodyTextContent = `${emailBodyTextContent}\n\nBest Regards,\n${salesRepName}\nBright Fame Organic Pvt. Ltd.\nEmail: ${emailConfig.companyEmail}\nPhone: +91-7249847439`;
-        }
-      } else {
-        // No signature image configured - use text fallback
-        console.log('[Quotation Email] No signature configured, using text fallback');
-        emailBodyContent = `${emailBodyContent}
-  <p>Best Regards,<br/>
-  <strong>${salesRepName}</strong><br/>
-  Bright Fame Organic Pvt. Ltd.<br/>
-  Email: ${emailConfig.companyEmail}<br/>
-  Phone: +91-7249847439</p>`;
-        emailBodyTextContent = `${emailBodyTextContent}\n\nBest Regards,\n${salesRepName}\nBright Fame Organic Pvt. Ltd.\nEmail: ${emailConfig.companyEmail}\nPhone: +91-7249847439`;
-      }
-
-      let emailSendResult: { messageId: string; threadId: string };
-      
-      const emailOptions: any = {
-        to: toEmails,
-        cc: ccEmails,
-        bcc: [],
-        subject: emailSubject,
-        bodyHtml: emailBodyContent,
-        bodyText: emailBodyTextContent,
-        fromName: emailConfig.displayName || undefined,
-        fromEmail: emailConfig.companyEmail,
-      };
-      
-      // Add inline attachments (signature image)
-      if (inlineAttachments.length > 0) {
-        emailOptions.inlineAttachments = inlineAttachments;
-      }
-      
-      // Add PDF attachment if generated
-      if (pdfAttachment) {
-        emailOptions.fileAttachments = [pdfAttachment];
-      }
-      
-      // If threadId is provided, try to get the original message for proper threading
-      let actualThreadId = threadId;
-      let threadFound = false;
-      
-      if (threadId) {
-        try {
-          // First, try to get the thread directly
-          const thread = await gmailApi.getThread(emailConfig.accessToken, threadId);
-          if (thread && thread.messages && thread.messages.length > 0) {
-            threadFound = true;
-            // Get the last message in the thread for proper reply headers
-            const lastMessage = thread.messages[thread.messages.length - 1];
-            if (lastMessage && lastMessage.payload?.headers) {
-              // Find Message-ID header from the last message
-              const headers = lastMessage.payload.headers;
-              const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
-              const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
-              const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
-              
-              if (messageIdHeader?.value) {
-                emailOptions.inReplyTo = messageIdHeader.value;
-                // Build references chain
-                if (referencesHeader?.value) {
-                  emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
-                } else {
-                  emailOptions.references = messageIdHeader.value;
-                }
-              }
-              
-              // Also ensure subject starts with "Re:" if it's a reply to maintain thread
-              if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
-                const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
-                emailOptions.subject = `Re: ${originalSubject}`;
-              }
-            }
-            console.log('Thread reply headers set:', { 
-              inReplyTo: emailOptions.inReplyTo ? 'set' : 'not set', 
-              references: emailOptions.references ? 'set' : 'not set',
-              subject: emailOptions.subject 
-            });
-          }
-        } catch (threadFetchError: any) {
-          console.log('Direct thread lookup failed, searching by customer email...');
-          
-          // Thread not found directly - try to find by searching for customer email
-          try {
-            const searchResults = await gmailApi.searchEmailsByContact(emailConfig.accessToken, email, { maxResults: 10 });
-            if (searchResults.messages && searchResults.messages.length > 0) {
-              // Get the most recent message's thread ID
-              const recentMessage = searchResults.messages[0];
-              if (recentMessage.threadId) {
-                actualThreadId = recentMessage.threadId;
-                console.log('Found thread via email search:', actualThreadId);
-                
-                // Fetch the thread to get reply headers
-                const foundThread = await gmailApi.getThread(emailConfig.accessToken, actualThreadId);
-                if (foundThread && foundThread.messages && foundThread.messages.length > 0) {
-                  threadFound = true;
-                  const lastMessage = foundThread.messages[foundThread.messages.length - 1];
-                  if (lastMessage && lastMessage.payload?.headers) {
-                    const headers = lastMessage.payload.headers;
-                    const messageIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'message-id');
-                    const referencesHeader = headers.find((h: any) => h.name?.toLowerCase() === 'references');
-                    const subjectHeader = headers.find((h: any) => h.name?.toLowerCase() === 'subject');
-                    
-                    if (messageIdHeader?.value) {
-                      emailOptions.inReplyTo = messageIdHeader.value;
-                      if (referencesHeader?.value) {
-                        emailOptions.references = `${referencesHeader.value} ${messageIdHeader.value}`;
-                      } else {
-                        emailOptions.references = messageIdHeader.value;
-                      }
-                    }
-                    
-                    if (subjectHeader?.value && !emailOptions.subject.toLowerCase().startsWith('re:')) {
-                      const originalSubject = subjectHeader.value.replace(/^(re:\s*)+/i, '');
-                      emailOptions.subject = `Re: ${originalSubject}`;
-                    }
-                  }
-                }
-              }
-            }
-          } catch (searchError) {
-            console.log('Email search also failed:', searchError);
-          }
-        }
-      }
-      
-      // Send email - either as reply or new email
-      if (actualThreadId && threadFound) {
-        try {
-          emailSendResult = await gmailApi.replyToEmail(
-            emailConfig.accessToken,
-            actualThreadId,
-            emailOptions
-          );
-          console.log('Email sent as reply to thread:', actualThreadId);
-        } catch (replyError: any) {
-          // If reply fails, fall back to sending as new email
-          console.log('Reply failed, sending as new email:', replyError.message);
-          emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
-        }
-      } else {
-        console.log('No thread found, sending as new email');
-        emailSendResult = await gmailApi.sendEmail(emailConfig.accessToken, emailOptions);
-      }
-
-      // Update quotation with sent status
-      await storage.updateQuotation(quotationId, {
-        status: 'sent',
-        sentAt: new Date(),
-        sentBy: userId,
-      } as any);
-
-      // Log activity
-      await storage.createLeadActivity({
-        leadId,
-        activityType: 'quote_sent',
-        subject: 'Quotation Sent',
-        description: `Quotation ${quotation.quotationId} sent to ${toEmails.join(', ')}${ccEmails.length > 0 ? ` (CC: ${ccEmails.join(', ')})` : ''}`,
-        createdBy: userId,
-      });
-
-      // Store email message in the lead's email thread
-      // This ensures the quotation email appears in the lead's email communication list
-      try {
-        // Determine the internal threadId to use for storage
-        let internalThreadId: number | null = null;
-        
-        // If user selected an existing thread, look it up by its internal ID
-        if (threadId) {
-          const existingThread = await storage.getEmailThread(parseInt(threadId));
-          if (existingThread) {
-            internalThreadId = existingThread.id;
-            console.log('[Quotation Email] Using existing thread:', internalThreadId);
-          }
-        }
-        
-        // If no existing thread was selected, try to find or create one by gmailThreadId
-        if (!internalThreadId && emailSendResult.threadId) {
-          const threadsByGmailId = await db.select()
-            .from(emailThreads)
-            .where(eq(emailThreads.gmailThreadId, emailSendResult.threadId))
-            .limit(1);
-          
-          if (threadsByGmailId.length > 0) {
-            internalThreadId = threadsByGmailId[0].id;
-            console.log('[Quotation Email] Found thread by Gmail ID:', internalThreadId);
-          } else {
-            // Create a new thread record
-            const [newThread] = await db.insert(emailThreads).values({
-              leadId,
-              subject: emailOptions.subject,
-              gmailThreadId: emailSendResult.threadId,
-              lastMessageDate: new Date(),
-              messageCount: 1,
-              hasUnread: false,
-              senderUserId: userId,
-            }).returning();
-            internalThreadId = newThread.id;
-            console.log('[Quotation Email] Created new thread:', internalThreadId);
-          }
-        }
-        
-        // Store the email message with proper thread linking
-        const storedEmail = await storage.createEmailMessage({
-          leadId,
-          threadId: internalThreadId || undefined,
-          direction: 'outbound',
-          fromEmail: emailConfig.companyEmail || emailConfig.email,
-          toEmails: toEmails,
-          ccEmails: ccEmails,
-          bccEmails: [],
-          subject: emailOptions.subject || `Quotation ${quotation.quotationId}`,
-          bodyHtml: emailBodyContent,
-          bodyText: emailBodyTextContent,
-          sentAt: new Date(),
-          messageId: emailSendResult.messageId || null,
-          gmailThreadId: emailSendResult.threadId || null,
-          isRead: true,
-        });
-        
-        // Update thread's message count if we have a thread
-        if (internalThreadId) {
-          try {
-            await db.update(emailThreads)
-              .set({
-                lastMessageDate: new Date(),
-                messageCount: sql`${emailThreads.messageCount} + 1`,
-              })
-              .where(eq(emailThreads.id, internalThreadId));
-          } catch (threadError) {
-            console.log('Could not update email thread record:', threadError);
-          }
-        }
-        
-        console.log('[Quotation Email] Email stored in database, thread:', internalThreadId, 'gmail thread:', emailSendResult.threadId);
-      } catch (storeError) {
-        console.log('Could not store email message in database:', storeError);
-        // Continue without failing - email was already sent
-      }
-
-      res.json({ 
-        success: true, 
-        message: 'Quotation sent successfully',
-        quotationId: quotation.quotationId,
-      });
-    } catch (error: any) {
-      console.error('Error sending quotation:', error);
-      
-      if (error.message?.includes('authorization') || error.message?.includes('invalid_grant')) {
-        return res.status(401).json({ 
-          message: 'Gmail authorization expired. Please reconnect your Gmail account.',
-          requiresGmailConnect: true,
+        const companyName = lead.company?.companyName || '';
+        const salesRepName = user?.firstName && user?.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : config.displayName || 'Sales Team';
+        const customerData = {
+          name: companyName,
+          contactPerson: lead.contactPerson?.contactName || '',
+          email: lead.contactPerson?.email || lead.company?.primaryEmail || email || recipients[0] || '',
+          companyName,
+          phone: lead.contactPerson?.phone || lead.company?.primaryPhone || '',
+          address: lead.company?.addressStreet || '',
+          city: lead.company?.addressCity || '',
+          state: lead.company?.addressState || '',
+          country: lead.company?.addressCountry || '',
+          postalCode: lead.company?.addressZip || '',
+          salesPersonName: salesRepName,
+        };
+        const quantity = firstItem?.quantity || lead.requiredQuantity || '1';
+        const unit = firstItem?.unit || lead.unit || 'units';
+        const totalAmount = quotation.totalAmount || '0';
+        const parsedQuantity = parseFloat(String(quantity));
+        const unitPrice = firstItem?.unitPrice ||
+          (parsedQuantity > 0 ? (parseFloat(totalAmount) / parsedQuantity).toFixed(2) : '0');
+        const pdfItems = quotationItemsResult.length
+          ? quotationItemsResult.map(item => ({
+              productName,
+              quantity: item.quantity || '1',
+              unit: item.unit || 'kg',
+              unitPrice: item.unitPrice || '0',
+              totalPrice: item.totalPrice ||
+                String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
+            }))
+          : undefined;
+        const quotationData = {
+          id: quotation.id,
+          quotationId: quotation.quotationId,
+          quotationDate: (quotation.createdAt || new Date()).toISOString(),
+          validUntil: (quotation.validUntil || new Date()).toISOString(),
+          productName,
+          quantity: String(quantity),
+          unit,
+          unitPrice: String(unitPrice),
+          totalAmount,
+          currency: quotation.currency || 'USD',
+          terms: quotation.terms || '',
+          notes: quotation.notes || '',
+          paymentTerms: quotation.paymentTerms || 'As per agreement',
+          deliveryTerms: quotation.priceType || 'Ex-Works',
+          leadTime: quotation.leadTime || undefined,
+          subtotal: quotation.subtotal || undefined,
+          discountPercent: quotation.discountPercent || undefined,
+          discountAmount: quotation.discountAmount || undefined,
+          includeGst: quotation.includeGst ?? undefined,
+          gstNumber: quotation.gstNumber || undefined,
+          gstPercentage: quotation.gstPercentage || undefined,
+          gstAmount: quotation.gstAmount || undefined,
+          sellerGstin: quotation.sellerGstin || undefined,
+          sellerPan: quotation.sellerPan || undefined,
+          buyerGstin: quotation.buyerGstin || undefined,
+          buyerPan: quotation.buyerPan || undefined,
+          customerCompanyName: quotation.customerCompanyName || undefined,
+          customerAddress: quotation.customerAddress || undefined,
+          customerCity: quotation.customerCity || undefined,
+          customerState: quotation.customerState || undefined,
+          customerCountry: quotation.customerCountry || undefined,
+          customerPostalCode: quotation.customerPostalCode || undefined,
+          placeOfSupply: quotation.placeOfSupply || undefined,
+          countryOfSupply: quotation.countryOfSupply || undefined,
+          items: pdfItems,
+        };
+        const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
+        attachments.push({
+          base64Data: pdfBuffer.toString('base64'),
+          mimeType: 'application/pdf',
+          filename: `Quotation-${quotation.quotationId}.pdf`,
         });
       }
-      
-      res.status(500).json({ message: 'Failed to send quotation' });
-    }
+      const emailSubject = subject || `Quotation ${quotation.quotationId}`;
+      let thread = threadId ? await storage.getEmailThread(Number(threadId)) : undefined;
+      if (thread && thread.leadId !== leadId && (!lead.companyId || thread.companyId !== lead.companyId)) return res.status(400).json({ message: "Invalid email thread" });
+      if (!thread) thread = await storage.createEmailThread({ leadId, companyId: lead.companyId, subject: emailSubject, participantEmails: [config.companyEmail, ...recipients], status: "active", lastMessageAt: new Date(), messageCount: 0, isRead: true });
+      const parent = (await storage.getEmailMessages({ threadId: thread.id })).sort((a,b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0)).find(item => item.messageIdHeader);
+      const inReplyTo = parent?.messageIdHeader || undefined, references = inReplyTo ? [parent?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
+      let html = body || `<p>Please find quotation ${quotation.quotationId} attached.</p>`;
+      let text = html.replace(/<[^>]*>/g, "");
+      if (config.signatureImageUrl) {
+        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
+        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
+        text += `\n\n---\n${config.displayName || "Signature"}`;
+      }
+      const ccRecipients = Array.isArray(cc) ? cc : cc ? [cc] : [];
+      const result = await titanEmailProvider.send({ email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted }, { to: recipients, cc: ccRecipients, subject: emailSubject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments });
+      if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: result.threadId });
+      const message = await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, leadId, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: recipients, ccEmails: ccRecipients, subject: emailSubject, bodyHtml: html, bodyText: text, attachments: attachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
+      await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
+      await storage.updateQuotation(quotationId, { status: "sent", sentAt: new Date(), sentBy: userId });
+      await storage.createLeadActivity({ leadId, activityType: "email", subject: `Quotation sent: ${quotation.quotationId}`, description: `Quotation sent to ${recipients.join(", ")}`, createdBy: userId });
+      res.status(201).json({ success: true, provider: "titan", message: "Quotation sent successfully", emailMessage: message, messageId: result.messageId });
+    } catch (error) { console.error("Titan quotation send error:", error); res.status(500).json({ message: "Failed to send quotation" }); }
   });
 
   // Sitemap.xml route - simplified for maximum reliability

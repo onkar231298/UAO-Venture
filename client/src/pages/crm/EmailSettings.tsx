@@ -1,136 +1,112 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Mail, CheckCircle, XCircle, Link2, Unlink, AlertTriangle, RefreshCw, Info } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 interface EmailStatus {
-  hasConfig: boolean;
-  connected: boolean;
-  email?: string;
-  gmailAddress?: string;
-  tokensValid?: boolean;
-  error?: string;
+  serviceType?: string;
+  configured?: boolean;
+  connected?: boolean;
+  emailAddress?: string;
+  displayName?: string;
+  lastSyncAt?: string;
+  lastSyncError?: string;
 }
 
 export default function EmailSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [location] = useLocation();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [appPassword, setAppPassword] = useState("");
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
-  const { data: emailStatus, isLoading, refetch } = useQuery<EmailStatus>({
+  const { data: emailStatus, isLoading, refetch, isFetching } = useQuery<EmailStatus>({
     queryKey: ['/api/email/status'],
   });
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    
-    if (params.get('success') === 'gmail_connected') {
-      toast({
-        title: "Gmail Connected!",
-        description: "Your Gmail account has been successfully connected. You can now send emails from the CRM.",
-      });
-      window.history.replaceState({}, '', '/crm/email-settings');
-      queryClient.invalidateQueries({ queryKey: ['/api/email/status'] });
-    }
-    
-    if (params.get('error')) {
-      const errorCode = params.get('error');
-      const expectedEmail = params.get('expected');
-      const gotEmail = params.get('got');
-      let errorMessage = "Failed to connect Gmail. Please try again.";
-      
-      switch (errorCode) {
-        case 'gmail_oauth_denied':
-          errorMessage = "Gmail connection was denied. Please approve access to connect your Gmail.";
-          break;
-        case 'gmail_oauth_no_code':
-          errorMessage = "No authorization code received from Gmail.";
-          break;
-        case 'gmail_oauth_session_expired':
-          errorMessage = "Session expired. Please try connecting again.";
-          break;
-        case 'gmail_oauth_no_token':
-          errorMessage = "Failed to get access token from Gmail.";
-          break;
-        case 'gmail_oauth_failed':
-          errorMessage = "Gmail connection failed. Please try again.";
-          break;
-        case 'gmail_email_mismatch':
-          errorMessage = `Email mismatch! You tried to connect "${gotEmail}" but your configured email is "${expectedEmail}". Please log in with the correct Gmail account.`;
-          break;
-        case 'gmail_oauth_verification_failed':
-          errorMessage = "Failed to verify Gmail account. Please try connecting again.";
-          break;
-      }
-      
-      toast({
-        title: "Connection Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      window.history.replaceState({}, '', '/crm/email-settings');
-    }
-  }, [location, toast, queryClient]);
-
-  const connectGmailMutation = useMutation({
-    mutationFn: async () => {
+  const connectTitanMutation = useMutation({
+    mutationFn: async (password: string) => {
       const response = await fetch('/api/email/connect', {
-        method: 'GET',
+        method: 'POST',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appPassword: password }),
       });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to start Gmail connection');
+        throw new Error(data.message || 'Unable to connect to Titan. Check your app password and try again.');
       }
-      return response.json();
+      return data;
     },
-    onSuccess: (data: any) => {
-      if (data.authUrl) {
-        setIsConnecting(true);
-        window.location.href = data.authUrl;
-      }
-    },
-    onError: (error: any) => {
+    onSuccess: () => {
+      setAppPassword("");
+      setIsReconnecting(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/email/status'] });
       toast({
-        title: "Error",
-        description: error.message || "Failed to start Gmail connection",
+        title: "Titan Connected",
+        description: "Your Titan mailbox has been connected and tested.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Titan Connection Failed",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const disconnectGmailMutation = useMutation({
+  const disconnectTitanMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/email/disconnect', {
         method: 'POST',
         credentials: 'include',
       });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error('Failed to disconnect Gmail');
+        throw new Error(data.message || 'Failed to disconnect Titan');
       }
-      return response.json();
+      return data;
     },
     onSuccess: () => {
+      setAppPassword("");
+      setIsReconnecting(false);
       queryClient.invalidateQueries({ queryKey: ['/api/email/status'] });
       toast({
-        title: "Gmail Disconnected",
-        description: "Your Gmail account has been disconnected.",
+        title: "Titan Disconnected",
+        description: "Your Titan mailbox has been disconnected.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to disconnect Gmail",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
+
+  const isConfigured = emailStatus?.configured === true;
+  const isConnected = emailStatus?.connected === true;
+  const showPasswordForm = !isConnected || isReconnecting;
+  const mailbox = emailStatus?.emailAddress;
+
+  const handleConnect = () => {
+    if (!appPassword.trim()) {
+      toast({
+        title: "App password required",
+        description: "Enter the Titan app password generated for your assigned mailbox.",
+        variant: "destructive",
+      });
+      return;
+    }
+    connectTitanMutation.mutate(appPassword);
+  };
 
   if (isLoading) {
     return (
@@ -146,18 +122,15 @@ export default function EmailSettings() {
     <div className="container max-w-2xl mx-auto py-8 px-4" data-testid="email-settings-page">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Email Settings</h1>
-        <p className="text-muted-foreground">
-          Connect your Gmail account to send emails from the CRM
-        </p>
+        <p className="text-muted-foreground">Connect your assigned Titan mailbox to send and receive CRM email.</p>
       </div>
 
-      {!emailStatus?.hasConfig ? (
+      {!isConfigured ? (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>No Email Configuration</AlertTitle>
+          <AlertTitle>No mailbox assigned</AlertTitle>
           <AlertDescription>
-            Your email address has not been configured yet. Please contact your administrator 
-            to set up your company email address, then return here to connect your Gmail.
+            Your Titan mailbox has not been assigned yet. Contact your administrator to assign your mailbox and display name.
           </AlertDescription>
         </Alert>
       ) : (
@@ -165,111 +138,96 @@ export default function EmailSettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              Gmail Connection
+              Titan Mail Connection
             </CardTitle>
-            <CardDescription>
-              Connect your Gmail account to send and receive emails through the CRM
-            </CardDescription>
+            <CardDescription>Use a Titan app password to securely connect your assigned mailbox.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-              <div className="space-y-1">
-                <p className="font-medium">Email Address</p>
-                <p className="text-muted-foreground">{emailStatus.email}</p>
+            <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="space-y-1 min-w-0">
+                <p className="font-medium">Assigned mailbox</p>
+                <p className="text-muted-foreground break-all">{mailbox || "Not available"}</p>
+                {emailStatus?.displayName && <p className="text-sm text-muted-foreground">Display name: {emailStatus.displayName}</p>}
               </div>
-              {emailStatus.connected ? (
-                <Badge className="bg-green-100 text-green-800 border-green-300">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Connected
+              {isConnected ? (
+                <Badge className="bg-green-100 text-green-800 border-green-300 shrink-0">
+                  <CheckCircle className="h-3 w-3 mr-1" /> Connected
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Not Connected
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 shrink-0">
+                  <XCircle className="h-3 w-3 mr-1" /> Not connected
                 </Badge>
               )}
             </div>
 
-            {emailStatus.connected && emailStatus.gmailAddress && (
-              <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-green-800">Connected Gmail Account</p>
-                  <p className="text-green-700">{emailStatus.gmailAddress}</p>
-                </div>
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Provider: Titan</Badge>
+              <Badge variant="outline">Connection: {isConnected ? "Connected" : "Not connected"}</Badge>
+            </div>
 
-            {emailStatus.error && (
+            {emailStatus?.lastSyncAt && (
+              <p className="text-sm text-muted-foreground">Last sync: {new Date(emailStatus.lastSyncAt).toLocaleString()}</p>
+            )}
+            {emailStatus?.lastSyncError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Connection Issue</AlertTitle>
-                <AlertDescription>{emailStatus.error}</AlertDescription>
+                <AlertTitle>Last sync issue</AlertTitle>
+                <AlertDescription>{emailStatus.lastSyncError}</AlertDescription>
               </Alert>
             )}
 
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Important</AlertTitle>
+              <AlertTitle>About your Titan app password</AlertTitle>
               <AlertDescription>
-                <ul className="list-disc list-inside space-y-1 mt-2">
-                  <li>You must connect <strong>your own Gmail account</strong> to send emails</li>
-                  <li>Emails you send will appear in your Gmail Sent folder</li>
-                  <li>Make sure to log into the Gmail account that matches your configured email address</li>
-                  <li>You may need to grant access permissions when connecting</li>
-                </ul>
+                Generate an app password in your Titan account, then enter it below. It is encrypted when saved and is never shown again—not even to you or an administrator.
               </AlertDescription>
             </Alert>
 
-            <div className="flex gap-3">
-              {emailStatus.connected ? (
+            {showPasswordForm && (
+              <div className="space-y-2">
+                <Label htmlFor="titan-app-password">Titan app password</Label>
+                <Input
+                  id="titan-app-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={appPassword}
+                  onChange={(event) => setAppPassword(event.target.value)}
+                  placeholder="Enter your Titan app password"
+                  data-testid="input-titan-app-password"
+                />
+                <p className="text-xs text-muted-foreground">This field is only shown while connecting or reconnecting. Your saved password is never displayed.</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              {showPasswordForm ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => refetch()}
-                    disabled={isLoading}
-                    data-testid="button-refresh-status"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh Status
+                  <Button onClick={handleConnect} disabled={connectTitanMutation.isPending} data-testid="button-connect-titan">
+                    {connectTitanMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                    {isReconnecting ? "Reconnect & Test Titan" : "Connect & Test Titan"}
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => disconnectGmailMutation.mutate()}
-                    disabled={disconnectGmailMutation.isPending}
-                    data-testid="button-disconnect-gmail"
-                  >
-                    {disconnectGmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Unlink className="h-4 w-4 mr-2" />
-                    )}
-                    Disconnect Gmail
-                  </Button>
+                  {isConnected && (
+                    <Button variant="outline" onClick={() => { setIsReconnecting(false); setAppPassword(""); }}>
+                      Cancel
+                    </Button>
+                  )}
                 </>
               ) : (
-                <Button
-                  onClick={() => connectGmailMutation.mutate()}
-                  disabled={connectGmailMutation.isPending || isConnecting}
-                  className="w-full"
-                  data-testid="button-connect-gmail"
-                >
-                  {(connectGmailMutation.isPending || isConnecting) ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link2 className="h-4 w-4 mr-2" />
-                  )}
-                  Connect Your Gmail Account
+                <Button variant="outline" onClick={() => setIsReconnecting(true)} data-testid="button-reconnect-titan">
+                  <RefreshCw className="h-4 w-4 mr-2" /> Reconnect & Test
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-status">
+                <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} /> Refresh status
+              </Button>
+              {isConnected && (
+                <Button variant="destructive" onClick={() => disconnectTitanMutation.mutate()} disabled={disconnectTitanMutation.isPending} data-testid="button-disconnect-titan">
+                  {disconnectTitanMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Unlink className="h-4 w-4 mr-2" />}
+                  Disconnect Titan
                 </Button>
               )}
             </div>
-
-            {!emailStatus.connected && (
-              <p className="text-sm text-muted-foreground text-center">
-                Clicking "Connect Your Gmail Account" will redirect you to Google to authorize access.
-                Make sure to log in with your account: <strong>{emailStatus.email}</strong>
-              </p>
-            )}
           </CardContent>
         </Card>
       )}

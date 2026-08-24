@@ -1962,6 +1962,15 @@ export const userEmailConfigs = pgTable("user_email_configs", {
   accessToken: text("access_token"), // OAuth access token
   refreshToken: text("refresh_token"), // OAuth refresh token
   tokenExpiresAt: timestamp("token_expires_at"), // When the access token expires
+  // Titan credentials are encrypted server-side. Never return this field to a browser.
+  titanAppPasswordEncrypted: text("titan_app_password_encrypted"),
+  credentialUpdatedAt: timestamp("credential_updated_at"),
+  // IMAP UID state is mailbox-specific and lets sync resume without re-importing history.
+  imapLastUid: integer("imap_last_uid"),
+  imapUidValidity: integer("imap_uid_validity"),
+  imapSyncStatus: varchar("imap_sync_status", { length: 50 }).default("idle"),
+  imapLastSyncedAt: timestamp("imap_last_synced_at"),
+  imapLastSyncError: text("imap_last_sync_error"),
   isConnected: boolean("is_connected").default(false), // Whether OAuth is connected
   signatureImageUrl: text("signature_image_url"), // Digital signature image URL (recommended: 300x100px, max 400x150px)
   createdAt: timestamp("created_at").defaultNow(),
@@ -2035,6 +2044,14 @@ export const insertUserEmailConfigSchema = createInsertSchema(userEmailConfigs).
   id: true,
   createdAt: true,
   updatedAt: true,
+  // Credentials must be supplied through server-only storage methods.
+  titanAppPasswordEncrypted: true,
+  credentialUpdatedAt: true,
+  imapLastUid: true,
+  imapUidValidity: true,
+  imapSyncStatus: true,
+  imapLastSyncedAt: true,
+  imapLastSyncError: true,
 });
 
 export const insertEmailThreadSchema = createInsertSchema(emailThreads).omit({
@@ -2052,6 +2069,14 @@ export const insertEmailMessageSchema = createInsertSchema(emailMessages).omit({
 // Email types
 export type UserEmailConfig = typeof userEmailConfigs.$inferSelect;
 export type InsertUserEmailConfig = z.infer<typeof insertUserEmailConfigSchema>;
+/**
+ * Safe to serialize to a browser. OAuth tokens and encrypted provider
+ * credentials deliberately remain absent.
+ */
+export type PublicUserEmailConfig = Omit<
+  UserEmailConfig,
+  "accessToken" | "refreshToken" | "titanAppPasswordEncrypted"
+>;
 export type EmailThread = typeof emailThreads.$inferSelect;
 export type InsertEmailThread = z.infer<typeof insertEmailThreadSchema>;
 export type EmailMessage = typeof emailMessages.$inferSelect;

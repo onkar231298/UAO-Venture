@@ -1,0 +1,78 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  canSendSalesOrder,
+  normalizeReplySubject,
+  renderCampaignRecipientSubject,
+  stableInboundMessageId,
+  titanInboundProviderId,
+  uniquelyMatchedCampaignCompanyId,
+  uniquelyMatchingLeadBySender,
+} from "./syncPolicy";
+
+test("the same RFC Message-ID is deduplicated per mailbox, not globally", () => {
+  const rawMessageId = "<shared-message@example.com>";
+
+  assert.equal(titanInboundProviderId(11, rawMessageId), titanInboundProviderId(11, rawMessageId));
+  assert.notEqual(titanInboundProviderId(11, rawMessageId), titanInboundProviderId(12, rawMessageId));
+});
+
+test("messages without an RFC Message-ID keep a stable identity after UIDVALIDITY changes", () => {
+  const rawMessage = Buffer.from("From: customer@example.com\r\nSubject: Hello\r\n\r\nSame message");
+  const firstPass = stableInboundMessageId(rawMessage);
+  const replayAfterUidValidityChange = stableInboundMessageId(rawMessage);
+
+  assert.equal(firstPass, replayAfterUidValidityChange);
+  assert.equal(titanInboundProviderId(11, firstPass), titanInboundProviderId(11, replayAfterUidValidityChange));
+});
+
+test("campaign subject matching uses the recipient's rendered subject", () => {
+  const rendered = renderCampaignRecipientSubject(
+    "Hello {{ contact_name }} from {{company_name}} ({{ email }})",
+    { contactName: "Asha", companyName: "Acme", email: "asha@example.com" },
+  );
+
+  assert.equal(rendered, "Hello Asha from Acme (asha@example.com)");
+  assert.equal(normalizeReplySubject(`Re: ${rendered}`), normalizeReplySubject(rendered));
+});
+
+test("ambiguous campaign and lead matches stay unassigned", () => {
+  assert.equal(
+    uniquelyMatchedCampaignCompanyId([{ companyId: 1 }, { companyId: 2 }]),
+    undefined,
+  );
+  assert.equal(
+    uniquelyMatchingLeadBySender(
+      [
+        { id: 1, contactPerson: { email: "buyer@example.com" } },
+        { id: 2, contactPerson: { email: "buyer@example.com" } },
+      ],
+      "buyer@example.com",
+    ),
+    undefined,
+  );
+});
+
+test("a unique sender contact can be linked while another representative is denied sales-order access", () => {
+  const matchedLead = uniquelyMatchingLeadBySender(
+    [
+      { id: 1, contactPerson: { email: "buyer@example.com" } },
+      { id: 2, contactPerson: { email: "other@example.com" } },
+    ],
+    "BUYER@example.com",
+  );
+  assert.equal(matchedLead?.id, 1);
+
+  assert.equal(
+    canSendSalesOrder("rep-b", "sales_executive", {
+      assignedToUserId: "rep-a",
+      lead: { assignedSalesRep: "rep-a" },
+      company: { assignedTo: "rep-a" },
+    }),
+    false,
+  );
+  assert.equal(
+    canSendSalesOrder("manager", "sales_manager", { assignedToUserId: "rep-a" }),
+    true,
+  );
+});

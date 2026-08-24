@@ -31,7 +31,7 @@ Preferred communication style: Simple, everyday language.
 - **Product Management**: Upload, categorization, SEO metadata, specifications, visibility, MOQ, packaging, bulk upload.
 - **User & Role Management**: Replit Auth integration, comprehensive RBAC from Super Admin to departmental roles.
 - **Sales & CRM**: Comprehensive B2B Lead Management System with a 15-stage sales pipeline, company-centric design, drag-and-drop Kanban board, activity timeline, lead detail dialog, and role-based access control. Includes robust lead generation from high-volume bids and quotation conversions. Features include:
-    - **Email Integration**: Full email history, compose functionality, email thread tracking, activity logging, RFC Email Threading, Per-User Gmail OAuth, unread email badges, attachment handling, digital signature upload, and a professional rich text editor.
+    - **Email Integration**: Full email history, compose functionality, email thread tracking, activity logging, RFC email threading, per-user Titan SMTP/IMAP with encrypted app passwords, unread email badges, attachment handling, digital signature upload, and a professional rich text editor.
     - **Quotation Management**: Status badges, visibility of customer acceptance/rejection, PDF generation with "amount in words" functionality.
     - **Customer Notes**: Field for capturing additional customer notes.
     - **Detailed Customer Address**: Collection of complete address details during registration for accurate quotation.
@@ -49,7 +49,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Bulk Email Campaigns (SendGrid Integration)
 **Status**: Implemented
-**Approach**: Hybrid model using SendGrid for sending + Gmail OAuth for receiving replies
+**Approach**: Hybrid model using SendGrid for bulk campaign sending + each staff member's assigned Titan mailbox for receiving replies
 **Features**:
 - Bulk email sending from My Companies page via "Bulk Email" button
 - Company selection with checkboxes and "Select All" functionality
@@ -58,7 +58,7 @@ Preferred communication style: Simple, everyday language.
 - Email templates for reusable content
 - Scheduled sending with date/time picker
 - Campaign delivery reports dashboard (sent, delivered, opened, bounced)
-- Replies sync via existing Gmail OAuth integration to CRM activity timeline
+- Replies sync from the connected Titan mailbox to the CRM activity timeline
 - Zod validation for all campaign/template endpoints
 - Optional webhook signature verification (configure SENDGRID_WEBHOOK_VERIFICATION_KEY)
 
@@ -144,7 +144,7 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Strategy
 - **Development**: Vite Dev Server for frontend, TSX for backend with file watching.
 - **Production**: Vite for frontend bundle, ESBuild for backend, static asset serving.
-- **Database Management**: Drizzle Kit for migrations, environment variables for configuration, SSL for security.
+- **Database Management**: `shared/schema.ts` is the schema source of truth. Development schema changes are applied with Drizzle, while production changes are applied by Replit's Publish schema diff. Do not add startup DDL or custom production migration scripts.
 - **Environment Configuration**: Robust handling of environment variables with validation.
 - **SPA Routing**: Production server configured with explicit SPA fallback middleware to handle client-side routing.
 

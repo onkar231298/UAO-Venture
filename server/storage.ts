@@ -142,6 +142,7 @@ import {
   emailMessages,
   notifications,
   type UserEmailConfig,
+  type PublicUserEmailConfig,
   type InsertUserEmailConfig,
   type EmailThread,
   type InsertEmailThread,
@@ -212,6 +213,7 @@ import xlsx from "xlsx";
 import { stringify } from "csv-stringify/sync";
 import { Readable } from "stream";
 import bcrypt from "bcryptjs";
+import { encryptEmailCredential } from "./email/credentials";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -686,8 +688,19 @@ export interface IStorage {
   getUserEmailConfig(userId: string): Promise<UserEmailConfig | undefined>;
   getEmailConfigById(id: number): Promise<UserEmailConfig | undefined>;
   getUserEmailConfigs(): Promise<UserEmailConfig[]>;
+  getPublicUserEmailConfig(userId: string): Promise<PublicUserEmailConfig | undefined>;
+  getPublicUserEmailConfigs(): Promise<PublicUserEmailConfig[]>;
   createUserEmailConfig(config: InsertUserEmailConfig): Promise<UserEmailConfig>;
   updateUserEmailConfig(id: number, config: Partial<InsertUserEmailConfig & { accessToken?: string | null; refreshToken?: string | null; tokenExpiresAt?: Date | null; isConnected?: boolean }>): Promise<UserEmailConfig>;
+  updateTitanCredentials(id: number, appPassword: string): Promise<UserEmailConfig>;
+  clearTitanCredentials(id: number): Promise<UserEmailConfig>;
+  updateImapSyncState(id: number, state: {
+    lastUid?: number | null;
+    uidValidity?: number | null;
+    status: "idle" | "syncing" | "error";
+    lastSyncedAt?: Date | null;
+    lastError?: string | null;
+  }): Promise<UserEmailConfig>;
   deleteUserEmailConfig(id: number): Promise<void>;
 
   // Email thread methods  
@@ -867,6 +880,18 @@ export interface IStorage {
   getUploadedDocuments(): Promise<UploadedDocument[]>;
   getUploadedDocument(id: number): Promise<UploadedDocument | undefined>;
   deleteUploadedDocument(id: number): Promise<void>;
+}
+
+/**
+ * The only projection intended for API responses. Keep all credentials,
+ * including encrypted blobs, out of this shape.
+ */
+export function toPublicUserEmailConfig(config: UserEmailConfig): PublicUserEmailConfig {
+  const { accessToken, refreshToken, titanAppPasswordEncrypted, ...publicConfig } = config;
+  return {
+    ...publicConfig,
+    isConnected: Boolean(config.isConnected && titanAppPasswordEncrypted && config.isActive !== false),
+  };
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7314,6 +7339,19 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(userEmailConfigs.createdAt));
   }
 
+  async getPublicUserEmailConfig(userId: string): Promise<PublicUserEmailConfig | undefined> {
+    const config = await this.getUserEmailConfig(userId);
+    return config ? toPublicUserEmailConfig(config) : undefined;
+  }
+
+  async getPublicUserEmailConfigs(): Promise<PublicUserEmailConfig[]> {
+    const configs = await db
+      .select()
+      .from(userEmailConfigs)
+      .orderBy(desc(userEmailConfigs.createdAt));
+    return configs.map(toPublicUserEmailConfig);
+  }
+
   async createUserEmailConfig(config: InsertUserEmailConfig): Promise<UserEmailConfig> {
     const [created] = await db.insert(userEmailConfigs).values(config).returning();
     return created;
@@ -7323,6 +7361,72 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(userEmailConfigs)
       .set({ ...config, updatedAt: new Date() })
+      .where(eq(userEmailConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateTitanCredentials(id: number, appPassword: string): Promise<UserEmailConfig> {
+    if (!appPassword) {
+      throw new Error("Titan app password is required");
+    }
+    const encryptedAppPassword = encryptEmailCredential(appPassword);
+
+    const [updated] = await db
+      .update(userEmailConfigs)
+      .set({
+        serviceType: "titan",
+        titanAppPasswordEncrypted: encryptedAppPassword,
+        credentialUpdatedAt: new Date(),
+        isConnected: true,
+        imapSyncStatus: "idle",
+        imapLastSyncError: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(userEmailConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async clearTitanCredentials(id: number): Promise<UserEmailConfig> {
+    const [updated] = await db
+      .update(userEmailConfigs)
+      .set({
+        titanAppPasswordEncrypted: null,
+        credentialUpdatedAt: null,
+        isConnected: false,
+        imapLastUid: null,
+        imapUidValidity: null,
+        imapSyncStatus: "idle",
+        imapLastSyncedAt: null,
+        imapLastSyncError: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(userEmailConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateImapSyncState(
+    id: number,
+    state: {
+      lastUid?: number | null;
+      uidValidity?: number | null;
+      status: "idle" | "syncing" | "error";
+      lastSyncedAt?: Date | null;
+      lastError?: string | null;
+    },
+  ): Promise<UserEmailConfig> {
+    const [updated] = await db
+      .update(userEmailConfigs)
+      .set({
+        ...(state.lastUid !== undefined ? { imapLastUid: state.lastUid } : {}),
+        ...(state.uidValidity !== undefined ? { imapUidValidity: state.uidValidity } : {}),
+        imapSyncStatus: state.status,
+        ...(state.lastSyncedAt !== undefined ? { imapLastSyncedAt: state.lastSyncedAt } : {}),
+        ...(state.lastError !== undefined ? { imapLastSyncError: state.lastError } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(userEmailConfigs.id, id))
       .returning();
     return updated;

@@ -372,7 +372,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       resetEmailForm();
       toast({
         title: "Email Sent",
-        description: "Your email has been sent successfully via Gmail.",
+        description: "Your email has been sent successfully via Titan.",
       });
     },
     onError: (error: any) => {
@@ -493,7 +493,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     initializeComposeEmail(thread?.id, email.subject, replyTo, replyCc);
   };
 
-  // Sync emails from Gmail mutation
+  // Sync replies from the connected Titan mailbox
   const syncEmailsMutation = useMutation({
     mutationFn: async () => {
       return apiRequest(`/api/crm/leads/${lead?.id}/emails/sync`, {
@@ -508,7 +508,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       if (newMessages > 0) {
         toast({
           title: "New Emails Found",
-          description: `${newMessages} new email${newMessages > 1 ? 's' : ''} synced from Gmail`,
+          description: `${newMessages} new email${newMessages > 1 ? 's' : ''} synced from Titan`,
         });
       } else {
         toast({
@@ -520,7 +520,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onError: (error: any) => {
       toast({
         title: "Sync Failed",
-        description: error.message || "Failed to sync emails from Gmail",
+        description: error.message || "Failed to sync emails from Titan",
         variant: "destructive",
       });
     },
@@ -4411,7 +4411,7 @@ Packaging: Standard export packaging`,
                           Start New Email Thread
                         </span>
                       </SelectItem>
-                      {emailThreads?.filter((thread: any) => thread.gmailThreadId || thread.threadId).map((thread: any) => (
+                      {emailThreads?.filter((thread: any) => thread.threadId).map((thread: any) => (
                         <SelectItem key={thread.id} value={thread.id.toString()}>
                           {thread.subject || 'No Subject'} - {thread.customerEmail}
                         </SelectItem>
