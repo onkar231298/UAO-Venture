@@ -116,6 +116,7 @@ import {
   findWebsiteProductMatches,
   generateSalesDraft,
   normalizeWebsiteUrl,
+  normalizeRequestedProductIds,
   productNameMentioned,
   type DraftProduct,
   type WebsiteProductMatch,
@@ -7414,7 +7415,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!Number.isInteger(companyId) || companyId <= 0) return res.status(400).json({ message: "Invalid company ID" });
       if (!["cold", "reply", "follow_up"].includes(body.mode)) return res.status(400).json({ message: "mode must be cold, reply, or follow_up" });
       if (typeof body.instruction !== "undefined" && (typeof body.instruction !== "string" || body.instruction.length > 2_000)) return res.status(400).json({ message: "instruction must be plain text up to 2000 characters" });
-      if (typeof body.productIds !== "undefined" && (!Array.isArray(body.productIds) || body.productIds.length > 3 || body.productIds.some((id: unknown) => !Number.isInteger(id)))) return res.status(400).json({ message: "productIds must contain at most 3 numeric IDs" });
+      const requestedProductIds = normalizeRequestedProductIds(body.productIds);
+      if (!requestedProductIds.valid) return res.status(400).json({ message: "productIds must contain numeric IDs" });
       const draftDeadlineAt = Date.now() + AI_DRAFT_TOTAL_TIMEOUT_MS;
       const now = Date.now();
       const attempts = (aiSalesDraftRateLimits.get(userId) || []).filter(time => time > now - 60_000);
@@ -7476,7 +7478,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const rankedCandidates = websiteProductMatches
         .map(match => (allProducts as DraftProduct[]).find(product => product.id === match.productId)!)
         .filter(Boolean);
-      const suppliedIds = body.productIds as number[] | undefined;
+      const suppliedIds = requestedProductIds.ids;
       const eligibleProductsById = new Map((allProducts as DraftProduct[]).map(product => [product.id, product]));
       if (suppliedIds?.some(id => !eligibleProductsById.has(id))) return res.status(400).json({ message: "Each selected product must be active and available for sale." });
       const selectedCandidates = suppliedIds
@@ -7587,18 +7589,20 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact." });
         }
         recipients = [normalizedRecipient];
-        if (typeof productIds !== "undefined" && (!Array.isArray(productIds) || productIds.length > 3 || productIds.some((id: unknown) => !Number.isInteger(id)))) {
-          return res.status(400).json({ message: "AI productIds must contain at most 3 numeric IDs." });
+        const requestedProductIds = normalizeRequestedProductIds(productIds);
+        if (!requestedProductIds.valid) {
+          return res.status(400).json({ message: "AI productIds must contain numeric IDs." });
         }
-        if (productIds?.length) {
+        const includedProductIds = requestedProductIds.ids || [];
+        if (includedProductIds.length) {
           const includedProducts = await db.select({ id: products.id, name: products.name })
             .from(products)
             .where(and(
-              inArray(products.id, Array.from(new Set<number>(productIds))),
+              inArray(products.id, includedProductIds),
               eq(products.isActive, true),
               or(eq(products.stopSell, false), isNull(products.stopSell)),
             ));
-          if (includedProducts.length !== new Set(productIds).size) {
+          if (includedProducts.length !== includedProductIds.length) {
             return res.status(400).json({ message: "One or more AI email products are no longer active or available for sale." });
           }
           const missingNames = includedProducts.filter(product => !productNameMentioned(bodyText || "", product.name)).map(product => product.name);

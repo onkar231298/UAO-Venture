@@ -10,11 +10,22 @@ import {
   extractWebsiteText,
   isUnsafeIp,
   normalizeWebsiteUrl,
+  normalizeRequestedProductIds,
   rankProducts,
   relevantWebsiteLinks,
   sanitizeDraftResponse,
   productNameMentioned,
 } from "./aiSalesDraft";
+
+test("legacy product selections are deduplicated and capped at three", () => {
+  assert.deepEqual(normalizeRequestedProductIds([7, 7, 4, 2, 9, 11]), {
+    valid: true,
+    ids: [7, 4, 2],
+  });
+  assert.deepEqual(normalizeRequestedProductIds(undefined), { valid: true });
+  assert.deepEqual(normalizeRequestedProductIds([1, "2"]), { valid: false });
+  assert.deepEqual(normalizeRequestedProductIds("1,2,3"), { valid: false });
+});
 
 test("website URL normalization rejects unsafe schemes and credentials", () => {
   assert.equal(normalizeWebsiteUrl("example.com")?.toString(), "https://example.com/");

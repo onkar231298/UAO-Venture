@@ -455,6 +455,12 @@ export function sanitizeDraftResponse(value: unknown, candidates: DraftProduct[]
   return { subject: plain(raw.subject, MAX_SUBJECT), bodyText: body, recommendedProductIds: Array.from(new Set(recommendedProductIds)).slice(0, 3) };
 }
 
+export function normalizeRequestedProductIds(value: unknown, max = 3): { valid: boolean; ids?: number[] } {
+  if (typeof value === "undefined") return { valid: true };
+  if (!Array.isArray(value) || value.some(id => !Number.isInteger(id))) return { valid: false };
+  return { valid: true, ids: Array.from(new Set(value as number[])).slice(0, max) };
+}
+
 export function productNameMentioned(text: string, productName: string): boolean {
   return normalizedPhraseIncluded(normalizedSearchText(text), normalizedSearchText(productName));
 }

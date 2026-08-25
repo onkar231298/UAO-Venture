@@ -106,7 +106,7 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
       const response = await apiRequest(`/api/crm/companies/${companyId}/emails/ai-draft`, { method: "POST", body: JSON.stringify({
         mode, contactId: selectedContact?.id, recipientEmail: recipientEmail || undefined,
         threadId: threadId ? Number(threadId) : undefined,
-        productIds: manualProductIds.length ? manualProductIds : undefined,
+        productIds: manualProductIds.length ? manualProductIds.slice(0, 3) : undefined,
         instruction: instruction || undefined,
       })});
       return response.json() as Promise<DraftResponse>;
@@ -117,7 +117,7 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
     mutationFn: async () => {
       const sent = await apiRequest(`/api/crm/companies/${companyId}/emails/ai-send`, { method: "POST", body: JSON.stringify({
         to: recipientEmail, subject, bodyHtml: escapeHtml(bodyText), bodyText,
-        productIds: draft?.recommendedProducts?.map(product => product.id) || [],
+        productIds: draft?.selectedProductIds?.slice(0, 3) || [],
         threadId: threadId ? Number(threadId) : undefined,
         isReply: mode !== "cold",
       })});
