@@ -6,12 +6,14 @@ import {
   equivalentHostname,
   findWebsiteProductMatches,
   generateSalesDraft,
+  ensureProductMentions,
   extractWebsiteText,
   isUnsafeIp,
   normalizeWebsiteUrl,
   rankProducts,
   relevantWebsiteLinks,
   sanitizeDraftResponse,
+  productNameMentioned,
 } from "./aiSalesDraft";
 
 test("website URL normalization rejects unsafe schemes and credentials", () => {
@@ -64,9 +66,17 @@ test("website product matching requires product-specific evidence", () => {
     { id: 2, name: "Ashwagandha Root Extract", description: "botanical ingredient", isActive: true, stopSell: false },
     { id: 3, name: "Generic Organic Powder", isActive: true, stopSell: false },
     { id: 5, name: "Coconut Water Powder", isActive: true, stopSell: false },
-  ], "Our product range includes turmeric and black pepper for food manufacturers.", 12);
+  ], "Our product range includes turmeric powder and black pepper for food manufacturers.", 12);
   assert.deepEqual(matches.map(match => match.productId), [1]);
   assert.match(matches[0].evidence, /turmeric/);
+});
+
+test("website matching does not guess an ambiguous catalog variant from a bare family name", () => {
+  const matches = findWebsiteProductMatches([
+    { id: 1, name: "Turmeric Powder", isActive: true, stopSell: false },
+    { id: 2, name: "Turmeric Fingers", isActive: true, stopSell: false },
+  ], "We source turmeric for food manufacturing.");
+  assert.deepEqual(matches, []);
 });
 
 test("prompt treats reference data as untrusted and excludes prohibited commercial fields", () => {
@@ -108,6 +118,20 @@ test("model output is plain text, bounded, and product IDs are candidate-filtere
   assert.equal(draft.subject, "Hello");
   assert.equal(draft.bodyText, "Hi\nthere");
   assert.deepEqual(draft.recommendedProductIds, [1, 2, 3]);
+});
+
+test("missing displayed products are inserted with exact catalog names", () => {
+  const body = ensureProductMentions(
+    "Dear Buyer,\n\nWe would value one opportunity to quote.\n\nPlease share your current requirement.\n\nKind regards,",
+    [
+      { id: 1, name: "Turmeric Powder", isActive: true },
+      { id: 2, name: "Cumin Seeds", isActive: true },
+    ],
+    "website",
+  );
+  assert.equal(productNameMentioned(body, "Turmeric Powder"), true);
+  assert.equal(productNameMentioned(body, "Cumin Seeds"), true);
+  assert.match(body, /range shown on your website/i);
 });
 
 test("cold outreach permits a quotation request but still rejects unsupported claims", () => {

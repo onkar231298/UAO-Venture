@@ -30,3 +30,9 @@ Bright Fame Organic is always the sender and the CRM company is always the prosp
 **Why:** Without an explicit attribution boundary, a live provider drafted from the prospect's perspective and copied the prospect's quality, logistics, and export claims into the sender voice.
 
 **How to apply:** Label sender and prospect separately in every prompt, state the direction explicitly, and keep prospect website evidence distinct from Bright Fame Organic catalog facts.
+
+Products shown as included in an AI sales email must use exact active catalog names that also appear in the final body. Ambiguous website family terms must not be resolved to an arbitrary catalog variant.
+
+**Why:** Model-returned product IDs can diverge from the prose, and a broad website term such as “turmeric” cannot prove whether the prospect deals in powder, fingers, or another catalog variant.
+
+**How to apply:** Keep automatic website matches separate from manual overrides, insert or validate exact included names before review, and revalidate the displayed product IDs against the final edited body at AI send time.

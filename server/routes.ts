@@ -110,10 +110,12 @@ import {
 import {
   buildSalesDraftPrompt,
   AI_DRAFT_TOTAL_TIMEOUT_MS,
+  ensureProductMentions,
   fetchWebsiteText,
   findWebsiteProductMatches,
   generateSalesDraft,
   normalizeWebsiteUrl,
+  productNameMentioned,
   type DraftProduct,
   type WebsiteProductMatch,
 } from "./email/aiSalesDraft";
@@ -7400,7 +7402,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!Number.isInteger(companyId) || companyId <= 0) return res.status(400).json({ message: "Invalid company ID" });
       if (!["cold", "reply", "follow_up"].includes(body.mode)) return res.status(400).json({ message: "mode must be cold, reply, or follow_up" });
       if (typeof body.instruction !== "undefined" && (typeof body.instruction !== "string" || body.instruction.length > 2_000)) return res.status(400).json({ message: "instruction must be plain text up to 2000 characters" });
-      if (typeof body.productIds !== "undefined" && (!Array.isArray(body.productIds) || body.productIds.length > 12 || body.productIds.some((id: unknown) => !Number.isInteger(id)))) return res.status(400).json({ message: "productIds must contain at most 12 numeric IDs" });
+      if (typeof body.productIds !== "undefined" && (!Array.isArray(body.productIds) || body.productIds.length > 3 || body.productIds.some((id: unknown) => !Number.isInteger(id)))) return res.status(400).json({ message: "productIds must contain at most 3 numeric IDs" });
       const draftDeadlineAt = Date.now() + AI_DRAFT_TOTAL_TIMEOUT_MS;
       const now = Date.now();
       const attempts = (aiSalesDraftRateLimits.get(userId) || []).filter(time => time > now - 60_000);
@@ -7496,7 +7498,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         threadText,
       }), selectedCandidates, { deadlineAt: draftDeadlineAt });
       if (!generated.subject || !generated.bodyText) return res.status(502).json({ message: "AI returned an incomplete draft. Please try again." });
-      const recommendedProducts = generated.recommendedProductIds.map(id => selectedCandidates.find(product => product.id === id)).filter(Boolean).map(product => ({ id: product!.id, name: product!.name }));
+      const generatedProducts = generated.recommendedProductIds
+        .map(id => selectedCandidates.find(product => product.id === id))
+        .filter((product): product is DraftProduct => Boolean(product));
+      const productsToMention = (suppliedIds
+        ? selectedCandidates
+        : body.mode === "cold"
+          ? selectedCandidates.slice(0, 3)
+          : generatedProducts
+      ).slice(0, 3);
+      const finalBodyText = ensureProductMentions(generated.bodyText, productsToMention, suppliedIds ? "manual" : "website");
+      const recommendedProducts = productsToMention.map(product => ({ id: product.id, name: product.name }));
       const sourceSummary = ["Company profile", `Products: ${selectedCandidates.length} eligible candidate${selectedCandidates.length === 1 ? "" : "s"}`];
       if (thread) sourceSummary.push("Recent company email thread");
       if (website.status === "fetched") {
@@ -7509,9 +7521,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
       res.json({
         subject: generated.subject,
-        bodyText: generated.bodyText,
+        bodyText: finalBodyText,
         recommendedProducts,
-        selectedProductIds: suppliedIds ? selectedCandidates.map(product => product.id) : generated.recommendedProductIds,
+        selectedProductIds: productsToMention.map(product => product.id),
         sourceSummary,
         website,
         websiteProductMatches: websiteProductMatches.map(({ productId, productName, evidence }) => ({ productId, productName, evidence })),
@@ -7530,7 +7542,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     try {
       const companyId = Number(req.params.id);
       const userId = req.user.claims.sub;
-      const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestedThreadId, isReply } = req.body || {};
+      const { to, cc, bcc, subject, bodyHtml, bodyText, productIds, attachments, threadId: requestedThreadId, isReply } = req.body || {};
       const aiRestricted = req.path.endsWith("/ai-send");
       if ((!Array.isArray(to) ? !to : !to.length) || !subject || !bodyHtml) {
         return res.status(400).json({ message: "Missing required fields: to, subject, bodyHtml" });
@@ -7553,6 +7565,25 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           contacts.some(contact => contact.isActive !== false && contact.email?.trim().toLowerCase() === normalizedRecipient);
         if (!allowedRecipient) {
           return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact." });
+        }
+        if (typeof productIds !== "undefined" && (!Array.isArray(productIds) || productIds.length > 3 || productIds.some((id: unknown) => !Number.isInteger(id)))) {
+          return res.status(400).json({ message: "AI productIds must contain at most 3 numeric IDs." });
+        }
+        if (productIds?.length) {
+          const includedProducts = await db.select({ id: products.id, name: products.name })
+            .from(products)
+            .where(and(
+              inArray(products.id, Array.from(new Set<number>(productIds))),
+              eq(products.isActive, true),
+              or(eq(products.stopSell, false), isNull(products.stopSell)),
+            ));
+          if (includedProducts.length !== new Set(productIds).size) {
+            return res.status(400).json({ message: "One or more AI email products are no longer active or available for sale." });
+          }
+          const missingNames = includedProducts.filter(product => !productNameMentioned(bodyText || "", product.name)).map(product => product.name);
+          if (missingNames.length) {
+            return res.status(400).json({ message: `The email text no longer mentions: ${missingNames.join(", ")}. Regenerate the draft or add the exact product name before sending.` });
+          }
         }
       }
       if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) {
