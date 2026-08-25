@@ -4238,7 +4238,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         notes: `Sent to customer at ${recipients.join(", ")}`,
       });
 
-      res.json({ success: true, provider: "titan", message: "Sales order sent successfully", messageId: result.messageId });
+      res.json({
+        success: true,
+        provider: "titan",
+        message: "Sales order sent successfully",
+        messageId: result.messageId,
+        sentFolderSaved: result.sentFolderSaved,
+        warning: result.warning,
+      });
     } catch (error) { console.error("Titan sales order send error:", error); res.status(500).json({ message: "Failed to send sales order email" }); }
   });
 
@@ -7409,7 +7416,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const message = await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: Array.isArray(to) ? to : [to], ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: titanAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
       await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...(Array.isArray(to) ? to : [to])])) });
       await storage.createCompanyActivity({ companyId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${(Array.isArray(to) ? to : [to]).join(", ")}`, createdBy: userId });
-      res.status(201).json({ success: true, provider: "titan", message: "Email sent successfully", emailMessage: message, threadId: thread.id, messageId: result.messageId });
+      res.status(201).json({
+        success: true,
+        provider: "titan",
+        message: "Email sent successfully",
+        emailMessage: message,
+        threadId: thread.id,
+        messageId: result.messageId,
+        sentFolderSaved: result.sentFolderSaved,
+        warning: result.warning,
+      });
     } catch (error) {
       console.error("Titan company email send error:", error);
       res.status(500).json({ message: "Failed to send email" });
@@ -10725,7 +10741,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const message = await storage.createEmailMessage({ messageId: sent.messageId, messageIdHeader: sent.messageId, referencesHeader: references, threadId: thread.id, leadId, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: recipients, ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: providerAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
       await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
       await storage.createLeadActivity({ leadId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${recipients.join(", ")}`, createdBy: userId });
-      res.status(201).json({ success: true, provider: "titan", message: "Email sent successfully", emailMessage: message, threadId: thread.id, messageId: sent.messageId });
+      res.status(201).json({
+        success: true,
+        provider: "titan",
+        message: "Email sent successfully",
+        emailMessage: message,
+        threadId: thread.id,
+        messageId: sent.messageId,
+        sentFolderSaved: sent.sentFolderSaved,
+        warning: sent.warning,
+      });
     } catch (error) { console.error("Titan lead email send error:", error); res.status(500).json({ message: "Failed to send email" }); }
   });
 
@@ -11213,7 +11238,15 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
       await storage.updateQuotation(quotationId, { status: "sent", sentAt: new Date(), sentBy: userId });
       await storage.createLeadActivity({ leadId, activityType: "email", subject: `Quotation sent: ${quotation.quotationId}`, description: `Quotation sent to ${recipients.join(", ")}`, createdBy: userId });
-      res.status(201).json({ success: true, provider: "titan", message: "Quotation sent successfully", emailMessage: message, messageId: result.messageId });
+      res.status(201).json({
+        success: true,
+        provider: "titan",
+        message: "Quotation sent successfully",
+        emailMessage: message,
+        messageId: result.messageId,
+        sentFolderSaved: result.sentFolderSaved,
+        warning: result.warning,
+      });
     } catch (error) { console.error("Titan quotation send error:", error); res.status(500).json({ message: "Failed to send quotation" }); }
   });
 

@@ -91,7 +91,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
 
   const sendEmailMutation = useMutation({
     mutationFn: async (data: { to: string; cc?: string; subject: string; bodyHtml: string; threadId?: number; isReply?: boolean; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number }> }) => {
-      return apiRequest(`/api/crm/companies/${companyId}/emails/send`, {
+      const response = await apiRequest(`/api/crm/companies/${companyId}/emails/send`, {
         method: 'POST',
         body: JSON.stringify({
           to: data.to,
@@ -104,13 +104,14 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
           attachments: data.attachments,
         }),
       });
+      return response.json() as Promise<{ warning?: string }>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'emails'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies', companyId, 'activities'] });
       toast({
-        title: "Email Sent",
-        description: "Your email has been sent successfully",
+        title: result.warning ? "Email Sent — Titan Sync Warning" : "Email Sent",
+        description: result.warning || "Your email has been sent successfully",
       });
       setShowCompose(false);
       setEmailTo(companyEmail || '');

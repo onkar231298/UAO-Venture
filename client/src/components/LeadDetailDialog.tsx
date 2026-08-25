@@ -361,18 +361,19 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       isReply?: boolean;
       attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number }>;
     }) => {
-      return apiRequest(`/api/crm/leads/${lead?.id}/emails/send`, {
+      const response = await apiRequest(`/api/crm/leads/${lead?.id}/emails/send`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      return response.json() as Promise<{ warning?: string }>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
       resetEmailForm();
       toast({
-        title: "Email Sent",
-        description: "Your email has been sent successfully via Titan.",
+        title: result.warning ? "Email Sent — Titan Sync Warning" : "Email Sent",
+        description: result.warning || "Your email has been sent successfully via Titan.",
       });
     },
     onError: (error: any) => {
@@ -733,7 +734,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
   // Send Sales Order to customer mutation
   const sendSalesOrderMutation = useMutation({
     mutationFn: async (data: { salesOrderId: number; emailThreadId?: number; subject: string; body: string; to?: string[]; cc?: string[] }) => {
-      return apiRequest(`/api/sales-orders/${data.salesOrderId}/send`, {
+      const response = await apiRequest(`/api/sales-orders/${data.salesOrderId}/send`, {
         method: 'POST',
         body: JSON.stringify({
           emailThreadId: data.emailThreadId,
@@ -743,8 +744,9 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
           cc: data.cc,
         }),
       });
+      return response.json() as Promise<{ warning?: string }>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/email/threads', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/sales-orders'] });
@@ -754,8 +756,8 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
       setSOEmailBody("");
       setSelectedThreadForSO("");
       toast({
-        title: "Sales Order Sent",
-        description: "The sales order has been sent to the customer.",
+        title: result.warning ? "Sales Order Sent — Titan Sync Warning" : "Sales Order Sent",
+        description: result.warning || "The sales order has been sent to the customer.",
       });
     },
     onError: (error: any) => {
@@ -1102,7 +1104,7 @@ Packaging: Standard export packaging`,
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'emails'] });
@@ -1115,8 +1117,8 @@ Packaging: Standard export packaging`,
       setQuoteEmailCc([]);
       setSelectedThreadForQuote("");
       toast({
-        title: "Quotation Sent",
-        description: "The quotation has been sent to the customer via email.",
+        title: result.warning ? "Quotation Sent — Titan Sync Warning" : "Quotation Sent",
+        description: result.warning || "The quotation has been sent to the customer via email.",
       });
     },
     onError: (error: any) => {

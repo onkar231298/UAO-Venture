@@ -13,3 +13,4 @@
 - [Internal chat integrity](internal-chat-integrity.md) — group lifecycle writes share a conversation lock; frequently polled chat summaries must remain bounded and set-based.
 - [Schema publishing workflow](schema-deployment-workflow.md) — shared/schema.ts drives schema; apply dev changes directly and production changes through Publish schema diff, never runtime migrations.
 - [Development database environment](database-env.md) — the running app uses DATABASE_URL; verify the target before applying development schema changes.
+- [Titan Sent mirroring](titan-sent-mirroring.md) — SMTP submissions do not populate Titan Sent; append the delivered RFC message via IMAP and never retry SMTP after append failure.
