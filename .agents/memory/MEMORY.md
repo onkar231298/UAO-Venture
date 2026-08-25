@@ -12,3 +12,4 @@
 - [Typecheck suppression](typecheck-suppression.md) — syntax-broken files hide ALL semantic tsc errors; baseline debt is huge, judge new work by changed lines; OOM abort ≠ pass.
 - [Internal chat integrity](internal-chat-integrity.md) — group lifecycle writes share a conversation lock; frequently polled chat summaries must remain bounded and set-based.
 - [Schema publishing workflow](schema-deployment-workflow.md) — shared/schema.ts drives schema; apply dev changes directly and production changes through Publish schema diff, never runtime migrations.
+- [Development database environment](database-env.md) — the running app uses DATABASE_URL; verify the target before applying development schema changes.
