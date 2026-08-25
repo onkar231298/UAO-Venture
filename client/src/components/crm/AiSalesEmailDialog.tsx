@@ -15,7 +15,7 @@ export interface AiEmailThread { id: number; subject: string | null; participant
 interface AiContact { id: number; name: string; email: string; designation?: string | null; role?: string | null; isPrimary?: boolean; }
 interface AiProduct { id: number; name: string; }
 interface ContextResponse { company: { id: number; name: string; website?: string | null; primaryEmail?: string | null }; contacts: AiContact[]; products: AiProduct[]; }
-interface DraftResponse { subject: string; bodyText: string; recommendedProducts: AiProduct[]; selectedProductIds: number[]; sourceSummary?: string[]; website?: { status?: string; url?: string; message?: string }; }
+interface DraftResponse { subject: string; bodyText: string; recommendedProducts: AiProduct[]; selectedProductIds: number[]; sourceSummary?: string[]; website?: { status?: string; url?: string; message?: string; pages?: number }; websiteProductMatches?: Array<{ productId: number; productName: string; evidence: string }>; }
 export interface AiSalesEmailDialogProps {
   companyId: number;
   companyName?: string;
@@ -178,6 +178,7 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
           <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">Draft ready for review</Badge>{draft.recommendedProducts?.map(p => <Badge key={p.id} variant="outline">{p.name}</Badge>)}</div>
            {draft.sourceSummary?.length ? <div className="flex flex-wrap gap-1.5">{draft.sourceSummary.map(source => <Badge key={source} variant="outline" className="font-normal">{source}</Badge>)}</div> : null}
           {draft.website?.message && <p className="text-xs text-amber-800">{draft.website.message}</p>}
+           {draft.websiteProductMatches?.length ? <p className="text-xs text-emerald-800">Website product evidence found: {draft.websiteProductMatches.map(match => match.productName).join(", ")}</p> : draft.website?.status === "fetched" ? <p className="text-xs text-amber-800">No specific spice or herb product was found on the scanned website pages; review the draft before adding product claims.</p> : null}
           <label className="text-sm font-medium">Subject<Input value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 bg-background" /></label>
           <label className="text-sm font-medium">Message<Textarea value={bodyText} onChange={e => setBodyText(e.target.value)} className="mt-1 min-h-[220px] bg-background font-mono text-sm leading-6" /></label>
            <label className="text-sm font-medium">Follow-up reminder <span className="font-normal text-muted-foreground">(optional)</span><Input type="datetime-local" value={followUpAt} min={new Date().toISOString().slice(0, 16)} onChange={e => setFollowUpAt(e.target.value)} className="mt-1 max-w-xs bg-background" /></label>

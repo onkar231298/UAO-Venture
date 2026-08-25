@@ -111,10 +111,11 @@ import {
   buildSalesDraftPrompt,
   AI_DRAFT_TOTAL_TIMEOUT_MS,
   fetchWebsiteText,
+  findWebsiteProductMatches,
   generateSalesDraft,
   normalizeWebsiteUrl,
-  rankProducts,
   type DraftProduct,
+  type WebsiteProductMatch,
 } from "./email/aiSalesDraft";
 import { registerChatRoutes } from "./chatRoutes";
 
@@ -7439,18 +7440,24 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
 
       const normalizedWebsite = normalizeWebsiteUrl(company.website);
-      let website: { status: "fetched" | "unavailable" | "not_configured"; url?: string; message?: string } =
+      let website: { status: "fetched" | "unavailable" | "not_configured"; url?: string; message?: string; pages?: number } =
         !company.website ? { status: "not_configured", message: "No website is configured." } :
           !normalizedWebsite ? { status: "unavailable", message: "The configured website URL is invalid." } : { status: "unavailable" };
       let websiteText = "";
       if (normalizedWebsite) {
         try {
           const fetched = await fetchWebsiteText(company.website, { deadlineAt: draftDeadlineAt });
-          website = { status: "fetched", url: fetched.url }; websiteText = fetched.text;
+          website = { status: "fetched", url: fetched.url };
+          websiteText = fetched.text;
+          website.pages = fetched.pages.length;
         } catch (error: any) { website = { status: "unavailable", message: error?.message || "Website could not be safely fetched." }; }
       }
-      const signals = `${company.companyName} ${company.industryType || ""} ${company.addressCountry || ""} ${websiteText.slice(0, 8_000)}`;
-      const rankedCandidates = rankProducts(allProducts as DraftProduct[], signals, 12);
+      const websiteProductMatches: WebsiteProductMatch[] = websiteText
+        ? findWebsiteProductMatches(allProducts as DraftProduct[], websiteText, 12)
+        : [];
+      const rankedCandidates = websiteProductMatches
+        .map(match => (allProducts as DraftProduct[]).find(product => product.id === match.productId)!)
+        .filter(Boolean);
       const suppliedIds = body.productIds as number[] | undefined;
       const eligibleProductsById = new Map((allProducts as DraftProduct[]).map(product => [product.id, product]));
       if (suppliedIds?.some(id => !eligibleProductsById.has(id))) return res.status(400).json({ message: "Each selected product must be active and available for sale." });
@@ -7482,6 +7489,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         },
         instruction: body.instruction?.trim(),
         websiteText,
+        websiteProductEvidence: websiteProductMatches
+          .filter(match => selectedCandidates.some(product => product.id === match.productId))
+          .map(({ productId, productName, evidence }) => ({ productId, productName, evidence })),
         products: selectedCandidates,
         threadText,
       }), selectedCandidates, { deadlineAt: draftDeadlineAt });
@@ -7489,7 +7499,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const recommendedProducts = generated.recommendedProductIds.map(id => selectedCandidates.find(product => product.id === id)).filter(Boolean).map(product => ({ id: product!.id, name: product!.name }));
       const sourceSummary = ["Company profile", `Products: ${selectedCandidates.length} eligible candidate${selectedCandidates.length === 1 ? "" : "s"}`];
       if (thread) sourceSummary.push("Recent company email thread");
-      sourceSummary.push(website.status === "fetched" ? "Public website" : `Website ${website.status.replace("_", " ")}`);
+      if (website.status === "fetched") {
+        sourceSummary.push(`Public website scanned${website.pages && website.pages > 1 ? ` (${website.pages} pages)` : ""}`);
+        sourceSummary.push(websiteProductMatches.length
+          ? `Website product matches: ${websiteProductMatches.length}`
+          : "No specific spice or herb products found on website");
+      } else {
+        sourceSummary.push(`Website ${website.status.replace("_", " ")}`);
+      }
       res.json({
         subject: generated.subject,
         bodyText: generated.bodyText,
@@ -7497,6 +7514,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         selectedProductIds: suppliedIds ? selectedCandidates.map(product => product.id) : generated.recommendedProductIds,
         sourceSummary,
         website,
+        websiteProductMatches: websiteProductMatches.map(({ productId, productName, evidence }) => ({ productId, productName, evidence })),
       });
     } catch (error: any) {
       console.error("AI sales draft error:", error);

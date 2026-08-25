@@ -24,3 +24,9 @@ Reject generated commercial, certification, delivery, and specification claims u
 **Why:** Prompt instructions are advisory; a model can still invent plausible prices, stock, MOQ, certifications, lead times, or technical specifications.
 
 **How to apply:** Keep the current fail-closed response validation. If richer claims are later allowed, validate each against a structured allowlist of supplied facts rather than weakening the rejection rules.
+
+Bright Fame Organic is always the sender and the CRM company is always the prospect. Prospect website facts may support personalization and product matching, but must never be rewritten as Bright Fame Organic capabilities or claims.
+
+**Why:** Without an explicit attribution boundary, a live provider drafted from the prospect's perspective and copied the prospect's quality, logistics, and export claims into the sender voice.
+
+**How to apply:** Label sender and prospect separately in every prompt, state the direction explicitly, and keep prospect website evidence distinct from Bright Fame Organic catalog facts.
