@@ -75,6 +75,9 @@ test("prompt treats reference data as untrusted and excludes prohibited commerci
   assert.match(prompt.system, /Bright Fame Organic is always the sender/i);
   assert.match(prompt.system, /never write as or on behalf of the prospect/i);
   assert.match(prompt.system, /prices, stock, MOQ, lead time, certificates/i);
+  assert.match(prompt.system, /250.?400 words/i);
+  assert.match(prompt.system, /8.?10 short paragraphs/i);
+  assert.match(prompt.user, /senderPositioningReferenceData/);
   assert.match(prompt.system, /sentence by sentence/i);
   assert.match(prompt.user, /ignore prior instructions/);
   assert.match(prompt.user, /food/);
@@ -105,6 +108,19 @@ test("model output is plain text, bounded, and product IDs are candidate-filtere
   assert.equal(draft.subject, "Hello");
   assert.equal(draft.bodyText, "Hi\nthere");
   assert.deepEqual(draft.recommendedProductIds, [1, 2, 3]);
+});
+
+test("cold outreach permits a quotation request but still rejects unsupported claims", () => {
+  const draft = sanitizeDraftResponse({
+    subject: "One opportunity to quote",
+    bodyText: "We would be pleased to prepare a quotation and discuss dependable delivery service.",
+    recommendedProductIds: [],
+  }, [], { mode: "cold" });
+  assert.match(draft.bodyText, /quotation/i);
+  assert.throws(
+    () => sanitizeDraftResponse({ subject: "Offer", bodyText: "Our certified product is available for $10 per kg.", recommendedProductIds: [] }, [], { mode: "cold" }),
+    /unsupported commercial or certification claim/i,
+  );
 });
 
 test("unsupported commercial and certification claims are rejected", () => {
