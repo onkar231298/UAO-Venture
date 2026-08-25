@@ -91,6 +91,12 @@ import { generateProductSEO } from "./seoGenerator";
 import { encryptEmailCredential } from "./email/credentials";
 import { titanEmailProvider } from "./email/titan";
 import {
+  appendHtmlSignature,
+  appendLegacyImageSignature,
+  hasSupportedSignatureContent,
+  sanitizeSignatureHtml,
+} from "./email/signature";
+import {
   canSendSalesOrder,
   isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
@@ -617,6 +623,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Fallback for local development
     return 'http://localhost:5000';
+  }
+
+  function applyConfiguredEmailSignature(
+    config: { signatureHtml?: string | null; signatureImageUrl?: string | null; displayName?: string | null },
+    bodyHtml: string,
+    bodyText: string,
+  ): { html: string; text: string } {
+    if (config.signatureHtml?.trim()) {
+      return appendHtmlSignature(bodyHtml, bodyText, config.signatureHtml);
+    }
+
+    if (config.signatureImageUrl) {
+      const path = config.signatureImageUrl.startsWith("/objects/")
+        ? config.signatureImageUrl
+        : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
+      return appendLegacyImageSignature(bodyHtml, bodyText, `${getBaseUrl()}${path}`, config.displayName);
+    }
+
+    return { html: bodyHtml, text: bodyText };
   }
 
   // Customer forgot password - request password reset
@@ -4148,11 +4173,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const emailSubject = typeof subject === "string" && subject.trim() ? subject.trim() : `Sales Order ${order.soNumber}`;
       let html = typeof body === "string" && body.trim() ? body : `<p>Please find sales order ${order.soNumber} attached.</p>`;
       let text = html.replace(/<[^>]*>/g, "");
-      if (config.signatureImageUrl) {
-        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
-        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
-        text += `\n\n---\n${config.displayName || "Signature"}`;
-      }
+      ({ html, text } = applyConfiguredEmailSignature(config, html, text));
       const hasRequestedThread = emailThreadId !== undefined && emailThreadId !== null && emailThreadId !== "";
       const requestedThreadId = hasRequestedThread ? Number(emailThreadId) : undefined;
       if (requestedThreadId !== undefined && (!Number.isInteger(requestedThreadId) || requestedThreadId <= 0)) {
@@ -7363,11 +7384,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       });
       let html = bodyHtml;
       let text = bodyText || bodyHtml.replace(/<[^>]*>/g, "");
-      if (config.signatureImageUrl) {
-        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
-        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
-        text += `\n\n---\n${config.displayName || "Signature"}`;
-      }
+      ({ html, text } = applyConfiguredEmailSignature(config, html, text));
       const titanAttachments: any[] = [];
       for (const attachment of Array.isArray(attachments) ? attachments : []) {
         if (!attachment.fileUrl) continue;
@@ -9418,6 +9435,54 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // Admin: Save sanitized HTML signature for an email configuration
+  app.put('/api/admin/email-configs/:id/signature-html', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isEmailAdmin(await storage.getUser(req.user.claims.sub))) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const configId = Number(req.params.id);
+      const { signatureHtml } = req.body || {};
+      if (!Number.isInteger(configId) || configId <= 0) {
+        return res.status(400).json({ message: "Invalid email configuration" });
+      }
+      if (typeof signatureHtml !== "string" || !signatureHtml.trim()) {
+        return res.status(400).json({ message: "HTML signature is required" });
+      }
+
+      const config = await storage.getEmailConfigById(configId);
+      if (!config) {
+        return res.status(404).json({ message: "Email configuration not found" });
+      }
+
+      let sanitizedSignature: string;
+      try {
+        sanitizedSignature = sanitizeSignatureHtml(signatureHtml);
+      } catch (error) {
+        return res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid HTML signature",
+        });
+      }
+      if (!hasSupportedSignatureContent(sanitizedSignature)) {
+        return res.status(400).json({
+          message: "The signature does not contain any supported text, links, tables, or images.",
+        });
+      }
+
+      const updatedConfig = await storage.updateUserEmailConfig(configId, {
+        signatureHtml: sanitizedSignature,
+      });
+      res.json({
+        success: true,
+        signatureHtml: sanitizedSignature,
+        config: (await storage.getPublicUserEmailConfigs()).find(item => item.id === updatedConfig.id),
+      });
+    } catch (error) {
+      console.error("Error updating HTML signature:", error);
+      res.status(500).json({ message: "Failed to update HTML signature" });
+    }
+  });
+
   // Admin: Update signature image URL for email configuration
   app.put('/api/admin/email-configs/:id/signature', isAuthenticated, async (req: any, res) => {
     try {
@@ -9500,15 +9565,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(404).json({ message: 'Email configuration not found' });
       }
 
-      // Update the email configuration to remove the signature URL
+      // Explicit removal clears both the current HTML signature and legacy image fallback.
       const updatedConfig = await storage.updateUserEmailConfig(configId, {
+        signatureHtml: null,
         signatureImageUrl: null,
       });
 
       res.json({ success: true, config: (await storage.getPublicUserEmailConfigs()).find(item => item.id === updatedConfig.id) });
     } catch (error) {
       console.error('Error removing signature:', error);
-      res.status(500).json({ message: 'Failed to remove signature image' });
+      res.status(500).json({ message: 'Failed to remove signature' });
     }
   });
 
@@ -10641,11 +10707,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       if (thread && thread.leadId !== leadId && (!lead.companyId || thread.companyId !== lead.companyId)) return res.status(400).json({ message: "Invalid email thread" });
       if (!thread) thread = await storage.createEmailThread({ leadId, companyId: lead.companyId, subject, participantEmails: [config.companyEmail, ...recipients], lastMessageAt: new Date(), messageCount: 0, isRead: true, status: "active" });
       let html = bodyHtml, text = bodyText || bodyHtml.replace(/<[^>]*>/g, "");
-      if (config.signatureImageUrl) {
-        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
-        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
-        text += `\n\n---\n${config.displayName || "Signature"}`;
-      }
+      ({ html, text } = applyConfiguredEmailSignature(config, html, text));
       const providerAttachments: any[] = [];
       for (const item of Array.isArray(attachments) ? attachments : []) {
         if (!item.fileUrl) continue;
@@ -11143,11 +11205,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       const inReplyTo = parent?.messageIdHeader || undefined, references = inReplyTo ? [parent?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
       let html = body || `<p>Please find quotation ${quotation.quotationId} attached.</p>`;
       let text = html.replace(/<[^>]*>/g, "");
-      if (config.signatureImageUrl) {
-        const path = config.signatureImageUrl.startsWith("/objects/") ? config.signatureImageUrl : new ObjectStorageService().normalizeObjectEntityPath(config.signatureImageUrl);
-        html += `<br><br><img src="${getBaseUrl()}${path}" alt="${config.displayName || "Signature"}" style="max-width:600px;display:block;" />`;
-        text += `\n\n---\n${config.displayName || "Signature"}`;
-      }
+      ({ html, text } = applyConfiguredEmailSignature(config, html, text));
       const ccRecipients = Array.isArray(cc) ? cc : cc ? [cc] : [];
       const result = await titanEmailProvider.send({ email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted }, { to: recipients, cc: ccRecipients, subject: emailSubject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments });
       if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: result.threadId });

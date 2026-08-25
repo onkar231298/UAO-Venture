@@ -1973,6 +1973,7 @@ export const userEmailConfigs = pgTable("user_email_configs", {
   imapLastSyncError: text("imap_last_sync_error"),
   isConnected: boolean("is_connected").default(false), // Whether OAuth is connected
   signatureImageUrl: text("signature_image_url"), // Digital signature image URL (recommended: 300x100px, max 400x150px)
+  signatureHtml: text("signature_html"), // Server-sanitized email signature HTML with inline CSS
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
