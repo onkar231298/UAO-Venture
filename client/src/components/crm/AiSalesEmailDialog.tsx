@@ -14,7 +14,7 @@ interface AiEmailMessage { fromEmail?: string | null; toEmails?: string[] | null
 export interface AiEmailThread { id: number; subject: string | null; participantEmails?: string[] | null; lastMessageAt?: string | null; messageCount?: number; messages?: AiEmailMessage[]; }
 interface AiContact { id: number; name: string; email: string; designation?: string | null; role?: string | null; isPrimary?: boolean; }
 interface AiProduct { id: number; name: string; }
-interface ContextResponse { company: { id: number; name: string; website?: string | null; primaryEmail?: string | null }; contacts: AiContact[]; products: AiProduct[]; }
+interface ContextResponse { company: { id: number; name: string; website?: string | null; primaryEmail?: string | null }; contacts: AiContact[]; products: AiProduct[]; recipientWarning?: string; }
 interface DraftResponse { subject: string; bodyText: string; recommendedProducts: AiProduct[]; selectedProductIds: number[]; sourceSummary?: string[]; website?: { status?: string; url?: string; message?: string; pages?: number }; websiteProductMatches?: Array<{ productId: number; productName: string; evidence: string }>; }
 export interface AiSalesEmailDialogProps {
   companyId: number;
@@ -83,10 +83,10 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
     return unique.filter(option => threadEmails.has(option.email.trim().toLowerCase()));
   }, [context, mode, selectedThread]);
   useEffect(() => {
-    if (!open || mode === "cold" || !selectedThread) return;
+    if (!open || !context) return;
     const currentIsCompatible = recipientOptions.some(option => option.email.toLowerCase() === recipientEmail.toLowerCase());
     if (!currentIsCompatible) setRecipientEmail(recipientOptions.length === 1 ? recipientOptions[0].email : "");
-  }, [open, mode, selectedThread, recipientOptions, recipientEmail]);
+  }, [open, context, recipientOptions, recipientEmail]);
   const visibleProducts = useMemo(() => {
     const search = productSearch.trim().toLowerCase();
     return (context?.products || []).filter(product =>
@@ -175,6 +175,7 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
             <Input className="mt-1 bg-muted/40" value={recipientEmail} readOnly placeholder="Choose a company contact" type="email" />
           </label>
         </div>
+         {context?.recipientWarning && <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{context.recipientWarning}</p>}
         {mode !== "cold" && <label className="text-sm font-medium">Thread <span className="text-red-600">*</span>
           <select value={threadId} onChange={e => { setThreadId(e.target.value); setDraft(null); }} className="mt-1 flex h-10 w-full rounded-md border bg-background px-3 text-sm">
             <option value="">Choose a thread</option>{threads.map(t => <option key={t.id} value={t.id}>{t.subject || "No subject"} · {t.messageCount || t.messages?.length || 0} messages</option>)}

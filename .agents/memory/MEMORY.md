@@ -15,3 +15,4 @@
 - [Development database environment](database-env.md) — the running app uses DATABASE_URL; verify the target before applying development schema changes.
 - [Titan Sent mirroring](titan-sent-mirroring.md) — SMTP submissions do not populate Titan Sent; append the delivered RFC message via IMAP and never retry SMTP after append failure.
 - [AI sales draft boundaries](ai-sales-draft-boundaries.md) — website research, generation, and delivery are separate trust boundaries; AI send revalidates recipient and rejects unsupported claims.
+- [CRM recipient validation](crm-recipient-validation.md) — imported company primary-email fields can contain non-email text; exclude invalid values from composers and reject them before SMTP.

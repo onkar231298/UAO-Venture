@@ -90,6 +90,7 @@ import { createStaticProductPage, createStaticHomePage } from "./static-handler"
 import { generateProductSEO } from "./seoGenerator";
 import { encryptEmailCredential } from "./email/credentials";
 import { titanEmailProvider } from "./email/titan";
+import { normalizeEmailAddress } from "./email/address";
 import {
   appendHtmlSignature,
   appendLegacyImageSignature,
@@ -7383,10 +7384,21 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!company) return res.status(404).json({ message: "Company not found" });
       const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") || company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
       if (!mayAccess) return res.status(403).json({ message: "Not authorized to read this company's email" });
+      const primaryEmail = normalizeEmailAddress(company.primaryEmail);
+      const validContacts = contacts.flatMap(contact => {
+        const email = normalizeEmailAddress(contact.email);
+        return contact.isActive !== false && email ? [{ ...contact, email }] : [];
+      });
+      const invalidRecipientCount =
+        Number(Boolean(company.primaryEmail && !primaryEmail)) +
+        contacts.filter(contact => contact.isActive !== false && contact.email && !normalizeEmailAddress(contact.email)).length;
       res.json({
-        company: { id: company.id, name: company.companyName, website: normalizeWebsiteUrl(company.website)?.toString(), primaryEmail: company.primaryEmail },
-        contacts: contacts.filter(contact => contact.isActive !== false && contact.email).map(contact => ({ id: contact.id, name: contact.contactName, email: contact.email!, designation: contact.designation, role: contact.role, isPrimary: contact.isPrimary })),
+        company: { id: company.id, name: company.companyName, website: normalizeWebsiteUrl(company.website)?.toString(), primaryEmail },
+        contacts: validContacts.map(contact => ({ id: contact.id, name: contact.contactName, email: contact.email, designation: contact.designation, role: contact.role, isPrimary: contact.isPrimary })),
         products: activeProducts,
+        recipientWarning: invalidRecipientCount
+          ? `${invalidRecipientCount} saved CRM email ${invalidRecipientCount === 1 ? "address is" : "addresses are"} invalid and cannot be used until corrected in the company or contact details.`
+          : undefined,
       });
     } catch (error) {
       console.error("AI sales context error:", error);
@@ -7419,12 +7431,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") || company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
       if (!mayAccess) return res.status(403).json({ message: "Not authorized to draft this company's email" });
 
-      const activeContacts = contacts.filter(contact => contact.isActive !== false && contact.email);
+      const activeContacts = contacts.flatMap(contact => {
+        const email = normalizeEmailAddress(contact.email);
+        return contact.isActive !== false && email ? [{ ...contact, email }] : [];
+      });
       const requestedContact = Number.isInteger(body.contactId) ? activeContacts.find(contact => contact.id === body.contactId) : undefined;
       if (body.contactId !== undefined && !requestedContact) return res.status(400).json({ message: "contactId must be an active contact belonging to this company" });
-      const recipientEmail = typeof body.recipientEmail === "string" ? body.recipientEmail.trim().toLowerCase() : requestedContact?.email?.toLowerCase();
-      const companyPrimary = company.primaryEmail?.trim().toLowerCase();
-      const contactMatch = activeContacts.find(contact => contact.email?.toLowerCase() === recipientEmail);
+      const recipientEmail = normalizeEmailAddress(body.recipientEmail) || normalizeEmailAddress(requestedContact?.email);
+      if (body.recipientEmail && !recipientEmail) return res.status(400).json({ message: "The selected CRM recipient does not have a valid email address. Correct it in the company or contact details first." });
+      const companyPrimary = normalizeEmailAddress(company.primaryEmail);
+      const contactMatch = activeContacts.find(contact => contact.email.toLowerCase() === recipientEmail?.toLowerCase());
       if (!recipientEmail || (requestedContact && requestedContact.email?.toLowerCase() !== recipientEmail) || (!contactMatch && recipientEmail !== companyPrimary)) return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact" });
 
       let thread: any;
@@ -7547,6 +7563,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if ((!Array.isArray(to) ? !to : !to.length) || !subject || !bodyHtml) {
         return res.status(400).json({ message: "Missing required fields: to, subject, bodyHtml" });
       }
+      let recipients = Array.isArray(to) ? to : [to];
       const [company, user, config] = await Promise.all([
         storage.getCompany(companyId), storage.getUser(userId), storage.getUserEmailConfig(userId),
       ]);
@@ -7559,13 +7576,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         if (typeof to !== "string" || (Array.isArray(cc) ? cc.length : !!cc) || (Array.isArray(bcc) ? bcc.length : !!bcc)) {
           return res.status(400).json({ message: "AI-assisted email must have exactly one recipient and no CC or BCC." });
         }
-        const normalizedRecipient = to.trim().toLowerCase();
+        const normalizedRecipient = normalizeEmailAddress(to);
+        if (!normalizedRecipient) {
+          return res.status(400).json({ message: "The selected CRM recipient does not have a valid email address. Correct it in the company or contact details first." });
+        }
         const contacts = await storage.getCompanyContacts(companyId);
-        const allowedRecipient = normalizedRecipient === company.primaryEmail?.trim().toLowerCase() ||
-          contacts.some(contact => contact.isActive !== false && contact.email?.trim().toLowerCase() === normalizedRecipient);
+        const allowedRecipient = normalizedRecipient.toLowerCase() === normalizeEmailAddress(company.primaryEmail)?.toLowerCase() ||
+          contacts.some(contact => contact.isActive !== false && normalizeEmailAddress(contact.email)?.toLowerCase() === normalizedRecipient.toLowerCase());
         if (!allowedRecipient) {
           return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact." });
         }
+        recipients = [normalizedRecipient];
         if (typeof productIds !== "undefined" && (!Array.isArray(productIds) || productIds.length > 3 || productIds.some((id: unknown) => !Number.isInteger(id)))) {
           return res.status(400).json({ message: "AI productIds must contain at most 3 numeric IDs." });
         }
@@ -7602,11 +7623,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(400).json({ message: "This email thread does not belong to the selected company." });
       }
       let threadMessages = thread ? await storage.getEmailMessages({ threadId: thread.id }) : [];
-      if (aiRestricted && replyRequested && thread && !emailThreadIncludesRecipient(thread, threadMessages, to)) {
+      if (aiRestricted && replyRequested && thread && !emailThreadIncludesRecipient(thread, threadMessages, recipients[0])) {
         return res.status(400).json({ message: "Reply recipient must be a participant in the selected email thread." });
       }
       if (!thread) thread = await storage.createEmailThread({
-        companyId, subject, participantEmails: [config.companyEmail, ...(Array.isArray(to) ? to : [to])],
+        companyId, subject, participantEmails: [config.companyEmail, ...recipients],
         lastMessageAt: new Date(), messageCount: 0, isRead: true, status: "active",
       });
       let html = bodyHtml;
@@ -7631,12 +7652,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const references = inReplyTo ? [prior?.referencesHeader, inReplyTo].filter(Boolean).join(" ") : undefined;
       const result = await titanEmailProvider.send(
         { email: config.companyEmail, encryptedAppPassword: config.titanAppPasswordEncrypted },
-        { to: Array.isArray(to) ? to : [to], cc: Array.isArray(cc) ? cc : cc ? [cc] : [], bcc: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments: titanAttachments },
+        { to: recipients, cc: Array.isArray(cc) ? cc : cc ? [cc] : [], bcc: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, fromName: config.displayName || undefined, inReplyTo, references, attachments: titanAttachments },
       );
       if (!thread.threadId) await storage.updateEmailThread(thread.id, { threadId: result.threadId });
-      const message = await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: Array.isArray(to) ? to : [to], ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: titanAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
-      await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...(Array.isArray(to) ? to : [to])])) });
-      await storage.createCompanyActivity({ companyId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${(Array.isArray(to) ? to : [to]).join(", ")}`, createdBy: userId });
+      const message = await storage.createEmailMessage({ messageId: result.messageId, messageIdHeader: result.messageId, referencesHeader: references, threadId: thread.id, direction: "outbound", fromEmail: config.companyEmail, fromName: config.displayName || undefined, toEmails: recipients, ccEmails: Array.isArray(cc) ? cc : cc ? [cc] : [], bccEmails: Array.isArray(bcc) ? bcc : bcc ? [bcc] : [], subject, bodyHtml: html, bodyText: text, attachments: titanAttachments.map(({ filename, mimeType, base64Data }) => ({ filename, mimeType, size: Buffer.from(base64Data, "base64").length })), sentAt: new Date(), status: "sent", senderId: userId, isRead: true });
+      await storage.updateEmailThread(thread.id, { lastMessageAt: new Date(), participantEmails: Array.from(new Set<string>([...(thread.participantEmails || []), config.companyEmail, ...recipients])) });
+      await storage.createCompanyActivity({ companyId, activityType: "email", subject: `Email sent: ${subject}`, description: `Email sent to ${recipients.join(", ")}`, createdBy: userId });
       res.status(201).json({
         success: true,
         provider: "titan",
