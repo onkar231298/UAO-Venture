@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Users, Phone, Mail, RefreshCw, UserPlus, MoreVertical, Edit2, Pin, Trash2 } from "lucide-react";
 import { WhatsAppButton } from "@/components/crm/Dialer";
+import { AiSalesEmailDialog } from "./AiSalesEmailDialog";
 
 interface CompanyContact {
   id: number;
@@ -63,6 +64,7 @@ interface CompanyDetails {
   companyName: string;
   primaryEmail?: string | null;
   primaryPhone?: string | null;
+  website?: string | null;
 }
 
 const contactSchema = z.object({
@@ -89,6 +91,7 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
   const [deleteContactDialogOpen, setDeleteContactDialogOpen] = useState(false);
   const [contactToEdit, setContactToEdit] = useState<CompanyContact | null>(null);
   const [contactToDelete, setContactToDelete] = useState<CompanyContact | null>(null);
+  const [aiRecipient, setAiRecipient] = useState<{ email: string; contactId?: number } | null>(null);
 
   const { data: contacts, isLoading } = useQuery<CompanyContact[]>({
     queryKey: ['/api/crm/companies', companyId, 'contacts'],
@@ -267,9 +270,9 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
                   {companyDetails?.primaryEmail && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-3 w-3" />
-                      <a href={`mailto:${companyDetails.primaryEmail}`} className="text-blue-600 hover:underline">
+                      <button type="button" onClick={() => setAiRecipient({ email: companyDetails.primaryEmail! })} className="text-blue-600 hover:underline">
                         {companyDetails.primaryEmail}
-                      </a>
+                      </button>
                     </div>
                   )}
                   {companyDetails?.primaryPhone && (
@@ -305,9 +308,9 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
                       {contact.email && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-3 w-3" />
-                          <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                          <button type="button" onClick={() => setAiRecipient({ email: contact.email!, contactId: contact.id })} className="text-blue-600 hover:underline">
                             {contact.email}
-                          </a>
+                          </button>
                         </div>
                       )}
                       {contact.phone && (
@@ -648,6 +651,14 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AiSalesEmailDialog
+        companyId={companyId}
+        companyName={companyDetails?.companyName}
+        open={!!aiRecipient}
+        onOpenChange={(open) => !open && setAiRecipient(null)}
+        initialRecipientEmail={aiRecipient?.email || ""}
+        initialContactId={aiRecipient?.contactId}
+      />
     </>
   );
 }

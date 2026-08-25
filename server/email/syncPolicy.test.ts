@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canSendSalesOrder,
+  emailThreadIncludesRecipient,
   isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
   requestedReplyThreadId,
@@ -115,4 +116,18 @@ test("company email thread IDs are only used for explicit valid replies", () => 
   assert.equal(requestedReplyThreadId(undefined, true), undefined);
   assert.equal(requestedReplyThreadId("invalid", true), undefined);
   assert.equal(requestedReplyThreadId(0, true), undefined);
+});
+
+test("AI replies can only target a recipient already present in the selected thread", () => {
+  const thread = { participantEmails: ["sales@bright-fame.com", "buyer-a@example.com"] };
+  const messages = [{
+    fromEmail: "buyer-a@example.com",
+    toEmails: ["sales@bright-fame.com"],
+    ccEmails: [],
+    bccEmails: [],
+  }];
+
+  assert.equal(emailThreadIncludesRecipient(thread, messages, "BUYER-A@example.com"), true);
+  assert.equal(emailThreadIncludesRecipient(thread, messages, "buyer-b@example.com"), false);
+  assert.equal(emailThreadIncludesRecipient({ participantEmails: [] }, messages, "buyer-a@example.com"), true);
 });

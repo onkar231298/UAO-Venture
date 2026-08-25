@@ -62,6 +62,7 @@ import { CompanyNotes } from "@/components/crm/CompanyNotes";
 import { ClickToCall, SendSmsButton, WhatsAppButton, Dialer } from "@/components/crm/Dialer";
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
+import { CompanyContactsTab as SharedCompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
@@ -2968,14 +2969,20 @@ export default function CompanyManagement() {
                 </TabsContent>
 
                 <TabsContent value="contacts" className="mt-4">
-                  <CompanyContactsTab 
-                    companyId={selectedCompany.id} 
-                    companyDetails={selectedCompany as any}
+                  <SharedCompanyContactsTab
+                    companyId={selectedCompany.id}
+                    companyDetails={{
+                      id: selectedCompany.id,
+                      companyName: selectedCompany.companyName,
+                      primaryEmail: selectedCompany.primaryEmail,
+                      primaryPhone: selectedCompany.primaryPhone,
+                      website: selectedCompany.website,
+                    }}
                   />
                 </TabsContent>
 
                 <TabsContent value="emails" className="mt-4">
-                  <CompanyEmailsTab companyId={selectedCompany.id} companyEmail={selectedCompany.primaryEmail || null} />
+                  <CompanyEmailsTab companyId={selectedCompany.id} companyName={selectedCompany.companyName} companyEmail={selectedCompany.primaryEmail || null} companyWebsite={selectedCompany.website || null} />
                 </TabsContent>
 
                 <TabsContent value="calls" className="mt-4">

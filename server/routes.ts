@@ -76,7 +76,7 @@ import {
   uploadedDocuments,
   insertUploadedDocumentSchema,
 } from "@shared/schema";
-import { eq, and, or, ne, isNotNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
+import { eq, and, or, ne, isNotNull, isNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -98,6 +98,7 @@ import {
 } from "./email/signature";
 import {
   canSendSalesOrder,
+  emailThreadIncludesRecipient,
   isSalesOrderEmailThreadCompatible,
   normalizeReplySubject,
   requestedReplyThreadId,
@@ -106,6 +107,14 @@ import {
   uniquelyMatchedCampaignCompanyId,
   uniquelyMatchingLeadBySender,
 } from "./email/syncPolicy";
+import {
+  buildSalesDraftPrompt,
+  fetchWebsiteText,
+  generateSalesDraft,
+  normalizeWebsiteUrl,
+  rankProducts,
+  type DraftProduct,
+} from "./email/aiSalesDraft";
 import { registerChatRoutes } from "./chatRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -113,6 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const s3Service = new AWSS3Service();
   const isEmailAdmin = (user: any) => ["admin", "super_admin"].includes(user?.role);
   const activeTitanSyncConfigIds = new Set<number>();
+  // Draft generation is intentionally in-memory only: no email is sent or persisted.
+  const aiSalesDraftRateLimits = new Map<string, number[]>();
   const publicTitanStatus = (config: any) => ({
     hasConfig: !!config,
     configured: !!config,
@@ -7353,12 +7364,152 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Send email to a company
-  app.post('/api/crm/companies/:id/emails/send', isAuthenticated, async (req: any, res) => {
+  // Context and generation here are draft-only. They deliberately do not use any mail provider.
+  app.get('/api/crm/companies/:id/emails/ai-context', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = Number(req.params.id);
+      const userId = req.user.claims.sub;
+      if (!Number.isInteger(companyId) || companyId <= 0) return res.status(400).json({ message: "Invalid company ID" });
+      const [company, user, companyLeads, contacts, activeProducts] = await Promise.all([
+        storage.getCompany(companyId), storage.getUser(userId),
+        db.select({ assignedSalesRep: leads.assignedSalesRep }).from(leads).where(eq(leads.companyId, companyId)),
+        storage.getCompanyContacts(companyId),
+        db.select({ id: products.id, name: products.name }).from(products).where(and(eq(products.isActive, true), or(eq(products.stopSell, false), isNull(products.stopSell)))).orderBy(asc(products.name)),
+      ]);
+      if (!company) return res.status(404).json({ message: "Company not found" });
+      const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") || company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
+      if (!mayAccess) return res.status(403).json({ message: "Not authorized to read this company's email" });
+      res.json({
+        company: { id: company.id, name: company.companyName, website: normalizeWebsiteUrl(company.website)?.toString(), primaryEmail: company.primaryEmail },
+        contacts: contacts.filter(contact => contact.isActive !== false && contact.email).map(contact => ({ id: contact.id, name: contact.contactName, email: contact.email!, designation: contact.designation, role: contact.role, isPrimary: contact.isPrimary })),
+        products: activeProducts,
+      });
+    } catch (error) {
+      console.error("AI sales context error:", error);
+      res.status(500).json({ message: "Failed to load AI sales context" });
+    }
+  });
+
+  app.post('/api/crm/companies/:id/emails/ai-draft', isAuthenticated, async (req: any, res) => {
+    try {
+      const companyId = Number(req.params.id);
+      const userId = req.user.claims.sub;
+      const body = req.body || {};
+      if (!Number.isInteger(companyId) || companyId <= 0) return res.status(400).json({ message: "Invalid company ID" });
+      if (!["cold", "reply", "follow_up"].includes(body.mode)) return res.status(400).json({ message: "mode must be cold, reply, or follow_up" });
+      if (typeof body.instruction !== "undefined" && (typeof body.instruction !== "string" || body.instruction.length > 2_000)) return res.status(400).json({ message: "instruction must be plain text up to 2000 characters" });
+      if (typeof body.productIds !== "undefined" && (!Array.isArray(body.productIds) || body.productIds.length > 12 || body.productIds.some((id: unknown) => !Number.isInteger(id)))) return res.status(400).json({ message: "productIds must contain at most 12 numeric IDs" });
+      const now = Date.now();
+      const attempts = (aiSalesDraftRateLimits.get(userId) || []).filter(time => time > now - 60_000);
+      if (attempts.length >= 6) return res.status(429).json({ message: "Too many draft generations. Please wait a minute." });
+      attempts.push(now); aiSalesDraftRateLimits.set(userId, attempts);
+
+      const [company, user, companyLeads, contacts, allProducts] = await Promise.all([
+        storage.getCompany(companyId), storage.getUser(userId),
+        db.select({ assignedSalesRep: leads.assignedSalesRep }).from(leads).where(eq(leads.companyId, companyId)),
+        storage.getCompanyContacts(companyId),
+        db.select().from(products).where(and(eq(products.isActive, true), or(eq(products.stopSell, false), isNull(products.stopSell)))),
+      ]);
+      if (!company) return res.status(404).json({ message: "Company not found" });
+      const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") || company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
+      if (!mayAccess) return res.status(403).json({ message: "Not authorized to draft this company's email" });
+
+      const activeContacts = contacts.filter(contact => contact.isActive !== false && contact.email);
+      const requestedContact = Number.isInteger(body.contactId) ? activeContacts.find(contact => contact.id === body.contactId) : undefined;
+      if (body.contactId !== undefined && !requestedContact) return res.status(400).json({ message: "contactId must be an active contact belonging to this company" });
+      const recipientEmail = typeof body.recipientEmail === "string" ? body.recipientEmail.trim().toLowerCase() : requestedContact?.email?.toLowerCase();
+      const companyPrimary = company.primaryEmail?.trim().toLowerCase();
+      const contactMatch = activeContacts.find(contact => contact.email?.toLowerCase() === recipientEmail);
+      if (!recipientEmail || (requestedContact && requestedContact.email?.toLowerCase() !== recipientEmail) || (!contactMatch && recipientEmail !== companyPrimary)) return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact" });
+
+      let thread: any;
+      let threadMessages: any[] = [];
+      if (body.mode === "cold") {
+        // Cold messages intentionally do not read a supplied thread.
+      } else {
+        if (!Number.isInteger(body.threadId) || body.threadId <= 0) return res.status(400).json({ message: "reply and follow_up drafts require a valid threadId" });
+        thread = await storage.getEmailThread(body.threadId);
+        if (!thread || thread.companyId !== companyId) return res.status(400).json({ message: "This email thread does not belong to the selected company" });
+        threadMessages = await storage.getEmailMessages({ threadId: thread.id });
+        if (!emailThreadIncludesRecipient(thread, threadMessages, recipientEmail)) {
+          return res.status(400).json({ message: "Recipient must be a participant in the selected email thread." });
+        }
+      }
+
+      const normalizedWebsite = normalizeWebsiteUrl(company.website);
+      let website: { status: "fetched" | "unavailable" | "not_configured"; url?: string; message?: string } =
+        !company.website ? { status: "not_configured", message: "No website is configured." } :
+          !normalizedWebsite ? { status: "unavailable", message: "The configured website URL is invalid." } : { status: "unavailable" };
+      let websiteText = "";
+      if (normalizedWebsite) {
+        try {
+          const fetched = await fetchWebsiteText(company.website);
+          website = { status: "fetched", url: fetched.url }; websiteText = fetched.text;
+        } catch (error: any) { website = { status: "unavailable", message: error?.message || "Website could not be safely fetched." }; }
+      }
+      const signals = `${company.companyName} ${company.industryType || ""} ${company.addressCountry || ""} ${websiteText.slice(0, 8_000)}`;
+      const rankedCandidates = rankProducts(allProducts as DraftProduct[], signals, 12);
+      const suppliedIds = body.productIds as number[] | undefined;
+      const eligibleProductsById = new Map((allProducts as DraftProduct[]).map(product => [product.id, product]));
+      if (suppliedIds?.some(id => !eligibleProductsById.has(id))) return res.status(400).json({ message: "Each selected product must be active and available for sale." });
+      const selectedCandidates = suppliedIds
+        ? Array.from(new Set(suppliedIds)).map(id => eligibleProductsById.get(id)!)
+        : rankedCandidates;
+
+      let threadText = "";
+      if (thread) {
+        threadText = threadMessages.sort((a, b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0)).slice(0, 8)
+          .map(message => `${message.direction}: ${(message.bodyText || message.bodyHtml || "").replace(/<[^>]*>/g, " ").slice(0, 1_000)}`).join("\n").slice(0, 6_000);
+      }
+      const recipientContact = requestedContact || contactMatch;
+      const generated = await generateSalesDraft(buildSalesDraftPrompt({
+        mode: body.mode,
+        companyName: company.companyName,
+        recipient: recipientEmail,
+        recipientName: recipientContact?.contactName,
+        recipientDesignation: recipientContact?.designation || recipientContact?.role || undefined,
+        crmContext: {
+          industry: company.industryType || undefined,
+          companySize: company.companySize || undefined,
+          city: company.addressCity || undefined,
+          state: company.addressState || undefined,
+          country: company.addressCountry || undefined,
+          relationshipStage: company.companyStage || undefined,
+          relationshipPriority: company.priority || undefined,
+          generalNotesReferenceData: company.notes?.slice(0, 1_500) || undefined,
+        },
+        instruction: body.instruction?.trim(),
+        websiteText,
+        products: selectedCandidates,
+        threadText,
+      }), selectedCandidates);
+      if (!generated.subject || !generated.bodyText) return res.status(502).json({ message: "AI returned an incomplete draft. Please try again." });
+      const recommendedProducts = generated.recommendedProductIds.map(id => selectedCandidates.find(product => product.id === id)).filter(Boolean).map(product => ({ id: product!.id, name: product!.name }));
+      const sourceSummary = ["Company profile", `Products: ${selectedCandidates.length} eligible candidate${selectedCandidates.length === 1 ? "" : "s"}`];
+      if (thread) sourceSummary.push("Recent company email thread");
+      sourceSummary.push(website.status === "fetched" ? "Public website" : `Website ${website.status.replace("_", " ")}`);
+      res.json({
+        subject: generated.subject,
+        bodyText: generated.bodyText,
+        recommendedProducts,
+        selectedProductIds: suppliedIds ? selectedCandidates.map(product => product.id) : generated.recommendedProductIds,
+        sourceSummary,
+        website,
+      });
+    } catch (error: any) {
+      console.error("AI sales draft error:", error);
+      res.status(502).json({ message: error?.message || "Failed to generate AI sales draft" });
+    }
+  });
+
+  // Shared Titan delivery. The AI-specific route adds a final company-recipient
+  // boundary check without changing the existing manual composer behavior.
+  const sendCompanyEmail = async (req: any, res: any) => {
     try {
       const companyId = Number(req.params.id);
       const userId = req.user.claims.sub;
       const { to, cc, bcc, subject, bodyHtml, bodyText, attachments, threadId: requestedThreadId, isReply } = req.body || {};
+      const aiRestricted = req.path.endsWith("/ai-send");
       if ((!Array.isArray(to) ? !to : !to.length) || !subject || !bodyHtml) {
         return res.status(400).json({ message: "Missing required fields: to, subject, bodyHtml" });
       }
@@ -7370,6 +7521,18 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const mayAccess = ["admin", "super_admin", "sales_manager"].includes(user?.role || "") ||
         company.assignedTo === userId || companyLeads.some(item => item.assignedSalesRep === userId);
       if (!mayAccess) return res.status(403).json({ message: "Not authorized to email this company" });
+      if (aiRestricted) {
+        if (typeof to !== "string" || (Array.isArray(cc) ? cc.length : !!cc) || (Array.isArray(bcc) ? bcc.length : !!bcc)) {
+          return res.status(400).json({ message: "AI-assisted email must have exactly one recipient and no CC or BCC." });
+        }
+        const normalizedRecipient = to.trim().toLowerCase();
+        const contacts = await storage.getCompanyContacts(companyId);
+        const allowedRecipient = normalizedRecipient === company.primaryEmail?.trim().toLowerCase() ||
+          contacts.some(contact => contact.isActive !== false && contact.email?.trim().toLowerCase() === normalizedRecipient);
+        if (!allowedRecipient) {
+          return res.status(400).json({ message: "Recipient must be the company primary email or an active company contact." });
+        }
+      }
       if (!config?.isConnected || !config.titanAppPasswordEncrypted || config.isActive === false) {
         return res.status(400).json({ message: "Titan is not connected.", requiresEmailConnect: true, provider: "titan" });
       }
@@ -7384,6 +7547,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
       if (thread && thread.companyId !== companyId) {
         return res.status(400).json({ message: "This email thread does not belong to the selected company." });
+      }
+      let threadMessages = thread ? await storage.getEmailMessages({ threadId: thread.id }) : [];
+      if (aiRestricted && replyRequested && thread && !emailThreadIncludesRecipient(thread, threadMessages, to)) {
+        return res.status(400).json({ message: "Reply recipient must be a participant in the selected email thread." });
       }
       if (!thread) thread = await storage.createEmailThread({
         companyId, subject, participantEmails: [config.companyEmail, ...(Array.isArray(to) ? to : [to])],
@@ -7403,7 +7570,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         const [metadata] = metadataResponse;
         titanAttachments.push({ filename: attachment.fileName || "attachment", mimeType: metadata.contentType || "application/octet-stream", base64Data: Buffer.from(content).toString("base64") });
       }
-      const prior = (await storage.getEmailMessages({ threadId: thread.id }))
+      if (!threadMessages.length) threadMessages = await storage.getEmailMessages({ threadId: thread.id });
+      const prior = threadMessages
         .sort((a, b) => Number(b.sentAt || b.receivedAt || 0) - Number(a.sentAt || a.receivedAt || 0))
         .find(message => message.messageIdHeader);
       const inReplyTo = replyRequested ? prior?.messageIdHeader || undefined : undefined;
@@ -7430,7 +7598,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       console.error("Titan company email send error:", error);
       res.status(500).json({ message: "Failed to send email" });
     }
-  });
+  };
+  app.post('/api/crm/companies/:id/emails/send', isAuthenticated, sendCompanyEmail);
+  app.post('/api/crm/companies/:id/emails/ai-send', isAuthenticated, sendCompanyEmail);
 
   // Get call activities for a company (filtered from activities)
   app.get('/api/crm/companies/:id/calls', isAuthenticated, async (req: any, res) => {

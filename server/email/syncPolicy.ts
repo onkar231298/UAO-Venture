@@ -74,3 +74,30 @@ export function requestedReplyThreadId(value: unknown, isReply: unknown): number
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
+
+export function emailThreadIncludesRecipient(
+  thread: { participantEmails?: Array<string | null> | null },
+  messages: Array<{
+    fromEmail?: string | null;
+    toEmails?: Array<string | null> | null;
+    ccEmails?: Array<string | null> | null;
+    bccEmails?: Array<string | null> | null;
+  }>,
+  recipient: string,
+): boolean {
+  const normalizedRecipient = recipient.trim().toLowerCase();
+  if (!normalizedRecipient) return false;
+  const participants = new Set<string>();
+  const add = (value?: string | null) => {
+    const normalized = value?.trim().toLowerCase();
+    if (normalized) participants.add(normalized);
+  };
+  for (const email of thread.participantEmails || []) add(email);
+  for (const message of messages) {
+    add(message.fromEmail);
+    for (const email of message.toEmails || []) add(email);
+    for (const email of message.ccEmails || []) add(email);
+    for (const email of message.bccEmails || []) add(email);
+  }
+  return participants.has(normalizedRecipient);
+}

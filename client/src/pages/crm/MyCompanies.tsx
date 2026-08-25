@@ -2425,12 +2425,13 @@ export default function MyCompanies() {
                     companyName: selectedCompany.companyName,
                     primaryEmail: selectedCompany.primaryEmail,
                     primaryPhone: selectedCompany.primaryPhone,
+                    website: selectedCompany.website,
                   }}
                 />
               </TabsContent>
 
               <TabsContent value="emails" className="mt-4">
-                <CompanyEmailsTab companyId={selectedCompany.id} companyEmail={selectedCompany.primaryEmail} />
+                <CompanyEmailsTab companyId={selectedCompany.id} companyName={selectedCompany.companyName} companyEmail={selectedCompany.primaryEmail} companyWebsite={selectedCompany.website} />
               </TabsContent>
 
               <TabsContent value="calls" className="mt-4">

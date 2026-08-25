@@ -79,7 +79,6 @@ test("all Titan CRM send routes apply the configured signature helper", () => {
   const routesSource = readFileSync(new URL("../routes.ts", import.meta.url), "utf8");
   const sendRoutes = [
     "app.post('/api/sales-orders/:id/send'",
-    "app.post('/api/crm/companies/:id/emails/send'",
     "app.post('/api/crm/leads/:leadId/emails/send'",
     "app.post('/api/crm/leads/:leadId/quotations/:quotationId/send'",
   ];
@@ -91,4 +90,16 @@ test("all Titan CRM send routes apply the configured signature helper", () => {
     const routeSource = routesSource.slice(startIndex, nextRouteIndex === -1 ? undefined : nextRouteIndex);
     assert.match(routeSource, /applyConfiguredEmailSignature\(/, `Signature helper is not wired into ${routeStart}`);
   }
+
+  const companyHandlerStart = routesSource.indexOf("const sendCompanyEmail = async");
+  const companyHandlerEnd = routesSource.indexOf("\n  app.post('/api/crm/companies/:id/emails/send'", companyHandlerStart);
+  assert.notEqual(companyHandlerStart, -1, "Missing shared company email send handler");
+  assert.notEqual(companyHandlerEnd, -1, "Missing company email send route");
+  assert.match(
+    routesSource.slice(companyHandlerStart, companyHandlerEnd),
+    /applyConfiguredEmailSignature\(/,
+    "Signature helper is not wired into the shared company email send handler",
+  );
+  assert.match(routesSource, /app\.post\('\/api\/crm\/companies\/:id\/emails\/send', isAuthenticated, sendCompanyEmail\)/);
+  assert.match(routesSource, /app\.post\('\/api\/crm\/companies\/:id\/emails\/ai-send', isAuthenticated, sendCompanyEmail\)/);
 });

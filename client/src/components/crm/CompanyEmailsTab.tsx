@@ -12,11 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mail, Plus, RefreshCw, X, Send, Eye, Reply, Paperclip, Loader2, CheckCircle, Phone } from "lucide-react";
+import { Mail, Plus, RefreshCw, X, Send, Eye, Reply, Paperclip, Loader2, CheckCircle, Phone, Sparkles } from "lucide-react";
 import { SalesLogDialog } from "./SalesLogDialog";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
 import EmailViewDialog from "@/components/EmailViewDialog";
+import { AiSalesEmailDialog, AiEmailMode } from "./AiSalesEmailDialog";
 
 interface EmailThread {
   id: number;
@@ -49,9 +50,10 @@ interface EmailAttachment {
 interface CompanyEmailsTabProps {
   companyId: number;
   companyEmail: string | null;
+  companyWebsite?: string | null;
 }
 
-export function CompanyEmailsTab({ companyId, companyEmail, companyName }: CompanyEmailsTabProps & { companyName?: string }) {
+export function CompanyEmailsTab({ companyId, companyEmail, companyWebsite, companyName }: CompanyEmailsTabProps & { companyName?: string }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCompose, setShowCompose] = useState(false);
@@ -67,6 +69,9 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
   const [showEmailView, setShowEmailView] = useState(false);
   const [showThreadView, setShowThreadView] = useState(false);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<AiEmailMode>("cold");
+  const [aiThreadId, setAiThreadId] = useState<number | undefined>();
 
   useEffect(() => {
     setShowCompose(false);
@@ -264,6 +269,11 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
     setAttachments([]);
     setShowCompose(true);
   };
+  const openAi = (mode: AiEmailMode, threadId?: number) => {
+    setAiMode(mode);
+    setAiThreadId(threadId);
+    setAiOpen(true);
+  };
 
   const handleCloseCompose = () => {
     setShowCompose(false);
@@ -452,6 +462,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
                   <Plus className="h-4 w-4 mr-1" />
                   Compose
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => openAi("cold")}><Sparkles className="h-4 w-4 mr-1" />Generate with AI</Button>
               </div>
             </div>
 
@@ -494,6 +505,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
                         >
                           <Reply className="h-4 w-4" />
                         </Button>
+                        <><Button variant="ghost" size="sm" onClick={() => openAi("reply", thread.id)} title="AI Reply"><Sparkles className="h-4 w-4" /></Button><Button variant="ghost" size="sm" onClick={() => openAi("follow_up", thread.id)} title="AI Follow-up"><RefreshCw className="h-4 w-4" /></Button></>
                       </div>
                     </div>
                     {thread.lastMessageAt && (
@@ -651,6 +663,7 @@ export function CompanyEmailsTab({ companyId, companyEmail, companyName }: Compa
           defaultType={logDialogType}
         />
       )}
+      <AiSalesEmailDialog companyId={companyId} companyName={companyName} open={aiOpen} onOpenChange={setAiOpen} initialMode={aiMode} initialRecipientEmail={companyEmail || ""} initialThreadId={aiThreadId} />
     </div>
   );
 }
