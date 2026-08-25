@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
-import MailComposer from "nodemailer/lib/mail-composer";
+import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import { ImapFlow, type ListResponse } from "imapflow";
 import { simpleParser } from "mailparser";
 import { decryptEmailCredential } from "./credentials";
