@@ -5,8 +5,34 @@ import net from "node:net";
 
 const WEBSITE_MAX_BYTES = 300_000;
 const WEBSITE_TIMEOUT_MS = 8_000;
+const AI_PROVIDER_TIMEOUT_MS = 12_000;
+export const AI_DRAFT_TOTAL_TIMEOUT_MS = 30_000;
 const MAX_SUBJECT = 180;
 const MAX_BODY = 6_000;
+
+function timeoutError(message: string): Error {
+  const error = new Error(message);
+  error.name = "TimeoutError";
+  return error;
+}
+
+function remainingTime(deadlineAt: number): number {
+  return deadlineAt - Date.now();
+}
+
+async function lookupWithDeadline(host: string, deadlineAt?: number): Promise<Array<{ address: string; family: number }>> {
+  const lookupPromise = lookup(host, { all: true, verbatim: true });
+  if (deadlineAt === undefined) return lookupPromise;
+  const remaining = remainingTime(deadlineAt);
+  if (remaining <= 0) throw timeoutError("Website research timed out.");
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(timeoutError("Website research timed out.")), remaining);
+    lookupPromise.then(
+      addresses => { clearTimeout(timer); resolve(addresses); },
+      error => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 export type DraftProduct = {
   id: number; name: string; description?: string | null; botanicalName?: string | null;
@@ -59,14 +85,14 @@ export function isUnsafeIp(address: string): boolean {
   return true;
 }
 
-export async function assertSafeWebsiteUrl(url: URL): Promise<void> {
+export async function assertSafeWebsiteUrl(url: URL, deadlineAt?: number): Promise<void> {
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".localhost")) throw new Error("Website host is not publicly reachable.");
   if (net.isIP(host)) {
     if (isUnsafeIp(host)) throw new Error("Website address is not publicly reachable.");
     return;
   }
-  const addresses = await lookup(host, { all: true, verbatim: true });
+  const addresses = await lookupWithDeadline(host, deadlineAt);
   if (!addresses.length || addresses.some(item => isUnsafeIp(item.address))) {
     throw new Error("Website resolves to a non-public address.");
   }
@@ -77,19 +103,20 @@ export function equivalentHostname(a: string, b: string): boolean {
   return strip(a) === strip(b);
 }
 
-async function requestPublicWebsite(url: URL): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
-  await assertSafeWebsiteUrl(url);
+async function requestPublicWebsite(url: URL, deadlineAt?: number): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
+  await assertSafeWebsiteUrl(url, deadlineAt);
   const transport = url.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (error?: Error, value?: { status: number; headers: http.IncomingHttpHeaders; body: Buffer }) => {
       if (settled) return;
       settled = true;
+      clearTimeout(deadlineTimer);
       if (error) reject(error);
       else resolve(value!);
     };
     const safeLookup = (hostname: string, options: any, callback: (...args: any[]) => void) => {
-      lookup(hostname, { all: true, verbatim: true }).then(addresses => {
+      lookupWithDeadline(hostname, deadlineAt).then(addresses => {
         if (!addresses.length || addresses.some(item => isUnsafeIp(item.address))) {
           callback(new Error("Website resolves to a non-public address."));
           return;
@@ -126,7 +153,11 @@ async function requestPublicWebsite(url: URL): Promise<{ status: number; headers
       response.on("end", () => finish(undefined, { status, headers: response.headers, body: Buffer.concat(chunks) }));
       response.on("error", error => finish(error));
     });
-    request.setTimeout(WEBSITE_TIMEOUT_MS, () => request.destroy(new Error("Website request timed out.")));
+    const requestTimeout = deadlineAt === undefined
+      ? WEBSITE_TIMEOUT_MS
+      : Math.min(WEBSITE_TIMEOUT_MS, Math.max(1, remainingTime(deadlineAt)));
+    const deadlineTimer = setTimeout(() => request.destroy(timeoutError("Website research timed out.")), requestTimeout);
+    request.setTimeout(requestTimeout, () => request.destroy(timeoutError("Website request timed out.")));
     request.on("error", error => finish(error));
     request.end();
   });
@@ -144,13 +175,17 @@ export function extractWebsiteText(input: string, maxChars = 20_000): string {
 }
 
 /** Fetches only a public, same-site document. Website text is data, never instructions. */
-export async function fetchWebsiteText(storedUrl: unknown): Promise<{ url: string; text: string }> {
+export async function fetchWebsiteText(storedUrl: unknown, options: { deadlineAt?: number } = {}): Promise<{ url: string; text: string }> {
   const normalized = normalizeWebsiteUrl(storedUrl);
   if (!normalized) throw new Error("The configured website URL is invalid.");
+  const websiteDeadlineAt = Math.min(
+    options.deadlineAt ?? Number.POSITIVE_INFINITY,
+    Date.now() + WEBSITE_TIMEOUT_MS,
+  );
   let url: URL = normalized;
   const initialHost = url.hostname;
   for (let redirects = 0; redirects <= 3; redirects++) {
-    const response = await requestPublicWebsite(url);
+    const response = await requestPublicWebsite(url, websiteDeadlineAt);
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.location;
       if (!location) throw new Error("Website returned a redirect without a location.");
@@ -233,31 +268,60 @@ export function sanitizeDraftResponse(value: unknown, candidates: DraftProduct[]
   return { subject: plain(raw.subject, MAX_SUBJECT), bodyText: body, recommendedProductIds: Array.from(new Set(recommendedProductIds)) };
 }
 
-export async function generateSalesDraft(prompt: { system: string; user: string }, candidates: DraftProduct[]) {
+export async function generateSalesDraft(
+  prompt: { system: string; user: string },
+  candidates: DraftProduct[],
+  options: { deadlineAt?: number } = {},
+) {
+  const deadlineAt = options.deadlineAt ?? Date.now() + AI_DRAFT_TOTAL_TIMEOUT_MS;
+  const providerSignal = () => {
+    const remaining = remainingTime(deadlineAt);
+    if (remaining <= 0) throw timeoutError("AI draft generation timed out. Please try again.");
+    return AbortSignal.timeout(Math.min(AI_PROVIDER_TIMEOUT_MS, remaining));
+  };
   const askOpenAi = async () => {
     if (!process.env.OPENAI_API_KEY) throw new Error("OpenAI API key is not configured.");
-    return fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "gpt-4o", temperature: 0.4, max_tokens: 3000, response_format: { type: "json_object" }, messages: [{ role: "system", content: prompt.system }, { role: "user", content: prompt.user }] }), signal: AbortSignal.timeout(60_000) });
+    return fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "gpt-4o", temperature: 0.4, max_tokens: 3000, response_format: { type: "json_object" }, messages: [{ role: "system", content: prompt.system }, { role: "user", content: prompt.user }] }), signal: providerSignal() });
   };
-  let response = await askOpenAi();
+  let response: Response | undefined;
+  let openAiError: unknown;
+  try {
+    response = await askOpenAi();
+  } catch (error) {
+    openAiError = error;
+  }
   let content = "";
-  if (response.ok) {
+  if (response?.ok) {
     const payload = await response.json();
     if (payload?.choices?.[0]?.finish_reason === "length") throw new Error("AI draft was truncated. Please try again.");
     content = payload?.choices?.[0]?.message?.content || "";
-  }
-  else if (response.status === 429 || response.status >= 500) {
-    let last = "";
-    for (const model of ["gemini-flash-latest", "gemini-3-flash-preview"]) {
-      const gemini = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: "POST", headers: { "x-goog-api-key": process.env.GEMINI_API_KEY || "", "Content-Type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt.system }] }, contents: [{ role: "user", parts: [{ text: prompt.user }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 8000, responseMimeType: "application/json" } }), signal: AbortSignal.timeout(60_000) });
-      if (gemini.ok) {
-        const payload = await gemini.json();
-        if (payload?.candidates?.[0]?.finishReason === "MAX_TOKENS") throw new Error("AI draft was truncated. Please try again.");
-        content = (payload?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("");
-        break;
+  } else if (!response || response.status === 429 || response.status >= 500) {
+    let last = openAiError instanceof Error && openAiError.name === "TimeoutError" ? "timeout" : "";
+    for (const model of ["gemini-3.1-flash-lite", "gemini-flash-latest"]) {
+      try {
+        const generationConfig: Record<string, unknown> = {
+          temperature: 0.4,
+          maxOutputTokens: 2_400,
+          responseMimeType: "application/json",
+        };
+        if (model === "gemini-3.1-flash-lite") generationConfig.thinkingConfig = { thinkingBudget: 0 };
+        const gemini = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: "POST", headers: { "x-goog-api-key": process.env.GEMINI_API_KEY || "", "Content-Type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt.system }] }, contents: [{ role: "user", parts: [{ text: prompt.user }] }], generationConfig }), signal: providerSignal() });
+        if (gemini.ok) {
+          const payload = await gemini.json();
+          if (payload?.candidates?.[0]?.finishReason === "MAX_TOKENS") throw new Error("AI draft was truncated. Please try again.");
+          content = (payload?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("");
+          break;
+        }
+        last = `${gemini.status}`;
+        if (gemini.status < 500 && gemini.status !== 429) break;
+      } catch (error) {
+        last = error instanceof Error && error.name === "TimeoutError" ? "timeout" : "request failed";
       }
-      last = `${gemini.status}`;
     }
-    if (!content) throw new Error(`AI generation unavailable (Gemini ${last || "failed"}).`);
-  } else throw new Error(`AI generation failed (OpenAI ${response.status}).`);
+    if (!content) {
+      if (last === "timeout" || remainingTime(deadlineAt) <= 0) throw timeoutError("AI draft generation timed out. Please try again.");
+      throw new Error(`AI generation unavailable (Gemini ${last || "failed"}).`);
+    }
+  } else throw new Error(`AI generation failed (OpenAI ${response?.status || 0}).`);
   try { return sanitizeDraftResponse(JSON.parse(content), candidates); } catch { throw new Error("AI returned an invalid draft format."); }
 }

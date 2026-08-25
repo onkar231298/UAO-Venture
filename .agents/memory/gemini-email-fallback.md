@@ -3,10 +3,10 @@ name: Gemini fallback for AI email generation
 description: Provider-fallback design and Gemini free-tier quirks for the bulk-email AI generator.
 ---
 
-**Rule:** The AI email generator uses OpenAI gpt-4o as primary; on 429/5xx it falls back to Gemini via a two-model cascade (`gemini-flash-latest`, then `gemini-3-flash-preview`). Keep the cascade — don't reduce to a single Gemini model.
+**Rule:** AI email generation uses OpenAI gpt-4o as primary and a tested Gemini cascade on 429/5xx or provider timeout. For concise one-to-one drafts, prefer `gemini-3.1-flash-lite` with thinking disabled before a general Flash alias.
 
-**Why:** (Aug 2026) The OpenAI account ran out of credits (429 `credit_balance_exhausted`), killing the feature mid-use. The project's `GEMINI_API_KEY` (previously unused) is **free-tier**: flash models have quota, pro models are exhausted, and `gemini-2.5-flash` returns 404 "no longer available to new users" even though it appears in the models list — only the `-latest` aliases and gemini-3 previews are callable. `gemini-flash-latest` also threw a transient 503 "high demand" on first try, which is why one backup model matters.
+**Why:** (Aug 2026) The OpenAI account has returned 429 `credit_balance_exhausted`. Gemini’s model inventory is not proof that a listed model is usable: older Flash aliases have produced long timeouts, 400s, and transient 503s, while `gemini-3.1-flash-lite` returned valid structured output promptly with this key.
 
-**Gemini gotchas:** flash models are thinking models — thoughts consume `maxOutputTokens` (seen ~3k thought tokens per email), so the budget must stay generous (16000). Response text lives in `candidates[0].content.parts[].text` (join all parts). Truncation signal is `finishReason === 'MAX_TOKENS'`.
+**Gemini gotchas:** thinking consumes `maxOutputTokens`; disable it for concise structured drafts when the selected model supports that setting, but keep a larger budget for rich bulk-email HTML. Response text lives in `candidates[0].content.parts[].text` (join all parts). Truncation signal is `finishReason === 'MAX_TOKENS'`.
 
-**How to apply:** Quality parity was verified (20/20 content checks on the user's real brief). Once the user tops up OpenAI, gpt-4o automatically becomes primary again — no code change needed. If briefs start failing only on the Gemini path, re-run the check suite against the cascade models before blaming the prompt.
+**How to apply:** Give the full provider cascade one request-level deadline rather than an independent long timeout per model. After any model change, run a live structured-output canary with the configured key; do not trust the models-list response alone. Once OpenAI is funded, gpt-4o becomes primary again without a code change.

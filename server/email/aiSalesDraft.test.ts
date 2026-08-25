@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildSalesDraftPrompt,
   equivalentHostname,
+  generateSalesDraft,
   extractWebsiteText,
   isUnsafeIp,
   normalizeWebsiteUrl,
@@ -77,4 +78,61 @@ test("unsupported commercial and certification claims are rejected", () => {
 test("draft service remains isolated from delivery, storage, and campaign modules", () => {
   const source = readFileSync(new URL("./aiSalesDraft.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /sendgrid|titan|email-campaigns|storage\./i);
+});
+
+test("provider timeout falls back within the shared deadline", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalOpenAiKey = process.env.OPENAI_API_KEY;
+  const originalGeminiKey = process.env.GEMINI_API_KEY;
+  const calls: string[] = [];
+  process.env.OPENAI_API_KEY = "test-openai";
+  process.env.GEMINI_API_KEY = "test-gemini";
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    calls.push(url);
+    if (url.includes("api.openai.com")) {
+      const error = new Error("provider timeout");
+      error.name = "TimeoutError";
+      throw error;
+    }
+    return new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: JSON.stringify({ subject: "Hello", bodyText: "A concise introduction.", recommendedProductIds: [1] }) }] } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+  try {
+    const draft = await generateSalesDraft(
+      { system: "system", user: "user" },
+      [{ id: 1, name: "Ginger", isActive: true }],
+      { deadlineAt: Date.now() + 5_000 },
+    );
+    assert.equal(draft.subject, "Hello");
+    assert.deepEqual(draft.recommendedProductIds, [1]);
+    assert.equal(calls.length, 2);
+    assert.match(calls[1], /generativelanguage\.googleapis\.com.*gemini-3\.1-flash-lite/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalOpenAiKey;
+    if (originalGeminiKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = originalGeminiKey;
+  }
+});
+
+test("an exhausted draft deadline fails quickly with a safe timeout", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalOpenAiKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "test-openai";
+  globalThis.fetch = (async () => {
+    throw new Error("fetch should not be called after the deadline");
+  }) as typeof fetch;
+  try {
+    await assert.rejects(
+      () => generateSalesDraft({ system: "system", user: "user" }, [], { deadlineAt: Date.now() - 1 }),
+      error => error instanceof Error && error.name === "TimeoutError" && error.message === "AI draft generation timed out. Please try again.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalOpenAiKey;
+  }
 });

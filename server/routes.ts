@@ -109,6 +109,7 @@ import {
 } from "./email/syncPolicy";
 import {
   buildSalesDraftPrompt,
+  AI_DRAFT_TOTAL_TIMEOUT_MS,
   fetchWebsiteText,
   generateSalesDraft,
   normalizeWebsiteUrl,
@@ -7399,6 +7400,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!["cold", "reply", "follow_up"].includes(body.mode)) return res.status(400).json({ message: "mode must be cold, reply, or follow_up" });
       if (typeof body.instruction !== "undefined" && (typeof body.instruction !== "string" || body.instruction.length > 2_000)) return res.status(400).json({ message: "instruction must be plain text up to 2000 characters" });
       if (typeof body.productIds !== "undefined" && (!Array.isArray(body.productIds) || body.productIds.length > 12 || body.productIds.some((id: unknown) => !Number.isInteger(id)))) return res.status(400).json({ message: "productIds must contain at most 12 numeric IDs" });
+      const draftDeadlineAt = Date.now() + AI_DRAFT_TOTAL_TIMEOUT_MS;
       const now = Date.now();
       const attempts = (aiSalesDraftRateLimits.get(userId) || []).filter(time => time > now - 60_000);
       if (attempts.length >= 6) return res.status(429).json({ message: "Too many draft generations. Please wait a minute." });
@@ -7443,7 +7445,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       let websiteText = "";
       if (normalizedWebsite) {
         try {
-          const fetched = await fetchWebsiteText(company.website);
+          const fetched = await fetchWebsiteText(company.website, { deadlineAt: draftDeadlineAt });
           website = { status: "fetched", url: fetched.url }; websiteText = fetched.text;
         } catch (error: any) { website = { status: "unavailable", message: error?.message || "Website could not be safely fetched." }; }
       }
@@ -7482,7 +7484,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         websiteText,
         products: selectedCandidates,
         threadText,
-      }), selectedCandidates);
+      }), selectedCandidates, { deadlineAt: draftDeadlineAt });
       if (!generated.subject || !generated.bodyText) return res.status(502).json({ message: "AI returned an incomplete draft. Please try again." });
       const recommendedProducts = generated.recommendedProductIds.map(id => selectedCandidates.find(product => product.id === id)).filter(Boolean).map(product => ({ id: product!.id, name: product!.name }));
       const sourceSummary = ["Company profile", `Products: ${selectedCandidates.length} eligible candidate${selectedCandidates.length === 1 ? "" : "s"}`];
@@ -7498,7 +7500,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       });
     } catch (error: any) {
       console.error("AI sales draft error:", error);
-      res.status(502).json({ message: error?.message || "Failed to generate AI sales draft" });
+      const message = error?.message || "Failed to generate AI sales draft";
+      const timedOut = error?.name === "TimeoutError" || /timed out|timeout/i.test(message);
+      res.status(timedOut ? 504 : 502).json({ message: timedOut ? "AI draft generation timed out. Please try again." : message });
     }
   });
 
