@@ -30,6 +30,21 @@ export interface AiSalesEmailDialogProps {
 const labels: Record<AiEmailMode, string> = { cold: "Cold outreach", reply: "Reply", follow_up: "Follow-up" };
 const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;").replace(/\n/g, "<br />");
+const draftErrorMessage = (error: unknown) => {
+  const raw = error instanceof Error ? error.message : "";
+  const statusMatch = raw.match(/^(\d{3}):\s*([\s\S]*)$/);
+  const status = statusMatch ? Number(statusMatch[1]) : undefined;
+  let detail = statusMatch?.[2] || raw;
+  try {
+    const parsed = JSON.parse(detail);
+    if (typeof parsed?.message === "string") detail = parsed.message;
+  } catch {
+    // Keep a non-JSON server message as-is.
+  }
+  if (status === 504) return "Website research or the AI providers did not finish within 30 seconds. Please try again; you can also select up to three products manually.";
+  if (status === 429) return "Too many drafts were requested in a short time. Wait one minute, then try again.";
+  return detail || "Draft generation failed. Please try again.";
+};
 
 export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange, initialMode = "cold", initialRecipientEmail = "", initialContactId, initialThreadId }: AiSalesEmailDialogProps) {
   const { toast } = useToast();
@@ -183,14 +198,20 @@ export function AiSalesEmailDialog({ companyId, companyName, open, onOpenChange,
         </label>}
          <div className="rounded-lg border bg-amber-50/50 p-3">
            <div className="flex items-center gap-2 text-sm font-medium"><Globe2 className="h-4 w-4 text-amber-700" /> Company product matching <span className="text-xs font-normal text-muted-foreground">automatic</span></div>
-           <p className="mt-1 text-xs text-muted-foreground">Leave this empty to use only exact product variants found on the prospect website. A manual Bright Fame catalog selection overrides automatic matching and will be named in the email.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {generateMutation.isPending
+                ? "Scanning the saved website and preparing the draft… Website research stops after 8 seconds so it cannot hold up the request."
+                : context?.company.website
+                  ? "The website scan starts when you click Generate draft and normally takes a few seconds. Exact catalog matches appear below the finished draft. Leave manual selection empty to use automatic matches."
+                  : "No website is saved for this company, so the draft will use CRM context only. Add a company website or select up to three Bright Fame products manually."}
+            </p>
            <Input value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Optional: search Bright Fame catalog…" className="mt-2 bg-background" />
             <div className="mt-2 flex max-h-24 flex-wrap gap-2 overflow-y-auto">{visibleProducts.length ? visibleProducts.map(p => <button type="button" key={p.id} disabled={!manualProductIds.includes(p.id) && manualProductIds.length >= 3} onClick={() => toggleProduct(p.id)} className={`rounded-full border px-2.5 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40 ${manualProductIds.includes(p.id) ? "border-amber-700 bg-amber-100 text-amber-900" : "bg-background"}`}>{manualProductIds.includes(p.id) && <Check className="mr-1 inline h-3 w-3" />}{p.name}</button>) : <span className="text-xs text-muted-foreground">{productSearch.trim() ? "No matching Bright Fame products." : "No manual product override selected."}</span>}</div>
             <p className="mt-2 text-xs text-muted-foreground">{manualProductIds.length}/3 manual products selected</p>
         </div>
         <label className="text-sm font-medium">Brief instruction <span className="font-normal text-muted-foreground">(optional)</span><Textarea value={instruction} onChange={e => setInstruction(e.target.value)} className="mt-1" rows={2} placeholder={mode === "cold" ? "Add any special emphasis for this long-form outreach…" : "Add any specific point to address in this conversation…"} /></label>
         <div className="flex items-center justify-between border-t pt-4"><div className="text-xs text-muted-foreground">{selectedContact ? `Writing to ${selectedContact.name}` : "Select a recipient, then generate a draft."}</div><Button onClick={() => generateMutation.mutate()} disabled={!canGenerate}><RefreshCw className={`mr-2 h-4 w-4 ${generateMutation.isPending ? "animate-spin" : ""}`} />{draft ? "Regenerate" : "Generate draft"}</Button></div>
-         {generateMutation.isError && <p className="text-sm text-red-700">{(generateMutation.error as Error)?.message || "Draft generation failed. Check the recipient and try again."}</p>}
+          {generateMutation.isError && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{draftErrorMessage(generateMutation.error)}</p>}
         {draft && <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
           <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">Draft ready for review</Badge>{draft.recommendedProducts?.map(p => <Badge key={p.id} variant="outline">Included: {p.name}</Badge>)}</div>
            {draft.sourceSummary?.length ? <div className="flex flex-wrap gap-1.5">{draft.sourceSummary.map(source => <Badge key={source} variant="outline" className="font-normal">{source}</Badge>)}</div> : null}
