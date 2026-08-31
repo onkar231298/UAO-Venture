@@ -69,6 +69,7 @@ import {
   emailCampaignRecipients,
   qualityDocumentRequests,
   qualityTestingRequests,
+  qualityAttachments,
   fieldQualityRecords,
   fieldQualityTestResults,
   salesCallLogs,
@@ -80,7 +81,7 @@ import { eq, and, or, ne, isNotNull, isNull, desc, asc, inArray, sql, gte, lte, 
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
-import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, isAllowedAttachmentExt, generatePresignedUrl, getImageUrl, deleteFromS3, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
+import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, isAllowedAttachmentExt, generatePresignedUrl, getImageUrl, deleteFromS3, extractOwnedQualityAttachmentKey, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { AWSS3Service } from "./awsS3Service";
 import { imageProcessor, ImageProcessor } from "./imageProcessor";
@@ -13272,6 +13273,33 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   app.post('/api/quality/attachments', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
       const validated = insertQualityAttachmentSchema.parse(req.body);
+      if (validated.entityType === 'field_quality_record') {
+        const result = await db.transaction(async (tx) => {
+          // Serialize attachment creation with permanent field-record deletion.
+          const parent = await tx.execute(sql`
+            SELECT id FROM field_quality_records
+            WHERE id = ${validated.entityId}
+            FOR UPDATE
+          `);
+          if (!(parent as any).rows?.[0]) return null;
+          const [created] = await tx.insert(qualityAttachments).values(validated).returning();
+          return created;
+        });
+        if (!result) {
+          // A file may already have been uploaded by the two-step UI flow.
+          // Delete only a key that our own uploader could have produced.
+          const key = extractOwnedQualityAttachmentKey(validated.fileUrl);
+          if (key) {
+            try {
+              await deleteFromS3(key);
+            } catch (cleanupError) {
+              console.error('Failed to clean up attachment uploaded for missing field record:', cleanupError);
+            }
+          }
+          return res.status(404).json({ message: 'Field quality record not found' });
+        }
+        return res.status(201).json(result);
+      }
       const result = await storage.createQualityAttachment(validated);
       res.status(201).json(result);
     } catch (error) {
@@ -13470,6 +13498,10 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     try {
       const userId = req.user?.claims?.sub;
       const body = req.body;
+      const linkedIrfReference = body.linkedIrfId ? String(body.linkedIrfId) : null;
+      if (linkedIrfReference && body.formType !== 'TRF') {
+        return res.status(400).json({ message: 'Only TRF records can link to an IRF' });
+      }
       const recordNumber = await generateFieldQualityRecordNumber(body.formType);
       const insertData: any = {
         recordNumber,
@@ -13501,14 +13533,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         labPhone: body.labPhone || null,
         labEmail: body.labEmail || null,
         sampleId: body.sampleId || null,
-        linkedIrfId: await (async () => {
-          if (!body.linkedIrfId) return null;
-          const asInt = parseInt(body.linkedIrfId);
-          if (!isNaN(asInt)) return asInt;
-          // Lookup by record number string
-          const rows = await db.execute(sql`SELECT id FROM field_quality_records WHERE record_number = ${body.linkedIrfId} LIMIT 1`);
-          return rows.rows?.[0]?.id || null;
-        })(),
+        linkedIrfId: null,
         testParameters: body.testParameters || [],
         formData: body.formData || {},
         invoiceNumber: body.invoiceNumber || null,
@@ -13524,7 +13549,28 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         createdById: userId,
         notes: body.notes || null,
       };
-      const [created] = await db.insert(fqrTable).values(insertData).returning();
+      let created: any;
+      if (linkedIrfReference) {
+        created = await db.transaction(async (tx) => {
+          // Coordinate with permanent IRF deletion. DELETE locks this same row,
+          // so creation either commits first and is unlinked, or sees no IRF.
+          const target = await tx.execute(sql`
+            SELECT id FROM field_quality_records
+            WHERE form_type = 'IRF'
+              AND ${/^[1-9]\d*$/.test(linkedIrfReference)
+                ? sql`id = ${Number(linkedIrfReference)}`
+                : sql`record_number = ${linkedIrfReference}`}
+            FOR UPDATE
+          `);
+          const irfId = (target as any).rows?.[0]?.id;
+          if (!irfId) return null;
+          const [row] = await tx.insert(fqrTable).values({ ...insertData, linkedIrfId: Number(irfId) }).returning();
+          return row;
+        });
+        if (!created) return res.status(400).json({ message: 'Linked IRF record not found' });
+      } else {
+        [created] = await db.insert(fqrTable).values(insertData).returning();
+      }
       res.json(created);
     } catch (error) {
       console.error('Error creating field quality record:', error);
@@ -13535,30 +13581,162 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   // Update field quality record
   app.patch('/api/quality/field-records/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid record ID' });
+      }
+      const id = Number(req.params.id);
+      const [existing] = await db.select({ id: fqrTable.id }).from(fqrTable).where(eq(fqrTable.id, id));
+      if (!existing) return res.status(404).json({ message: 'Record not found' });
       const body = req.body;
       const updateData: any = { updatedAt: new Date() };
       const fields = ['status', 'overallConclusion', 'conclusionNotes', 'notes', 'invoiceNumber', 'invoiceAmount',
-        'linkedBatchId', 'linkedIrfId', 'inspectorId', 'labName', 'labAddress', 'labContactPerson', 'labPhone', 'labEmail',
+        'linkedBatchId', 'inspectorId', 'labName', 'labAddress', 'labContactPerson', 'labPhone', 'labEmail',
         'productName', 'productCode', 'quantity', 'unit', 'samplingLocation', 'samplingCity', 'samplingState',
         'contactPersonName', 'contactPersonPhone', 'contactPersonEmail', 'partyName', 'partyGst', 'partyAddress',
         'partyCity', 'partyState', 'partyPincode', 'partyContact', 'sampleId', 'testParameters', 'formData'];
       for (const f of fields) {
         if (body[f] !== undefined) updateData[f] = body[f];
       }
-      if (body.scheduledDate !== undefined) updateData.scheduledDate = body.scheduledDate ? new Date(body.scheduledDate) : null;
+      for (const field of ['quantity', 'invoiceAmount'] as const) {
+        if (body[field] !== undefined) {
+          if (body[field] === '' || body[field] === null) updateData[field] = null;
+          else if (!Number.isFinite(Number(body[field]))) return res.status(400).json({ message: `Invalid ${field}` });
+          else updateData[field] = String(body[field]);
+        }
+      }
+      if (body.linkedBatchId !== undefined) {
+        const value = body.linkedBatchId === '' || body.linkedBatchId === null ? null : Number(body.linkedBatchId);
+        if (value !== null && (!Number.isInteger(value) || value <= 0)) return res.status(400).json({ message: 'Invalid linkedBatchId' });
+        updateData.linkedBatchId = value;
+      }
+      let linkedIrfReference: string | null | undefined;
+      if (body.linkedIrfId !== undefined) {
+        if (body.linkedIrfId === '' || body.linkedIrfId === null) {
+          updateData.linkedIrfId = null;
+        } else {
+          linkedIrfReference = String(body.linkedIrfId);
+        }
+      }
+      const asDate = (field: string, value: any) => {
+        if (!value) return null;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) throw new Error(`INVALID_DATE:${field}`);
+        return date;
+      };
+      if (body.scheduledDate !== undefined) updateData.scheduledDate = asDate('scheduledDate', body.scheduledDate);
       // samplingDate (from IRF form) maps to actualDate
-      if (body.samplingDate !== undefined) updateData.actualDate = body.samplingDate ? new Date(body.samplingDate) : null;
-      else if (body.actualDate !== undefined) updateData.actualDate = body.actualDate ? new Date(body.actualDate) : null;
-      if (body.expectedDueDate !== undefined) updateData.expectedDueDate = body.expectedDueDate ? new Date(body.expectedDueDate) : null;
-      if (body.invoiceDate !== undefined) updateData.invoiceDate = body.invoiceDate ? new Date(body.invoiceDate) : null;
+      if (body.samplingDate !== undefined) updateData.actualDate = asDate('samplingDate', body.samplingDate);
+      else if (body.actualDate !== undefined) updateData.actualDate = asDate('actualDate', body.actualDate);
+      if (body.expectedDueDate !== undefined) updateData.expectedDueDate = asDate('expectedDueDate', body.expectedDueDate);
+      if (body.invoiceDate !== undefined) updateData.invoiceDate = asDate('invoiceDate', body.invoiceDate);
       // inspectorAssigned (text) maps to inspectorId (which is VARCHAR in DB)
       if (body.inspectorAssigned !== undefined) updateData.inspectorId = body.inspectorAssigned;
-      const [updated] = await db.update(fqrTable).set(updateData).where(eq(fqrTable.id, id)).returning();
+      let updated: any;
+      if (linkedIrfReference) {
+        const linkedValue = linkedIrfReference;
+        const result = await db.transaction(async (tx) => {
+          // Lock the IRF until this TRF update commits. DELETE locks this same
+          // row before nulling links, so the two operations cannot race.
+          const target = await tx.execute(sql`
+            SELECT id FROM field_quality_records
+            WHERE form_type = 'IRF'
+              AND ${/^[1-9]\d*$/.test(linkedValue)
+                ? sql`id = ${Number(linkedValue)}`
+                : sql`record_number = ${linkedValue}`}
+            FOR UPDATE
+          `);
+          const irfId = (target as any).rows?.[0]?.id;
+          if (!irfId) return null;
+          updateData.linkedIrfId = Number(irfId);
+          const [row] = await tx.update(fqrTable).set(updateData).where(eq(fqrTable.id, id)).returning();
+          return row;
+        });
+        if (!result) return res.status(400).json({ message: 'Linked IRF record not found' });
+        updated = result;
+      } else {
+        [updated] = await db.update(fqrTable).set(updateData).where(eq(fqrTable.id, id)).returning();
+      }
       res.json(updated);
     } catch (error) {
+      if (error instanceof Error && error.message.startsWith('INVALID_DATE:')) {
+        return res.status(400).json({ message: `Invalid ${error.message.split(':')[1]}` });
+      }
       console.error('Error updating field quality record:', error);
       res.status(500).json({ message: 'Failed to update field quality record' });
+    }
+  });
+
+  // Permanently delete a field quality record and all database-owned children.
+  app.delete('/api/quality/field-records/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
+    try {
+      if (!/^[1-9]\d*$/.test(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid record ID' });
+      }
+      const id = Number(req.params.id);
+      const deleted = await db.transaction(async (tx) => {
+        // This lock is intentionally held through S3 cleanup: attachment POST
+        // locks the same row, so it either commits before this read or waits and
+        // then observes the missing parent and cleans up its uploaded file.
+        const locked = await tx.execute(sql`SELECT id, form_type FROM field_quality_records WHERE id = ${id} FOR UPDATE`);
+        const parent = (locked as any).rows?.[0];
+        if (!parent) throw new Error('FIELD_RECORD_NOT_FOUND');
+        if (parent.form_type !== 'IRF' && parent.form_type !== 'TRF') throw new Error('FIELD_RECORD_NOT_DELETABLE');
+
+        const attachments = await tx.select({ fileUrl: qualityAttachments.fileUrl })
+          .from(qualityAttachments)
+          .where(and(eq(qualityAttachments.entityType, 'field_quality_record'), eq(qualityAttachments.entityId, id)));
+        const ownedKeys = attachments
+          .map((attachment) => extractOwnedQualityAttachmentKey(attachment.fileUrl))
+          .filter((key): key is string => !!key);
+        for (const key of ownedKeys) {
+          let deletedFromStorage = false;
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 3 && !deletedFromStorage; attempt++) {
+            try {
+              await deleteFromS3(key);
+              deletedFromStorage = true;
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          if (!deletedFromStorage) {
+            console.error(`Failed to clean up field quality attachment for record ${id} after 3 attempts:`, lastError);
+            throw new Error('FIELD_RECORD_STORAGE_DELETE_FAILED');
+          }
+        }
+        const unlinked = await tx.update(fqrTable).set({ linkedIrfId: null, updatedAt: new Date() })
+          .where(eq(fqrTable.linkedIrfId, id)).returning({ id: fqrTable.id });
+        const results = await tx.delete(fqtrTable).where(eq(fqtrTable.recordId, id)).returning({ id: fqtrTable.id });
+        const attachmentRows = await tx.delete(qualityAttachments)
+          .where(and(eq(qualityAttachments.entityType, 'field_quality_record'), eq(qualityAttachments.entityId, id)))
+          .returning({ id: qualityAttachments.id });
+        await tx.delete(fqrTable).where(eq(fqrTable.id, id));
+        return { unlinked: unlinked.length, testResults: results.length, attachmentRows: attachmentRows.length, storageFiles: ownedKeys.length };
+      });
+      res.json({
+        success: true,
+        deleted: {
+          records: 1,
+          testResults: deleted.testResults,
+          attachments: deleted.attachmentRows,
+          unlinkedRecords: deleted.unlinked,
+          storageFiles: deleted.storageFiles,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'FIELD_RECORD_NOT_FOUND') {
+        return res.status(404).json({ message: 'Record not found' });
+      }
+      if (error instanceof Error && error.message === 'FIELD_RECORD_NOT_DELETABLE') {
+        return res.status(400).json({ message: 'Only IRF and TRF records can be permanently deleted' });
+      }
+      if (error instanceof Error && error.message === 'FIELD_RECORD_STORAGE_DELETE_FAILED') {
+        return res.status(502).json({
+          message: 'Could not delete an attached storage file. The record was not deleted and can be retried.',
+        });
+      }
+      console.error('Error deleting field quality record:', error);
+      res.status(500).json({ message: 'Failed to delete field quality record' });
     }
   });
 

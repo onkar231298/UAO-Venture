@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -2348,6 +2349,8 @@ function FieldQualityRecordsSection() {
   const [createFormType, setCreateFormType] = useState<"IRF" | "TRF" | "loading_inspection" | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [editingResult, setEditingResult] = useState<any>(null);
   const [invoiceEditing, setInvoiceEditing] = useState(false);
@@ -2432,9 +2435,28 @@ function FieldQualityRecordsSection() {
       toast({ title: "Record updated" });
       setSelectedRecord((prev: any) => prev ? { ...prev, ...updated } : prev);
       queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
+      setEditingRecord(null);
       refetchDetail();
     },
     onError: () => toast({ title: "Failed to update record", variant: "destructive" }),
+  });
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: async (record: any) => {
+      const res = await apiRequest(`/api/quality/field-records/${record.id}`, { method: "DELETE" });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Record permanently deleted" });
+      setRecordToDelete(null);
+      setEditingRecord(null);
+      setShowDetailDialog(false);
+      setSelectedRecord(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
+    },
+    onError: () => toast({ title: "Failed to delete record", variant: "destructive" }),
   });
 
   const addResultMutation = useMutation({
@@ -2677,7 +2699,22 @@ function FieldQualityRecordsSection() {
         <Dialog open={showDetailDialog} onOpenChange={(v) => { setShowDetailDialog(v); if (!v) { setEditingResult(null); } }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-mono text-base">{selectedRecord.recordNumber}</DialogTitle>
+              <div className="flex items-center justify-between gap-3 pr-8">
+                <DialogTitle className="font-mono text-base">{selectedRecord.recordNumber}</DialogTitle>
+                {(selectedRecord.formType === "IRF" || selectedRecord.formType === "TRF") && (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                      setEditingRecord(detailData || selectedRecord);
+                      setShowDetailDialog(false);
+                    }}>
+                      <Edit className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button size="sm" variant="destructive" className="gap-1" onClick={() => setRecordToDelete(selectedRecord)}>
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                )}
+              </div>
               <DialogDescription>
                 {tabLabels[selectedRecord.formType as string] || selectedRecord.formType} — {selectedRecord.productName}
                 {isOverdue(selectedRecord) && (
@@ -3043,6 +3080,38 @@ function FieldQualityRecordsSection() {
         </Dialog>
       )}
 
+      {editingRecord && (
+        <CreateFieldQualityRecordDialog
+          open={!!editingRecord}
+          onOpenChange={(v) => { if (!v) setEditingRecord(null); }}
+          formType={editingRecord.formType}
+          initialRecord={editingRecord}
+          onSubmit={(formData) => updateMutation.mutate({ ...formData, id: editingRecord.id })}
+          isLoading={updateMutation.isPending}
+        />
+      )}
+
+      <AlertDialog open={!!recordToDelete} onOpenChange={(open) => { if (!open) setRecordToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete {recordToDelete?.recordNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The record, all test results, and all attachments will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRecordMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteRecordMutation.isPending}
+              onClick={() => recordToDelete && deleteRecordMutation.mutate(recordToDelete)}
+            >
+              {deleteRecordMutation.isPending ? "Deleting..." : "Permanently Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* ADD TEST RESULT DIALOG */}
       {showResultDialog && selectedRecord && (
         <AddTestResultDialog
@@ -3150,22 +3219,35 @@ const LI_CHECKLIST_ITEMS = [
   "Bags in good condition",
 ];
 
-function CreateFieldQualityRecordDialog({
-  open, onOpenChange, formType, onSubmit, isLoading
-}: { open: boolean; onOpenChange: (v: boolean) => void; formType: string; onSubmit: (data: any) => void; isLoading: boolean }) {
-  const [form, setForm] = useState({
+export function CreateFieldQualityRecordDialog({
+  open, onOpenChange, formType, onSubmit, isLoading, initialRecord
+}: { open: boolean; onOpenChange: (v: boolean) => void; formType: string; onSubmit: (data: any) => void; isLoading: boolean; initialRecord?: any }) {
+  const dateValue = (value: any) => value ? new Date(value).toISOString().slice(0, 10) : "";
+  const [form, setForm] = useState<any>(() => ({
     productName: "", productCode: "", quantity: "", unit: "MT",
     scheduledDate: "", samplingDate: "", expectedDueDate: "",
     partyName: "", partyGst: "", partyAddress: "", partyCity: "", partyState: "", partyPincode: "", partyContact: "",
-    samplingLocation: "",
+    samplingLocation: "", samplingCity: "", samplingState: "",
     contactPersonName: "", contactPersonPhone: "", contactPersonEmail: "",
     labName: "", labAddress: "", labContactPerson: "", labPhone: "", labEmail: "",
     sampleId: "", invoiceNumber: "", invoiceDate: "", invoiceAmount: "",
     inspectorAssigned: "",
     linkedIrfId: "",
-    notes: "", status: "scheduled",
+    notes: "", status: "scheduled", overallConclusion: "", conclusionNotes: "",
     testParameters: [] as any[],
-  });
+    ...(initialRecord ? {
+      ...initialRecord,
+      quantity: initialRecord.quantity ?? "",
+      invoiceAmount: initialRecord.invoiceAmount ?? "",
+      scheduledDate: dateValue(initialRecord.scheduledDate),
+      samplingDate: dateValue(initialRecord.actualDate),
+      expectedDueDate: dateValue(initialRecord.expectedDueDate),
+      invoiceDate: dateValue(initialRecord.invoiceDate),
+      inspectorAssigned: initialRecord.inspectorId || "",
+      linkedIrfId: initialRecord.linkedIrfId?.toString() || "",
+      testParameters: initialRecord.testParameters || [],
+    } : {}),
+  }));
   const [liFormData, setLiFormData] = useState({
     vehicleNumber: "", sealNumber: "",
     grossWeight: "", netWeight: "", tareWeight: "",
@@ -3176,14 +3258,14 @@ function CreateFieldQualityRecordDialog({
   });
   const [newParam, setNewParam] = useState({ parameterName: "", method: "", specLimit: "" });
 
-  const f = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+  const f = (key: string, val: string) => setForm((prev: any) => ({ ...prev, [key]: val }));
   const lif = (key: string, val: string) => setLiFormData(prev => ({ ...prev, [key]: val }));
 
   const handleSubmit = () => {
     if (!form.productName) return;
     const payload: any = { ...form };
     // TRF workflow starts at "sent", LI and IRF start at "scheduled"
-    if (formType === "TRF" && payload.status === "scheduled") {
+    if (!initialRecord && formType === "TRF" && payload.status === "scheduled") {
       payload.status = "sent";
     }
     if (formType === "loading_inspection") {
@@ -3194,12 +3276,12 @@ function CreateFieldQualityRecordDialog({
 
   const addParam = () => {
     if (!newParam.parameterName) return;
-    setForm(prev => ({ ...prev, testParameters: [...prev.testParameters, { ...newParam }] }));
+    setForm((prev: any) => ({ ...prev, testParameters: [...prev.testParameters, { ...newParam }] }));
     setNewParam({ parameterName: "", method: "", specLimit: "" });
   };
 
   const removeParam = (i: number) => {
-    setForm(prev => ({ ...prev, testParameters: prev.testParameters.filter((_, idx) => idx !== i) }));
+    setForm((prev: any) => ({ ...prev, testParameters: prev.testParameters.filter((_: any, idx: number) => idx !== i) }));
   };
 
   const isIRF = formType === "IRF";
@@ -3211,8 +3293,10 @@ function CreateFieldQualityRecordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New {typeLabel} Record</DialogTitle>
-          <DialogDescription>Fill in all relevant details. Record number will be auto-generated.</DialogDescription>
+          <DialogTitle>{initialRecord ? "Edit" : "New"} {typeLabel} Record</DialogTitle>
+          <DialogDescription>
+            {initialRecord ? `${initialRecord.recordNumber} — record number and type cannot be changed.` : "Fill in all relevant details. Record number will be auto-generated."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
 
@@ -3289,6 +3373,18 @@ function CreateFieldQualityRecordDialog({
                     <Input value={form.samplingLocation} onChange={(e) => f("samplingLocation", e.target.value)} placeholder="Where the sample was collected" />
                   </div>
                 )}
+                {!isLI && (
+                  <>
+                    <div>
+                      <Label>Sampling City</Label>
+                      <Input value={form.samplingCity} onChange={(e) => f("samplingCity", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Sampling State</Label>
+                      <Input value={form.samplingState} onChange={(e) => f("samplingState", e.target.value)} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -3320,7 +3416,7 @@ function CreateFieldQualityRecordDialog({
               <h4 className="font-semibold text-sm mb-3 text-gray-600 border-b pb-1">Source IRF Reference</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Linked IRF Record Number</Label>
+                  <Label>Linked IRF Record Number or ID</Label>
                   <Input value={form.linkedIrfId} onChange={(e) => f("linkedIrfId", e.target.value)} placeholder="e.g. BFO-IRF-2025-0001" />
                 </div>
               </div>
@@ -3472,7 +3568,7 @@ function CreateFieldQualityRecordDialog({
               </div>
               {form.testParameters.length > 0 && (
                 <div className="border rounded divide-y">
-                  {form.testParameters.map((p, i) => (
+                  {form.testParameters.map((p: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
                       <span className="flex-1 font-medium">{p.parameterName}</span>
                       <span className="text-muted-foreground text-xs">{p.method || "-"}</span>
@@ -3502,11 +3598,45 @@ function CreateFieldQualityRecordDialog({
             <Label>Notes / Instructions</Label>
             <Textarea value={form.notes} onChange={(e) => f("notes", e.target.value)} placeholder="Additional instructions or observations" rows={2} />
           </div>
+          {!isLI && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(value) => f("status", value)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(isTRF
+                      ? ["sent", "results_received", "completed", "on_hold", "rejected"]
+                      : ["scheduled", "in_progress", "sampled", "in_testing", "completed", "on_hold", "rejected"]
+                    ).map((status) => (
+                      <SelectItem key={status} value={status}>{status.replace(/_/g, " ")}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Conclusion</Label>
+                <Select value={form.overallConclusion || "none"} onValueChange={(value) => f("overallConclusion", value === "none" ? "" : value)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Pending</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="conditional">Conditional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label>Conclusion Notes</Label>
+                <Textarea value={form.conclusionNotes || ""} onChange={(e) => f("conclusionNotes", e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={isLoading || !form.productName}>
-            {isLoading ? "Creating..." : `Create ${isLI ? "Loading Inspection" : formType} Record`}
+            {isLoading ? (initialRecord ? "Saving..." : "Creating...") : initialRecord ? "Save Changes" : `Create ${isLI ? "Loading Inspection" : formType} Record`}
           </Button>
         </DialogFooter>
       </DialogContent>

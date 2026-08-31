@@ -1,10 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
+import { CreateFieldQualityRecordDialog } from "@/pages/quality/QualityDashboard";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   FileText,
   FlaskConical,
@@ -17,6 +22,8 @@ import {
   CheckCircle2,
   XCircle,
   MapPin,
+  Edit,
+  Trash2,
 } from "lucide-react";
 
 function getStatusBadge(status: string) {
@@ -47,6 +54,9 @@ function getStatusBadge(status: string) {
 }
 
 export default function AdminQualityOverview() {
+  const { toast } = useToast();
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/quality/dashboard-stats"],
   });
@@ -57,6 +67,35 @@ export default function AdminQualityOverview() {
       const res = await fetch("/api/quality/field-records?limit=10");
       return res.json();
     },
+  });
+
+  const updateFieldRecord = useMutation({
+    mutationFn: async (body: any) => {
+      const { id, ...updates } = body;
+      const res = await apiRequest(`/api/quality/field-records/${id}`, { method: "PATCH", body: JSON.stringify(updates) });
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditingRecord(null);
+      toast({ title: "Record updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
+    },
+    onError: () => toast({ title: "Failed to update record", variant: "destructive" }),
+  });
+
+  const deleteFieldRecord = useMutation({
+    mutationFn: async (record: any) => {
+      const res = await apiRequest(`/api/quality/field-records/${record.id}`, { method: "DELETE" });
+      return res.json();
+    },
+    onSuccess: () => {
+      setRecordToDelete(null);
+      toast({ title: "Record permanently deleted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/field-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quality/dashboard-stats"] });
+    },
+    onError: () => toast({ title: "Failed to delete record", variant: "destructive" }),
   });
 
   const { data: docRequests } = useQuery<any>({
@@ -429,6 +468,7 @@ export default function AdminQualityOverview() {
                     <TableHead>Status</TableHead>
                     <TableHead>Conclusion</TableHead>
                     <TableHead>Date</TableHead>
+                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -458,11 +498,23 @@ export default function AdminQualityOverview() {
                         ) : <span className="text-xs text-muted-foreground">Pending</span>}
                       </TableCell>
                       <TableCell className="text-sm">{new Date(rec.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {(rec.formType === "IRF" || rec.formType === "TRF") && (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" aria-label={`Edit ${rec.recordNumber}`} onClick={() => setEditingRecord(rec)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-destructive" aria-label={`Delete ${rec.recordNumber}`} onClick={() => setRecordToDelete(rec)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {(!fieldRecords?.records || fieldRecords.records.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         No testing records yet
                       </TableCell>
                     </TableRow>
@@ -473,6 +525,38 @@ export default function AdminQualityOverview() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {editingRecord && (
+        <CreateFieldQualityRecordDialog
+          open={!!editingRecord}
+          onOpenChange={(open) => { if (!open) setEditingRecord(null); }}
+          formType={editingRecord.formType}
+          initialRecord={editingRecord}
+          onSubmit={(updates) => updateFieldRecord.mutate({ ...updates, id: editingRecord.id })}
+          isLoading={updateFieldRecord.isPending}
+        />
+      )}
+
+      <AlertDialog open={!!recordToDelete} onOpenChange={(open) => { if (!open) setRecordToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete {recordToDelete?.recordNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The record, all test results, and all attachments will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteFieldRecord.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteFieldRecord.isPending}
+              onClick={() => recordToDelete && deleteFieldRecord.mutate(recordToDelete)}
+            >
+              {deleteFieldRecord.isPending ? "Deleting..." : "Permanently Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

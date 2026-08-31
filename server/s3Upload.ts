@@ -93,6 +93,30 @@ export function extractS3Key(imageUrl: string): string {
   return imageUrl.replace(`${CDN_URL}/`, '');
 }
 
+/**
+ * Returns an S3 key only for URLs produced by this application's quality
+ * attachment uploader. Pasted third-party URLs (including lookalike hosts) are
+ * deliberately ignored so record deletion can never remove arbitrary objects.
+ */
+export function extractOwnedQualityAttachmentKey(fileUrl: string): string | null {
+  try {
+    const base = new URL(CDN_URL.endsWith('/') ? CDN_URL : `${CDN_URL}/`);
+    const candidate = new URL(fileUrl);
+    if (candidate.origin !== base.origin) return null;
+
+    const basePath = base.pathname.replace(/^\/+|\/+$/g, '');
+    const encodedPrefix = [basePath, 'quality-attachments'].filter(Boolean).join('/') + '/';
+    const candidatePath = candidate.pathname.replace(/^\/+/, '');
+    if (!candidatePath.startsWith(encodedPrefix)) return null;
+
+    const key = decodeURIComponent(candidatePath.slice(basePath ? basePath.length + 1 : 0));
+    if (!key.startsWith('quality-attachments/') || key.includes('\0')) return null;
+    return key;
+  } catch {
+    return null;
+  }
+}
+
 // Image upload middleware for products
 export const productImageUpload = uploadToS3.fields([
   { name: 'mainImage', maxCount: 1 },
