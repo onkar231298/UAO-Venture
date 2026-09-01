@@ -309,8 +309,13 @@ export default function HRManagement() {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       toast({ title: "Salary configuration saved" });
+      const detailQueryKey = ["/api/hr/admin/salary", selectedStaff?.id];
+      if (response?.salary) {
+        queryClient.setQueryData(detailQueryKey, response.salary);
+      }
+      queryClient.invalidateQueries({ queryKey: detailQueryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/hr/admin/salaries"] });
       setShowSalaryDialog(false);
     },
