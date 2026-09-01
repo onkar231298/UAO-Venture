@@ -255,8 +255,11 @@ export default function HRManagement() {
   const { data: currentSalary, isLoading: isLoadingSalary, isFetched: isSalaryFetched } = useQuery({
     queryKey: ["/api/hr/admin/salary", selectedStaff?.id],
     enabled: !!selectedStaff?.id && showSalaryDialog,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const response = await fetch(`/api/hr/admin/salary/${selectedStaff?.id}`);
+      if (!response.ok) throw new Error("Failed to load salary configuration");
       return response.json();
     },
   });
@@ -265,7 +268,7 @@ export default function HRManagement() {
   useEffect(() => {
     // Only sync form when data has been fetched (not loading)
     if (showSalaryDialog && isSalaryFetched && !isLoadingSalary) {
-      if (currentSalary && currentSalary.id) {
+      if (currentSalary && currentSalary.id && (currentSalary as any).userId === selectedStaff?.id) {
         setSalaryForm({
           salarySlipName: (currentSalary as any).salarySlipName || "",
           basicSalary: currentSalary.basicSalary || "",
@@ -281,7 +284,7 @@ export default function HRManagement() {
           ifscCode: (currentSalary as any).ifscCode || "",
           panNumber: (currentSalary as any).panNumber || "",
         });
-      } else {
+      } else if (currentSalary === null) {
         // Only reset to blank if no existing salary config exists
         setSalaryForm({
           salarySlipName: "",
@@ -300,18 +303,20 @@ export default function HRManagement() {
         });
       }
     }
-  }, [currentSalary, showSalaryDialog, isSalaryFetched, isLoadingSalary]);
+  }, [currentSalary, selectedStaff?.id, showSalaryDialog, isSalaryFetched, isLoadingSalary]);
 
   const saveSalaryMutation = useMutation({
     mutationFn: async (data: typeof salaryForm) => {
-      return apiRequest(`/api/hr/admin/salary/${selectedStaff?.id}`, {
+      const response = await apiRequest(`/api/hr/admin/salary/${selectedStaff?.id}`, {
         method: "POST",
         body: JSON.stringify(data),
       });
+      return response.json();
     },
     onSuccess: (response: any) => {
       toast({ title: "Salary configuration saved" });
-      const detailQueryKey = ["/api/hr/admin/salary", selectedStaff?.id];
+      const savedUserId = response?.salary?.userId || selectedStaff?.id;
+      const detailQueryKey = ["/api/hr/admin/salary", savedUserId];
       if (response?.salary) {
         queryClient.setQueryData(detailQueryKey, response.salary);
       }
@@ -438,6 +443,23 @@ export default function HRManagement() {
   });
 
   const handleEditSalary = (member: StaffMember) => {
+    // Never show the previously selected employee's values while this
+    // employee's salary configuration is loading.
+    setSalaryForm({
+      salarySlipName: "",
+      basicSalary: "",
+      houseRentAllowance: "",
+      conveyanceAllowance: "",
+      medicalAllowance: "",
+      specialAllowance: "",
+      deductions: "",
+      perDayDivisor: "30",
+      perDayDivisorMode: "fixed",
+      bankAccountNumber: "",
+      bankName: "",
+      ifscCode: "",
+      panNumber: "",
+    });
     setSelectedStaff(member);
     setShowSalaryDialog(true);
   };

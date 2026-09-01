@@ -17,3 +17,4 @@
 - [AI sales draft boundaries](ai-sales-draft-boundaries.md) — website research, generation, and delivery are separate trust boundaries; AI send revalidates recipient and rejects unsupported claims.
 - [CRM recipient validation](crm-recipient-validation.md) — imported company primary-email fields can contain non-email text; exclude invalid values from composers and reject them before SMTP.
 - [Field quality deletion locking](field-quality-deletion-locking.md) — permanent IRF/TRF deletion must serialize links and attachments on the parent row and fail closed if owned-file cleanup fails.
+- [Employee-scoped HR dialogs](employee-scoped-hr-dialogs.md) — clear prior form state, verify payload ownership, and refresh scoped queries when switching employees.
