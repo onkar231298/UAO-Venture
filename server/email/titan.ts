@@ -250,7 +250,13 @@ export class TitanEmailProvider {
         if (!sentFolderPath) {
           throw new Error("Titan IMAP did not expose a Sent mailbox");
         }
-        await imap.mailboxOpen(sentFolderPath, { readOnly: true });
+        console.info("Titan Sent copy mailbox selected", {
+          sentFolderPath,
+          messageId: built.messageId,
+        });
+        // APPEND is a write operation. Opening this mailbox read-only causes
+        // Titan to reject the Sent copy even though SMTP delivery succeeded.
+        await imap.mailboxOpen(sentFolderPath, { readOnly: false });
         const existing = await imap.search({
           header: { "message-id": built.messageId },
         });
@@ -264,6 +270,15 @@ export class TitanEmailProvider {
           if (!appended) {
             throw new Error("Titan IMAP rejected the Sent mailbox copy");
           }
+          console.info("Titan Sent copy appended", {
+            sentFolderPath,
+            messageId: built.messageId,
+          });
+        } else {
+          console.info("Titan Sent copy already present", {
+            sentFolderPath,
+            messageId: built.messageId,
+          });
         }
       } finally {
         await imap.logout().catch(() => undefined);

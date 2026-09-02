@@ -43,8 +43,11 @@ test("Titan send transmits and appends the same RFC message with threading intac
           { path: "Sent Items", name: "Sent Items", specialUse: "\\Sent" },
         ];
       },
-      mailboxOpen: async (path: string) => {
+      mailboxOpen: async (path: string, options?: { readOnly?: boolean }) => {
         events.push(`imap-open:${path}`);
+        if (options?.readOnly !== false) {
+          throw new Error("Sent mailbox must be opened writable before APPEND");
+        }
       },
       search: async () => {
         events.push("imap-search");
