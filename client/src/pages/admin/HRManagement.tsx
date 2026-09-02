@@ -53,6 +53,7 @@ interface SalaryConfig {
   id: number;
   userId: string;
   salarySlipName: string | null;
+  isNewJoiner: boolean;
   joiningDate: string | null;
   basicSalary: string | null;
   houseRentAllowance: string | null;
@@ -196,6 +197,7 @@ export default function HRManagement() {
 
   const [salaryForm, setSalaryForm] = useState({
     salarySlipName: "",
+    isNewJoiner: false,
     joiningDate: "",
     basicSalary: "",
     houseRentAllowance: "",
@@ -273,6 +275,7 @@ export default function HRManagement() {
       if (currentSalary && currentSalary.id && (currentSalary as any).userId === selectedStaff?.id) {
         setSalaryForm({
           salarySlipName: (currentSalary as any).salarySlipName || "",
+          isNewJoiner: (currentSalary as any).isNewJoiner === true,
           joiningDate: (currentSalary as any).joiningDate || "",
           basicSalary: currentSalary.basicSalary || "",
           houseRentAllowance: currentSalary.houseRentAllowance || "",
@@ -291,6 +294,7 @@ export default function HRManagement() {
         // Only reset to blank if no existing salary config exists
         setSalaryForm({
           salarySlipName: "",
+          isNewJoiner: false,
           joiningDate: "",
           basicSalary: "",
           houseRentAllowance: "",
@@ -451,6 +455,7 @@ export default function HRManagement() {
     // employee's salary configuration is loading.
     setSalaryForm({
       salarySlipName: "",
+      isNewJoiner: false,
       joiningDate: "",
       basicSalary: "",
       houseRentAllowance: "",
@@ -1314,16 +1319,33 @@ export default function HRManagement() {
               />
               <p className="text-xs text-muted-foreground mt-1">This name will only appear on the salary slip PDF</p>
             </div>
-            <div>
-              <Label>Joining Date</Label>
-              <Input
-                type="date"
-                value={salaryForm.joiningDate}
-                onChange={(e) => setSalaryForm({ ...salaryForm, joiningDate: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                The first salary month is prorated from this date; days before joining are not counted as payable days.
+            <div className="rounded-md border p-3 space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={salaryForm.isNewJoiner}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, isNewJoiner: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-sm font-medium">This employee is a new joiner</span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Enable this when an old system account has been handed over to a newly joined employee.
               </p>
+              {salaryForm.isNewJoiner && (
+                <div>
+                  <Label>Actual Joining Date</Label>
+                  <Input
+                    type="date"
+                    required
+                    value={salaryForm.joiningDate}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, joiningDate: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The first salary month is prorated from this date.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

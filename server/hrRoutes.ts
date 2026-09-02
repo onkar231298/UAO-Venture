@@ -533,10 +533,14 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName, joiningDate, perDayDivisor, perDayDivisorMode } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName, isNewJoiner, joiningDate, perDayDivisor, perDayDivisorMode } = req.body;
+    const newJoiner = isNewJoiner === true;
 
     if (joiningDate && !isValidIsoDate(joiningDate)) {
       return res.status(400).json({ error: "Joining date must be a valid date" });
+    }
+    if (newJoiner && !joiningDate) {
+      return res.status(400).json({ error: "Joining date is required for a new joiner" });
     }
 
     // Helper to convert empty strings to "0" for numeric fields
@@ -573,6 +577,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           ifscCode: ifscCode || "",
           panNumber: panNumber || "",
           salarySlipName: salarySlipName || "",
+          isNewJoiner: newJoiner,
           joiningDate: joiningDate || null,
           perDayDivisor: parseInt(perDayDivisor) || 30,
           perDayDivisorMode: perDayDivisorMode || "fixed",
@@ -595,6 +600,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         ifscCode: ifscCode || "",
         panNumber: panNumber || "",
         salarySlipName: salarySlipName || "",
+        isNewJoiner: newJoiner,
         joiningDate: joiningDate || null,
         perDayDivisor: parseInt(perDayDivisor) || 30,
         perDayDivisorMode: perDayDivisorMode || "fixed",
@@ -792,7 +798,7 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       salaryPeriod = calculateSalaryPeriod({
         year: Number(year),
         month: Number(month),
-        joiningDate: salaryConfig.joiningDate,
+        joiningDate: salaryConfig.isNewJoiner ? salaryConfig.joiningDate : null,
         attendance,
         holidayDates,
       });
@@ -837,7 +843,8 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
     const fullDeductions = parseFloat(salaryConfig.deductions || '0');
     const salaryMonthKey = `${year}-${String(month).padStart(2, '0')}`;
-    const isJoiningMonth = salaryConfig.joiningDate?.slice(0, 7) === salaryMonthKey;
+    const isJoiningMonth = salaryConfig.isNewJoiner
+      && salaryConfig.joiningDate?.slice(0, 7) === salaryMonthKey;
     const {
       effectiveDivisor,
       perDaySalaryRate,
