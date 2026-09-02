@@ -53,6 +53,7 @@ interface SalaryConfig {
   id: number;
   userId: string;
   salarySlipName: string | null;
+  joiningDate: string | null;
   basicSalary: string | null;
   houseRentAllowance: string | null;
   conveyanceAllowance: string | null;
@@ -195,6 +196,7 @@ export default function HRManagement() {
 
   const [salaryForm, setSalaryForm] = useState({
     salarySlipName: "",
+    joiningDate: "",
     basicSalary: "",
     houseRentAllowance: "",
     conveyanceAllowance: "",
@@ -271,6 +273,7 @@ export default function HRManagement() {
       if (currentSalary && currentSalary.id && (currentSalary as any).userId === selectedStaff?.id) {
         setSalaryForm({
           salarySlipName: (currentSalary as any).salarySlipName || "",
+          joiningDate: (currentSalary as any).joiningDate || "",
           basicSalary: currentSalary.basicSalary || "",
           houseRentAllowance: currentSalary.houseRentAllowance || "",
           conveyanceAllowance: currentSalary.conveyanceAllowance || "",
@@ -288,6 +291,7 @@ export default function HRManagement() {
         // Only reset to blank if no existing salary config exists
         setSalaryForm({
           salarySlipName: "",
+          joiningDate: "",
           basicSalary: "",
           houseRentAllowance: "",
           conveyanceAllowance: "",
@@ -447,6 +451,7 @@ export default function HRManagement() {
     // employee's salary configuration is loading.
     setSalaryForm({
       salarySlipName: "",
+      joiningDate: "",
       basicSalary: "",
       houseRentAllowance: "",
       conveyanceAllowance: "",
@@ -1308,6 +1313,17 @@ export default function HRManagement() {
                 placeholder="Enter real name for salary slip (leave blank to use account name)"
               />
               <p className="text-xs text-muted-foreground mt-1">This name will only appear on the salary slip PDF</p>
+            </div>
+            <div>
+              <Label>Joining Date</Label>
+              <Input
+                type="date"
+                value={salaryForm.joiningDate}
+                onChange={(e) => setSalaryForm({ ...salaryForm, joiningDate: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                The first salary month is prorated from this date; days before joining are not counted as payable days.
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

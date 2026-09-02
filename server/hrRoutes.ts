@@ -7,6 +7,13 @@ import { objectStorageClient } from "./objectStorage";
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
+import {
+  calculateSalaryAmounts,
+  calculateSalaryPeriod,
+  getStoredSalarySlipBreakdown,
+  isValidIsoDate,
+  SalaryPeriodNotStartedError,
+} from "./hrSalaryCalculation";
 
 const router = Router();
 
@@ -526,7 +533,11 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
     }
 
     const { userId } = req.params;
-    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName, perDayDivisor, perDayDivisorMode } = req.body;
+    const { basicSalary, houseRentAllowance, conveyanceAllowance, medicalAllowance, specialAllowance, deductions, bankAccountNumber, bankName, ifscCode, panNumber, salarySlipName, joiningDate, perDayDivisor, perDayDivisorMode } = req.body;
+
+    if (joiningDate && !isValidIsoDate(joiningDate)) {
+      return res.status(400).json({ error: "Joining date must be a valid date" });
+    }
 
     // Helper to convert empty strings to "0" for numeric fields
     const toNumericStr = (val: any) => {
@@ -562,6 +573,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
           ifscCode: ifscCode || "",
           panNumber: panNumber || "",
           salarySlipName: salarySlipName || "",
+          joiningDate: joiningDate || null,
           perDayDivisor: parseInt(perDayDivisor) || 30,
           perDayDivisorMode: perDayDivisorMode || "fixed",
           updatedAt: new Date()
@@ -583,6 +595,7 @@ router.post("/api/hr/admin/salary/:userId", isAuthenticated, async (req: Request
         ifscCode: ifscCode || "",
         panNumber: panNumber || "",
         salarySlipName: salarySlipName || "",
+        joiningDate: joiningDate || null,
         perDayDivisor: parseInt(perDayDivisor) || 30,
         perDayDivisorMode: perDayDivisorMode || "fixed",
       });
@@ -750,10 +763,6 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       return res.status(400).json({ error: "Salary not configured for this employee" });
     }
 
-    // Calculate working days excluding weekends and holidays
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    
     // Get holidays for this month
     const holidays = await db.select()
       .from(paidHolidays)
@@ -762,16 +771,13 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
         eq(paidHolidays.month, month)
       ));
     
-    const holidayDates = new Set(holidays.map(h => 
-      new Date(h.date).toISOString().split('T')[0]
-    ));
-    
-    // Use total calendar days in month
-    const totalDaysInMonth = lastDay.getDate();
-    
-    // Get attendance for the month first (needed for weekend absent check)
+    const holidayDates = new Set(holidays.map((holiday) => String(holiday.date).slice(0, 10)));
+
+    // Get attendance for the month. The calculation below excludes any days
+    // before the employee's joining date in their first salary month.
+    const totalDaysInMonth = new Date(year, month, 0).getDate();
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
 
     const attendance = await db.select()
       .from(attendanceRecords)
@@ -781,36 +787,32 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
         lte(attendanceRecords.date, endDate)
       ));
 
-    const presentDays = attendance.filter(a => a.status === 'present').length;
-    const leaveDays = attendance.filter(a => a.status === 'leave').length;
-    const totalOvertimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtimeHours || '0') || 0), 0);
-
-    // Build a set of dates explicitly marked absent
-    const absentDatesSet = new Set(
-      attendance.filter(a => a.status === 'absent').map(a => a.date)
-    );
-
-    // Count weekends that are NOT explicitly marked absent
-    // (If HR has recorded a weekend as absent, it should be deducted like any other absent day)
-    let weekendDays = 0;
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      const dateStr = d.toISOString().split('T')[0];
-      if ((dayOfWeek === 0 || dayOfWeek === 6) && !absentDatesSet.has(dateStr)) {
-        weekendDays++;
+    let salaryPeriod;
+    try {
+      salaryPeriod = calculateSalaryPeriod({
+        year: Number(year),
+        month: Number(month),
+        joiningDate: salaryConfig.joiningDate,
+        attendance,
+        holidayDates,
+      });
+    } catch (error) {
+      if (error instanceof SalaryPeriodNotStartedError) {
+        return res.status(400).json({ error: error.message });
       }
+      throw error;
     }
 
-    // Count holidays (excluding those on weekends or already marked absent)
-    let holidayCount = 0;
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      const dateStr = d.toISOString().split('T')[0];
-      // Only count holidays that fall on weekdays and are not marked absent
-      if (holidayDates.has(dateStr) && dayOfWeek !== 0 && dayOfWeek !== 6 && !absentDatesSet.has(dateStr)) {
-        holidayCount++;
-      }
-    }
+    const {
+      presentDays,
+      leaveDays,
+      totalOvertimeHours,
+      weekendDays,
+      holidayCount,
+      paidDays,
+      absentDays: absentDaysCalc,
+      periodStartDate,
+    } = salaryPeriod;
 
     // Check if slip already exists
     const [existing] = await db.select()
@@ -821,15 +823,10 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
         eq(salarySlips.year, year)
       ));
 
-    // Calculate payable days:
-    // Paid Days = Present + Leave + Weekends + Holidays (all are paid)
-    const paidDays = presentDays + leaveDays + weekendDays + holidayCount;
-    const absentDaysCalc = Math.max(0, totalDaysInMonth - paidDays);
-
-    // Per-day divisor: 'actual' = use real calendar days; 'fixed' = use stored divisor (26 or 30)
+    // Per-day divisor: joining months always use actual calendar days. Later
+    // months respect the employee's configured actual/fixed deduction mode.
     const divisorMode = (salaryConfig as any).perDayDivisorMode || 'fixed';
     const fixedDivisor = salaryConfig.perDayDivisor || 30;
-    const effectiveDivisor = divisorMode === 'actual' ? totalDaysInMonth : fixedDivisor;
 
     // Full salary components — always show 100%, never prorate
     const fullBasic = parseFloat(salaryConfig.basicSalary || '0');
@@ -839,14 +836,26 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
     const fullSpecial = parseFloat(salaryConfig.specialAllowance || '0');
     const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
     const fullDeductions = parseFloat(salaryConfig.deductions || '0');
-
-    // Per-day rate — capped so deductions never exceed gross (prevents negative net)
-    const perDaySalaryRate = effectiveDivisor > 0 ? fullGross / effectiveDivisor : 0;
-    const absentDeduction = Math.min(perDaySalaryRate * absentDaysCalc, fullGross);
-    const netPayable = fullGross - fullDeductions - absentDeduction;
+    const salaryMonthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const isJoiningMonth = salaryConfig.joiningDate?.slice(0, 7) === salaryMonthKey;
+    const {
+      effectiveDivisor,
+      perDaySalaryRate,
+      absentDeduction,
+      appliedDeductions,
+      netPayable,
+    } = calculateSalaryAmounts({
+      fullGross,
+      configuredDeductions: fullDeductions,
+      divisorMode,
+      fixedDivisor,
+      totalDaysInMonth,
+      paidDays,
+      isJoiningMonth,
+    });
 
     console.log(`Salary Slip Generation for ${userId}:`);
-    console.log(`  Total Days in Month: ${totalDaysInMonth}, Divisor Mode: ${divisorMode}, Effective Divisor: ${effectiveDivisor}`);
+    console.log(`  Salary Period Start: ${periodStartDate}, Total Days in Month: ${totalDaysInMonth}, Divisor Mode: ${divisorMode}, Effective Divisor: ${effectiveDivisor}`);
     console.log(`  Present Days: ${presentDays}, Leave Days: ${leaveDays}, Weekends: ${weekendDays}, Holidays: ${holidayCount}`);
     console.log(`  Paid Days: ${paidDays}, Absent Days: ${absentDaysCalc}`);
     console.log(`  Gross: ${fullGross}, Per Day: ${perDaySalaryRate.toFixed(2)}, Absent Deduction: ${absentDeduction.toFixed(2)}, Net: ${netPayable.toFixed(2)}`);
@@ -861,7 +870,7 @@ router.post("/api/hr/admin/salary-slip/generate", isAuthenticated, async (req: R
       medicalAllowance: fullMedical.toFixed(2),
       specialAllowance: fullSpecial.toFixed(2),
       grossSalary: fullGross.toFixed(2),
-      totalDeductions: fullDeductions.toFixed(2),
+      totalDeductions: appliedDeductions.toFixed(2),
       netSalary: netPayable.toFixed(2),
       workingDays: totalDaysInMonth,
       presentDays: paidDays,
@@ -1049,24 +1058,29 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     
     doc.moveDown(4);
     
-    // Get full salary from config (not prorated)
-    const fullBasic = parseFloat(salaryConfig?.basicSalary || '0');
-    const fullHRA = parseFloat(salaryConfig?.houseRentAllowance || '0');
-    const fullConveyance = parseFloat(salaryConfig?.conveyanceAllowance || '0');
-    const fullMedical = parseFloat(salaryConfig?.medicalAllowance || '0');
-    const fullSpecial = parseFloat(salaryConfig?.specialAllowance || '0');
-    const fullGross = fullBasic + fullHRA + fullConveyance + fullMedical + fullSpecial;
-    const configDeductions = parseFloat(salaryConfig?.deductions || '0');
-    
-    // Calculate absent days deduction — respects divisor mode and caps at gross
+    // Render the generated salary snapshot, not the employee's mutable current
+    // configuration. Historical PDF amounts must not change after later edits.
+    const fullBasic = parseFloat(slip.basicSalary || '0');
+    const fullHRA = parseFloat(slip.houseRentAllowance || '0');
+    const fullConveyance = parseFloat(slip.conveyanceAllowance || '0');
+    const fullMedical = parseFloat(slip.medicalAllowance || '0');
+    const fullSpecial = parseFloat(slip.specialAllowance || '0');
+    const fullGross = parseFloat(slip.grossSalary || '0');
+    const configDeductions = parseFloat(slip.totalDeductions || '0');
     const totalDays = slip.workingDays || 30;
     const paidDays = slip.presentDays || 0;
     const absentDays = Math.max(0, totalDays - paidDays);
-    const divisorModePDF = (salaryConfig as any)?.perDayDivisorMode || 'fixed';
-    const fixedDivisorPDF = salaryConfig?.perDayDivisor || 30;
-    const effectiveDivisorPDF = divisorModePDF === 'actual' ? totalDays : fixedDivisorPDF;
-    const perDaySalary = effectiveDivisorPDF > 0 ? fullGross / effectiveDivisorPDF : 0;
-    const absentDeduction = Math.min(perDaySalary * absentDays, fullGross);
+    const {
+      perDaySalaryRate: perDaySalary,
+      absentDeduction,
+      netPayable,
+    } = getStoredSalarySlipBreakdown({
+      grossSalary: fullGross,
+      appliedDeductions: configDeductions,
+      netSalary: parseFloat(slip.netSalary || '0'),
+      absentDays,
+      totalDays,
+    });
     
     // Particulars Section Header
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#000');
@@ -1161,8 +1175,7 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     rowY += 15;
     
     const incentiveTotal = parseFloat(incentive?.totalIncentive || '0');
-    const netAfterDeductions = fullGross - configDeductions - absentDeduction;
-    const finalNetPayable = netAfterDeductions + incentiveTotal;
+    const finalNetPayable = netPayable + incentiveTotal;
     
     const summaryData = [
       ['Gross Pay', fullGross, false],

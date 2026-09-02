@@ -2650,6 +2650,7 @@ export const employeeSalaries = pgTable("employee_salaries", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id).unique(),
   salarySlipName: varchar("salary_slip_name", { length: 255 }), // Display name for salary slip only
+  joiningDate: date("joining_date"),
   basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).default("0"),
   houseRentAllowance: decimal("house_rent_allowance", { precision: 12, scale: 2 }).default("0"),
   conveyanceAllowance: decimal("conveyance_allowance", { precision: 12, scale: 2 }).default("0"),
