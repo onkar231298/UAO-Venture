@@ -11,6 +11,7 @@ import ComprehensiveProductForm from "@/components/ComprehensiveProductForm";
 import SeoManagement from "@/pages/crm/SeoManagement";
 import HeroSliderManagement from "@/components/HeroSliderManagement";
 import GlobalSeoSettings from "@/components/GlobalSeoSettings";
+import KeywordPerformanceDashboard from "@/components/KeywordPerformanceDashboard";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -896,14 +897,7 @@ export default function WebsiteManagement() {
 
             {/* Analytics Tab */}
             <TabsContent value="analytics" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Analytics features coming soon...</p>
-                </CardContent>
-              </Card>
+              <KeywordPerformanceDashboard />
             </TabsContent>
           </Tabs>
         </div>
