@@ -87,6 +87,7 @@ export default function WebsiteManagement() {
   // Product deletion stays limited to admins/website managers; quality roles can
   // list/create/edit but the server rejects their deletes, so hide the button too.
   const canDeleteProducts = !!userRole && (userRole.includes('admin') || userRole === 'website_manager');
+  const canManageSeo = !!userRole && ["admin", "super_admin", "seo_manager", "website_manager"].includes(userRole);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -193,6 +194,11 @@ export default function WebsiteManagement() {
   const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });
+  const { data: seoAudit } = useQuery<{ summary: { byStatus: Record<string, number>; bySeverity: Record<string, number> } }>({
+    queryKey: ["/api/admin/seo/growth-opportunities"],
+    enabled: canManageSeo,
+  });
+  const activeSeoActions = (seoAudit?.summary.byStatus.open || 0) + (seoAudit?.summary.byStatus.in_progress || 0);
 
   // Update product mutation
   const updateProductMutation = useMutation({
@@ -452,9 +458,9 @@ export default function WebsiteManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">SEO Score</p>
-                    <p className="text-2xl font-bold text-purple-600">92%</p>
-                    <p className="text-xs text-purple-600">Search optimized</p>
+                    <p className="text-sm text-gray-600">SEO Actions</p>
+                    <p className="text-2xl font-bold text-purple-600">{canManageSeo ? activeSeoActions : "—"}</p>
+                    <p className="text-xs text-purple-600">{canManageSeo ? `${seoAudit?.summary.bySeverity.critical || 0} critical findings` : "SEO manager access required"}</p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-purple-600" />
                 </div>
@@ -471,9 +477,11 @@ export default function WebsiteManagement() {
                 <TabsTrigger value="hero-slider" className="snap-start min-w-[100px]">Hero Slider</TabsTrigger>
                 <TabsTrigger value="tags" className="snap-start min-w-[100px]">Tags</TabsTrigger>
                 <TabsTrigger value="schema" className="snap-start min-w-[120px]">Schema Validator</TabsTrigger>
-                <TabsTrigger value="seo" className="snap-start min-w-[100px]">SEO</TabsTrigger>
-                <TabsTrigger value="global-seo" className="snap-start min-w-[100px]">Global SEO</TabsTrigger>
-                <TabsTrigger value="analytics" className="snap-start min-w-[100px]">Analytics</TabsTrigger>
+                {canManageSeo ? <>
+                  <TabsTrigger value="seo" className="snap-start min-w-[100px]">SEO</TabsTrigger>
+                  <TabsTrigger value="global-seo" className="snap-start min-w-[100px]">Global SEO</TabsTrigger>
+                  <TabsTrigger value="analytics" className="snap-start min-w-[100px]">Analytics</TabsTrigger>
+                </> : null}
               </TabsList>
             </div>
 
@@ -885,20 +893,17 @@ export default function WebsiteManagement() {
               <SchemaValidatorInterface />
             </TabsContent>
 
-            {/* SEO Management Tab */}
-            <TabsContent value="seo" className="mt-6">
-              <SeoManagement />
-            </TabsContent>
-
-            {/* Global SEO Configuration Tab */}
-            <TabsContent value="global-seo" className="mt-6">
-              <GlobalSeoSettings />
-            </TabsContent>
-
-            {/* Analytics Tab */}
-            <TabsContent value="analytics" className="mt-6">
-              <KeywordPerformanceDashboard />
-            </TabsContent>
+            {canManageSeo ? <>
+              <TabsContent value="seo" className="mt-6">
+                <SeoManagement />
+              </TabsContent>
+              <TabsContent value="global-seo" className="mt-6">
+                <GlobalSeoSettings />
+              </TabsContent>
+              <TabsContent value="analytics" className="mt-6">
+                <KeywordPerformanceDashboard />
+              </TabsContent>
+            </> : null}
           </Tabs>
         </div>
       </div>

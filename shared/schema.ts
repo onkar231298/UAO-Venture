@@ -288,6 +288,53 @@ export const seoKeywordReviews = pgTable("seo_keyword_reviews", {
   index("seo_keyword_reviews_created_at_idx").on(table.createdAt),
 ]);
 
+// A target keyword has one preferred canonical landing page. This explicit
+// assignment is the source of truth for cannibalization and coverage warnings.
+export const seoKeywordPageMappings = pgTable("seo_keyword_page_mappings", {
+  id: serial("id").primaryKey(),
+  keyword: varchar("keyword", { length: 500 }).notNull(),
+  pageUrl: varchar("page_url", { length: 2000 }).notNull(),
+  pageType: varchar("page_type", { length: 30 }).notNull(),
+  pageId: varchar("page_id", { length: 100 }),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("seo_keyword_page_mappings_keyword_unique").on(table.keyword),
+  index("seo_keyword_page_mappings_page_idx").on(table.pageUrl),
+]);
+
+// Audit findings are regenerated from current content, while this table keeps
+// the human workflow state and notes stable through later scans.
+export const seoOpportunityActions = pgTable("seo_opportunity_actions", {
+  id: serial("id").primaryKey(),
+  fingerprint: varchar("fingerprint", { length: 64 }).notNull().unique(),
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  notes: text("notes"),
+  baselineMetrics: jsonb("baseline_metrics"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("seo_opportunity_actions_status_idx").on(table.status),
+]);
+
+// Immutable review events preserve the history behind the current workflow state.
+export const seoOpportunityActionEvents = pgTable("seo_opportunity_action_events", {
+  id: serial("id").primaryKey(),
+  fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(),
+  notes: text("notes"),
+  evidence: jsonb("evidence"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("seo_opportunity_action_events_fingerprint_idx").on(table.fingerprint),
+  index("seo_opportunity_action_events_created_idx").on(table.createdAt),
+]);
+
 // Hreflang configuration for multi-language
 export const hreflangConfig = pgTable("hreflang_config", {
   id: serial("id").primaryKey(),
@@ -1410,6 +1457,28 @@ export const insertSeoKeywordReviewSchema = createInsertSchema(seoKeywordReviews
 });
 export type InsertSeoKeywordReview = z.infer<typeof insertSeoKeywordReviewSchema>;
 export type SeoKeywordReview = typeof seoKeywordReviews.$inferSelect;
+
+export const insertSeoKeywordPageMappingSchema = createInsertSchema(seoKeywordPageMappings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSeoKeywordPageMapping = z.infer<typeof insertSeoKeywordPageMappingSchema>;
+export type SeoKeywordPageMapping = typeof seoKeywordPageMappings.$inferSelect;
+
+export const insertSeoOpportunityActionSchema = createInsertSchema(seoOpportunityActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSeoOpportunityAction = z.infer<typeof insertSeoOpportunityActionSchema>;
+export type SeoOpportunityAction = typeof seoOpportunityActions.$inferSelect;
+export const insertSeoOpportunityActionEventSchema = createInsertSchema(seoOpportunityActionEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSeoOpportunityActionEvent = z.infer<typeof insertSeoOpportunityActionEventSchema>;
+export type SeoOpportunityActionEvent = typeof seoOpportunityActionEvents.$inferSelect;
 
 // Newsletter subscriptions table
 export const newsletterSubscriptions = pgTable("newsletter_subscriptions", {

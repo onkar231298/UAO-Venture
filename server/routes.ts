@@ -26,8 +26,12 @@ import {
   insertSearchAnalyticsSchema,
   insertHreflangConfigSchema,
   insertGlobalSeoSettingsSchema,
+  globalSeoSettings,
   seoKeywordPerformance,
   seoKeywordReviews,
+  seoKeywordPageMappings,
+  seoOpportunityActions,
+  seoOpportunityActionEvents,
   insertNewsletterSubscriptionSchema,
   customerRegistrationSchema,
   insertCompanySchema,
@@ -62,6 +66,7 @@ import {
   leads,
   inquiries,
   bidRevisions,
+  blogPosts,
   products,
   categories,
   smsMessages,
@@ -91,6 +96,8 @@ import QRCode from "qrcode";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
+import { CANONICAL_ORIGIN, STATIC_PAGE_SEO } from "./seo";
+import { auditSeoPages, canonicalPageUrl, detectCompetingPages, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
 import { encryptEmailCredential } from "./email/credentials";
 import { titanEmailProvider } from "./email/titan";
 import { normalizeEmailAddress } from "./email/address";
@@ -5012,6 +5019,22 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   }
 
+  async function isSeoManager(req: any, res: any, next: any) {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const user = await storage.getUser(userId);
+      if (!user || !["admin", "super_admin", "seo_manager", "website_manager"].includes(user.role || "")) {
+        return res.status(403).json({ message: "SEO management access is required" });
+      }
+      req.staffUser = user;
+      next();
+    } catch (error) {
+      console.error("Error verifying SEO management permissions:", error);
+      res.status(500).json({ message: "Failed to verify permissions" });
+    }
+  }
+
   // Get all products (admin view with all fields)
   app.get('/api/admin/products', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     try {
@@ -5821,7 +5844,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   // Search Console snapshots are explicitly imported by an authorized staff member;
   // no Google credentials are stored by this application.
-  app.post('/api/admin/seo/keyword-performance/import', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.post('/api/admin/seo/keyword-performance/import', isAuthenticated, isSeoManager, async (req: any, res) => {
     try {
       const input = keywordPerformanceImportSchema.parse(req.body);
       const snapshotRows = new Map<string, typeof input.rows[number]>();
@@ -5864,7 +5887,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.get('/api/admin/seo/keyword-performance', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.get('/api/admin/seo/keyword-performance', isAuthenticated, isSeoManager, async (req: any, res) => {
     try {
       const days = z.coerce.number().int().min(1).max(365).catch(28).parse(req.query.days);
       const periods = await db.selectDistinct({
@@ -5988,13 +6011,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   const keywordReviewSchema = z.object({
     keyword: z.string().trim().min(1).max(500),
-    replacement: z.string().trim().max(500).nullable().optional(),
+    replacement: z.string().trim().min(1).max(500).refine((value) => !value.includes(","), "Replacement must be one keyword without commas").nullable().optional(),
     recommendation: z.enum(["keep", "improve", "replace"]),
     reason: z.string().trim().min(1).max(5000),
     status: z.enum(["proposed", "approved", "rejected"]).default("proposed"),
     metrics: z.record(z.unknown()).optional(),
+  }).superRefine((value, context) => {
+    if (value.recommendation === "replace" && !value.replacement) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["replacement"], message: "A replacement keyword is required" });
+    }
   });
-  app.post('/api/admin/seo/keyword-reviews', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.post('/api/admin/seo/keyword-reviews', isAuthenticated, isSeoManager, async (req: any, res) => {
     try {
       const review = keywordReviewSchema.parse(req.body);
       const [created] = await db.insert(seoKeywordReviews).values({
@@ -6007,12 +6034,390 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       res.status(500).json({ message: "Failed to record keyword review" });
     }
   });
-  app.get('/api/admin/seo/keyword-reviews', isAuthenticated, isAdminOrWebsiteManager, async (_req: any, res) => {
+  app.get('/api/admin/seo/keyword-reviews', isAuthenticated, isSeoManager, async (_req: any, res) => {
     try {
       res.json(await db.select().from(seoKeywordReviews).orderBy(desc(seoKeywordReviews.createdAt)).limit(50));
     } catch (error) {
       console.error("Error fetching keyword reviews:", error);
       res.status(500).json({ message: "Failed to fetch keyword reviews" });
+    }
+  });
+
+  const seoMappingSchema = z.object({
+    keyword: z.string().trim().min(1).max(500),
+    pageUrl: z.string().trim().min(1).max(2000),
+    pageType: z.enum(["static", "product", "category", "blog"]),
+    pageId: z.string().trim().max(100).nullable().optional(),
+  });
+  const seoOpportunityStatusSchema = z.object({
+    status: z.enum(["open", "in_progress", "completed", "dismissed"]),
+    notes: z.string().trim().max(5000).nullable().optional(),
+    evidence: z.record(z.unknown()),
+    evidenceToken: z.string().regex(/^[a-f0-9]{64}$/),
+  });
+  const actionFingerprint = (...parts: string[]) =>
+    crypto.createHash("sha256").update(parts.join("\u0000")).digest("hex");
+  const evidenceToken = (fingerprint: string, evidence: Record<string, unknown>) => {
+    if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required to sign SEO opportunity evidence");
+    return crypto.createHmac("sha256", process.env.SESSION_SECRET)
+      .update(`${fingerprint}\u0000${JSON.stringify(evidence)}`).digest("hex");
+  };
+  const visibleText = (value: unknown) => String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const allTargetKeywords = (settings: any) => {
+    const fields = ["primaryKeywords", "pharmaceuticalKeywords", "nutraceuticalKeywords", "northAmericaKeywords", "europeKeywords", "asiaPacificKeywords", "indiaKeywords", "middleEastKeywords", "latinAmericaKeywords"];
+    return Array.from(new Set(fields.flatMap((field) => String(settings?.[field] || "").split(",").map((keyword) => keyword.trim().toLowerCase()).filter(Boolean))));
+  };
+  const staticSeoPaths = new Set(["/", "/products", "/ingredients", ...Object.keys(STATIC_PAGE_SEO)]);
+  const resolveSeoPageReference = async (input: z.infer<typeof seoMappingSchema>) => {
+    const requestedUrl = canonicalPageUrl(input.pageUrl);
+    if (!requestedUrl || !input.pageId) return null;
+    if (input.pageType === "static") {
+      const path = input.pageId === "/" ? "/" : input.pageId.replace(/\/+$/, "");
+      const pageUrl = `${CANONICAL_ORIGIN}${path}`;
+      return staticSeoPaths.has(path) && pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: path } : null;
+    }
+    const id = Number(input.pageId);
+    if (!Number.isInteger(id) || id <= 0) return null;
+    if (input.pageType === "product") {
+      const [product] = await db.select({ id: products.id, slug: products.slug }).from(products)
+        .where(and(eq(products.id, id), eq(products.isActive, true), eq(products.isVisible, true))).limit(1);
+      const pageUrl = product ? `${CANONICAL_ORIGIN}/products/${product.slug}` : null;
+      return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
+    }
+    if (input.pageType === "category") {
+      const [category] = await db.select({ id: categories.id, slug: categories.slug }).from(categories)
+        .where(and(eq(categories.id, id), eq(categories.isActive, true))).limit(1);
+      const pageUrl = category ? `${CANONICAL_ORIGIN}/ingredients/${category.slug}` : null;
+      return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
+    }
+    const [post] = await db.select({ id: blogPosts.id, slug: blogPosts.slug }).from(blogPosts)
+      .where(and(eq(blogPosts.id, id), eq(blogPosts.isPublished, true))).limit(1);
+    const pageUrl = post ? `${CANONICAL_ORIGIN}/blog/${post.slug}` : null;
+    return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
+  };
+
+  app.put('/api/admin/seo/keyword-page-mappings', isAuthenticated, isSeoManager, async (req: any, res) => {
+    try {
+      const input = seoMappingSchema.parse(req.body);
+      const settings = await storage.getGlobalSeoSettings();
+      if (!allTargetKeywords(settings).includes(input.keyword.toLowerCase())) {
+        return res.status(400).json({ message: "The keyword is no longer configured as a target keyword." });
+      }
+      const page = await resolveSeoPageReference(input);
+      if (!page) return res.status(400).json({ message: "Choose a current indexable page whose URL, type, and ID match." });
+      const [mapping] = await db.insert(seoKeywordPageMappings).values({
+        ...page,
+        keyword: input.keyword.toLowerCase(),
+        createdBy: req.staffUser.id,
+        updatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: seoKeywordPageMappings.keyword,
+        set: { ...page, updatedAt: new Date() },
+      }).returning();
+      res.json(mapping);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid keyword mapping", errors: error.flatten() });
+      console.error("Error saving SEO keyword mapping:", error);
+      res.status(500).json({ message: "Failed to save keyword mapping" });
+    }
+  });
+
+  app.delete('/api/admin/seo/keyword-page-mappings/:keyword', isAuthenticated, isSeoManager, async (req, res) => {
+    try {
+      await db.delete(seoKeywordPageMappings).where(eq(seoKeywordPageMappings.keyword, decodeURIComponent(req.params.keyword).trim().toLowerCase()));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting SEO keyword mapping:", error);
+      res.status(500).json({ message: "Failed to delete keyword mapping" });
+    }
+  });
+
+  app.patch('/api/admin/seo/opportunities/:fingerprint', isAuthenticated, isSeoManager, async (req: any, res) => {
+    try {
+      const fingerprint = z.string().regex(/^[a-f0-9]{64}$/).parse(req.params.fingerprint);
+      const input = seoOpportunityStatusSchema.parse(req.body);
+      const expectedToken = evidenceToken(fingerprint, input.evidence);
+      if (!crypto.timingSafeEqual(Buffer.from(expectedToken), Buffer.from(input.evidenceToken))) {
+        return res.status(400).json({ message: "Opportunity evidence is stale or invalid. Refresh the scan and try again." });
+      }
+      const now = new Date();
+      const [action] = await db.transaction(async (tx) => {
+        const [updated] = await tx.insert(seoOpportunityActions).values({
+          fingerprint,
+          status: input.status,
+          notes: input.notes || null,
+          baselineMetrics: input.evidence,
+          reviewedBy: req.staffUser.id,
+          reviewedAt: now,
+          completedAt: input.status === "completed" ? now : null,
+          updatedAt: now,
+        }).onConflictDoUpdate({
+          target: seoOpportunityActions.fingerprint,
+          set: {
+            status: input.status,
+            notes: input.notes || null,
+            baselineMetrics: sql`coalesce(${seoOpportunityActions.baselineMetrics}, excluded.baseline_metrics)`,
+            reviewedBy: req.staffUser.id,
+            reviewedAt: now,
+            completedAt: input.status === "completed"
+              ? now
+              : sql`coalesce(${seoOpportunityActions.completedAt}, excluded.completed_at)`,
+            updatedAt: now,
+          },
+        }).returning();
+        await tx.insert(seoOpportunityActionEvents).values({
+          fingerprint,
+          status: input.status,
+          notes: input.notes || null,
+          evidence: input.evidence,
+          reviewedBy: req.staffUser.id,
+        });
+        return [updated];
+      });
+      res.json(action);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid opportunity update", errors: error.flatten() });
+      console.error("Error updating SEO opportunity:", error);
+      res.status(500).json({ message: "Failed to update opportunity" });
+    }
+  });
+
+  app.post('/api/admin/seo/keyword-reviews/:id/apply', isAuthenticated, isSeoManager, async (req: any, res) => {
+    try {
+      const id = z.coerce.number().int().positive().parse(req.params.id);
+      const applied = await db.transaction(async (tx) => {
+        const [review] = await tx.select().from(seoKeywordReviews).where(eq(seoKeywordReviews.id, id)).limit(1);
+        if (!review || review.recommendation !== "replace" || review.status !== "approved" || !review.replacement) {
+          throw new Error("SEO_CONFLICT:Only an approved replacement can be applied.");
+        }
+        if (review.replacement.includes(",")) {
+          throw new Error("SEO_CONFLICT:The replacement must be one keyword without commas.");
+        }
+        const [settings] = await tx.select().from(globalSeoSettings)
+          .where(eq(globalSeoSettings.isActive, true))
+          .orderBy(desc(globalSeoSettings.id)).limit(1);
+        if (!settings) throw new Error("SEO_CONFLICT:Global SEO settings were not found.");
+        const originalValue = settings.primaryKeywords || "";
+        let nextValue: string;
+        try {
+          nextValue = replacePrimaryKeywordList(originalValue, review.keyword, review.replacement);
+        } catch (replacementError) {
+          throw new Error(`SEO_CONFLICT:${replacementError instanceof Error ? replacementError.message : "The replacement is invalid."}`);
+        }
+        const updatedSettings = await tx.update(globalSeoSettings).set({
+          primaryKeywords: nextValue,
+          updatedAt: new Date(),
+        }).where(and(eq(globalSeoSettings.id, settings.id), eq(globalSeoSettings.primaryKeywords, originalValue))).returning({ id: globalSeoSettings.id });
+        if (!updatedSettings.length) throw new Error("SEO_CONFLICT:Primary Keywords changed while this replacement was being applied. Refresh and review it again.");
+        const [updatedReview] = await tx.update(seoKeywordReviews).set({
+          status: "applied",
+          reviewedBy: req.staffUser.id,
+          reviewedAt: new Date(),
+        }).where(and(eq(seoKeywordReviews.id, id), eq(seoKeywordReviews.status, "approved"))).returning();
+        if (!updatedReview) throw new Error("SEO_CONFLICT:This replacement has already changed.");
+        return updatedReview;
+      });
+      res.json(applied);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid review id" });
+      if (error instanceof Error && error.message.startsWith("SEO_CONFLICT:")) {
+        return res.status(409).json({ message: error.message.slice("SEO_CONFLICT:".length) });
+      }
+      console.error("Error applying SEO keyword replacement:", error);
+      res.status(500).json({ message: "Failed to apply keyword replacement" });
+    }
+  });
+
+  app.get('/api/admin/seo/growth-opportunities', isAuthenticated, isSeoManager, async (_req: any, res) => {
+    try {
+      const [settings, productRows, categoryRows, publishedBlogResult, mappings, actionRows, actionEvents, periods] = await Promise.all([
+        storage.getGlobalSeoSettings(),
+        db.select().from(products).where(and(eq(products.isActive, true), eq(products.isVisible, true))).limit(5000),
+        db.select().from(categories).where(eq(categories.isActive, true)).limit(1000),
+        storage.getBlogPosts({ published: true, limit: 1000, offset: 0 }),
+        db.select().from(seoKeywordPageMappings).orderBy(asc(seoKeywordPageMappings.keyword)).limit(5000),
+        db.select().from(seoOpportunityActions).orderBy(desc(seoOpportunityActions.updatedAt)).limit(5000),
+        db.select().from(seoOpportunityActionEvents).orderBy(desc(seoOpportunityActionEvents.createdAt)).limit(5000),
+        db.selectDistinct({ periodStart: seoKeywordPerformance.periodStart, periodEnd: seoKeywordPerformance.periodEnd })
+          .from(seoKeywordPerformance).orderBy(desc(seoKeywordPerformance.periodEnd), desc(seoKeywordPerformance.periodStart)).limit(1),
+      ]);
+      const latestPeriod = periods[0];
+      const performanceRows = latestPeriod ? await db.select().from(seoKeywordPerformance).where(and(
+        eq(seoKeywordPerformance.periodStart, latestPeriod.periodStart),
+        eq(seoKeywordPerformance.periodEnd, latestPeriod.periodEnd),
+      )).limit(50000) : [];
+      const indexParents = new Set(["/products", "/ingredients", "/blog"]);
+      const staticSitemapPaths = new Set([
+        "/", "/about", "/about-us", "/contact", "/products", "/ingredients", "/health-support", "/certifications", "/industries",
+        "/organic-spice-supplier-india", "/bulk-organic-exporter-india", "/eu-organic-spices", "/organic-herbs", "/packaging-solutions", "/presentation",
+      ]);
+      const pages: SeoPage[] = [
+        {
+          id: "/", type: "static", url: `${CANONICAL_ORIGIN}/`,
+          title: settings?.siteTitle || "", description: settings?.siteDescription || "",
+          content: `${settings?.siteTitle || ""} ${settings?.siteDescription || ""}`,
+          canonicalUrl: `${CANONICAL_ORIGIN}/`, inSitemap: true, hasInboundLink: true,
+        },
+        ...Object.entries(STATIC_PAGE_SEO).map(([path, meta]) => ({
+          id: path, type: "static" as const, url: `${CANONICAL_ORIGIN}${path}`,
+          title: meta.title, description: meta.description, content: `${meta.title} ${meta.description}`,
+          canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: staticSitemapPaths.has(path), hasInboundLink: true,
+        })),
+        ...[
+          { path: "/products", title: `Products | ${settings?.siteTitle || "Bright Fame Organic"}` },
+          { path: "/ingredients", title: `Ingredients | ${settings?.siteTitle || "Bright Fame Organic"}` },
+        ].map(({ path, title }) => ({
+          id: path, type: "static" as const, url: `${CANONICAL_ORIGIN}${path}`, title,
+          description: settings?.siteDescription || "", content: `${title} ${settings?.siteDescription || ""}`,
+          canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: true,
+        })),
+        ...productRows.map((product) => {
+          const path = `/products/${product.slug}`;
+          return {
+            id: String(product.id), type: "product" as const, url: `${CANONICAL_ORIGIN}${path}`,
+            title: product.seoTitle || `${product.name} | ${settings?.siteTitle || "Bright Fame Organic"}`,
+            description: product.seoDescription || product.description || settings?.siteDescription || "",
+            content: visibleText(`${product.name} ${product.description || ""} ${product.specificationSheet || ""}`),
+            image: product.openGraphImage || product.mainImage, canonicalUrl: product.canonicalUrl || `${CANONICAL_ORIGIN}${path}`,
+            inSitemap: true, hasInboundLink: indexParents.has("/products"),
+          };
+        }),
+        ...categoryRows.map((category) => {
+          const path = `/ingredients/${category.slug}`;
+          return {
+            id: String(category.id), type: "category" as const, url: `${CANONICAL_ORIGIN}${path}`,
+            title: `${category.name} | ${settings?.siteTitle || "Bright Fame Organic"}`,
+            description: category.description || settings?.siteDescription || "",
+            content: visibleText(`${category.name} ${category.description || ""}`),
+            image: category.imageUrl, canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: indexParents.has("/ingredients"),
+          };
+        }),
+        ...publishedBlogResult.posts.map((post) => {
+          const path = `/blog/${post.slug}`;
+          return {
+            id: String(post.id), type: "blog" as const, url: `${CANONICAL_ORIGIN}${path}`,
+            title: post.metaTitle || `${post.title} | ${settings?.siteTitle || "Bright Fame Organic"}`,
+            description: post.metaDescription || post.excerpt || settings?.siteDescription || "",
+            content: visibleText(`${post.title} ${post.content}`), image: post.featuredImage,
+            canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: indexParents.has("/blog"),
+          };
+        }),
+      ];
+      const uniquePages = Array.from(new Map(pages.map((page) => [page.url, page])).values());
+      const actionsByFingerprint = new Map(actionRows.map((action) => [action.fingerprint, action]));
+      const historyByFingerprint = new Map<string, typeof actionEvents>();
+      for (const event of actionEvents) {
+        const history = historyByFingerprint.get(event.fingerprint) || [];
+        if (history.length < 20) history.push(event);
+        historyByFingerprint.set(event.fingerprint, history);
+      }
+      const withState = (finding: any) => {
+        const action = actionsByFingerprint.get(finding.fingerprint);
+        const baseline = action?.baselineMetrics && typeof action.baselineMetrics === "object"
+          ? action.baselineMetrics as Record<string, unknown>
+          : null;
+        const baselineComparison = baseline ? Object.fromEntries(Object.entries(finding.evidence)
+          .filter(([key, value]) => typeof value === "number" && typeof baseline[key] === "number")
+          .map(([key, value]) => [key, Number(value) - Number(baseline[key])])) : null;
+        return {
+          ...finding,
+          evidenceToken: evidenceToken(finding.fingerprint, finding.evidence),
+          status: action?.status || "open",
+          notes: action?.notes || "",
+          baselineMetrics: action?.baselineMetrics || null,
+          baselineComparison,
+          reviewedAt: action?.reviewedAt || null,
+          history: historyByFingerprint.get(finding.fingerprint) || [],
+        };
+      };
+      const auditFindings = auditSeoPages(uniquePages).map(withState);
+      const targets = allTargetKeywords(settings);
+      const pageByUrl = new Map(uniquePages.map((page) => [page.url, page]));
+      const aggregateMetrics = (rows: typeof performanceRows) => {
+        const impressions = rows.reduce((sum, row) => sum + row.impressions, 0);
+        const clicks = rows.reduce((sum, row) => sum + row.clicks, 0);
+        const positionWeight = rows.reduce((sum, row) => sum + Number(row.position) * row.impressions, 0);
+        return { clicks, impressions, ctr: impressions ? clicks / impressions : 0, position: impressions ? positionWeight / impressions : 0 };
+      };
+      const mappingByKeyword = new Map(mappings.map((mapping) => [mapping.keyword, mapping]));
+      const keywordMappings = targets.map((keyword) => {
+        const matchedRows = performanceRows.filter((row) => keywordMatches(row.query, keyword));
+        const competingPages = detectCompetingPages(matchedRows, keyword);
+        const mapping = mappingByKeyword.get(keyword);
+        return {
+          keyword,
+          mapping: mapping || null,
+          mappedPageExists: mapping ? pageByUrl.has(mapping.pageUrl) : false,
+          competingPages,
+          warning: !mapping ? "No preferred page assigned" : !pageByUrl.has(mapping.pageUrl) ? "Assigned page is no longer indexable" : competingPages.length > 1 ? `${competingPages.length} pages compete for this keyword` : null,
+          metrics: aggregateMetrics(matchedRows),
+        };
+      });
+      const unmatchedQueryGroups = new Map<string, typeof performanceRows>();
+      for (const row of performanceRows) {
+        const key = row.query.toLowerCase();
+        if (!unmatchedQueryGroups.has(key)) unmatchedQueryGroups.set(key, []);
+        unmatchedQueryGroups.get(key)!.push(row);
+      }
+      const contentOpportunities = Array.from(unmatchedQueryGroups.entries()).flatMap(([query, rows]) => {
+        const metrics = aggregateMetrics(rows);
+        if (metrics.impressions < 20 || targets.some((keyword) => keywordMatches(query, keyword))) return [];
+        const evidencePages = Array.from(new Set(rows.map((row) => canonicalPageUrl(row.page)).filter((url): url is string => !!url)));
+        const existingPage = evidencePages.find((url) => pageByUrl.has(url));
+        const sourceUrl = existingPage || `${CANONICAL_ORIGIN}/`;
+        const title = existingPage ? `Improve the page already appearing for “${query}”` : `Review a content gap for “${query}”`;
+        const recommendation = existingPage
+          ? "Improve the existing page before creating another page. Address the query directly using factual content."
+          : "Review search intent and create a factual brief only if no existing page can answer this query.";
+        const fingerprint = actionFingerprint("content", query, sourceUrl);
+        return [withState({
+          fingerprint, category: "content", severity: metrics.impressions >= 100 ? "high" : "medium",
+          title, description: `${metrics.impressions} impressions, ${metrics.clicks} clicks, ${(metrics.ctr * 100).toFixed(2)}% CTR, average position ${metrics.position.toFixed(1)}.`,
+          recommendation, sourceUrl, targetUrl: existingPage || null,
+          evidence: { query, ...metrics, intent: "Derived from the exact imported query; validate intent before publishing.", suggestedTitle: existingPage ? null : `${query.replace(/\b\w/g, (character) => character.toUpperCase())} | Bright Fame Organic`, questions: [`What does a buyer need to know about ${query}?`, `Which existing Bright Fame Organic products or capabilities factually relate to ${query}?`] },
+        })];
+      }).sort((a, b) => Number(b.evidence.impressions) - Number(a.evidence.impressions)).slice(0, 50);
+      const internalLinkOpportunities: any[] = [];
+      const linkableProducts = productRows.map((product) => ({ product, tokens: normalizeKeywordTokens(product.name) }));
+      for (const post of publishedBlogResult.posts) {
+        const postText = visibleText(post.content);
+        const postTokens = new Set(normalizeKeywordTokens(postText));
+        for (const { product, tokens } of linkableProducts) {
+          const targetUrl = `${CANONICAL_ORIGIN}/products/${product.slug}`;
+          const tokenMatch = tokens.length > 0 && tokens.filter((token) => postTokens.has(token)).length / tokens.length >= 0.75;
+          if (!tokenMatch || String(post.content).includes(`/products/${product.slug}`)) continue;
+          const sourceUrl = `${CANONICAL_ORIGIN}/blog/${post.slug}`;
+          const fingerprint = actionFingerprint("internal-link", sourceUrl, targetUrl);
+          internalLinkOpportunities.push(withState({
+            fingerprint, category: "internal_link", severity: "low",
+            title: `Review a link from “${post.title}” to “${product.name}”`,
+            description: "The article text mentions terms matching this product, but no direct product link was detected.",
+            recommendation: `If the context genuinely discusses ${product.name}, add a descriptive link after human review.`,
+            sourceUrl, targetUrl, evidence: { matchedProduct: product.name, heuristic: true },
+          }));
+          if (internalLinkOpportunities.length >= 30) break;
+        }
+        if (internalLinkOpportunities.length >= 30) break;
+      }
+      const opportunities = [...auditFindings, ...contentOpportunities, ...internalLinkOpportunities];
+      const summary = opportunities.reduce((result: any, opportunity: any) => {
+        result.total += 1;
+        result.bySeverity[opportunity.severity] = (result.bySeverity[opportunity.severity] || 0) + 1;
+        result.byStatus[opportunity.status] = (result.byStatus[opportunity.status] || 0) + 1;
+        result.byCategory[opportunity.category] = (result.byCategory[opportunity.category] || 0) + 1;
+        return result;
+      }, { total: 0, bySeverity: {}, byStatus: {}, byCategory: {} });
+      res.json({
+        generatedAt: new Date().toISOString(),
+        period: latestPeriod || null,
+        summary,
+        pages: uniquePages.map(({ content, ...page }) => page),
+        keywordMappings,
+        opportunities,
+      });
+    } catch (error) {
+      console.error("Error building SEO growth opportunities:", error);
+      res.status(500).json({ message: "Failed to build SEO growth opportunities" });
     }
   });
 
@@ -6178,7 +6583,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.put('/api/admin/seo/settings', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+  app.put('/api/admin/seo/settings', isAuthenticated, isSeoManager, async (req: any, res) => {
     try {
       const settingsData = publicSeoSettingsUpdateSchema.parse(req.body);
       const settings = await storage.updateGlobalSeoSettings(settingsData);
