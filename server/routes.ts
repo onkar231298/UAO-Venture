@@ -26,6 +26,8 @@ import {
   insertSearchAnalyticsSchema,
   insertHreflangConfigSchema,
   insertGlobalSeoSettingsSchema,
+  seoKeywordPerformance,
+  seoKeywordReviews,
   insertNewsletterSubscriptionSchema,
   customerRegistrationSchema,
   insertCompanySchema,
@@ -5793,6 +5795,227 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  const searchConsoleDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD").refine((value) => {
+    const [year, month, day] = value.split("-").map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+  }, "Must be a real calendar date");
+  const keywordPerformanceImportSchema = z.object({
+    periodStart: searchConsoleDate,
+    periodEnd: searchConsoleDate,
+    rows: z.array(z.object({
+      query: z.string().trim().min(1).max(500),
+      page: z.string().trim().max(2000).nullable().optional(),
+      country: z.string().trim().max(100).nullable().optional(),
+      device: z.string().trim().max(50).nullable().optional(),
+      clicks: z.number().int().min(0).max(2_147_483_647),
+      impressions: z.number().int().min(0).max(2_147_483_647),
+      ctr: z.number().min(0).max(1),
+      position: z.number().min(0).max(10_000),
+      conversions: z.number().int().min(0).max(2_147_483_647).optional(),
+    })).min(1).max(5000),
+  }).refine((value) => value.periodStart <= value.periodEnd, {
+    message: "periodStart must be on or before periodEnd",
+    path: ["periodEnd"],
+  });
+
+  // Search Console snapshots are explicitly imported by an authorized staff member;
+  // no Google credentials are stored by this application.
+  app.post('/api/admin/seo/keyword-performance/import', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+    try {
+      const input = keywordPerformanceImportSchema.parse(req.body);
+      const snapshotRows = new Map<string, typeof input.rows[number]>();
+      for (const row of input.rows) {
+        const key = [row.query, row.page || "", row.country || "", row.device || ""].join("\u0000");
+        snapshotRows.set(key, row);
+      }
+      const values = Array.from(snapshotRows.values()).map((row) => ({
+        ...row,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        page: row.page || "",
+        country: row.country || "",
+        device: row.device || "",
+        ctr: String(row.ctr),
+        position: String(row.position),
+        conversions: row.conversions ?? 0,
+        importedAt: new Date(),
+      }));
+      await db.insert(seoKeywordPerformance).values(values).onConflictDoUpdate({
+        target: [
+          seoKeywordPerformance.periodStart, seoKeywordPerformance.periodEnd,
+          seoKeywordPerformance.query, seoKeywordPerformance.page,
+          seoKeywordPerformance.country, seoKeywordPerformance.device,
+        ],
+        set: {
+          clicks: sql`excluded.clicks`,
+          impressions: sql`excluded.impressions`,
+          ctr: sql`excluded.ctr`,
+          position: sql`excluded.position`,
+          conversions: sql`excluded.conversions`,
+          importedAt: sql`excluded.imported_at`,
+        },
+      });
+      res.status(201).json({ imported: values.length, periodStart: input.periodStart, periodEnd: input.periodEnd });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid import data", errors: error.flatten() });
+      console.error("Error importing keyword performance:", error);
+      res.status(500).json({ message: "Failed to import keyword performance" });
+    }
+  });
+
+  app.get('/api/admin/seo/keyword-performance', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+    try {
+      const days = z.coerce.number().int().min(1).max(365).catch(28).parse(req.query.days);
+      const periods = await db.selectDistinct({
+        periodStart: seoKeywordPerformance.periodStart,
+        periodEnd: seoKeywordPerformance.periodEnd,
+      }).from(seoKeywordPerformance)
+        .orderBy(desc(seoKeywordPerformance.periodEnd), desc(seoKeywordPerformance.periodStart))
+        .limit(100);
+      const duration = (period: { periodStart: string; periodEnd: string }) =>
+        Math.round((Date.parse(`${period.periodEnd}T00:00:00Z`) - Date.parse(`${period.periodStart}T00:00:00Z`)) / 86_400_000) + 1;
+      const preferredPeriods = periods.filter((period) => duration(period) === days);
+      const currentPeriod = preferredPeriods[0] || periods[0];
+      const previousPeriod = currentPeriod
+        ? (preferredPeriods.slice(1).find((period) => period.periodEnd < currentPeriod.periodStart)
+          || periods.find((period) => period.periodEnd < currentPeriod.periodStart))
+        : undefined;
+      const currentCondition = currentPeriod ? and(
+        eq(seoKeywordPerformance.periodStart, currentPeriod.periodStart),
+        eq(seoKeywordPerformance.periodEnd, currentPeriod.periodEnd),
+      ) : undefined;
+      const previousCondition = previousPeriod ? and(
+        eq(seoKeywordPerformance.periodStart, previousPeriod.periodStart),
+        eq(seoKeywordPerformance.periodEnd, previousPeriod.periodEnd),
+      ) : undefined;
+      const rows = currentCondition
+        ? await db.select().from(seoKeywordPerformance).where(previousCondition ? or(currentCondition, previousCondition) : currentCondition)
+        : [];
+      type Aggregate = { clicks: number; impressions: number; conversions: number; positionWeight: number };
+      const aggregate = (source: typeof rows) => {
+        const totals: Aggregate = { clicks: 0, impressions: 0, conversions: 0, positionWeight: 0 };
+        const queries = new Map<string, Aggregate>();
+        for (const row of source) {
+          const clicks = row.clicks, impressions = row.impressions, conversions = row.conversions;
+          const position = Number(row.position);
+          const entry = queries.get(row.query.toLowerCase()) || { clicks: 0, impressions: 0, conversions: 0, positionWeight: 0 };
+          for (const item of [totals, entry]) {
+            item.clicks += clicks; item.impressions += impressions; item.conversions += conversions;
+            item.positionWeight += position * impressions;
+          }
+          queries.set(row.query.toLowerCase(), entry);
+        }
+        return { totals, queries };
+      };
+      const current = aggregate(rows.filter((row) =>
+        row.periodStart === currentPeriod?.periodStart && row.periodEnd === currentPeriod?.periodEnd
+      ));
+      const previous = aggregate(rows.filter((row) =>
+        row.periodStart === previousPeriod?.periodStart && row.periodEnd === previousPeriod?.periodEnd
+      ));
+      const formatMetric = (metrics: Aggregate) => ({
+        clicks: metrics.clicks, impressions: metrics.impressions, conversions: metrics.conversions,
+        ctr: metrics.impressions ? metrics.clicks / metrics.impressions : 0,
+        position: metrics.impressions ? metrics.positionWeight / metrics.impressions : 0,
+      });
+      const settings = await storage.getGlobalSeoSettings();
+      const keywordFields = ["primaryKeywords", "pharmaceuticalKeywords", "nutraceuticalKeywords", "northAmericaKeywords", "europeKeywords", "asiaPacificKeywords", "indiaKeywords", "middleEastKeywords", "latinAmericaKeywords"] as const;
+      const targets = Array.from(new Set(keywordFields.flatMap((field) => (settings?.[field] || "").split(",").map((keyword) => keyword.trim()).filter(Boolean).map((keyword) => keyword.toLowerCase()))));
+      const normalizeTokens = (value: string) => value.toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((token) => token.length > 3 && token.endsWith("s") ? token.slice(0, -1) : token);
+      const matchesTarget = (query: string, keyword: string) => {
+        const targetTokens = normalizeTokens(keyword);
+        const queryTokens = new Set(normalizeTokens(query));
+        if (!targetTokens.length) return false;
+        return targetTokens.filter((token) => queryTokens.has(token)).length / targetTokens.length >= 0.6;
+      };
+      const metricsForTarget = (queries: Map<string, Aggregate>, keyword: string) => {
+        const combined: Aggregate = { clicks: 0, impressions: 0, conversions: 0, positionWeight: 0 };
+        queries.forEach((metrics, query) => {
+          if (!matchesTarget(query, keyword)) return;
+          combined.clicks += metrics.clicks;
+          combined.impressions += metrics.impressions;
+          combined.conversions += metrics.conversions;
+          combined.positionWeight += metrics.positionWeight;
+        });
+        return formatMetric(combined);
+      };
+      const topQueries = Array.from(current.queries.entries()).map(([query, metrics]) => ({ query, ...formatMetric(metrics) }))
+        .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions || a.query.localeCompare(b.query)).slice(0, 50);
+      const replacementCandidates = topQueries.filter((query) =>
+        query.impressions >= 20 && !targets.some((keyword) => matchesTarget(query.query, keyword))
+      );
+      const recommendationFor = (keyword: string, targetIndex: number) => {
+        const metric = metricsForTarget(current.queries, keyword);
+        const prior = metricsForTarget(previous.queries, keyword);
+        let recommendation: "keep" | "improve" | "replace" | "monitor" = "monitor";
+        let reason = "Insufficient impressions to make a reliable change recommendation.";
+        if (current.totals.impressions > 0 && metric.impressions === 0) {
+          recommendation = "replace"; reason = "No visibility was recorded for this target in the imported period.";
+        } else if (metric.impressions >= 20 && prior.clicks > 0 && metric.clicks < prior.clicks * 0.8) {
+          recommendation = "improve"; reason = "Clicks declined by 20% or more versus the prior period.";
+        } else if (metric.impressions >= 20 && metric.position > 20) {
+          recommendation = "replace"; reason = "Average position is below 20 despite meaningful impressions.";
+        } else if (metric.impressions >= 20 && metric.ctr < 0.02) {
+          recommendation = "improve"; reason = "CTR is below 2% with meaningful impressions.";
+        } else if (metric.impressions >= 20 && metric.position <= 10 && metric.ctr >= 0.03) {
+          recommendation = "keep"; reason = "Top-10 position and CTR of at least 3% are performing well.";
+        }
+        const suggestedReplacement = recommendation === "replace" && replacementCandidates.length
+          ? replacementCandidates[targetIndex % replacementCandidates.length].query
+          : null;
+        return { keyword, ...metric, previous: prior, recommendation, reason, suggestedReplacement };
+      };
+      res.json({
+        period: currentPeriod ? { start: currentPeriod.periodStart, end: currentPeriod.periodEnd, days: duration(currentPeriod) } : null,
+        previousPeriod: previousPeriod ? { start: previousPeriod.periodStart, end: previousPeriod.periodEnd, days: duration(previousPeriod) } : null,
+        requestedDays: days,
+        current: formatMetric(current.totals),
+        previous: formatMetric(previous.totals),
+        targets: targets.map(recommendationFor),
+        topQueries,
+      });
+    } catch (error) {
+      console.error("Error fetching keyword performance:", error);
+      res.status(500).json({ message: "Failed to fetch keyword performance" });
+    }
+  });
+
+  const keywordReviewSchema = z.object({
+    keyword: z.string().trim().min(1).max(500),
+    replacement: z.string().trim().max(500).nullable().optional(),
+    recommendation: z.enum(["keep", "improve", "replace"]),
+    reason: z.string().trim().min(1).max(5000),
+    status: z.enum(["proposed", "approved", "rejected"]).default("proposed"),
+    metrics: z.record(z.unknown()).optional(),
+  });
+  app.post('/api/admin/seo/keyword-reviews', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
+    try {
+      const review = keywordReviewSchema.parse(req.body);
+      const [created] = await db.insert(seoKeywordReviews).values({
+        ...review, reviewedBy: req.staffUser?.id, reviewedAt: new Date(),
+      }).returning();
+      res.status(201).json(created);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid review data", errors: error.flatten() });
+      console.error("Error recording keyword review:", error);
+      res.status(500).json({ message: "Failed to record keyword review" });
+    }
+  });
+  app.get('/api/admin/seo/keyword-reviews', isAuthenticated, isAdminOrWebsiteManager, async (_req: any, res) => {
+    try {
+      res.json(await db.select().from(seoKeywordReviews).orderBy(desc(seoKeywordReviews.createdAt)).limit(50));
+    } catch (error) {
+      console.error("Error fetching keyword reviews:", error);
+      res.status(500).json({ message: "Failed to fetch keyword reviews" });
+    }
+  });
+
   // Search suggestion routes
   app.get('/api/search/suggestions', async (req, res) => {
     try {
@@ -5898,6 +6121,50 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Global SEO Settings routes
+  const normalizeAnalyticsId = (value: string | null | undefined, pattern: RegExp) =>
+    typeof value === "string" && pattern.test(value.trim()) ? value.trim() : null;
+  const googleAnalyticsIdPattern = /^(?:G-[A-Z0-9]{4,20}|UA-\d{4,12}-\d{1,4})$/;
+  const googleTagManagerIdPattern = /^GTM-[A-Z0-9]{4,20}$/;
+  const facebookPixelIdPattern = /^\d{5,20}$/;
+  const optionalAnalyticsId = (pattern: RegExp, label: string) => z.union([
+    z.literal(""),
+    z.string().trim().regex(pattern, `Invalid ${label}`),
+    z.null(),
+  ]).optional().transform((value) => value || null);
+  const publicSeoSettingsUpdateSchema = insertGlobalSeoSettingsSchema.extend({
+    googleAnalyticsId: optionalAnalyticsId(googleAnalyticsIdPattern, "Google Analytics ID"),
+    googleTagManagerId: optionalAnalyticsId(googleTagManagerIdPattern, "Google Tag Manager ID"),
+    facebookPixelId: optionalAnalyticsId(facebookPixelIdPattern, "Facebook Pixel ID"),
+  });
+
+  // Public pages need rendering-safe configuration. Measurement IDs are public
+  // by design (they are embedded in page source); edit operations stay protected.
+  app.get('/api/seo/settings', async (_req, res) => {
+    try {
+      const settings = await storage.getGlobalSeoSettings();
+      if (!settings || settings.isActive === false) return res.status(404).json({ message: "SEO settings not configured" });
+      const {
+        siteTitle, siteDescription, primaryKeywords, primaryTargetRegion,
+        businessLocation, pharmaceuticalKeywords, nutraceuticalKeywords,
+        enableAutoMetaTags, enableStructuredData, enableLocalSeo, enableHreflang,
+        twitterHandle, googleAnalyticsId, googleTagManagerId,
+        facebookPixelId,
+      } = settings;
+      res.json({
+        siteTitle, siteDescription, primaryKeywords, primaryTargetRegion,
+        businessLocation, pharmaceuticalKeywords, nutraceuticalKeywords,
+        enableAutoMetaTags, enableStructuredData, enableLocalSeo, enableHreflang,
+        twitterHandle,
+        googleAnalyticsId: normalizeAnalyticsId(googleAnalyticsId, googleAnalyticsIdPattern),
+        googleTagManagerId: normalizeAnalyticsId(googleTagManagerId, googleTagManagerIdPattern),
+        facebookPixelId: normalizeAnalyticsId(facebookPixelId, facebookPixelIdPattern),
+      });
+    } catch (error) {
+      console.error('Error fetching public SEO settings:', error);
+      res.status(500).json({ message: "Failed to fetch SEO settings" });
+    }
+  });
+
   // Read-only, intentionally not role-gated: client/src/services/seoService.ts fetches
   // this from public pages for any logged-in session (incl. customers) to render meta
   // tags; blocking reads would break that. The PUT below is role-gated.
@@ -5913,10 +6180,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.put('/api/admin/seo/settings', isAuthenticated, isAdminOrWebsiteManager, async (req: any, res) => {
     try {
-      const settingsData = insertGlobalSeoSettingsSchema.parse(req.body);
+      const settingsData = publicSeoSettingsUpdateSchema.parse(req.body);
       const settings = await storage.updateGlobalSeoSettings(settingsData);
       res.json(settings);
     } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid SEO settings", errors: error.flatten() });
       console.error('Error updating global SEO settings:', error);
       res.status(500).json({ message: "Failed to update SEO settings" });
     }
@@ -9481,8 +9749,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  // Robots.txt route
-  app.get('/robots.txt', (req, res) => {
+  // Admin preview only. The public robots.txt is owned by server/index.ts.
+  app.get('/api/admin/seo/robots-preview.txt', isAuthenticated, isAdminOrWebsiteManager, (_req, res) => {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
     res.send(`User-agent: *
@@ -11499,8 +11767,9 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     } catch (error) { console.error("Titan quotation send error:", error); res.status(500).json({ message: "Failed to send quotation" }); }
   });
 
-  // Sitemap.xml route - simplified for maximum reliability
-  app.get('/sitemap.xml', async (req, res) => {
+  // Admin-only preview. The public sitemap is owned by server/index.ts so
+  // there can be no competing /sitemap.xml response.
+  app.get('/api/admin/seo/sitemap-preview.xml', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
     // Always set XML headers first
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');

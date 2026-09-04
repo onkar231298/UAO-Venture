@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { products, categories } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { CANONICAL_ORIGIN, renderSeoHtml, STATIC_PAGE_SEO } from "./seo";
 
 // Validate critical environment variables for deployment
 function validateEnvironment() {
@@ -142,6 +143,104 @@ app.use((req, res, next) => {
   // Configure server routes
   const server = await registerRoutes(app);
 
+  // One public renderer for people and crawlers.  It deliberately precedes the
+  // older SEO middleware below; those handlers are retained temporarily but
+  // always fall through because this handler owns public marketing routes.
+  const breadcrumb = (name: string, url: string, section?: { name: string; url: string }) => ({
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: CANONICAL_ORIGIN },
+      ...(section ? [{ "@type": "ListItem", position: 2, name: section.name, item: section.url }] : []),
+      { "@type": "ListItem", position: section ? 3 : 2, name, item: url },
+    ],
+  });
+  const publicSeo = async (req: Request, res: Response, next: NextFunction) => {
+    // Vite must transform index.html in development (notably for the React
+    // refresh preamble). Production uses the built template rendered below.
+    if (app.get("env") === "development") return next();
+    const pathName = req.path;
+    const storedSettings = await storage.getGlobalSeoSettings();
+    const settings = storedSettings?.isActive === false ? undefined : storedSettings;
+    const siteTitle = settings?.siteTitle || "Bright Fame Organic";
+    const siteDescription = settings?.siteDescription || "Premium organic ingredients supplier";
+    const keywords = settings?.primaryKeywords || "";
+    let title = siteTitle, description = siteDescription, pageKeywords = keywords, jsonLd: object[] = [];
+    let pageType = "static", pageId = pathName;
+    const notFound = (label: string) => res.status(404).type("html").send(renderSeoHtml({
+      title: `${label} Not Found | ${siteTitle}`, description: `${label} not found.`, canonicalPath: pathName, robots: "noindex, follow",
+    }));
+    if (pathName.startsWith("/products/")) {
+      const product = await storage.getProductBySlug(req.params.slug);
+      if (!product || !product.isActive || !product.isVisible) return notFound("Product");
+      title = product.seoTitle || `${product.name} | ${siteTitle}`;
+      description = product.seoDescription || product.description || siteDescription;
+      pageType = "product"; pageId = String(product.id);
+      const productUrl = `${CANONICAL_ORIGIN}${pathName}`;
+      const productImage = product.openGraphImage || product.mainImage;
+      const productSchema: Record<string, unknown> = {
+        "@context": "https://schema.org", "@type": "Product", name: product.name, description,
+        url: productUrl, sku: product.productId || undefined,
+        brand: { "@type": "Brand", name: "Bright Fame Organic" },
+        manufacturer: { "@type": "Organization", name: "Bright Fame Organic Pvt. Ltd.", url: CANONICAL_ORIGIN },
+        image: productImage
+          ? new URL(productImage, CANONICAL_ORIGIN).toString()
+          : undefined,
+      };
+      jsonLd = [productSchema, breadcrumb(product.name, productUrl, { name: "Products", url: `${CANONICAL_ORIGIN}/products` })];
+    } else if (pathName.startsWith("/ingredients/") || pathName.startsWith("/health-support/")) {
+      const isCategory = pathName.startsWith("/ingredients/");
+      const record = isCategory ? await storage.getCategoryBySlug(req.params.slug) : await storage.getHealthSupportBySlug(req.params.slug);
+      if (!record || !record.isActive) return notFound(isCategory ? "Category" : "Health support");
+      const sectionName = isCategory ? "Ingredients" : "Health Support";
+      const url = `${CANONICAL_ORIGIN}${pathName}`;
+      title = `${record.name} | ${siteTitle}`;
+      description = (record as any).description || siteDescription;
+      pageType = isCategory ? "category" : "health-support"; pageId = String(record.id);
+      jsonLd = [{ "@context": "https://schema.org", "@type": "CollectionPage", name: record.name, description, url }, breadcrumb(record.name, url, { name: sectionName, url: `${CANONICAL_ORIGIN}${isCategory ? "/ingredients" : "/health-support"}` })];
+    } else if (pathName.startsWith("/blog/")) {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post || !post.isPublished) return notFound("Blog post");
+      title = post.metaTitle || `${post.title} | ${siteTitle}`; description = post.metaDescription || post.excerpt || siteDescription;
+      pageKeywords = post.tags?.join(", ") || keywords; pageType = "blog"; pageId = String(post.id);
+      const url = `${CANONICAL_ORIGIN}${pathName}`;
+      jsonLd = [{ "@context": "https://schema.org", "@type": "BlogPosting", headline: post.title, description, url, datePublished: post.publishedAt?.toISOString(), dateModified: post.updatedAt?.toISOString(), image: post.featuredImage || undefined }, breadcrumb(post.title, url, { name: "Blog", url: `${CANONICAL_ORIGIN}/blog` })];
+    } else if (["/products", "/ingredients", "/health-support", "/blog"].includes(pathName)) {
+      const name = pathName === "/products" ? "Products" : pathName === "/ingredients" ? "Ingredients" : pathName === "/health-support" ? "Health Support" : "Blog";
+      const pageSeo = pathName === "/blog" ? STATIC_PAGE_SEO["/blog"] : undefined;
+      title = pageSeo?.title || `${name} | ${siteTitle}`;
+      description = pageSeo?.description || description;
+      pageKeywords = pageSeo?.keywords || pageKeywords;
+      const url = `${CANONICAL_ORIGIN}${pathName}`;
+      jsonLd = [{ "@context": "https://schema.org", "@type": "CollectionPage", name, description, url }, breadcrumb(name, url)];
+    } else if (pathName === "/") {
+      const served = settings?.primaryTargetRegion && settings.primaryTargetRegion !== "Global (All Regions)"
+        ? [settings.primaryTargetRegion]
+        : ["Worldwide"];
+      const organization = {
+        "@context": "https://schema.org", "@type": settings?.enableLocalSeo ? "LocalBusiness" : "Organization",
+        name: "Bright Fame Organic", url: CANONICAL_ORIGIN, description,
+        ...(settings?.businessLocation ? { address: settings.businessLocation } : {}),
+        areaServed: served,
+      };
+      jsonLd = [organization, { "@context": "https://schema.org", "@type": "WebSite", name: "Bright Fame Organic", url: CANONICAL_ORIGIN }];
+    } else {
+      const pageSeo = STATIC_PAGE_SEO[pathName];
+      if (pageSeo) {
+        title = pageSeo.title;
+        description = pageSeo.description;
+        pageKeywords = pageSeo.keywords;
+        const url = `${CANONICAL_ORIGIN}${pathName}`;
+        jsonLd = [{ "@context": "https://schema.org", "@type": "WebPage", name: title, description, url }, breadcrumb(title.split("|")[0].trim(), url)];
+      }
+    }
+    if (settings?.enableStructuredData === false) jsonLd = [];
+    const hreflang = settings?.enableHreflang ? await storage.getHreflangConfig(pageType, pageId) : [];
+    res.type("html").send(renderSeoHtml({ title, description, keywords: pageKeywords, canonicalPath: pathName, image: (jsonLd[0] as any)?.image, ogType: pathName.startsWith("/products/") ? "product" : "website", jsonLd, hreflang }));
+  };
+  const seoStaticRoutes = ["/", ...Object.keys(STATIC_PAGE_SEO), "/ingredients", "/health-support", "/products"];
+  app.get(seoStaticRoutes, publicSeo);
+  app.get(["/products/:slug", "/ingredients/:slug", "/health-support/:slug", "/blog/:slug"], publicSeo);
+
   // 301 Redirect for old category URLs to new ingredients URLs
   app.get('/category/:slug', (req, res) => {
     const { slug } = req.params;
@@ -211,6 +310,7 @@ app.use((req, res, next) => {
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const categoryName = category.name;
+      const { slug } = req.params;
       
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -335,6 +435,7 @@ app.use((req, res, next) => {
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const healthSupportName = healthSupport.name;
+      const { slug } = req.params;
       
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -566,7 +667,7 @@ app.use((req, res, next) => {
 
   // Serve robots.txt and sitemap.xml for SEO
   app.get('/robots.txt', (req, res) => {
-    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.send(`User-agent: *
 Allow: /
 
@@ -654,7 +755,7 @@ Disallow: /*?hl=*
 Disallow: /*?gl=*
 
 # Allow sitemap
-Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
+Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
   // llms.txt — AI search engine context file (like robots.txt but for LLMs)
@@ -819,15 +920,19 @@ samples, and business development for Bright Fame Organic.
 
   app.get('/sitemap.xml', async (req, res) => {
     try {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = CANONICAL_ORIGIN;
       const currentDate = new Date().toISOString().split('T')[0];
+      const xml = (value: unknown) => String(value ?? "").replace(/[<>&'"]/g, (character) => ({"<":"&lt;", ">":"&gt;", "&":"&amp;", "'":"&apos;", '"':"&quot;"}[character] as string));
+      const date = (value: Date | null | undefined) => value ? new Date(value).toISOString().split("T")[0] : currentDate;
       
       // Get all products, categories, and health supports for sitemap
-      const [allProducts, allCategories, allHealthSupports] = await Promise.all([
-        storage.getAllProducts(),
+      const [productResult, allCategories, allHealthSupports, blogResult] = await Promise.all([
+        storage.getProducts({ limit: 5000, offset: 0 }),
         storage.getCategories(),
-        storage.getHealthSupports()
+        storage.getHealthSupports(),
+        storage.getBlogPosts({ published: true, limit: 5000, offset: 0 }),
       ]);
+      const allProducts = productResult.products;
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -927,8 +1032,8 @@ samples, and business development for Bright Fame Organic.
         if (product.slug && product.isActive && product.isVisible) {
           sitemap += `
   <url>
-    <loc>${baseUrl}/products/${product.slug}</loc>
-    <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
+    <loc>${baseUrl}/products/${xml(product.slug)}</loc>
+    <lastmod>${date(product.updatedAt)}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
@@ -940,8 +1045,8 @@ samples, and business development for Bright Fame Organic.
         if (category.slug && category.isActive) {
           sitemap += `
   <url>
-    <loc>${baseUrl}/ingredients/${category.slug}</loc>
-    <lastmod>${currentDate}</lastmod>
+    <loc>${baseUrl}/ingredients/${xml(category.slug)}</loc>
+    <lastmod>${date(category.createdAt)}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
@@ -953,18 +1058,29 @@ samples, and business development for Bright Fame Organic.
         if (healthSupport.slug && healthSupport.isActive) {
           sitemap += `
   <url>
-    <loc>${baseUrl}/health-support/${healthSupport.slug}</loc>
-    <lastmod>${currentDate}</lastmod>
+    <loc>${baseUrl}/health-support/${xml(healthSupport.slug)}</loc>
+    <lastmod>${date(healthSupport.createdAt)}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
         }
       }
 
+      for (const post of blogResult.posts) {
+        if (post.slug && post.isPublished) sitemap += `
+  <url>
+    <loc>${baseUrl}/blog/${xml(post.slug)}</loc>
+    <lastmod>${date(post.updatedAt || post.publishedAt)}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      }
+
       sitemap += `
 </urlset>`;
 
-      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       res.send(sitemap);
     } catch (error) {
       console.error('Error generating sitemap:', error);

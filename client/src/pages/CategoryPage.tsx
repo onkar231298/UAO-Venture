@@ -23,7 +23,6 @@ import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import type { Product, Category } from "@shared/schema";
 import { useSEO } from "@/hooks/useSEO";
 import EnhancedSEOHead from "@/components/EnhancedSEOHead";
-import { useInternationalSEO } from "@/hooks/useInternationalSEO";
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -46,9 +45,6 @@ export default function CategoryPage() {
   const categoryName = slug 
     ? slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
     : '';
-
-  // International SEO setup
-  useInternationalSEO();
 
   // Fetch all categories for validation
   const { data: categories = [] } = useQuery<Category[]>({

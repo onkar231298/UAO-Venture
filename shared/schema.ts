@@ -250,6 +250,44 @@ export const globalSeoSettings = pgTable("global_seo_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Imported Google Search Console query snapshots. Empty dimensional values make
+// the snapshot grain explicit and allow a deterministic composite upsert.
+export const seoKeywordPerformance = pgTable("seo_keyword_performance", {
+  id: serial("id").primaryKey(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  query: varchar("query", { length: 500 }).notNull(),
+  page: varchar("page", { length: 2000 }).notNull().default(""),
+  country: varchar("country", { length: 100 }).notNull().default(""),
+  device: varchar("device", { length: 50 }).notNull().default(""),
+  clicks: integer("clicks").notNull().default(0),
+  impressions: integer("impressions").notNull().default(0),
+  ctr: decimal("ctr", { precision: 12, scale: 6 }).notNull().default("0"),
+  position: decimal("position", { precision: 12, scale: 4 }).notNull().default("0"),
+  conversions: integer("conversions").notNull().default(0),
+  importedAt: timestamp("imported_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("seo_keyword_performance_snapshot_dimension_unique").on(
+    table.periodStart, table.periodEnd, table.query, table.page, table.country, table.device,
+  ),
+  index("seo_keyword_performance_period_idx").on(table.periodStart, table.periodEnd),
+]);
+
+export const seoKeywordReviews = pgTable("seo_keyword_reviews", {
+  id: serial("id").primaryKey(),
+  keyword: varchar("keyword", { length: 500 }).notNull(),
+  replacement: varchar("replacement", { length: 500 }),
+  recommendation: varchar("recommendation", { length: 20 }).notNull(), // keep, improve, replace
+  reason: text("reason").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("proposed"), // proposed, approved, rejected
+  metrics: jsonb("metrics"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("seo_keyword_reviews_created_at_idx").on(table.createdAt),
+]);
+
 // Hreflang configuration for multi-language
 export const hreflangConfig = pgTable("hreflang_config", {
   id: serial("id").primaryKey(),
@@ -1358,6 +1396,20 @@ export const insertGlobalSeoSettingsSchema = createInsertSchema(globalSeoSetting
 });
 export type InsertGlobalSeoSettings = z.infer<typeof insertGlobalSeoSettingsSchema>;
 export type GlobalSeoSettings = typeof globalSeoSettings.$inferSelect;
+
+export const insertSeoKeywordPerformanceSchema = createInsertSchema(seoKeywordPerformance).omit({
+  id: true,
+  importedAt: true,
+});
+export type InsertSeoKeywordPerformance = z.infer<typeof insertSeoKeywordPerformanceSchema>;
+export type SeoKeywordPerformance = typeof seoKeywordPerformance.$inferSelect;
+
+export const insertSeoKeywordReviewSchema = createInsertSchema(seoKeywordReviews).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSeoKeywordReview = z.infer<typeof insertSeoKeywordReviewSchema>;
+export type SeoKeywordReview = typeof seoKeywordReviews.$inferSelect;
 
 // Newsletter subscriptions table
 export const newsletterSubscriptions = pgTable("newsletter_subscriptions", {

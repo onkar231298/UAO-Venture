@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, CheckCircle, TrendingUp, Search, Globe, BarChart3, FileText, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import KeywordPerformanceDashboard from "@/components/KeywordPerformanceDashboard";
 
 export default function SeoManagement() {
   const { toast } = useToast();
@@ -722,59 +723,7 @@ export default function SeoManagement() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                SEO Performance Analytics
-              </CardTitle>
-              <CardDescription>
-                Track your website's search performance and user behavior
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">2,847</div>
-                      <div className="text-sm text-gray-600">Page Views</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">1,234</div>
-                      <div className="text-sm text-gray-600">Organic Visits</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-purple-600">156</div>
-                      <div className="text-sm text-gray-600">Keywords Ranking</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-600">3.2</div>
-                      <div className="text-sm text-gray-600">Avg. Position</div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="text-center py-8">
-                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Dashboard</h3>
-                  <p className="text-gray-600">Connect Google Analytics for detailed insights</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => window.open('https://analytics.google.com/', '_blank')}
-                  >
-                    Open Google Analytics
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <KeywordPerformanceDashboard />
         </TabsContent>
       </Tabs>
     </div>

@@ -79,7 +79,12 @@ export function useSEO({
         canonical.rel = 'canonical';
         document.head.appendChild(canonical);
       }
-      canonical.href = canonicalUrl;
+      try {
+        const supplied = new URL(canonicalUrl, window.location.origin);
+        canonical.href = `https://bright-organic.com${supplied.pathname}`;
+      } catch {
+        canonical.href = `https://bright-organic.com${canonicalUrl.startsWith('/') ? canonicalUrl : `/${canonicalUrl}`}`;
+      }
     }
 
     // Add Open Graph tags

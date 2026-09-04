@@ -51,7 +51,6 @@ import { useToast } from "@/hooks/use-toast";
 import { LocationBasedPricing } from "@/components/LocationBasedPricing";
 import StructuredData from "@/components/StructuredData";
 import EnhancedSEOHead from "@/components/EnhancedSEOHead";
-import { useInternationalSEO } from "@/hooks/useInternationalSEO";
 import { testStructuredData } from "@/utils/seoTestUtil";
 import type { Product, ProductDocument } from "@shared/schema";
 
@@ -60,9 +59,6 @@ export default function ProductDetailBFI() {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
-  
-  // International SEO setup
-  useInternationalSEO();
   
   // Handle direct page load/refresh scenario
   useEffect(() => {

@@ -17,7 +17,7 @@ class SEOService {
   // Initialize SEO settings
   async initializeSettings() {
     try {
-      const response = await fetch('/api/admin/seo/settings');
+      const response = await fetch('/api/seo/settings');
       if (response.ok) {
         this.settings = await response.json();
         this.applyGlobalSEOSettings();
@@ -32,40 +32,22 @@ class SEOService {
     if (!this.settings) return;
 
     // Update document title if auto meta tags are enabled
-    if (this.settings.enableAutoMetaTags) {
+    if (this.settings.enableAutoMetaTags && window.location.pathname === '/') {
       this.updateDocumentTitle();
       this.updateMetaDescription();
       this.updateMetaKeywords();
     }
 
-    // Add structured data if enabled
-    if (this.settings.enableStructuredData) {
-      this.addOrganizationSchema();
-    }
-
-    // Add local SEO if enabled
-    if (this.settings.enableLocalSeo) {
-      this.addLocalBusinessSchema();
-    }
-
-    // Add analytics tracking
+    // Structured data is rendered by the server from validated factual fields.
+    // Add analytics tracking only.
     this.addAnalyticsTracking();
   }
 
-  // Update document title with region-specific optimization
+  // Update document title from the configured global setting.
   private updateDocumentTitle() {
     if (!this.settings?.siteTitle) return;
     
-    const currentPath = window.location.pathname;
-    let title = this.settings.siteTitle;
-
-    // Add region-specific keywords based on user location or preferences
-    const regionKeywords = this.getRegionSpecificKeywords();
-    if (regionKeywords && currentPath === '/') {
-      title = `${title} | ${regionKeywords.split(',')[0]?.trim()}`;
-    }
-
-    document.title = title;
+    document.title = this.settings.siteTitle;
   }
 
   // Update meta description
@@ -81,7 +63,7 @@ class SEOService {
     metaDescription.content = this.settings.siteDescription;
   }
 
-  // Update meta keywords with region-specific targeting
+  // Update meta keywords from configured terms only.
   private updateMetaKeywords() {
     const keywords = this.getAllKeywords();
     if (!keywords) return;
@@ -95,52 +77,33 @@ class SEOService {
     metaKeywords.content = keywords;
   }
 
-  // Get all relevant keywords including region-specific ones
+  // Get configured keywords. Do not infer a visitor's region from timezone.
   private getAllKeywords(): string {
     if (!this.settings) return '';
 
     const keywords = [
       this.settings.primaryKeywords,
       this.settings.pharmaceuticalKeywords,
-      this.settings.nutraceuticalKeywords,
-      this.getRegionSpecificKeywords()
+      this.settings.nutraceuticalKeywords
     ].filter(Boolean).join(', ');
 
     return keywords;
-  }
-
-  // Get region-specific keywords based on user location
-  private getRegionSpecificKeywords(): string {
-    if (!this.settings) return '';
-
-    // Simple region detection based on time zone or can be enhanced with IP geolocation
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    if (timeZone.includes('America')) {
-      return this.settings.northAmericaKeywords || '';
-    } else if (timeZone.includes('Europe')) {
-      return this.settings.europeKeywords || '';
-    } else if (timeZone.includes('Asia/Kolkata') || timeZone.includes('India')) {
-      return this.settings.indiaKeywords || '';
-    } else if (timeZone.includes('Asia')) {
-      return this.settings.asiaPacificKeywords || '';
-    } else if (timeZone.includes('Middle_East')) {
-      return this.settings.middleEastKeywords || '';
-    }
-
-    return this.settings.primaryKeywords || '';
   }
 
   // Add Organization Schema for better SEO
   private addOrganizationSchema() {
     if (!this.settings) return;
 
+    const configuredSchema = this.settings.organizationSchema && typeof this.settings.organizationSchema === 'object'
+      ? this.settings.organizationSchema as Record<string, unknown>
+      : {};
     const organizationSchema = {
+       ...configuredSchema,
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Bright Fame Organic",
-      "url": window.location.origin,
-      "logo": `${window.location.origin}/logo.png`,
+       "url": "https://bright-organic.com",
+       "logo": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
@@ -159,7 +122,8 @@ class SEOService {
       "sameAs": [
         this.settings.twitterHandle ? `https://twitter.com/${this.settings.twitterHandle.replace('@', '')}` : null
       ].filter(Boolean),
-      "keywords": this.getAllKeywords()
+       "keywords": this.getAllKeywords(),
+       "areaServed": [this.settings.businessLocation, this.settings.primaryTargetRegion].filter(Boolean)
     };
 
     this.addJSONLD('organization-schema', organizationSchema);
@@ -173,7 +137,7 @@ class SEOService {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "Bright Fame Organic",
-      "image": `${window.location.origin}/logo.png`,
+       "image": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
@@ -190,6 +154,7 @@ class SEOService {
       },
       "telephone": "+91-7249847439",
       "priceRange": "$$",
+       "areaServed": [this.settings.businessLocation, this.settings.primaryTargetRegion].filter(Boolean),
       "openingHoursSpecification": [
         {
           "@type": "OpeningHoursSpecification",
@@ -223,23 +188,27 @@ class SEOService {
     if (!this.settings) return;
 
     // Google Analytics
-    if (this.settings.googleAnalyticsId) {
+    if (this.settings.googleAnalyticsId && /^(?:G-[A-Z0-9]{4,20}|UA-\d{4,12}-\d{1,4})$/.test(this.settings.googleAnalyticsId)) {
       this.addGoogleAnalytics(this.settings.googleAnalyticsId);
     }
 
     // Google Tag Manager
-    if (this.settings.googleTagManagerId) {
+    if (this.settings.googleTagManagerId && /^GTM-[A-Z0-9]{4,20}$/.test(this.settings.googleTagManagerId)) {
       this.addGoogleTagManager(this.settings.googleTagManagerId);
     }
 
     // Facebook Pixel
-    if (this.settings.facebookPixelId) {
+    if (this.settings.facebookPixelId && /^\d{5,20}$/.test(this.settings.facebookPixelId)) {
       this.addFacebookPixel(this.settings.facebookPixelId);
     }
   }
 
   // Add Google Analytics
   private addGoogleAnalytics(gaId: string) {
+    if ((window as any).gtag) {
+      (window as any).gtag('config', gaId);
+      return;
+    }
     if (document.querySelector(`script[src*="gtag/js?id=${gaId}"]`)) return;
 
     const script = document.createElement('script');
@@ -252,7 +221,7 @@ class SEOService {
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '${gaId}');
+      gtag('config', ${JSON.stringify(gaId)});
     `;
     document.head.appendChild(inlineScript);
   }
@@ -267,7 +236,7 @@ class SEOService {
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-      })(window,document,'script','dataLayer','${gtmId}');
+       })(window,document,'script','dataLayer',${JSON.stringify(gtmId)});
     `;
     document.head.appendChild(script);
   }
@@ -286,7 +255,7 @@ class SEOService {
       t.src=v;s=b.getElementsByTagName(e)[0];
       s.parentNode.insertBefore(t,s)}(window, document,'script',
       'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '${pixelId}');
+       fbq('init', ${JSON.stringify(pixelId)});
       fbq('track', 'PageView');
     `;
     document.head.appendChild(script);
@@ -294,33 +263,10 @@ class SEOService {
 
   // Update hreflang tags if enabled
   updateHreflangTags(pageType: string, pageId: string) {
-    if (!this.settings?.enableHreflang) return;
-
-    // Remove existing hreflang tags
-    document.querySelectorAll('link[rel="alternate"]').forEach(el => el.remove());
-
-    // Add hreflang tags for different regions
-    const regions = [
-      { lang: 'en', region: 'us', url: `${window.location.origin}/en-us${window.location.pathname}` },
-      { lang: 'en', region: 'gb', url: `${window.location.origin}/en-gb${window.location.pathname}` },
-      { lang: 'en', region: 'in', url: `${window.location.origin}/en-in${window.location.pathname}` },
-      { lang: 'es', region: 'es', url: `${window.location.origin}/es-es${window.location.pathname}` },
-    ];
-
-    regions.forEach(({ lang, region, url }) => {
-      const link = document.createElement('link');
-      link.rel = 'alternate';
-      link.hreflang = `${lang}-${region}`;
-      link.href = url;
-      document.head.appendChild(link);
-    });
-
-    // Add x-default
-    const defaultLink = document.createElement('link');
-    defaultLink.rel = 'alternate';
-    defaultLink.hreflang = 'x-default';
-    defaultLink.href = `${window.location.origin}${window.location.pathname}`;
-    document.head.appendChild(defaultLink);
+    // Hreflang is rendered on the server exclusively from stored rows. The
+    // client must not fabricate locale URLs from the current location.
+    void pageType;
+    void pageId;
   }
 
   // Get current settings
