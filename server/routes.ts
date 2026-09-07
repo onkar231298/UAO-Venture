@@ -12665,10 +12665,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
   // ============================================
-  // BULK EMAIL CAMPAIGNS (SendGrid Integration)
+  // BULK EMAIL CAMPAIGNS (Mailchimp delivery)
   // ============================================
 
-  // Test SendGrid API key (admin only)
+  // Mailchimp provider readiness (admin only)
   app.get('/api/email-campaigns/test-key', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -12678,27 +12678,11 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(403).json({ message: 'Admin access required' });
       }
       
-      const apiKey = process.env.SENDGRID_API_KEY;
-      if (!apiKey) {
-        return res.json({ 
-          configured: false, 
-          message: 'SENDGRID_API_KEY not set' 
-        });
-      }
-      
-      // Check if key has correct format (starts with SG.)
-      const isValidFormat = apiKey.startsWith('SG.');
-      const keyLength = apiKey.length;
-      
-      res.json({ 
-        configured: true, 
-        validFormat: isValidFormat,
-        keyLength,
-        message: isValidFormat ? 'API key appears valid' : 'API key format may be incorrect (should start with SG.)'
-      });
-    } catch (error) {
-      console.error('Error testing SendGrid key:', error);
-      res.status(500).json({ message: 'Failed to test API key' });
+       const { readiness } = await import("./mailchimpService");
+       res.json(await readiness());
+    } catch (error: any) {
+       console.error('Error checking Mailchimp readiness:', error?.message);
+       res.status(error?.status || 503).type("application/problem+json").json(error?.problem?.() || { type: "https://bright-organic.com/problems/mailchimp-not-ready", title: "Mailchimp not ready", status: 503, detail: "Mailchimp is unavailable." });
     }
   });
 
@@ -12707,9 +12691,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      const { getCompaniesForBulkEmail, isEligibleBulkEmailSender } = await import('./bulkEmailCampaignService');
+      if (!isEligibleBulkEmailSender(user)) {
+        return res.status(403).json({ message: "An active sales or admin account is required" });
+      }
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
       
-      const { getCompaniesForBulkEmail } = await import('./sendgridService');
       const companies = await getCompaniesForBulkEmail(userId, isAdmin);
       res.json(companies);
     } catch (error) {
@@ -12718,14 +12705,107 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  // A salesperson can inspect their own Mailchimp readiness without seeing
+  // another user's audience. Administrators configure assignments separately.
+  app.get("/api/email-campaigns/readiness", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const user = await storage.getUser(userId);
+    const { getUserConfig, isBulkEmailAdmin, isEligibleBulkEmailSender } = await import("./bulkEmailCampaignService");
+    if (!isEligibleBulkEmailSender(user)) {
+      return res.json({
+        ready: false,
+        provider: "mailchimp",
+        configured: false,
+        writeAccess: false,
+        audienceId: null,
+        audienceName: null,
+        fromEmail: null,
+        fromName: null,
+        message: "An active sales or admin account is required.",
+        isAdmin: false,
+      });
+    }
+    const config = await getUserConfig(userId);
+    const { readiness, audiences } = await import("./mailchimpService");
+    const provider: any = await readiness();
+    let audienceName: string | null = null;
+    if (provider.writeAccess && config) audienceName = (await audiences()).find((a: any) => a.id === config.audienceId)?.name || null;
+    const ready = !!(provider.writeAccess && config?.enabled && config.readyAt && audienceName);
+    res.json({ ready, provider: "mailchimp", configured: !!config, writeAccess: !!provider.writeAccess, audienceId: config?.audienceId || null, audienceName, fromEmail: config?.fromEmail || null, fromName: config?.fromName || null, message: ready ? "Mailchimp is ready." : (config?.readinessError || provider.message || "Mailchimp configuration is incomplete."), isAdmin: isBulkEmailAdmin(user?.role) });
+  });
+
+  app.get("/api/email-campaigns/configurations", isAuthenticated, async (req: any, res) => {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (user?.role !== "admin" && user?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
+    const { bulkEmailUserConfigs } = await import("@shared/schema");
+    const configs = await db.select().from(bulkEmailUserConfigs);
+    let audienceNames = new Map<string, string>();
+    try {
+      const { audiences } = await import("./mailchimpService");
+      audienceNames = new Map((await audiences()).map((audience: any) => [audience.id, audience.name]));
+    } catch {
+      // Existing assignments remain editable even while Mailchimp is unavailable.
+    }
+    const salesUsers = await db.select({ id: users.id, email: users.email, firstName: users.firstName, lastName: users.lastName, role: users.role })
+      .from(users).where(and(eq(users.accountStatus, "active"), inArray(users.role, ["sales_manager", "sales_executive", "admin", "super_admin"])));
+    res.json({ users: salesUsers.map(u => { const c = configs.find(x => x.userId === u.id); return { user: u, configuration: c ? { audienceId: c.audienceId, audienceName: audienceNames.get(c.audienceId) || null, fromEmail: c.fromEmail, fromName: c.fromName, isEnabled: c.enabled, lastValidatedAt: c.lastCheckedAt, validationStatus: c.readyAt ? "ready" : "not_ready", validationMessage: c.readinessError } : null }; }) });
+  });
+
+  app.get("/api/email-campaigns/mailchimp/audiences", isAuthenticated, async (req: any, res) => {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (user?.role !== "admin" && user?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
+    try { const { audiences, readiness } = await import("./mailchimpService"); const list = await audiences(); res.json({ account: await readiness(), audiences: list.map((a: any) => ({ id: a.id, name: a.name, memberCount: a.stats?.member_count || 0 })) }); }
+    catch (error: any) { res.status(error.status || 503).type("application/problem+json").json(error.problem?.() || { title: "Mailchimp unavailable", status: 503 }); }
+  });
+
+  app.put("/api/email-campaigns/configurations/:userId", isAuthenticated, async (req: any, res) => {
+    const admin = await storage.getUser(req.user.claims.sub);
+    if (admin?.role !== "admin" && admin?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
+    const parsed = z.object({ audienceId: z.string().min(1), fromEmail: z.string().email(), fromName: z.string().min(1), isEnabled: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Validation failed", errors: parsed.error.errors });
+    try {
+      const target = await storage.getUser(req.params.userId);
+      if (!target || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(target.role || "") || target.accountStatus !== "active") return res.status(400).json({ message: "Target user is not an eligible active sender" });
+      const { audiences, readiness, verifySenderEmail } = await import("./mailchimpService");
+      const provider: any = await readiness();
+      const audience = (await audiences()).find((x: any) => x.id === parsed.data.audienceId);
+      if (!audience) return res.status(400).json({ message: "Mailchimp audience was not found" });
+      if (!provider.writeAccess) return res.status(503).type("application/problem+json").json({ type: "https://bright-organic.com/problems/mailchimp-write-unavailable", title: "Mailchimp write access unavailable", status: 503, detail: provider.message });
+      if (!await verifySenderEmail(parsed.data.fromEmail)) {
+        return res.status(400).json({ message: "The sender email domain is not verified in Mailchimp." });
+      }
+      const { bulkEmailUserConfigs } = await import("@shared/schema");
+      const data = { audienceId: parsed.data.audienceId, fromEmail: parsed.data.fromEmail, fromName: parsed.data.fromName, enabled: parsed.data.isEnabled };
+      await db.insert(bulkEmailUserConfigs).values({ userId: req.params.userId, ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null })
+        .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null, updatedAt: new Date() } });
+      res.json({ success: true });
+    } catch (error: any) {
+      const conflict = error?.code === "23505";
+      res.status(error.status || (conflict ? 409 : 500)).type("application/problem+json").json(
+        error.problem?.() || {
+          type: "https://bright-organic.com/problems/mailchimp-configuration-failed",
+          title: "Configuration could not be saved",
+          status: conflict ? 409 : 500,
+          detail: conflict
+            ? "That Mailchimp audience is already assigned to another user."
+            : "The Mailchimp configuration could not be saved.",
+        },
+      );
+    }
+  });
+
   // Get all email campaigns (admin sees all, sales sees own)
   app.get('/api/email-campaigns', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      const { isEligibleBulkEmailSender } = await import("./bulkEmailCampaignService");
+      if (!isEligibleBulkEmailSender(user)) {
+        return res.status(403).json({ message: "An active sales or admin account is required" });
+      }
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
       
-      const { getCampaigns } = await import('./sendgridService');
+       const { getCampaigns } = await import('./bulkEmailCampaignService');
       const campaigns = await getCampaigns(userId, isAdmin);
       res.json(campaigns);
     } catch (error) {
@@ -12734,13 +12814,42 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     }
   });
 
+  app.post('/api/email-campaigns/:id/refresh', isAuthenticated, async (req: any, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) return res.status(400).json({ message: "Invalid campaign ID" });
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+      const { getCampaignForUser, getCampaignStats, reconcileMailchimpCampaign } = await import("./bulkEmailCampaignService");
+      const campaign = await getCampaignForUser(id, userId, isAdmin);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (campaign.provider !== "mailchimp" || !campaign.providerCampaignId) {
+        return res.status(400).json({ message: "Historical SendGrid campaigns do not have Mailchimp reports." });
+      }
+      const updated = await reconcileMailchimpCampaign(id);
+      res.json({ ...updated, stats: await getCampaignStats(id) });
+    } catch (error: any) {
+      res.status(error?.status || 502).type("application/problem+json").json(
+        error?.problem?.() || {
+          type: "https://bright-organic.com/problems/mailchimp-report-failed",
+          title: "Mailchimp report refresh failed",
+          status: error?.status || 502,
+          detail: error?.message || "Mailchimp report refresh failed.",
+        },
+      );
+    }
+  });
+
   // Get campaign by ID with stats
   app.get('/api/email-campaigns/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { getCampaignById, getCampaignStats } = await import('./sendgridService');
+       const { getCampaignForUser, getCampaignStats } = await import('./bulkEmailCampaignService');
+       const user = await storage.getUser(req.user.claims.sub);
+       const isAdmin = user?.role === "admin" || user?.role === "super_admin";
       
-      const campaign = await getCampaignById(parseInt(id));
+       const campaign = await getCampaignForUser(parseInt(id), req.user.claims.sub, isAdmin);
       if (!campaign) {
         return res.status(404).json({ message: 'Campaign not found' });
       }
@@ -12757,8 +12866,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.get('/api/email-campaigns/:id/recipients', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { getCampaignRecipients } = await import('./sendgridService');
-      const recipients = await getCampaignRecipients(parseInt(id));
+       const { getCampaignRecipientsForUser } = await import('./bulkEmailCampaignService');
+       const user = await storage.getUser(req.user.claims.sub);
+       const recipients = await getCampaignRecipientsForUser(parseInt(id), req.user.claims.sub, user?.role === "admin" || user?.role === "super_admin");
+       if (!recipients) return res.status(404).json({ message: "Campaign not found" });
       res.json(recipients);
     } catch (error) {
       console.error('Error fetching campaign recipients:', error);
@@ -12768,28 +12879,37 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
   // Create and send bulk email campaign
   app.post('/api/email-campaigns', isAuthenticated, async (req: any, res) => {
+    let requestLock: import("./bulkEmailRequestLock").BulkEmailRequestLock | null = null;
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      const { isEligibleBulkEmailSender } = await import("./bulkEmailCampaignService");
+      if (!isEligibleBulkEmailSender(user)) {
+        return res.status(403).json({ message: "An active sales or admin account is required" });
+      }
       
       // Validate request body with Zod
       const attachmentSchema = z.object({
         content: z.string(), // Base64 encoded
-        filename: z.string(),
+        filename: z.string().min(1).max(255),
         type: z.string(), // MIME type
       });
       
       const campaignSchema = z.object({
         name: z.string().min(1, "Campaign name is required").max(255),
         subject: z.string().min(1, "Subject is required").max(500),
-        htmlContent: z.string().min(1, "Email content is required"),
+        htmlContent: z.string().min(1, "Email content is required").max(2_000_000),
         textContent: z.string().optional().nullable(),
-        companyIds: z.array(z.number()).min(1, "At least one company is required"),
+        companyIds: z.array(z.number().int().positive()).min(1, "At least one company is required").max(1000),
         fromName: z.string().optional(),
         replyTo: z.string().email().optional().or(z.literal('')),
         templateId: z.number().optional(),
         scheduledAt: z.string().optional(),
-        attachments: z.array(attachmentSchema).optional(),
+        idempotencyKey: z.string().uuid(),
+        permissionConfirmed: z.literal(true, {
+          errorMap: () => ({ message: "Confirm recipient email permission before sending." }),
+        }),
+        attachments: z.array(attachmentSchema).max(20).optional(),
       });
       
       const validationResult = campaignSchema.safeParse(req.body);
@@ -12800,124 +12920,395 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         });
       }
       
-      const { name, subject, htmlContent, textContent, companyIds, fromName, replyTo, templateId, scheduledAt, attachments } = validationResult.data;
-
-      // Server-side attachment size validation
-      if (attachments && attachments.length > 0) {
-        const MAX_SINGLE_FILE = 10 * 1024 * 1024; // 10MB
-        const MAX_TOTAL = 25 * 1024 * 1024; // 25MB
-        
-        let totalSize = 0;
-        for (const att of attachments) {
-          // Base64 decodes to ~75% of its string length
-          const estimatedSize = att.content.length * 0.75;
-          if (estimatedSize > MAX_SINGLE_FILE) {
-            return res.status(400).json({ 
-              message: `Attachment "${att.filename}" exceeds 10MB limit` 
-            });
-          }
-          totalSize += estimatedSize;
-        }
-        
-        if (totalSize > MAX_TOTAL) {
-          return res.status(400).json({ 
-            message: 'Total attachments exceed 25MB limit' 
-          });
-        }
-      }
-
-      const { createCampaign, sendBulkEmails, getCompaniesForBulkEmail, getCompanyContacts } = await import('./sendgridService');
+      const { name, subject, htmlContent, textContent, companyIds, templateId, scheduledAt, attachments, idempotencyKey } = validationResult.data;
+       const { acquireBulkEmailRequestLock } = await import("./bulkEmailRequestLock");
+       requestLock = await acquireBulkEmailRequestLock(userId, idempotencyKey);
+       if (!requestLock) {
+         return res.status(409).json({
+           message: "This campaign request is already being processed. Do not submit it again.",
+           idempotent: true,
+         });
+       }
+       const { createCampaign, getCampaignByIdempotencyKey, getEligibleRecipients, getUserConfig, parseCampaignSchedule } = await import("./bulkEmailCampaignService");
+       let scheduledDate: Date | undefined;
+       try {
+         scheduledDate = parseCampaignSchedule(scheduledAt);
+       } catch (error: any) {
+         return res.status(error?.status || 400).json({ message: error.message });
+       }
       const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
-      
-      // Get companies based on role
-      const availableCompanies = await getCompaniesForBulkEmail(userId, isAdmin);
-      const selectedCompanies = availableCompanies.filter((c: any) => companyIds.includes(c.id));
-      
-      if (selectedCompanies.length === 0) {
-        return res.status(400).json({ message: 'No valid companies selected' });
-      }
+       const existingCampaign = await getCampaignByIdempotencyKey(idempotencyKey, userId);
+       if (existingCampaign) {
+         if (existingCampaign.status === "draft" || existingCampaign.status === "sending") {
+           const lastUpdate = existingCampaign.updatedAt || existingCampaign.createdAt;
+           const stale = !!lastUpdate &&
+             Date.now() - new Date(lastUpdate).getTime() > 10 * 60 * 1000;
+           if (stale) {
+             try {
+               const { recoverStaleCampaignAttempt } = await import("./mailchimpService");
+               const recovery = await recoverStaleCampaignAttempt({
+                 campaignKey: idempotencyKey,
+                 audienceId: existingCampaign.providerAudienceId!,
+                 campaignId: existingCampaign.providerCampaignId,
+                 segmentId: existingCampaign.providerSegmentId,
+               });
+               await requestLock.assertHeld();
+               if (recovery.outcome === "delivery_possible") {
+                 await db.update(emailCampaigns).set({
+                   status: "delivery_uncertain",
+                   providerCampaignId: recovery.campaignId,
+                   providerSegmentId: recovery.segmentId,
+                   providerError: `Recovered stale Mailchimp status: ${recovery.providerStatus || "unknown"}.`,
+                   updatedAt: new Date(),
+                 }).where(eq(emailCampaigns.id, existingCampaign.id));
+                 return res.status(409).json({
+                   message: "Mailchimp may already have accepted this campaign. Refresh its report before taking any further action.",
+                   campaignId: existingCampaign.id,
+                   idempotent: true,
+                   deliveryUncertain: true,
+                 });
+               }
 
-      // Get all contacts for selected companies
-      const allContacts = await getCompanyContacts(companyIds);
+               const stored = Array.isArray(existingCampaign.attachments)
+                 ? existingCampaign.attachments as any[]
+                 : [];
+               let cleanupFailed = false;
+               if (stored.length) {
+                 const { removeBulkAttachments } = await import("./bulkEmailAttachments");
+                 await removeBulkAttachments(stored).catch(() => {
+                   cleanupFailed = true;
+                 });
+               }
+               await db.update(emailCampaigns).set({
+                 status: "failed",
+                 attachments: cleanupFailed ? stored : [],
+                 providerCampaignId: null,
+                 providerSegmentId: null,
+                 providerError: "A stale campaign attempt was recovered before delivery.",
+                 failedCount: existingCampaign.totalRecipients || 0,
+                 updatedAt: new Date(),
+               }).where(eq(emailCampaigns.id, existingCampaign.id));
+               return res.status(409).json({
+                 message: "The previous campaign attempt stopped before delivery. Submit again to start a new attempt.",
+                 campaignId: existingCampaign.id,
+                 idempotent: true,
+               });
+             } catch (error: any) {
+               return res.status(error?.status || 503).type("application/problem+json").json(
+                 error?.problem?.() || {
+                   type: "https://bright-organic.com/problems/mailchimp-recovery-unavailable",
+                   title: "Campaign recovery is unavailable",
+                   status: error?.status || 503,
+                   detail: "The earlier campaign attempt remains blocked to prevent a duplicate send. Try again after Mailchimp is available.",
+                 },
+               );
+             }
+           }
+           return res.status(409).json({
+             message: "This campaign request is still being processed. Do not submit it again.",
+             campaignId: existingCampaign.id,
+             idempotent: true,
+           });
+         }
+         if (existingCampaign.status === "delivery_uncertain") {
+           return res.status(409).json({
+             message: "Mailchimp may already have accepted this campaign. Refresh its report before taking any further action.",
+             campaignId: existingCampaign.id,
+             idempotent: true,
+             deliveryUncertain: true,
+           });
+         }
+         if (existingCampaign.status === "failed") {
+           return res.status(409).json({
+             message: "This campaign request previously failed. Submit again to start a new attempt.",
+             campaignId: existingCampaign.id,
+             idempotent: true,
+           });
+         }
+         return res.json({
+           success: true,
+           campaignId: existingCampaign.id,
+           sent: existingCampaign.sentCount || 0,
+           failed: existingCampaign.failedCount || 0,
+           excluded: existingCampaign.excludedCount || 0,
+           message: "This campaign request was already processed.",
+           idempotent: true,
+         });
+       }
+       const config = await getUserConfig(userId);
+       if (!config || !config.enabled || !config.readyAt) {
+         return res.status(503).type("application/problem+json").json({ type: "https://bright-organic.com/problems/mailchimp-config-missing", title: "Mailchimp configuration incomplete", status: 503, detail: "A verified, enabled Mailchimp audience and sender must be assigned before sending." });
+       }
+       const candidateRecipients = await getEligibleRecipients(companyIds, userId, isAdmin);
+       if (!candidateRecipients.length) return res.status(400).json({ message: "Selected companies have no email recipients" });
+       const validRecipients = candidateRecipients.filter((recipient) => z.string().email().safeParse(recipient.email).success);
+       const invalidRecipients = candidateRecipients.filter((recipient) => !z.string().email().safeParse(recipient.email).success);
+       if (!validRecipients.length) return res.status(400).json({ message: "Selected companies have no valid email recipients" });
+
+       const { validateBulkAttachments } = await import("./bulkEmailAttachments");
+       const validatedAttachments = validateBulkAttachments(attachments || []);
+       const permissionConfirmedAt = new Date();
+       const permissionBasis = "staff_attested_business_email_eligibility";
 
       // Create campaign
-      const campaignId = await createCampaign(
-        name,
-        subject,
-        htmlContent,
-        textContent || null,
-        userId,
-        fromName,
-        replyTo,
-        templateId,
-        scheduledAt ? new Date(scheduledAt) : undefined
-      );
+       let campaignId: number;
+       try {
+         campaignId = await createCampaign({
+         name,
+         subject,
+         htmlContent,
+         textContent: textContent || null,
+         createdBy: userId,
+         fromName: config.fromName,
+         replyToEmail: config.fromEmail,
+         templateId,
+         scheduledAt: scheduledDate,
+         providerAudienceId: config.audienceId,
+         idempotencyKey,
+         recipientPermissionBasis: permissionBasis,
+         recipientPermissionConfirmedAt: permissionConfirmedAt,
+         recipientPermissionConfirmedBy: userId,
+         });
+       } catch (error: any) {
+         if (error?.code === "23505") {
+           const duplicate = await getCampaignByIdempotencyKey(idempotencyKey, userId);
+           if (duplicate) {
+             const deliveryUncertain = duplicate.status === "delivery_uncertain";
+             const processing = duplicate.status === "draft" || duplicate.status === "sending";
+             return res.status(duplicate.status === "failed" || deliveryUncertain || processing ? 409 : 200).json({
+               success: duplicate.status !== "failed" && !deliveryUncertain && !processing,
+               campaignId: duplicate.id,
+               sent: duplicate.sentCount || 0,
+               failed: duplicate.failedCount || 0,
+               excluded: duplicate.excludedCount || 0,
+               message: duplicate.status === "failed"
+                 ? "This campaign request previously failed. Submit again to start a new attempt."
+                 : deliveryUncertain
+                   ? "Mailchimp may already have accepted this campaign. Refresh its report before taking any further action."
+                 : processing
+                   ? "This campaign request is still being processed. Do not submit it again."
+                 : "This campaign request was already processed.",
+               idempotent: true,
+               deliveryUncertain,
+             });
+           }
+         }
+         throw error;
+       }
 
-      // If not scheduled, send immediately
-      if (!scheduledAt) {
-        // Start with primary company emails
-        const recipients = selectedCompanies
-          .filter((c: any) => c.email)
-          .map((c: any) => ({
-            email: c.email,
-            contactName: c.contacts?.[0]?.name || c.name,
-            companyName: c.name,
-            companyId: c.id,
-          }));
-        
-        // Add all additional contacts from company_contacts table
-        for (const contact of allContacts) {
-          if (contact.email) {
-            const company = selectedCompanies.find((c: any) => c.id === contact.companyId);
-            // Avoid duplicates - only add if email is different from primary
-            const isDuplicate = recipients.some(r => r.email.toLowerCase() === contact.email.toLowerCase());
-            if (!isDuplicate && company) {
-              recipients.push({
-                email: contact.email,
-                contactName: contact.name || undefined,
-                companyName: company.name,
-                companyId: contact.companyId,
-              });
-            }
-          }
-        }
+       let storedAttachments: Array<{ key: string; url: string; filename: string; contentType: string; size: number }> = [];
+       let providerResult: any = null;
+       let recipientLedgerPrepared = false;
+       const recipientRows = (members: any[], allowedStatus: "pending" | "sent") => [
+         ...members.map((member: any) => ({
+           campaignId,
+           companyId: member.recipient.companyId,
+           email: member.recipient.email,
+           contactName: member.recipient.contactName,
+           companyName: member.recipient.companyName,
+           providerMemberId: member.id,
+           providerMemberHash: member.hash,
+           providerStatus: member.status,
+           status: member.excluded ? "excluded" : allowedStatus,
+           exclusionReason: member.excluded ? member.reason : null,
+           permissionBasis,
+           permissionConfirmedAt,
+           permissionConfirmedBy: userId,
+           failedAt: member.status === "sync_failed" ? new Date() : null,
+           failureReason: member.status === "sync_failed" ? member.reason : null,
+           sentAt: !member.excluded && allowedStatus === "sent" ? new Date() : null,
+         })),
+         ...invalidRecipients.map((recipient) => ({
+           campaignId,
+           companyId: recipient.companyId,
+           email: recipient.email,
+           contactName: recipient.contactName,
+           companyName: recipient.companyName,
+           providerStatus: "invalid",
+           status: "excluded",
+           exclusionReason: "Invalid email address.",
+           permissionBasis,
+           permissionConfirmedAt,
+           permissionConfirmedBy: userId,
+         })),
+       ];
+       try {
+         const { storeBulkAttachments } = await import("./bulkEmailAttachments");
+         storedAttachments = await storeBulkAttachments(userId, campaignId, validatedAttachments);
+         if (storedAttachments.length) {
+           await db.update(emailCampaigns).set({ attachments: storedAttachments, updatedAt: new Date() }).where(eq(emailCampaigns.id, campaignId));
+         }
+         const { createAndSend } = await import("./mailchimpService");
+         providerResult = await createAndSend({
+           audienceId: config.audienceId,
+           campaignKey: idempotencyKey,
+           name,
+           subject,
+           fromEmail: config.fromEmail,
+           fromName: config.fromName,
+           html: htmlContent,
+           attachments: storedAttachments,
+           recipients: validRecipients,
+           scheduledAt: scheduledDate,
+           onProgress: async () => {
+             await requestLock!.assertHeld();
+             await db.update(emailCampaigns).set({
+               updatedAt: new Date(),
+             }).where(eq(emailCampaigns.id, campaignId));
+           },
+           onPrepared: async (prepared) => {
+             const allowedCount = prepared.members.filter(member => !member.excluded).length;
+             const excludedCount = prepared.members.length - allowedCount + invalidRecipients.length;
+             await db.transaction(async (tx) => {
+               await tx.update(emailCampaigns).set({
+                 providerCampaignId: prepared.campaignId,
+                 providerSegmentId: prepared.segmentId,
+                 status: "sending",
+                 totalRecipients: candidateRecipients.length,
+                 sentCount: 0,
+                 failedCount: prepared.members.filter(member => member.status === "sync_failed").length,
+                 excludedCount,
+                 providerError: null,
+                 attachments: storedAttachments,
+                 updatedAt: new Date(),
+               }).where(eq(emailCampaigns.id, campaignId));
+               await tx.insert(emailCampaignRecipients).values(recipientRows(prepared.members, "pending"));
+             });
+             await requestLock!.assertHeld();
+             recipientLedgerPrepared = true;
+           },
+         });
+         const allowedCount = providerResult.members.filter((member: any) => !member.excluded).length;
+         const excludedCount = providerResult.members.length - allowedCount + invalidRecipients.length;
+         await db.transaction(async (tx) => {
+           await tx.update(emailCampaigns).set({
+             status: scheduledDate ? "scheduled" : "sent",
+             sentCount: scheduledDate ? 0 : allowedCount,
+             sentAt: scheduledDate ? null : new Date(),
+             providerError: null,
+             updatedAt: new Date(),
+           }).where(eq(emailCampaigns.id, campaignId));
+           if (!scheduledDate) {
+             await tx.update(emailCampaignRecipients).set({
+               status: "sent",
+               sentAt: new Date(),
+             }).where(and(
+               eq(emailCampaignRecipients.campaignId, campaignId),
+               eq(emailCampaignRecipients.status, "pending"),
+             ));
+           }
+         });
+         res.json({ success: true, campaignId, sent: scheduledDate ? 0 : allowedCount, failed: providerResult.members.filter((member: any) => member.status === "sync_failed").length, excluded: excludedCount, message: scheduledDate ? "Campaign scheduled successfully" : undefined });
+       } catch (error: any) {
+         if (!storedAttachments.length && Array.isArray(error?.recoverableAttachments)) {
+           storedAttachments = error.recoverableAttachments;
+         }
+         const providerAccepted = !!providerResult;
+         const deliveryUncertain = !providerAccepted && error?.deliveryUncertain === true;
+         const members = providerResult?.members || (Array.isArray(error?.members) ? error.members : []);
+         const allowedCount = members.filter((member: any) => !member.excluded).length;
+         const excludedCount = members.filter((member: any) => member.excluded).length + invalidRecipients.length;
+         const syncFailureCount = members.filter((member: any) => member.status === "sync_failed").length;
+         let attachmentCleanupFailed = false;
 
-        const result = await sendBulkEmails(
-          campaignId,
-          recipients,
-          subject,
-          htmlContent,
-          textContent,
-          fromName,
-          replyTo,
-          attachments
-        );
+         if (!providerAccepted && !deliveryUncertain && storedAttachments.length) {
+           const { removeBulkAttachments } = await import("./bulkEmailAttachments");
+           await removeBulkAttachments(storedAttachments).catch(() => {
+             attachmentCleanupFailed = true;
+             console.error("[Bulk Email] Attachment cleanup failed");
+           });
+         }
 
-        res.json({ 
-          success: true, 
-          campaignId, 
-          sent: result.sent, 
-          failed: result.failed,
-          errors: result.errors.slice(0, 10)
-        });
-      } else {
-        res.json({ 
-          success: true, 
-          campaignId, 
-          message: 'Campaign scheduled successfully' 
-        });
-      }
+         try {
+           await db.transaction(async (tx) => {
+             await tx.update(emailCampaigns).set({
+               status: providerAccepted
+                 ? (scheduledDate ? "scheduled" : "sent")
+                 : deliveryUncertain ? "delivery_uncertain" : "failed",
+               attachments: providerAccepted || deliveryUncertain || attachmentCleanupFailed ? storedAttachments : [],
+               providerCampaignId: providerResult?.campaignId || error?.providerCampaignId,
+               providerSegmentId: providerResult?.segmentId || error?.providerSegmentId,
+               providerError: providerAccepted ? null : error.message,
+               totalRecipients: members.length || recipientLedgerPrepared ? candidateRecipients.length : undefined,
+               sentCount: providerAccepted ? (scheduledDate ? 0 : allowedCount) : deliveryUncertain ? 0 : undefined,
+               sentAt: providerAccepted && !scheduledDate ? new Date() : undefined,
+               excludedCount: members.length ? excludedCount : undefined,
+               failedCount: providerAccepted || deliveryUncertain
+                 ? syncFailureCount
+                 : (members.length ? allowedCount + syncFailureCount : candidateRecipients.length),
+               updatedAt: new Date(),
+             }).where(eq(emailCampaigns.id, campaignId));
+
+             if (!recipientLedgerPrepared && members.length) {
+               await tx.insert(emailCampaignRecipients).values(
+                 recipientRows(members, providerAccepted && !scheduledDate ? "sent" : "pending"),
+               );
+             }
+             if (providerAccepted && !scheduledDate) {
+               await tx.update(emailCampaignRecipients).set({
+                 status: "sent",
+                 sentAt: new Date(),
+               }).where(and(
+                 eq(emailCampaignRecipients.campaignId, campaignId),
+                 eq(emailCampaignRecipients.status, "pending"),
+               ));
+             } else if (!deliveryUncertain) {
+               await tx.update(emailCampaignRecipients).set({
+                 status: "failed",
+                 failedAt: new Date(),
+                 failureReason: "Mailchimp rejected the campaign before delivery.",
+               }).where(and(
+                 eq(emailCampaignRecipients.campaignId, campaignId),
+                 eq(emailCampaignRecipients.status, "pending"),
+               ));
+             }
+           });
+         } catch {
+           console.error("[Bulk Email] Local campaign recovery failed");
+           return res.status(500).type("application/problem+json").json({
+             type: "https://bright-organic.com/problems/bulk-email-recording-failed",
+             title: "Campaign state could not be recorded",
+             status: 500,
+             detail: providerAccepted || deliveryUncertain
+               ? "Do not resend this campaign. Mailchimp may already have it; refresh the campaign report after the database is available."
+               : "The failed campaign could not be fully recorded.",
+             campaignId,
+           });
+         }
+
+         if (providerAccepted) {
+           return res.json({
+             success: true,
+             campaignId,
+             sent: scheduledDate ? 0 : allowedCount,
+             failed: syncFailureCount,
+             excluded: excludedCount,
+             message: scheduledDate ? "Campaign scheduled successfully" : "Campaign sent successfully",
+             recovered: true,
+           });
+         }
+         if (deliveryUncertain) {
+           return res.status(502).type("application/problem+json").json({
+             type: "https://bright-organic.com/problems/mailchimp-delivery-uncertain",
+             title: "Mailchimp delivery status is not confirmed",
+             status: 502,
+             detail: "Mailchimp may already have accepted this campaign. Do not resend it; refresh the campaign report to reconcile its status.",
+             campaignId,
+           });
+         }
+         return res.status(error.status || 502).type("application/problem+json").json(error.problem?.() || { type: "https://bright-organic.com/problems/mailchimp-send-failed", title: "Mailchimp campaign failed", status: error.status || 502, detail: error.message });
+       }
     } catch (error: any) {
-      console.error('Error creating email campaign:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        response: error?.response?.body
-      });
-      res.status(500).json({ 
-        message: 'Failed to create email campaign',
-        error: error?.message || 'Unknown error'
-      });
+      const { publicBulkEmailError } = await import("./bulkEmailCampaignService");
+      const response = publicBulkEmailError(error);
+      if (response.status === 500) {
+        console.error("[Bulk Email] Campaign request failed");
+      }
+      res.status(response.status).json({ message: response.message });
+     } finally {
+       await requestLock?.release().catch(() => {
+         console.error("[Bulk Email] Failed to release campaign request lock");
+       });
     }
   });
 
@@ -13216,7 +13607,39 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     }
   });
 
-  // SendGrid webhook for email events (delivery, open, click, bounce)
+  // Mailchimp supports HTTP Basic credentials embedded in the callback URL:
+  // https://mailchimp:<secret>@<published-host>/api/webhooks/mailchimp
+  app.post('/api/webhooks/mailchimp', async (req, res) => {
+    if (!process.env.MAILCHIMP_WEBHOOK_SECRET) {
+      return res.status(503).send("Mailchimp webhook is not configured");
+    }
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const { mapWebhookEvent, verifyWebhookBasicAuth } = await import("./mailchimpService");
+    if (!verifyWebhookBasicAuth(req.headers.authorization)) {
+      return res.status(401).send("Unauthorized");
+    }
+    try {
+      const contentType = String(req.headers["content-type"] || "");
+      const body = contentType.includes("application/json")
+        ? JSON.parse(rawBody.toString("utf8"))
+        : Object.fromEntries(new URLSearchParams(rawBody.toString("utf8")));
+      const event = mapWebhookEvent(body);
+      if (event.type !== "other") {
+        const { applyMailchimpWebhookEvent } = await import("./bulkEmailCampaignService");
+        await applyMailchimpWebhookEvent(event);
+      }
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("[Mailchimp Webhook] Processing failed");
+      // A verified provider request should not retry forever because of an
+      // internal transient event-processing error. Report success and rely on
+      // explicit report reconciliation for campaign metrics.
+      res.status(200).send("OK");
+    }
+  });
+
+  // Legacy SendGrid webhook remains available only for historical campaign
+  // events. New campaigns never use SendGrid delivery.
   // Optionally configure SENDGRID_WEBHOOK_VERIFICATION_KEY in secrets for signature verification
   app.post('/api/webhooks/sendgrid', async (req, res) => {
     try {

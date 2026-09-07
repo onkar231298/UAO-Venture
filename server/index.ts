@@ -34,6 +34,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Keep provider callbacks bounded and preserve form-encoded Mailchimp payloads
+// for explicit parsing after HTTP Basic authentication.
+app.use('/api/webhooks/mailchimp', express.raw({ type: '*/*', limit: '64kb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 

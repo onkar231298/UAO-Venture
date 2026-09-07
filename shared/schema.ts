@@ -2639,8 +2639,19 @@ export const emailCampaigns = pgTable("email_campaigns", {
   textContent: text("text_content"),
   fromName: varchar("from_name", { length: 255 }),
   replyToEmail: varchar("reply_to_email", { length: 255 }),
+  // New bulk sends are provider-neutral. Existing SendGrid rows remain readable.
+  provider: varchar("provider", { length: 50 }).notNull().default("sendgrid"),
+  providerCampaignId: varchar("provider_campaign_id", { length: 255 }),
+  providerSegmentId: varchar("provider_segment_id", { length: 255 }),
+  providerAudienceId: varchar("provider_audience_id", { length: 255 }),
+  providerError: text("provider_error"),
+  idempotencyKey: varchar("idempotency_key", { length: 64 }).unique(),
+  attachments: jsonb("attachments").$type<Array<{ key: string; url: string; filename: string; contentType: string; size: number }>>(),
+  recipientPermissionBasis: varchar("recipient_permission_basis", { length: 100 }),
+  recipientPermissionConfirmedAt: timestamp("recipient_permission_confirmed_at"),
+  recipientPermissionConfirmedBy: varchar("recipient_permission_confirmed_by").references(() => users.id),
   templateId: integer("template_id"),
-  status: varchar("status", { length: 50 }).default("draft"), // draft, scheduled, sending, sent, cancelled
+  status: varchar("status", { length: 50 }).default("draft"), // draft, scheduled, sending, sent, delivery_uncertain, failed, cancelled
   scheduledAt: timestamp("scheduled_at"),
   sentAt: timestamp("sent_at"),
   totalRecipients: integer("total_recipients").default(0),
@@ -2650,6 +2661,8 @@ export const emailCampaigns = pgTable("email_campaigns", {
   clickedCount: integer("clicked_count").default(0),
   bouncedCount: integer("bounced_count").default(0),
   failedCount: integer("failed_count").default(0),
+  excludedCount: integer("excluded_count").default(0),
+  unsubscribedCount: integer("unsubscribed_count").default(0),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -2678,6 +2691,14 @@ export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
   companyName: varchar("company_name", { length: 255 }),
   status: varchar("status", { length: 50 }).default("pending"), // pending, sent, delivered, opened, clicked, bounced, failed
   sendgridMessageId: varchar("sendgrid_message_id", { length: 255 }),
+  providerMemberId: varchar("provider_member_id", { length: 255 }),
+  providerMemberHash: varchar("provider_member_hash", { length: 255 }),
+  providerStatus: varchar("provider_status", { length: 50 }),
+  exclusionReason: text("exclusion_reason"),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  permissionBasis: varchar("permission_basis", { length: 100 }),
+  permissionConfirmedAt: timestamp("permission_confirmed_at"),
+  permissionConfirmedBy: varchar("permission_confirmed_by").references(() => users.id),
   sentAt: timestamp("sent_at"),
   deliveredAt: timestamp("delivered_at"),
   openedAt: timestamp("opened_at"),
@@ -2692,6 +2713,23 @@ export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
   index("idx_email_recipients_company").on(table.companyId),
   index("idx_email_recipients_status").on(table.status),
   index("idx_email_recipients_email").on(table.email),
+]);
+
+// One sending audience may only be assigned to one salesperson.
+export const bulkEmailUserConfigs = pgTable("bulk_email_user_configs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  audienceId: varchar("audience_id", { length: 255 }).notNull().unique(),
+  fromEmail: varchar("from_email", { length: 255 }).notNull(),
+  fromName: varchar("from_name", { length: 255 }).notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  readyAt: timestamp("ready_at"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  readinessError: text("readiness_error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_bulk_email_user_configs_enabled").on(table.enabled),
 ]);
 
 export const insertEmailCampaignRecipientSchema = createInsertSchema(emailCampaignRecipients).omit({

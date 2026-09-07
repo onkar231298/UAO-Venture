@@ -20,3 +20,4 @@
 - [Employee-scoped HR dialogs](employee-scoped-hr-dialogs.md) — clear prior form state, verify payload ownership, and refresh scoped queries when switching employees.
 - [Salary slip proration](salary-slip-proration.md) — first month starts on joining date and uses actual calendar days; historical PDFs must render stored payroll snapshots.
 - [SEO strategy rollout safety](seo-strategy-rollout-safety.md) — geo keywords need relevant landing content; metadata rollouts preview first and only replace positively identified generated copy.
+- [Mailchimp send retry safety](mailchimp-send-retry-safety.md) — uncertain or externally prepared bulk sends must reconcile, never retry; keep hosted attachments live until non-delivery is confirmed.

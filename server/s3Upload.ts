@@ -173,6 +173,10 @@ export function isAllowedAttachmentExt(originalName: string): boolean {
   return !!QUALITY_FILE_TYPES[path.extname(originalName).toLowerCase()];
 }
 
+export function getAllowedAttachmentContentType(originalName: string): string | null {
+  return QUALITY_FILE_TYPES[path.extname(originalName).toLowerCase()] || null;
+}
+
 // Buffers in memory (10MB cap) so bytes are validated BEFORE anything reaches S3.
 export const qualityAttachmentUpload = multer({
   storage: multer.memoryStorage(),
@@ -234,7 +238,7 @@ export function validateQualityFileBytes(buf: Buffer, originalName: string): str
 
 // Uploads a validated buffer with a server-chosen Content-Type from the allowlist.
 // keyPrefix lets other features (e.g. product documents) reuse the same hardened path.
-export async function uploadQualityAttachment(buf: Buffer, originalName: string, keyPrefix = 'quality-attachments'): Promise<{ key: string; url: string }> {
+export async function uploadQualityAttachment(buf: Buffer, originalName: string, keyPrefix = 'quality-attachments', forceDownload = false): Promise<{ key: string; url: string }> {
   const ext = path.extname(originalName).toLowerCase();
   const contentType = QUALITY_FILE_TYPES[ext];
   if (!contentType) throw new Error('Unsupported file type');
@@ -246,6 +250,7 @@ export async function uploadQualityAttachment(buf: Buffer, originalName: string,
     Key: key,
     Body: buf,
     ContentType: contentType,
+    ContentDisposition: forceDownload ? `attachment; filename="${safeName}"` : undefined,
   }));
   console.log(`Uploaded quality attachment to S3: ${key} (${contentType}, ${buf.length} bytes)`);
   return { key, url: getImageUrl(key) };

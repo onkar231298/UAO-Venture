@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
@@ -174,10 +175,49 @@ interface EmailCampaign {
   sentCount: number;
   deliveredCount: number;
   openedCount: number;
+  clickedCount?: number;
   bouncedCount: number;
   failedCount: number;
   createdAt: string;
   sentAt: string | null;
+  scheduledAt?: string | null;
+  provider?: string | null;
+  excludedCount?: number | null;
+}
+
+interface MailchimpReadiness {
+  ready: boolean;
+  provider: string;
+  configured: boolean;
+  writeAccess: boolean;
+  audienceId: string | null;
+  audienceName: string | null;
+  fromEmail: string | null;
+  fromName: string | null;
+  message: string;
+  isAdmin: boolean;
+}
+
+interface MailchimpAudience {
+  id: string;
+  name: string;
+  memberCount: number;
+}
+
+interface CampaignConfiguration {
+  audienceId: string | null;
+  audienceName: string | null;
+  fromEmail: string | null;
+  fromName: string | null;
+  isEnabled: boolean;
+  lastValidatedAt: string | null;
+  validationStatus: string | null;
+  validationMessage: string | null;
+}
+
+interface ConfigurationUser {
+  user: { id: string; email: string; firstName: string | null; lastName: string | null; role: string };
+  configuration: CampaignConfiguration | null;
 }
 
 interface UploadedImage {
@@ -217,7 +257,8 @@ const colors = [
 export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = [] }: BulkEmailComposerProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'compose' | 'campaigns'>('compose');
+  const [activeTab, setActiveTab] = useState<'compose' | 'campaigns' | 'settings'>('compose');
+  const [configurationDrafts, setConfigurationDrafts] = useState<Record<string, CampaignConfiguration>>({});
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(preSelectedCompanyIds);
   const [searchTerm, setSearchTerm] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -238,9 +279,12 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSubjectInput, setAiSubjectInput] = useState("");
   const [aiPersonalize, setAiPersonalize] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [permissionConfirmed, setPermissionConfirmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const editor = useEditor({
     extensions: [
@@ -321,6 +365,57 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     enabled: open && activeTab === 'campaigns',
   });
 
+  const { data: readiness, isLoading: isLoadingReadiness, refetch: refetchReadiness } = useQuery<MailchimpReadiness>({
+    queryKey: ['/api/email-campaigns/readiness'],
+    enabled: open,
+  });
+
+  const { data: configurationData, refetch: refetchConfigurations } = useQuery<{ users: ConfigurationUser[] }>({
+    queryKey: ['/api/email-campaigns/configurations'],
+    enabled: open && isAdmin,
+  });
+
+  const { data: audienceData, refetch: refetchAudiences } = useQuery<{ audiences: MailchimpAudience[] }>({
+    queryKey: ['/api/email-campaigns/mailchimp/audiences'],
+    enabled: open && isAdmin,
+  });
+
+  const configurationUsers = configurationData?.users ?? [];
+  const audiences = audienceData?.audiences ?? [];
+
+  useEffect(() => {
+    if (configurationData) {
+      setConfigurationDrafts(Object.fromEntries(configurationData.users.map(({ user: configurationUser, configuration }) => [
+        configurationUser.id,
+        configuration ?? {
+          audienceId: null, audienceName: null, fromEmail: null, fromName: null, isEnabled: false,
+          lastValidatedAt: null, validationStatus: null, validationMessage: null,
+        },
+      ])));
+    }
+  }, [configurationData]);
+
+  const saveConfigurationMutation = useMutation({
+    mutationFn: async ({ userId, configuration }: { userId: string; configuration: CampaignConfiguration }) => {
+      const response = await apiRequest(`/api/email-campaigns/configurations/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          audienceId: configuration.audienceId,
+          fromEmail: configuration.fromEmail,
+          fromName: configuration.fromName,
+          isEnabled: configuration.isEnabled,
+        }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Mailchimp configuration saved" });
+      queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns/configurations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns/readiness'] });
+    },
+    onError: (error: any) => toast({ title: "Unable to save configuration", description: error.message, variant: "destructive" }),
+  });
+
   const sendCampaignMutation = useMutation({
     mutationFn: async (data: {
       name: string;
@@ -331,24 +426,54 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       scheduledAt?: string;
       replyTo?: string;
       attachments?: EmailAttachment[];
+      idempotencyKey: string;
+      permissionConfirmed: true;
     }) => {
-      return apiRequest('/api/email-campaigns', {
+      const response = await apiRequest('/api/email-campaigns', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      return response.json();
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: any, variables) => {
+      const scheduled = Boolean(variables.scheduledAt);
       toast({
-        title: "Campaign Sent!",
-        description: `${result.sent || 0} emails sent successfully. ${result.failed || 0} failed.`,
+        title: scheduled ? "Campaign Scheduled!" : "Campaign Sent!",
+        description: scheduled
+          ? (result.message || "Your campaign has been scheduled.")
+          : `${result.sent || 0} emails sent successfully. ${result.failed || 0} failed.${result.excluded ? ` ${result.excluded} excluded.` : ''}`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns'] });
       resetForm();
       setActiveTab('campaigns');
     },
     onError: (error: any) => {
+      if (String(error?.message || "").includes("previously failed")) {
+        setIdempotencyKey(crypto.randomUUID());
+      }
       toast({
         title: "Failed to send campaign",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const refreshCampaignMutation = useMutation({
+    mutationFn: async (campaignId: number) => {
+      const response = await apiRequest(`/api/email-campaigns/${campaignId}/refresh`, {
+        method: 'POST',
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns'] });
+      refetchCampaigns();
+      toast({ title: "Mailchimp report refreshed" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to refresh report",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -411,6 +536,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     setScheduleTime("");
     setUploadedImages([]);
     setEmailAttachments([]);
+    setPermissionConfirmed(false);
+    setIdempotencyKey(crypto.randomUUID());
     editor?.commands.clearContent();
   };
 
@@ -484,6 +611,14 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   };
 
   const handleSendCampaign = () => {
+    if (!readiness?.ready) {
+      toast({
+        title: "Mailchimp is not ready",
+        description: readiness?.message || "Complete your Mailchimp configuration before sending.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!campaignName.trim()) {
       toast({ title: "Please enter a campaign name", variant: "destructive" });
       return;
@@ -500,6 +635,14 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       toast({ title: "Please select at least one company", variant: "destructive" });
       return;
     }
+    if (!permissionConfirmed) {
+      toast({
+        title: "Confirm recipient email permission",
+        description: "Confirm that every selected recipient is eligible to receive this business email.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     let scheduledAt: string | undefined;
     if (scheduleDate && scheduleTime) {
@@ -512,8 +655,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       htmlContent,
       companyIds: selectedCompanyIds,
       scheduledAt,
-      // No replyTo override: the server defaults reply-to to sales@bright-organic.com.
-      // (Previously this sent the logged-in user's email, e.g. admin@bfiorganic.com.)
+      idempotencyKey,
+      permissionConfirmed: true,
       attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
     });
   };
@@ -521,7 +664,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const maxSize = 10 * 1024 * 1024; // 10MB per file
-    const maxTotal = 25 * 1024 * 1024; // 25MB total (SendGrid limit is 30MB but leave buffer)
+    const maxTotal = 25 * 1024 * 1024; // 25MB total attachment limit
     
     // Check individual file sizes first
     const validFiles: globalThis.File[] = [];
@@ -709,6 +852,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
         return <Badge className="bg-gray-100 text-gray-700"><FileText className="h-3 w-3 mr-1" />Draft</Badge>;
       case 'failed':
         return <Badge className="bg-red-100 text-red-700"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case 'delivery_uncertain':
+        return <Badge className="bg-orange-100 text-orange-700"><Clock className="h-3 w-3 mr-1" />Awaiting confirmation</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -749,6 +894,18 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     ? "max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh]" 
     : "max-w-5xl max-h-[90vh]";
 
+  const updateConfigurationDraft = (userId: string, updates: Partial<CampaignConfiguration>) => {
+    setConfigurationDrafts((current) => ({
+      ...current,
+      [userId]: { ...current[userId], ...updates },
+    }));
+  };
+
+  const audienceIsAssignedToAnotherUser = (audienceId: string, userId: string) =>
+    Object.entries(configurationDrafts).some(([configuredUserId, configuration]) =>
+      configuredUserId !== userId && configuration.isEnabled && configuration.audienceId === audienceId,
+    );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${dialogClass} overflow-hidden flex flex-col p-0`}>
@@ -773,9 +930,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'compose' | 'campaigns')} className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'compose' | 'campaigns' | 'settings')} className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 pt-2 flex-shrink-0">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className={`grid w-full ${isAdmin ? 'max-w-lg grid-cols-3' : 'max-w-md grid-cols-2'}`}>
               <TabsTrigger value="compose">
                 <Send className="h-4 w-4 mr-2" />
                 Compose Email
@@ -784,12 +941,38 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                 <FileText className="h-4 w-4 mr-2" />
                 Past Campaigns
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="settings">
+                  <Users className="h-4 w-4 mr-2" />
+                  Settings
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
           <TabsContent value="compose" className="flex-1 overflow-hidden mt-0 p-4">
             <div className="flex h-full gap-4">
               <div className="w-72 flex-shrink-0 flex flex-col gap-4 overflow-auto">
+                <Card className={readiness?.ready ? "border-green-200 bg-green-50/50" : "border-amber-300 bg-amber-50/50"}>
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold">Mailchimp readiness</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isLoadingReadiness ? "Checking configuration…" : readiness?.message || "Configuration status unavailable"}
+                        </p>
+                      </div>
+                      {readiness?.ready ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <p><span className="font-medium">Audience:</span> {readiness?.audienceName || "Not configured"}</p>
+                      <p><span className="font-medium">Sender:</span> {readiness?.fromName || "Not configured"}{readiness?.fromEmail ? ` <${readiness.fromEmail}>` : ''}</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => refetchReadiness()}>
+                      <RefreshCw className="h-3 w-3 mr-1" /> Refresh readiness
+                    </Button>
+                  </CardContent>
+                </Card>
                 <Card className="flex-shrink-0">
                   <CardContent className="p-3">
                     <Label className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -1042,6 +1225,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       <p className="text-xs text-muted-foreground">
                         Click to add files (PDF, DOC, etc.)
                       </p>
+                      <p className="text-[10px] text-muted-foreground">Attachments are delivered as download links.</p>
                       <p className="text-[10px] text-gray-400">Max 10MB per file, 25MB total</p>
                       <input
                         ref={attachmentInputRef}
@@ -1436,17 +1620,28 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-3 pt-3 border-t flex-shrink-0">
-                  <div className="text-sm text-muted-foreground">
-                    {selectedCompanyIds.length} recipient{selectedCompanyIds.length !== 1 ? 's' : ''} selected
+                <div className="mt-3 pt-3 border-t flex-shrink-0 space-y-3">
+                  <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3">
+                    <Checkbox
+                      id="permissionConfirmed"
+                      checked={permissionConfirmed}
+                      onCheckedChange={(checked) => setPermissionConfirmed(checked === true)}
+                    />
+                    <Label htmlFor="permissionConfirmed" className="text-xs leading-5 cursor-pointer">
+                      I confirm every selected recipient has consented or is otherwise legally eligible to receive this business email. Existing Mailchimp opt-outs will still be excluded.
+                    </Label>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {selectedCompanyIds.length} recipient{selectedCompanyIds.length !== 1 ? 's' : ''} selected
+                    </div>
+                    <div className="flex gap-2">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                       Cancel
                     </Button>
                     <Button
                       onClick={handleSendCampaign}
-                      disabled={sendCampaignMutation.isPending || selectedCompanyIds.length === 0}
+                      disabled={sendCampaignMutation.isPending || selectedCompanyIds.length === 0 || !readiness?.ready || !permissionConfirmed}
                       className="min-w-[180px]"
                     >
                       {sendCampaignMutation.isPending ? (
@@ -1461,6 +1656,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                         </>
                       )}
                     </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1498,6 +1694,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                             <span className="text-green-600">Sent: {campaign.sentCount}</span>
                             <span className="text-blue-600">Delivered: {campaign.deliveredCount}</span>
                             <span className="text-purple-600">Opened: {campaign.openedCount}</span>
+                            {campaign.excludedCount != null && campaign.excludedCount > 0 && (
+                              <span className="text-amber-700">Excluded: {campaign.excludedCount}</span>
+                            )}
                             {campaign.bouncedCount > 0 && (
                               <span className="text-red-600">Bounced: {campaign.bouncedCount}</span>
                             )}
@@ -1507,7 +1706,24 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           </div>
                         </div>
                         <div className="text-right text-xs text-muted-foreground">
-                          {campaign.sentAt ? (
+                            <div className="flex items-center justify-end gap-1">
+                              {campaign.provider && <span>Provider: {campaign.provider}</span>}
+                              {campaign.provider === 'mailchimp' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  disabled={refreshCampaignMutation.isPending}
+                                  onClick={() => refreshCampaignMutation.mutate(campaign.id)}
+                                  aria-label={`Refresh ${campaign.name} report`}
+                                >
+                                  <RefreshCw className={`h-3 w-3 ${refreshCampaignMutation.isPending ? 'animate-spin' : ''}`} />
+                                </Button>
+                              )}
+                            </div>
+                          {campaign.scheduledAt ? (
+                            <p>Scheduled: {new Date(campaign.scheduledAt).toLocaleString()}</p>
+                          ) : campaign.sentAt ? (
                             <p>Sent: {new Date(campaign.sentAt).toLocaleDateString()}</p>
                           ) : (
                             <p>Created: {new Date(campaign.createdAt).toLocaleDateString()}</p>
@@ -1520,6 +1736,101 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
               </div>
             )}
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="settings" className="flex-1 overflow-auto mt-0 p-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="font-semibold">Mailchimp sales-user configuration</h3>
+                  <p className="text-sm text-muted-foreground">Assign each sales user a unique audience and sender identity.</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { refetchConfigurations(); refetchAudiences(); refetchReadiness(); }}>
+                  <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {configurationUsers.map(({ user: configurationUser }) => {
+                  const draft = configurationDrafts[configurationUser.id];
+                  if (!draft) return null;
+                  const hasDuplicateAudience = draft.isEnabled && !!draft.audienceId &&
+                    audienceIsAssignedToAnotherUser(draft.audienceId, configurationUser.id);
+                  return (
+                    <Card key={configurationUser.id}>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{[configurationUser.firstName, configurationUser.lastName].filter(Boolean).join(' ') || configurationUser.email}</p>
+                              <p className="text-xs text-muted-foreground">{configurationUser.email}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={`enabled-${configurationUser.id}`} className="text-sm">Enabled</Label>
+                              <Switch
+                                id={`enabled-${configurationUser.id}`}
+                                checked={draft.isEnabled}
+                                onCheckedChange={(isEnabled) => updateConfigurationDraft(configurationUser.id, { isEnabled })}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Audience</Label>
+                              <Select
+                                value={draft.audienceId || "none"}
+                                onValueChange={(audienceId) => {
+                                  const audience = audiences.find((item) => item.id === audienceId);
+                                  updateConfigurationDraft(configurationUser.id, {
+                                    audienceId: audienceId === "none" ? null : audienceId,
+                                    audienceName: audience?.name || null,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger><SelectValue placeholder="Select audience" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">No audience selected</SelectItem>
+                                  {audiences.map((audience) => (
+                                    <SelectItem
+                                      key={audience.id}
+                                      value={audience.id}
+                                      disabled={audienceIsAssignedToAnotherUser(audience.id, configurationUser.id)}
+                                    >
+                                      {audience.name} ({audience.memberCount})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Sender email</Label>
+                              <Input value={draft.fromEmail || ""} onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromEmail: event.target.value || null })} />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Sender name</Label>
+                              <Input value={draft.fromName || ""} onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromName: event.target.value || null })} />
+                            </div>
+                          </div>
+                          {hasDuplicateAudience && <p className="text-xs text-destructive">This audience is already enabled for another sales user. Choose a unique audience.</p>}
+                          {draft.validationMessage && <p className="text-xs text-muted-foreground">{draft.validationMessage}</p>}
+                          <div className="flex justify-end">
+                            <Button
+                              size="sm"
+                              disabled={saveConfigurationMutation.isPending || hasDuplicateAudience}
+                              onClick={() => saveConfigurationMutation.mutate({ userId: configurationUser.id, configuration: draft })}
+                            >
+                              {saveConfigurationMutation.isPending ? "Saving…" : "Save"}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                {configurationUsers.length === 0 && (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No sales users are available for configuration.</p>
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
 
         <Dialog open={showAiDialog} onOpenChange={(o) => { if (!generateAiMutation.isPending) setShowAiDialog(o); }}>
