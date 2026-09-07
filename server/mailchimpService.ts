@@ -210,8 +210,66 @@ export async function readiness(): Promise<{
 }
 
 export async function audiences(): Promise<any[]> {
-  const data = await request("/lists?count=100&fields=lists.id,lists.name,lists.stats.member_count,total_items");
+  const data = await request("/lists?count=100&fields=lists.id,lists.name,lists.campaign_defaults,lists.stats.member_count,total_items");
   return data?.lists || [];
+}
+
+export function audienceCampaignDefaultsMatch(
+  defaults: any,
+  sender: { fromEmail: string; fromName: string },
+): boolean {
+  return String(defaults?.from_email || "").trim().toLowerCase() === sender.fromEmail.trim().toLowerCase() &&
+    String(defaults?.from_name || "").trim() === sender.fromName.trim();
+}
+
+async function getAudienceCampaignDefaults(listId: string): Promise<any> {
+  const audience = await request(
+    `/lists/${encodeURIComponent(listId)}?fields=id,campaign_defaults`,
+  );
+  return audience?.campaign_defaults;
+}
+
+export async function configureAudienceCampaignDefaults(
+  listId: string,
+  sender: { fromEmail: string; fromName: string },
+): Promise<void> {
+  const current = await getAudienceCampaignDefaults(listId);
+  if (audienceCampaignDefaultsMatch(current, sender)) return;
+
+  await request(`/lists/${encodeURIComponent(listId)}`, {
+    method: "PATCH",
+    body: {
+      campaign_defaults: {
+        from_email: sender.fromEmail.trim().toLowerCase(),
+        from_name: sender.fromName.trim(),
+        subject: String(current?.subject || ""),
+        language: String(current?.language || "en"),
+      },
+    },
+  });
+
+  const updated = await getAudienceCampaignDefaults(listId);
+  if (!audienceCampaignDefaultsMatch(updated, sender)) {
+    throw new ProviderError(
+      502,
+      "mailchimp-sender-not-applied",
+      "Mailchimp did not apply the shared audience sender identity.",
+    );
+  }
+}
+
+async function assertAudienceCampaignDefaults(
+  listId: string,
+  sender: { fromEmail: string; fromName: string },
+): Promise<void> {
+  const defaults = await getAudienceCampaignDefaults(listId);
+  if (!audienceCampaignDefaultsMatch(defaults, sender)) {
+    throw new ProviderError(
+      409,
+      "mailchimp-sender-mismatch",
+      "The Mailchimp audience sender defaults no longer match the configured shared sales sender.",
+    );
+  }
 }
 
 export function senderDomainIsVerified(
@@ -370,6 +428,7 @@ export async function createAndSend(input: {
   members: MailchimpMemberResult[];
 }> {
   await input.onProgress?.();
+  await assertAudienceCampaignDefaults(input.audienceId, input);
   await ensureMergeFields(input.audienceId);
 
   const members: MailchimpMemberResult[] = [];

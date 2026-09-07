@@ -36,6 +36,19 @@ export function dedupeRecipients(items: Array<{ email: string; companyId?: numbe
   }).map(item => ({ ...item, email: item.email.trim().toLowerCase() }));
 }
 
+export function sharedMailchimpConfigurationMatches(
+  configs: Array<{ audienceId: string; fromEmail: string; fromName: string }>,
+  candidate: { audienceId: string; fromEmail: string; fromName: string },
+) {
+  const normalizedEmail = candidate.fromEmail.trim().toLowerCase();
+  const normalizedName = candidate.fromName.trim();
+  return configs.every((config) =>
+    config.audienceId === candidate.audienceId &&
+    config.fromEmail.trim().toLowerCase() === normalizedEmail &&
+    config.fromName.trim() === normalizedName
+  );
+}
+
 export function parseCampaignSchedule(value: string | undefined, now = Date.now()): Date | undefined {
   if (!value) return undefined;
   const scheduledAt = new Date(value);
@@ -81,7 +94,17 @@ export async function getCampaignRecipientsForUser(id: number, userId: string, a
   return db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, id));
 }
 export async function getUserConfig(userId: string) {
-  return (await db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, userId)))[0] || null;
+  const config = (await db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, userId)))[0] || null;
+  if (!config?.enabled) return config;
+  const enabledConfigs = await db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.enabled, true));
+  if (!sharedMailchimpConfigurationMatches(enabledConfigs, config)) {
+    return {
+      ...config,
+      readyAt: null,
+      readinessError: "Enabled Mailchimp configurations must share one audience and sender identity.",
+    };
+  }
+  return config;
 }
 export async function getCompaniesForBulkEmail(userId: string, admin: boolean) {
   const companyRows = await db.select({

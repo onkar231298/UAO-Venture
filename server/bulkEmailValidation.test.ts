@@ -6,6 +6,7 @@ import {
   isEligibleBulkEmailSender,
   parseCampaignSchedule,
   publicBulkEmailError,
+  sharedMailchimpConfigurationMatches,
 } from "./bulkEmailCampaignService";
 import { storeBulkAttachments, validateBulkAttachments } from "./bulkEmailAttachments";
 import { acquireBulkEmailRequestLock } from "./bulkEmailRequestLock";
@@ -36,6 +37,46 @@ test("only active sales and admin roles can bulk send", () => {
   assert.equal(isEligibleBulkEmailSender({ role: "admin", accountStatus: "active" }), true);
   assert.equal(isEligibleBulkEmailSender({ role: "sales_executive", accountStatus: "suspended" }), false);
   assert.equal(isEligibleBulkEmailSender({ role: "quality_manager", accountStatus: "active" }), false);
+});
+
+test("enabled sales users require one Mailchimp audience and sender identity", () => {
+  const existing = [{
+    audienceId: "shared-audience",
+    fromEmail: " SALES@Example.com ",
+    fromName: "Sales Team",
+  }];
+  assert.equal(
+    sharedMailchimpConfigurationMatches(existing, {
+      audienceId: "shared-audience",
+      fromEmail: "sales@example.com",
+      fromName: "Sales Team",
+    }),
+    true,
+  );
+  assert.equal(
+    sharedMailchimpConfigurationMatches(existing, {
+      audienceId: "another-audience",
+      fromEmail: "sales@example.com",
+      fromName: "Sales Team",
+    }),
+    false,
+  );
+  assert.equal(
+    sharedMailchimpConfigurationMatches(existing, {
+      audienceId: "shared-audience",
+      fromEmail: "person@example.com",
+      fromName: "Sales Team",
+    }),
+    false,
+  );
+  assert.equal(
+    sharedMailchimpConfigurationMatches(existing, {
+      audienceId: "shared-audience",
+      fromEmail: "sales@example.com",
+      fromName: "Another Team",
+    }),
+    false,
+  );
 });
 
 test("preserves safe client errors without exposing unexpected failures", () => {

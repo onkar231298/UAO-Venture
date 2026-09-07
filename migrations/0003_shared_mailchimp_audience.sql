@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "bulk_email_user_configs_audience_id_unique";

@@ -2715,11 +2715,11 @@ export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
   index("idx_email_recipients_email").on(table.email),
 ]);
 
-// One sending audience may only be assigned to one salesperson.
+// Sales users may share one audience; each campaign still targets an exact segment.
 export const bulkEmailUserConfigs = pgTable("bulk_email_user_configs", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id).unique(),
-  audienceId: varchar("audience_id", { length: 255 }).notNull().unique(),
+  audienceId: varchar("audience_id", { length: 255 }).notNull(),
   fromEmail: varchar("from_email", { length: 255 }).notNull(),
   fromName: varchar("from_name", { length: 255 }).notNull(),
   enabled: boolean("enabled").notNull().default(false),

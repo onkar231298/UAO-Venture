@@ -12726,12 +12726,23 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       });
     }
     const config = await getUserConfig(userId);
-    const { readiness, audiences } = await import("./mailchimpService");
+    const { audienceCampaignDefaultsMatch, readiness, audiences } = await import("./mailchimpService");
     const provider: any = await readiness();
     let audienceName: string | null = null;
-    if (provider.writeAccess && config) audienceName = (await audiences()).find((a: any) => a.id === config.audienceId)?.name || null;
-    const ready = !!(provider.writeAccess && config?.enabled && config.readyAt && audienceName);
-    res.json({ ready, provider: "mailchimp", configured: !!config, writeAccess: !!provider.writeAccess, audienceId: config?.audienceId || null, audienceName, fromEmail: config?.fromEmail || null, fromName: config?.fromName || null, message: ready ? "Mailchimp is ready." : (config?.readinessError || provider.message || "Mailchimp configuration is incomplete."), isAdmin: isBulkEmailAdmin(user?.role) });
+    let audienceSenderReady = false;
+    if (provider.writeAccess && config) {
+      const audience = (await audiences()).find((a: any) => a.id === config.audienceId);
+      audienceName = audience?.name || null;
+      audienceSenderReady = !!audience && audienceCampaignDefaultsMatch(audience.campaign_defaults, config);
+    }
+    const ready = !!(provider.writeAccess && config?.enabled && config.readyAt && audienceName && audienceSenderReady);
+    const message = ready
+      ? "Mailchimp is ready."
+      : config?.readinessError ||
+        (config && audienceName && !audienceSenderReady
+          ? "Mailchimp audience sender defaults do not match the configured shared sales sender."
+          : provider.message || "Mailchimp configuration is incomplete.");
+    res.json({ ready, provider: "mailchimp", configured: !!config, writeAccess: !!provider.writeAccess, audienceId: config?.audienceId || null, audienceName, fromEmail: config?.fromEmail || null, fromName: config?.fromName || null, message, isAdmin: isBulkEmailAdmin(user?.role) });
   });
 
   app.get("/api/email-campaigns/configurations", isAuthenticated, async (req: any, res) => {
@@ -12766,7 +12777,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     try {
       const target = await storage.getUser(req.params.userId);
       if (!target || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(target.role || "") || target.accountStatus !== "active") return res.status(400).json({ message: "Target user is not an eligible active sender" });
-      const { audiences, readiness, verifySenderEmail } = await import("./mailchimpService");
+      const { audiences, configureAudienceCampaignDefaults, readiness, verifySenderEmail } = await import("./mailchimpService");
       const provider: any = await readiness();
       const audience = (await audiences()).find((x: any) => x.id === parsed.data.audienceId);
       if (!audience) return res.status(400).json({ message: "Mailchimp audience was not found" });
@@ -12775,19 +12786,37 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: "The sender email domain is not verified in Mailchimp." });
       }
       const { bulkEmailUserConfigs } = await import("@shared/schema");
+      const { sharedMailchimpConfigurationMatches } = await import("./bulkEmailCampaignService");
       const data = { audienceId: parsed.data.audienceId, fromEmail: parsed.data.fromEmail, fromName: parsed.data.fromName, enabled: parsed.data.isEnabled };
-      await db.insert(bulkEmailUserConfigs).values({ userId: req.params.userId, ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null })
-        .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null, updatedAt: new Date() } });
+      await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('bulk_email_shared_mailchimp_configuration'))`);
+        if (parsed.data.isEnabled) {
+          const sharedAssignments = await tx.select().from(bulkEmailUserConfigs).where(and(
+            eq(bulkEmailUserConfigs.enabled, true),
+            ne(bulkEmailUserConfigs.userId, req.params.userId),
+          ));
+          if (!sharedMailchimpConfigurationMatches(sharedAssignments, parsed.data)) {
+            throw Object.assign(
+              new Error("All enabled sales users must use the same Mailchimp audience, sender email, and sender name."),
+              { status: 409 },
+            );
+          }
+          await configureAudienceCampaignDefaults(parsed.data.audienceId, parsed.data);
+        }
+        await tx.insert(bulkEmailUserConfigs).values({ userId: req.params.userId, ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null })
+          .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null, updatedAt: new Date() } });
+      });
       res.json({ success: true });
     } catch (error: any) {
       const conflict = error?.code === "23505";
+      if (error?.status === 409) return res.status(409).json({ message: error.message });
       res.status(error.status || (conflict ? 409 : 500)).type("application/problem+json").json(
         error.problem?.() || {
           type: "https://bright-organic.com/problems/mailchimp-configuration-failed",
           title: "Configuration could not be saved",
           status: conflict ? 409 : 500,
           detail: conflict
-            ? "That Mailchimp audience is already assigned to another user."
+            ? "This sales user already has a Mailchimp configuration."
             : "The Mailchimp configuration could not be saved.",
         },
       );

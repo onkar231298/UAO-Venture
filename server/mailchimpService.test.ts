@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   appendCampaignFooter,
+  audienceCampaignDefaultsMatch,
   campaignFooter,
   campaignIdempotencyMarker,
   deliveryOutcomeIsUncertain,
+  configureAudienceCampaignDefaults,
   mailchimpMemberHash,
   mapCampaignReport,
   mapEmailActivity,
@@ -149,6 +151,66 @@ test("recognizes only verified Mailchimp sender domains", () => {
   ];
   assert.equal(senderDomainIsVerified("sales@bright-organic.com", domains), true);
   assert.equal(senderDomainIsVerified("sales@pending.example", domains), false);
+});
+
+test("recognizes the shared audience's visible sender defaults", () => {
+  assert.equal(
+    audienceCampaignDefaultsMatch(
+      { from_email: " SALES@bright-organic.com ", from_name: "Sales Team" },
+      { fromEmail: "sales@bright-organic.com", fromName: "Sales Team" },
+    ),
+    true,
+  );
+  assert.equal(
+    audienceCampaignDefaultsMatch(
+      { from_email: "other@bright-organic.com", from_name: "Sales Team" },
+      { fromEmail: "sales@bright-organic.com", fromName: "Sales Team" },
+    ),
+    false,
+  );
+});
+
+test("updates and verifies the audience's campaign-default sender", async () => {
+  const originalKey = process.env.MAILCHIMP_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.MAILCHIMP_API_KEY = "test-us1";
+  const requests: Array<{ method: string; body?: any }> = [];
+  let defaults = {
+    from_email: "old@example.com",
+    from_name: "Old sender",
+    subject: "Existing subject",
+    language: "en",
+  };
+  globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    const method = init?.method || "GET";
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    requests.push({ method, body });
+    if (method === "PATCH") defaults = body.campaign_defaults;
+    return new Response(JSON.stringify({ id: "audience-1", campaign_defaults: defaults }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  try {
+    await configureAudienceCampaignDefaults("audience-1", {
+      fromEmail: " Sales@Bright-Organic.com ",
+      fromName: "Sales Team",
+    });
+    assert.deepEqual(requests.map((entry) => entry.method), ["GET", "PATCH", "GET"]);
+    assert.deepEqual(requests[1].body, {
+      campaign_defaults: {
+        from_email: "sales@bright-organic.com",
+        from_name: "Sales Team",
+        subject: "Existing subject",
+        language: "en",
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.MAILCHIMP_API_KEY;
+    else process.env.MAILCHIMP_API_KEY = originalKey;
+  }
 });
 
 test("fails closed for connector-only write attempts", async () => {

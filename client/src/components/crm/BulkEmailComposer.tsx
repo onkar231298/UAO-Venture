@@ -901,10 +901,10 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     }));
   };
 
-  const audienceIsAssignedToAnotherUser = (audienceId: string, userId: string) =>
-    Object.entries(configurationDrafts).some(([configuredUserId, configuration]) =>
-      configuredUserId !== userId && configuration.isEnabled && configuration.audienceId === audienceId,
-    );
+  const sharedMailchimpConfiguration = (userId: string) =>
+    Object.entries(configurationDrafts).find(([configuredUserId, configuration]) =>
+      configuredUserId !== userId && configuration.isEnabled,
+    )?.[1];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1742,7 +1742,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                   <h3 className="font-semibold">Mailchimp sales-user configuration</h3>
-                  <p className="text-sm text-muted-foreground">Assign each sales user a unique audience and sender identity.</p>
+                  <p className="text-sm text-muted-foreground">Assign sales users to the shared audience and shared sales sender. Recipient access remains limited by CRM company assignment.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => { refetchConfigurations(); refetchAudiences(); refetchReadiness(); }}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Refresh
@@ -1752,8 +1752,12 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                 {configurationUsers.map(({ user: configurationUser }) => {
                   const draft = configurationDrafts[configurationUser.id];
                   if (!draft) return null;
-                  const hasDuplicateAudience = draft.isEnabled && !!draft.audienceId &&
-                    audienceIsAssignedToAnotherUser(draft.audienceId, configurationUser.id);
+                  const sharedConfiguration = sharedMailchimpConfiguration(configurationUser.id);
+                  const hasSharedConfigurationMismatch = !!sharedConfiguration && draft.isEnabled && (
+                    sharedConfiguration.audienceId !== draft.audienceId ||
+                    sharedConfiguration.fromEmail?.trim().toLowerCase() !== draft.fromEmail?.trim().toLowerCase() ||
+                    sharedConfiguration.fromName?.trim() !== draft.fromName?.trim()
+                  );
                   return (
                     <Card key={configurationUser.id}>
                       <CardContent className="p-4">
@@ -1768,7 +1772,18 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                               <Switch
                                 id={`enabled-${configurationUser.id}`}
                                 checked={draft.isEnabled}
-                                onCheckedChange={(isEnabled) => updateConfigurationDraft(configurationUser.id, { isEnabled })}
+                               onCheckedChange={(isEnabled) => {
+                                 const shared = isEnabled ? sharedMailchimpConfiguration(configurationUser.id) : undefined;
+                                 updateConfigurationDraft(configurationUser.id, {
+                                   isEnabled,
+                                   ...(shared ? {
+                                     audienceId: shared.audienceId,
+                                     audienceName: shared.audienceName,
+                                     fromEmail: shared.fromEmail,
+                                     fromName: shared.fromName,
+                                   } : {}),
+                                 });
+                               }}
                               />
                             </div>
                           </div>
@@ -1792,7 +1807,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                                     <SelectItem
                                       key={audience.id}
                                       value={audience.id}
-                                      disabled={audienceIsAssignedToAnotherUser(audience.id, configurationUser.id)}
+                                      disabled={!!sharedConfiguration && sharedConfiguration.audienceId !== audience.id}
                                     >
                                       {audience.name} ({audience.memberCount})
                                     </SelectItem>
@@ -1802,19 +1817,27 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">Sender email</Label>
-                              <Input value={draft.fromEmail || ""} onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromEmail: event.target.value || null })} />
+                              <Input
+                                value={draft.fromEmail || ""}
+                                disabled={!!sharedConfiguration && draft.isEnabled}
+                                onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromEmail: event.target.value || null })}
+                              />
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">Sender name</Label>
-                              <Input value={draft.fromName || ""} onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromName: event.target.value || null })} />
+                              <Input
+                                value={draft.fromName || ""}
+                                disabled={!!sharedConfiguration && draft.isEnabled}
+                                onChange={(event) => updateConfigurationDraft(configurationUser.id, { fromName: event.target.value || null })}
+                              />
                             </div>
                           </div>
-                          {hasDuplicateAudience && <p className="text-xs text-destructive">This audience is already enabled for another sales user. Choose a unique audience.</p>}
+                          {hasSharedConfigurationMismatch && <p className="text-xs text-destructive">All enabled users must use the same Mailchimp audience and sender identity.</p>}
                           {draft.validationMessage && <p className="text-xs text-muted-foreground">{draft.validationMessage}</p>}
                           <div className="flex justify-end">
                             <Button
                               size="sm"
-                              disabled={saveConfigurationMutation.isPending || hasDuplicateAudience}
+                              disabled={saveConfigurationMutation.isPending || hasSharedConfigurationMismatch}
                               onClick={() => saveConfigurationMutation.mutate({ userId: configurationUser.id, configuration: draft })}
                             >
                               {saveConfigurationMutation.isPending ? "Saving…" : "Save"}
