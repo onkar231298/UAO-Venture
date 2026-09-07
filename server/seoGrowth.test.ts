@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { auditSeoPages, canonicalPageUrl, detectCompetingPages, keywordMatches, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
+import { auditSeoPages, canonicalPageUrl, detectCompetingPages, isCriticalSeoFindingResolved, keywordMatches, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
 
 const page = (overrides: Partial<SeoPage> = {}): SeoPage => ({
   id: "1",
@@ -28,6 +28,14 @@ test("page audit classifies missing metadata and sitemap coverage", () => {
   assert.ok(findings.some((item) => item.title === "Missing SEO title" && item.severity === "critical"));
   assert.ok(findings.some((item) => item.title === "Missing meta description" && item.severity === "high"));
   assert.ok(findings.some((item) => item.title === "Indexable page is missing from the sitemap" && item.severity === "critical"));
+});
+
+test("critical findings cannot be completed until a fresh scan resolves them", () => {
+  const brokenPage = page({ inSitemap: false });
+  const critical = auditSeoPages([brokenPage]).find((item) => item.severity === "critical");
+  assert.ok(critical);
+  assert.equal(isCriticalSeoFindingResolved([brokenPage], critical.fingerprint), false);
+  assert.equal(isCriticalSeoFindingResolved([page()], critical.fingerprint), true);
 });
 
 test("page audit detects duplicate metadata and thin content", () => {

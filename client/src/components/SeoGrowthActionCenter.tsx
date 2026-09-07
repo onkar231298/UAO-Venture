@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type Metrics = { clicks: number; impressions: number; ctr: number; position: number };
-type SeoPage = { id: string; type: "static" | "product" | "category" | "blog"; url: string; title: string };
+type SeoPage = { id: string; type: "static" | "product" | "category" | "health_support" | "blog"; url: string; title: string };
 type MappingRow = {
   keyword: string;
   mapping: { id: number; pageUrl: string; pageType: SeoPage["type"]; pageId?: string | null } | null;

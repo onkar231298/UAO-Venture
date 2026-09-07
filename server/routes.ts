@@ -69,6 +69,7 @@ import {
   blogPosts,
   products,
   categories,
+  healthSupports,
   smsMessages,
   emailThreads,
   emailMessages,
@@ -97,7 +98,17 @@ import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
 import { CANONICAL_ORIGIN, STATIC_PAGE_SEO } from "./seo";
-import { auditSeoPages, canonicalPageUrl, detectCompetingPages, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
+import { auditSeoPages, canonicalPageUrl, detectCompetingPages, isCriticalSeoFindingResolved, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
+import {
+  buildSitemapEntries,
+  isIndexableSitemapBlogPost,
+  isIndexableSitemapCategory,
+  isIndexableSitemapHealthSupport,
+  isIndexableSitemapProduct,
+  renderSitemapXml,
+  sitemapPageUrl,
+  SITEMAP_STATIC_PATHS,
+} from "./sitemap";
 import { encryptEmailCredential } from "./email/credentials";
 import { titanEmailProvider } from "./email/titan";
 import { normalizeEmailAddress } from "./email/address";
@@ -6046,7 +6057,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   const seoMappingSchema = z.object({
     keyword: z.string().trim().min(1).max(500),
     pageUrl: z.string().trim().min(1).max(2000),
-    pageType: z.enum(["static", "product", "category", "blog"]),
+    pageType: z.enum(["static", "product", "category", "health_support", "blog"]),
     pageId: z.string().trim().max(100).nullable().optional(),
   });
   const seoOpportunityStatusSchema = z.object({
@@ -6067,7 +6078,109 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     const fields = ["primaryKeywords", "pharmaceuticalKeywords", "nutraceuticalKeywords", "northAmericaKeywords", "europeKeywords", "asiaPacificKeywords", "indiaKeywords", "middleEastKeywords", "latinAmericaKeywords"];
     return Array.from(new Set(fields.flatMap((field) => String(settings?.[field] || "").split(",").map((keyword) => keyword.trim().toLowerCase()).filter(Boolean))));
   };
-  const staticSeoPaths = new Set(["/", "/products", "/ingredients", ...Object.keys(STATIC_PAGE_SEO)]);
+  const staticSeoPaths = new Set(SITEMAP_STATIC_PATHS);
+  const loadIndexableSeoPages = async () => {
+    const [settings, productRows, categoryRows, healthSupportRows, publishedBlogResult] = await Promise.all([
+      storage.getGlobalSeoSettings(),
+      db.select().from(products).where(and(eq(products.isActive, true), eq(products.isVisible, true))).limit(5000),
+      db.select().from(categories).where(eq(categories.isActive, true)).limit(1000),
+      storage.getHealthSupports(),
+      storage.getBlogPosts({ published: true, limit: 1000, offset: 0 }),
+    ]);
+    const indexableProductRows = productRows.filter(isIndexableSitemapProduct);
+    const indexableCategoryRows = categoryRows.filter(isIndexableSitemapCategory);
+    const indexableHealthSupportRows = healthSupportRows.filter(isIndexableSitemapHealthSupport);
+    const indexableBlogPosts = publishedBlogResult.posts.filter(isIndexableSitemapBlogPost);
+    const sitemapEntries = buildSitemapEntries({
+      products: indexableProductRows,
+      categories: indexableCategoryRows,
+      healthSupports: indexableHealthSupportRows,
+      blogPosts: indexableBlogPosts,
+    });
+    const sitemapUrls = new Set(sitemapEntries.map((entry) => entry.url));
+    const siteTitle = settings?.siteTitle || "Bright Fame Organic";
+    const siteDescription = settings?.siteDescription || "Premium organic ingredients supplier";
+    const indexParents = new Set(["/products", "/ingredients", "/health-support", "/blog"]);
+    const pages: SeoPage[] = [
+      {
+        id: "/", type: "static", url: `${CANONICAL_ORIGIN}/`,
+        title: siteTitle, description: siteDescription,
+        content: `${siteTitle} ${siteDescription}`,
+        canonicalUrl: `${CANONICAL_ORIGIN}/`,
+        inSitemap: sitemapUrls.has(`${CANONICAL_ORIGIN}/`),
+        hasInboundLink: true,
+      },
+      ...Object.entries(STATIC_PAGE_SEO).map(([path, meta]) => {
+        const url = `${CANONICAL_ORIGIN}${path}`;
+        return {
+          id: path, type: "static" as const, url,
+          title: meta.title, description: meta.description, content: `${meta.title} ${meta.description}`,
+          canonicalUrl: url, inSitemap: sitemapUrls.has(url), hasInboundLink: true,
+        };
+      }),
+      ...[
+        { path: "/products", title: `Products | ${siteTitle}` },
+        { path: "/ingredients", title: `Ingredients | ${siteTitle}` },
+        { path: "/health-support", title: `Health Support | ${siteTitle}` },
+      ].map(({ path, title }) => {
+        const url = `${CANONICAL_ORIGIN}${path}`;
+        return {
+          id: path, type: "static" as const, url, title,
+          description: siteDescription, content: `${title} ${siteDescription}`,
+          canonicalUrl: url, inSitemap: sitemapUrls.has(url), hasInboundLink: true,
+        };
+      }),
+      ...indexableProductRows.map((product) => {
+        const url = sitemapPageUrl("/products", product.slug);
+        return {
+          id: String(product.id), type: "product" as const, url,
+          title: product.seoTitle || `${product.name} | ${siteTitle}`,
+          description: product.seoDescription || product.description || siteDescription,
+          content: visibleText(`${product.name} ${product.description || ""} ${product.specificationSheet || ""}`),
+          image: product.openGraphImage || product.mainImage, canonicalUrl: product.canonicalUrl || url,
+          inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/products"),
+        };
+      }),
+      ...indexableCategoryRows.map((category) => {
+        const url = sitemapPageUrl("/ingredients", category.slug);
+        return {
+          id: String(category.id), type: "category" as const, url,
+          title: `${category.name} | ${siteTitle}`,
+          description: category.description || siteDescription,
+          content: visibleText(`${category.name} ${category.description || ""}`),
+          image: category.imageUrl, canonicalUrl: url,
+          inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/ingredients"),
+        };
+      }),
+      ...indexableHealthSupportRows.map((healthSupport) => {
+        const url = sitemapPageUrl("/health-support", healthSupport.slug);
+        return {
+          id: String(healthSupport.id), type: "health_support" as const, url,
+          title: `${healthSupport.name} | ${siteTitle}`,
+          description: healthSupport.description || siteDescription,
+          content: visibleText(`${healthSupport.name} ${healthSupport.description || ""}`),
+          canonicalUrl: url,
+          inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/health-support"),
+        };
+      }),
+      ...indexableBlogPosts.map((post) => {
+        const url = sitemapPageUrl("/blog", post.slug);
+        return {
+          id: String(post.id), type: "blog" as const, url,
+          title: post.metaTitle || `${post.title} | ${siteTitle}`,
+          description: post.metaDescription || post.excerpt || siteDescription,
+          content: visibleText(`${post.title} ${post.content}`), image: post.featuredImage,
+          canonicalUrl: url, inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/blog"),
+        };
+      }),
+    ];
+    return {
+      settings,
+      productRows: indexableProductRows,
+      publishedBlogPosts: indexableBlogPosts,
+      pages: Array.from(new Map(pages.map((page) => [page.url, page])).values()),
+    };
+  };
   const resolveSeoPageReference = async (input: z.infer<typeof seoMappingSchema>) => {
     const requestedUrl = canonicalPageUrl(input.pageUrl);
     if (!requestedUrl || !input.pageId) return null;
@@ -6081,18 +6194,24 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     if (input.pageType === "product") {
       const [product] = await db.select({ id: products.id, slug: products.slug }).from(products)
         .where(and(eq(products.id, id), eq(products.isActive, true), eq(products.isVisible, true))).limit(1);
-      const pageUrl = product ? `${CANONICAL_ORIGIN}/products/${product.slug}` : null;
+      const pageUrl = product ? sitemapPageUrl("/products", product.slug) : null;
       return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
     }
     if (input.pageType === "category") {
       const [category] = await db.select({ id: categories.id, slug: categories.slug }).from(categories)
         .where(and(eq(categories.id, id), eq(categories.isActive, true))).limit(1);
-      const pageUrl = category ? `${CANONICAL_ORIGIN}/ingredients/${category.slug}` : null;
+      const pageUrl = category ? sitemapPageUrl("/ingredients", category.slug) : null;
+      return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
+    }
+    if (input.pageType === "health_support") {
+      const [healthSupport] = await db.select({ id: healthSupports.id, slug: healthSupports.slug }).from(healthSupports)
+        .where(and(eq(healthSupports.id, id), eq(healthSupports.isActive, true))).limit(1);
+      const pageUrl = healthSupport ? sitemapPageUrl("/health-support", healthSupport.slug) : null;
       return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
     }
     const [post] = await db.select({ id: blogPosts.id, slug: blogPosts.slug }).from(blogPosts)
       .where(and(eq(blogPosts.id, id), eq(blogPosts.isPublished, true))).limit(1);
-    const pageUrl = post ? `${CANONICAL_ORIGIN}/blog/${post.slug}` : null;
+    const pageUrl = post ? sitemapPageUrl("/blog", post.slug) : null;
     return pageUrl === requestedUrl ? { pageUrl, pageType: input.pageType, pageId: String(id) } : null;
   };
 
@@ -6139,6 +6258,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const expectedToken = evidenceToken(fingerprint, input.evidence);
       if (!crypto.timingSafeEqual(Buffer.from(expectedToken), Buffer.from(input.evidenceToken))) {
         return res.status(400).json({ message: "Opportunity evidence is stale or invalid. Refresh the scan and try again." });
+      }
+      if (input.status === "completed") {
+        const { pages } = await loadIndexableSeoPages();
+        if (!isCriticalSeoFindingResolved(pages, fingerprint)) {
+          return res.status(409).json({
+            message: "This critical issue is still detected by the current scan. Fix the page and refresh before marking it completed.",
+          });
+        }
       }
       const now = new Date();
       const [action] = await db.transaction(async (tx) => {
@@ -6230,11 +6357,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.get('/api/admin/seo/growth-opportunities', isAuthenticated, isSeoManager, async (_req: any, res) => {
     try {
-      const [settings, productRows, categoryRows, publishedBlogResult, mappings, actionRows, actionEvents, periods] = await Promise.all([
-        storage.getGlobalSeoSettings(),
-        db.select().from(products).where(and(eq(products.isActive, true), eq(products.isVisible, true))).limit(5000),
-        db.select().from(categories).where(eq(categories.isActive, true)).limit(1000),
-        storage.getBlogPosts({ published: true, limit: 1000, offset: 0 }),
+      const [{ settings, productRows, publishedBlogPosts, pages: uniquePages }, mappings, actionRows, actionEvents, periods] = await Promise.all([
+        loadIndexableSeoPages(),
         db.select().from(seoKeywordPageMappings).orderBy(asc(seoKeywordPageMappings.keyword)).limit(5000),
         db.select().from(seoOpportunityActions).orderBy(desc(seoOpportunityActions.updatedAt)).limit(5000),
         db.select().from(seoOpportunityActionEvents).orderBy(desc(seoOpportunityActionEvents.createdAt)).limit(5000),
@@ -6246,64 +6370,6 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         eq(seoKeywordPerformance.periodStart, latestPeriod.periodStart),
         eq(seoKeywordPerformance.periodEnd, latestPeriod.periodEnd),
       )).limit(50000) : [];
-      const indexParents = new Set(["/products", "/ingredients", "/blog"]);
-      const staticSitemapPaths = new Set([
-        "/", "/about", "/about-us", "/contact", "/products", "/ingredients", "/health-support", "/certifications", "/industries",
-        "/organic-spice-supplier-india", "/bulk-organic-exporter-india", "/eu-organic-spices", "/organic-herbs", "/packaging-solutions", "/presentation",
-      ]);
-      const pages: SeoPage[] = [
-        {
-          id: "/", type: "static", url: `${CANONICAL_ORIGIN}/`,
-          title: settings?.siteTitle || "", description: settings?.siteDescription || "",
-          content: `${settings?.siteTitle || ""} ${settings?.siteDescription || ""}`,
-          canonicalUrl: `${CANONICAL_ORIGIN}/`, inSitemap: true, hasInboundLink: true,
-        },
-        ...Object.entries(STATIC_PAGE_SEO).map(([path, meta]) => ({
-          id: path, type: "static" as const, url: `${CANONICAL_ORIGIN}${path}`,
-          title: meta.title, description: meta.description, content: `${meta.title} ${meta.description}`,
-          canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: staticSitemapPaths.has(path), hasInboundLink: true,
-        })),
-        ...[
-          { path: "/products", title: `Products | ${settings?.siteTitle || "Bright Fame Organic"}` },
-          { path: "/ingredients", title: `Ingredients | ${settings?.siteTitle || "Bright Fame Organic"}` },
-        ].map(({ path, title }) => ({
-          id: path, type: "static" as const, url: `${CANONICAL_ORIGIN}${path}`, title,
-          description: settings?.siteDescription || "", content: `${title} ${settings?.siteDescription || ""}`,
-          canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: true,
-        })),
-        ...productRows.map((product) => {
-          const path = `/products/${product.slug}`;
-          return {
-            id: String(product.id), type: "product" as const, url: `${CANONICAL_ORIGIN}${path}`,
-            title: product.seoTitle || `${product.name} | ${settings?.siteTitle || "Bright Fame Organic"}`,
-            description: product.seoDescription || product.description || settings?.siteDescription || "",
-            content: visibleText(`${product.name} ${product.description || ""} ${product.specificationSheet || ""}`),
-            image: product.openGraphImage || product.mainImage, canonicalUrl: product.canonicalUrl || `${CANONICAL_ORIGIN}${path}`,
-            inSitemap: true, hasInboundLink: indexParents.has("/products"),
-          };
-        }),
-        ...categoryRows.map((category) => {
-          const path = `/ingredients/${category.slug}`;
-          return {
-            id: String(category.id), type: "category" as const, url: `${CANONICAL_ORIGIN}${path}`,
-            title: `${category.name} | ${settings?.siteTitle || "Bright Fame Organic"}`,
-            description: category.description || settings?.siteDescription || "",
-            content: visibleText(`${category.name} ${category.description || ""}`),
-            image: category.imageUrl, canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: indexParents.has("/ingredients"),
-          };
-        }),
-        ...publishedBlogResult.posts.map((post) => {
-          const path = `/blog/${post.slug}`;
-          return {
-            id: String(post.id), type: "blog" as const, url: `${CANONICAL_ORIGIN}${path}`,
-            title: post.metaTitle || `${post.title} | ${settings?.siteTitle || "Bright Fame Organic"}`,
-            description: post.metaDescription || post.excerpt || settings?.siteDescription || "",
-            content: visibleText(`${post.title} ${post.content}`), image: post.featuredImage,
-            canonicalUrl: `${CANONICAL_ORIGIN}${path}`, inSitemap: true, hasInboundLink: indexParents.has("/blog"),
-          };
-        }),
-      ];
-      const uniquePages = Array.from(new Map(pages.map((page) => [page.url, page])).values());
       const actionsByFingerprint = new Map(actionRows.map((action) => [action.fingerprint, action]));
       const historyByFingerprint = new Map<string, typeof actionEvents>();
       for (const event of actionEvents) {
@@ -6379,7 +6445,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }).sort((a, b) => Number(b.evidence.impressions) - Number(a.evidence.impressions)).slice(0, 50);
       const internalLinkOpportunities: any[] = [];
       const linkableProducts = productRows.map((product) => ({ product, tokens: normalizeKeywordTokens(product.name) }));
-      for (const post of publishedBlogResult.posts) {
+      for (const post of publishedBlogPosts) {
         const postText = visibleText(post.content);
         const postTokens = new Set(normalizeKeywordTokens(postText));
         for (const { product, tokens } of linkableProducts) {
@@ -12174,126 +12240,26 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
   // Admin-only preview. The public sitemap is owned by server/index.ts so
   // there can be no competing /sitemap.xml response.
-  app.get('/api/admin/seo/sitemap-preview.xml', isAuthenticated, isAdminOrWebsiteManager, async (req, res) => {
-    // Always set XML headers first
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    
-    const baseUrl = 'https://bright-organic.com';
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    // Start with core pages that always exist
-    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${baseUrl}/</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/products</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/ingredients</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/health-support</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/blog</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/about</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/contact</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>`;
-
-    // Try to add dynamic content but don't fail if there's an error
+  app.get('/api/admin/seo/sitemap-preview.xml', isAuthenticated, isSeoManager, async (req, res) => {
     try {
-      // Add categories if available
-      const categories = await storage.getCategories();
-      if (categories && Array.isArray(categories)) {
-        for (const category of categories) {
-          if (category?.slug) {
-            sitemap += `
-  <url>
-    <loc>${baseUrl}/ingredients/${category.slug}</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-          }
-        }
-      }
+      const [productResult, categoryRows, healthSupportRows, blogResult] = await Promise.all([
+        storage.getProducts({ limit: 5000, offset: 0 }),
+        storage.getCategories(),
+        storage.getHealthSupports(),
+        storage.getBlogPosts({ published: true, limit: 5000, offset: 0 }),
+      ]);
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.send(renderSitemapXml(buildSitemapEntries({
+        products: productResult.products,
+        categories: categoryRows,
+        healthSupports: healthSupportRows,
+        blogPosts: blogResult.posts,
+      })));
     } catch (error) {
-      console.error('Failed to add categories to sitemap:', error);
+      console.error("Error generating sitemap preview:", error);
+      res.status(500).json({ message: "Failed to generate sitemap preview" });
     }
-
-    try {
-      // Add health supports if available
-      const healthSupports = await storage.getHealthSupports();
-      if (healthSupports && Array.isArray(healthSupports)) {
-        for (const healthSupport of healthSupports) {
-          if (healthSupport?.slug) {
-            sitemap += `
-  <url>
-    <loc>${baseUrl}/health-support/${healthSupport.slug}</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to add health supports to sitemap:', error);
-    }
-
-    try {
-      // Add products if available
-      const products = await storage.getProducts({ limit: 5000, offset: 0 });
-      if (products?.products && Array.isArray(products.products)) {
-        for (const product of products.products) {
-          if (product?.slug && product.isActive !== false) {
-            sitemap += `
-  <url>
-    <loc>${baseUrl}/products/${product.slug}</loc>
-    <lastmod>${product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to add products to sitemap:', error);
-    }
-
-    // Close the sitemap
-    sitemap += `
-</urlset>`;
-
-    res.send(sitemap);
   });
 
   // Static routes removed from here - they're now handled as fallback in server/index.ts

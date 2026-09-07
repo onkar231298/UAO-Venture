@@ -8,7 +8,6 @@ import CategoriesSection from "@/components/CategoriesSection";
 import HomeStructuredData from "@/components/HomeStructuredData";
 import WebsiteSchema from "@/components/WebsiteSchema";
 import CompanyStructuredData from "@/components/CompanyStructuredData";
-import SitemapGenerator from "@/components/SitemapGenerator";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
 import HomepageAEO from "@/components/HomepageAEO";
 import { KnowledgeHubAEO } from "@/components/KnowledgeHubAEO";
@@ -30,7 +29,6 @@ export default function Home() {
       <HomeStructuredData />
       <WebsiteSchema />
       <CompanyStructuredData />
-      <SitemapGenerator />
       <Header />
       
       {/* Simple Hero Slider with H1 */}

@@ -3,7 +3,7 @@ import { CANONICAL_ORIGIN } from "./seo";
 
 export type SeoPage = {
   id: string;
-  type: "static" | "product" | "category" | "blog";
+  type: "static" | "product" | "category" | "health_support" | "blog";
   url: string;
   title: string;
   description: string;
@@ -138,6 +138,11 @@ export function auditSeoPages(pages: SeoPage[]): SeoFinding[] {
 
   const order = { critical: 0, high: 1, medium: 2, low: 3 };
   return findings.sort((a, b) => order[a.severity] - order[b.severity] || a.sourceUrl.localeCompare(b.sourceUrl));
+}
+
+export function isCriticalSeoFindingResolved(pages: SeoPage[], findingFingerprint: string): boolean {
+  return !auditSeoPages(pages).some((finding) =>
+    finding.fingerprint === findingFingerprint && finding.severity === "critical");
 }
 
 export function detectCompetingPages(rows: { query: string; page: string }[], keyword: string): string[] {

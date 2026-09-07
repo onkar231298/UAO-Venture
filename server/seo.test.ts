@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderSeoHtml } from "./seo";
+import { renderSeoHtml, STATIC_PAGE_SEO } from "./seo";
 
 const template = "<html><head><title>old</title><meta name=\"description\" content=\"old\"></head><body><div id=\"root\"></div><script src=\"/app.js\"></script></body></html>";
 
@@ -42,4 +42,22 @@ test("SEO renderer suppresses malformed, duplicate, or unrelated hreflang sets",
     ],
   }, template);
   assert.doesNotMatch(html, /hreflang=/);
+});
+
+test("blog and service routes render canonical indexable metadata", () => {
+  const paths = [
+    "/blog",
+    "/services/quality-testing",
+    "/services/rd-support",
+    "/services/regulatory-compliance",
+    "/services/custom-packaging",
+    "/services/logistics-solutions",
+  ];
+  for (const canonicalPath of paths) {
+    const metadata = STATIC_PAGE_SEO[canonicalPath];
+    assert.ok(metadata?.title);
+    const html = renderSeoHtml({ ...metadata, canonicalPath }, template);
+    assert.ok(html.includes(`<link rel="canonical" href="https://bright-organic.com${canonicalPath}" />`));
+    assert.match(html, /<meta name="robots" content="index, follow" \/>/);
+  }
 });

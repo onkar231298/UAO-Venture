@@ -8,6 +8,7 @@ import { db } from "./db";
 import { products, categories } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { CANONICAL_ORIGIN, renderSeoHtml, STATIC_PAGE_SEO } from "./seo";
+import { buildSitemapEntries, renderSitemapXml } from "./sitemap";
 
 // Validate critical environment variables for deployment
 function validateEnvironment() {
@@ -920,168 +921,20 @@ samples, and business development for Bright Fame Organic.
 
   app.get('/sitemap.xml', async (req, res) => {
     try {
-      const baseUrl = CANONICAL_ORIGIN;
-      const currentDate = new Date().toISOString().split('T')[0];
-      const xml = (value: unknown) => String(value ?? "").replace(/[<>&'"]/g, (character) => ({"<":"&lt;", ">":"&gt;", "&":"&amp;", "'":"&apos;", '"':"&quot;"}[character] as string));
-      const date = (value: Date | null | undefined) => value ? new Date(value).toISOString().split("T")[0] : currentDate;
-      
-      // Get all products, categories, and health supports for sitemap
       const [productResult, allCategories, allHealthSupports, blogResult] = await Promise.all([
         storage.getProducts({ limit: 5000, offset: 0 }),
         storage.getCategories(),
         storage.getHealthSupports(),
         storage.getBlogPosts({ published: true, limit: 5000, offset: 0 }),
       ]);
-      const allProducts = productResult.products;
-      
-      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${baseUrl}/</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/about</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/contact</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/products</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/ingredients</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/health-support</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/about-us</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/certifications</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/industries</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/organic-spice-supplier-india</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/bulk-organic-exporter-india</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/eu-organic-spices</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/organic-herbs</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/packaging-solutions</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/presentation</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-
-      // Add product pages
-      for (const product of allProducts) {
-        if (product.slug && product.isActive && product.isVisible) {
-          sitemap += `
-  <url>
-    <loc>${baseUrl}/products/${xml(product.slug)}</loc>
-    <lastmod>${date(product.updatedAt)}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`;
-        }
-      }
-
-      // Add category pages
-      for (const category of allCategories) {
-        if (category.slug && category.isActive) {
-          sitemap += `
-  <url>
-    <loc>${baseUrl}/ingredients/${xml(category.slug)}</loc>
-    <lastmod>${date(category.createdAt)}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-        }
-      }
-
-      // Add health support pages
-      for (const healthSupport of allHealthSupports) {
-        if (healthSupport.slug && healthSupport.isActive) {
-          sitemap += `
-  <url>
-    <loc>${baseUrl}/health-support/${xml(healthSupport.slug)}</loc>
-    <lastmod>${date(healthSupport.createdAt)}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-        }
-      }
-
-      for (const post of blogResult.posts) {
-        if (post.slug && post.isPublished) sitemap += `
-  <url>
-    <loc>${baseUrl}/blog/${xml(post.slug)}</loc>
-    <lastmod>${date(post.updatedAt || post.publishedAt)}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-      }
-
-      sitemap += `
-</urlset>`;
-
       res.setHeader('Content-Type', 'application/xml; charset=utf-8');
       res.setHeader('Cache-Control', 'public, max-age=3600');
-      res.send(sitemap);
+      res.send(renderSitemapXml(buildSitemapEntries({
+        products: productResult.products,
+        categories: allCategories,
+        healthSupports: allHealthSupports,
+        blogPosts: blogResult.posts,
+      })));
     } catch (error) {
       console.error('Error generating sitemap:', error);
       res.status(500).send('Error generating sitemap');

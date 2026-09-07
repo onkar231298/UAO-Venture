@@ -10,6 +10,7 @@ If any file in the program has parse/syntax errors (e.g. leftover `*_backup.tsx`
 **Rules:**
 - A wall of `npm run check` errors is baseline debt, not a regression — judge new work only by whether *changed lines* add errors.
 - Full tsc here needs a large Node heap (`--max-old-space-size`); with the default it V8-OOM-aborts mid-run, and an abort is NOT a pass — check the exit, not just quiet output.
+- `npm run build` uses esbuild and can succeed despite TypeScript property/schema errors; run the high-heap check after changed schema access and inspect diagnostics on changed lines.
 - Never claim "type-clean" from filtered/quiet tsc output; runtime behavior in this codebase is proven by live e2e, not tsc.
 
 **Why:** review rounds were repeatedly misled by illusory "tsc clean" claims while semantic checking was silently disabled.
