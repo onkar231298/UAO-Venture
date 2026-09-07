@@ -19,3 +19,4 @@
 - [Field quality deletion locking](field-quality-deletion-locking.md) — permanent IRF/TRF deletion must serialize links and attachments on the parent row and fail closed if owned-file cleanup fails.
 - [Employee-scoped HR dialogs](employee-scoped-hr-dialogs.md) — clear prior form state, verify payload ownership, and refresh scoped queries when switching employees.
 - [Salary slip proration](salary-slip-proration.md) — first month starts on joining date and uses actual calendar days; historical PDFs must render stored payroll snapshots.
+- [SEO strategy rollout safety](seo-strategy-rollout-safety.md) — geo keywords need relevant landing content; metadata rollouts preview first and only replace positively identified generated copy.

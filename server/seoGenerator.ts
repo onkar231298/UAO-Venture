@@ -11,7 +11,7 @@ interface ProductForSEO {
 
 function isOrganicProduct(product: ProductForSEO): boolean {
   if (product.isOrganic === true) return true;
-  if (product.productType === "organic") return true;
+  if (product.productType?.trim().toLowerCase() === "organic") return true;
   if (product.name.toLowerCase().includes("organic")) return true;
   return false;
 }
@@ -21,6 +21,11 @@ function truncate(str: string, max: number): string {
   const cut = str.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
   return lastSpace > 0 ? cut.slice(0, lastSpace).trim() : cut.trim();
+}
+
+function productNameForTitle(name: string, suffix: string): string {
+  const maxNameLength = 65 - suffix.length;
+  return truncate(name.trim(), maxNameLength);
 }
 
 function getCategoryKeyword(category: string | null | undefined): string {
@@ -51,7 +56,9 @@ function getCategoryBenefit(category: string | null | undefined): string {
   return "food, supplement & nutraceutical manufacturing";
 }
 
-export function generateProductSEO(product: ProductForSEO): {
+export function generateProductSEO(product: ProductForSEO, options?: {
+  legacyDescriptionOrder?: boolean;
+}): {
   seoTitle: string;
   seoDescription: string;
 } {
@@ -60,27 +67,20 @@ export function generateProductSEO(product: ProductForSEO): {
   const categoryKeyword = getCategoryKeyword(product.category);
   const categoryBenefit = getCategoryBenefit(product.category);
 
-  // ─── SEO TITLE ────────────────────────────────────────────────────────────
-  // Unified format for all products:
-  //   "TOP [Name] manufacturer and exporter from India"
-  const SEO_PREFIX = "TOP ";
-  const SEO_SUFFIX = " manufacturer and exporter from India";
-  const maxName = 255 - SEO_PREFIX.length - SEO_SUFFIX.length;
-  const name =
-    product.name.length <= maxName ? product.name : truncate(product.name, maxName);
-  const seoTitle = SEO_PREFIX + name + SEO_SUFFIX;
+  const nameAlreadySaysOrganic = /^organic\b/i.test(product.name.trim());
+  const titleSuffix = organic && !nameAlreadySaysOrganic
+    ? " Bulk Organic Supplier India | Bright Fame"
+    : " Bulk Supplier India | Bright Fame";
+  const seoTitle = `${productNameForTitle(product.name, titleSuffix)}${titleSuffix}`;
 
-  // ─── SEO DESCRIPTION ──────────────────────────────────────────────────────
-  // Target: 150–160 chars. Unique per category + organic/conventional split.
-  let seoDescription: string;
+  const productLabel = organic && !nameAlreadySaysOrganic ? `organic ${product.name}` : product.name;
+  let seoDescription = nameAlreadySaysOrganic && !options?.legacyDescriptionOrder
+    ? `Source ${productLabel}${botanical} in bulk from India, a ${categoryKeyword} for ${categoryBenefit}. Request specifications, documentation and samples.`
+    : `Source bulk ${productLabel}${botanical} from India, a ${categoryKeyword} for ${categoryBenefit}. Request specifications, documentation and samples.`;
 
-  if (organic) {
-    seoDescription = `EU Organic certified ${product.name}${botanical} from India's top B2B manufacturer. ETO-free, EU 2018/848 compliant ${categoryKeyword} for ${categoryBenefit}. Bulk wholesale to Europe — COA, MSDS & samples available.`;
-  } else {
-    seoDescription = `Premium ${product.name}${botanical} from India's top B2B manufacturer. EU food safety compliant, ETO-free ${categoryKeyword} for ${categoryBenefit}. Bulk wholesale supply to Europe — COA, MSDS & samples available.`;
+  if (seoDescription.length < 70) {
+    seoDescription += " B2B supply enquiries are welcome.";
   }
-
-  // Clamp description to 165 chars max
   if (seoDescription.length > 165) {
     seoDescription = truncate(seoDescription, 162) + "...";
   }

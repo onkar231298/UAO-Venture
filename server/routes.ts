@@ -98,6 +98,7 @@ import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
 import { CANONICAL_ORIGIN, STATIC_PAGE_SEO } from "./seo";
+import { COLLECTION_PAGE_SEO, HOME_SEO, KEYWORD_ASSIGNMENTS, categoryPageSeo, healthSupportPageSeo } from "./seoStrategy";
 import { auditSeoPages, canonicalPageUrl, detectCompetingPages, isCriticalSeoFindingResolved, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
 import {
   buildSitemapEntries,
@@ -6076,7 +6077,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   const visibleText = (value: unknown) => String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const allTargetKeywords = (settings: any) => {
     const fields = ["primaryKeywords", "pharmaceuticalKeywords", "nutraceuticalKeywords", "northAmericaKeywords", "europeKeywords", "asiaPacificKeywords", "indiaKeywords", "middleEastKeywords", "latinAmericaKeywords"];
-    return Array.from(new Set(fields.flatMap((field) => String(settings?.[field] || "").split(",").map((keyword) => keyword.trim().toLowerCase()).filter(Boolean))));
+    return Array.from(new Set([
+      ...fields.flatMap((field) => String(settings?.[field] || "").split(",").map((keyword) => keyword.trim().toLowerCase()).filter(Boolean)),
+      ...KEYWORD_ASSIGNMENTS.map((assignment) => assignment.keyword.toLowerCase()),
+    ]));
   };
   const staticSeoPaths = new Set(SITEMAP_STATIC_PATHS);
   const loadIndexableSeoPages = async () => {
@@ -6098,8 +6102,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       blogPosts: indexableBlogPosts,
     });
     const sitemapUrls = new Set(sitemapEntries.map((entry) => entry.url));
-    const siteTitle = settings?.siteTitle || "Bright Fame Organic";
-    const siteDescription = settings?.siteDescription || "Premium organic ingredients supplier";
+    const siteTitle = settings?.siteTitle || HOME_SEO.title;
+    const siteDescription = settings?.siteDescription || HOME_SEO.description;
     const indexParents = new Set(["/products", "/ingredients", "/health-support", "/blog"]);
     const pages: SeoPage[] = [
       {
@@ -6118,15 +6122,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           canonicalUrl: url, inSitemap: sitemapUrls.has(url), hasInboundLink: true,
         };
       }),
-      ...[
-        { path: "/products", title: `Products | ${siteTitle}` },
-        { path: "/ingredients", title: `Ingredients | ${siteTitle}` },
-        { path: "/health-support", title: `Health Support | ${siteTitle}` },
-      ].map(({ path, title }) => {
+      ...Object.entries(COLLECTION_PAGE_SEO).map(([path, meta]) => {
         const url = `${CANONICAL_ORIGIN}${path}`;
         return {
-          id: path, type: "static" as const, url, title,
-          description: siteDescription, content: `${title} ${siteDescription}`,
+          id: path, type: "static" as const, url, title: meta.title,
+          description: meta.description, content: `${meta.title} ${meta.description}`,
           canonicalUrl: url, inSitemap: sitemapUrls.has(url), hasInboundLink: true,
         };
       }),
@@ -6143,10 +6143,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }),
       ...indexableCategoryRows.map((category) => {
         const url = sitemapPageUrl("/ingredients", category.slug);
+        const meta = categoryPageSeo(category.name);
         return {
           id: String(category.id), type: "category" as const, url,
-          title: `${category.name} | ${siteTitle}`,
-          description: category.description || siteDescription,
+          title: meta.title,
+          description: category.description?.trim().length >= 70 ? category.description : meta.description,
           content: visibleText(`${category.name} ${category.description || ""}`),
           image: category.imageUrl, canonicalUrl: url,
           inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/ingredients"),
@@ -6154,10 +6155,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }),
       ...indexableHealthSupportRows.map((healthSupport) => {
         const url = sitemapPageUrl("/health-support", healthSupport.slug);
+        const meta = healthSupportPageSeo(healthSupport.name);
         return {
           id: String(healthSupport.id), type: "health_support" as const, url,
-          title: `${healthSupport.name} | ${siteTitle}`,
-          description: healthSupport.description || siteDescription,
+          title: meta.title,
+          description: healthSupport.description?.trim().length >= 70 ? healthSupport.description : meta.description,
           content: visibleText(`${healthSupport.name} ${healthSupport.description || ""}`),
           canonicalUrl: url,
           inSitemap: sitemapUrls.has(url), hasInboundLink: indexParents.has("/health-support"),

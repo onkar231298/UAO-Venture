@@ -5,9 +5,9 @@ export const CANONICAL_ORIGIN = "https://bright-organic.com";
 
 export const STATIC_PAGE_SEO: Record<string, { title: string; description: string; keywords: string }> = {
   "/about": {
-    title: "About Us - Leading Organic Ingredients Supplier | Bright Fame Organic",
-    description: "Learn about Bright Fame Organic, a manufacturer and global supplier of certified organic ingredients from Gujarat, India.",
-    keywords: "Bright Fame Organic, organic ingredients manufacturer India, certified organic supplier",
+    title: "Organic Ingredient Manufacturer in India | About Bright Fame",
+    description: "Learn about Bright Fame Organic's ingredient processing, sourcing, quality systems and B2B supply capabilities from Gujarat, India.",
+    keywords: "organic ingredient manufacturer India, B2B ingredient company Gujarat",
   },
   "/about-us": {
     title: "About Bright Fame Organic | Organic Ingredient Manufacturer India",
@@ -25,7 +25,7 @@ export const STATIC_PAGE_SEO: Record<string, { title: string; description: strin
     keywords: "organic ingredients blog, organic certification, ingredient sourcing",
   },
   "/industries": {
-    title: "Industries We Serve | B2B Organic Ingredients",
+    title: "Organic Ingredients for Food & Nutraceutical Manufacturers",
     description: "Certified organic ingredients for food, nutraceutical, pharmaceutical, cosmetic, herbal, and beverage manufacturers.",
     keywords: "B2B organic ingredients, nutraceutical ingredients, food ingredients, cosmetic ingredients",
   },
@@ -42,7 +42,7 @@ export const STATIC_PAGE_SEO: Record<string, { title: string; description: strin
   "/bulk-organic-exporter-india": {
     title: "Bulk Organic Ingredients Exporter India | Bright Fame Organic",
     description: "Source wholesale organic herbs, spices, teas, powders, and extracts from an export-focused Indian manufacturer.",
-    keywords: "bulk organic ingredients India, wholesale organic supplier, organic exporter India",
+    keywords: "certified organic ingredients exporter, bulk organic ingredients India, wholesale organic supplier, organic exporter India",
   },
   "/eu-organic-spices": {
     title: "EU Organic Spices Supplier India | Bright Fame Organic",
@@ -53,6 +53,21 @@ export const STATIC_PAGE_SEO: Record<string, { title: string; description: strin
     title: "Organic Herbs Supplier India | Bright Fame Organic",
     description: "Bulk organic herbs, powders, and botanical ingredients for food, herbal, and nutraceutical applications.",
     keywords: "organic herbs supplier India, bulk organic herbs, botanical ingredients",
+  },
+  "/organic-ingredients-supplier-usa": {
+    title: "Organic Ingredient Supplier for USA B2B Buyers | Bright Fame",
+    description: "Source bulk organic ingredients, herbal powders and botanical extracts from India for USA food, supplement and wellness product requirements.",
+    keywords: "organic ingredient supplier USA, bulk herbal ingredients USA, botanical extracts supplier USA",
+  },
+  "/organic-ingredients-supplier-germany": {
+    title: "Organic Ingredient Supplier for Germany | Bright Fame Organic",
+    description: "Source bulk organic spices, herbs, powders and botanical ingredients from India for German food, nutraceutical and distribution requirements.",
+    keywords: "organic ingredient supplier Germany, bulk organic spices Germany, herbal ingredients Germany",
+  },
+  "/organic-ingredients-exporter-uae": {
+    title: "Organic Ingredient Exporter to UAE | Bright Fame Organic",
+    description: "Source bulk organic herbs, spices, powders and botanical extracts from India with documentation and logistics coordination for UAE buyers.",
+    keywords: "organic ingredient exporter UAE, bulk organic ingredients UAE, herbal ingredients supplier UAE",
   },
   "/packaging-solutions": {
     title: "Organic Ingredient Packaging Solutions | Bright Fame Organic",
@@ -66,28 +81,28 @@ export const STATIC_PAGE_SEO: Record<string, { title: string; description: strin
   },
   "/services/quality-testing": {
     title: "Ingredient Quality Testing Services | Bright Fame Organic",
-    description: "Quality testing and documentation support for bulk organic and botanical ingredients.",
-    keywords: "ingredient quality testing, organic product testing, certificate of analysis",
+    description: "Quality testing coordination and documentation support for bulk organic, herbal and botanical ingredients supplied to B2B buyers.",
+    keywords: "ingredient quality testing services, herbal ingredient testing, certificate of analysis support",
   },
   "/services/rd-support": {
-    title: "Ingredient R&D Support | Bright Fame Organic",
-    description: "Product-development support for organic, botanical, food, and nutraceutical ingredient applications.",
-    keywords: "ingredient R&D, nutraceutical formulation support, botanical product development",
+    title: "Nutraceutical Formulation & Ingredient R&D Support",
+    description: "Ingredient selection and product-development support for organic, botanical, food and nutraceutical formulation requirements.",
+    keywords: "nutraceutical formulation support, ingredient R&D support, botanical product development",
   },
   "/services/regulatory-compliance": {
-    title: "Organic Ingredient Regulatory Support | Bright Fame Organic",
-    description: "Documentation and regulatory support for international organic ingredient sourcing.",
+    title: "Organic Ingredient Regulatory & Documentation Support",
+    description: "Documentation and regulatory support for international buyers sourcing organic, herbal and botanical ingredients from India.",
     keywords: "organic regulatory compliance, ingredient export documents, organic certification support",
   },
   "/services/custom-packaging": {
-    title: "Custom Ingredient Packaging | Bright Fame Organic",
-    description: "Custom bulk, retail-ready, and private-label packaging for organic ingredients.",
+    title: "Custom Organic Ingredient Packaging for B2B Buyers",
+    description: "Custom bulk, retail-ready and private-label packaging options for organic, herbal and botanical ingredient requirements.",
     keywords: "custom ingredient packaging, private label organic, bulk packaging",
   },
   "/services/logistics-solutions": {
-    title: "Global Ingredient Logistics | Bright Fame Organic",
-    description: "Export and logistics coordination for bulk organic ingredient shipments from India.",
-    keywords: "organic ingredient logistics, bulk export India, ingredient shipping",
+    title: "Organic Ingredient Export Logistics from India",
+    description: "Export documentation, shipment planning and logistics coordination for bulk organic ingredient orders supplied from India.",
+    keywords: "organic ingredient export logistics, bulk ingredient shipping India, B2B export coordination",
   },
 };
 

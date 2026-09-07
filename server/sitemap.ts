@@ -94,6 +94,9 @@ const staticEntry = (path: string, today: string): SitemapEntry => {
     "/bulk-organic-exporter-india",
     "/eu-organic-spices",
     "/organic-herbs",
+    "/organic-ingredients-supplier-usa",
+    "/organic-ingredients-supplier-germany",
+    "/organic-ingredients-exporter-uae",
   ].includes(path);
   return {
     url: `${CANONICAL_ORIGIN}${path}`,

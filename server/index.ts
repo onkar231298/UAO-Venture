@@ -8,6 +8,7 @@ import { db } from "./db";
 import { products, categories } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { CANONICAL_ORIGIN, renderSeoHtml, STATIC_PAGE_SEO } from "./seo";
+import { COLLECTION_PAGE_SEO, HOME_SEO, categoryPageSeo, healthSupportPageSeo } from "./seoStrategy";
 import { buildSitemapEntries, renderSitemapXml } from "./sitemap";
 
 // Validate critical environment variables for deployment
@@ -162,9 +163,9 @@ app.use((req, res, next) => {
     const pathName = req.path;
     const storedSettings = await storage.getGlobalSeoSettings();
     const settings = storedSettings?.isActive === false ? undefined : storedSettings;
-    const siteTitle = settings?.siteTitle || "Bright Fame Organic";
-    const siteDescription = settings?.siteDescription || "Premium organic ingredients supplier";
-    const keywords = settings?.primaryKeywords || "";
+    const siteTitle = settings?.siteTitle || HOME_SEO.title;
+    const siteDescription = settings?.siteDescription || HOME_SEO.description;
+    const keywords = settings?.primaryKeywords || HOME_SEO.keywords;
     let title = siteTitle, description = siteDescription, pageKeywords = keywords, jsonLd: object[] = [];
     let pageType = "static", pageId = pathName;
     const notFound = (label: string) => res.status(404).type("html").send(renderSeoHtml({
@@ -194,8 +195,10 @@ app.use((req, res, next) => {
       if (!record || !record.isActive) return notFound(isCategory ? "Category" : "Health support");
       const sectionName = isCategory ? "Ingredients" : "Health Support";
       const url = `${CANONICAL_ORIGIN}${pathName}`;
-      title = `${record.name} | ${siteTitle}`;
-      description = (record as any).description || siteDescription;
+      const collectionSeo = isCategory ? categoryPageSeo(record.name) : healthSupportPageSeo(record.name);
+      title = collectionSeo.title;
+      description = (record as any).description?.trim().length >= 70 ? (record as any).description : collectionSeo.description;
+      pageKeywords = collectionSeo.keywords;
       pageType = isCategory ? "category" : "health-support"; pageId = String(record.id);
       jsonLd = [{ "@context": "https://schema.org", "@type": "CollectionPage", name: record.name, description, url }, breadcrumb(record.name, url, { name: sectionName, url: `${CANONICAL_ORIGIN}${isCategory ? "/ingredients" : "/health-support"}` })];
     } else if (pathName.startsWith("/blog/")) {
@@ -207,7 +210,7 @@ app.use((req, res, next) => {
       jsonLd = [{ "@context": "https://schema.org", "@type": "BlogPosting", headline: post.title, description, url, datePublished: post.publishedAt?.toISOString(), dateModified: post.updatedAt?.toISOString(), image: post.featuredImage || undefined }, breadcrumb(post.title, url, { name: "Blog", url: `${CANONICAL_ORIGIN}/blog` })];
     } else if (["/products", "/ingredients", "/health-support", "/blog"].includes(pathName)) {
       const name = pathName === "/products" ? "Products" : pathName === "/ingredients" ? "Ingredients" : pathName === "/health-support" ? "Health Support" : "Blog";
-      const pageSeo = pathName === "/blog" ? STATIC_PAGE_SEO["/blog"] : undefined;
+      const pageSeo = pathName === "/blog" ? STATIC_PAGE_SEO["/blog"] : COLLECTION_PAGE_SEO[pathName as keyof typeof COLLECTION_PAGE_SEO];
       title = pageSeo?.title || `${name} | ${siteTitle}`;
       description = pageSeo?.description || description;
       pageKeywords = pageSeo?.keywords || pageKeywords;
@@ -561,6 +564,21 @@ app.use((req, res, next) => {
       description: 'Premium organic herbs from India by Bright Fame Organic. Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla and 500+ herbal products. EU Organic, USDA NOP certified. Direct manufacturer with own farmland. Pharmaceutical and food grade.',
       keywords: 'organic herbs supplier India, organic Ashwagandha manufacturer, organic Moringa powder, organic Tulsi supplier, organic Brahmi, bulk organic herbs India, herbal extract manufacturer India'
     },
+    '/organic-ingredients-supplier-usa': {
+      title: 'Organic Ingredient Supplier for USA B2B Buyers | Bright Fame',
+      description: 'Source bulk organic ingredients, herbal powders and botanical extracts from India for USA food, supplement and wellness product requirements.',
+      keywords: 'organic ingredient supplier USA, bulk herbal ingredients USA, botanical extracts supplier USA'
+    },
+    '/organic-ingredients-supplier-germany': {
+      title: 'Organic Ingredient Supplier for Germany | Bright Fame Organic',
+      description: 'Source bulk organic spices, herbs, powders and botanical ingredients from India for German food, nutraceutical and distribution requirements.',
+      keywords: 'organic ingredient supplier Germany, bulk organic spices Germany, herbal ingredients Germany'
+    },
+    '/organic-ingredients-exporter-uae': {
+      title: 'Organic Ingredient Exporter to UAE | Bright Fame Organic',
+      description: 'Source bulk organic herbs, spices, powders and botanical extracts from India with documentation and logistics coordination for UAE buyers.',
+      keywords: 'organic ingredient exporter UAE, bulk organic ingredients UAE, herbal ingredients supplier UAE'
+    },
     '/packaging-solutions': {
       title: 'Organic Ingredient Packaging Solutions | FFS Clean Room | Bright Fame Organic',
       description: 'Bright Fame Organic packaging solutions - Form-Fill-Seal (FFS) machines in clean room environment. Standee pouches 100g-1kg, bulk bags 25-50kg. Private label packaging. FDA & EU compliant. Multi-layer PET/AL/PE laminate.',
@@ -572,6 +590,9 @@ app.use((req, res, next) => {
       keywords: 'Bright Fame Organic presentation, organic manufacturer profile, corporate presentation organic company India'
     }
   };
+  // Keep the legacy bot-specific handlers aligned with the authoritative
+  // metadata used by the production SPA renderer and sitemap inventory.
+  Object.assign(staticPagesSEO, STATIC_PAGE_SEO, { '/': HOME_SEO });
 
   Object.entries(staticPagesSEO).forEach(([path, seo]) => {
     app.get(path, async (req, res, next) => {
@@ -629,7 +650,7 @@ app.use((req, res, next) => {
   // Explicit SPA fallback for marketing routes (ensures Google sitelinks work)
   // This catches browser requests that passed through SEO middleware
   // NOTE: /products removed - it has its own listingPagesSEO handler and conflicts with /products/:slug structured data
-  const marketingRoutes = ['/about', '/about-us', '/contact', '/blog', '/industries', '/certifications', '/ingredients', '/health-support', '/search', '/organic-spice-supplier-india', '/bulk-organic-exporter-india', '/eu-organic-spices', '/organic-herbs', '/packaging-solutions', '/presentation'];
+  const marketingRoutes = ['/about', '/about-us', '/contact', '/blog', '/industries', '/certifications', '/ingredients', '/health-support', '/search', '/organic-spice-supplier-india', '/bulk-organic-exporter-india', '/eu-organic-spices', '/organic-herbs', '/organic-ingredients-supplier-usa', '/organic-ingredients-supplier-germany', '/organic-ingredients-exporter-uae', '/packaging-solutions', '/presentation'];
   
   marketingRoutes.forEach(route => {
     app.get(route, (req, res, next) => {
@@ -713,6 +734,9 @@ Allow: /organic-spice-supplier-india
 Allow: /bulk-organic-exporter-india
 Allow: /eu-organic-spices
 Allow: /organic-herbs
+Allow: /organic-ingredients-supplier-usa
+Allow: /organic-ingredients-supplier-germany
+Allow: /organic-ingredients-exporter-uae
 Allow: /packaging-solutions
 Allow: /presentation
 

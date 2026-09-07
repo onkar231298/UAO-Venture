@@ -7,6 +7,9 @@ Allow: /ingredients/$
 Allow: /health-support/$
 Allow: /about
 Allow: /contact
+Allow: /organic-ingredients-supplier-usa
+Allow: /organic-ingredients-supplier-germany
+Allow: /organic-ingredients-exporter-uae
 
 # Block admin and CRM areas  
 Disallow: /crm/
