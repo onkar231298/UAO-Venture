@@ -6,6 +6,7 @@ import {
   isEligibleBulkEmailSender,
   parseCampaignSchedule,
   publicBulkEmailError,
+  resolveBulkEmailReplyTo,
   sharedMailchimpConfigurationMatches,
 } from "./bulkEmailCampaignService";
 import { storeBulkAttachments, validateBulkAttachments } from "./bulkEmailAttachments";
@@ -37,6 +38,23 @@ test("only active sales and admin roles can bulk send", () => {
   assert.equal(isEligibleBulkEmailSender({ role: "admin", accountStatus: "active" }), true);
   assert.equal(isEligibleBulkEmailSender({ role: "sales_executive", accountStatus: "suspended" }), false);
   assert.equal(isEligibleBulkEmailSender({ role: "quality_manager", accountStatus: "active" }), false);
+});
+
+test("uses only a connected active Titan mailbox as the salesperson Reply-To", () => {
+  const connected = {
+    companyEmail: " Gary@Bright-Organic.com ",
+    isActive: true,
+    isConnected: true,
+    serviceType: "titan",
+    titanAppPasswordEncrypted: "encrypted",
+  };
+  assert.equal(resolveBulkEmailReplyTo(connected), "gary@bright-organic.com");
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, companyEmail: "not-an-email" }), null);
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, isActive: false }), null);
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, isActive: null }), null);
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, isConnected: false }), null);
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, serviceType: "gmail" }), null);
+  assert.equal(resolveBulkEmailReplyTo({ ...connected, titanAppPasswordEncrypted: null }), null);
 });
 
 test("enabled sales users require one Mailchimp audience and sender identity", () => {

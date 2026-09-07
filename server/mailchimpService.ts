@@ -405,6 +405,21 @@ const campaignTitle = (name: string, campaignKey: string) =>
   `${name.slice(0, 180)} ${campaignIdempotencyMarker(campaignKey)}`;
 const segmentTitle = (campaignKey: string) => `BFO ${campaignKey}`;
 
+export function mailchimpCampaignSettings(input: {
+  name: string;
+  campaignKey: string;
+  subject: string;
+  fromName: string;
+  replyToEmail: string;
+}) {
+  return {
+    title: campaignTitle(input.name, input.campaignKey),
+    subject_line: toMailchimpMergeTags(input.subject),
+    from_name: input.fromName,
+    reply_to: input.replyToEmail,
+  };
+}
+
 export async function createAndSend(input: {
   audienceId: string;
   campaignKey: string;
@@ -412,6 +427,7 @@ export async function createAndSend(input: {
   subject: string;
   fromEmail: string;
   fromName: string;
+  replyToEmail: string;
   html: string;
   attachments?: Array<{ url: string; filename: string }>;
   recipients: MailchimpRecipient[];
@@ -485,12 +501,7 @@ export async function createAndSend(input: {
           list_id: input.audienceId,
           segment_opts: { saved_segment_id: Number(segmentId) },
         },
-        settings: {
-          title: campaignTitle(input.name, input.campaignKey),
-          subject_line: toMailchimpMergeTags(input.subject),
-          from_name: input.fromName,
-          reply_to: input.fromEmail,
-        },
+        settings: mailchimpCampaignSettings(input),
       },
     });
     campaignId = campaign?.id;

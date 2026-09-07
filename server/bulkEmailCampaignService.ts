@@ -1,12 +1,36 @@
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db";
 import { companies, companyContacts, emailCampaignRecipients, emailCampaigns, bulkEmailUserConfigs } from "@shared/schema";
+import type { UserEmailConfig } from "@shared/schema";
+import { z } from "zod";
 
 export const isBulkEmailAdmin = (role?: string | null) => role === "admin" || role === "super_admin";
 export const isEligibleBulkEmailSender = (user?: { role?: string | null; accountStatus?: string | null } | null) =>
   !!user &&
   user.accountStatus === "active" &&
   ["sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "");
+
+export const BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE =
+  "Connect an active Titan mailbox with a valid email address before sending bulk campaigns.";
+
+export function resolveBulkEmailReplyTo(
+  config: Pick<
+    UserEmailConfig,
+    "companyEmail" | "isActive" | "isConnected" | "serviceType" | "titanAppPasswordEncrypted"
+  > | null | undefined,
+): string | null {
+  if (
+    !config ||
+    config.isActive !== true ||
+    config.isConnected !== true ||
+    config.serviceType?.trim().toLowerCase() !== "titan" ||
+    !config.titanAppPasswordEncrypted
+  ) {
+    return null;
+  }
+  const parsed = z.string().trim().email().safeParse(config.companyEmail);
+  return parsed.success ? parsed.data.toLowerCase() : null;
+}
 
 export function publicBulkEmailError(error: unknown): { status: number; message: string } {
   const candidate = error as { status?: unknown; message?: unknown };

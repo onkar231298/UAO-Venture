@@ -3,6 +3,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import {
+  buildBulkEmailCampaignRequest,
+  serializeBulkEmailCampaignRequest,
+  type BulkEmailCampaignRequest,
+} from "@shared/bulkEmailCampaign";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -194,6 +199,7 @@ interface MailchimpReadiness {
   audienceName: string | null;
   fromEmail: string | null;
   fromName: string | null;
+  replyToEmail: string | null;
   message: string;
   isAdmin: boolean;
 }
@@ -218,6 +224,8 @@ interface CampaignConfiguration {
 interface ConfigurationUser {
   user: { id: string; email: string; firstName: string | null; lastName: string | null; role: string };
   configuration: CampaignConfiguration | null;
+  replyToEmail: string | null;
+  replyToReady: boolean;
 }
 
 interface UploadedImage {
@@ -417,21 +425,10 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   });
 
   const sendCampaignMutation = useMutation({
-    mutationFn: async (data: {
-      name: string;
-      subject: string;
-      htmlContent: string;
-      textContent?: string;
-      companyIds: number[];
-      scheduledAt?: string;
-      replyTo?: string;
-      attachments?: EmailAttachment[];
-      idempotencyKey: string;
-      permissionConfirmed: true;
-    }) => {
+    mutationFn: async (data: BulkEmailCampaignRequest) => {
       const response = await apiRequest('/api/email-campaigns', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: serializeBulkEmailCampaignRequest(data),
       });
       return response.json();
     },
@@ -649,16 +646,28 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
     }
 
-    sendCampaignMutation.mutate({
-      name: campaignName,
-      subject,
-      htmlContent,
-      companyIds: selectedCompanyIds,
-      scheduledAt,
-      idempotencyKey,
-      permissionConfirmed: true,
-      attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
-    });
+    const requestId = idempotencyKey || crypto.randomUUID();
+    try {
+      const request = buildBulkEmailCampaignRequest({
+        name: campaignName,
+        subject,
+        htmlContent,
+        companyIds: selectedCompanyIds,
+        scheduledAt,
+        idempotencyKey: requestId,
+        permissionConfirmed,
+        attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
+      });
+      setIdempotencyKey(requestId);
+      sendCampaignMutation.mutate(request);
+    } catch {
+      setIdempotencyKey(crypto.randomUUID());
+      toast({
+        title: "Campaign request could not be prepared",
+        description: "Refresh the composer and try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -966,7 +975,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                     </div>
                     <div className="text-xs space-y-1">
                       <p><span className="font-medium">Audience:</span> {readiness?.audienceName || "Not configured"}</p>
-                      <p><span className="font-medium">Sender:</span> {readiness?.fromName || "Not configured"}{readiness?.fromEmail ? ` <${readiness.fromEmail}>` : ''}</p>
+                      <p><span className="font-medium">From:</span> {readiness?.fromName || "Not configured"}{readiness?.fromEmail ? ` <${readiness.fromEmail}>` : ''}</p>
+                      <p><span className="font-medium">Replies:</span> {readiness?.replyToEmail || "Titan mailbox not connected"}</p>
                     </div>
                     <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => refetchReadiness()}>
                       <RefreshCw className="h-3 w-3 mr-1" /> Refresh readiness
@@ -1742,14 +1752,14 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                   <h3 className="font-semibold">Mailchimp sales-user configuration</h3>
-                  <p className="text-sm text-muted-foreground">Assign sales users to the shared audience and shared sales sender. Recipient access remains limited by CRM company assignment.</p>
+                  <p className="text-sm text-muted-foreground">Assign sales users to the shared audience and shared visible sender. Replies go to each user's connected Titan mailbox, while recipient access remains limited by CRM company assignment.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => { refetchConfigurations(); refetchAudiences(); refetchReadiness(); }}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Refresh
                 </Button>
               </div>
               <div className="space-y-3">
-                {configurationUsers.map(({ user: configurationUser }) => {
+                {configurationUsers.map(({ user: configurationUser, replyToEmail, replyToReady }) => {
                   const draft = configurationDrafts[configurationUser.id];
                   if (!draft) return null;
                   const sharedConfiguration = sharedMailchimpConfiguration(configurationUser.id);
@@ -1766,6 +1776,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                             <div>
                               <p className="font-medium">{[configurationUser.firstName, configurationUser.lastName].filter(Boolean).join(' ') || configurationUser.email}</p>
                               <p className="text-xs text-muted-foreground">{configurationUser.email}</p>
+                              <p className={`text-xs ${replyToReady ? "text-muted-foreground" : "text-destructive"}`}>
+                                Replies: {replyToEmail || "Titan mailbox not connected"}
+                              </p>
                             </div>
                             <div className="flex items-center gap-2">
                               <Label htmlFor={`enabled-${configurationUser.id}`} className="text-sm">Enabled</Label>

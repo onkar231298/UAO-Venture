@@ -21,4 +21,4 @@
 - [Salary slip proration](salary-slip-proration.md) — first month starts on joining date and uses actual calendar days; historical PDFs must render stored payroll snapshots.
 - [SEO strategy rollout safety](seo-strategy-rollout-safety.md) — geo keywords need relevant landing content; metadata rollouts preview first and only replace positively identified generated copy.
 - [Mailchimp send retry safety](mailchimp-send-retry-safety.md) — uncertain or externally prepared bulk sends must reconcile, never retry; keep hosted attachments live until non-delivery is confirmed.
-- [Shared Mailchimp routing](shared-mailchimp-routing.md) — all enabled CRM bulk senders share one audience and sales sender/reply inbox; recipient authorization remains user-scoped.
+- [Shared Mailchimp routing](shared-mailchimp-routing.md) — CRM bulk senders share one audience and visible sales sender; replies use each sender's connected Titan mailbox.

@@ -1,10 +1,10 @@
 ---
 name: Shared Mailchimp routing
-description: Confirmed audience, sender, reply, and recipient-isolation rules for CRM bulk campaigns.
+description: Confirmed audience, visible sender, per-salesperson reply, and recipient-isolation rules for CRM bulk campaigns.
 ---
 
-All enabled CRM bulk-email users must use one shared Mailchimp audience and the same verified sales address for both sender and replies. Customer replies go to the shared Sales Titan inbox, not individual salesperson mailboxes. Each salesperson may still target only recipients from CRM companies assigned to them, and each campaign must use an exact static segment.
+All enabled CRM bulk-email users must use one shared Mailchimp audience and the same verified sales address as the visible sender. Customer replies go to the individual salesperson who submitted the campaign, using that authenticated user's connected, active Titan mailbox. Each salesperson may still target only recipients from CRM companies assigned to them, and each campaign must use an exact static segment.
 
-**Why:** Mailchimp Marketing campaigns expose one email identity rather than independent From-email and Reply-To-email addresses. The owner chose the shared sales address for both, while retaining salesperson-specific CRM recipient authorization.
+**Why:** The owner clarified that the shared sales address is only the customer-visible sender identity; replies need to return to the salesperson handling those assigned CRM companies.
 
-**How to apply:** Any bulk-email configuration or readiness change must reject or fail closed on divergent enabled settings. Synchronize and revalidate the audience's Mailchimp `campaign_defaults.from_email`/`from_name`; setting campaign `reply_to` alone is insufficient. Do not weaken company-assignment checks or send to the full audience.
+**How to apply:** Reject or fail closed on divergent enabled audience/sender settings. Synchronize and revalidate Mailchimp's audience sender defaults, derive each campaign Reply-To server-side from the authenticated user's valid Titan configuration, and store it in campaign history. Never trust a browser-supplied reply address, weaken company-assignment checks, or send to the full audience.

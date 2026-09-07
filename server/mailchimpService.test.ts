@@ -8,6 +8,7 @@ import {
   deliveryOutcomeIsUncertain,
   configureAudienceCampaignDefaults,
   mailchimpMemberHash,
+  mailchimpCampaignSettings,
   mapCampaignReport,
   mapEmailActivity,
   mapWebhookEvent,
@@ -168,6 +169,21 @@ test("recognizes the shared audience's visible sender defaults", () => {
     ),
     false,
   );
+});
+
+test("keeps the shared visible sender separate from the salesperson reply mailbox", () => {
+  const settings = mailchimpCampaignSettings({
+    name: "Customer follow-up",
+    campaignKey: "ff4f9b9a-2f3c-4e4f-94ad-8109b7cf32ac",
+    subject: "Hello {{ contact_name }}",
+    fromName: "Bright Organic Sales",
+    replyToEmail: "gary@bright-organic.com",
+  });
+
+  assert.equal(settings.from_name, "Bright Organic Sales");
+  assert.equal(settings.reply_to, "gary@bright-organic.com");
+  assert.equal(settings.subject_line, "Hello *|FNAME|*");
+  assert.match(settings.title, /\[bfo:ff4f9b9a-2f3c-4e4f-94ad-8109b7cf32ac\]$/);
 });
 
 test("updates and verifies the audience's campaign-default sender", async () => {
