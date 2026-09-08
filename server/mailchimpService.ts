@@ -602,7 +602,14 @@ export async function recoverStaleCampaignAttempt(input: {
     segmentId = segment?.id ? String(segment.id) : undefined;
   }
 
-  if (campaign && campaign.status !== "save") {
+  const savedCampaignHasDeliveryEvidence =
+    campaign?.status === "save" &&
+    (validDate(campaign?.send_time) !== null ||
+      reportedCount(campaign?.emails_sent) > 0);
+  if (
+    campaign &&
+    (campaign.status !== "save" || savedCampaignHasDeliveryEvidence)
+  ) {
     return {
       outcome: "delivery_possible",
       campaignId: String(campaign.id),
@@ -631,7 +638,7 @@ export async function recoverStaleCampaignAttempt(input: {
 }
 
 export type CampaignReportSummary = {
-  status: "scheduled" | "sent";
+  status: "scheduled" | "sending" | "sent" | "delivery_uncertain";
   sentAt: Date | null;
   sentCount: number;
   deliveredCount: number;
@@ -639,6 +646,7 @@ export type CampaignReportSummary = {
   clickedCount: number;
   bouncedCount: number;
   unsubscribedCount: number;
+  providerError: string | null;
 };
 
 function validDate(value: unknown): Date | null {
@@ -647,22 +655,86 @@ function validDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function mapCampaignReport(report: any): CampaignReportSummary {
-  const sentCount = Number(report?.emails_sent || 0);
-  const bouncedCount =
-    Number(report?.bounces?.hard_bounces || 0) +
-    Number(report?.bounces?.soft_bounces || 0) +
-    Number(report?.bounces?.syntax_errors || 0);
-  const sentAt = validDate(report?.send_time);
+function reportedCount(value: unknown): number {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+export type MailchimpDeliveryState = {
+  status: "sent" | "sending" | "scheduled" | "delivery_uncertain";
+  sentCount: number;
+  sentAt: Date | null;
+  providerError: string | null;
+};
+
+export function mapMailchimpDeliveryState(
+  campaign: any,
+  report?: any,
+): MailchimpDeliveryState {
+  const providerStatus = String(campaign?.status || "").toLowerCase();
+  const sentCount = reportedCount(report?.emails_sent ?? campaign?.emails_sent);
+  const sendTime = validDate(report?.send_time ?? campaign?.send_time);
+
+  if (providerStatus === "sent" && sentCount > 0) {
+    return { status: "sent", sentCount, sentAt: sendTime, providerError: null };
+  }
+  if (providerStatus === "sending") {
+    return { status: "sending", sentCount, sentAt: null, providerError: null };
+  }
+  if (providerStatus === "schedule" || providerStatus === "scheduled") {
+    return { status: "scheduled", sentCount, sentAt: null, providerError: null };
+  }
+
+  let providerError: string;
+  if (providerStatus === "save") {
+    providerError =
+      "Mailchimp reports this campaign as a draft; delivery has not been confirmed. The campaign may have been disabled, so check Mailchimp notifications before taking further action.";
+  } else if (providerStatus === "paused") {
+    providerError =
+      "Mailchimp reports this campaign is paused; delivery has not been confirmed.";
+  } else if (providerStatus === "sent") {
+    providerError =
+      "Mailchimp reports this campaign as sent, but no positive send count is available; delivery has not been confirmed.";
+  } else {
+    providerError =
+      "Mailchimp reports an unrecognized campaign state; delivery has not been confirmed.";
+  }
   return {
-    status: sentAt ? "sent" : "scheduled",
-    sentAt,
+    status: "delivery_uncertain",
     sentCount,
-    deliveredCount: Math.max(0, sentCount - bouncedCount),
-    openedCount: Number(report?.opens?.unique_opens || 0),
-    clickedCount: Number(report?.clicks?.unique_subscriber_clicks || 0),
+    sentAt: null,
+    providerError,
+  };
+}
+
+export async function getMailchimpDeliveryState(
+  campaignId: string,
+): Promise<MailchimpDeliveryState> {
+  const campaign = await request(
+    `/campaigns/${encodeURIComponent(campaignId)}?fields=id,status,emails_sent,send_time`,
+  );
+  return mapMailchimpDeliveryState(campaign);
+}
+
+export function mapCampaignReport(
+  campaign: any,
+  report?: any,
+): CampaignReportSummary {
+  const delivery = mapMailchimpDeliveryState(campaign, report);
+  const metrics = report || {};
+  const bouncedCount =
+    reportedCount(metrics?.bounces?.hard_bounces) +
+    reportedCount(metrics?.bounces?.soft_bounces) +
+    reportedCount(metrics?.bounces?.syntax_errors);
+  return {
+    ...delivery,
+    // Mailchimp does not expose inbox-delivery confirmation in this report.
+    // In particular, sends minus bounces is not delivery evidence.
+    deliveredCount: 0,
+    openedCount: reportedCount(metrics?.opens?.unique_opens),
+    clickedCount: reportedCount(metrics?.clicks?.unique_subscriber_clicks),
     bouncedCount,
-    unsubscribedCount: Number(report?.unsubscribed || 0),
+    unsubscribedCount: reportedCount(metrics?.unsubscribed),
   };
 }
 
@@ -678,25 +750,32 @@ export type RecipientActivity = {
 
 export function mapEmailActivity(row: any): RecipientActivity | null {
   if (!row || typeof row.email_address !== "string") return null;
+  const events = Array.isArray(row.activity) ? row.activity : [];
+  if (events.length === 0) return null;
   const result: RecipientActivity = {
     email: row.email_address.trim().toLowerCase(),
     status: "sent",
   };
-  for (const event of Array.isArray(row.activity) ? row.activity : []) {
+  let hasKnownActivity = false;
+  for (const event of events) {
     const at = validDate(event?.timestamp);
     switch (event?.action) {
       case "sent":
+        hasKnownActivity = true;
         if (at && !result.sentAt) result.sentAt = at;
         break;
       case "open":
+        hasKnownActivity = true;
         result.status = result.status === "clicked" ? "clicked" : "opened";
         if (at && !result.openedAt) result.openedAt = at;
         break;
       case "click":
+        hasKnownActivity = true;
         result.status = "clicked";
         if (at && !result.clickedAt) result.clickedAt = at;
         break;
       case "bounce":
+        hasKnownActivity = true;
         result.status = "bounced";
         if (at && !result.bouncedAt) result.bouncedAt = at;
         result.bounceReason =
@@ -704,17 +783,29 @@ export function mapEmailActivity(row: any): RecipientActivity | null {
         break;
     }
   }
-  return result;
+  return hasKnownActivity ? result : null;
 }
 
 export async function campaignReport(campaignId: string): Promise<{
   summary: CampaignReportSummary;
   recipients: RecipientActivity[];
 }> {
-  const report = await request(
-    `/reports/${encodeURIComponent(campaignId)}`,
+  const campaign = await request(
+    `/campaigns/${encodeURIComponent(campaignId)}?fields=id,status,emails_sent,send_time`,
   );
+  let report: any = null;
+  try {
+    report = await request(
+      `/reports/${encodeURIComponent(campaignId)}`,
+    );
+  } catch (error) {
+    // A report is not created until Mailchimp has begun processing a send.
+    if (!(error instanceof ProviderError) || error.status !== 404) throw error;
+  }
   const recipients: RecipientActivity[] = [];
+  if (!report) {
+    return { summary: mapCampaignReport(campaign), recipients };
+  }
   let offset = 0;
   const count = 1000;
 
@@ -732,7 +823,7 @@ export async function campaignReport(campaignId: string): Promise<{
     if (rows.length === 0 || offset >= Number(page?.total_items || 0)) break;
   }
 
-  return { summary: mapCampaignReport(report), recipients };
+  return { summary: mapCampaignReport(campaign, report), recipients };
 }
 
 export type MailchimpWebhookEvent = {

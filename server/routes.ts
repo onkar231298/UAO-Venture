@@ -13069,6 +13069,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
          return res.json({
            success: true,
            campaignId: existingCampaign.id,
+            status: existingCampaign.status,
            sent: existingCampaign.sentCount || 0,
            failed: existingCampaign.failedCount || 0,
            excluded: existingCampaign.excludedCount || 0,
@@ -13152,6 +13153,13 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
        let storedAttachments: Array<{ key: string; url: string; filename: string; contentType: string; size: number }> = [];
        let providerResult: any = null;
+       // Send acceptance is not delivery. Retain uncertain attempts and their files.
+       let deliveryState: Awaited<ReturnType<typeof import("./mailchimpService").getMailchimpDeliveryState>> = {
+         status: "delivery_uncertain",
+         sentCount: 0,
+         sentAt: null,
+         providerError: "Mailchimp accepted the request but sending has not been confirmed. Check its status before resending.",
+       };
        let recipientLedgerPrepared = false;
        const recipientRows = (members: any[], allowedStatus: "pending" | "sent") => [
          ...members.map((member: any) => ({
@@ -13233,27 +13241,22 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
              recipientLedgerPrepared = true;
            },
          });
+         const { getMailchimpDeliveryState } = await import("./mailchimpService");
+         try {
+           deliveryState = await getMailchimpDeliveryState(providerResult.campaignId);
+         } catch {
+           // A failed confirmation read must never trigger another send or cleanup.
+         }
          const allowedCount = providerResult.members.filter((member: any) => !member.excluded).length;
          const excludedCount = providerResult.members.length - allowedCount + invalidRecipients.length;
          await db.transaction(async (tx) => {
            await tx.update(emailCampaigns).set({
-             status: scheduledDate ? "scheduled" : "sent",
-             sentCount: scheduledDate ? 0 : allowedCount,
-             sentAt: scheduledDate ? null : new Date(),
-             providerError: null,
+             ...deliveryState,
              updatedAt: new Date(),
            }).where(eq(emailCampaigns.id, campaignId));
-           if (!scheduledDate) {
-             await tx.update(emailCampaignRecipients).set({
-               status: "sent",
-               sentAt: new Date(),
-             }).where(and(
-               eq(emailCampaignRecipients.campaignId, campaignId),
-               eq(emailCampaignRecipients.status, "pending"),
-             ));
-           }
+           // Per-recipient statuses are confirmed only from provider activity.
          });
-         res.json({ success: true, campaignId, sent: scheduledDate ? 0 : allowedCount, failed: providerResult.members.filter((member: any) => member.status === "sync_failed").length, excluded: excludedCount, message: scheduledDate ? "Campaign scheduled successfully" : undefined });
+         res.json({ success: true, campaignId, status: deliveryState.status, sent: deliveryState.sentCount, failed: providerResult.members.filter((member: any) => member.status === "sync_failed").length, excluded: excludedCount, message: deliveryState.providerError });
        } catch (error: any) {
          if (!storedAttachments.length && Array.isArray(error?.recoverableAttachments)) {
            storedAttachments = error.recoverableAttachments;
@@ -13278,15 +13281,15 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
            await db.transaction(async (tx) => {
              await tx.update(emailCampaigns).set({
                status: providerAccepted
-                 ? (scheduledDate ? "scheduled" : "sent")
+                 ? deliveryState.status
                  : deliveryUncertain ? "delivery_uncertain" : "failed",
                attachments: providerAccepted || deliveryUncertain || attachmentCleanupFailed ? storedAttachments : [],
                providerCampaignId: providerResult?.campaignId || error?.providerCampaignId,
                providerSegmentId: providerResult?.segmentId || error?.providerSegmentId,
-               providerError: providerAccepted ? null : error.message,
+               providerError: providerAccepted ? deliveryState.providerError : error.message,
                totalRecipients: members.length || recipientLedgerPrepared ? candidateRecipients.length : undefined,
-               sentCount: providerAccepted ? (scheduledDate ? 0 : allowedCount) : deliveryUncertain ? 0 : undefined,
-               sentAt: providerAccepted && !scheduledDate ? new Date() : undefined,
+               sentCount: providerAccepted ? deliveryState.sentCount : deliveryUncertain ? 0 : undefined,
+               sentAt: providerAccepted ? deliveryState.sentAt : undefined,
                excludedCount: members.length ? excludedCount : undefined,
                failedCount: providerAccepted || deliveryUncertain
                  ? syncFailureCount
@@ -13296,18 +13299,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
              if (!recipientLedgerPrepared && members.length) {
                await tx.insert(emailCampaignRecipients).values(
-                 recipientRows(members, providerAccepted && !scheduledDate ? "sent" : "pending"),
+                 recipientRows(members, "pending"),
                );
              }
-             if (providerAccepted && !scheduledDate) {
-               await tx.update(emailCampaignRecipients).set({
-                 status: "sent",
-                 sentAt: new Date(),
-               }).where(and(
-                 eq(emailCampaignRecipients.campaignId, campaignId),
-                 eq(emailCampaignRecipients.status, "pending"),
-               ));
-             } else if (!deliveryUncertain) {
+             if (!providerAccepted && !deliveryUncertain) {
                await tx.update(emailCampaignRecipients).set({
                  status: "failed",
                  failedAt: new Date(),
@@ -13335,10 +13330,11 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
            return res.json({
              success: true,
              campaignId,
-             sent: scheduledDate ? 0 : allowedCount,
+             status: deliveryState.status,
+             sent: deliveryState.sentCount,
              failed: syncFailureCount,
              excluded: excludedCount,
-             message: scheduledDate ? "Campaign scheduled successfully" : "Campaign sent successfully",
+             message: deliveryState.providerError,
              recovered: true,
            });
          }

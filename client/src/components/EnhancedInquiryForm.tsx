@@ -1,3 +1,4 @@
+import { trackProjectEvent } from "@/lib/projectAnalytics";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       return response.json();
     },
     onSuccess: () => {
+      trackProjectEvent("inquiry_submitted", { form: "product" });
       toast({
         title: "Inquiry Submitted Successfully",
         description: "We'll get back to you with a quotation within 24 hours.",

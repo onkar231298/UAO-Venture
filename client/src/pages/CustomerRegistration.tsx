@@ -1,3 +1,4 @@
+import { trackProjectEvent } from "@/lib/projectAnalytics";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,6 +93,7 @@ export default function CustomerRegistration() {
       });
 
       if (response.ok) {
+        trackProjectEvent("customer_registered");
         setIsSuccess(true);
         toast({
           title: "Registration Successful!",

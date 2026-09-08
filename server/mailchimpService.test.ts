@@ -4,14 +4,18 @@ import {
   appendCampaignFooter,
   audienceCampaignDefaultsMatch,
   campaignFooter,
+  campaignReport,
   campaignIdempotencyMarker,
   deliveryOutcomeIsUncertain,
   configureAudienceCampaignDefaults,
+  getMailchimpDeliveryState,
   mailchimpMemberHash,
   mailchimpCampaignSettings,
   mapCampaignReport,
+  mapMailchimpDeliveryState,
   mapEmailActivity,
   mapWebhookEvent,
+  recoverStaleCampaignAttempt,
   request,
   senderDomainIsVerified,
   toMailchimpMergeTags,
@@ -51,8 +55,8 @@ test("escapes attachment labels and URLs and inserts the footer inside body", ()
   assert.match(html, /Unsubscribe<\/a><\/div><\/body><\/html>$/);
 });
 
-test("maps aggregate Mailchimp reports without counting bounces as delivered", () => {
-  const summary = mapCampaignReport({
+test("maps aggregate reports from authoritative campaign delivery state", () => {
+  const summary = mapCampaignReport({ status: "sent" }, {
     emails_sent: 100,
     send_time: "2026-09-07T10:00:00Z",
     bounces: { hard_bounces: 2, soft_bounces: 3, syntax_errors: 1 },
@@ -69,11 +73,12 @@ test("maps aggregate Mailchimp reports without counting bounces as delivered", (
       status: "sent",
       sentAt: "2026-09-07T10:00:00.000Z",
       sentCount: 100,
-      deliveredCount: 94,
+      deliveredCount: 0,
       openedCount: 40,
       clickedCount: 12,
       bouncedCount: 6,
       unsubscribedCount: 4,
+      providerError: null,
     },
   );
 });
@@ -91,6 +96,181 @@ test("maps recipient activity with click and bounce precedence", () => {
   assert.equal(activity?.email, "buyer@example.com");
   assert.equal(activity?.status, "bounced");
   assert.equal(activity?.bounceReason, "hard");
+});
+
+test("does not fabricate recipient activity for empty or unknown Mailchimp events", () => {
+  assert.equal(
+    mapEmailActivity({ email_address: "buyer@example.com", activity: [] }),
+    null,
+  );
+  assert.equal(
+    mapEmailActivity({
+      email_address: "buyer@example.com",
+      activity: [{ action: "unknown", timestamp: "2026-09-07T10:00:00Z" }],
+    }),
+    null,
+  );
+});
+
+test("treats Mailchimp save status as delivery uncertain despite timestamps", () => {
+  const state = mapMailchimpDeliveryState(
+    { status: "save", emails_sent: 0, send_time: "2026-09-07T10:00:00Z" },
+    { emails_sent: 0, send_time: "2026-09-07T10:00:00Z" },
+  );
+  assert.deepEqual(state, {
+    status: "delivery_uncertain",
+    sentCount: 0,
+    sentAt: null,
+    providerError:
+      "Mailchimp reports this campaign as a draft; delivery has not been confirmed. The campaign may have been disabled, so check Mailchimp notifications before taking further action.",
+  });
+});
+
+test("requires both sent provider status and positive send count", () => {
+  assert.equal(
+    mapMailchimpDeliveryState({ status: "sent", emails_sent: 0 }).status,
+    "delivery_uncertain",
+  );
+  assert.deepEqual(
+    {
+      ...mapMailchimpDeliveryState(
+        { status: "sent" },
+        { emails_sent: 1, send_time: "2026-09-07T10:00:00Z" },
+      ),
+      sentAt: mapMailchimpDeliveryState(
+        { status: "sent" },
+        { emails_sent: 1, send_time: "2026-09-07T10:00:00Z" },
+      ).sentAt?.toISOString(),
+    },
+    {
+      status: "sent",
+      sentCount: 1,
+      sentAt: "2026-09-07T10:00:00.000Z",
+      providerError: null,
+    },
+  );
+});
+
+test("recognizes paused and sending provider statuses without claiming completion", () => {
+  const paused = mapMailchimpDeliveryState({
+    status: "paused",
+    emails_sent: 2,
+    send_time: "2026-09-07T10:00:00Z",
+  });
+  assert.equal(paused.status, "delivery_uncertain");
+  assert.equal(paused.sentCount, 2);
+  assert.equal(paused.sentAt, null);
+  assert.match(paused.providerError || "", /paused/);
+
+  assert.deepEqual(
+    mapMailchimpDeliveryState({
+      status: "sending",
+      emails_sent: 2,
+      send_time: "2026-09-07T10:00:00Z",
+    }),
+    {
+      status: "sending",
+      sentCount: 2,
+      sentAt: null,
+      providerError: null,
+    },
+  );
+});
+
+test("never deletes or retries a save campaign with delivery evidence", async () => {
+  const originalKey = process.env.MAILCHIMP_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.MAILCHIMP_API_KEY = "test-us1";
+  const methods: string[] = [];
+  globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    methods.push(init?.method || "GET");
+    return new Response(
+      JSON.stringify({
+        id: "disabled-campaign",
+        status: "save",
+        emails_sent: 0,
+        send_time: "2026-09-07T10:00:00Z",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof fetch;
+  try {
+    assert.deepEqual(
+      await recoverStaleCampaignAttempt({
+        campaignKey: "request-key",
+        audienceId: "audience-1",
+        campaignId: "disabled-campaign",
+        segmentId: "segment-1",
+      }),
+      {
+        outcome: "delivery_possible",
+        campaignId: "disabled-campaign",
+        segmentId: "segment-1",
+        providerStatus: "save",
+      },
+    );
+    assert.deepEqual(methods, ["GET"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.MAILCHIMP_API_KEY;
+    else process.env.MAILCHIMP_API_KEY = originalKey;
+  }
+});
+
+test("gets bounded campaign delivery state without a Mailchimp mutation", async () => {
+  const originalKey = process.env.MAILCHIMP_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.MAILCHIMP_API_KEY = "test-us1";
+  let requestedPath = "";
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    requestedPath = String(url);
+    assert.equal(init?.method, "GET");
+    return new Response(JSON.stringify({ status: "sending", emails_sent: 1 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+  try {
+    assert.deepEqual(await getMailchimpDeliveryState("campaign-1"), {
+      status: "sending",
+      sentCount: 1,
+      sentAt: null,
+      providerError: null,
+    });
+    assert.match(requestedPath, /campaigns\/campaign-1\?fields=id,status,emails_sent,send_time$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.MAILCHIMP_API_KEY;
+    else process.env.MAILCHIMP_API_KEY = originalKey;
+  }
+});
+
+test("allows a missing report for a not-yet-sent campaign", async () => {
+  const originalKey = process.env.MAILCHIMP_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.MAILCHIMP_API_KEY = "test-us1";
+  globalThis.fetch = (async (url: string | URL | Request) => {
+    if (String(url).includes("/reports/")) {
+      return new Response("", { status: 404 });
+    }
+    return new Response(JSON.stringify({ status: "schedule", emails_sent: 0 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+  try {
+    const result = await campaignReport("campaign-1");
+    assert.equal(result.summary.status, "scheduled");
+    assert.equal(result.summary.deliveredCount, 0);
+    assert.deepEqual(result.recipients, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.MAILCHIMP_API_KEY;
+    else process.env.MAILCHIMP_API_KEY = originalKey;
+  }
 });
 
 test("maps JSON and legacy form-encoded webhook payloads", () => {

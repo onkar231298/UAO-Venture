@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { trackProjectEvent } from "@/lib/projectAnalytics";
+import { bulkEmailDeliveryNotice } from "@shared/bulkEmailDelivery";
 import {
   buildBulkEmailCampaignRequest,
   serializeBulkEmailCampaignRequest,
@@ -188,6 +190,7 @@ interface EmailCampaign {
   scheduledAt?: string | null;
   provider?: string | null;
   excludedCount?: number | null;
+  providerError?: string | null;
 }
 
 interface MailchimpReadiness {
@@ -434,11 +437,16 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     },
     onSuccess: (result: any, variables) => {
       const scheduled = Boolean(variables.scheduledAt);
+      // An idempotent replay confirms an earlier submission, not a new campaign.
+      if (!result.idempotent) {
+        trackProjectEvent("bulk_campaign_submitted", {
+          scheduled,
+          has_attachments: Boolean(variables.attachments?.length),
+        });
+      }
       toast({
-        title: scheduled ? "Campaign Scheduled!" : "Campaign Sent!",
-        description: scheduled
-          ? (result.message || "Your campaign has been scheduled.")
-          : `${result.sent || 0} emails sent successfully. ${result.failed || 0} failed.${result.excluded ? ` ${result.excluded} excluded.` : ''}`,
+        ...bulkEmailDeliveryNotice(result.status),
+        ...(result.message ? { description: result.message } : {}),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns'] });
       resetForm();
@@ -463,10 +471,13 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result: EmailCampaign) => {
       queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns'] });
       refetchCampaigns();
-      toast({ title: "Mailchimp report refreshed" });
+      toast({
+        ...bulkEmailDeliveryNotice(result.status),
+        ...(result.providerError ? { description: result.providerError } : {}),
+      });
     },
     onError: (error: any) => {
       toast({
@@ -486,6 +497,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
       return res.json() as Promise<{ html: string }>;
     },
     onSuccess: ({ html }) => {
+      trackProjectEvent("email_draft_generated");
       setHtmlContent(html);
       setRawHtml(html);
       setEditorMode('preview');
@@ -1638,7 +1650,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                       onCheckedChange={(checked) => setPermissionConfirmed(checked === true)}
                     />
                     <Label htmlFor="permissionConfirmed" className="text-xs leading-5 cursor-pointer">
-                      I confirm every selected recipient has consented or is otherwise legally eligible to receive this business email. Existing Mailchimp opt-outs will still be excluded.
+                      I confirm every selected recipient has express, verifiable permission to receive marketing emails, or a direct, verifiable purchase that qualifies under Mailchimp's policy. I can provide evidence. These are not purchased, scraped, or unsolicited prospecting contacts. Existing opt-outs will still be excluded.
                     </Label>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1701,8 +1713,8 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                           <p className="text-sm text-muted-foreground mb-2">{campaign.subject}</p>
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span>Recipients: {campaign.totalRecipients}</span>
-                            <span className="text-green-600">Sent: {campaign.sentCount}</span>
-                            <span className="text-blue-600">Delivered: {campaign.deliveredCount}</span>
+                            <span className="text-green-600">Sent{campaign.provider === 'mailchimp' ? ' by Mailchimp' : ''}: {campaign.sentCount}</span>
+                            {campaign.provider !== 'mailchimp' && <span className="text-blue-600">Delivered: {campaign.deliveredCount}</span>}
                             <span className="text-purple-600">Opened: {campaign.openedCount}</span>
                             {campaign.excludedCount != null && campaign.excludedCount > 0 && (
                               <span className="text-amber-700">Excluded: {campaign.excludedCount}</span>
@@ -1714,6 +1726,11 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                               <span className="text-red-600">Failed: {campaign.failedCount}</span>
                             )}
                           </div>
+                          {campaign.provider === 'mailchimp' && (
+                            <p className="mt-2 text-xs text-amber-800">
+                              {campaign.providerError || "Check Mailchimp for the latest status. A sent count does not confirm inbox delivery."}
+                            </p>
+                          )}
                         </div>
                         <div className="text-right text-xs text-muted-foreground">
                             <div className="flex items-center justify-end gap-1">
@@ -1722,12 +1739,13 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0"
+                                  className="h-7 px-2 gap-1"
                                   disabled={refreshCampaignMutation.isPending}
                                   onClick={() => refreshCampaignMutation.mutate(campaign.id)}
                                   aria-label={`Refresh ${campaign.name} report`}
                                 >
                                   <RefreshCw className={`h-3 w-3 ${refreshCampaignMutation.isPending ? 'animate-spin' : ''}`} />
+                                  Check Mailchimp
                                 </Button>
                               )}
                             </div>

@@ -191,9 +191,20 @@ export async function reconcileMailchimpCampaign(campaignId: number) {
     clickedCount: report.summary.clickedCount,
     bouncedCount: report.summary.bouncedCount,
     unsubscribedCount: report.summary.unsubscribedCount,
-    providerError: null,
+    providerError: report.summary.providerError,
     updatedAt: new Date(),
   }).where(eq(emailCampaigns.id, campaignId));
+
+  // Older submissions marked every eligible recipient sent optimistically.
+  // Clear only those unconfirmed records; leave observed engagement and opt-outs.
+  await db.update(emailCampaignRecipients).set({
+    status: "pending",
+    sentAt: null,
+  }).where(and(
+    eq(emailCampaignRecipients.campaignId, campaignId),
+    eq(emailCampaignRecipients.status, "sent"),
+    eq(emailCampaignRecipients.providerStatus, "subscribed"),
+  ));
 
   for (const activity of report.recipients) {
     await db.update(emailCampaignRecipients).set({
@@ -228,20 +239,17 @@ export async function applyMailchimpWebhookEvent(event: {
   if (event.type === "other") return;
 
   if (event.type === "campaign" && event.campaignId) {
-    const status = event.status === "sent" ? "sent"
-      : event.status === "sending" ? "sending"
-      : event.status === "schedule" || event.status === "scheduled" ? "scheduled"
-      : undefined;
-    if (status) {
-      await db.update(emailCampaigns).set({
-        status,
-        sentAt: status === "sent" ? sql`COALESCE(${emailCampaigns.sentAt}, NOW())` : undefined,
-        updatedAt: new Date(),
-      }).where(and(
-        eq(emailCampaigns.provider, "mailchimp"),
-        eq(emailCampaigns.providerCampaignId, event.campaignId),
-      ));
-    }
+    // A delayed webhook can describe a send that Mailchimp later disabled.
+    // Read current provider truth rather than trusting the old notification.
+    const { getMailchimpDeliveryState } = await import("./mailchimpService");
+    const state = await getMailchimpDeliveryState(event.campaignId);
+    await db.update(emailCampaigns).set({
+      ...state,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(emailCampaigns.provider, "mailchimp"),
+      eq(emailCampaigns.providerCampaignId, event.campaignId),
+    ));
     return;
   }
 

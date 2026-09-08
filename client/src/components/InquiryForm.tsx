@@ -1,3 +1,4 @@
+import { trackProjectEvent } from "@/lib/projectAnalytics";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,6 +60,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
       return response.json();
     },
     onSuccess: () => {
+      trackProjectEvent("inquiry_submitted", { form: "standard" });
       toast({
         title: "Inquiry Submitted",
         description: "Your inquiry has been submitted successfully. Our team will contact you soon.",

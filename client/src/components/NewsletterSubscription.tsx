@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Mail, CheckCircle } from "lucide-react";
+import { trackProjectEvent } from "@/lib/projectAnalytics";
 
 interface NewsletterSubscriptionProps {
   variant?: "default" | "footer" | "compact";
@@ -46,6 +47,7 @@ export default function NewsletterSubscription({
       });
 
       setIsSubscribed(true);
+      trackProjectEvent("newsletter_subscribed", { variant });
       setEmail("");
       
       toast({
