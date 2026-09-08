@@ -75,6 +75,7 @@ import {
   emailMessages,
   emailCampaigns,
   emailCampaignRecipients,
+  bulkEmailUserConfigs,
   qualityDocumentRequests,
   qualityTestingRequests,
   qualityAttachments,
@@ -82,6 +83,7 @@ import {
   fieldQualityTestResults,
   salesCallLogs,
   users,
+   userEmailConfigs,
   uploadedDocuments,
   insertUploadedDocumentSchema,
 } from "@shared/schema";
@@ -12709,13 +12711,15 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // another user's audience. Administrators configure assignments separately.
   app.get("/api/email-campaigns/readiness", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
-    const [user, mailboxConfig] = await Promise.all([
+    const [user, mailboxConfigs] = await Promise.all([
       storage.getUser(userId),
-      storage.getUserEmailConfig(userId),
+      db.select({ companyEmail: userEmailConfigs.companyEmail, isPrimary: userEmailConfigs.isPrimary, createdAt: userEmailConfigs.createdAt })
+        .from(userEmailConfigs).where(eq(userEmailConfigs.userId, userId)).orderBy(desc(userEmailConfigs.isPrimary), desc(userEmailConfigs.createdAt)),
     ]);
     const {
-      BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE,
+       BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE,
       getUserConfig,
+       mailchimpRoutingCapability,
       isBulkEmailAdmin,
       isEligibleBulkEmailSender,
       resolveBulkEmailReplyTo,
@@ -12736,7 +12740,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       });
     }
     const config = await getUserConfig(userId);
-    const replyToEmail = resolveBulkEmailReplyTo(mailboxConfig);
+    const replyToEmail = resolveBulkEmailReplyTo(mailboxConfigs.find((config) => config.isPrimary) || null, user?.email);
     const { audienceCampaignDefaultsMatch, readiness, audiences } = await import("./mailchimpService");
     const provider: any = await readiness();
     let audienceName: string | null = null;
@@ -12746,13 +12750,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       audienceName = audience?.name || null;
       audienceSenderReady = !!audience && audienceCampaignDefaultsMatch(audience.campaign_defaults, config);
     }
-    const ready = !!(provider.writeAccess && config?.enabled && config.readyAt && audienceName && audienceSenderReady && replyToEmail);
+    const routing = mailchimpRoutingCapability(config?.fromEmail, replyToEmail);
+    const ready = !!(provider.writeAccess && config?.enabled && config.readyAt && audienceName && audienceSenderReady && routing.ready);
     const message = ready
       ? "Mailchimp is ready."
       : config?.readinessError ||
-        (!replyToEmail
-          ? BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE
+        (!config?.enabled
+          ? "Bulk email access is disabled for this sales agent. An administrator can enable it in shared Mailchimp settings."
           : null) ||
+         (!replyToEmail
+           ? BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE
+          : null) ||
+        (!routing.ready ? routing.message : null) ||
         (config && audienceName && !audienceSenderReady
           ? "Mailchimp audience sender defaults do not match the configured shared sales sender."
           : provider.message || "Mailchimp configuration is incomplete.");
@@ -12764,8 +12773,10 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     if (user?.role !== "admin" && user?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
     const { bulkEmailUserConfigs } = await import("@shared/schema");
     const configs = await db.select().from(bulkEmailUserConfigs);
-    const mailboxConfigs = await storage.getUserEmailConfigs();
-    const { resolveBulkEmailReplyTo } = await import("./bulkEmailCampaignService");
+    const mailboxConfigs = await db.select({ userId: userEmailConfigs.userId, companyEmail: userEmailConfigs.companyEmail, isPrimary: userEmailConfigs.isPrimary, createdAt: userEmailConfigs.createdAt })
+      .from(userEmailConfigs).orderBy(desc(userEmailConfigs.isPrimary), desc(userEmailConfigs.createdAt));
+    const { getSharedMailchimpConfiguration, resolveBulkEmailReplyTo } = await import("./bulkEmailCampaignService");
+    const shared = await getSharedMailchimpConfiguration();
     let audienceNames = new Map<string, string>();
     try {
       const { audiences } = await import("./mailchimpService");
@@ -12777,8 +12788,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       .from(users).where(and(eq(users.accountStatus, "active"), inArray(users.role, ["sales_manager", "sales_executive", "admin", "super_admin"])));
     res.json({ users: salesUsers.map(u => {
       const c = configs.find(x => x.userId === u.id);
-      const mailbox = mailboxConfigs.find(x => x.userId === u.id && x.isPrimary === true);
-      const replyToEmail = resolveBulkEmailReplyTo(mailbox);
+       const mailbox = mailboxConfigs.find(x => x.userId === u.id && x.isPrimary === true);
+       const replyToEmail = resolveBulkEmailReplyTo(mailbox, u.email);
       return {
         user: u,
         replyToEmail,
@@ -12794,7 +12805,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           validationMessage: c.readinessError,
         } : null,
       };
-    }) });
+    }), sharedConfiguration: shared.configuration, conflicts: shared.conflicts });
   });
 
   app.get("/api/email-campaigns/mailchimp/audiences", isAuthenticated, async (req: any, res) => {
@@ -12804,14 +12815,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
     catch (error: any) { res.status(error.status || 503).type("application/problem+json").json(error.problem?.() || { title: "Mailchimp unavailable", status: 503 }); }
   });
 
-  app.put("/api/email-campaigns/configurations/:userId", isAuthenticated, async (req: any, res) => {
+  app.put("/api/email-campaigns/configurations/shared", isAuthenticated, async (req: any, res) => {
     const admin = await storage.getUser(req.user.claims.sub);
     if (admin?.role !== "admin" && admin?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
-    const parsed = z.object({ audienceId: z.string().min(1), fromEmail: z.string().email(), fromName: z.string().min(1), isEnabled: z.boolean() }).safeParse(req.body);
+    const parsed = z.object({ audienceId: z.string().min(1), fromEmail: z.string().email(), fromName: z.string().min(1) }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Validation failed", errors: parsed.error.errors });
     try {
-      const target = await storage.getUser(req.params.userId);
-      if (!target || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(target.role || "") || target.accountStatus !== "active") return res.status(400).json({ message: "Target user is not an eligible active sender" });
       const { audiences, configureAudienceCampaignDefaults, readiness, verifySenderEmail } = await import("./mailchimpService");
       const provider: any = await readiness();
       const audience = (await audiences()).find((x: any) => x.id === parsed.data.audienceId);
@@ -12821,25 +12830,19 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         return res.status(400).json({ message: "The sender email domain is not verified in Mailchimp." });
       }
       const { bulkEmailUserConfigs } = await import("@shared/schema");
-      const { sharedMailchimpConfigurationMatches } = await import("./bulkEmailCampaignService");
-      const data = { audienceId: parsed.data.audienceId, fromEmail: parsed.data.fromEmail, fromName: parsed.data.fromName, enabled: parsed.data.isEnabled };
+      const data = { audienceId: parsed.data.audienceId, fromEmail: parsed.data.fromEmail.trim().toLowerCase(), fromName: parsed.data.fromName.trim() };
       await db.transaction(async (tx) => {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('bulk_email_shared_mailchimp_configuration'))`);
-        if (parsed.data.isEnabled) {
-          const sharedAssignments = await tx.select().from(bulkEmailUserConfigs).where(and(
-            eq(bulkEmailUserConfigs.enabled, true),
-            ne(bulkEmailUserConfigs.userId, req.params.userId),
-          ));
-          if (!sharedMailchimpConfigurationMatches(sharedAssignments, parsed.data)) {
-            throw Object.assign(
-              new Error("All enabled sales users must use the same Mailchimp audience, sender email, and sender name."),
-              { status: 409 },
-            );
-          }
-          await configureAudienceCampaignDefaults(parsed.data.audienceId, parsed.data);
+        await configureAudienceCampaignDefaults(data.audienceId, data);
+        const existing = await tx.select({ id: bulkEmailUserConfigs.id }).from(bulkEmailUserConfigs).limit(1);
+        if (existing.length) {
+          await tx.update(bulkEmailUserConfigs).set({ ...data, lastCheckedAt: new Date(), readinessError: null, updatedAt: new Date() });
+          await tx.update(bulkEmailUserConfigs).set({ readyAt: new Date() }).where(eq(bulkEmailUserConfigs.enabled, true));
+        } else {
+          // Compatible bootstrap for legacy per-user storage: this disabled
+          // administrator row holds the one shared setting until access is granted.
+          await tx.insert(bulkEmailUserConfigs).values({ userId: admin.id, ...data, enabled: false, readyAt: null, lastCheckedAt: new Date(), readinessError: null });
         }
-        await tx.insert(bulkEmailUserConfigs).values({ userId: req.params.userId, ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null })
-          .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { ...data, lastCheckedAt: new Date(), readyAt: parsed.data.isEnabled ? new Date() : null, readinessError: null, updatedAt: new Date() } });
       });
       res.json({ success: true });
     } catch (error: any) {
@@ -12856,6 +12859,51 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         },
       );
     }
+  });
+
+  app.put("/api/email-campaigns/configurations/:userId/access", isAuthenticated, async (req: any, res) => {
+    const admin = await storage.getUser(req.user.claims.sub);
+    if (admin?.role !== "admin" && admin?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
+    const parsed = z.object({ isEnabled: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Validation failed", errors: parsed.error.errors });
+    const { getSharedMailchimpConfiguration, isEligibleBulkEmailSender } = await import("./bulkEmailCampaignService");
+    const target = await storage.getUser(req.params.userId);
+    if (!target) return res.status(400).json({ message: "Target user was not found" });
+    const now = new Date();
+    try { await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('bulk_email_shared_mailchimp_configuration'))`);
+      const existing = (await tx.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, target.id)))[0];
+      // A disable is always safe and must remain available while shared setup is
+      // incomplete, conflicted, or the provider is down.
+      if (!parsed.data.isEnabled) {
+        if (existing) await tx.update(bulkEmailUserConfigs).set({ enabled: false, readyAt: null, updatedAt: now }).where(eq(bulkEmailUserConfigs.userId, target.id));
+        return;
+      }
+      if (!isEligibleBulkEmailSender(target)) throw Object.assign(new Error("Target user is not an eligible active sender"), { status: 400 });
+      const shared = await getSharedMailchimpConfiguration(tx);
+      if (!shared.configuration || shared.conflicts.length) throw Object.assign(new Error("Configure one shared Mailchimp audience and sender before enabling agent access."), { status: 409 });
+      await tx.insert(bulkEmailUserConfigs).values({ userId: target.id, ...shared.configuration, enabled: true, readyAt: now, lastCheckedAt: now, readinessError: null })
+        .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { enabled: true, readyAt: now, lastCheckedAt: now, readinessError: null, updatedAt: now } });
+    }); } catch (error: any) { return res.status(error.status || 500).json({ message: error.message || "Unable to change access" }); }
+    res.json({ success: true });
+  });
+
+  app.post("/api/email-campaigns/configurations/enable-all", isAuthenticated, async (req: any, res) => {
+    const admin = await storage.getUser(req.user.claims.sub);
+    if (admin?.role !== "admin" && admin?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
+    const { getSharedMailchimpConfiguration } = await import("./bulkEmailCampaignService");
+    const eligible = await db.select({ id: users.id }).from(users).where(and(eq(users.accountStatus, "active"), inArray(users.role, ["sales_manager", "sales_executive", "admin", "super_admin"])));
+    const now = new Date();
+    try { await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('bulk_email_shared_mailchimp_configuration'))`);
+      const shared = await getSharedMailchimpConfiguration(tx);
+      if (!shared.configuration || shared.conflicts.length) throw Object.assign(new Error("Configure one shared Mailchimp audience and sender before enabling agents."), { status: 409 });
+      for (const agent of eligible) {
+        await tx.insert(bulkEmailUserConfigs).values({ userId: agent.id, ...shared.configuration, enabled: true, readyAt: now, lastCheckedAt: now, readinessError: null })
+          .onConflictDoUpdate({ target: bulkEmailUserConfigs.userId, set: { enabled: true, readyAt: now, lastCheckedAt: now, readinessError: null, updatedAt: now } });
+      }
+    }); } catch (error: any) { return res.status(error.status || 500).json({ message: error.message || "Unable to enable agents" }); }
+    res.json({ success: true, enabled: eligible.length });
   });
 
   // Get all email campaigns (admin sees all, sales sees own)
@@ -13082,18 +13130,35 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
          return res.status(503).type("application/problem+json").json({ type: "https://bright-organic.com/problems/mailchimp-config-missing", title: "Mailchimp configuration incomplete", status: 503, detail: "A verified, enabled Mailchimp audience and sender must be assigned before sending." });
        }
        const {
-         BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE,
+          BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE,
          resolveBulkEmailReplyTo,
+          mailchimpRoutingCapability,
        } = await import("./bulkEmailCampaignService");
-       const replyToEmail = resolveBulkEmailReplyTo(await storage.getUserEmailConfig(userId));
+        const replyMailbox = (await db.select({
+          companyEmail: userEmailConfigs.companyEmail,
+          isPrimary: userEmailConfigs.isPrimary,
+          createdAt: userEmailConfigs.createdAt,
+        }).from(userEmailConfigs).where(eq(userEmailConfigs.userId, userId))
+          .orderBy(desc(userEmailConfigs.isPrimary), desc(userEmailConfigs.createdAt)))
+          .find((config) => config.isPrimary);
+        const replyToEmail = resolveBulkEmailReplyTo(replyMailbox || null, user?.email);
        if (!replyToEmail) {
          return res.status(503).type("application/problem+json").json({
-           type: "https://bright-organic.com/problems/bulk-email-reply-mailbox-missing",
-           title: "Titan reply mailbox is not ready",
+            type: "https://bright-organic.com/problems/bulk-email-reply-address-missing",
+            title: "Bulk email reply address is missing",
            status: 503,
-           detail: BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE,
+            detail: BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE,
          });
        }
+        const routing = mailchimpRoutingCapability(config.fromEmail, replyToEmail);
+        if (!routing.ready) {
+          return res.status(409).type("application/problem+json").json({
+            type: "https://bright-organic.com/problems/mailchimp-routing-unverified",
+            title: "Mailchimp reply routing is not verified",
+            status: 409,
+            detail: routing.message,
+          });
+        }
        const candidateRecipients = await getEligibleRecipients(companyIds, userId, isAdmin);
        if (!candidateRecipients.length) return res.status(400).json({ message: "Selected companies have no email recipients" });
        const validRecipients = candidateRecipients.filter((recipient) => z.string().email().safeParse(recipient.email).success);
@@ -13213,6 +13278,16 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
            attachments: storedAttachments,
            recipients: validRecipients,
            scheduledAt: scheduledDate,
+            authorizeDispatch: async (dispatch) => {
+              await requestLock!.assertHeld();
+              const { authorizeBulkEmailDispatch } = await import("./bulkEmailDispatch");
+              await authorizeBulkEmailDispatch(userId, companyIds, {
+                audienceId: config.audienceId,
+                fromEmail: config.fromEmail,
+                fromName: config.fromName,
+                replyToEmail,
+              }, dispatch);
+            },
            onProgress: async () => {
              await requestLock!.assertHeld();
              await db.update(emailCampaigns).set({

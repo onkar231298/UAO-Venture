@@ -432,6 +432,7 @@ export async function createAndSend(input: {
   attachments?: Array<{ url: string; filename: string }>;
   recipients: MailchimpRecipient[];
   scheduledAt?: Date;
+  authorizeDispatch: (dispatch: () => Promise<void>) => Promise<void>;
   onProgress?: () => Promise<void>;
   onPrepared?: (state: {
     campaignId: string;
@@ -524,22 +525,20 @@ export async function createAndSend(input: {
     });
     await input.onPrepared?.({ campaignId, segmentId, members });
 
-    if (input.scheduledAt) {
+    await input.authorizeDispatch(async () => {
+      // Recheck provider defaults immediately before dispatch too: an external
+      // Mailchimp administrator may have changed them during member syncing.
+      await assertAudienceCampaignDefaults(input.audienceId, input);
       deliveryRequested = true;
-      await request(
-        `/campaigns/${encodeURIComponent(campaignId)}/actions/schedule`,
-        {
-          method: "POST",
-          body: { schedule_time: input.scheduledAt.toISOString() },
-        },
-      );
-    } else {
-      deliveryRequested = true;
-      await request(
-        `/campaigns/${encodeURIComponent(campaignId)}/actions/send`,
-        { method: "POST" },
-      );
-    }
+      if (input.scheduledAt) {
+        await request(
+          `/campaigns/${encodeURIComponent(campaignId!)}/actions/schedule`,
+          { method: "POST", body: { schedule_time: input.scheduledAt.toISOString() } },
+        );
+      } else {
+        await request(`/campaigns/${encodeURIComponent(campaignId!)}/actions/send`, { method: "POST" });
+      }
+    });
 
     return { campaignId, segmentId, members };
   } catch (error: any) {

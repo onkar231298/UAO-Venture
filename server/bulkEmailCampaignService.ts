@@ -10,26 +10,37 @@ export const isEligibleBulkEmailSender = (user?: { role?: string | null; account
   user.accountStatus === "active" &&
   ["sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "");
 
-export const BULK_EMAIL_REPLY_MAILBOX_REQUIRED_MESSAGE =
-  "Connect an active Titan mailbox with a valid email address before sending bulk campaigns.";
+export const BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE =
+  "No valid reply address is assigned to this sales agent. An administrator must assign a valid company email or staff email before bulk campaigns can be sent.";
 
 export function resolveBulkEmailReplyTo(
   config: Pick<
     UserEmailConfig,
-    "companyEmail" | "isActive" | "isConnected" | "serviceType" | "titanAppPasswordEncrypted"
+    "companyEmail"
   > | null | undefined,
+  staffEmail?: string | null,
 ): string | null {
-  if (
-    !config ||
-    config.isActive !== true ||
-    config.isConnected !== true ||
-    config.serviceType?.trim().toLowerCase() !== "titan" ||
-    !config.titanAppPasswordEncrypted
-  ) {
-    return null;
-  }
-  const parsed = z.string().trim().email().safeParse(config.companyEmail);
-  return parsed.success ? parsed.data.toLowerCase() : null;
+  // Bulk-mail reply routing needs an address, not mailbox credentials or a
+  // connected mail client. Do not use this helper for ordinary mailbox sending.
+  const assigned = z.string().trim().email().safeParse(config?.companyEmail);
+  if (assigned.success) return assigned.data.toLowerCase();
+  const fallback = z.string().trim().email().safeParse(staffEmail);
+  return fallback.success ? fallback.data.toLowerCase() : null;
+}
+
+export const MAILCHIMP_INDEPENDENT_REPLY_TO_UNVERIFIED_MESSAGE =
+  "Mailchimp independent From/Reply-To delivery behavior is unverified. This setup cannot send with a shared From address and a different agent Reply-To until it is verified.";
+
+export function mailchimpRoutingCapability(fromEmail?: string | null, replyToEmail?: string | null): {
+  ready: boolean; message?: string;
+} {
+  const from = z.string().trim().email().safeParse(fromEmail);
+  const reply = z.string().trim().email().safeParse(replyToEmail);
+  if (!reply.success) return { ready: false, message: BULK_EMAIL_REPLY_ADDRESS_REQUIRED_MESSAGE };
+  if (!from.success) return { ready: false, message: "A valid shared Mailchimp sender address is required." };
+  return from.data.toLowerCase() === reply.data.toLowerCase()
+    ? { ready: true }
+    : { ready: false, message: MAILCHIMP_INDEPENDENT_REPLY_TO_UNVERIFIED_MESSAGE };
 }
 
 export function publicBulkEmailError(error: unknown): { status: number; message: string } {
@@ -118,17 +129,48 @@ export async function getCampaignRecipientsForUser(id: number, userId: string, a
   return db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, id));
 }
 export async function getUserConfig(userId: string) {
-  const config = (await db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, userId)))[0] || null;
-  if (!config?.enabled) return config;
-  const enabledConfigs = await db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.enabled, true));
-  if (!sharedMailchimpConfigurationMatches(enabledConfigs, config)) {
+  const [access, shared] = await Promise.all([
+    db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, userId)),
+    getSharedMailchimpConfiguration(),
+  ]);
+  const config = access[0] || null;
+  if (!config || !shared.configuration) return config;
+  if (shared.conflicts.length) {
     return {
       ...config,
       readyAt: null,
-      readinessError: "Enabled Mailchimp configurations must share one audience and sender identity.",
+      readinessError: "Conflicting legacy Mailchimp shared configurations require administrator resolution.",
     };
   }
-  return config;
+  return { ...config, ...shared.configuration };
+}
+
+export type SharedMailchimpConfiguration = {
+  audienceId: string;
+  fromEmail: string;
+  fromName: string;
+};
+export function resolveSharedMailchimpConfiguration(rows: Array<SharedMailchimpConfiguration>): {
+  configuration: SharedMailchimpConfiguration | null;
+  conflicts: SharedMailchimpConfiguration[];
+} {
+  if (!rows.length) return { configuration: null, conflicts: [] };
+  const unique = new Map<string, SharedMailchimpConfiguration>();
+  for (const row of rows) {
+    const config = { audienceId: row.audienceId, fromEmail: row.fromEmail.trim().toLowerCase(), fromName: row.fromName.trim() };
+    unique.set(`${config.audienceId}\u0000${config.fromEmail}\u0000${config.fromName}`, config);
+  }
+  const configurations = Array.from(unique.values());
+  return { configuration: configurations[0], conflicts: configurations.length > 1 ? configurations : [] };
+}
+
+export async function getSharedMailchimpConfiguration(database: Pick<typeof db, "select"> = db): Promise<{
+  configuration: SharedMailchimpConfiguration | null;
+  conflicts: SharedMailchimpConfiguration[];
+}> {
+  const rows = await database.select().from(bulkEmailUserConfigs)
+    .orderBy(bulkEmailUserConfigs.createdAt, bulkEmailUserConfigs.id);
+  return resolveSharedMailchimpConfiguration(rows);
 }
 export async function getCompaniesForBulkEmail(userId: string, admin: boolean) {
   const companyRows = await db.select({

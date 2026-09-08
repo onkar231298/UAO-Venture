@@ -7,6 +7,8 @@ import {
   parseCampaignSchedule,
   publicBulkEmailError,
   resolveBulkEmailReplyTo,
+  mailchimpRoutingCapability,
+  resolveSharedMailchimpConfiguration,
   sharedMailchimpConfigurationMatches,
 } from "./bulkEmailCampaignService";
 import { storeBulkAttachments, validateBulkAttachments } from "./bulkEmailAttachments";
@@ -40,21 +42,21 @@ test("only active sales and admin roles can bulk send", () => {
   assert.equal(isEligibleBulkEmailSender({ role: "quality_manager", accountStatus: "active" }), false);
 });
 
-test("uses only a connected active Titan mailbox as the salesperson Reply-To", () => {
-  const connected = {
+test("uses an assigned company email for Reply-To without Titan connection or credentials", () => {
+  const assigned = {
     companyEmail: " Gary@Bright-Organic.com ",
-    isActive: true,
-    isConnected: true,
-    serviceType: "titan",
-    titanAppPasswordEncrypted: "encrypted",
   };
-  assert.equal(resolveBulkEmailReplyTo(connected), "gary@bright-organic.com");
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, companyEmail: "not-an-email" }), null);
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, isActive: false }), null);
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, isActive: null }), null);
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, isConnected: false }), null);
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, serviceType: "gmail" }), null);
-  assert.equal(resolveBulkEmailReplyTo({ ...connected, titanAppPasswordEncrypted: null }), null);
+  assert.equal(resolveBulkEmailReplyTo(assigned), "gary@bright-organic.com");
+  assert.equal(resolveBulkEmailReplyTo({ companyEmail: "not-an-email" }, "staff@example.com"), "staff@example.com");
+  assert.equal(resolveBulkEmailReplyTo(null, "not-an-email"), null);
+});
+
+test("fails closed when Mailchimp independent From and agent Reply-To is unverified", () => {
+  assert.equal(mailchimpRoutingCapability("sales@example.com", "sales@example.com").ready, true);
+  const distinct = mailchimpRoutingCapability("sales@example.com", "agent@example.com");
+  assert.equal(distinct.ready, false);
+  assert.match(distinct.message || "", /independent From\/Reply-To/i);
+  assert.equal(mailchimpRoutingCapability("sales@example.com", null).ready, false);
 });
 
 test("enabled sales users require one Mailchimp audience and sender identity", () => {
@@ -95,6 +97,21 @@ test("enabled sales users require one Mailchimp audience and sender identity", (
     }),
     false,
   );
+});
+
+test("shared configuration normalizes duplicates and exposes distinct legacy conflicts", () => {
+  assert.deepEqual(resolveSharedMailchimpConfiguration([
+    { audienceId: "audience", fromEmail: " SALES@example.com ", fromName: " Sales " },
+    { audienceId: "audience", fromEmail: "sales@example.com", fromName: "Sales" },
+  ]), {
+    configuration: { audienceId: "audience", fromEmail: "sales@example.com", fromName: "Sales" },
+    conflicts: [],
+  });
+  const result = resolveSharedMailchimpConfiguration([
+    { audienceId: "first", fromEmail: "sales@example.com", fromName: "Sales" },
+    { audienceId: "second", fromEmail: "sales@example.com", fromName: "Sales" },
+  ]);
+  assert.equal(result.conflicts.length, 2);
 });
 
 test("preserves safe client errors without exposing unexpected failures", () => {

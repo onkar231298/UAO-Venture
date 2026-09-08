@@ -1,10 +1,16 @@
 ---
 name: Shared Mailchimp routing
-description: Confirmed audience, visible sender, per-salesperson reply, and recipient-isolation rules for CRM bulk campaigns.
+description: Mailchimp-only bulk setup, strict Titan separation, and the unverified independent-header capability boundary.
 ---
 
-All enabled CRM bulk-email users must use one shared Mailchimp audience and the same verified sales address as the visible sender. Customer replies go to the individual salesperson who submitted the campaign, using that authenticated user's connected, active Titan mailbox. Each salesperson may still target only recipients from CRM companies assigned to them, and each campaign must use an exact static segment.
+The requested CRM bulk workflow uses one shared Mailchimp audience and verified sales sender, with admin-managed per-agent access. The intended reply destination is the authenticated agent's existing assigned company email, falling back to a validated stored staff email. Titan is a separate service: bulk eligibility must not depend on mailbox connection, activity, or passwords, and this work must not change Titan behavior or configuration.
 
-**Why:** The owner clarified that the shared sales address is only the customer-visible sender identity; replies need to return to the salesperson handling those assigned CRM companies.
+**Why:** The owner explicitly rejected switching back to SendGrid and clarified that bulk-email simplification must leave Titan untouched. A reply destination needs an address, not SMTP credentials.
 
-**How to apply:** Reject or fail closed on divergent enabled audience/sender settings. Synchronize and revalidate Mailchimp's audience sender defaults, derive each campaign Reply-To server-side from the authenticated user's valid Titan configuration, and store it in campaign history. Never trust a browser-supplied reply address, weaken company-assignment checks, or send to the full audience.
+**How to apply:** Read only address data and derive replies server-side; never accept arbitrary browser Reply-To input. Preserve company-assignment checks, exact recipient segments, opt-outs, and deliberate access toggles. Expose divergent legacy shared settings instead of silently choosing them.
+
+Separate shared From and per-agent Reply-To delivery remains unverified. Mailchimp audience defaults plus a campaign `reply_to` field are not proof of independent delivered headers.
+
+**Why:** Outbound request fields do not establish delivered-header behavior; separate identities need independent evidence.
+
+**How to apply:** Fail clearly when the requested independent identities cannot be verified; do not silently replace From, route replies to shared sales, add forwarding, or switch providers. Real header testing requires explicit approval and consenting internal recipients. Shared setup does not lift Mailchimp's campaign-policy restrictions.

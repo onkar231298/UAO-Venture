@@ -351,7 +351,7 @@ test("recognizes the shared audience's visible sender defaults", () => {
   );
 });
 
-test("keeps the shared visible sender separate from the salesperson reply mailbox", () => {
+test("builds Mailchimp campaign request fields without asserting delivered headers", () => {
   const settings = mailchimpCampaignSettings({
     name: "Customer follow-up",
     campaignKey: "ff4f9b9a-2f3c-4e4f-94ad-8109b7cf32ac",
