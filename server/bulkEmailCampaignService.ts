@@ -29,7 +29,7 @@ export function resolveBulkEmailReplyTo(
 }
 
 export const MAILCHIMP_INDEPENDENT_REPLY_TO_UNVERIFIED_MESSAGE =
-  "Mailchimp independent From/Reply-To delivery behavior is unverified. This setup cannot send with a shared From address and a different agent Reply-To until it is verified.";
+  "Mailchimp Marketing's documented setup uses the campaign email address for the visible sender and direct replies. This integration cannot send with a shared From address and a different agent Reply-To. Agent access does not remove this provider limitation.";
 
 export function mailchimpRoutingCapability(fromEmail?: string | null, replyToEmail?: string | null): {
   ready: boolean; message?: string;

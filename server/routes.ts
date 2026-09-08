@@ -12818,8 +12818,12 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   app.put("/api/email-campaigns/configurations/shared", isAuthenticated, async (req: any, res) => {
     const admin = await storage.getUser(req.user.claims.sub);
     if (admin?.role !== "admin" && admin?.role !== "super_admin") return res.status(403).json({ message: "Admin access required" });
-    const parsed = z.object({ audienceId: z.string().min(1), fromEmail: z.string().email(), fromName: z.string().min(1) }).safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Validation failed", errors: parsed.error.errors });
+    const { bulkEmailConfigurationSchema, configurationFieldErrors } = await import("@shared/bulkEmailConfiguration");
+    const parsed = bulkEmailConfigurationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const errors = configurationFieldErrors(parsed.error);
+      return res.status(400).json({ message: Object.values(errors).join(" ") || "Check the shared sender settings.", errors });
+    }
     try {
       const { audiences, configureAudienceCampaignDefaults, readiness, verifySenderEmail } = await import("./mailchimpService");
       const provider: any = await readiness();
@@ -12831,6 +12835,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
       }
       const { bulkEmailUserConfigs } = await import("@shared/schema");
       const data = { audienceId: parsed.data.audienceId, fromEmail: parsed.data.fromEmail.trim().toLowerCase(), fromName: parsed.data.fromName.trim() };
+      let enabledCount: number | undefined;
       await db.transaction(async (tx) => {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('bulk_email_shared_mailchimp_configuration'))`);
         await configureAudienceCampaignDefaults(data.audienceId, data);
@@ -12843,8 +12848,26 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           // administrator row holds the one shared setting until access is granted.
           await tx.insert(bulkEmailUserConfigs).values({ userId: admin.id, ...data, enabled: false, readyAt: null, lastCheckedAt: new Date(), readinessError: null });
         }
+        // The administrator explicitly chose Save & enable all. A normal save
+        // preserves every existing access flag, including disabled agents.
+        if (parsed.data.enableAll) {
+          const eligible = await tx.select({ id: users.id }).from(users)
+            .where(and(eq(users.accountStatus, "active"), inArray(users.role, ["sales_manager", "sales_executive", "admin", "super_admin"])))
+            .for("share");
+          const now = new Date();
+          if (eligible.length) {
+            await tx.insert(bulkEmailUserConfigs).values(eligible.map(agent => ({
+              userId: agent.id, ...data, enabled: true, readyAt: now,
+              lastCheckedAt: now, readinessError: null,
+            }))).onConflictDoUpdate({
+              target: bulkEmailUserConfigs.userId,
+              set: { ...data, enabled: true, readyAt: now, lastCheckedAt: now, readinessError: null, updatedAt: now },
+            });
+          }
+          enabledCount = eligible.length;
+        }
       });
-      res.json({ success: true });
+      res.json({ success: true, enabled: enabledCount });
     } catch (error: any) {
       const conflict = error?.code === "23505";
       if (error?.status === 409) return res.status(409).json({ message: error.message });

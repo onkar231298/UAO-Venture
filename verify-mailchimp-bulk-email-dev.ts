@@ -228,7 +228,7 @@ async function screenshot(cdp: Cdp, name: string) {
   await writeFile(`${screenshots}/${name}.png`, Buffer.from(image.data, "base64"));
 }
 
-async function checkUi(cdp: Cdp, path: string, expectSettings: boolean, screenshotName: string, companyId?: number, expectedReplyEmail?: string) {
+async function checkUi(cdp: Cdp, path: string, expectSettings: boolean, screenshotName: string, companyId?: number, expectedReplyEmail?: string, expectConflict = false) {
   await cdp.send("Page.navigate", { url: `${baseUrl}${path}` });
   if (companyId) {
     try {
@@ -284,6 +284,34 @@ async function checkUi(cdp: Cdp, path: string, expectSettings: boolean, screensh
       true,
       "admin shared setup must show Save shared configuration",
     );
+    for (const action of ["Save shared configuration", "Save & enable all eligible agents"]) {
+      assert.equal(
+        await cdp.evaluate(`[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent?.trim() === ${JSON.stringify(action)})?.disabled`),
+        true,
+        `${action} must stay disabled while shared setup is invalid`,
+      );
+    }
+    if (expectConflict) {
+      assert.equal(await cdp.evaluate(`(() => {
+        const text = document.querySelector('#shared-mailchimp-audience')?.textContent?.trim() || "";
+        return text.length > 0 && !text.includes("No audience selected");
+      })()`), true, "conflict draft must visibly retain its common audience");
+      assert.ok(await cdp.evaluate("document.querySelector('#shared-mailchimp-from-email')?.value"), "conflict draft must retain its common sender email");
+      assert.equal(await cdp.evaluate("document.querySelector('#shared-mailchimp-from-name')?.value"), "", "conflict draft must leave differing sender names blank");
+      assert.equal(await cdp.evaluate("Boolean(document.querySelector('#shared-mailchimp-from-name-error')?.textContent?.trim())"), true, "conflict draft must show a sender-name field error");
+      assert.equal(await cdp.evaluate("document.querySelectorAll('[aria-label=\"Existing sender name choices\"] button').length >= 2"), true, "conflict draft must offer legacy sender-name choices");
+      await cdp.evaluate("document.querySelector('[aria-label=\"Existing sender name choices\"] button')?.click()");
+      await delay(100);
+      for (const action of ["Save shared configuration", "Save & enable all eligible agents"]) {
+        assert.equal(
+          await cdp.evaluate(`[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent?.trim() === ${JSON.stringify(action)})?.disabled`),
+          false,
+          `choosing a legacy sender name must enable ${action}`,
+        );
+      }
+      await screenshot(cdp, screenshotName);
+      return;
+    }
     const unsavedSenderName = `Unsaved ${runId.slice(-10)}`;
     await cdp.evaluate(`(() => {
       const label = [...document.querySelectorAll('[role=dialog] label')].find(item => item.textContent?.trim() === 'Sender display name');
@@ -333,6 +361,22 @@ async function main() {
     assertStatus(adminConfigurations, 200, "admin configurations");
     const configBody = await adminConfigurations.json();
     assert.ok(Array.isArray(configBody.users) && "sharedConfiguration" in configBody && "conflicts" in configBody, "configuration contract");
+    const invalidShared = await request(adminCookie, "/api/email-campaigns/configurations/shared", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ audienceId: null, fromEmail: null, fromName: null }),
+    });
+    assertStatus(invalidShared, 400, "invalid shared configuration");
+    const invalidSharedBody = await invalidShared.json();
+    for (const field of ["audienceId", "fromEmail", "fromName"]) {
+      assert.ok(invalidSharedBody.errors?.[field], `invalid shared configuration must return a ${field} field error`);
+    }
+    assert.notEqual(invalidSharedBody.message, "Validation failed", "invalid shared configuration must return a human field-validation message");
+    const invalidEnableAll = await request(adminCookie, "/api/email-campaigns/configurations/shared", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ audienceId: null, fromEmail: null, fromName: null, enableAll: "true" }),
+    });
+    assertStatus(invalidEnableAll, 400, "invalid shared enableAll type");
+    assert.ok((await invalidEnableAll.json()).errors?.enableAll, "invalid enableAll type must be reported as a field error");
     assertStatus(await request(salesACookie, "/api/email-campaigns/configurations"), 403, "sales configurations forbidden");
     assertStatus(await request(salesACookie, "/api/email-campaigns/mailchimp/audiences"), 403, "sales audiences forbidden");
     assertStatus(await request(salesACookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
@@ -378,6 +422,16 @@ async function main() {
     } finally {
       cdp.close();
     }
+    if (browser && browser.exitCode === null) {
+      browser.kill("SIGTERM");
+      await Promise.race([
+        new Promise<void>((resolve) => browser!.once("exit", () => resolve())),
+        delay(3_000).then(() => undefined),
+      ]);
+    }
+    if (profileDir) await rm(profileDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+    browser = undefined;
+    profileDir = "";
     const configCount = await db.query("SELECT count(*)::int AS count FROM bulk_email_user_configs");
     const blankSharedSetup = !configBody.sharedConfiguration &&
       configBody.conflicts.length === 0 &&
@@ -391,6 +445,31 @@ async function main() {
          VALUES ($1, $2, $3, $4, false, NULL, NOW(), NULL)`,
         [ids.admin, `${runId}-audience`, emails.admin, `${runId} synthetic sender`],
       );
+    }
+    // A second disabled temporary row deliberately reproduces a legacy
+    // name-only conflict without touching any existing account row. When a
+    // real shared setup exists, it is only read and its common values are
+    // copied into this disposable row.
+    const conflictBase = blankSharedSetup
+      ? { audienceId: `${runId}-audience`, fromEmail: emails.admin, fromName: `${runId} synthetic sender` }
+      : sharedResolved
+        ? configBody.sharedConfiguration
+        : null;
+    if (conflictBase) {
+      await db.query(
+        `INSERT INTO bulk_email_user_configs
+          (user_id, audience_id, from_email, from_name, enabled, ready_at, last_checked_at, readiness_error)
+         VALUES ($1, $2, $3, $4, false, NULL, NOW(), NULL)`,
+        [ids.salesA, conflictBase.audienceId, conflictBase.fromEmail, `${runId} alternate sender`],
+      );
+      const conflictCdp = await openBrowser();
+      try {
+        await setBrowserSession(conflictCdp, adminCookie);
+        await checkUi(conflictCdp, "/admin/dashboard/crm/companies", true, "conflict-settings", fixtures.companyA, undefined, true);
+      } finally {
+        conflictCdp.close();
+      }
+      await db.query("DELETE FROM bulk_email_user_configs WHERE user_id = $1", [ids.salesA]);
     }
     if (sharedResolved || blankSharedSetup) {
       for (const userId of [ids.salesA, ids.salesB]) {

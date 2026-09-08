@@ -25,6 +25,6 @@ test("unchanged but unverified independent identities cannot bypass final routin
   for (const replyToEmail of ["alpha@example.com", "bravo@example.com"]) {
     assert.throws(() => assertBulkEmailDispatchState(
       { ...expected, replyToEmail }, { ...current, replyToEmail },
-    ), /unverified/);
+    ), /provider limitation/);
   }
 });

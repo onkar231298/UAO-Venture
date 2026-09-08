@@ -51,11 +51,11 @@ test("uses an assigned company email for Reply-To without Titan connection or cr
   assert.equal(resolveBulkEmailReplyTo(null, "not-an-email"), null);
 });
 
-test("fails closed when Mailchimp independent From and agent Reply-To is unverified", () => {
+test("explains the Mailchimp limitation for different From and agent Reply-To", () => {
   assert.equal(mailchimpRoutingCapability("sales@example.com", "sales@example.com").ready, true);
   const distinct = mailchimpRoutingCapability("sales@example.com", "agent@example.com");
   assert.equal(distinct.ready, false);
-  assert.match(distinct.message || "", /independent From\/Reply-To/i);
+  assert.match(distinct.message || "", /provider limitation/i);
   assert.equal(mailchimpRoutingCapability("sales@example.com", null).ready, false);
 });
 
