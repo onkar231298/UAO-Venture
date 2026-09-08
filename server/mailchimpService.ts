@@ -29,6 +29,11 @@ function apiKey(): string | undefined {
   return process.env.MAILCHIMP_API_KEY;
 }
 
+/** Local-only capability check; safe for HTTP readiness endpoints. */
+export function hasMailchimpWriteConfiguration(): boolean {
+  return !!apiKey();
+}
+
 function dataCenter(): string {
   const key = apiKey();
   const suffix = key?.split("-").pop();
@@ -445,7 +450,16 @@ export async function createAndSend(input: {
   members: MailchimpMemberResult[];
 }> {
   await input.onProgress?.();
-  await assertAudienceCampaignDefaults(input.audienceId, input);
+  if (!await verifySenderEmail(input.fromEmail)) {
+    throw new ProviderError(
+      409,
+      "mailchimp-sender-domain-unverified",
+      "The bright-organic.com sender domain is not verified in Mailchimp.",
+    );
+  }
+  // Explicit send is the only automatic setup path. Readiness GETs must remain
+  // side-effect free, while a deliberate send may repair audience defaults.
+  await configureAudienceCampaignDefaults(input.audienceId, input);
   await ensureMergeFields(input.audienceId);
 
   const members: MailchimpMemberResult[] = [];

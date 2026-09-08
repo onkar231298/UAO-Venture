@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { trackProjectEvent } from "@/lib/projectAnalytics";
 import { bulkEmailErrorMessage } from "./bulkEmailUi";
@@ -11,11 +10,6 @@ import {
   serializeBulkEmailCampaignRequest,
   type BulkEmailCampaignRequest,
 } from "@shared/bulkEmailCampaign";
-import {
-  bulkEmailConfigurationSchema,
-  configurationFieldErrors,
-  sharedConfigurationDraft,
-} from "@shared/bulkEmailConfiguration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +35,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
@@ -131,25 +124,20 @@ import {
   Redo,
   Link as LinkIcon,
   Image as ImageIcon,
-  Code,
   Eye,
   Code2,
   Upload,
   X,
   Trash2,
-  Move,
   Maximize2,
   Minimize2,
   Palette,
   Type,
   Highlighter,
-  Copy,
   ClipboardPaste,
   Paperclip,
   File,
   Table2,
-  Plus,
-  Minus,
   Rows,
   Columns,
   Sparkles,
@@ -201,45 +189,7 @@ interface EmailCampaign {
 
 interface MailchimpReadiness {
   ready: boolean;
-  provider: string;
-  configured: boolean;
-  writeAccess: boolean;
-  audienceId: string | null;
-  audienceName: string | null;
-  fromEmail: string | null;
-  fromName: string | null;
-  replyToEmail: string | null;
   message: string;
-  isAdmin: boolean;
-}
-
-interface MailchimpAudience {
-  id: string;
-  name: string;
-  memberCount: number;
-}
-
-interface CampaignConfiguration {
-  audienceId: string | null;
-  audienceName: string | null;
-  fromEmail: string | null;
-  fromName: string | null;
-  isEnabled: boolean;
-  lastValidatedAt: string | null;
-  validationStatus: string | null;
-  validationMessage: string | null;
-}
-
-interface ConfigurationUser {
-  user: { id: string; email: string; firstName: string | null; lastName: string | null; role: string };
-  configuration: CampaignConfiguration | null;
-  replyToEmail: string | null;
-  replyToReady: boolean;
-}
-interface ConfigurationData {
-  users: ConfigurationUser[];
-  sharedConfiguration: CampaignConfiguration | null;
-  conflicts: Array<{ audienceId: string; fromEmail: string; fromName: string }>;
 }
 
 interface UploadedImage {
@@ -261,15 +211,6 @@ interface BulkEmailComposerProps {
   preSelectedCompanyIds?: number[];
 }
 
-const fontSizes = [
-  { label: 'Small', value: '12px' },
-  { label: 'Normal', value: '14px' },
-  { label: 'Medium', value: '16px' },
-  { label: 'Large', value: '18px' },
-  { label: 'XL', value: '24px' },
-  { label: 'XXL', value: '32px' },
-];
-
 const colors = [
   '#000000', '#333333', '#666666', '#999999', '#CCCCCC',
   '#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6',
@@ -278,9 +219,7 @@ const colors = [
 
 export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = [] }: BulkEmailComposerProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'compose' | 'campaigns' | 'settings'>('compose');
-  const [configurationDrafts, setConfigurationDrafts] = useState<Record<string, CampaignConfiguration>>({});
+  const [activeTab, setActiveTab] = useState<'compose' | 'campaigns'>('compose');
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(preSelectedCompanyIds);
   const [searchTerm, setSearchTerm] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -306,7 +245,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const editor = useEditor({
     extensions: [
@@ -387,91 +325,15 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     enabled: open && activeTab === 'campaigns',
   });
 
-  const { data: readiness, isLoading: isLoadingReadiness, refetch: refetchReadiness } = useQuery<MailchimpReadiness>({
+  const {
+    data: readiness,
+    isLoading: isLoadingReadiness,
+    isFetching: isFetchingReadiness,
+    error: readinessError,
+    refetch: refetchReadiness,
+  } = useQuery<MailchimpReadiness>({
     queryKey: ['/api/email-campaigns/readiness'],
     enabled: open,
-  });
-
-  const { data: configurationData, refetch: refetchConfigurations, isLoading: isLoadingConfigurations, error: configurationsError } = useQuery<ConfigurationData>({
-    queryKey: ['/api/email-campaigns/configurations'],
-    enabled: open && isAdmin,
-  });
-
-  const { data: audienceData, refetch: refetchAudiences } = useQuery<{ audiences: MailchimpAudience[] }>({
-    queryKey: ['/api/email-campaigns/mailchimp/audiences'],
-    enabled: open && isAdmin,
-  });
-
-  const configurationUsers = configurationData?.users ?? [];
-  const audiences = audienceData?.audiences ?? [];
-
-  const sharedConfigurationSignature = JSON.stringify({
-    shared: configurationData?.sharedConfiguration ? {
-      audienceId: configurationData.sharedConfiguration.audienceId,
-      fromEmail: configurationData.sharedConfiguration.fromEmail,
-      fromName: configurationData.sharedConfiguration.fromName,
-    } : null,
-    conflicts: (configurationData?.conflicts ?? []).map(({ audienceId, fromEmail, fromName }) => ({
-      audienceId,
-      fromEmail,
-      fromName,
-    })),
-  });
-  const lastSharedConfigurationSignature = useRef("");
-  useEffect(() => {
-    if (configurationData) {
-      if (lastSharedConfigurationSignature.current === sharedConfigurationSignature) return;
-      lastSharedConfigurationSignature.current = sharedConfigurationSignature;
-      const conflictDraft = sharedConfigurationDraft(configurationData.conflicts);
-      setConfigurationDrafts({
-        shared: configurationData.conflicts.length ? {
-          ...conflictDraft, audienceName: null, isEnabled: false,
-          lastValidatedAt: null, validationStatus: null, validationMessage: null,
-        } : configurationData.sharedConfiguration ?? {
-          audienceId: null, audienceName: null, fromEmail: null, fromName: null, isEnabled: false,
-          lastValidatedAt: null, validationStatus: null, validationMessage: null,
-        },
-      });
-    }
-  }, [configurationData, sharedConfigurationSignature]);
-
-  const saveConfigurationMutation = useMutation({
-    mutationFn: async ({ configuration, enableAll = false }: { configuration: CampaignConfiguration; enableAll?: boolean }) => {
-      const parsed = bulkEmailConfigurationSchema.parse({
-        audienceId: configuration.audienceId,
-        fromEmail: configuration.fromEmail,
-        fromName: configuration.fromName,
-        enableAll,
-      });
-      const response = await apiRequest(`/api/email-campaigns/configurations/shared`, {
-        method: 'PUT',
-        body: JSON.stringify(parsed),
-      });
-      return response.json();
-    },
-    onSuccess: (result: { success: true; enabled?: number }, variables) => {
-      toast(variables.enableAll ? {
-        title: "Bulk-email access granted",
-        description: `The shared configuration was saved and access was granted to ${result.enabled ?? 0} eligible sales and admin agents. This does not confirm email delivery; sending still requires routing and provider readiness.`,
-      } : {
-        title: "Shared Mailchimp configuration saved",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns/configurations'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/email-campaigns/readiness'] });
-    },
-    onError: (error: any) => toast({ title: "Unable to save configuration", description: bulkEmailErrorMessage(error, "The shared configuration could not be saved."), variant: "destructive" }),
-  });
-
-  const changeAccessMutation = useMutation({
-    mutationFn: async ({ userId, isEnabled }: { userId: string; isEnabled: boolean }) =>
-      (await apiRequest(`/api/email-campaigns/configurations/${userId}/access`, {
-        method: "PUT", body: JSON.stringify({ isEnabled }),
-      })).json(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/email-campaigns/configurations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/email-campaigns/readiness"] });
-    },
-    onError: (error: any) => toast({ title: "Unable to change access", description: bulkEmailErrorMessage(error, "Agent access could not be changed."), variant: "destructive" }),
   });
   const sendCampaignMutation = useMutation({
     mutationFn: async (data: BulkEmailCampaignRequest) => {
@@ -669,7 +531,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     if (!readiness?.ready) {
       toast({
         title: "Mailchimp is not ready",
-        description: readiness?.message || "Complete your Mailchimp configuration before sending.",
+        description: readiness?.message || "Mailchimp is not currently ready to send this campaign.",
         variant: "destructive",
       });
       return;
@@ -961,25 +823,17 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
     ? "max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh]" 
     : "max-w-5xl max-h-[90vh]";
 
-  const updateConfigurationDraft = (userId: string, updates: Partial<CampaignConfiguration>) => {
-    setConfigurationDrafts((current) => ({
-      ...current,
-      [userId]: { ...current[userId], ...updates },
-    }));
-  };
-  const sharedDraftValidation = configurationDrafts.shared
-    ? bulkEmailConfigurationSchema.safeParse({
-        audienceId: configurationDrafts.shared.audienceId,
-        fromEmail: configurationDrafts.shared.fromEmail,
-        fromName: configurationDrafts.shared.fromName,
-      })
-    : null;
-  const sharedDraftErrors = sharedDraftValidation && !sharedDraftValidation.success
-    ? configurationFieldErrors(sharedDraftValidation.error)
-    : {};
-  const legacySenderNames = Array.from(new Set(
-    (configurationData?.conflicts ?? []).map((conflict) => conflict.fromName).filter(Boolean),
-  ));
+  const hasRequiredContent = Boolean(campaignName.trim() && subject.trim() && htmlContent.trim());
+  const canSubmitCampaign = Boolean(
+    readiness?.ready &&
+    !isLoadingReadiness &&
+    !isFetchingReadiness &&
+    !readinessError &&
+    hasRequiredContent &&
+    selectedCompanyIds.length > 0 &&
+    permissionConfirmed &&
+    !sendCampaignMutation.isPending,
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1005,9 +859,9 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'compose' | 'campaigns' | 'settings')} className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'compose' | 'campaigns')} className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 pt-2 flex-shrink-0">
-            <TabsList className={`grid w-full ${isAdmin ? 'max-w-lg grid-cols-3' : 'max-w-md grid-cols-2'}`}>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="compose">
                 <Send className="h-4 w-4 mr-2" />
                 Compose Email
@@ -1016,12 +870,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                 <FileText className="h-4 w-4 mr-2" />
                 Past Campaigns
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="settings">
-                  <Users className="h-4 w-4 mr-2" />
-                  Settings
-                </TabsTrigger>
-              )}
             </TabsList>
           </div>
 
@@ -1032,20 +880,28 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                   <CardContent className="p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold">Mailchimp readiness</p>
+                        <p className="text-sm font-semibold">Sending status</p>
                         <p className="text-xs text-muted-foreground">
-                          {isLoadingReadiness ? "Checking configuration…" : readiness?.message || "Configuration status unavailable"}
+                          {isLoadingReadiness
+                            ? "Checking Mailchimp readiness…"
+                            : readinessError
+                              ? bulkEmailErrorMessage(readinessError, "Mailchimp readiness could not be checked.")
+                              : readiness?.message || "Mailchimp readiness is unavailable."}
                         </p>
                       </div>
-                      {readiness?.ready ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
+                      {isLoadingReadiness || isFetchingReadiness
+                        ? <RefreshCw className="h-5 w-5 text-muted-foreground shrink-0 animate-spin" />
+                        : readiness?.ready
+                          ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                          : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
                     </div>
-                    <div className="text-xs space-y-1">
-                      <p><span className="font-medium">Audience:</span> {readiness?.audienceName || "Not configured"}</p>
-                      <p><span className="font-medium">From:</span> {readiness?.fromName || "Not configured"}{readiness?.fromEmail ? ` <${readiness.fromEmail}>` : ''}</p>
-                       <p className="break-all"><span className="font-medium">Intended Reply-To:</span> {readiness?.replyToEmail || "No valid assigned or staff email"}</p>
-                    </div>
-                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => refetchReadiness()}>
-                      <RefreshCw className="h-3 w-3 mr-1" /> Refresh readiness
+                    <p className="text-xs">
+                      <span className="font-medium">From</span> sales@bright-organic.com
+                      <span aria-hidden="true"> · </span>
+                      <span className="font-medium">Replies</span> sales@bright-organic.com
+                    </p>
+                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" disabled={isFetchingReadiness} onClick={() => refetchReadiness()}>
+                      <RefreshCw className={`h-3 w-3 mr-1 ${isFetchingReadiness ? "animate-spin" : ""}`} /> Check again
                     </Button>
                   </CardContent>
                 </Card>
@@ -1717,7 +1573,7 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
                     </Button>
                     <Button
                       onClick={handleSendCampaign}
-                      disabled={sendCampaignMutation.isPending || selectedCompanyIds.length === 0 || !readiness?.ready || !permissionConfirmed}
+                      disabled={!canSubmitCampaign}
                       className="min-w-[180px]"
                     >
                       {sendCampaignMutation.isPending ? (
@@ -1819,124 +1675,6 @@ export function BulkEmailComposer({ open, onOpenChange, preSelectedCompanyIds = 
             )}
           </TabsContent>
 
-          {isAdmin && (
-            <TabsContent value="settings" className="flex-1 overflow-auto mt-0 p-4">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="font-semibold">Shared Mailchimp sales configuration</h3>
-                  <p className="text-sm text-muted-foreground">Save one sender and audience for your team. Agent access is separate from sending readiness: this Mailchimp Marketing integration cannot send with a shared From address and a different agent Reply-To.</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { refetchConfigurations(); refetchAudiences(); refetchReadiness(); }}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-                  </Button>
-                </div>
-              </div>
-              {isLoadingConfigurations && (
-                <div className="mb-4 flex items-center gap-2 rounded-md border p-3 text-sm text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 animate-spin" /> Loading shared configuration and agent access…
-                </div>
-              )}
-              {configurationsError && (
-                <div className="mb-4 rounded-md border border-destructive bg-destructive/5 p-3 text-sm text-destructive">
-                  <p>{bulkEmailErrorMessage(configurationsError, "Shared configuration and agent access could not be loaded.")}</p>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => refetchConfigurations()}>Try again</Button>
-                </div>
-              )}
-              {configurationData?.conflicts.length ? (
-                <div className="mb-4 rounded-md border border-destructive bg-destructive/5 p-3 text-sm text-destructive">
-                  <p>Conflicting legacy shared settings were found. Common audience and sender email values are preserved below; choose each differing value and save one deliberate shared configuration before enabling or sending.</p>
-                  <ul className="mt-2 list-disc pl-5 text-xs">
-                    {configurationData.conflicts.map((conflict) => <li key={`${conflict.audienceId}-${conflict.fromEmail}-${conflict.fromName}`}>{conflict.audienceId} · {conflict.fromName} &lt;{conflict.fromEmail}&gt;</li>)}
-                  </ul>
-                </div>
-              ) : null}
-              {configurationDrafts.shared && (
-                <Card className="mb-4">
-                  <CardContent className="p-4 space-y-3">
-                    <p className="font-medium">Shared sender and audience</p>
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="space-y-1">
-                        <Label htmlFor="shared-mailchimp-audience" className="text-xs">Audience</Label>
-                        <Select value={configurationDrafts.shared.audienceId || "none"} onValueChange={(audienceId) => { const audience = audiences.find(a => a.id === audienceId); updateConfigurationDraft("shared", { audienceId: audienceId === "none" ? null : audienceId, audienceName: audience?.name || null }); }}>
-                          <SelectTrigger id="shared-mailchimp-audience" aria-describedby={sharedDraftErrors.audienceId ? "shared-mailchimp-audience-error" : undefined}><SelectValue placeholder="Select audience" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No audience selected</SelectItem>
-                            {configurationDrafts.shared.audienceId && !audiences.some(a => a.id === configurationDrafts.shared.audienceId) && (
-                              <SelectItem value={configurationDrafts.shared.audienceId} disabled>
-                                Saved audience ({configurationDrafts.shared.audienceId}) — unavailable
-                              </SelectItem>
-                            )}
-                            {audiences.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.memberCount})</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {sharedDraftErrors.audienceId && <p id="shared-mailchimp-audience-error" className="text-xs text-destructive">{sharedDraftErrors.audienceId}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="shared-mailchimp-from-email" className="text-xs">Verified sender email</Label>
-                        <Input id="shared-mailchimp-from-email" type="email" value={configurationDrafts.shared.fromEmail || ""} aria-describedby={sharedDraftErrors.fromEmail ? "shared-mailchimp-from-email-error" : undefined} onChange={e => updateConfigurationDraft("shared", { fromEmail: e.target.value || null })} />
-                        {sharedDraftErrors.fromEmail && <p id="shared-mailchimp-from-email-error" className="text-xs text-destructive">{sharedDraftErrors.fromEmail}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="shared-mailchimp-from-name" className="text-xs">Sender display name</Label>
-                        <Input id="shared-mailchimp-from-name" value={configurationDrafts.shared.fromName || ""} aria-describedby={sharedDraftErrors.fromName ? "shared-mailchimp-from-name-error" : undefined} onChange={e => updateConfigurationDraft("shared", { fromName: e.target.value || null })} />
-                        {sharedDraftErrors.fromName && <p id="shared-mailchimp-from-name-error" className="text-xs text-destructive">{sharedDraftErrors.fromName}</p>}
-                        {legacySenderNames.length > 1 && (
-                          <div className="flex flex-wrap gap-1 pt-1" aria-label="Existing sender name choices">
-                            {legacySenderNames.map((fromName) => (
-                              <Button key={fromName} type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => updateConfigurationDraft("shared", { fromName })}>
-                                Use “{fromName}”
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button variant="outline" size="sm" disabled={saveConfigurationMutation.isPending || !sharedDraftValidation?.success} onClick={() => saveConfigurationMutation.mutate({ configuration: configurationDrafts.shared })}>
-                        {saveConfigurationMutation.isPending ? "Saving…" : "Save shared configuration"}
-                      </Button>
-                      <Button size="sm" disabled={saveConfigurationMutation.isPending || !sharedDraftValidation?.success} onClick={() => saveConfigurationMutation.mutate({ configuration: configurationDrafts.shared, enableAll: true })}>
-                        {saveConfigurationMutation.isPending ? "Saving…" : "Save & enable all eligible agents"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              <div className="space-y-3">
-                {configurationUsers.map(({ user: configurationUser, replyToEmail, replyToReady, configuration }) => (
-                    <Card key={configurationUser.id}>
-                      <CardContent className="p-4">
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-medium">{[configurationUser.firstName, configurationUser.lastName].filter(Boolean).join(' ') || configurationUser.email}</p>
-                              <p className="text-xs text-muted-foreground">{configurationUser.email}</p>
-                              <p className={`text-xs ${replyToReady ? "text-muted-foreground" : "text-destructive"}`}>
-                                 Intended Reply-To: {replyToEmail || "Missing valid assigned or staff email"}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor={`enabled-${configurationUser.id}`} className="text-sm">Enabled</Label>
-                              <Switch
-                                id={`enabled-${configurationUser.id}`}
-                                 checked={configuration?.isEnabled ?? false}
-                                 disabled={changeAccessMutation.isPending}
-                                 onCheckedChange={(isEnabled) => changeAccessMutation.mutate({ userId: configurationUser.id, isEnabled })}
-                              />
-                            </div>
-                          </div>
-                           <p className="text-xs text-muted-foreground">Bulk-email access only. The shared sender and audience above apply to every enabled agent.</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                ))}
-                {!isLoadingConfigurations && !configurationsError && configurationUsers.length === 0 && (
-                  <p className="py-8 text-center text-sm text-muted-foreground">No sales users are available for configuration.</p>
-                )}
-              </div>
-            </TabsContent>
-          )}
         </Tabs>
 
         <Dialog open={showAiDialog} onOpenChange={(o) => { if (!generateAiMutation.isPending) setShowAiDialog(o); }}>

@@ -1,19 +1,19 @@
 ---
 name: Shared Mailchimp routing
-description: Mailchimp-only bulk setup, strict service separation, and the Marketing API's independent-reply limitation.
+description: Approved shared-sender/reply routing, automatic sales access, and strict separation from other mail services.
 ---
 
-The requested CRM bulk workflow uses one shared Mailchimp audience and verified sales sender, with admin-managed per-agent access. The intended reply destination is the authenticated agent's existing assigned company email, falling back to a validated stored staff email. Titan is a separate service: bulk eligibility must not depend on mailbox connection, activity, or passwords, and this work must not change Titan behavior or configuration.
+The owner approved one shared sales address for BOTH From and Reply-To on 2026-09-08. This supersedes the earlier request for separate per-agent replies. Bulk-email setup must be automatic: no audience selector, administrator configuration tab, or per-agent enable switches. Eligible active sales staff send to their assigned companies.
 
-**Why:** The owner explicitly rejected switching back to SendGrid and clarified that bulk-email simplification must leave Titan untouched. A reply destination needs an address, not SMTP credentials.
+**Why:** The owner explicitly chose the shared-address option after the Mailchimp Marketing limitation was explained, and rejected further setup screens. Keep Mailchimp; do not reopen the provider-switch or agent-reply question without a new request.
 
-**How to apply:** Read only address data and derive replies server-side; never accept arbitrary browser Reply-To input. Preserve company-assignment checks, exact recipient segments, opt-outs, and deliberate access toggles. Expose divergent legacy shared settings instead of silently choosing them.
+**How to apply:** Treat the shared address as server-owned, never browser-selected. Legacy agent display-name and enable-flag differences must not recreate setup requirements. Resolve the existing common audience automatically; genuinely different audience IDs still need safe handling, not a silent guess. Preserve assignment checks, exact recipient segments, consent and opt-outs. Titan and all other mail services stay separate and unchanged; bulk sending needs no mailbox credentials or staff-mailbox lookup.
 
 Mailchimp Marketing's documented regular-campaign workflow uses one campaign address for the visible sender and direct replies. It exposes no arbitrary independent agent Reply-To field; Mailchimp Inbox instead supplies an uneditable Mailchimp-generated address. Do not present this as a setup checkbox or promise that approving a header test alone will make the required routing possible.
 
 **Why:** Official Create a Regular Email, Tips for Sending Emails, and Mailchimp Inbox documentation together describe these restrictions. Audience defaults plus the API `reply_to` field do not establish independent delivered identities.
 
-**How to apply:** Keep the provider limitation explicit. Do not silently replace From, route replies to shared sales, add forwarding, or switch providers. The owner explicitly reconfirmed keeping Mailchimp. Any different routing approach requires agreement; real email tests require explicit approval and consenting internal recipients. Shared setup does not lift Mailchimp's campaign-policy restrictions.
+**How to apply:** Shared From and shared replies are now authorized; arbitrary separate agent replies are not. Do not add forwarding or switch providers. Real email tests require explicit approval and consenting internal recipients. Shared setup does not lift Mailchimp's campaign-policy restrictions.
 
 References:
 - https://mailchimp.com/help/create-and-send-regular-email/

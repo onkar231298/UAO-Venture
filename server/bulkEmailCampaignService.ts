@@ -4,6 +4,10 @@ import { companies, companyContacts, emailCampaignRecipients, emailCampaigns, bu
 import type { UserEmailConfig } from "@shared/schema";
 import { z } from "zod";
 
+export const BULK_EMAIL_FROM_EMAIL = "sales@bright-organic.com";
+export const BULK_EMAIL_FROM_NAME = "Bright Fame Organic";
+export const BULK_EMAIL_REPLY_TO_EMAIL = "sales@bright-organic.com";
+
 export const isBulkEmailAdmin = (role?: string | null) => role === "admin" || role === "super_admin";
 export const isEligibleBulkEmailSender = (user?: { role?: string | null; accountStatus?: string | null } | null) =>
   !!user &&
@@ -128,21 +132,14 @@ export async function getCampaignRecipientsForUser(id: number, userId: string, a
   if (!await getCampaignForUser(id, userId, admin)) return null;
   return db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, id));
 }
-export async function getUserConfig(userId: string) {
-  const [access, shared] = await Promise.all([
-    db.select().from(bulkEmailUserConfigs).where(eq(bulkEmailUserConfigs.userId, userId)),
-    getSharedMailchimpConfiguration(),
-  ]);
-  const config = access[0] || null;
-  if (!config || !shared.configuration) return config;
+export async function getUserConfig(_userId?: string) {
+  const shared = await getSharedMailchimpConfiguration();
   if (shared.conflicts.length) {
-    return {
-      ...config,
-      readyAt: null,
-      readinessError: "Conflicting legacy Mailchimp shared configurations require administrator resolution.",
-    };
+    throw Object.assign(new Error(
+      "Legacy Mailchimp records reference multiple different audiences. Remove the conflict before sending.",
+    ), { status: 409 });
   }
-  return { ...config, ...shared.configuration };
+  return shared.configuration;
 }
 
 export type SharedMailchimpConfiguration = {
@@ -157,11 +154,49 @@ export function resolveSharedMailchimpConfiguration(rows: Array<SharedMailchimpC
   if (!rows.length) return { configuration: null, conflicts: [] };
   const unique = new Map<string, SharedMailchimpConfiguration>();
   for (const row of rows) {
-    const config = { audienceId: row.audienceId, fromEmail: row.fromEmail.trim().toLowerCase(), fromName: row.fromName.trim() };
-    unique.set(`${config.audienceId}\u0000${config.fromEmail}\u0000${config.fromName}`, config);
+    const audienceId = row.audienceId.trim();
+    if (!audienceId) continue;
+    const config = {
+      audienceId,
+      fromEmail: BULK_EMAIL_FROM_EMAIL,
+      fromName: BULK_EMAIL_FROM_NAME,
+    };
+    // Legacy sender names, sender addresses, and enabled flags are no longer
+    // authoritative. Only a disagreement about the actual audience conflicts.
+    unique.set(config.audienceId, config);
   }
   const configurations = Array.from(unique.values());
+  if (!configurations.length) return { configuration: null, conflicts: [] };
   return { configuration: configurations[0], conflicts: configurations.length > 1 ? configurations : [] };
+}
+
+export function resolveAutomaticMailchimpConfiguration(
+  legacy: ReturnType<typeof resolveSharedMailchimpConfiguration>,
+  providerAudiences: Array<{ id?: unknown }>,
+): SharedMailchimpConfiguration {
+  if (legacy.conflicts.length) {
+    throw Object.assign(new Error(
+      "Legacy Mailchimp records reference multiple different audiences. Remove the conflict before sending.",
+    ), { status: 409 });
+  }
+  const actualIds = Array.from(new Set(providerAudiences
+    .map(audience => String(audience.id || "").trim())
+    .filter(Boolean)));
+  let audienceId = legacy.configuration?.audienceId;
+  if (audienceId) {
+    if (!actualIds.includes(audienceId)) {
+      throw Object.assign(new Error("The saved Mailchimp audience no longer exists."), { status: 409 });
+    }
+  } else if (actualIds.length === 1) {
+    audienceId = actualIds[0];
+  } else if (actualIds.length === 0) {
+    throw Object.assign(new Error("The Mailchimp account has no audience available for sending."), { status: 409 });
+  } else {
+    throw Object.assign(new Error(
+      "The Mailchimp account has multiple audiences and no single saved audience. A single audience must be established before sending.",
+    ), { status: 409 });
+  }
+  return { audienceId, fromEmail: BULK_EMAIL_FROM_EMAIL, fromName: BULK_EMAIL_FROM_NAME };
 }
 
 export async function getSharedMailchimpConfiguration(database: Pick<typeof db, "select"> = db): Promise<{

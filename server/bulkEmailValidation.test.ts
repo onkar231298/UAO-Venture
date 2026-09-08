@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  BULK_EMAIL_FROM_EMAIL,
+  BULK_EMAIL_FROM_NAME,
+  BULK_EMAIL_REPLY_TO_EMAIL,
   canAccessCampaign,
   dedupeRecipients,
   isEligibleBulkEmailSender,
@@ -9,6 +12,7 @@ import {
   resolveBulkEmailReplyTo,
   mailchimpRoutingCapability,
   resolveSharedMailchimpConfiguration,
+  resolveAutomaticMailchimpConfiguration,
   sharedMailchimpConfigurationMatches,
 } from "./bulkEmailCampaignService";
 import { storeBulkAttachments, validateBulkAttachments } from "./bulkEmailAttachments";
@@ -40,6 +44,13 @@ test("only active sales and admin roles can bulk send", () => {
   assert.equal(isEligibleBulkEmailSender({ role: "admin", accountStatus: "active" }), true);
   assert.equal(isEligibleBulkEmailSender({ role: "sales_executive", accountStatus: "suspended" }), false);
   assert.equal(isEligibleBulkEmailSender({ role: "quality_manager", accountStatus: "active" }), false);
+});
+
+test("bulk campaigns always use the approved shared identity independent of staff mailboxes", () => {
+  assert.equal(BULK_EMAIL_FROM_EMAIL, "sales@bright-organic.com");
+  assert.equal(BULK_EMAIL_REPLY_TO_EMAIL, "sales@bright-organic.com");
+  assert.equal(BULK_EMAIL_FROM_NAME, "Bright Fame Organic");
+  assert.notEqual(BULK_EMAIL_REPLY_TO_EMAIL, "agent@bright-organic.com");
 });
 
 test("uses an assigned company email for Reply-To without Titan connection or credentials", () => {
@@ -104,7 +115,7 @@ test("shared configuration normalizes duplicates and exposes distinct legacy con
     { audienceId: "audience", fromEmail: " SALES@example.com ", fromName: " Sales " },
     { audienceId: "audience", fromEmail: "sales@example.com", fromName: "Sales" },
   ]), {
-    configuration: { audienceId: "audience", fromEmail: "sales@example.com", fromName: "Sales" },
+    configuration: { audienceId: "audience", fromEmail: "sales@bright-organic.com", fromName: "Bright Fame Organic" },
     conflicts: [],
   });
   const result = resolveSharedMailchimpConfiguration([
@@ -112,6 +123,25 @@ test("shared configuration normalizes duplicates and exposes distinct legacy con
     { audienceId: "second", fromEmail: "sales@example.com", fromName: "Sales" },
   ]);
   assert.equal(result.conflicts.length, 2);
+});
+
+test("legacy display-name and enabled-era sender differences do not conflict", () => {
+  const result = resolveSharedMailchimpConfiguration([
+    { audienceId: "same", fromEmail: "old-agent@example.com", fromName: "Agent One" },
+    { audienceId: "same", fromEmail: "other@example.com", fromName: "Agent Two" },
+  ]);
+  assert.deepEqual(result.conflicts, []);
+  assert.equal(result.configuration?.fromName, "Bright Fame Organic");
+});
+
+test("automatic audience uses unanimous legacy id or the sole provider audience", () => {
+  const empty = resolveSharedMailchimpConfiguration([]);
+  assert.equal(resolveAutomaticMailchimpConfiguration(empty, [{ id: "only" }]).audienceId, "only");
+  const saved = resolveSharedMailchimpConfiguration([
+    { audienceId: "saved", fromEmail: "x@example.com", fromName: "Old" },
+  ]);
+  assert.equal(resolveAutomaticMailchimpConfiguration(saved, [{ id: "saved" }, { id: "other" }]).audienceId, "saved");
+  assert.throws(() => resolveAutomaticMailchimpConfiguration(empty, [{ id: "one" }, { id: "two" }]), /multiple audiences/i);
 });
 
 test("preserves safe client errors without exposing unexpected failures", () => {

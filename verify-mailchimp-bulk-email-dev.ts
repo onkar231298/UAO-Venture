@@ -1,17 +1,14 @@
 /**
- * Deliberately opt-in development verification. Run only after the application
- * server is ready:
+ * Opt-in development verification for the simplified automatic Mailchimp bulk
+ * email UI. Run only after the main agent reports the application is ready:
  *   NODE_ENV=development BASE_URL=http://127.0.0.1:5000 npx tsx verify-mailchimp-bulk-email-dev.ts
- * Or set BASE_URL exactly to https://$REPLIT_DEV_DOMAIN for the development
- * proxy; production URLs are refused.
  *
- * It creates uniquely prefixed, temporary staff/CRM rows, never calls a
- * Mailchimp-writing endpoint or campaign send endpoint, and removes its rows
- * in finally. Screenshots may include existing staff display data and are kept
- * in ignored local test output rather than committed with the application.
+ * Only temporary users and companies are inserted. The UI send request is
+ * intercepted by CDP Fetch before network dispatch and receives a synthetic
+ * response. This script never calls a provider-writing route or performs a send.
  */
 import assert from "node:assert/strict";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
@@ -20,29 +17,28 @@ import { Pool, neonConfig } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
 import WebSocket from "ws";
 
-if (process.env.NODE_ENV !== "development") {
-  throw new Error("Refusing to run unless NODE_ENV=development.");
-}
+if (process.env.NODE_ENV !== "development") throw new Error("Refusing to run unless NODE_ENV=development.");
 const baseUrl = (process.env.BASE_URL || "").replace(/\/$/, "");
-const localDevelopmentUrl = /^http:\/\/(127\.0\.0\.1|localhost)(?::\d+)?$/.test(baseUrl);
-const replitDevelopmentUrl = !!process.env.REPLIT_DEV_DOMAIN &&
-  baseUrl === `https://${process.env.REPLIT_DEV_DOMAIN}`;
-if (!localDevelopmentUrl && !replitDevelopmentUrl) {
-  throw new Error("BASE_URL must be localhost or exactly https://REPLIT_DEV_DOMAIN.");
-}
+const localUrl = /^http:\/\/(127\.0\.0\.1|localhost)(?::\d+)?$/.test(baseUrl);
+const replitUrl = !!process.env.REPLIT_DEV_DOMAIN && baseUrl === `https://${process.env.REPLIT_DEV_DOMAIN}`;
+if (!localUrl && !replitUrl) throw new Error("BASE_URL must be localhost or exactly https://REPLIT_DEV_DOMAIN.");
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 
 neonConfig.webSocketConstructor = WebSocket;
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
 const runId = `e2e_mailchimp_${randomUUID().replaceAll("-", "")}`;
 const password = randomUUID();
+const fixedAddress = "sales@bright-organic.com";
 const ids = {
   admin: `${runId}_admin`,
   salesA: `${runId}_sales_a`,
   salesB: `${runId}_sales_b`,
+  inactive: `${runId}_inactive`,
 };
-const emails = Object.fromEntries(Object.entries(ids).map(([key, id]) => [key, `${id}@example.test`])) as Record<keyof typeof ids, string>;
-const screenshots = ".local/test-output/mailchimp-bulk-email-e2e";
+const emails = Object.fromEntries(
+  Object.entries(ids).map(([key, id]) => [key, `${id}@example.test`]),
+) as Record<keyof typeof ids, string>;
+const screenshotDir = ".local/test-output/mailchimp-bulk-email-e2e";
 let browser: ReturnType<typeof spawn> | undefined;
 let profileDir = "";
 
@@ -52,7 +48,6 @@ function assertStatus(response: Response, expected: number, context: string) {
 
 async function cleanup(userIds = Object.values(ids)) {
   if (!userIds.length) return;
-  // All statements are scoped to this invocation's unguessable IDs only.
   await db.query("DELETE FROM email_campaign_recipients WHERE permission_confirmed_by = ANY($1)", [userIds]);
   await db.query("DELETE FROM email_campaigns WHERE created_by = ANY($1)", [userIds]);
   await db.query("DELETE FROM bulk_email_user_configs WHERE user_id = ANY($1)", [userIds]);
@@ -69,13 +64,14 @@ async function cleanup(userIds = Object.values(ids)) {
 
 async function seed() {
   const stale = await db.query("SELECT id FROM users WHERE id LIKE 'e2e\\_mailchimp\\_%' ESCAPE '\\'");
-  await cleanup(stale.rows.map((row) => row.id));
+  await cleanup(stale.rows.map(row => row.id));
   await cleanup();
   const hash = await bcrypt.hash(password, 10);
   const rows = [
     [ids.admin, emails.admin, "Admin", "Verifier", "admin", "admin"],
     [ids.salesA, emails.salesA, "Sales", "Alpha", "sales_executive", "sales"],
     [ids.salesB, emails.salesB, "Sales", "Bravo", "sales_executive", "sales"],
+    [ids.inactive, emails.inactive, "Inactive", "Verifier", "sales_executive", "sales"],
   ];
   for (const [id, email, firstName, lastName, role, department] of rows) {
     await db.query(
@@ -94,37 +90,23 @@ async function seed() {
      VALUES ($1, $2, 'active', $3, $3, 'manual') RETURNING id`,
     [`${runId} Company B`, `${runId}.b@example.test`, ids.salesB],
   );
-  const campaign = await db.query(
-    `INSERT INTO email_campaigns
-      (name, subject, html_content, created_by, from_name, reply_to_email, provider, status, provider_audience_id, idempotency_key, recipient_permission_basis, recipient_permission_confirmed_at, recipient_permission_confirmed_by)
-     VALUES ($1, 'Temporary verification', '<p>Not sent</p>', $2, 'Temporary verifier', $3, 'mailchimp', 'draft', 'test-audience', $4, 'test_only', NOW(), $2)
-     RETURNING id`,
-    [`${runId} Campaign A`, ids.salesA, emails.salesA, randomUUID()],
-  );
-  await db.query(
-    `INSERT INTO email_campaign_recipients (campaign_id, company_id, email, status, permission_basis, permission_confirmed_at, permission_confirmed_by)
-     VALUES ($1, $2, $3, 'pending', 'test_only', NOW(), $4)`,
-    [campaign.rows[0].id, companyA.rows[0].id, `${runId}.recipient@example.test`, ids.salesA],
-  );
-  return { companyA: companyA.rows[0].id as number, companyB: companyB.rows[0].id as number, campaignA: campaign.rows[0].id as number };
+  return { companyA: companyA.rows[0].id as number, companyB: companyB.rows[0].id as number };
 }
 
 async function login(email: string) {
-  const form = new URLSearchParams({ email, password });
   const response = await fetch(`${baseUrl}/admin/login`, {
-    method: "POST", body: form, redirect: "manual",
+    method: "POST",
+    body: new URLSearchParams({ email, password }),
+    redirect: "manual",
     headers: { "content-type": "application/x-www-form-urlencoded" },
   });
   assertStatus(response, 302, "staff login");
   const cookie = response.headers.getSetCookie?.()[0] || response.headers.get("set-cookie");
   assert.ok(cookie, "staff login did not create a session cookie");
-  const cookieHeader = cookie.split(";")[0];
-  const whoami = await fetch(`${baseUrl}/api/auth/user`, { headers: { cookie: cookieHeader } });
-  assertStatus(whoami, 200, "authenticated identity");
-  return cookieHeader;
+  return cookie.split(";")[0];
 }
 
-async function request(cookie: string, path: string, init?: RequestInit) {
+function request(cookie: string, path: string, init?: RequestInit) {
   return fetch(`${baseUrl}${path}`, { ...init, headers: { ...init?.headers, cookie } });
 }
 
@@ -135,19 +117,19 @@ class Cdp {
   private events = new Map<string, any[]>();
   constructor(url: string) {
     this.socket = new WebSocket(url);
-    this.socket.on("message", (message) => {
+    this.socket.on("message", message => {
       const data = JSON.parse(String(message));
       if (data.id) {
-        const request = this.pending.get(data.id);
+        const pending = this.pending.get(data.id);
         this.pending.delete(data.id);
-        data.error ? request?.reject(new Error(data.error.message)) : request?.resolve(data.result);
+        data.error ? pending?.reject(new Error(data.error.message)) : pending?.resolve(data.result);
       } else if (data.method) {
         this.events.set(data.method, [...(this.events.get(data.method) || []), data.params]);
       }
     });
   }
-  async open() {
-    await new Promise<void>((resolve, reject) => {
+  open() {
+    return new Promise<void>((resolve, reject) => {
       this.socket.once("open", resolve);
       this.socket.once("error", reject);
     });
@@ -168,13 +150,21 @@ class Cdp {
       try {
         if (await this.evaluate(expression)) return;
       } catch {
-        // Navigation replaces the JavaScript execution context. Retry against
-        // the new document rather than treating that transient CDP error as a
-        // failed assertion.
+        // Navigation can briefly replace the execution context.
       }
       await delay(100);
     }
     throw new Error(`Timed out waiting for UI condition: ${expression}`);
+  }
+  async waitForEvent(method: string, predicate: (params: any) => boolean, timeoutMs = 15_000) {
+    const until = Date.now() + timeoutMs;
+    while (Date.now() < until) {
+      const queue = this.events.get(method) || [];
+      const index = queue.findIndex(predicate);
+      if (index >= 0) return queue.splice(index, 1)[0];
+      await delay(50);
+    }
+    throw new Error(`Timed out waiting for CDP event: ${method}`);
   }
   close() { this.socket.close(); }
 }
@@ -183,18 +173,23 @@ async function openBrowser() {
   const chromium = process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium";
   if (!existsSync(chromium)) throw new Error("Chromium was not found at the configured path.");
   profileDir = `/tmp/${runId}-chromium`;
-  browser = spawn(chromium, ["--headless=new", "--no-first-run", "--no-default-browser-check", "--remote-debugging-port=0", `--user-data-dir=${profileDir}`, `${baseUrl}/login`], { stdio: "ignore" });
+  browser = spawn(chromium, [
+    "--headless=new", "--no-first-run", "--no-default-browser-check",
+    "--remote-debugging-port=0", `--user-data-dir=${profileDir}`, `${baseUrl}/login`,
+  ], { stdio: "ignore" });
   const portFile = `${profileDir}/DevToolsActivePort`;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (existsSync(portFile)) {
       const [port] = (await readFile(portFile, "utf8")).split("\n");
       const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json() as Array<{ type: string; webSocketDebuggerUrl: string }>;
-      const page = pages.find((entry) => entry.type === "page");
+      const page = pages.find(entry => entry.type === "page");
       if (page) {
         const cdp = new Cdp(page.webSocketDebuggerUrl);
         await cdp.open();
-        await cdp.send("Page.enable"); await cdp.send("Runtime.enable");
-        await cdp.send("Network.enable"); await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+        await cdp.send("Page.enable");
+        await cdp.send("Runtime.enable");
+        await cdp.send("Network.enable");
+        await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
         await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
         return cdp;
       }
@@ -207,317 +202,265 @@ async function openBrowser() {
 async function setBrowserSession(cdp: Cdp, cookie: string) {
   const separator = cookie.indexOf("=");
   assert.ok(separator > 0, "invalid session cookie");
-  await cdp.send("Network.enable");
   await cdp.send("Network.clearBrowserCookies");
   const result = await cdp.send("Network.setCookie", {
-    name: cookie.slice(0, separator),
-    value: cookie.slice(separator + 1),
-    url: baseUrl,
-    httpOnly: true,
-    secure: baseUrl.startsWith("https:"),
-    sameSite: "Lax",
+    name: cookie.slice(0, separator), value: cookie.slice(separator + 1),
+    url: baseUrl, httpOnly: true, secure: baseUrl.startsWith("https:"), sameSite: "Lax",
   });
-  assert.equal(result.success, true, "CDP did not accept the authenticated session cookie");
+  assert.equal(result.success, true, "CDP did not accept the session cookie");
   await cdp.send("Page.navigate", { url: `${baseUrl}/` });
   await cdp.waitFor("fetch('/api/auth/user').then(response => response.ok)");
 }
 
 async function screenshot(cdp: Cdp, name: string) {
-  await mkdir(screenshots, { recursive: true });
+  await mkdir(screenshotDir, { recursive: true });
   const image = await cdp.send("Page.captureScreenshot", { format: "png" });
-  await writeFile(`${screenshots}/${name}.png`, Buffer.from(image.data, "base64"));
+  await writeFile(`${screenshotDir}/${name}.png`, Buffer.from(image.data, "base64"));
 }
 
-async function checkUi(cdp: Cdp, path: string, expectSettings: boolean, screenshotName: string, companyId?: number, expectedReplyEmail?: string, expectConflict = false) {
+function pausedRequestIs(params: any, method: string, path: string) {
+  return params.request.method === method && params.request.url.split("?")[0] === `${baseUrl}${path}`;
+}
+
+async function assertSimplifiedDialog(cdp: Cdp, path: string, cookie: string, screenshotName: string) {
+  await setBrowserSession(cdp, cookie);
+  await cdp.send("Fetch.enable", {
+    patterns: [
+      { urlPattern: `${baseUrl}/api/email-campaigns/readiness`, requestStage: "Request" },
+      { urlPattern: `${baseUrl}/api/email-campaigns`, requestStage: "Request" },
+    ],
+  });
   await cdp.send("Page.navigate", { url: `${baseUrl}${path}` });
-  if (companyId) {
-    try {
-      await cdp.waitFor(`[...document.querySelectorAll('tr')].some(row => row.innerText.includes(${JSON.stringify(runId)}))`);
-    } catch (error) {
-      await screenshot(cdp, `${screenshotName}-selection-error`);
-      throw error;
-    }
-    await cdp.evaluate(`[...document.querySelectorAll('tr')].find(row => row.innerText.includes(${JSON.stringify(runId)}))?.querySelector('button')?.click()`);
+  if (path.includes("/admin/")) {
+    await cdp.waitFor(`[...document.querySelectorAll('tr')].some(row => row.innerText.includes(${JSON.stringify(runId)}))`);
+    await cdp.evaluate(`(() => {
+      const row = [...document.querySelectorAll('tr')].find(x => x.innerText.includes(${JSON.stringify(`${runId} Company A`)}));
+      const control = row?.querySelector('button[role=checkbox], input[type=checkbox], [role=checkbox]');
+      if (!control) throw new Error('temporary admin company selection control was not found');
+      control.click();
+    })()`);
   }
   try {
-    await cdp.waitFor(`document.body.innerText.includes('Bulk Email')`);
+    await cdp.waitFor("document.body.innerText.includes('Bulk Email')");
   } catch (error) {
     await screenshot(cdp, `${screenshotName}-route-error`);
-    throw error;
+    const page = await cdp.evaluate("({ url: location.href, text: document.body.innerText.slice(0, 1000) })");
+    throw new Error(`${String(error)}; page=${JSON.stringify(page)}`);
   }
-  await cdp.evaluate("[...document.querySelectorAll('button')].find(x => x.textContent?.trim() === 'Bulk Email')?.click()");
-  await cdp.waitFor("document.body.innerText.includes('Bulk Email Campaign')");
-  if (expectSettings) {
-    await delay(500);
-    const settingsPoint = await cdp.evaluate(`(() => {
-      const tab = [...document.querySelectorAll('[role=tab]')].find(x => x.textContent?.trim() === 'Settings');
-      if (!tab) return null;
-      const rect = tab.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    })()`);
-    assert.ok(settingsPoint, "admin bulk-email Settings tab was not found");
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      if (await cdp.evaluate("[...document.querySelectorAll('[role=dialog] [role=tab]')].some(tab => tab.textContent?.trim() === 'Settings' && tab.getAttribute('aria-selected') === 'true')")) break;
-      await cdp.evaluate("[...document.querySelectorAll('[role=dialog] [role=tab]')].find(tab => tab.textContent?.trim() === 'Settings')?.click()");
-      await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: settingsPoint.x, y: settingsPoint.y, button: "left", clickCount: 1 });
-      await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: settingsPoint.x, y: settingsPoint.y, button: "left", clickCount: 1 });
-      await delay(100);
-    }
+  await cdp.evaluate("[...document.querySelectorAll('button')].find(x => x.textContent?.includes('Bulk Email'))?.click()");
+
+  const readinessPause = await cdp.waitForEvent(
+    "Fetch.requestPaused",
+    params => pausedRequestIs(params, "GET", "/api/email-campaigns/readiness"),
+  );
+  const readiness = {
+    ready: true,
+    provider: "mailchimp",
+    configured: true,
+    writeAccess: true,
+    audienceId: `${runId}-synthetic-browser-audience`,
+    audienceName: "Synthetic intercepted audience",
+    fromEmail: fixedAddress,
+    fromName: "Bright Fame Organic",
+    replyToEmail: fixedAddress,
+    message: "Synthetic browser readiness response.",
+    isAdmin: path.includes("/admin/"),
+  };
+  await cdp.send("Fetch.fulfillRequest", {
+    requestId: readinessPause.requestId,
+    responseCode: 200,
+    responseHeaders: [{ name: "content-type", value: "application/json" }],
+    body: Buffer.from(JSON.stringify(readiness)).toString("base64"),
+  });
+  await cdp.waitFor("document.querySelector('[role=dialog]')?.innerText.includes('Bulk Email Campaign')");
+  await cdp.waitFor(`document.querySelector('[role=dialog]')?.innerText.includes(${JSON.stringify(fixedAddress)})`);
+  const forbidden = ["Settings", "Audience:", "Save shared configuration", "Enable access", "Agent access"];
+  for (const text of forbidden) {
     assert.equal(
-      await cdp.evaluate("[...document.querySelectorAll('[role=dialog] [role=tab]')].some(tab => tab.textContent?.trim() === 'Settings' && tab.getAttribute('aria-selected') === 'true')"),
-      true,
-      "admin bulk-email Settings tab did not activate",
-    );
-    await cdp.waitFor("document.querySelector('[role=dialog]')?.innerText.includes('Shared Mailchimp sales configuration')");
-    assert.equal(
-      await cdp.evaluate("document.querySelector('[role=dialog]')?.innerText.includes('Intended Reply-To')"),
-      true,
-      "admin settings must label agent routing as Intended Reply-To",
-    );
-    for (const label of ["Audience", "Verified sender email", "Sender display name"]) {
-      const visible = await cdp.evaluate(`[...document.querySelectorAll('[role=dialog] label')].some(item => item.textContent?.trim() === ${JSON.stringify(label)})`);
-      if (!visible) await screenshot(cdp, `${screenshotName}-form-error`);
-      assert.equal(visible, true, `admin shared setup must show ${label}`);
-    }
-    assert.equal(
-      await cdp.evaluate("[...document.querySelectorAll('[role=dialog] button')].some(button => button.textContent?.trim() === 'Save shared configuration')"),
-      true,
-      "admin shared setup must show Save shared configuration",
-    );
-    for (const action of ["Save shared configuration", "Save & enable all eligible agents"]) {
-      assert.equal(
-        await cdp.evaluate(`[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent?.trim() === ${JSON.stringify(action)})?.disabled`),
-        true,
-        `${action} must stay disabled while shared setup is invalid`,
-      );
-    }
-    if (expectConflict) {
-      assert.equal(await cdp.evaluate(`(() => {
-        const text = document.querySelector('#shared-mailchimp-audience')?.textContent?.trim() || "";
-        return text.length > 0 && !text.includes("No audience selected");
-      })()`), true, "conflict draft must visibly retain its common audience");
-      assert.ok(await cdp.evaluate("document.querySelector('#shared-mailchimp-from-email')?.value"), "conflict draft must retain its common sender email");
-      assert.equal(await cdp.evaluate("document.querySelector('#shared-mailchimp-from-name')?.value"), "", "conflict draft must leave differing sender names blank");
-      assert.equal(await cdp.evaluate("Boolean(document.querySelector('#shared-mailchimp-from-name-error')?.textContent?.trim())"), true, "conflict draft must show a sender-name field error");
-      assert.equal(await cdp.evaluate("document.querySelectorAll('[aria-label=\"Existing sender name choices\"] button').length >= 2"), true, "conflict draft must offer legacy sender-name choices");
-      await cdp.evaluate("document.querySelector('[aria-label=\"Existing sender name choices\"] button')?.click()");
-      await delay(100);
-      for (const action of ["Save shared configuration", "Save & enable all eligible agents"]) {
-        assert.equal(
-          await cdp.evaluate(`[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent?.trim() === ${JSON.stringify(action)})?.disabled`),
-          false,
-          `choosing a legacy sender name must enable ${action}`,
-        );
-      }
-      await screenshot(cdp, screenshotName);
-      return;
-    }
-    const unsavedSenderName = `Unsaved ${runId.slice(-10)}`;
-    await cdp.evaluate(`(() => {
-      const label = [...document.querySelectorAll('[role=dialog] label')].find(item => item.textContent?.trim() === 'Sender display name');
-      const input = label?.parentElement?.querySelector('input');
-      if (!input) throw new Error('Sender display name input was not found');
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-      setter.call(input, ${JSON.stringify(unsavedSenderName)});
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    })()`);
-    const refreshPoint = await cdp.evaluate(`(() => {
-      const button = [...document.querySelectorAll('[role=dialog] button')].find(item => item.textContent?.trim() === 'Refresh');
-      if (!button) return null;
-      const rect = button.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    })()`);
-    assert.ok(refreshPoint, "admin Settings Refresh button was not found");
-    await cdp.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(item => item.textContent?.trim() === 'Refresh')?.click()");
-    await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: refreshPoint.x, y: refreshPoint.y, button: "left", clickCount: 1 });
-    await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: refreshPoint.x, y: refreshPoint.y, button: "left", clickCount: 1 });
-    await delay(1_500);
-    assert.equal(
-      await cdp.evaluate(`(() => {
-        const label = [...document.querySelectorAll('[role=dialog] label')].find(item => item.textContent?.trim() === 'Sender display name');
-        return label?.parentElement?.querySelector('input')?.value;
-      })()`),
-      unsavedSenderName,
-      "Refresh must preserve an unsaved sender display name when the server configuration signature is unchanged",
-    );
-  } else {
-    assert.equal(
-      await cdp.evaluate("[...document.querySelectorAll('[role=dialog] [role=tab]')].some(tab => tab.textContent?.trim() === 'Settings')"),
+      await cdp.evaluate(`document.querySelector('[role=dialog]')?.innerText.includes(${JSON.stringify(text)})`),
       false,
-      "sales bulk-email dialog must not expose the settings tab",
+      `simplified ${screenshotName} dialog must not expose ${text}`,
     );
-    if (expectedReplyEmail) {
-      await cdp.waitFor(`document.querySelector('[role=dialog]')?.innerText.includes(${JSON.stringify(expectedReplyEmail)})`);
-    }
   }
+  assert.equal(
+    await cdp.evaluate("document.querySelectorAll('[role=dialog] [role=tab]').length"),
+    2,
+    "simplified bulk-email dialog must contain only Compose Email and Past Campaigns",
+  );
   await screenshot(cdp, screenshotName);
+  await cdp.send("Fetch.disable");
+}
+
+async function interceptUiSend(cdp: Cdp, cookie: string, companyId: number) {
+  await setBrowserSession(cdp, cookie);
+  await cdp.send("Fetch.enable", {
+    patterns: [
+      { urlPattern: `${baseUrl}/api/email-campaigns/readiness`, requestStage: "Request" },
+      { urlPattern: `${baseUrl}/api/email-campaigns`, requestStage: "Request" },
+    ],
+  });
+  await cdp.send("Page.navigate", { url: `${baseUrl}/sales/my-companies` });
+  await cdp.waitFor("document.body.innerText.includes('Bulk Email')");
+  await cdp.evaluate("[...document.querySelectorAll('button')].find(x => x.textContent?.includes('Bulk Email'))?.click()");
+  const readinessPause = await cdp.waitForEvent(
+    "Fetch.requestPaused",
+    params => pausedRequestIs(params, "GET", "/api/email-campaigns/readiness"),
+  );
+  await cdp.send("Fetch.fulfillRequest", {
+    requestId: readinessPause.requestId,
+    responseCode: 200,
+    responseHeaders: [{ name: "content-type", value: "application/json" }],
+    body: Buffer.from(JSON.stringify({
+      ready: true, provider: "mailchimp", configured: true, writeAccess: true,
+      audienceId: `${runId}-synthetic-browser-audience`, audienceName: "Synthetic intercepted audience",
+      fromEmail: fixedAddress, fromName: "Bright Fame Organic", replyToEmail: fixedAddress,
+      message: "Synthetic browser readiness response.", isAdmin: false,
+    })).toString("base64"),
+  });
+  await cdp.waitFor(`document.querySelector('[role=dialog]')?.innerText.includes(${JSON.stringify(`${runId} Company A`)})`);
+  await cdp.evaluate(`(() => {
+    const text = ${JSON.stringify(`${runId} Company A`)};
+    const leaf = [...document.querySelectorAll('[role=dialog] p')].find(x => x.textContent?.trim() === text);
+    leaf?.closest('.cursor-pointer')?.click();
+    const setValue = (id, value) => {
+      const input = document.getElementById(id);
+      if (!input) throw new Error(id + ' was not found');
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(input, value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    setValue('campaignName', ${JSON.stringify(`${runId} Synthetic Campaign`)});
+    setValue('subject', 'Synthetic verification subject');
+    const editor = document.querySelector('[role=dialog] [contenteditable=true]');
+    if (!editor) throw new Error('email editor was not found');
+    editor.innerHTML = '<p>Synthetic verification content; this is never sent.</p>';
+    editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'synthetic' }));
+    document.getElementById('permissionConfirmed')?.click();
+  })()`);
+  await cdp.waitFor("[...document.querySelectorAll('[role=dialog] button')].some(x => x.textContent?.includes('Send to 1 Companies') && !x.disabled)");
+  await screenshot(cdp, "sales-send-ready");
+  await cdp.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(x => x.textContent?.includes('Send to 1 Companies'))?.click()");
+  const sendPause = await cdp.waitForEvent(
+    "Fetch.requestPaused",
+    params => pausedRequestIs(params, "POST", "/api/email-campaigns"),
+  );
+  assert.ok(sendPause.request.postData, "intercepted send request had no body");
+  const payload = JSON.parse(sendPause.request.postData);
+  assert.deepEqual(payload.companyIds, [companyId], "UI send payload must contain only the assigned company");
+  assert.equal(payload.name, `${runId} Synthetic Campaign`, "UI send payload campaign name");
+  assert.equal(payload.subject, "Synthetic verification subject", "UI send payload subject");
+  assert.match(payload.htmlContent, /Synthetic verification content/, "UI send payload HTML content");
+  assert.equal(payload.permissionConfirmed, true, "UI send payload must include explicit recipient consent");
+  assert.match(payload.idempotencyKey, /^[0-9a-f-]{36}$/i, "UI send payload must include an idempotency UUID");
+  assert.equal("fromEmail" in payload, false, "client must not submit configurable sender fields");
+  assert.equal("replyToEmail" in payload, false, "client must not submit configurable reply-to fields");
+  await cdp.send("Fetch.fulfillRequest", {
+    requestId: sendPause.requestId,
+    responseCode: 200,
+    responseHeaders: [{ name: "content-type", value: "application/json" }],
+    body: Buffer.from(JSON.stringify({
+      success: true, campaignId: 987654321, status: "sent", sent: 1, failed: 0,
+      excluded: 0, message: "Synthetic intercepted result; no network send occurred.",
+    })).toString("base64"),
+  });
+  const campaignsPause = await cdp.waitForEvent(
+    "Fetch.requestPaused",
+    params => pausedRequestIs(params, "GET", "/api/email-campaigns"),
+  );
+  await cdp.send("Fetch.fulfillRequest", {
+    requestId: campaignsPause.requestId,
+    responseCode: 200,
+    responseHeaders: [{ name: "content-type", value: "application/json" }],
+    body: Buffer.from("[]").toString("base64"),
+  });
+  await cdp.waitFor("document.body.innerText.includes('Synthetic intercepted result; no network send occurred.')");
+  await screenshot(cdp, "sales-synthetic-send-result");
+  await cdp.send("Fetch.disable");
+}
+
+async function stopBrowser() {
+  if (browser && browser.exitCode === null) {
+    browser.kill("SIGTERM");
+    await Promise.race([
+      new Promise<void>(resolve => browser!.once("exit", () => resolve())),
+      delay(3_000).then(() => undefined),
+    ]);
+  }
+  if (profileDir) await rm(profileDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  browser = undefined;
+  profileDir = "";
 }
 
 async function main() {
   const fixtures = await seed();
   try {
-    const [adminCookie, salesACookie, salesBCookie] = await Promise.all([login(emails.admin), login(emails.salesA), login(emails.salesB)]);
-    const adminConfigurations = await request(adminCookie, "/api/email-campaigns/configurations");
-    assertStatus(adminConfigurations, 200, "admin configurations");
-    const configBody = await adminConfigurations.json();
-    assert.ok(Array.isArray(configBody.users) && "sharedConfiguration" in configBody && "conflicts" in configBody, "configuration contract");
-    const invalidShared = await request(adminCookie, "/api/email-campaigns/configurations/shared", {
-      method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ audienceId: null, fromEmail: null, fromName: null }),
-    });
-    assertStatus(invalidShared, 400, "invalid shared configuration");
-    const invalidSharedBody = await invalidShared.json();
-    for (const field of ["audienceId", "fromEmail", "fromName"]) {
-      assert.ok(invalidSharedBody.errors?.[field], `invalid shared configuration must return a ${field} field error`);
+    const [adminCookie, salesACookie, salesBCookie, inactiveCookie] = await Promise.all([
+      login(emails.admin), login(emails.salesA), login(emails.salesB), login(emails.inactive),
+    ]);
+    // No mailbox/config fixtures exist: automatic access and fixed routing must
+    // work from account eligibility alone.
+    const configRows = await db.query(
+      "SELECT user_id FROM bulk_email_user_configs WHERE user_id = ANY($1)",
+      [Object.values(ids)],
+    );
+    const mailboxRows = await db.query(
+      "SELECT user_id FROM user_email_configs WHERE user_id = ANY($1)",
+      [Object.values(ids)],
+    );
+    assert.equal(configRows.rowCount, 0, "verification users must have no bulk-email config fixtures");
+    assert.equal(mailboxRows.rowCount, 0, "verification users must have no mailbox fixtures");
+
+    for (const [label, cookie] of [["admin", adminCookie], ["sales A", salesACookie], ["sales B", salesBCookie]] as const) {
+      const response = await request(cookie, "/api/email-campaigns/readiness");
+      assertStatus(response, 200, `${label} readiness`);
+      const body = await response.json();
+      assert.equal(body.fromEmail, fixedAddress, `${label} readiness fixed From`);
+      assert.equal(body.replyToEmail, fixedAddress, `${label} readiness fixed Reply-To`);
+      assert.doesNotMatch(String(body.message || ""), /access is disabled|mailbox|required/i, `${label} readiness must not require access/config/mailbox setup`);
     }
-    assert.notEqual(invalidSharedBody.message, "Validation failed", "invalid shared configuration must return a human field-validation message");
-    const invalidEnableAll = await request(adminCookie, "/api/email-campaigns/configurations/shared", {
-      method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ audienceId: null, fromEmail: null, fromName: null, enableAll: "true" }),
-    });
-    assertStatus(invalidEnableAll, 400, "invalid shared enableAll type");
-    assert.ok((await invalidEnableAll.json()).errors?.enableAll, "invalid enableAll type must be reported as a field error");
-    assertStatus(await request(salesACookie, "/api/email-campaigns/configurations"), 403, "sales configurations forbidden");
-    assertStatus(await request(salesACookie, "/api/email-campaigns/mailchimp/audiences"), 403, "sales audiences forbidden");
-    assertStatus(await request(salesACookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
-      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: false }),
-    }), 403, "sales self-access toggle forbidden");
-    assertStatus(await request(salesACookie, "/api/email-campaigns/configurations/enable-all", {
-      method: "POST",
-    }), 403, "sales enable-all forbidden");
-    const readinessA = await (await request(salesACookie, "/api/email-campaigns/readiness")).json();
-    const readinessB = await (await request(salesBCookie, "/api/email-campaigns/readiness")).json();
-    assert.equal(readinessA.replyToEmail, emails.salesA, "sales A readiness must use its valid staff-email fallback");
-    assert.equal(readinessB.replyToEmail, emails.salesB, "sales B readiness must use its valid staff-email fallback");
-    assert.notEqual(readinessA.replyToEmail, readinessB.replyToEmail, "sales readiness reply addresses must remain distinct");
-    const disableA = await request(adminCookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
-      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: false }),
-    });
-    assertStatus(disableA, 200, "admin temporary-agent disable");
-    const afterDisable = await (await request(adminCookie, "/api/email-campaigns/configurations")).json();
-    const temporaryA = afterDisable.users.find((entry: any) => entry.user.id === ids.salesA);
-    assert.equal(temporaryA?.configuration?.isEnabled ?? false, false, "temporary agent must be disabled or unconfigured");
-    const sharedResolved = !!configBody.sharedConfiguration && configBody.conflicts.length === 0;
-    if (!sharedResolved) {
-      const enableA = await request(adminCookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
-        method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: true }),
-      });
-      assertStatus(enableA, 409, "admin temporary-agent enable without resolved shared setup");
-    }
-    assertStatus(await request(salesACookie, `/api/email-campaigns/${fixtures.campaignA}`), 200, "owner campaign");
-    assertStatus(await request(salesBCookie, `/api/email-campaigns/${fixtures.campaignA}`), 404, "cross-agent campaign");
-    assertStatus(await request(salesBCookie, `/api/email-campaigns/${fixtures.campaignA}/recipients`), 404, "cross-agent recipients");
-    assertStatus(await request(adminCookie, `/api/email-campaigns/${fixtures.campaignA}`), 200, "admin campaign");
+
     const salesACompanies = await (await request(salesACookie, "/api/email-campaigns/companies")).json();
     const salesBCompanies = await (await request(salesBCookie, "/api/email-campaigns/companies")).json();
-    assert.ok(salesACompanies.some((company: any) => company.id === fixtures.companyA) && !salesACompanies.some((company: any) => company.id === fixtures.companyB), "sales A company isolation");
-    assert.ok(salesBCompanies.some((company: any) => company.id === fixtures.companyB) && !salesBCompanies.some((company: any) => company.id === fixtures.companyA), "sales B company isolation");
+    assert.ok(salesACompanies.some((company: any) => company.id === fixtures.companyA), "sales A sees assigned company");
+    assert.ok(!salesACompanies.some((company: any) => company.id === fixtures.companyB), "sales A cannot see sales B company");
+    assert.ok(salesBCompanies.some((company: any) => company.id === fixtures.companyB), "sales B sees assigned company");
+    assert.ok(!salesBCompanies.some((company: any) => company.id === fixtures.companyA), "sales B cannot see sales A company");
+
+    // Retired mutation routes must fail before any provider work. This verifies
+    // that neither administrators nor staff can restore manual setup/access.
+    assertStatus(await request(adminCookie, "/api/email-campaigns/configurations/shared", {
+      method: "PUT", headers: { "content-type": "application/json" }, body: "{}",
+    }), 410, "admin manual shared configuration retired");
+    assertStatus(await request(adminCookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
+      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: false }),
+    }), 410, "admin manual access control retired");
+    assertStatus(await request(adminCookie, "/api/email-campaigns/configurations/enable-all", {
+      method: "POST",
+    }), 410, "admin enable-all control retired");
+    assertStatus(await request(salesACookie, `/api/email-campaigns/configurations/${ids.salesA}/access`, {
+      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: false }),
+    }), 403, "staff manual access control forbidden");
+
+    // Preserve the authenticated session, then make this test-owned user
+    // inactive to verify server-side eligibility without touching real users.
+    await db.query("UPDATE users SET account_status = 'inactive', is_active = false WHERE id = $1", [ids.inactive]);
+    assertStatus(await request(inactiveCookie, "/api/email-campaigns/companies"), 403, "inactive sender companies rejected");
+    const inactiveReadinessResponse = await request(inactiveCookie, "/api/email-campaigns/readiness");
+    assertStatus(inactiveReadinessResponse, 200, "inactive sender readiness");
+    assert.equal((await inactiveReadinessResponse.json()).ready, false, "inactive sender readiness must be false");
 
     const cdp = await openBrowser();
     try {
-      await setBrowserSession(cdp, adminCookie);
-      await checkUi(cdp, "/admin/dashboard/crm/companies", true, "admin-settings", fixtures.companyA);
-      await setBrowserSession(cdp, salesACookie);
-      await checkUi(cdp, "/sales/my-companies", false, "sales-compose", undefined, emails.salesA);
+      await assertSimplifiedDialog(cdp, "/admin/dashboard/crm/companies", adminCookie, "admin-simplified");
+      await assertSimplifiedDialog(cdp, "/sales/my-companies", salesACookie, "sales-simplified");
+      await interceptUiSend(cdp, salesACookie, fixtures.companyA);
     } finally {
       cdp.close();
     }
-    if (browser && browser.exitCode === null) {
-      browser.kill("SIGTERM");
-      await Promise.race([
-        new Promise<void>((resolve) => browser!.once("exit", () => resolve())),
-        delay(3_000).then(() => undefined),
-      ]);
-    }
-    if (profileDir) await rm(profileDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-    browser = undefined;
-    profileDir = "";
-    const configCount = await db.query("SELECT count(*)::int AS count FROM bulk_email_user_configs");
-    const blankSharedSetup = !configBody.sharedConfiguration &&
-      configBody.conflicts.length === 0 &&
-      configCount.rows[0].count === 0;
-    if (blankSharedSetup) {
-      // This local, disabled row is test-owned and exists only to exercise the
-      // positive access route after screenshots captured the true blank setup.
-      await db.query(
-        `INSERT INTO bulk_email_user_configs
-          (user_id, audience_id, from_email, from_name, enabled, ready_at, last_checked_at, readiness_error)
-         VALUES ($1, $2, $3, $4, false, NULL, NOW(), NULL)`,
-        [ids.admin, `${runId}-audience`, emails.admin, `${runId} synthetic sender`],
-      );
-    }
-    // A second disabled temporary row deliberately reproduces a legacy
-    // name-only conflict without touching any existing account row. When a
-    // real shared setup exists, it is only read and its common values are
-    // copied into this disposable row.
-    const conflictBase = blankSharedSetup
-      ? { audienceId: `${runId}-audience`, fromEmail: emails.admin, fromName: `${runId} synthetic sender` }
-      : sharedResolved
-        ? configBody.sharedConfiguration
-        : null;
-    if (conflictBase) {
-      await db.query(
-        `INSERT INTO bulk_email_user_configs
-          (user_id, audience_id, from_email, from_name, enabled, ready_at, last_checked_at, readiness_error)
-         VALUES ($1, $2, $3, $4, false, NULL, NOW(), NULL)`,
-        [ids.salesA, conflictBase.audienceId, conflictBase.fromEmail, `${runId} alternate sender`],
-      );
-      const conflictCdp = await openBrowser();
-      try {
-        await setBrowserSession(conflictCdp, adminCookie);
-        await checkUi(conflictCdp, "/admin/dashboard/crm/companies", true, "conflict-settings", fixtures.companyA, undefined, true);
-      } finally {
-        conflictCdp.close();
-      }
-      await db.query("DELETE FROM bulk_email_user_configs WHERE user_id = $1", [ids.salesA]);
-    }
-    if (sharedResolved || blankSharedSetup) {
-      for (const userId of [ids.salesA, ids.salesB]) {
-        assertStatus(await request(adminCookie, `/api/email-campaigns/configurations/${userId}/access`, {
-          method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: true }),
-        }), 200, `admin temporary-agent positive enable ${userId === ids.salesA ? "A" : "B"}`);
-      }
-      const afterPositiveEnable = await (await request(adminCookie, "/api/email-campaigns/configurations")).json();
-      for (const userId of [ids.salesA, ids.salesB]) {
-        assert.equal(
-          afterPositiveEnable.users.find((entry: any) => entry.user.id === userId)?.configuration?.isEnabled,
-          true,
-          "temporary agent must reflect enabled access",
-        );
-      }
-      if (blankSharedSetup) {
-        assert.equal(
-          afterPositiveEnable.users.find((entry: any) => entry.user.id === ids.admin)?.configuration?.isEnabled,
-          false,
-          "test-owned shared holder must remain disabled",
-        );
-      }
-      for (const userId of [ids.salesA, ids.salesB]) {
-        assertStatus(await request(adminCookie, `/api/email-campaigns/configurations/${userId}/access`, {
-          method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ isEnabled: false }),
-        }), 200, `admin temporary-agent positive disable ${userId === ids.salesA ? "A" : "B"}`);
-      }
-      const afterPositiveDisable = await (await request(adminCookie, "/api/email-campaigns/configurations")).json();
-      for (const userId of [ids.salesA, ids.salesB]) {
-        assert.equal(
-          afterPositiveDisable.users.find((entry: any) => entry.user.id === userId)?.configuration?.isEnabled,
-          false,
-          "temporary agent must reflect disabled access",
-        );
-      }
-    }
-    console.log("PASS: authenticated API isolation and CDP UI checks completed; no provider write/send endpoint was called.");
+    await stopBrowser();
+    console.log(`PASS: automatic fixed-address readiness, assigned-company isolation, inactive rejection, simplified admin/staff UI, and safely intercepted UI payload verified. Screenshots: ${screenshotDir}/admin-simplified.png, sales-simplified.png, sales-send-ready.png, sales-synthetic-send-result.png. No provider write or send request reached the network.`);
   } finally {
-    if (browser && browser.exitCode === null) {
-      browser.kill("SIGTERM");
-      await Promise.race([
-        new Promise<void>((resolve) => browser!.once("exit", () => resolve())),
-        delay(3_000).then(() => undefined),
-      ]);
-    }
-    if (profileDir) {
-      await rm(profileDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-    }
+    await stopBrowser();
   }
 }
 
