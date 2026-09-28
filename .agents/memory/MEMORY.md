@@ -23,3 +23,4 @@
 - [Mailchimp send retry safety](mailchimp-send-retry-safety.md) — uncertain or externally prepared bulk sends must reconcile, never retry; keep hosted attachments live until non-delivery is confirmed.
 - [Shared Mailchimp routing](shared-mailchimp-routing.md) — owner approved shared sales From AND Reply-To; automatic staff access, no setup tab; other mail services stay separate.
 - [Neon pool maintenance errors](neon-pool-maintenance.md) — listen for idle pool errors; PostgreSQL `57P01` can otherwise terminate the Node process after database maintenance.
+- [Mockup sandbox dependency readiness](mockup-sandbox-dependencies.md) — a new sandbox can serve HTTP 200 before its nested dependencies are ready; verify rendered previews, not just route status.
