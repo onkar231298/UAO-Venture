@@ -2324,11 +2324,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Get user's inquiries
   app.get('/api/inquiries', isAuthenticated, async (req: any, res) => {
     try {
-      console.log('Admin inquiries request - User:', req.user);
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      console.log('Found user:', user);
+      console.log('Found inquiries user:', user ? { id: user.id, role: user.role, isActive: user.isActive } : null);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
