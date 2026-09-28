@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["web", "nodejs-22", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -51,3 +51,4 @@ integrations = ["javascript_object_storage:1.0.0", "javascript_database:1.0.0", 
 [userenv.shared]
 AWS_DOCUMENTS_BUCKET_NAME = "eurka-unjha-bucket-production"
 EMAIL_LOGO_URL = "https://bright-organic.com/bfi-logo.png"
+AWS_S3_BUCKET_NAME = "eurka-unjha-bucket-production"

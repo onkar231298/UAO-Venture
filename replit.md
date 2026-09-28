@@ -168,3 +168,8 @@ Preferred communication style: Simple, everyday language.
 - **Radix UI**: Provides accessible and unstyled component primitives.
 - **Lucide React**: An icon library for various UI elements.
 - **Date-fns**: Utilized for efficient date manipulation operations.
+
+## Replit Setup
+- **Run locally in Replit**: `npm run dev` through the configured `Start application` workflow on port 5000.
+- **Development database**: Apply the current schema with `npm run db:push` before the first run when the database is empty.
+- **Optional services**: AWS S3, email, AI, reCAPTCHA, and voice integrations require their corresponding environment variables. The public site can run without those service credentials, but related features remain unavailable.
