@@ -17,7 +17,7 @@ export default function AboutUs() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              About Bright Fame Organic
+              About Cape NatureX Organic
             </h1>
             <p className="text-xl opacity-90 mb-8">
               Committed to providing the highest quality organic and conventionally grown natural ingredients, 
@@ -36,7 +36,7 @@ export default function AboutUs() {
             <div className="mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
               <p className="text-lg text-gray-700 leading-relaxed mb-6">
-                At Bright Fame Organic, we are committed to providing the highest quality organic and conventionally grown natural ingredients, 
+                At Cape NatureX Organic, we are committed to providing the highest quality organic and conventionally grown natural ingredients,
                 always GMO-free and sourced with care. Our mission is to bridge the gap between traditional agriculture and modern food, 
                 nutraceutical, and herbal industries — delivering products that are safe, pure, and sustainably produced.
               </p>
@@ -294,7 +294,7 @@ export default function AboutUs() {
               <Globe2 className="w-12 h-12 text-green-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Our Promise</h2>
               <p className="text-lg text-gray-700">
-                At Bright Fame Organic, we don't just deliver ingredients — we deliver trust, quality, and sustainability, 
+                At Cape NatureX Organic, we don't just deliver ingredients — we deliver trust, quality, and sustainability,
                 from farm to final product.
               </p>
             </div>

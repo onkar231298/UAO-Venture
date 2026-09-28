@@ -7,7 +7,7 @@ const page = (overrides: Partial<SeoPage> = {}): SeoPage => ({
   type: "product",
   url: "https://bright-organic.com/products/turmeric",
   title: "Organic Turmeric Powder Supplier from India",
-  description: "Source certified organic turmeric powder for food and ingredient applications from Bright Fame Organic in India.",
+  description: "Source certified organic turmeric powder for food and ingredient applications from Cape NatureX Organic in India.",
   content: "Detailed factual product information ".repeat(8),
   image: "/turmeric.webp",
   canonicalUrl: "https://bright-organic.com/products/turmeric",

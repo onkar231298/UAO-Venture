@@ -19,7 +19,7 @@ interface HealthSupport {
 export default function HealthSupport() {
   // SEO optimization for health support main page
   useSEO({
-    title: "Health Support Categories - Organic Ingredients for Wellness | Bright Fame Organic",
+    title: "Health Support Categories - Organic Ingredients for Wellness | Cape NatureX Organic",
     description: "Explore our comprehensive range of organic ingredients categorized by health benefits. Find natural solutions for immune health, digestive wellness, stress relief, energy support, and more. Premium B2B organic ingredients for your wellness products.",
     keywords: "health support ingredients, organic wellness solutions, immune health herbs, digestive health supplements, stress relief natural ingredients, energy support botanicals, anti-inflammatory herbs, antioxidant extracts",
     canonicalUrl: `${window.location.origin}/health-support`,

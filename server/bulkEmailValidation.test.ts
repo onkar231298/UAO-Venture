@@ -49,7 +49,7 @@ test("only active sales and admin roles can bulk send", () => {
 test("bulk campaigns always use the approved shared identity independent of staff mailboxes", () => {
   assert.equal(BULK_EMAIL_FROM_EMAIL, "sales@bright-organic.com");
   assert.equal(BULK_EMAIL_REPLY_TO_EMAIL, "sales@bright-organic.com");
-  assert.equal(BULK_EMAIL_FROM_NAME, "Bright Fame Organic");
+  assert.equal(BULK_EMAIL_FROM_NAME, "Cape NatureX Organic");
   assert.notEqual(BULK_EMAIL_REPLY_TO_EMAIL, "agent@bright-organic.com");
 });
 
@@ -115,7 +115,7 @@ test("shared configuration normalizes duplicates and exposes distinct legacy con
     { audienceId: "audience", fromEmail: " SALES@example.com ", fromName: " Sales " },
     { audienceId: "audience", fromEmail: "sales@example.com", fromName: "Sales" },
   ]), {
-    configuration: { audienceId: "audience", fromEmail: "sales@bright-organic.com", fromName: "Bright Fame Organic" },
+    configuration: { audienceId: "audience", fromEmail: "sales@bright-organic.com", fromName: "Cape NatureX Organic" },
     conflicts: [],
   });
   const result = resolveSharedMailchimpConfiguration([
@@ -131,7 +131,7 @@ test("legacy display-name and enabled-era sender differences do not conflict", (
     { audienceId: "same", fromEmail: "other@example.com", fromName: "Agent Two" },
   ]);
   assert.deepEqual(result.conflicts, []);
-  assert.equal(result.configuration?.fromName, "Bright Fame Organic");
+  assert.equal(result.configuration?.fromName, "Cape NatureX Organic");
 });
 
 test("automatic audience uses unanimous legacy id or the sole provider audience", () => {

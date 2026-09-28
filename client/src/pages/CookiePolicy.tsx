@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function CookiePolicy() {
   useEffect(() => {
-    document.title = "Cookie Policy - Bright Fame Organic";
+    document.title = "Cookie Policy - Cape NatureX Organic";
   }, []);
 
   return (
@@ -181,7 +181,7 @@ export default function CookiePolicy() {
               </p>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Bright Fame Organic Pvt. Ltd.</strong><br />
+                  <strong>Cape NatureX Organic Pvt. Ltd.</strong><br />
                   Email: admin@bright-organic.com<br />
                   Address: Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001<br />
                   Phone: +91-7249847439

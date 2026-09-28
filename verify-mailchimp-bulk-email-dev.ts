@@ -261,7 +261,7 @@ async function assertSimplifiedDialog(cdp: Cdp, path: string, cookie: string, sc
     audienceId: `${runId}-synthetic-browser-audience`,
     audienceName: "Synthetic intercepted audience",
     fromEmail: fixedAddress,
-    fromName: "Bright Fame Organic",
+    fromName: "Cape NatureX Organic",
     replyToEmail: fixedAddress,
     message: "Synthetic browser readiness response.",
     isAdmin: path.includes("/admin/"),
@@ -313,7 +313,7 @@ async function interceptUiSend(cdp: Cdp, cookie: string, companyId: number) {
     body: Buffer.from(JSON.stringify({
       ready: true, provider: "mailchimp", configured: true, writeAccess: true,
       audienceId: `${runId}-synthetic-browser-audience`, audienceName: "Synthetic intercepted audience",
-      fromEmail: fixedAddress, fromName: "Bright Fame Organic", replyToEmail: fixedAddress,
+      fromEmail: fixedAddress, fromName: "Cape NatureX Organic", replyToEmail: fixedAddress,
       message: "Synthetic browser readiness response.", isAdmin: false,
     })).toString("base64"),
   });

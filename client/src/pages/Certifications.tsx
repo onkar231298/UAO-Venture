@@ -8,12 +8,12 @@ import Footer from "@/components/Footer";
 
 export default function Certifications() {
   useEffect(() => {
-    document.title = 'Our Certifications | Bright Fame Organic - Quality Assurance & Compliance';
+    document.title = 'Our Certifications | Cape NatureX Organic - Quality Assurance & Compliance';
     
     // Add meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Bright Fame Organic holds USDA Organic, EU Organic, ISO 22000, HACCP, and GMP certifications. Learn about our quality assurance standards and compliance certifications for organic ingredients.');
+      metaDescription.setAttribute('content', 'Cape NatureX Organic holds USDA Organic, EU Organic, ISO 22000, HACCP, and GMP certifications. Learn about our quality assurance standards and compliance certifications for organic ingredients.');
     }
   }, []);
 
@@ -134,8 +134,8 @@ export default function Certifications() {
   return (
     <div className="min-h-screen flex flex-col">
       <EnhancedSEOHead 
-        title="Our Certifications | Bright Fame Organic - Quality Assurance & Compliance"
-        description="Bright Fame Organic holds international certifications including USDA Organic, EU Organic, ISO 22000, BRC-GS Food Safety, and GMP. Ensuring highest quality standards for organic ingredients worldwide."
+        title="Our Certifications | Cape NatureX Organic - Quality Assurance & Compliance"
+        description="Cape NatureX Organic holds international certifications including USDA Organic, EU Organic, ISO 22000, BRC-GS Food Safety, and GMP. Ensuring highest quality standards for organic ingredients worldwide."
         canonicalUrl="/certifications"
       />
       

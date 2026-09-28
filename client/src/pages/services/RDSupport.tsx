@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function RDSupport() {
   useEffect(() => {
-    document.title = "R&D Support Services - Bright Fame Organic";
+    document.title = "R&D Support Services - Cape NatureX Organic";
   }, []);
 
   return (

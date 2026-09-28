@@ -180,7 +180,7 @@ export default function Header() {
               <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
                 <img 
                   src="/attached_assets/Final Logo_1753730040470.png" 
-                  alt="Bright Fame Organic" 
+                  alt="Cape NatureX Organic"
                   className="h-10 sm:h-12 w-auto object-contain"
                 />
               </div>

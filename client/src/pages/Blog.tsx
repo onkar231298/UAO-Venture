@@ -150,7 +150,7 @@ export default function Blog() {
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      <span>Bright Fame Organic Team</span>
+                      <span>Cape NatureX Organic Team</span>
                     </div>
                     {post.publishedAt && (
                       <div className="flex items-center gap-1">

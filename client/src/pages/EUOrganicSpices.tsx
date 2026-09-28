@@ -9,11 +9,11 @@ import { Award, Globe, Truck, FileText, Shield, MapPin } from "lucide-react";
 
 export default function EUOrganicSpices() {
   useEffect(() => {
-    document.title = "EU Organic Spices Supplier India - Top EU Certified Organic Spice Manufacturer | Bright Fame Organic";
+    document.title = "EU Organic Spices Supplier India - Top EU Certified Organic Spice Manufacturer | Cape NatureX Organic";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'Bright Fame Organic - India\'s leading EU certified organic spice manufacturer and exporter. EU Organic Regulation 834/2007 compliant. Own 950-hectare farmland. Direct manufacturer with ISO 22000, HACCP, GMP. Premium organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Clean room FFS packaging.');
+      metaDesc.setAttribute('content', 'Cape NatureX Organic - India\'s leading EU certified organic spice manufacturer and exporter. EU Organic Regulation 834/2007 compliant. Own 950-hectare farmland. Direct manufacturer with ISO 22000, HACCP, GMP. Premium organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Clean room FFS packaging.');
     }
 
     // EU Organic Spices structured data
@@ -25,11 +25,11 @@ export default function EUOrganicSpices() {
       "category": "Organic Spices",
       "brand": {
         "@type": "Brand", 
-        "name": "Bright Fame Organic"
+        "name": "Cape NatureX Organic"
       },
       "manufacturer": {
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd.",
+        "name": "Cape NatureX Organic Pvt. Ltd.",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "IN",
@@ -135,25 +135,25 @@ export default function EUOrganicSpices() {
         </div>
       </section>
 
-      {/* Why European Buyers Choose Bright Fame Organic */}
+      {/* Why European Buyers Choose Cape NatureX Organic */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why European Buyers Choose Bright Fame Organic for Organic Spices
+              Why European Buyers Choose Cape NatureX Organic for Organic Spices
             </h2>
           </div>
 
           <div className="max-w-5xl mx-auto">
             <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-              Bright Fame Organic vs Other Indian Spice Exporters for EU Market
+              Cape NatureX Organic vs Other Indian Spice Exporters for EU Market
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse border border-gray-300 text-left">
                 <thead>
                   <tr className="bg-blue-600 text-white">
                     <th className="border border-gray-300 px-4 py-3 font-semibold">Factor</th>
-                    <th className="border border-gray-300 px-4 py-3 font-semibold">Bright Fame Organic</th>
+                    <th className="border border-gray-300 px-4 py-3 font-semibold">Cape NatureX Organic</th>
                     <th className="border border-gray-300 px-4 py-3 font-semibold">Typical Indian Exporter</th>
                   </tr>
                 </thead>
@@ -457,7 +457,7 @@ export default function EUOrganicSpices() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why European Companies Choose Bright Fame Organic
+              Why European Companies Choose Cape NatureX Organic
             </h2>
           </div>
 

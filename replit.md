@@ -1,4 +1,4 @@
-# Bright Fame Organic B2B Platform
+# Cape NatureX Organic B2B Platform
 
 ## Overview
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products, managing the entire inquiry-to-order lifecycle with a company-centric approach. The business vision is to provide a robust, scalable platform that streamlines B2B organic product transactions, enhancing efficiency for both buyers and sellers and opening new market potentials.

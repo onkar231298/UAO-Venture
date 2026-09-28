@@ -241,7 +241,7 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Cape NatureX Admin Portal</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
             </div>
             <button className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setSidebarOpen(false)}>

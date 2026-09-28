@@ -6,7 +6,7 @@ import { createAndSend } from "./mailchimpService";
 process.env.MAILCHIMP_API_KEY = "fixture-us1";
 const input = {
   audienceId: "audience", campaignKey: "request", name: "Fixture",
-  subject: "Fixture", fromEmail: "sales@bright-organic.com", fromName: "Bright Fame Organic",
+  subject: "Fixture", fromEmail: "sales@bright-organic.com", fromName: "Cape NatureX Organic",
   replyToEmail: "sales@bright-organic.com", html: "<p>Fixture</p>",
   recipients: [{ email: "buyer@example.test" }],
 };
@@ -73,7 +73,7 @@ test("explicit sending repairs stale defaults and submits the fixed shared reply
     assert.deepEqual(campaignSettings[0], {
       title: "Fixture [bfo:request]",
       subject_line: "Fixture",
-      from_name: "Bright Fame Organic",
+      from_name: "Cape NatureX Organic",
       reply_to: "sales@bright-organic.com",
     });
   }, true);

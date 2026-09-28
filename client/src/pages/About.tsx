@@ -6,12 +6,12 @@ import { Award, Globe, Users, TrendingUp, Leaf, Shield, Star, Clock } from "luci
 
 export default function About() {
   useEffect(() => {
-    document.title = "About Bright Fame Organic - Leading Organic Ingredients Supplier";
+    document.title = "About Cape NatureX Organic - Leading Organic Ingredients Supplier";
     
     // Add meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Learn about Bright Fame Organic, a leading B2B supplier of premium organic herbs, extracts, and nutraceuticals. 25+ years of experience serving 50+ countries worldwide.');
+      metaDescription.setAttribute('content', 'Learn about Cape NatureX Organic, a leading B2B supplier of premium organic herbs, extracts, and nutraceuticals. 25+ years of experience serving 50+ countries worldwide.');
     }
   }, []);
 
@@ -24,7 +24,7 @@ export default function About() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              About Bright Fame Organic
+              About Cape NatureX Organic
             </h1>
             <p className="text-xl opacity-90 mb-8">
               Leading the future of organic ingredients with 25+ years of expertise in 
@@ -45,7 +45,7 @@ export default function About() {
                 </h2>
                 <p className="text-gray-600 mb-4">
                   Founded with a vision to bridge the gap between traditional organic farming 
-                  and modern manufacturing needs, Bright Fame Organic has grown to become a trusted 
+                  and modern manufacturing needs, Cape NatureX Organic has grown to become a trusted
                   partner for businesses seeking premium organic ingredients.
                 </p>
                 <p className="text-gray-600 mb-4">
@@ -180,7 +180,7 @@ export default function About() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Partner with Us?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands of satisfied customers who trust Bright Fame Organic for their ingredient needs
+            Join thousands of satisfied customers who trust Cape NatureX Organic for their ingredient needs
           </p>
           <div className="space-x-4">
             <a 

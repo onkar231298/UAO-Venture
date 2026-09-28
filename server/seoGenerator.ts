@@ -69,8 +69,8 @@ export function generateProductSEO(product: ProductForSEO, options?: {
 
   const nameAlreadySaysOrganic = /^organic\b/i.test(product.name.trim());
   const titleSuffix = organic && !nameAlreadySaysOrganic
-    ? " Bulk Organic Supplier India | Bright Fame"
-    : " Bulk Supplier India | Bright Fame";
+    ? " Bulk Organic Supplier India | Cape NatureX"
+    : " Bulk Supplier India | Cape NatureX";
   const seoTitle = `${productNameForTitle(product.name, titleSuffix)}${titleSuffix}`;
 
   const productLabel = organic && !nameAlreadySaysOrganic ? `organic ${product.name}` : product.name;

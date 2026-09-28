@@ -795,7 +795,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
 
 <p>Please review the order details and let us know if you have any questions.</p>
 
-<p>Best regards,<br/>The Bright Fame Organic Team</p>`);
+<p>Best regards,<br/>The Cape NatureX Organic Team</p>`);
     setSelectedThreadForSO("");
   };
 
@@ -1197,7 +1197,7 @@ Packaging: Standard export packaging`,
     setQuoteEmailCc([]);
     setQuoteEmailBody(`<p>Dear ${contactName},</p>
 
-<p>Greetings from Bright Fame Organic!</p>
+<p>Greetings from Cape NatureX Organic!</p>
 
 <p>Thank you for your interest in <strong>${productName}</strong>. We are pleased to send you the quotation as requested.</p>
 

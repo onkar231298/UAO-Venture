@@ -1,6 +1,6 @@
 import ProductDetailBFI from "./ProductDetailBFI";
 
 export default function ProductDetail() {
-  // Use the professional Bright Fame Organic layout
+  // Use the professional Cape NatureX Organic layout
   return <ProductDetailBFI />;
 }

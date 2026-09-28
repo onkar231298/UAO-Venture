@@ -4,7 +4,7 @@ import { emailCampaigns, emailCampaignRecipients, emailTemplates, companies, com
 import { eq, and, inArray, sql } from "drizzle-orm";
 
 const DEFAULT_FROM_EMAIL = "sales@bright-organic.com";
-const DEFAULT_FROM_NAME = "Bright Fame Organic";
+const DEFAULT_FROM_NAME = "Cape NatureX Organic";
 
 // Initialize API key fresh each time to pick up secret updates
 function initSendGrid(): boolean {

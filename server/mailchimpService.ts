@@ -161,7 +161,7 @@ export function campaignFooter(
     ? `<div style="margin:24px 0;padding:16px;background:#f9fafb;border:1px solid #e5e7eb"><strong>Downloads</strong><ul style="margin:8px 0 0;padding-left:20px">${attachmentRows}</ul></div>`
     : "";
 
-  return `${attachmentBlock}<div style="margin-top:24px;padding:16px;text-align:center;font-size:12px;line-height:1.6;color:#6b7280;border-top:1px solid #e5e7eb">Bright Fame Organic Pvt. Ltd.<br>Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India<br><a href="*|UNSUB|*">Unsubscribe</a></div>`;
+  return `${attachmentBlock}<div style="margin-top:24px;padding:16px;text-align:center;font-size:12px;line-height:1.6;color:#6b7280;border-top:1px solid #e5e7eb">Cape NatureX Organic Pvt. Ltd.<br>Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India<br><a href="*|UNSUB|*">Unsubscribe</a></div>`;
 }
 
 export function appendCampaignFooter(

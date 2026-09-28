@@ -4,14 +4,14 @@
 
 ### Homepage (/)
 - **Status**: ✅ Working (200 OK)
-- **Title**: Bright Fame Organic - Premium B2B Organic Ingredients
+- **Title**: Cape NatureX Organic - Premium B2B Organic Ingredients
 - **Meta Description**: ✅ Present
 - **Structured Data**: Currently 0 schemas (client-side only)
 - **Issue**: Homepage structured data not rendering on server-side
 
 ### Products Page (/products)  
 - **Status**: ✅ Working (200 OK)
-- **Title**: Bright Fame Organic - Premium B2B Organic Ingredients
+- **Title**: Cape NatureX Organic - Premium B2B Organic Ingredients
 - **Meta Description**: ✅ Present
 - **Structured Data**: Currently 0 schemas (client-side only)
 - **Issue**: Products page structured data not rendering on server-side
@@ -31,7 +31,7 @@
 ### Product Schema Contains:
 - ✅ Product name, description, SKU
 - ✅ Brand information (BFI Organic)
-- ✅ Manufacturer details (Bright Fame Organic Pvt. Ltd.)
+- ✅ Manufacturer details (Cape NatureX Organic Pvt. Ltd.)
 - ✅ Pricing in USD ($99.00)
 - ✅ Availability status (InStock)
 - ✅ Product image URL

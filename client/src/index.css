@@ -300,7 +300,7 @@ body {
 }
 
 @layer components {
-  /* Bright Fame Organic specific components */
+  /* Cape NatureX Organic specific components */
   .bfi-gradient {
     background: linear-gradient(135deg, var(--bfi-primary) 0%, var(--bfi-primary-light) 100%);
   }
@@ -465,7 +465,7 @@ body {
     -webkit-line-clamp: 2;
   }
   
-  /* Custom utilities for Bright Fame Organic */
+  /* Custom utilities for Cape NatureX Organic */
   .bg-bfi-primary {
     background-color: var(--bfi-primary);
   }

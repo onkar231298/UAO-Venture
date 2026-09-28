@@ -1028,7 +1028,7 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
       doc.y = 120; // Move cursor well below the logo
     } else {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
-         .text('BRIGHT FAME ORGANIC', { align: 'center' });
+         .text('Cape NatureX ORGANIC', { align: 'center' });
       doc.moveDown(1);
     }
     
