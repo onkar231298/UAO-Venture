@@ -103,7 +103,7 @@ class SEOService {
       "@type": "Organization",
       "name": "Cape NatureX Organic",
        "url": "https://bright-organic.com",
-       "logo": "https://bright-organic.com/logo.png",
+       "logo": "https://bright-organic.com/cape-naturex-logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
@@ -137,7 +137,7 @@ class SEOService {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "Cape NatureX Organic",
-       "image": "https://bright-organic.com/logo.png",
+       "image": "https://bright-organic.com/cape-naturex-logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",

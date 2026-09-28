@@ -1368,7 +1368,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         "@type": "Organization",
         "name": "Cape NatureX Organic Pvt. Ltd.",
         "url": baseUrl,
-        "logo": `${baseUrl}/logo.png`,
+        "logo": `${baseUrl}/cape-naturex-logo.png`,
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",

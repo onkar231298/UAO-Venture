@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Resolved logo path for reliable loading in all environments
-const logoPath = path.resolve(__dirname, 'bfi-logo.png');
+const logoPath = path.resolve(process.cwd(), 'cape-naturex-logo.png');
 
 interface QuotationData {
   id: number;

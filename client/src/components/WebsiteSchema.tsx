@@ -39,7 +39,7 @@ export default function WebsiteSchema() {
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#localbusiness`,
       "name": "Cape NatureX Organic Pvt. Ltd.",
-      "image": `${baseUrl}/bfi-logo.png`,
+      "image": `${baseUrl}/cape-naturex-logo.png`,
       "telephone": "+91-7249847439",
       "email": "admin@bright-organic.com",
       "address": {

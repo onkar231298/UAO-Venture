@@ -20,7 +20,6 @@ import {
   Users,
   ShieldCheck
 } from "lucide-react";
-import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
 import standeeWhiteImg from "@assets/image_1770704885158.png";
 import standeeBrownImg from "@assets/image_1770704849414.png";
 import ffsMachineImg from "@assets/image_1770704939826.png";
@@ -129,7 +128,7 @@ export default function PackagingSolutions() {
           style={{ transform: `translateY(${scrollY * 0.2}px)`, opacity: Math.max(0, 1 - scrollY * 0.002) }}
         >
           <Anim type="scale-up" delay={100}>
-            <img src={bfiLogoImg} alt="Cape NatureX Organic" className="h-16 sm:h-24 md:h-32 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl" />
+            <img src="/cape-naturex-logo.png" alt="Cape NatureX Organic" className="h-16 sm:h-24 md:h-32 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl" />
           </Anim>
           <Anim type="fade-up" delay={300}>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 sm:mb-6 text-xs sm:text-sm font-medium" style={{ background: "rgba(200,155,43,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}>
@@ -396,7 +395,7 @@ export default function PackagingSolutions() {
       <section className="py-16 sm:py-20" style={{ background: `linear-gradient(135deg, ${COLORS.herbalGreen}, #1a3a2a)` }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="scale-up">
-            <img src={bfiLogoImg} alt="Cape NatureX Organic Logo" className="h-12 sm:h-16 w-auto object-contain mx-auto mb-4 sm:mb-6" />
+            <img src="/cape-naturex-logo.png" alt="Cape NatureX Organic Logo" className="h-12 sm:h-16 w-auto object-contain mx-auto mb-4 sm:mb-6" />
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
               Ready to Discuss Your Packaging Needs?
             </h2>
@@ -418,7 +417,7 @@ export default function PackagingSolutions() {
       {/* Footer */}
       <footer className="py-6 sm:py-8" style={{ background: COLORS.charcoal, borderTop: `3px solid ${COLORS.turmericGold}` }}>
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <img src={bfiLogoImg} alt="Cape NatureX Organic" className="h-10 sm:h-14 w-auto object-contain mx-auto mb-2 sm:mb-3" />
+          <img src="/cape-naturex-logo.png" alt="Cape NatureX Organic" className="h-10 sm:h-14 w-auto object-contain mx-auto mb-2 sm:mb-3" />
           <p className="text-xs sm:text-sm font-bold text-white">Cape NatureX Organic</p>
           <p className="text-[10px] sm:text-xs mt-1" style={{ color: COLORS.turmericGold }}>
             Three Star Export House

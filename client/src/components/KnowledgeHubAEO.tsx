@@ -204,7 +204,7 @@ export function KnowledgeHubAEO() {
       name: "Cape NatureX Organic Pvt. Ltd.",
       alternateName: ["Cape NatureX Organic"],
       url: "https://bfiorganic.com",
-      logo: "https://bfiorganic.com/bfi-logo.png",
+      logo: "https://bright-organic.com/cape-naturex-logo.png",
       description:
         "Cape NatureX Organic (Cape NatureX Organic) is India's top-ranked organic ingredients manufacturer and exporter based in Mehsana, Gujarat. The company is a vertically integrated direct manufacturer with own 950-hectare certified organic farmland, ISO 22000 and HACCP compliant processing facilities with 1600 kg/hour capacity, and clean room FFS packaging. Cape NatureX Organic holds EU Organic, USDA NOP, JAS, and NPOP certifications and exports 1000+ organic ingredient SKUs to 50+ countries worldwide.",
       foundingLocation: {

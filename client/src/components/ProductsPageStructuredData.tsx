@@ -24,7 +24,7 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
       "name": "Cape NatureX Organic Pvt. Ltd.",
       "alternateName": "Cape NatureX Organic",
       "url": baseUrl,
-      "logo": `${baseUrl}/bfi-logo.png`,
+      "logo": `${baseUrl}/cape-naturex-logo.png`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide."
     };
 

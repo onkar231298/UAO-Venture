@@ -35,8 +35,8 @@ export default function CompanyStructuredData() {
       "alternateName": ["Cape NatureX Organic", "BFO"],
       "description": "India's leading B2B manufacturer and bulk exporter of EU Organic certified herbal powders, teas, whole herbs, whole spices, botanical extracts and spray dried ingredients. Direct manufacturer based in Mehsana, Gujarat, India.",
       "url": BASE_URL,
-      "logo": `${BASE_URL}/bfi-logo.png`,
-      "image": `${BASE_URL}/bfi-logo.png`,
+      "logo": `${BASE_URL}/cape-naturex-logo.png`,
+      "image": `${BASE_URL}/cape-naturex-logo.png`,
       "foundingDate": "2010",
       "address": address,
       "contactPoint": [

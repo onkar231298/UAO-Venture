@@ -39,7 +39,6 @@ import factoryInsideImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.37_AM_1
 import factoryMachinery2Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(2)_1770700935408.jpeg";
 import buhlerMachineryImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(1)_1770700935409.jpeg";
 import factoryMachinery3Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_1770700935409.jpeg";
-import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
 import standeeWhiteImg from "@assets/image_1770704885158.png";
 import standeeBrownImg from "@assets/image_1770704849414.png";
 import ffsMachineImg from "@assets/image_1770704939826.png";
@@ -279,7 +278,7 @@ export default function Presentation() {
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center h-12 sm:h-14 overflow-x-auto pres-nav-scroll">
           <div className="flex items-center gap-2 whitespace-nowrap mr-4 sm:mr-6 shrink-0">
-            <img src={bfiLogoImg} alt="Cape NatureX Organic Logo" className="h-7 sm:h-9 w-auto object-contain" />
+            <img src="/cape-naturex-logo.png" alt="Cape NatureX Organic Logo" className="h-7 sm:h-9 w-auto object-contain" />
             <span className="font-bold text-xs sm:text-sm hidden md:inline" style={{ color: COLORS.turmericGold }}>
               Cape NatureX ORGANIC
             </span>
@@ -353,7 +352,7 @@ export default function Presentation() {
         >
           <Anim type="drop-in" delay={200}>
             <img 
-              src={bfiLogoImg} 
+              src="/cape-naturex-logo.png"
               alt="Cape NatureX Organic Logo"
               className="h-20 sm:h-28 md:h-36 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl"
             />
@@ -1513,7 +1512,7 @@ export default function Presentation() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="fade-up">
             <img 
-              src={bfiLogoImg} 
+              src="/cape-naturex-logo.png"
               alt="Cape NatureX Organic Logo"
               className="h-14 sm:h-20 w-auto object-contain mx-auto mb-3 sm:mb-4"
             />

@@ -994,7 +994,7 @@ samples, and business development for Cape NatureX Organic.
     <meta property="og:description" content="India's leading organic ingredient manufacturer. EU/USDA/JAS certified. Own 950ha farmland. Direct manufacturer. 1000+ SKUs. Exports to 50+ countries." />
     <meta property="og:url" content="${baseUrl}/" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="${baseUrl}/bfi-logo.png" />
+    <meta property="og:image" content="${baseUrl}/cape-naturex-logo.png" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="author" content="Cape NatureX Organic Pvt. Ltd." />
     <meta name="language" content="en" />
@@ -1009,8 +1009,8 @@ samples, and business development for Cape NatureX Organic.
       "name": "Cape NatureX Organic Pvt. Ltd.",
       "alternateName": ["Cape NatureX Organic"],
       "url": "${baseUrl}",
-      "logo": "${baseUrl}/bfi-logo.png",
-      "image": "${baseUrl}/bfi-logo.png",
+      "logo": "${baseUrl}/cape-naturex-logo.png",
+      "image": "${baseUrl}/cape-naturex-logo.png",
       "description": "Cape NatureX Organic (Cape NatureX Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter based in Mehsana, Gujarat. EU Organic, USDA NOP, JAS, NPOP certified with own 950-hectare organic farmland. Direct manufacturer with ISO 22000, HACCP, GMP compliant facilities. 1000+ SKUs across organic herbs, spices, botanical extracts, and nutraceutical ingredients. Exports to 50+ countries including USA, EU, UK, Japan, Australia.",
       "address": {
         "@type": "PostalAddress",
@@ -1431,8 +1431,8 @@ samples, and business development for Cape NatureX Organic.
         "@type": "Organization",
         "name": "Cape NatureX Organic Pvt. Ltd.",
         "url": baseUrl,
-        "logo": `${baseUrl}/logo.png`,
-        "image": `${baseUrl}/bfi-logo.png`,
+        "logo": `${baseUrl}/cape-naturex-logo.png`,
+        "image": `${baseUrl}/cape-naturex-logo.png`,
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",

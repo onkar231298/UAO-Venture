@@ -19,8 +19,8 @@ export default function HomeStructuredData() {
       "name": "Cape NatureX Organic Pvt. Ltd.",
       "alternateName": "Cape NatureX Organic",
       "url": baseUrl,
-      "logo": `${baseUrl}/bfi-logo.png`,
-      "image": `${baseUrl}/bfi-logo.png`,
+      "logo": `${baseUrl}/cape-naturex-logo.png`,
+      "image": `${baseUrl}/cape-naturex-logo.png`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide. USDA and EU certified organic products from India.",
       "address": {
         "@type": "PostalAddress",
@@ -227,7 +227,7 @@ export default function HomeStructuredData() {
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#organization`,
       "name": "Cape NatureX Organic Pvt. Ltd.",
-      "image": `${baseUrl}/bfi-logo.png`,
+      "image": `${baseUrl}/cape-naturex-logo.png`,
       "telephone": "+91-7249847439",
       "email": "admin@bfiorganic.com",
       "address": {
