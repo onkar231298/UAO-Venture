@@ -432,14 +432,14 @@ Packaging: Standard export packaging`,
               </div>
               
               {parseFloat(formData.discountPercent) > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
+                <div className="flex justify-between text-sm text-[#718b57]">
                   <span>Discount ({formData.discountPercent}%):</span>
                   <span className="font-medium">- {formData.currency} {getDiscountAmount().toFixed(2)}</span>
                 </div>
               )}
               
               {formData.includeGst && parseFloat(formData.gstPercentage) > 0 && (
-                <div className="flex justify-between text-sm text-blue-600">
+                <div className="flex justify-between text-sm text-[#294a2c]">
                   <span>GST ({formData.gstPercentage}%):</span>
                   <span className="font-medium">+ {formData.currency} {getGstAmount().toFixed(2)}</span>
                 </div>

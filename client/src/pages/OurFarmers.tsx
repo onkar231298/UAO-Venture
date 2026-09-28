@@ -62,8 +62,8 @@ export default function OurFarmers() {
 
                 {/* Technical training */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                    <Users className="w-6 h-6 text-blue-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-[#e8efdc] rounded-lg mb-4">
+                    <Users className="w-6 h-6 text-[#718b57]" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Technical Training & Support
@@ -75,8 +75,8 @@ export default function OurFarmers() {
 
                 {/* Storage facilities */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mb-4">
-                    <Award className="w-6 h-6 text-purple-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-[#e8efdc] rounded-lg mb-4">
+                    <Award className="w-6 h-6 text-[#718b57]" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Storage & Post-Harvest Facilities
@@ -88,8 +88,8 @@ export default function OurFarmers() {
 
                 {/* Fair procurement */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mb-4">
-                    <Handshake className="w-6 h-6 text-orange-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-[#e8efdc] rounded-lg mb-4">
+                    <Handshake className="w-6 h-6 text-[#718b57]" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Fair & Timely Procurement
@@ -101,8 +101,8 @@ export default function OurFarmers() {
 
                 {/* Certification support */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 bg-teal-100 rounded-lg mb-4">
-                    <CheckCircle className="w-6 h-6 text-teal-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-[#e8efdc] rounded-lg mb-4">
+                    <CheckCircle className="w-6 h-6 text-[#718b57]" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Organic Certification Support

@@ -69,7 +69,7 @@ export default function CustomerLogin() {
 
   if (loginSuccess && userInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#edf2e8] to-[#f5f7ef] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -117,7 +117,7 @@ export default function CustomerLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-[#edf2e8] to-[#f5f7ef]">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
           <Card>
@@ -184,9 +184,9 @@ export default function CustomerLogin() {
                 </Link>
               </div>
               
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 font-medium mb-2">Test Credentials:</p>
-                <div className="text-xs text-blue-700 space-y-1">
+              <div className="mt-4 p-4 bg-[#edf2e8] rounded-lg">
+                <p className="text-sm text-[#294a2c] font-medium mb-2">Test Credentials:</p>
+                <div className="text-xs text-[#506b45] space-y-1">
                   <p><strong>Email:</strong> komal@gmail.com</p>
                   <p><strong>Password:</strong> 12345678</p>
                 </div>

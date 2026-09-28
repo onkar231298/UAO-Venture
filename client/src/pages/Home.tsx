@@ -14,7 +14,7 @@ import { KnowledgeHubAEO } from "@/components/KnowledgeHubAEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, MessageSquare, FileText, ShoppingCart, BarChart3, Bell, Award, Globe, Users, TrendingUp } from "lucide-react";
+import { Package, MessageSquare, FileText, ShoppingCart, BarChart3, Bell, Award, Globe, Users, TrendingUp, Wheat, Leaf } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -63,7 +63,7 @@ export default function Home() {
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <a href="/food-ingredients" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🍞</div>
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-700"><Wheat className="h-6 w-6" aria-hidden="true" /></div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 Food Grade Ingredients
               </h3>
@@ -76,7 +76,7 @@ export default function Home() {
             </a>
             
             <a href="/organic-herbs" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🌿</div>
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><Leaf className="h-6 w-6" aria-hidden="true" /></div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 Premium Organic Herbs
               </h3>
@@ -89,7 +89,7 @@ export default function Home() {
             </a>
             
             <a href="/eu-organic-spices" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🇪🇺</div>
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-700"><Globe className="h-6 w-6" aria-hidden="true" /></div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 EU Certified Spices
               </h3>

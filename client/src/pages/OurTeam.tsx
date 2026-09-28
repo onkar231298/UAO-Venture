@@ -79,13 +79,13 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-1">
-                  <Badge variant="outline" className="mb-4 bg-blue-50 text-blue-700 border-blue-200 px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
                     Director of Purchase
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Ujjwal Dadhich</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Award className="w-5 h-5 text-blue-600" />
-                    <span className="text-blue-600 font-medium">Supply Chain Excellence</span>
+                    <Award className="w-5 h-5 text-[#718b57]" />
+                    <span className="text-[#718b57] font-medium">Supply Chain Excellence</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     With an extensive career in the Indian food and ingredients industry, Ujjwal Dadhich has worked with some of 
@@ -107,13 +107,13 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-2">
-                  <Badge variant="outline" className="mb-4 bg-purple-50 text-purple-700 border-purple-200 px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
                     Director of Operations
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Onkar Suryawanshi</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Lightbulb className="w-5 h-5 text-purple-600" />
-                    <span className="text-purple-600 font-medium">Technology Innovation</span>
+                    <Lightbulb className="w-5 h-5 text-[#718b57]" />
+                    <span className="text-[#718b57] font-medium">Technology Innovation</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     A qualified Food Technologist and technology enthusiast, Onkar Suryawanshi began his career at a young age, 
@@ -135,13 +135,13 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-1">
-                  <Badge variant="outline" className="mb-4 bg-orange-50 text-orange-700 border-orange-200 px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
                     Director of Supply Chain
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Mr. Kamal Patel</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Target className="w-5 h-5 text-orange-600" />
-                    <span className="text-orange-600 font-medium">Global Logistics Excellence</span>
+                    <Target className="w-5 h-5 text-[#718b57]" />
+                    <span className="text-[#718b57] font-medium">Global Logistics Excellence</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     With extensive experience in shipping, logistics, and international trade documentation, Mr. Kamal Patel ensures 

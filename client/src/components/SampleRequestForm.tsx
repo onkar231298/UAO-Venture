@@ -126,7 +126,7 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+        <Button className="bg-[#294a2c] hover:bg-[#203b23] text-white">
           <Beaker className="w-4 h-4 mr-2" />
           Request Sample
         </Button>
@@ -134,16 +134,16 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <Beaker className="w-5 h-5 text-orange-600" />
+            <Beaker className="w-5 h-5 text-[#718b57]" />
             Sample Request - {product.name}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Sample Information */}
-          <Card className="bg-orange-50 border-orange-200">
+          <Card className="bg-[#f0f3eb] border-[#d5dfca]">
             <CardHeader>
-              <CardTitle className="text-lg text-orange-800 flex items-center gap-2">
+              <CardTitle className="text-lg text-[#294a2c] flex items-center gap-2">
                 <TestTube className="w-5 h-5" />
                 Sample Information
               </CardTitle>
@@ -205,9 +205,9 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
           </Card>
 
           {/* Contact Information */}
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-[#d5dfca] bg-[#f0f3eb]">
             <CardHeader>
-              <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
+              <CardTitle className="text-lg text-[#294a2c] flex items-center gap-2">
                 <User className="w-5 h-5" />
                 Contact Information (Required)
               </CardTitle>
@@ -258,9 +258,9 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
           </Card>
 
           {/* Shipping Information */}
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-[#d5dfca] bg-[#f0f3eb]">
             <CardHeader>
-              <CardTitle className="text-lg text-green-800 flex items-center gap-2">
+              <CardTitle className="text-lg text-[#294a2c] flex items-center gap-2">
                 <Truck className="w-5 h-5" />
                 Shipping Information (Required)
               </CardTitle>
@@ -365,7 +365,7 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
             <Button
               type="submit"
               disabled={createSampleRequestMutation.isPending}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-[#294a2c] hover:bg-[#203b23]"
             >
               {createSampleRequestMutation.isPending ? "Submitting..." : "Submit Sample Request"}
             </Button>

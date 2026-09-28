@@ -137,7 +137,7 @@ export default function Blog() {
                       </div>
                     )}
                   </div>
-                  <CardTitle className="text-lg hover:text-orange-600 transition-colors">
+                  <CardTitle className="text-lg hover:text-[#718b57] transition-colors">
                     <Link href={`/blog/${post.slug}`}>
                       {post.title}
                     </Link>
@@ -206,8 +206,8 @@ export default function Blog() {
                 onClick={() => setSelectedCategory(category.value)}
               >
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <TrendingUp className="h-6 w-6 text-orange-600" />
+                  <div className="w-12 h-12 bg-[#e8efdc] rounded-full flex items-center justify-center mx-auto mb-3">
+                    <TrendingUp className="h-6 w-6 text-[#718b57]" />
                   </div>
                   <h3 className="font-semibold text-gray-900">{category.label}</h3>
                   <p className="text-sm text-gray-600 mt-1">

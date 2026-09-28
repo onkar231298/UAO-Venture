@@ -41,7 +41,7 @@ const industries: IndustryCard[] = [
       "Global Food Compliance"
     ],
     certifications: ["EU Organic", "USDA Organic", "HACCP", "ISO 22000"],
-    color: "from-amber-500 to-orange-600"
+    color: "from-[#718b57] to-[#95b259]"
   },
   {
     title: "Pharmaceutical",
@@ -55,7 +55,7 @@ const industries: IndustryCard[] = [
       "Regulatory Support"
     ],
     certifications: ["GMP", "ISO 9001", "Kosher", "Halal"],
-    color: "from-blue-500 to-indigo-600"
+    color: "from-[#294a2c] to-[#557342]"
   },
   {
     title: "Organic Herbs & Spices",
@@ -69,7 +69,7 @@ const industries: IndustryCard[] = [
       "Sustainable Sourcing"
     ],
     certifications: ["USDA Organic", "EU Organic", "India Organic"],
-    color: "from-green-500 to-emerald-600"
+    color: "from-[#557342] to-[#95b259]"
   },
   {
     title: "EU Organic Spices",
@@ -83,7 +83,7 @@ const industries: IndustryCard[] = [
       "Europe-Ready"
     ],
     certifications: ["EU Organic", "Ecocert", "BRC", "IFS"],
-    color: "from-purple-500 to-pink-600"
+    color: "from-[#294a2c] to-[#718b57]"
   },
   {
     title: "Cosmetics & Personal Care",
@@ -97,7 +97,7 @@ const industries: IndustryCard[] = [
       "Beauty Industry Certified"
     ],
     certifications: ["COSMOS", "Ecocert", "ISO 9001", "Organic"],
-    color: "from-rose-500 to-red-600"
+    color: "from-[#718b57] to-[#a9bd7d]"
   },
   {
     title: "Nutraceuticals & Dietary Supplements",
@@ -111,7 +111,7 @@ const industries: IndustryCard[] = [
       "Supplement Grade"
     ],
     certifications: ["NSF", "GMP", "Organic", "Non-GMO"],
-    color: "from-teal-500 to-cyan-600"
+    color: "from-[#45653d] to-[#95b259]"
   }
 ];
 

@@ -170,14 +170,14 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-[#dfe6d7] bg-[#fbfaf6] shadow-[0_8px_28px_rgba(41,74,44,0.09)]">
       {/* Main Header */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
         <div className="flex items-center justify-between">
           {/* Left Side - Logo */}
           <div className="flex items-center">
             <Link href="/">
-              <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
+              <div className="flex items-center cursor-pointer transition-opacity hover:opacity-85">
                 <img 
                   src="/cape-naturex-logo.png"
                   alt="Cape NatureX Organic"
@@ -190,7 +190,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="ml-4 lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
+              className="ml-4 rounded-lg text-green-900 hover:bg-green-50 hover:text-green-700 lg:hidden"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <Menu className="h-5 w-5" />
@@ -199,22 +199,22 @@ export default function Header() {
 
           {/* Center - Navigation */}
           <nav className="hidden lg:flex items-center space-x-3 xl:space-x-5">
-            <Link href="/" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600' : ''}`}>
+            <Link href="/" className={`text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-700 border-green-600' : ''}`}>
               Home
             </Link>
-            <Link href="/products" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600' : ''}`}>
+            <Link href="/products" className={`text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-700 border-green-600' : ''}`}>
               Products
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className="text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-[#dfe6d7] bg-[#fffefa]" align="start">
                 {/* All Ingredients Link */}
                   <Link href="/products">
-                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
+                    <DropdownMenuItem className="mb-3 bg-green-800 hover:bg-green-900 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
                       All Ingredients
                     </DropdownMenuItem>
                   </Link>
@@ -233,7 +233,7 @@ export default function Header() {
                       
                       return (
                         <Link key={category.id} href={`/ingredients/${categorySlug}`}>
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             {category.name}
                           </DropdownMenuItem>
                         </Link>
@@ -242,27 +242,27 @@ export default function Header() {
                       <>
                         {/* Fallback categories for immediate display */}
                         <Link href="/ingredients/herbal-powders">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Herbal Powders
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/ingredients/spices">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Spices
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/ingredients/essential-oils">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Essential Oils
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/ingredients/adaptogenic-herbs">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Adaptogenic Herbs
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/ingredients/ayurvedic-herbs">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Ayurvedic Herbs
                           </DropdownMenuItem>
                         </Link>
@@ -291,10 +291,10 @@ export default function Header() {
                     Industries <ChevronDown className="ml-1 h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80 p-3 shadow-xl border border-gray-200" align="start">
+                <DropdownMenuContent className="w-80 p-3 shadow-xl border border-[#dfe6d7] bg-[#fffefa]" align="start">
                   <div className="space-y-2">
                     <Link href="/food-ingredients">
-                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-[#e5eadf]">
                         <div>
                           <div className="font-medium text-gray-900">Food Ingredients</div>
                           <div className="text-xs text-gray-600">EU certified organic ingredients for food manufacturers</div>
@@ -303,7 +303,7 @@ export default function Header() {
                     </Link>
                     
                     <Link href="/organic-herbs">
-                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-[#e5eadf]">
                         <div>
                           <div className="font-medium text-gray-900">Organic Herbs</div>
                           <div className="text-xs text-gray-600">Premium medicinal & Ayurvedic herbs for pharma industry</div>
@@ -312,7 +312,7 @@ export default function Header() {
                     </Link>
                     
                     <Link href="/eu-organic-spices">
-                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
+                      <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-[#e5eadf]">
                         <div>
                           <div className="font-medium text-gray-900">EU Organic Spices</div>
                           <div className="text-xs text-gray-600">European market certified organic spices & seasonings</div>
@@ -326,14 +326,14 @@ export default function Header() {
               {/* Health Support Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className="text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
                   Health Support <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-[#dfe6d7] bg-[#fffefa]" align="start">
                   {/* All Health Support Link */}
                   <Link href="/products">
-                    <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
+                    <DropdownMenuItem className="mb-3 bg-green-800 hover:bg-green-900 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
                       All Health Support
                     </DropdownMenuItem>
                   </Link>
@@ -345,7 +345,7 @@ export default function Header() {
                     {healthSupports && healthSupports.length > 0 ? healthSupports.map((healthSupport: any) => {
                       return (
                         <Link key={healthSupport.id} href={`/health-support/${healthSupport.slug}`}>
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             {healthSupport.name}
                           </DropdownMenuItem>
                         </Link>
@@ -354,27 +354,27 @@ export default function Header() {
                       <>
                         {/* Fallback health supports for immediate display */}
                         <Link href="/health-support/digestive-health">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Digestive Support
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/health-support/immune-health">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Immune Support
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/health-support/cognitive-health">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Cognitive Support
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/health-support/stress-relief">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Stress Relief
                           </DropdownMenuItem>
                         </Link>
                         <Link href="/health-support/energy-vitality">
-                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-gray-50 cursor-pointer leading-tight">
+                          <DropdownMenuItem className="text-xs px-2 py-1.5 hover:bg-green-50 hover:text-green-900 cursor-pointer leading-tight">
                             Energy & Vitality
                           </DropdownMenuItem>
                         </Link>
@@ -398,11 +398,11 @@ export default function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className="text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
                   About <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 p-2 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="w-48 p-2 shadow-xl border border-[#dfe6d7] bg-[#fffefa]" align="start">
                 <Link href="/about-us">
                   <DropdownMenuItem className="text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer">
                     About Us
@@ -420,10 +420,10 @@ export default function Header() {
                 </Link>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="/contact" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600' : ''}`}>
+              <Link href="/contact" className={`text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-700 border-green-600' : ''}`}>
               Contact
             </Link>
-            <Link href="/certifications" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-600 border-green-600' : ''}`}>
+              <Link href="/certifications" className={`text-sm text-green-950/80 hover:text-green-700 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-700 border-green-600' : ''}`}>
               Certifications
             </Link>
           </nav>
@@ -451,10 +451,10 @@ export default function Header() {
               {isAuthenticated || isCustomerAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="bg-green-600 text-white hover:bg-green-700 border-green-600">
+                  <Button variant="outline" size="sm" className="bg-green-800 text-white hover:bg-green-900 border-green-800">
                       <Avatar className="w-4 h-4 sm:w-6 sm:h-6 mr-1 sm:mr-2">
                         <AvatarImage src={user?.avatar} />
-                        <AvatarFallback className="bg-green-500 text-white text-xs">
+                        <AvatarFallback className="bg-green-700 text-white text-xs">
                           {isAuthenticated ? user?.name?.charAt(0) || 'A' : customer?.firstName?.charAt(0) || customer?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
@@ -539,12 +539,12 @@ export default function Header() {
       </div>
 
       {/* Search Bar */}
-      <div className="bg-green-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
+      <div className="bg-[#294a2c] text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="relative">
               <button 
-                className="flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
+                className="flex items-center space-x-1 text-xs sm:text-sm bg-[#43683c] hover:bg-[#294a2c] px-3 py-2 rounded-lg transition-colors"
                 onClick={() => setShowCategorySidebar(!showCategorySidebar)}
               >
                 <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -564,11 +564,11 @@ export default function Header() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full px-4 py-2 pl-4 pr-12 text-sm text-gray-900 bg-white border border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
+                  className="w-full px-4 py-2.5 pl-4 pr-12 text-sm text-green-950 bg-[#fffefa] border border-[#95b259] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#95b259]/50 focus:border-transparent"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-700"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-800 hover:text-green-950"
                 >
                   <Search className="w-4 h-4" />
                 </button>
@@ -576,11 +576,11 @@ export default function Header() {
 
               {/* Search Suggestions */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
+                <div className="absolute top-full left-0 right-0 bg-[#fffefa] border border-[#dfe6d7] rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
                   {suggestions.map((product) => (
                     <div
                       key={product.id}
-                      className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      className="px-4 py-2 hover:bg-green-50 cursor-pointer border-b border-[#edf0e8] last:border-b-0"
                       onClick={() => handleSuggestionClick(product)}
                     >
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -598,7 +598,7 @@ export default function Header() {
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
                 <div>
-                  <div className="text-green-200 text-xs">Customer Support</div>
+                  <div className="text-[#c5d3b6] text-xs">Customer Support</div>
                   <div className="font-medium">+91-7249847439</div>
                 </div>
               </div>
@@ -618,7 +618,7 @@ export default function Header() {
 
       {/* Mobile Navigation Menu */}
       {showMobileMenu && (
-        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+        <div className="lg:hidden border-t border-[#dfe6d7] bg-[#fbfaf6] shadow-lg">
           <div className="container mx-auto px-4 py-2">
             <nav className="space-y-1">
               <Link 
@@ -645,8 +645,8 @@ export default function Header() {
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100">
-                  <ShoppingCart className="w-4 h-4 text-blue-600" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                   <ShoppingCart className="w-4 h-4 text-green-700" />
                 </div>
                 <span className="font-medium">All Products</span>
               </Link>
@@ -660,8 +660,8 @@ export default function Header() {
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100">
-                  <FileText className="w-4 h-4 text-orange-600" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                   <FileText className="w-4 h-4 text-green-700" />
                 </div>
                 <span className="font-medium">Blog</span>
               </Link>
@@ -711,8 +711,8 @@ export default function Header() {
               <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
                   <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100">
-                      <Heart className="w-4 h-4 text-purple-600" />
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                      <Heart className="w-4 h-4 text-green-700" />
                     </div>
                     <span className="font-medium">Health Support</span>
                   </div>
@@ -752,8 +752,8 @@ export default function Header() {
               <Collapsible open={mobileAboutOpen} onOpenChange={setMobileAboutOpen}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
                   <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
-                      <Info className="w-4 h-4 text-indigo-600" />
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                      <Info className="w-4 h-4 text-green-700" />
                     </div>
                     <span className="font-medium">About</span>
                   </div>
@@ -793,8 +793,8 @@ export default function Header() {
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100">
-                  <Phone className="w-4 h-4 text-pink-600" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                   <Phone className="w-4 h-4 text-green-700" />
                 </div>
                 <span className="font-medium">Contact</span>
               </Link>
@@ -808,8 +808,8 @@ export default function Header() {
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100">
-                  <Award className="w-4 h-4 text-yellow-600" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100">
+                   <Award className="w-4 h-4 text-green-700" />
                 </div>
                 <span className="font-medium">Certifications</span>
               </Link>

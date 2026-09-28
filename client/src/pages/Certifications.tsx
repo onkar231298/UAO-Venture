@@ -28,18 +28,18 @@ export default function Certifications() {
 
   const EULogo = () => (
     <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-      <div className="text-white text-lg">🍃</div>
+      <Leaf className="w-6 h-6 text-white" />
     </div>
   );
 
   const IndiaOrganicLogo = () => (
-    <div className="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center">
+    <div className="w-12 h-12 bg-[#43683c] rounded-lg flex items-center justify-center">
       <div className="text-white font-bold text-xs">INDIA</div>
     </div>
   );
 
   const ISOLogo = () => (
-    <div className="w-12 h-12 bg-blue-700 rounded-full flex items-center justify-center border-2 border-blue-800">
+    <div className="w-12 h-12 bg-[#294a2c] rounded-full flex items-center justify-center border-2 border-[#203b23]">
       <div className="text-center">
         <div className="text-white font-bold text-xs">ISO</div>
         <div className="text-white text-xs">22000</div>
@@ -48,7 +48,7 @@ export default function Certifications() {
   );
 
   const BRCLogo = () => (
-    <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center">
+    <div className="w-12 h-12 bg-[#43683c] rounded-lg flex items-center justify-center">
       <div className="text-center">
         <div className="text-white font-bold text-xs">BRC</div>
         <div className="text-white text-xs">GS</div>
@@ -57,8 +57,8 @@ export default function Certifications() {
   );
 
   const GMPLogo = () => (
-    <div className="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center">
-      <div className="text-white font-bold text-xs">GMP</div>
+    <div className="w-12 h-12 bg-[#95b259] rounded-lg flex items-center justify-center">
+      <div className="text-green-900 font-bold text-xs">GMP</div>
     </div>
   );
 
@@ -141,9 +141,9 @@ export default function Certifications() {
       
       <Header />
       
-      <main className="flex-grow bg-gradient-to-br from-green-50 via-white to-blue-50">
+      <main className="flex-grow bg-gradient-to-br from-[#f0f4eb] via-white to-[#e5ecd9]">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-16">
+        <div className="bg-gradient-to-r from-[#294a2c] via-[#45653d] to-[#718b57] text-white py-16">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Our Certifications & Compliance
@@ -225,7 +225,7 @@ export default function Certifications() {
           </div>
 
           {/* Quality Commitment */}
-          <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-8 mb-16">
+          <div className="bg-gradient-to-r from-[#e7efdc] to-[#dce8ce] rounded-lg p-8 mb-16">
             <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
               Our Quality Commitment
             </h2>
@@ -240,7 +240,7 @@ export default function Certifications() {
                 </p>
               </div>
               <div>
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-[#718b57] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Food Safety</h3>
@@ -249,7 +249,7 @@ export default function Certifications() {
                 </p>
               </div>
               <div>
-                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-[#294a2c] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Award className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Quality Excellence</h3>

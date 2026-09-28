@@ -183,7 +183,7 @@ export default function OrganicSupplierIndia() {
   const productCategories = [
     {
       category: "Organic Herbs",
-      icon: "🌿",
+      icon: "HERB",
       products: "Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla, Giloy, Arjuna, Shankhpushpi",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Extract, Whole, TBC, Granules",
@@ -191,23 +191,23 @@ export default function OrganicSupplierIndia() {
     },
     {
       category: "Organic Spices",
-      icon: "🌶️",
+      icon: "SPICE",
       products: "Turmeric, Cumin, Coriander, Fenugreek, Black Pepper, Cardamom, Ginger, Fennel, Mustard, Ajwain",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Whole, Crushed, Oleoresin",
-      color: "bg-amber-50 border-amber-200"
+      color: "bg-[#f3f5ed] border-[#d6e0c9]"
     },
     {
       category: "Herbal Extracts",
-      icon: "🧪",
+      icon: "QC",
       products: "Ashwagandha Extract (2.5–5% Withanolides), Turmeric Extract (95% Curcuminoids), Brahmi Extract, Boswellia Extract, Tribulus Extract",
       certifications: "EU, USDA, ISO, GMP",
       forms: "Standardized Extract, Ratio Extract, Liquid Extract",
-      color: "bg-purple-50 border-purple-200"
+      color: "bg-[#edf2e7] border-[#cbd9bb]"
     },
     {
       category: "Superfoods",
-      icon: "🍃",
+      icon: "LEAF",
       products: "Spirulina, Wheatgrass, Barley Grass, Amla, Moringa Leaf, Beetroot, Triphala, Chlorella",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Tablet, Capsule-Ready Blend",
@@ -215,19 +215,19 @@ export default function OrganicSupplierIndia() {
     },
     {
       category: "Essential Oils & Oleoresins",
-      icon: "💧",
+      icon: "OIL",
       products: "Turmeric Oil, Ginger Oil, Black Pepper Oil, Cumin Oleoresin, Fenugreek Oleoresin, Basil Oil",
       certifications: "EU, USDA, ISO, GMP",
       forms: "Essential Oil, Oleoresin, CO2 Extract",
-      color: "bg-blue-50 border-blue-200"
+      color: "bg-[#f0f4eb] border-[#cbd9bb]"
     },
     {
       category: "Seeds & Grains",
-      icon: "🌾",
+      icon: "SEED",
       products: "Flaxseed, Chia Seeds, Psyllium Husk, Psyllium Seeds, Fenugreek Seeds, Sesame Seeds, Amaranth",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Whole, Powder, Husk, Mucilage",
-      color: "bg-yellow-50 border-yellow-200"
+      color: "bg-[#f5f6ef] border-[#dbe4cc]"
     }
   ];
 
@@ -245,42 +245,42 @@ export default function OrganicSupplierIndia() {
   const marketsServed = [
     {
       region: "European Union",
-      flag: "🇪🇺",
+      flag: "EU",
       countries: "Germany, France, Netherlands, Italy, Spain, Belgium, Poland, Czech Republic",
       details: "EU Organic Regulation 2018/848 compliant. Full TRACES-NT documentation. Regular shipments to major EU ports.",
       certRelevant: "EU Organic, Ecocert"
     },
     {
       region: "United States",
-      flag: "🇺🇸",
+      flag: "US",
       countries: "All 50 states — California, New York, New Jersey, Texas, Florida",
       details: "USDA NOP certified. FDA-compliant labeling. FSVP documentation provided. East & West coast port delivery.",
       certRelevant: "USDA NOP, FDA"
     },
     {
       region: "Japan",
-      flag: "🇯🇵",
+      flag: "JP",
       countries: "Tokyo, Osaka, Nagoya, Yokohama",
       details: "JAS (Japanese Agricultural Standard) certified. Japanese-language CoA available. Regular container shipments to Japanese ports.",
       certRelevant: "JAS Organic"
     },
     {
       region: "United Kingdom",
-      flag: "🇬🇧",
+      flag: "UK",
       countries: "England, Scotland, Wales, Northern Ireland",
       details: "Post-Brexit UK organic equivalence documentation. Serving food manufacturers, health food brands, and herbal supplement companies.",
       certRelevant: "UK Organic, DEFRA"
     },
     {
       region: "Middle East",
-      flag: "🇦🇪",
+      flag: "UAE",
       countries: "UAE, Saudi Arabia, Qatar, Oman, Kuwait, Bahrain",
       details: "Halal certified products. FIRS/ESMA compliance. Dubai and Jebel Ali port delivery. Arabic documentation available.",
       certRelevant: "Halal, ISO"
     },
     {
       region: "Southeast Asia",
-      flag: "🇸🇬",
+      flag: "SEA",
       countries: "Singapore, Malaysia, Thailand, Indonesia, Vietnam, Philippines",
       details: "Growing demand for organic superfoods and herbal ingredients. Competitive pricing for ASEAN markets. Short transit times from India.",
       certRelevant: "ISO, HACCP, GMP"
@@ -299,7 +299,7 @@ export default function OrganicSupplierIndia() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-20">
+      <section className="bg-gradient-to-br from-[#f0f4eb] via-[#f6f8f2] to-[#e3ecd8] py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center">
             <Badge variant="outline" className="mb-6 border-emerald-600 text-emerald-700 px-4 py-2">

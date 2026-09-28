@@ -80,8 +80,8 @@ export default function SimpleHeroSlider() {
         }}
       />
       
-      {/* Gradient Overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+      {/* Forest overlay ties the imagery to the logo while keeping copy legible. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-green-900/85 via-green-800/55 to-transparent"></div>
       
       {/* Bottom Fade Effect - Reduced height */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
@@ -105,7 +105,7 @@ export default function SimpleHeroSlider() {
               {/* Subtitle - More compact */}
               <h2 
                 className={`text-base sm:text-lg md:text-xl lg:text-2xl font-semibold
-                          ${slide.textColor === 'white' ? 'text-blue-200' : 'text-blue-600'} 
+                          ${slide.textColor === 'white' ? 'text-green-100' : 'text-green-700'}
                           transform transition-all duration-1000 ease-out
                           animate-[slideInRight_1s_ease-out_0.4s_both]`}
               >
@@ -127,7 +127,7 @@ export default function SimpleHeroSlider() {
               <div className="animate-[fadeIn_1s_ease-out_0.8s_both] pt-2">
                 <Button 
                   size="default"
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-6 py-2 
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 sm:px-6 py-2
                            text-xs sm:text-sm md:text-base font-semibold
                            transform transition-all duration-300 hover:scale-105 shadow-lg"
                 >
@@ -171,7 +171,7 @@ export default function SimpleHeroSlider() {
                   onClick={() => setCurrentSlide(index)}
                   className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
                     index === currentSlide
-                      ? 'bg-orange-500 scale-125'
+                       ? 'bg-emerald-400 scale-125'
                       : 'bg-white/50 hover:bg-white/70'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
