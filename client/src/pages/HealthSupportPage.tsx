@@ -253,7 +253,7 @@ export default function HealthSupportPage() {
 
   // Set document title and meta description
   useEffect(() => {
-    document.title = `${healthSupportName} - Organic Ingredients | Cape NatureX Organic`;
+    document.title = `${healthSupportName} - Organic Ingredients | Bright Fame Organic`;
     
     let metaDescription = document.querySelector('meta[name="description"]');
     if (!metaDescription) {

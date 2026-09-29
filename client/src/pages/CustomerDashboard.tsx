@@ -225,7 +225,7 @@ export default function CustomerDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'responded': return 'bg-green-100 text-green-900';
+      case 'responded': return 'bg-blue-100 text-blue-800';
       case 'quoted': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-emerald-100 text-emerald-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
@@ -302,7 +302,7 @@ export default function CustomerDashboard() {
                 <p className="text-sm font-medium text-gray-600">Total Inquiries</p>
                 <p className="text-2xl font-bold text-gray-900">{inquiries?.total || 0}</p>
               </div>
-              <MessageSquare className="w-8 h-8 text-green-700" />
+              <MessageSquare className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -326,7 +326,7 @@ export default function CustomerDashboard() {
                 <p className="text-sm font-medium text-gray-600">High Volume Bids</p>
                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{highVolumeBids?.length || 0}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-700" />
+              <TrendingUp className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -356,7 +356,7 @@ export default function CustomerDashboard() {
               {inquiries.inquiries.slice(0, 3).map((inquiry: any) => (
                 <div key={inquiry.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    <MessageSquare className="w-5 h-5 text-green-700 flex-shrink-0" />
+                    <MessageSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm sm:text-base truncate">{inquiry.inquiryId}</p>
                       <p className="text-sm text-gray-500 truncate">{inquiry.productName}</p>
@@ -516,7 +516,7 @@ export default function CustomerDashboard() {
                                       <p><span className="font-medium">Quantity:</span> {inquiry.quantity} {inquiry.unit}</p>
                                       {inquiry.inquiryType === 'high_volume_bid' && (
                                         <p>
-                                          <Badge className="bg-green-100 text-green-900">
+                                          <Badge className="bg-blue-100 text-blue-800">
                                             High Volume Bid
                                           </Badge>
                                         </p>
@@ -540,7 +540,7 @@ export default function CustomerDashboard() {
                               {inquiry.shippingAddress && (
                                 <div>
                                   <h3 className="font-semibold mb-2">Shipping Address</h3>
-                                  <div className="bg-green-50 p-3 rounded text-sm">
+                                  <div className="bg-blue-50 p-3 rounded text-sm">
                                     <p>{inquiry.shippingAddress}</p>
                                   </div>
                                 </div>
@@ -580,7 +580,7 @@ export default function CustomerDashboard() {
                                               </p>
                                             </div>
                                             <Badge className={`${
-                                              quote.status === 'sent' ? 'bg-green-100 text-green-900' :
+                                              quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                               quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                               quote.status === 'expired' ? 'bg-red-100 text-red-800' :
                                               'bg-gray-100 text-gray-800'
@@ -664,7 +664,7 @@ export default function CustomerDashboard() {
                                     <span>{new Date(inquiry.createdAt).toLocaleString()}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-700 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                     <span className="font-medium">Last Updated:</span>
                                     <span>{new Date(inquiry.updatedAt).toLocaleString()}</span>
                                   </div>
@@ -723,7 +723,7 @@ export default function CustomerDashboard() {
               ) : highVolumeBids && highVolumeBids.length > 0 ? (
                 <div className="space-y-4">
                   {highVolumeBids.map((bid: any) => (
-                    <div key={bid.id} className="border-l-4 border-l-green-700 border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={bid.id} className="border-l-4 border-l-blue-500 border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -731,7 +731,7 @@ export default function CustomerDashboard() {
                             <Badge className={getStatusColor(bid.status)}>
                               {bid.status}
                             </Badge>
-                            <Badge variant="outline" className="bg-green-50 text-green-900">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
                               {parseInt(bid.quantity) >= 10000 ? 'Premium Volume' : 'High Volume'}
                             </Badge>
                           </div>
@@ -740,14 +740,14 @@ export default function CustomerDashboard() {
                               <span className="font-medium">Product:</span> {bid.productName}
                             </div>
                             <div>
-                              <span className="font-medium text-green-700">Volume:</span> {bid.quantity} {bid.unit}
+                              <span className="font-medium text-blue-600">Volume:</span> {bid.quantity} {bid.unit}
                             </div>
                             <div>
                               <span className="font-medium">Bid ID:</span> {bid.inquiryId}
                             </div>
                           </div>
                           {bid.message && (
-                            <div className="mt-3 p-3 bg-green-50 rounded text-sm">
+                            <div className="mt-3 p-3 bg-blue-50 rounded text-sm">
                               <span className="font-medium">Requirements:</span> {bid.message}
                             </div>
                           )}
@@ -762,7 +762,7 @@ export default function CustomerDashboard() {
                           <Button 
                             variant="default" 
                             size="sm" 
-                            className="bg-green-800 hover:bg-green-900"
+                            className="bg-blue-600 hover:bg-blue-700"
                             onClick={() => {
                               setSelectedBidForTracking(bid);
                               setShowBidTrackingDialog(true);
@@ -799,7 +799,7 @@ export default function CustomerDashboard() {
                                   </div>
                                   <div>
                                     <p className="text-sm text-gray-600">Quantity</p>
-                                    <p className="font-medium text-green-700">{bid.quantity} {bid.unit}</p>
+                                    <p className="font-medium text-blue-600">{bid.quantity} {bid.unit}</p>
                                   </div>
                                   {bid.targetPrice && (
                                     <div>
@@ -828,7 +828,7 @@ export default function CustomerDashboard() {
                                 {bid.message && (
                                   <div>
                                     <p className="text-sm text-gray-600 mb-2">Requirements</p>
-                                    <div className="bg-green-50 p-4 rounded-lg">
+                                    <div className="bg-blue-50 p-4 rounded-lg">
                                       <p className="text-sm">{bid.message}</p>
                                     </div>
                                   </div>
@@ -841,7 +841,7 @@ export default function CustomerDashboard() {
                                       {bid.bidStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-800">Awaiting Approval</Badge>}
                                       {bid.bidStatus === 'approved' && <Badge className="bg-green-100 text-green-800">Approved</Badge>}
                                       {bid.bidStatus === 'rejected' && <Badge className="bg-red-100 text-red-800">Rejected</Badge>}
-                                      {bid.bidStatus === 'in_discussion' && <Badge className="bg-green-100 text-green-900">In Discussion</Badge>}
+                                      {bid.bidStatus === 'in_discussion' && <Badge className="bg-purple-100 text-purple-800">In Discussion</Badge>}
                                     </div>
                                     {bid.approvalNotes && (
                                       <div className="mt-2 bg-gray-50 p-3 rounded">
@@ -875,7 +875,7 @@ export default function CustomerDashboard() {
                                                 </p>
                                               </div>
                                               <Badge className={`${
-                                                quote.status === 'sent' ? 'bg-green-100 text-green-900' :
+                                                quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                                 quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                                 quote.status === 'expired' ? 'bg-red-100 text-red-800' :
                                                 'bg-gray-100 text-gray-800'
@@ -952,8 +952,8 @@ export default function CustomerDashboard() {
                                   );
                                 })()}
                                 
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                  <p className="text-sm text-green-900">
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                  <p className="text-sm text-blue-900">
                                     <strong>Next Steps:</strong> Our team will review your high volume bid request and respond within 24-48 hours. 
                                     {bid.bidStatus === 'approved' && ' Your bid has been approved and a sales representative will contact you shortly.'}
                                     {bid.bidStatus === 'pending' && ' We are currently reviewing your request.'}
@@ -1011,8 +1011,8 @@ export default function CustomerDashboard() {
                                     </div>
                                   </div>
                                   
-                                  <div className="bg-green-50 p-4 rounded-lg mt-4">
-                                    <p className="text-sm text-green-900">
+                                  <div className="bg-blue-50 p-4 rounded-lg mt-4">
+                                    <p className="text-sm text-blue-900">
                                       <strong>Current Status:</strong> {bid.bidStatus === 'pending' ? 'Your bid is under review by our management team.' : 'Your bid has been approved and is being processed by our sales team.'}
                                     </p>
                                   </div>
@@ -1074,7 +1074,7 @@ export default function CustomerDashboard() {
                     <span className="text-xs">Being prepared by sales team</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-900">Sent</Badge>
+                    <Badge className="bg-blue-100 text-blue-800">Sent</Badge>
                     <span className="text-xs">Ready for your review</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1103,7 +1103,7 @@ export default function CustomerDashboard() {
                           <div className="flex items-center gap-2 mb-3">
                             <span className="font-semibold text-lg">{quotation.quotationId}</span>
                             <Badge className={`${
-                              quotation.status === 'sent' ? 'bg-green-100 text-green-900' :
+                              quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                               quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
                               quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
@@ -1165,7 +1165,7 @@ export default function CustomerDashboard() {
                                         <p><span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}</p>
                                         <p><span className="font-medium">Status:</span> 
                                           <Badge className={`ml-2 ${
-                                            quotation.status === 'sent' ? 'bg-green-100 text-green-900' :
+                                            quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                             quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                             quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
                                             'bg-gray-100 text-gray-800'
@@ -1211,11 +1211,11 @@ export default function CustomerDashboard() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <h3 className="font-semibold mb-2">Payment Terms</h3>
-                                    <p className="text-sm bg-green-50 p-3 rounded">{quotation.paymentTerms}</p>
+                                    <p className="text-sm bg-blue-50 p-3 rounded">{quotation.paymentTerms}</p>
                                   </div>
                                   <div>
                                     <h3 className="font-semibold mb-2">Delivery Terms</h3>
-                                    <p className="text-sm bg-green-50 p-3 rounded">{quotation.deliveryTerms}</p>
+                                    <p className="text-sm bg-blue-50 p-3 rounded">{quotation.deliveryTerms}</p>
                                   </div>
                                 </div>
 
@@ -1223,7 +1223,7 @@ export default function CustomerDashboard() {
                                 <div className="space-y-3">
                                   <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
                                   <div className="p-4 bg-green-50 rounded-lg">
-                                    <h4 className="font-semibold">Cape NatureX Organic Pvt. Ltd.</h4>
+                                    <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
                                         <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                     <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                     <p className="text-sm mt-2">Phone: +91-7249847439</p>
@@ -1353,45 +1353,45 @@ export default function CustomerDashboard() {
       </div>
       
       {/* Quotation Process Explanation */}
-      <Card className="bg-green-50 border-green-200">
+      <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-900">
+          <CardTitle className="flex items-center gap-2 text-blue-900">
             <TrendingUp className="w-5 h-5" />
             How the Quotation Process Works
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-green-900">
+        <CardContent className="text-blue-800">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                <MessageSquare className="w-6 h-6 text-green-700" />
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <MessageSquare className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="font-semibold text-sm">1. Submit Inquiry</h3>
               <p className="text-xs mt-1">You submit a product inquiry with quantity and requirements</p>
             </div>
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                <User className="w-6 h-6 text-green-700" />
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <User className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="font-semibold text-sm">2. Sales Review</h3>
               <p className="text-xs mt-1">Our sales team reviews your inquiry and prepares a detailed quotation</p>
             </div>
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                <FileText className="w-6 h-6 text-green-700" />
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <FileText className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="font-semibold text-sm">3. Quotation Sent</h3>
               <p className="text-xs mt-1">You receive a formal quotation with pricing, terms, and validity period</p>
             </div>
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                <Package className="w-6 h-6 text-green-700" />
+              <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <Package className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="font-semibold text-sm">4. Place Order</h3>
               <p className="text-xs mt-1">Accept the quotation to proceed with your order</p>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-green-100 rounded-lg">
+          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
             <p className="text-sm font-medium">💡 Pro Tip:</p>
             <p className="text-xs mt-1">All quotations include multi-currency pricing (USD, EUR, GBP, INR, etc.) and international trade terms (Ex-Warehouse, FOB, CIF, DDP) for global compliance.</p>
           </div>
@@ -1413,7 +1413,7 @@ export default function CustomerDashboard() {
               <span className="text-sm">Being prepared by sales team</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-green-100 text-green-900">Sent</Badge>
+              <Badge className="bg-blue-100 text-blue-800">Sent</Badge>
               <span className="text-sm">Quotation sent to you for review</span>
             </div>
             <div className="flex items-center gap-2">
@@ -1504,7 +1504,7 @@ export default function CustomerDashboard() {
                         </div>
                       )}
                       {quotation.notes && (
-                        <div className="mt-2 p-2 bg-green-50 rounded text-sm">
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                           <span className="font-medium">Notes:</span> {quotation.notes}
                         </div>
                       )}
@@ -1609,7 +1609,7 @@ export default function CustomerDashboard() {
                             {quotation.notes && (
                               <div className="space-y-3">
                                 <h3 className="text-lg font-semibold border-b pb-2">Additional Notes</h3>
-                                <div className="p-4 bg-green-50 rounded-lg">
+                                <div className="p-4 bg-blue-50 rounded-lg">
                                   <p className="text-sm">{quotation.notes}</p>
                                 </div>
                               </div>
@@ -1619,7 +1619,7 @@ export default function CustomerDashboard() {
                             <div className="space-y-3">
                               <h3 className="text-lg font-semibold border-b pb-2">Company Information</h3>
                               <div className="p-4 bg-green-50 rounded-lg">
-                                <h4 className="font-semibold">Cape NatureX Organic Pvt. Ltd.</h4>
+                                <h4 className="font-semibold">Bright Fame Organic Pvt. Ltd.</h4>
                                 <p className="text-sm">Opp. Murlidhar Guest House, Mehsana-Vishnagar Road</p>
                                 <p className="text-sm">Kansarakui, Mehsana, Gujarat 384001</p>
                                 <p className="text-sm mt-2">Phone: +91-7249847439</p>
@@ -1668,7 +1668,7 @@ export default function CustomerDashboard() {
                                   </Button>
                                   <Button 
                                     variant="outline"
-                                    className="border-green-700 text-green-800 hover:bg-green-50"
+                                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
                                     onClick={() => {
                                       setSelectedQuotation(quotation);
                                       setCounterPrice("");
@@ -1736,8 +1736,8 @@ export default function CustomerDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-900">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
                 💡 <strong>Negotiation Tip:</strong> Our sales team reviews all counter-offers. 
                 Provide your target price and explain your reasoning to help reach a mutual agreement.
               </p>
@@ -1792,7 +1792,7 @@ export default function CustomerDashboard() {
                 });
               }}
               disabled={counterOfferMutation.isPending || !counterPrice}
-              className="bg-green-800 hover:bg-green-900"
+              className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-submit-counter-offer"
             >
               {counterOfferMutation.isPending ? (
@@ -1905,11 +1905,11 @@ export default function CustomerDashboard() {
           </div>
         ) : highVolumeBids && highVolumeBids.length > 0 ? (
           highVolumeBids.map((bid: any) => (
-            <Card key={bid.id} className="hover:shadow-md transition-shadow border-l-4 border-l-green-700">
+            <Card key={bid.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <TrendingUp className="w-5 h-5 text-green-700" />
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
                     <div>
                       <h3 className="font-semibold text-lg">BID-{bid.id}</h3>
                       <p className="text-sm text-gray-500">High Volume Bid Request</p>
@@ -1919,7 +1919,7 @@ export default function CustomerDashboard() {
                     <Badge className={`${getStatusColor(bid.status)}`}>
                       {bid.status}
                     </Badge>
-                    <Badge variant="outline" className="bg-green-50 text-green-900">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
                       {parseInt(bid.quantity) >= 10000 ? 'Premium Volume' : 'High Volume'}
                     </Badge>
                   </div>
@@ -1932,7 +1932,7 @@ export default function CustomerDashboard() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Volume</p>
-                    <p className="font-medium text-green-700">{bid.quantity} {bid.unit}</p>
+                    <p className="font-medium text-blue-600">{bid.quantity} {bid.unit}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Bid ID</p>
@@ -1943,7 +1943,7 @@ export default function CustomerDashboard() {
                 {bid.message && (
                   <div className="mb-4">
                     <p className="text-sm text-gray-600">Requirements</p>
-                    <p className="text-sm bg-green-50 p-3 rounded">{bid.message}</p>
+                    <p className="text-sm bg-blue-50 p-3 rounded">{bid.message}</p>
                   </div>
                 )}
                 
@@ -1982,7 +1982,7 @@ export default function CustomerDashboard() {
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Quantity</p>
-                              <p className="font-medium text-green-700">{bid.quantity} {bid.unit}</p>
+                              <p className="font-medium text-blue-600">{bid.quantity} {bid.unit}</p>
                             </div>
                             {bid.targetPrice && (
                               <div>
@@ -2011,7 +2011,7 @@ export default function CustomerDashboard() {
                           {bid.message && (
                             <div>
                               <p className="text-sm text-gray-600 mb-2">Requirements</p>
-                              <div className="bg-green-50 p-4 rounded-lg">
+                              <div className="bg-blue-50 p-4 rounded-lg">
                                 <p className="text-sm">{bid.message}</p>
                               </div>
                             </div>
@@ -2024,7 +2024,7 @@ export default function CustomerDashboard() {
                                 {bid.bidStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-800">Awaiting Approval</Badge>}
                                 {bid.bidStatus === 'approved' && <Badge className="bg-green-100 text-green-800">Approved</Badge>}
                                 {bid.bidStatus === 'rejected' && <Badge className="bg-red-100 text-red-800">Rejected</Badge>}
-                                {bid.bidStatus === 'in_discussion' && <Badge className="bg-green-100 text-green-900">In Discussion</Badge>}
+                                {bid.bidStatus === 'in_discussion' && <Badge className="bg-purple-100 text-purple-800">In Discussion</Badge>}
                               </div>
                               {bid.approvalNotes && (
                                 <div className="mt-2 bg-gray-50 p-3 rounded">
@@ -2035,8 +2035,8 @@ export default function CustomerDashboard() {
                             </div>
                           )}
                           
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <p className="text-sm text-green-900">
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-900">
                               <strong>Next Steps:</strong> Our team will review your high volume bid request and respond within 24-48 hours. 
                               {bid.bidStatus === 'approved' && ' Your bid has been approved and a sales representative will contact you shortly.'}
                               {bid.bidStatus === 'pending' && ' We are currently reviewing your request.'}
@@ -2094,8 +2094,8 @@ export default function CustomerDashboard() {
                               </div>
                             </div>
                             
-                            <div className="bg-green-50 p-4 rounded-lg mt-4">
-                              <p className="text-sm text-green-900">
+                            <div className="bg-blue-50 p-4 rounded-lg mt-4">
+                              <p className="text-sm text-blue-900">
                                 <strong>Current Status:</strong> {bid.bidStatus === 'pending' ? 'Your bid is under review by our management team.' : 'Your bid has been approved and is being processed by our sales team.'}
                               </p>
                             </div>
@@ -2160,7 +2160,7 @@ export default function CustomerDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <Package className="w-5 h-5 text-green-700" />
+                    <Package className="w-5 h-5 text-purple-600" />
                     <div>
                       <h3 className="font-semibold text-lg">{request.requestId}</h3>
                       <p className="text-sm text-gray-500">Sample Request</p>
@@ -2274,7 +2274,7 @@ export default function CustomerDashboard() {
           {selectedSampleRequest && (
             <div className="space-y-4 sm:space-y-6">
               {/* Visual Timeline */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
                 <h3 className="font-semibold mb-4 text-gray-900">Tracking Status</h3>
                 <div className="flex items-center justify-between relative">
                   {/* Progress Line */}
@@ -2302,7 +2302,7 @@ export default function CustomerDashboard() {
                       <div key={step.status} className="flex flex-col items-center relative z-10">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
                           stepStatus === 'completed' ? 'bg-green-500 text-white' :
-                          stepStatus === 'active' ? 'bg-green-700 text-white animate-pulse' :
+                          stepStatus === 'active' ? 'bg-blue-500 text-white animate-pulse' :
                           stepStatus === 'rejected' ? 'bg-red-500 text-white' :
                           'bg-gray-200 text-gray-400'
                         }`}>
@@ -2388,9 +2388,9 @@ export default function CustomerDashboard() {
                         <Truck className="w-4 h-4 mr-2" />
                         Tracking Information
                       </h4>
-                      <div className="bg-green-50 border border-green-200 p-3 rounded">
+                      <div className="bg-blue-50 border border-blue-200 p-3 rounded">
                         <p className="text-sm text-gray-600 mb-1">Tracking Number:</p>
-                        <p className="font-mono text-lg font-semibold text-green-900">
+                        <p className="font-mono text-lg font-semibold text-blue-900">
                           {selectedSampleRequest.trackingNumber}
                         </p>
                       </div>
@@ -2430,7 +2430,7 @@ export default function CustomerDashboard() {
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-700" />
+              <TrendingUp className="w-5 h-5 text-blue-600" />
               Bid Progress - {selectedBidForTracking?.inquiryId}
             </DialogTitle>
             <DialogDescription className="text-sm">
@@ -2440,7 +2440,7 @@ export default function CustomerDashboard() {
           
           {bidTrackingLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-green-700" />
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
               <span className="ml-2 text-gray-500">Loading tracking information...</span>
             </div>
           ) : bidTrackingData ? (
@@ -2466,7 +2466,7 @@ export default function CustomerDashboard() {
                     <div key={step.key} className="flex items-start gap-4">
                       <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                         isCompleted ? 'bg-green-500 text-white' :
-                        isCurrent ? 'bg-green-700 text-white ring-4 ring-green-200' :
+                        isCurrent ? 'bg-blue-500 text-white ring-4 ring-blue-200' :
                         'bg-gray-200 text-gray-500'
                       }`}>
                         {isCompleted ? (
@@ -2476,12 +2476,12 @@ export default function CustomerDashboard() {
                         )}
                       </div>
                       <div className="flex-1 pb-4 border-b last:border-b-0">
-                        <h4 className={`font-semibold ${isCurrent ? 'text-green-800' : isCompleted ? 'text-green-700' : 'text-gray-500'}`}>
+                        <h4 className={`font-semibold ${isCurrent ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-500'}`}>
                           {step.label}
                         </h4>
                         <p className="text-sm text-gray-500">{step.description}</p>
                         {isCurrent && (
-                          <Badge className="mt-2 bg-green-100 text-green-900">Current Status</Badge>
+                          <Badge className="mt-2 bg-blue-100 text-blue-800">Current Status</Badge>
                         )}
                       </div>
                     </div>
@@ -2538,9 +2538,9 @@ export default function CustomerDashboard() {
                       </div>
                       
                       {/* Next Steps */}
-                      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-sm text-green-900 font-medium">What's Next?</p>
-                        <p className="text-xs text-green-800 mt-1">
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 font-medium">What's Next?</p>
+                        <p className="text-xs text-blue-600 mt-1">
                           Our sales team will contact you shortly to finalize the order details and arrange delivery.
                         </p>
                       </div>
@@ -2550,13 +2550,13 @@ export default function CustomerDashboard() {
               ) : (
                 <div className={`rounded-lg p-4 border ${
                   bidTrackingData.bidProgressStatus === 'quotation_sent'
-                  ? 'bg-emerald-50 border-emerald-200'
-                  : 'bg-green-50 border-green-200'
+                  ? 'bg-purple-50 border-purple-200'
+                  : 'bg-blue-50 border-blue-200'
                 }`}>
                   <p className={`text-sm font-medium ${
                     bidTrackingData.bidProgressStatus === 'quotation_sent'
-                    ? 'text-green-900'
-                    : 'text-green-900'
+                    ? 'text-purple-800'
+                    : 'text-blue-800'
                   }`}>
                     {bidTrackingData.bidProgressStatus === 'submitted' && 'Your bid has been submitted and is awaiting review.'}
                     {bidTrackingData.bidProgressStatus === 'manager_approval' && 'Your bid is under review by our management team.'}
@@ -2567,8 +2567,8 @@ export default function CustomerDashboard() {
                   {bidTrackingData.bidProgressUpdatedAt && (
                     <p className={`text-xs mt-1 ${
                       bidTrackingData.bidProgressStatus === 'quotation_sent'
-                      ? 'text-green-800'
-                      : 'text-green-700'
+                      ? 'text-purple-600'
+                      : 'text-blue-600'
                     }`}>
                       Last updated: {format(new Date(bidTrackingData.bidProgressUpdatedAt), 'MMM dd, yyyy HH:mm')}
                     </p>

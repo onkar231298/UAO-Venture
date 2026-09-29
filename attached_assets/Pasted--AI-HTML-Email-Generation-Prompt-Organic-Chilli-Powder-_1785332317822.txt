@@ -1,10 +1,10 @@
 # AI HTML Email Generation Prompt – Organic Chilli Powder (10,000–20,000 SHU)
 
-Create a modern, premium, responsive HTML marketing email for **Cape NatureX Organic** promoting the availability of **Organic Chilli Powder (10,000–20,000 SHU)**. The email should have a clean white background with red and green accents, premium product imagery, rounded CTA buttons, and be fully responsive using inline CSS for maximum compatibility with Gmail, Outlook, and Apple Mail.
+Create a modern, premium, responsive HTML marketing email for **Bright Fame Organic** promoting the availability of **Organic Chilli Powder (10,000–20,000 SHU)**. The email should have a clean white background with red and green accents, premium product imagery, rounded CTA buttons, and be fully responsive using inline CSS for maximum compatibility with Gmail, Outlook, and Apple Mail.
 
 ## Branding
 
-* Use the **Cape NatureX Organic** logo from the official website.
+* Use the **Bright Fame Organic** logo from the official website.
 * Premium B2B design with a professional, trustworthy appearance.
 * Use high-quality images of Organic Chilli Powder, dried red chillies, and a clean manufacturing facility.
 
@@ -24,7 +24,7 @@ Include an attractive hero image of vibrant organic chilli powder with whole dri
 
 **Dear Purchaser,**
 
-We are pleased to announce the availability of **Organic Chilli Powder (10,000–20,000 SHU)** for immediate export from **Cape NatureX Organic, India**.
+We are pleased to announce the availability of **Organic Chilli Powder (10,000–20,000 SHU)** for immediate export from **Bright Fame Organic, India**.
 
 Manufactured from carefully selected organic chillies, our product offers excellent colour, balanced pungency, and consistent quality, making it ideal for food manufacturers, spice processors, private label brands, wholesalers, and importers.
 
@@ -41,7 +41,7 @@ Whether you require bulk quantities or customised packaging, we can provide reli
 * Complete Export Documentation
 * Worldwide Shipping
 
-## Why Choose Cape NatureX Organic
+## Why Choose Bright Fame Organic
 
 * Certified Organic Manufacturing
 * Consistent Quality Across Every Batch
@@ -86,7 +86,7 @@ Display a trust message below the buttons:
 
 Include:
 
-* Cape NatureX Organic logo
+* Bright Fame Organic logo
 * Website: https://bright-organic.com
 * Registration Link: https://bright-organic.com/register
 * Email address
@@ -107,4 +107,4 @@ Include:
 
 ## Tone
 
-Professional, trustworthy, and export-focused. The email should create confidence in Cape NatureX Organic as a reliable long-term sourcing partner while highlighting the immediate availability of Organic Chilli Powder.
+Professional, trustworthy, and export-focused. The email should create confidence in Bright Fame Organic as a reliable long-term sourcing partner while highlighting the immediate availability of Organic Chilli Powder.

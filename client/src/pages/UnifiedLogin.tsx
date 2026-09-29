@@ -109,7 +109,7 @@ export default function UnifiedLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#294a2c] via-[#718b57] to-[#95b259] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-500 to-yellow-400 flex flex-col">
       {/* Main content area with centered card */}
       <div className="flex-1 flex items-center justify-center p-4 pb-8">
         <Card className="w-full max-w-md">
@@ -119,8 +119,8 @@ export default function UnifiedLogin() {
               <Leaf className="text-white text-2xl" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-green-600">Cape NatureX ORGANIC</CardTitle>
-          <CardDescription>Welcome to Cape NatureX Organic Login Portal</CardDescription>
+          <CardTitle className="text-2xl font-bold text-green-600">BRIGHT FAME ORGANIC</CardTitle>
+          <CardDescription>Welcome to Bright Fame Organic Login Portal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -219,7 +219,7 @@ export default function UnifiedLogin() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full bg-[#294a2c] hover:bg-[#203b23]" disabled={isAdminLoading}>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isAdminLoading}>
                   {isAdminLoading ? "Signing in..." : "Staff Login"}
                 </Button>
               </form>
@@ -227,7 +227,7 @@ export default function UnifiedLogin() {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-800 font-medium mb-1">Staff Access:</p>
                 <div className="text-xs text-gray-700">
-                  <p>For Cape NatureX Organic team members only</p>
+                  <p>For Bright Fame Organic team members only</p>
                 </div>
               </div>
             </TabsContent>

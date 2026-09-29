@@ -61,34 +61,6 @@ import {
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
 
-const sidebarIconColors: Record<string, string> = {
-  overview: "#2D6B3C",
-  inventory: "#77964C",
-  sales: "#3C7C46",
-  "enquiry-sample": "#608B50",
-  "sample-requests": "#77964C",
-  "high-volume-bids": "#4C8054",
-  "quotation-negotiations": "#718B57",
-  "sales-orders": "#54805D",
-  "sales-crm": "#3D7548",
-  "company-management": "#4D835E",
-  "duplicate-review": "#729552",
-  purchase: "#79964D",
-  logistics: "#4F8973",
-  accounts: "#6F8A50",
-  website: "#4F8973",
-  newsletter: "#819E53",
-  blog: "#587D57",
-  users: "#3D7548",
-  "hr-management": "#74934E",
-  "quality-management": "#4E8665",
-  "sales-activity-logs": "#718B57",
-  "security-monitor": "#577F52",
-  analytics: "#588262",
-  documents: "#789A51",
-  settings: "#4D8059",
-};
-
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [adminUser, setAdminUser] = useState<any>(null);
@@ -244,18 +216,14 @@ export default function AdminDashboard() {
     <button
       key={key}
       onClick={() => handleNavClick(key, onClick)}
-      className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#718b57] focus-visible:ring-offset-1 ${
+      className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
         isActive
-          ? "bg-[#edf5e7] text-[#294a2c] border border-[#c9dbbd] shadow-[inset_3px_0_0_#6f9b50] font-semibold"
-          : "text-[#344b39] hover:bg-[#f2f7ef]"
+          ? "bg-blue-100 text-blue-900 border border-blue-200"
+          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
       }`}
       data-testid={testId}
-      aria-current={isActive && activeSection === key ? "page" : undefined}
     >
-      <Icon
-        className={`mr-3 flex-shrink-0 ${size === 'small' ? 'h-4 w-4' : 'h-5 w-5'}`}
-        style={{ color: sidebarIconColors[key] ?? "#4F8059" }}
-      />
+      <Icon className={`mr-3 flex-shrink-0 ${size === 'small' ? 'h-4 w-4' : 'h-5 w-5'}`} />
       <span className="truncate">{label}</span>
     </button>
   );
@@ -269,20 +237,20 @@ export default function AdminDashboard() {
         />
       )}
 
-      <aside className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-white shadow-sm border-r border-[#dce7d6] border-t-[3px] border-t-[#95b259] flex-col`}>
-        <div className="p-6 border-b border-[#e2eadc]">
+      <aside className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-[#294a2c]">Cape NatureX Admin Portal</h2>
-              <p className="text-sm text-[#718b57]">Organic Platform</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
             </div>
-            <button className="md:hidden p-1 rounded-lg hover:bg-[#f2f7ef]" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
-              <X className="h-5 w-5 text-[#59725d]" />
+            <button className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setSidebarOpen(false)}>
+              <X className="h-5 w-5 text-gray-500" />
             </button>
           </div>
           <a 
             href="/" 
-            className="inline-flex items-center text-sm text-[#357644] hover:text-[#294a2c] mt-3"
+            className="inline-flex items-center text-sm text-green-600 hover:text-green-700 mt-3"
           >
             <Globe className="w-4 h-4 mr-1" />
             Back to Website
@@ -292,14 +260,14 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-6">
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">MAIN</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">MAIN</h3>
               <div className="space-y-1">
                 {navButton('overview', 'Dashboard', LayoutDashboard, activeSection === 'overview', () => setLocation('/admin/dashboard'))}
               </div>
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">OPERATIONS</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">OPERATIONS</h3>
               <div className="space-y-1">
                 {navButton('inventory', 'Inventory Management', Warehouse, activeSection === 'inventory', () => setActiveSection('inventory'))}
                 {navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}
@@ -324,7 +292,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">WEBSITE & CONTENT</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">WEBSITE & CONTENT</h3>
               <div className="space-y-1">
                 {navButton('website', 'Website Management', Globe, activeSection === 'website', () => setActiveSection('website'))}
                 {navButton('newsletter', 'Newsletter', Mail, activeSection === 'newsletter', () => setActiveSection('newsletter'))}
@@ -333,7 +301,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">PEOPLE & COMPLIANCE</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PEOPLE & COMPLIANCE</h3>
               <div className="space-y-1">
                 {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
                 {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
@@ -341,14 +309,13 @@ export default function AdminDashboard() {
                 {navButton('sales-activity-logs', 'Sales Activity Logs', ClipboardList, activeSection === 'sales-activity-logs', () => setActiveSection('sales-activity-logs'))}
                 <button
                   onClick={() => handleNavClick('security-monitor', () => setActiveSection('security-monitor'))}
-                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#718b57] focus-visible:ring-offset-1 ${
+                  className={`w-full flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
                     activeSection === 'security-monitor'
-                      ? "bg-[#edf5e7] text-[#294a2c] border border-[#c9dbbd] shadow-[inset_3px_0_0_#6f9b50] font-semibold"
-                      : "text-[#344b39] hover:bg-[#f2f7ef]"
+                      ? "bg-blue-100 text-blue-900 border border-blue-200"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   }`}
-                  aria-current={activeSection === 'security-monitor' ? "page" : undefined}
                 >
-                  <ShieldAlert className="mr-3 flex-shrink-0 h-5 w-5" style={{ color: sidebarIconColors['security-monitor'] }} />
+                  <ShieldAlert className="mr-3 flex-shrink-0 h-5 w-5" />
                   <span className="truncate flex-1 text-left">Security &amp; Activity</span>
                   {unresolvedSecurityAlerts > 0 && (
                     <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-[10px] shrink-0 flex items-center justify-center">
@@ -360,7 +327,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">ANALYTICS</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ANALYTICS</h3>
               <div className="space-y-1">
                 {navButton('analytics', 'Analytics & Reports', BarChart3, activeSection === 'analytics', () => setActiveSection('analytics'))}
               </div>
@@ -368,7 +335,7 @@ export default function AdminDashboard() {
 
             {(adminUser as any)?.role === 'super_admin' && (
               <div>
-                <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">ADMIN TOOLS</h3>
+                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ADMIN TOOLS</h3>
                 <div className="space-y-1">
                   {navButton('documents', 'Document Upload', Upload, activeSection === 'documents', () => setActiveSection('documents'))}
                 </div>
@@ -376,7 +343,7 @@ export default function AdminDashboard() {
             )}
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-[#718b57] uppercase tracking-wider mb-3">PROFILE</h3>
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PROFILE</h3>
               <div className="space-y-1">
                 {navButton('settings', 'System Settings', Settings, activeSection === 'settings', () => setActiveSection('settings'))}
               </div>
@@ -384,7 +351,7 @@ export default function AdminDashboard() {
           </div>
         </nav>
 
-        <div className="p-4 border-t border-[#e2eadc]">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => window.location.href = '/api/logout'}
             className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"

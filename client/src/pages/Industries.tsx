@@ -41,7 +41,7 @@ const industries: IndustryCard[] = [
       "Global Food Compliance"
     ],
     certifications: ["EU Organic", "USDA Organic", "HACCP", "ISO 22000"],
-    color: "from-[#718b57] to-[#95b259]"
+    color: "from-amber-500 to-orange-600"
   },
   {
     title: "Pharmaceutical",
@@ -55,7 +55,7 @@ const industries: IndustryCard[] = [
       "Regulatory Support"
     ],
     certifications: ["GMP", "ISO 9001", "Kosher", "Halal"],
-    color: "from-[#294a2c] to-[#557342]"
+    color: "from-blue-500 to-indigo-600"
   },
   {
     title: "Organic Herbs & Spices",
@@ -69,7 +69,7 @@ const industries: IndustryCard[] = [
       "Sustainable Sourcing"
     ],
     certifications: ["USDA Organic", "EU Organic", "India Organic"],
-    color: "from-[#557342] to-[#95b259]"
+    color: "from-green-500 to-emerald-600"
   },
   {
     title: "EU Organic Spices",
@@ -83,7 +83,7 @@ const industries: IndustryCard[] = [
       "Europe-Ready"
     ],
     certifications: ["EU Organic", "Ecocert", "BRC", "IFS"],
-    color: "from-[#294a2c] to-[#718b57]"
+    color: "from-purple-500 to-pink-600"
   },
   {
     title: "Cosmetics & Personal Care",
@@ -97,7 +97,7 @@ const industries: IndustryCard[] = [
       "Beauty Industry Certified"
     ],
     certifications: ["COSMOS", "Ecocert", "ISO 9001", "Organic"],
-    color: "from-[#718b57] to-[#a9bd7d]"
+    color: "from-rose-500 to-red-600"
   },
   {
     title: "Nutraceuticals & Dietary Supplements",
@@ -111,14 +111,14 @@ const industries: IndustryCard[] = [
       "Supplement Grade"
     ],
     certifications: ["NSF", "GMP", "Organic", "Non-GMO"],
-    color: "from-[#45653d] to-[#95b259]"
+    color: "from-teal-500 to-cyan-600"
   }
 ];
 
 export default function Industries() {
   useSEO({
-    title: "Industries We Serve - B2B Organic Ingredients Supplier | Cape NatureX Organic",
-    description: "Cape NatureX Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant.",
+    title: "Industries We Serve - B2B Organic Ingredients Supplier | Bright Fame Organic",
+    description: "Bright Fame Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant.",
     keywords: "organic ingredients supplier, pharmaceutical ingredients, food grade herbs, nutraceutical raw materials, cosmetic ingredients, B2B organic supplier, certified organic herbs",
     canonicalUrl: `${window.location.origin}/industries`,
     pageType: "website",
@@ -142,7 +142,7 @@ export default function Industries() {
                 Industries We Serve
               </h1>
               <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
-                Cape NatureX Organic is a trusted B2B supplier of certified organic ingredients serving diverse industries worldwide.
+                Bright Fame Organic is a trusted B2B supplier of certified organic ingredients serving diverse industries worldwide. 
                 With ISO certifications, state-of-the-art facilities, and rigorous quality control, we deliver premium organic 
                 raw materials tailored to your industry's specific requirements.
               </p>

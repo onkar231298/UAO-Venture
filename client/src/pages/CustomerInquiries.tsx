@@ -112,7 +112,7 @@ export default function CustomerInquiries() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'responded': return 'bg-green-100 text-green-900';
+      case 'responded': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -125,7 +125,7 @@ export default function CustomerInquiries() {
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-6">
-            <MessageSquare className="w-6 h-6 text-green-700" />
+            <MessageSquare className="w-6 h-6 text-blue-600" />
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">My Inquiries</h1>
           </div>
 
@@ -286,8 +286,8 @@ export default function CustomerInquiries() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Package className="w-5 h-5 text-green-700" />
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">

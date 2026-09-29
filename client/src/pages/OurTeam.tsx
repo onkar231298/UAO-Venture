@@ -17,7 +17,7 @@ export default function OurTeam() {
               Our Leadership Team
             </h1>
             <p className="text-xl opacity-90 mb-8">
-              At Cape NatureX Organic, our strength lies in the vision, dedication, and expertise of our leadership team.
+              At Bright Fame Organic, our strength lies in the vision, dedication, and expertise of our leadership team. 
               Each member brings a unique set of skills and years of industry experience, driving our mission to deliver 
               the highest-quality organic and natural ingredients worldwide.
             </p>
@@ -60,13 +60,13 @@ export default function OurTeam() {
                     <span className="text-green-600 font-medium">Strategic Vision & Leadership</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
-                    A young, dynamic, and self-made entrepreneur, Dr. Niraj Patel has built Cape NatureX Organic from the ground up
+                    A young, dynamic, and self-made entrepreneur, Dr. Niraj Patel has built Bright Fame Organic from the ground up 
                     without any family business background. With an MS in Orthopedics, he made an inspiring transition into the food 
                     and spice industry in 1998, eventually becoming one of the most recognized figures in the sector.
                   </p>
                   <p className="text-gray-700 leading-relaxed text-lg">
                     Known for his calm demeanor and strategic mindset, Dr. Niraj is often called "the man with future eyes" at 
-                    Cape NatureX Organic, guiding the company with innovative vision and leadership.
+                    Bright Fame Organic, guiding the company with innovative vision and leadership.
                   </p>
                 </div>
               </div>
@@ -79,17 +79,17 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-1">
-                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-blue-50 text-blue-700 border-blue-200 px-4 py-2">
                     Director of Purchase
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Ujjwal Dadhich</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Award className="w-5 h-5 text-[#718b57]" />
-                    <span className="text-[#718b57] font-medium">Supply Chain Excellence</span>
+                    <Award className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-600 font-medium">Supply Chain Excellence</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     With an extensive career in the Indian food and ingredients industry, Ujjwal Dadhich has worked with some of 
-                    the country's most renowned companies before joining Cape NatureX Organic. As Director of Purchase, he brings
+                    the country's most renowned companies before joining Bright Fame Organic. As Director of Purchase, he brings 
                     unmatched sourcing expertise and strong relationships across APMC markets and organic farming groups nationwide.
                   </p>
                   <p className="text-gray-700 leading-relaxed text-lg">
@@ -107,13 +107,13 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-2">
-                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-purple-50 text-purple-700 border-purple-200 px-4 py-2">
                     Director of Operations
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Onkar Suryawanshi</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Lightbulb className="w-5 h-5 text-[#718b57]" />
-                    <span className="text-[#718b57] font-medium">Technology Innovation</span>
+                    <Lightbulb className="w-5 h-5 text-purple-600" />
+                    <span className="text-purple-600 font-medium">Technology Innovation</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     A qualified Food Technologist and technology enthusiast, Onkar Suryawanshi began his career at a young age, 
@@ -135,17 +135,17 @@ export default function OurTeam() {
                   </div>
                 </div>
                 <div className="order-2 md:order-1">
-                  <Badge variant="outline" className="mb-4 bg-[#eef3e8] text-[#294a2c] border-[#cbd8bd] px-4 py-2">
+                  <Badge variant="outline" className="mb-4 bg-orange-50 text-orange-700 border-orange-200 px-4 py-2">
                     Director of Supply Chain
                   </Badge>
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">Mr. Kamal Patel</h3>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Target className="w-5 h-5 text-[#718b57]" />
-                    <span className="text-[#718b57] font-medium">Global Logistics Excellence</span>
+                    <Target className="w-5 h-5 text-orange-600" />
+                    <span className="text-orange-600 font-medium">Global Logistics Excellence</span>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                     With extensive experience in shipping, logistics, and international trade documentation, Mr. Kamal Patel ensures 
-                    that Cape NatureX Organic's products reach global markets with efficiency, compliance, and care. His deep knowledge
+                    that Bright Fame Organic's products reach global markets with efficiency, compliance, and care. His deep knowledge 
                     of customs regulations, freight operations, and export procedures helps the company maintain a seamless, timely, 
                     and cost-effective supply chain.
                   </p>
@@ -165,7 +165,7 @@ export default function OurTeam() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Leadership Philosophy</h3>
               <p className="text-lg text-gray-700 max-w-4xl mx-auto">
                 Our directors share a common commitment to innovation, quality, and sustainable practices. Together, they have 
-                built Cape NatureX Organic into a trusted partner for businesses worldwide, ensuring that every product meets
+                built Bright Fame Organic into a trusted partner for businesses worldwide, ensuring that every product meets 
                 the highest standards of purity, safety, and excellence.
               </p>
             </div>

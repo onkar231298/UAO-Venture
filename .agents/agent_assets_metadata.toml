@@ -1,3 +1,16 @@
 uploads = []
 generated = []
-outputs = []
+
+[[outputs]]
+id = "un_cEARETMNZJqJMyeOtk"
+uri = "file://project-copy-small.zip"
+type = "unspecified"
+title = "Project transfer ZIP (100 MB)"
+description = "Ready to import into the new Replit account. App source and required assets are included; dependencies, caches, Git history, Replit internal state, network captures, local environment files, and transfer troubleshooting screenshots are excluded."
+logical_id = "b1d27d85-1c9c-4218-bdab-30e649eec0a4"
+content_hash = "sha256:da457cf188a5a1919c9eba933a880c26e9400be988f448d636e6f94928ae410a"
+size = 104632373
+mtime_ms = 1789720453663
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:23733768-f995-402d-a684-d6fc6e34c6bd/b1d27d85-1c9c-4218-bdab-30e649eec0a4/74fb503a-adfb-413a-a641-69b95ed918e7"
+storage_version_token = "1789720468575086"
+content_type = "application/octet-stream"

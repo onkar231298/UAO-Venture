@@ -9,11 +9,11 @@ import { Award, Globe, Truck, FileText, Shield, MapPin } from "lucide-react";
 
 export default function EUOrganicSpices() {
   useEffect(() => {
-    document.title = "EU Organic Spices Supplier India - Top EU Certified Organic Spice Manufacturer | Cape NatureX Organic";
+    document.title = "EU Organic Spices Supplier India - Top EU Certified Organic Spice Manufacturer | Bright Fame Organic";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'Cape NatureX Organic - India\'s leading EU certified organic spice manufacturer and exporter. EU Organic Regulation 834/2007 compliant. Own 950-hectare farmland. Direct manufacturer with ISO 22000, HACCP, GMP. Premium organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Clean room FFS packaging.');
+      metaDesc.setAttribute('content', 'Bright Fame Organic - India\'s leading EU certified organic spice manufacturer and exporter. EU Organic Regulation 834/2007 compliant. Own 950-hectare farmland. Direct manufacturer with ISO 22000, HACCP, GMP. Premium organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Clean room FFS packaging.');
     }
 
     // EU Organic Spices structured data
@@ -25,11 +25,11 @@ export default function EUOrganicSpices() {
       "category": "Organic Spices",
       "brand": {
         "@type": "Brand", 
-        "name": "Cape NatureX Organic"
+        "name": "Bright Fame Organic"
       },
       "manufacturer": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd.",
+        "name": "Bright Fame Organic Pvt. Ltd.",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "IN",
@@ -97,11 +97,11 @@ export default function EUOrganicSpices() {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#f0f4eb] to-[#dfe9d3] py-16">
+      <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center">
             <div className="flex justify-center mb-6">
-              <div className="bg-[#294a2c] text-white px-4 py-2 rounded-full flex items-center">
+              <div className="bg-blue-600 text-white px-4 py-2 rounded-full flex items-center">
                 <Globe className="w-5 h-5 mr-2" />
                 EU Certified Supplier
               </div>
@@ -135,25 +135,25 @@ export default function EUOrganicSpices() {
         </div>
       </section>
 
-      {/* Why European Buyers Choose Cape NatureX Organic */}
+      {/* Why European Buyers Choose Bright Fame Organic */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why European Buyers Choose Cape NatureX Organic for Organic Spices
+              Why European Buyers Choose Bright Fame Organic for Organic Spices
             </h2>
           </div>
 
           <div className="max-w-5xl mx-auto">
             <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-              Cape NatureX Organic vs Other Indian Spice Exporters for EU Market
+              Bright Fame Organic vs Other Indian Spice Exporters for EU Market
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse border border-gray-300 text-left">
                 <thead>
-                  <tr className="bg-[#294a2c] text-white">
+                  <tr className="bg-blue-600 text-white">
                     <th className="border border-gray-300 px-4 py-3 font-semibold">Factor</th>
-                    <th className="border border-gray-300 px-4 py-3 font-semibold">Cape NatureX Organic</th>
+                    <th className="border border-gray-300 px-4 py-3 font-semibold">Bright Fame Organic</th>
                     <th className="border border-gray-300 px-4 py-3 font-semibold">Typical Indian Exporter</th>
                   </tr>
                 </thead>
@@ -258,9 +258,9 @@ export default function EUOrganicSpices() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-[#cbd9bb]">
+            <Card className="border-blue-200">
               <CardHeader>
-                <Award className="w-12 h-12 text-[#718b57] mb-4" />
+                <Award className="w-12 h-12 text-blue-600 mb-4" />
                 <CardTitle>EU Organic Regulation</CardTitle>
               </CardHeader>
               <CardContent>
@@ -274,9 +274,9 @@ export default function EUOrganicSpices() {
               </CardContent>
             </Card>
 
-            <Card className="border-[#cbd9bb]">
+            <Card className="border-blue-200">
               <CardHeader>
-                <Shield className="w-12 h-12 text-[#294a2c] mb-4" />
+                <Shield className="w-12 h-12 text-blue-600 mb-4" />
                 <CardTitle>Food Safety Standards</CardTitle>
               </CardHeader>
               <CardContent>
@@ -290,9 +290,9 @@ export default function EUOrganicSpices() {
               </CardContent>
             </Card>
 
-            <Card className="border-[#cbd9bb]">
+            <Card className="border-blue-200">
               <CardHeader>
-                <FileText className="w-12 h-12 text-[#43683c] mb-4" />
+                <FileText className="w-12 h-12 text-blue-600 mb-4" />
                 <CardTitle>EU Documentation</CardTitle>
               </CardHeader>
               <CardContent>
@@ -323,25 +323,25 @@ export default function EUOrganicSpices() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-sm font-bold tracking-widest text-[#718b57] mb-4">DE</div>
+              <div className="text-3xl mb-4">🇩🇪</div>
               <h3 className="text-lg font-semibold mb-2">Germany</h3>
               <p className="text-gray-600 text-sm">Leading organic food market, premium spice requirements</p>
             </div>
 
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-sm font-bold tracking-widest text-[#718b57] mb-4">FR</div>
+              <div className="text-3xl mb-4">🇫🇷</div>
               <h3 className="text-lg font-semibold mb-2">France</h3>
               <p className="text-gray-600 text-sm">Gourmet food industry, artisanal spice applications</p>
             </div>
 
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-sm font-bold tracking-widest text-[#718b57] mb-4">UK</div>
+              <div className="text-3xl mb-4">🇬🇧</div>
               <h3 className="text-lg font-semibold mb-2">United Kingdom</h3>
               <p className="text-gray-600 text-sm">Established organic market, curry and ethnic foods</p>
             </div>
 
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-sm font-bold tracking-widest text-[#718b57] mb-4">EU</div>
+              <div className="text-3xl mb-4">🇪🇺</div>
               <h3 className="text-lg font-semibold mb-2">EU-Wide</h3>
               <p className="text-gray-600 text-sm">Netherlands, Italy, Spain, and other EU markets</p>
             </div>
@@ -364,7 +364,7 @@ export default function EUOrganicSpices() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="text-sm font-bold tracking-[0.2em] text-[#718b57] mb-4">WHOLE</div>
+                <div className="text-4xl mb-4">🌶️</div>
                 <CardTitle>Signature Spices</CardTitle>
               </CardHeader>
               <CardContent>
@@ -382,7 +382,7 @@ export default function EUOrganicSpices() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="text-sm font-bold tracking-[0.2em] text-[#718b57] mb-4">HEAT</div>
+                <div className="text-4xl mb-4">🔥</div>
                 <CardTitle>Heat & Flavor</CardTitle>
               </CardHeader>
               <CardContent>
@@ -400,7 +400,7 @@ export default function EUOrganicSpices() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="text-sm font-bold tracking-[0.2em] text-[#718b57] mb-4">BLENDS</div>
+                <div className="text-4xl mb-4">🌿</div>
                 <CardTitle>Aromatic Blends</CardTitle>
               </CardHeader>
               <CardContent>
@@ -420,7 +420,7 @@ export default function EUOrganicSpices() {
       </section>
 
       {/* Featured EU Organic Spices */}
-      <section className="py-16 bg-[#f0f4eb]">
+      <section className="py-16 bg-blue-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -457,14 +457,14 @@ export default function EUOrganicSpices() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why European Companies Choose Cape NatureX Organic
+              Why European Companies Choose Bright Fame Organic
             </h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
             <Card>
               <CardHeader>
-                <Truck className="w-12 h-12 text-[#718b57] mb-4" />
+                <Truck className="w-12 h-12 text-blue-600 mb-4" />
                 <CardTitle>Streamlined EU Import Process</CardTitle>
               </CardHeader>
               <CardContent>
@@ -480,7 +480,7 @@ export default function EUOrganicSpices() {
 
             <Card>
               <CardHeader>
-                <Award className="w-12 h-12 text-[#294a2c] mb-4" />
+                <Award className="w-12 h-12 text-blue-600 mb-4" />
                 <CardTitle>European Quality Assurance</CardTitle>
               </CardHeader>
               <CardContent>
@@ -498,7 +498,7 @@ export default function EUOrganicSpices() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-[#294a2c] to-[#718b57] text-white">
+      <section className="py-16 bg-blue-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-6">
             Ready to Import EU Certified Organic Spices?
@@ -510,13 +510,13 @@ export default function EUOrganicSpices() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 
               href="/contact" 
-              className="bg-white text-[#294a2c] px-8 py-3 rounded-lg font-semibold hover:bg-[#edf2e7] transition-colors"
+              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Get EU Import Quote
             </a>
             <a 
               href="/products" 
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[#294a2c] transition-colors"
+              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
             >
               Browse All Spices
             </a>

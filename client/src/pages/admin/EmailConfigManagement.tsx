@@ -152,7 +152,7 @@ export default function EmailConfigManagement() {
       <strong style="color:#166534;font-size:16px">${escapeHtml(staffName)}</strong><br>
       <span>${escapeHtml(role)}</span><br>
       <a href="mailto:${escapeHtml(mailbox)}" style="color:#15803d;text-decoration:none">${escapeHtml(mailbox)}</a><br>
-      <span style="color:#6b7280">Cape NatureX Organic</span>
+      <span style="color:#6b7280">Bright Fame Organic</span>
     </td>
   </tr>
 </table>`);

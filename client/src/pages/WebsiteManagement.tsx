@@ -3609,7 +3609,7 @@ function SEOManagement() {
   });
 
   const [seoSettings, setSeoSettings] = useState({
-    siteTitle: "Cape NatureX Organic - Premium Organic Ingredients",
+    siteTitle: "Bright Fame Organic - Premium Organic Ingredients",
     siteDescription: "Leading supplier of certified organic ingredients and natural products for global markets",
     siteKeywords: "organic ingredients, natural products, USDA certified, bulk organic",
     ogImage: "",

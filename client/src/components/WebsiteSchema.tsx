@@ -8,8 +8,8 @@ export default function WebsiteSchema() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Cape NatureX Organic - Premium Organic Ingredients Supplier",
-      "alternateName": "Cape NatureX Organic",
+      "name": "Bright Fame Organic - Premium Organic Ingredients Supplier",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "description": "Leading global supplier of certified organic ingredients, spices, herbs, and botanical extracts for pharmaceutical, nutraceutical, and food industries.",
       "potentialAction": {
@@ -29,7 +29,7 @@ export default function WebsiteSchema() {
       "copyrightYear": new Date().getFullYear(),
       "copyrightHolder": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd."
+        "name": "Bright Fame Organic Pvt. Ltd."
       }
     };
 
@@ -38,8 +38,8 @@ export default function WebsiteSchema() {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#localbusiness`,
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "image": `${baseUrl}/cape-naturex-logo.png`,
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "image": `${baseUrl}/bfi-logo.png`,
       "telephone": "+91-7249847439",
       "email": "admin@bright-organic.com",
       "address": {

@@ -12,11 +12,11 @@ import { Link } from "wouter";
 
 export default function OrganicSupplierIndia() {
   useEffect(() => {
-    document.title = "Top Organic Spice & Herb Supplier India | EU USDA JAS Certified | Cape NatureX Organic";
+    document.title = "Top Organic Spice & Herb Supplier India | EU USDA JAS Certified | Bright Fame Organic";
 
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', "Cape NatureX Organic - India's leading organic spice, herb & botanical ingredient manufacturer. EU Organic, USDA NOP, JAS certified. Own 950ha farmland. Direct manufacturer. Exports to 50+ countries.");
+      metaDesc.setAttribute('content', "Bright Fame Organic - India's leading organic spice, herb & botanical ingredient manufacturer. EU Organic, USDA NOP, JAS certified. Own 950ha farmland. Direct manufacturer. Exports to 50+ countries.");
     }
 
     const faqSchema = {
@@ -25,47 +25,47 @@ export default function OrganicSupplierIndia() {
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Is Cape NatureX Organic a manufacturer or a trading company?",
+          "name": "Is Bright Fame Organic a manufacturer or a trading company?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Cape NatureX Organic (Cape NatureX Organic Pvt. Ltd.) is a direct manufacturer based in Gujarat, India. We own 950 hectares of organic farmland, operate our own processing facility with in-house QC lab, and handle everything from cultivation to final packaging. We are not a trading company or broker."
+            "text": "Bright Fame Organic (Bright Fame Organic Pvt. Ltd.) is a direct manufacturer based in Gujarat, India. We own 950 hectares of organic farmland, operate our own processing facility with in-house QC lab, and handle everything from cultivation to final packaging. We are not a trading company or broker."
           }
         },
         {
           "@type": "Question",
-          "name": "What certifications does Cape NatureX Organic hold?",
+          "name": "What certifications does Bright Fame Organic hold?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Cape NatureX Organic holds 8 major certifications: EU Organic (Regulation 2018/848), USDA NOP (National Organic Program), JAS (Japanese Agricultural Standard), NPOP (India Organic), ISO 22000:2018, HACCP, GMP, and Kosher/Halal certifications. All certificates are current and available for verification."
+            "text": "Bright Fame Organic holds 8 major certifications: EU Organic (Regulation 2018/848), USDA NOP (National Organic Program), JAS (Japanese Agricultural Standard), NPOP (India Organic), ISO 22000:2018, HACCP, GMP, and Kosher/Halal certifications. All certificates are current and available for verification."
           }
         },
         {
           "@type": "Question",
-          "name": "Which countries does Cape NatureX Organic export to?",
+          "name": "Which countries does Bright Fame Organic export to?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Cape NatureX Organic exports to 50+ countries across 6 continents including major markets in the European Union (Germany, France, Netherlands, Italy, Spain), USA, Japan, United Kingdom, Middle East (UAE, Saudi Arabia), and Southeast Asia (Malaysia, Singapore, Thailand). We handle all export documentation and compliance requirements for each destination."
+            "text": "Bright Fame Organic exports to 50+ countries across 6 continents including major markets in the European Union (Germany, France, Netherlands, Italy, Spain), USA, Japan, United Kingdom, Middle East (UAE, Saudi Arabia), and Southeast Asia (Malaysia, Singapore, Thailand). We handle all export documentation and compliance requirements for each destination."
           }
         },
         {
           "@type": "Question",
-          "name": "What organic products does Cape NatureX Organic supply?",
+          "name": "What organic products does Bright Fame Organic supply?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Cape NatureX Organic offers 1000+ SKUs across categories: Organic Herbs (Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari), Organic Spices (Turmeric, Cumin, Coriander, Fenugreek, Black Pepper), Herbal Extracts (standardized botanical extracts), Superfoods (Spirulina, Wheatgrass, Barley Grass, Amla), Essential Oils & Oleoresins, and Seeds & Grains (Flaxseed, Chia, Psyllium). All available in powder, extract, whole, and oil forms."
+            "text": "Bright Fame Organic offers 1000+ SKUs across categories: Organic Herbs (Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari), Organic Spices (Turmeric, Cumin, Coriander, Fenugreek, Black Pepper), Herbal Extracts (standardized botanical extracts), Superfoods (Spirulina, Wheatgrass, Barley Grass, Amla), Essential Oils & Oleoresins, and Seeds & Grains (Flaxseed, Chia, Psyllium). All available in powder, extract, whole, and oil forms."
           }
         },
         {
           "@type": "Question",
-          "name": "Does Cape NatureX Organic supply organic spices for the EU market?",
+          "name": "Does Bright Fame Organic supply organic spices for the EU market?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, Cape NatureX Organic is a leading organic spice and herb supplier specifically for the EU market. We hold EU Organic certification under Regulation 2018/848 and provide complete EU import documentation including phytosanitary certificates, Certificate of Analysis, and organic certificates. We serve food manufacturers, supplement companies, and distributors across Germany, France, Netherlands, Italy, and other EU member states."
+            "text": "Yes, Bright Fame Organic is a leading organic spice and herb supplier specifically for the EU market. We hold EU Organic certification under Regulation 2018/848 and provide complete EU import documentation including phytosanitary certificates, Certificate of Analysis, and organic certificates. We serve food manufacturers, supplement companies, and distributors across Germany, France, Netherlands, Italy, and other EU member states."
           }
         },
         {
           "@type": "Question",
-          "name": "What is the minimum order quantity (MOQ) for Cape NatureX Organic products?",
+          "name": "What is the minimum order quantity (MOQ) for Bright Fame Organic products?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "MOQ varies by product category and form. For bulk powders and whole herbs/spices, the typical MOQ is 500 kg. For extracts, the MOQ starts from 100 kg. For essential oils, the MOQ is 25 kg. We also offer trial orders and sample quantities for new customers evaluating our products. Contact our team for specific product MOQs."
@@ -73,7 +73,7 @@ export default function OrganicSupplierIndia() {
         },
         {
           "@type": "Question",
-          "name": "How do I place an order with Cape NatureX Organic?",
+          "name": "How do I place an order with Bright Fame Organic?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "The ordering process is simple: 1) Submit your inquiry with product requirements, 2) Receive free samples for evaluation, 3) Get a competitive quotation, 4) Confirm your order with agreed terms, 5) We process, test, and ship your order with full documentation. Typical lead time is 15-30 days depending on the product and quantity."
@@ -81,10 +81,10 @@ export default function OrganicSupplierIndia() {
         },
         {
           "@type": "Question",
-          "name": "Does Cape NatureX Organic offer private label and custom packaging?",
+          "name": "Does Bright Fame Organic offer private label and custom packaging?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, Cape NatureX Organic offers comprehensive private label and custom packaging solutions. Our clean room FFS (Form-Fill-Seal) packaging facility can package in stand-up pouches, kraft bags, HDPE drums, fiber drums, and custom-printed retail packaging. We support private labeling with your brand, custom blends, and specific mesh sizes or extract ratios."
+            "text": "Yes, Bright Fame Organic offers comprehensive private label and custom packaging solutions. Our clean room FFS (Form-Fill-Seal) packaging facility can package in stand-up pouches, kraft bags, HDPE drums, fiber drums, and custom-printed retail packaging. We support private labeling with your brand, custom blends, and specific mesh sizes or extract ratios."
           }
         }
       ]
@@ -93,8 +93,8 @@ export default function OrganicSupplierIndia() {
     const orgSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "alternateName": "Cape NatureX Organic",
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "alternateName": "Bright Fame Organic",
       "url": window.location.origin,
       "description": "India's leading organic spice, herb & botanical ingredient manufacturer with EU Organic, USDA NOP, JAS certifications.",
       "address": {
@@ -151,7 +151,7 @@ export default function OrganicSupplierIndia() {
     {
       icon: Leaf,
       title: "Own Organic Farmland",
-      description: "Cape NatureX Organic owns and operates 950 hectares of certified organic farmland in Gujarat, India. Our farm-to-factory model ensures complete traceability, consistent supply, and genuine organic integrity from seed to shipment.",
+      description: "Bright Fame Organic owns and operates 950 hectares of certified organic farmland in Gujarat, India. Our farm-to-factory model ensures complete traceability, consistent supply, and genuine organic integrity from seed to shipment.",
       highlight: "950 Hectares Certified"
     },
     {
@@ -175,7 +175,7 @@ export default function OrganicSupplierIndia() {
     {
       icon: Globe,
       title: "Global Export Experience",
-      description: "With exports to 50+ countries across 6 continents, Cape NatureX Organic has deep expertise in international trade compliance. We handle all export documentation, phytosanitary requirements, and customs clearance for seamless global delivery.",
+      description: "With exports to 50+ countries across 6 continents, Bright Fame Organic has deep expertise in international trade compliance. We handle all export documentation, phytosanitary requirements, and customs clearance for seamless global delivery.",
       highlight: "50+ Countries, 6 Continents"
     }
   ];
@@ -183,7 +183,7 @@ export default function OrganicSupplierIndia() {
   const productCategories = [
     {
       category: "Organic Herbs",
-      icon: "HERB",
+      icon: "🌿",
       products: "Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla, Giloy, Arjuna, Shankhpushpi",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Extract, Whole, TBC, Granules",
@@ -191,23 +191,23 @@ export default function OrganicSupplierIndia() {
     },
     {
       category: "Organic Spices",
-      icon: "SPICE",
+      icon: "🌶️",
       products: "Turmeric, Cumin, Coriander, Fenugreek, Black Pepper, Cardamom, Ginger, Fennel, Mustard, Ajwain",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Whole, Crushed, Oleoresin",
-      color: "bg-[#f3f5ed] border-[#d6e0c9]"
+      color: "bg-amber-50 border-amber-200"
     },
     {
       category: "Herbal Extracts",
-      icon: "QC",
+      icon: "🧪",
       products: "Ashwagandha Extract (2.5–5% Withanolides), Turmeric Extract (95% Curcuminoids), Brahmi Extract, Boswellia Extract, Tribulus Extract",
       certifications: "EU, USDA, ISO, GMP",
       forms: "Standardized Extract, Ratio Extract, Liquid Extract",
-      color: "bg-[#edf2e7] border-[#cbd9bb]"
+      color: "bg-purple-50 border-purple-200"
     },
     {
       category: "Superfoods",
-      icon: "LEAF",
+      icon: "🍃",
       products: "Spirulina, Wheatgrass, Barley Grass, Amla, Moringa Leaf, Beetroot, Triphala, Chlorella",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Powder, Tablet, Capsule-Ready Blend",
@@ -215,19 +215,19 @@ export default function OrganicSupplierIndia() {
     },
     {
       category: "Essential Oils & Oleoresins",
-      icon: "OIL",
+      icon: "💧",
       products: "Turmeric Oil, Ginger Oil, Black Pepper Oil, Cumin Oleoresin, Fenugreek Oleoresin, Basil Oil",
       certifications: "EU, USDA, ISO, GMP",
       forms: "Essential Oil, Oleoresin, CO2 Extract",
-      color: "bg-[#f0f4eb] border-[#cbd9bb]"
+      color: "bg-blue-50 border-blue-200"
     },
     {
       category: "Seeds & Grains",
-      icon: "SEED",
+      icon: "🌾",
       products: "Flaxseed, Chia Seeds, Psyllium Husk, Psyllium Seeds, Fenugreek Seeds, Sesame Seeds, Amaranth",
       certifications: "EU, USDA, JAS, NPOP",
       forms: "Whole, Powder, Husk, Mucilage",
-      color: "bg-[#f5f6ef] border-[#dbe4cc]"
+      color: "bg-yellow-50 border-yellow-200"
     }
   ];
 
@@ -245,42 +245,42 @@ export default function OrganicSupplierIndia() {
   const marketsServed = [
     {
       region: "European Union",
-      flag: "EU",
+      flag: "🇪🇺",
       countries: "Germany, France, Netherlands, Italy, Spain, Belgium, Poland, Czech Republic",
       details: "EU Organic Regulation 2018/848 compliant. Full TRACES-NT documentation. Regular shipments to major EU ports.",
       certRelevant: "EU Organic, Ecocert"
     },
     {
       region: "United States",
-      flag: "US",
+      flag: "🇺🇸",
       countries: "All 50 states — California, New York, New Jersey, Texas, Florida",
       details: "USDA NOP certified. FDA-compliant labeling. FSVP documentation provided. East & West coast port delivery.",
       certRelevant: "USDA NOP, FDA"
     },
     {
       region: "Japan",
-      flag: "JP",
+      flag: "🇯🇵",
       countries: "Tokyo, Osaka, Nagoya, Yokohama",
       details: "JAS (Japanese Agricultural Standard) certified. Japanese-language CoA available. Regular container shipments to Japanese ports.",
       certRelevant: "JAS Organic"
     },
     {
       region: "United Kingdom",
-      flag: "UK",
+      flag: "🇬🇧",
       countries: "England, Scotland, Wales, Northern Ireland",
       details: "Post-Brexit UK organic equivalence documentation. Serving food manufacturers, health food brands, and herbal supplement companies.",
       certRelevant: "UK Organic, DEFRA"
     },
     {
       region: "Middle East",
-      flag: "UAE",
+      flag: "🇦🇪",
       countries: "UAE, Saudi Arabia, Qatar, Oman, Kuwait, Bahrain",
       details: "Halal certified products. FIRS/ESMA compliance. Dubai and Jebel Ali port delivery. Arabic documentation available.",
       certRelevant: "Halal, ISO"
     },
     {
       region: "Southeast Asia",
-      flag: "SEA",
+      flag: "🇸🇬",
       countries: "Singapore, Malaysia, Thailand, Indonesia, Vietnam, Philippines",
       details: "Growing demand for organic superfoods and herbal ingredients. Competitive pricing for ASEAN markets. Short transit times from India.",
       certRelevant: "ISO, HACCP, GMP"
@@ -299,7 +299,7 @@ export default function OrganicSupplierIndia() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="bg-gradient-to-br from-[#f0f4eb] via-[#f6f8f2] to-[#e3ecd8] py-20">
+      <section className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center">
             <Badge variant="outline" className="mb-6 border-emerald-600 text-emerald-700 px-4 py-2">
@@ -307,10 +307,10 @@ export default function OrganicSupplierIndia() {
               Gujarat, India — Direct Manufacturer & Exporter
             </Badge>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Leading Organic Spice & Herb Supplier from India | Cape NatureX Organic
+              Leading Organic Spice & Herb Supplier from India | Bright Fame Organic
             </h1>
             <p className="text-lg md:text-xl text-gray-700 mb-10 leading-relaxed max-w-4xl mx-auto">
-              Cape NatureX Organic (Cape NatureX Organic) is India's premier <strong>organic spice supplier</strong> and <strong>organic herb manufacturer</strong> —
+              Bright Fame Organic (Bright Fame Organic) is India's premier <strong>organic spice supplier</strong> and <strong>organic herb manufacturer</strong> — 
               EU Organic, USDA NOP, and JAS certified. Based in Gujarat, India, we are a vertically integrated manufacturer 
               with our own farmland, processing facility, and in-house QC lab. Trusted by buyers in 50+ countries for 
               consistent quality, competitive pricing, and complete export documentation.
@@ -341,10 +341,10 @@ export default function OrganicSupplierIndia() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Cape NatureX Organic is India's Top Organic Supplier
+              Why Bright Fame Organic is India's Top Organic Supplier
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              From farm to finished product — here's what sets Cape NatureX Organic apart from other Indian organic ingredient suppliers
+              From farm to finished product — here's what sets Bright Fame Organic apart from other Indian organic ingredient suppliers
             </p>
           </div>
 
@@ -447,10 +447,10 @@ export default function OrganicSupplierIndia() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Comparison: Why Choose Cape NatureX Organic Over Other Indian Suppliers
+              Comparison: Why Choose Bright Fame Organic Over Other Indian Suppliers
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              See how Cape NatureX Organic compares to generic trading companies on 8 critical factors
+              See how Bright Fame Organic compares to generic trading companies on 8 critical factors
             </p>
           </div>
 
@@ -461,7 +461,7 @@ export default function OrganicSupplierIndia() {
                   <th className="px-6 py-4 text-left font-semibold">Factor</th>
                   <th className="px-6 py-4 text-left font-semibold">
                     <span className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" /> Cape NatureX Organic
+                      <CheckCircle className="w-5 h-5" /> Bright Fame Organic
                     </span>
                   </th>
                   <th className="px-6 py-4 text-left font-semibold">Generic Trading Companies</th>
@@ -493,7 +493,7 @@ export default function OrganicSupplierIndia() {
               Markets Served — Global Organic Ingredient Supply
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Cape NatureX Organic serves buyers in 50+ countries with market-specific certifications and compliance documentation
+              Bright Fame Organic serves buyers in 50+ countries with market-specific certifications and compliance documentation
             </p>
           </div>
 
@@ -519,7 +519,7 @@ export default function OrganicSupplierIndia() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              How to Order from Cape NatureX Organic
+              How to Order from Bright Fame Organic
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
               Simple 5-step process from inquiry to delivery — we handle all documentation and logistics
@@ -587,42 +587,42 @@ export default function OrganicSupplierIndia() {
               Frequently Asked Questions
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Common questions about sourcing organic ingredients from Cape NatureX Organic, India
+              Common questions about sourcing organic ingredients from Bright Fame Organic, India
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto space-y-6">
             {[
               {
-                q: "Is Cape NatureX Organic a manufacturer or a trading company?",
-                a: "Cape NatureX Organic (Cape NatureX Organic Pvt. Ltd.) is a direct manufacturer based in Gujarat, India. We own 950 hectares of organic farmland, operate our own processing facility with in-house QC lab, and handle everything from cultivation to final packaging. We are not a trading company or broker."
+                q: "Is Bright Fame Organic a manufacturer or a trading company?",
+                a: "Bright Fame Organic (Bright Fame Organic Pvt. Ltd.) is a direct manufacturer based in Gujarat, India. We own 950 hectares of organic farmland, operate our own processing facility with in-house QC lab, and handle everything from cultivation to final packaging. We are not a trading company or broker."
               },
               {
-                q: "What certifications does Cape NatureX Organic hold?",
-                a: "Cape NatureX Organic holds 8 major certifications: EU Organic (Regulation 2018/848), USDA NOP (National Organic Program), JAS (Japanese Agricultural Standard), NPOP (India Organic), ISO 22000:2018, HACCP, GMP, and Kosher/Halal certifications."
+                q: "What certifications does Bright Fame Organic hold?",
+                a: "Bright Fame Organic holds 8 major certifications: EU Organic (Regulation 2018/848), USDA NOP (National Organic Program), JAS (Japanese Agricultural Standard), NPOP (India Organic), ISO 22000:2018, HACCP, GMP, and Kosher/Halal certifications."
               },
               {
-                q: "Which countries does Cape NatureX Organic export to?",
-                a: "Cape NatureX Organic exports to 50+ countries across 6 continents including EU (Germany, France, Netherlands, Italy), USA, Japan, United Kingdom, Middle East (UAE, Saudi Arabia), and Southeast Asia (Malaysia, Singapore, Thailand)."
+                q: "Which countries does Bright Fame Organic export to?",
+                a: "Bright Fame Organic exports to 50+ countries across 6 continents including EU (Germany, France, Netherlands, Italy), USA, Japan, United Kingdom, Middle East (UAE, Saudi Arabia), and Southeast Asia (Malaysia, Singapore, Thailand)."
               },
               {
-                q: "Does Cape NatureX Organic supply organic spices for the EU market?",
-                a: "Yes, Cape NatureX Organic is a leading organic spice and herb supplier for the EU market. We hold EU Organic certification under Regulation 2018/848 and provide complete EU import documentation including phytosanitary certificates, CoA, and organic certificates."
+                q: "Does Bright Fame Organic supply organic spices for the EU market?",
+                a: "Yes, Bright Fame Organic is a leading organic spice and herb supplier for the EU market. We hold EU Organic certification under Regulation 2018/848 and provide complete EU import documentation including phytosanitary certificates, CoA, and organic certificates."
               },
               {
                 q: "What is the minimum order quantity (MOQ)?",
                 a: "MOQ varies by product: bulk powders/whole herbs start from 500 kg, extracts from 100 kg, and essential oils from 25 kg. Trial orders and samples are available for new customers."
               },
               {
-                q: "How do I place an order with Cape NatureX Organic?",
+                q: "How do I place an order with Bright Fame Organic?",
                 a: "Submit your inquiry → receive free samples → get a competitive quotation → confirm order → we process, test, and ship with full documentation. Typical lead time is 15–30 days."
               },
               {
-                q: "Does Cape NatureX Organic offer private label and custom packaging?",
+                q: "Does Bright Fame Organic offer private label and custom packaging?",
                 a: "Yes, our clean room FFS packaging facility supports stand-up pouches, kraft bags, HDPE drums, fiber drums, and custom-printed retail packaging with private labeling, custom blends, and specific mesh sizes."
               },
               {
-                q: "What organic products does Cape NatureX Organic supply?",
+                q: "What organic products does Bright Fame Organic supply?",
                 a: "We offer 1000+ SKUs: Organic Herbs (Ashwagandha, Moringa, Tulsi, Brahmi), Organic Spices (Turmeric, Cumin, Coriander, Black Pepper), Herbal Extracts, Superfoods (Spirulina, Wheatgrass), Essential Oils & Oleoresins, and Seeds & Grains (Flaxseed, Chia, Psyllium)."
               }
             ].map((faq, idx) => (

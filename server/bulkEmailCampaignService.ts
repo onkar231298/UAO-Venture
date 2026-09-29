@@ -5,7 +5,7 @@ import type { UserEmailConfig } from "@shared/schema";
 import { z } from "zod";
 
 export const BULK_EMAIL_FROM_EMAIL = "sales@bright-organic.com";
-export const BULK_EMAIL_FROM_NAME = "Cape NatureX Organic";
+export const BULK_EMAIL_FROM_NAME = "Bright Fame Organic";
 export const BULK_EMAIL_REPLY_TO_EMAIL = "sales@bright-organic.com";
 
 export const isBulkEmailAdmin = (role?: string | null) => role === "admin" || role === "super_admin";

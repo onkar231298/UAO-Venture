@@ -39,6 +39,7 @@ import factoryInsideImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.37_AM_1
 import factoryMachinery2Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(2)_1770700935408.jpeg";
 import buhlerMachineryImg from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_(1)_1770700935409.jpeg";
 import factoryMachinery3Img from "@assets/WhatsApp_Image_2026-02-10_at_10.47.38_AM_1770700935409.jpeg";
+import bfiLogoImg from "@assets/Final Logo_1753730040470.png";
 import standeeWhiteImg from "@assets/image_1770704885158.png";
 import standeeBrownImg from "@assets/image_1770704849414.png";
 import ffsMachineImg from "@assets/image_1770704939826.png";
@@ -65,7 +66,7 @@ const sections = [
   { id: "organic", label: "Organic Division" },
   { id: "logistics", label: "Export Logistics" },
   { id: "leadership", label: "Leadership" },
-  { id: "value", label: "Why Cape NatureX" },
+  { id: "value", label: "Why Bright Fame" },
   { id: "collaboration", label: "Engagement" },
 ];
 
@@ -278,9 +279,9 @@ export default function Presentation() {
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center h-12 sm:h-14 overflow-x-auto pres-nav-scroll">
           <div className="flex items-center gap-2 whitespace-nowrap mr-4 sm:mr-6 shrink-0">
-            <img src="/cape-naturex-logo.png" alt="Cape NatureX Organic Logo" className="h-7 sm:h-9 w-auto object-contain" />
+            <img src={bfiLogoImg} alt="Bright Fame Organic Logo" className="h-7 sm:h-9 w-auto object-contain" />
             <span className="font-bold text-xs sm:text-sm hidden md:inline" style={{ color: COLORS.turmericGold }}>
-              Cape NatureX ORGANIC
+              BRIGHT FAME ORGANIC
             </span>
           </div>
           <div className="flex gap-0.5 sm:gap-1">
@@ -319,7 +320,7 @@ export default function Presentation() {
         >
           <img 
             src={officeBuildingImg} 
-            alt="Cape NatureX Organic Corporate Headquarters"
+            alt="Bright Fame Organic Corporate Headquarters" 
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(44,44,44,0.85) 0%, rgba(90,62,43,0.75) 50%, rgba(46,94,62,0.8) 100%)" }} />
@@ -352,8 +353,8 @@ export default function Presentation() {
         >
           <Anim type="drop-in" delay={200}>
             <img 
-              src="/cape-naturex-logo.png"
-              alt="Cape NatureX Organic Logo"
+              src={bfiLogoImg} 
+              alt="Bright Fame Organic Logo" 
               className="h-20 sm:h-28 md:h-36 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl"
             />
           </Anim>
@@ -371,7 +372,7 @@ export default function Presentation() {
 
           <Anim type="scale-up" delay={600}>
             <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight tracking-tight">
-              Cape NatureX Organic
+              Bright Fame Organic
             </h1>
           </Anim>
 
@@ -439,10 +440,10 @@ export default function Presentation() {
             <Anim type="slide-left" delay={200}>
               <div>
                 <p className="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
-                  Cape NatureX Organic has deep roots in India's agricultural export sector, with a legacy of structured trade practices, compliance-first documentation, and consistent export performance spanning multiple years of uninterrupted operations across global markets.
+                  Bright Fame Organic has deep roots in India's agricultural export sector, with a legacy of structured trade practices, compliance-first documentation, and consistent export performance spanning multiple years of uninterrupted operations across global markets.
                 </p>
                 <p className="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
-                  This foundation enables Cape NatureX Organic to operate with an established export
+                  This foundation enables Bright Fame Organic to operate with an established export 
                   documentation culture, institutional-grade process discipline, and a deep understanding 
                   of global quality expectations from day one. Our team has handled complex multi-market 
                   shipments, navigated diverse regulatory frameworks, and built lasting relationships with 
@@ -482,7 +483,7 @@ export default function Presentation() {
                 <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${COLORS.turmericGold}20` }}>
                   <img 
                     src={officeBuildingImg} 
-                    alt="Cape NatureX Corporate Office"
+                    alt="Bright Fame Corporate Office" 
                     className="w-full h-40 sm:h-48 object-cover"
                   />
                   <div className="p-3 sm:p-4 text-center" style={{ background: `${COLORS.turmericGold}08` }}>
@@ -634,7 +635,7 @@ export default function Presentation() {
               {
                 title: "Ground Spices",
                 image: spicePowderJarsImg,
-                imageAlt: "Premium Ground Spice Powders - Cape NatureX Organic",
+                imageAlt: "Premium Ground Spice Powders - Bright Fame Organic",
                 color: COLORS.chilliRed,
                 items: ["Red Chilli Powder (Teja, S-17, Kashmiri, Byadgi)", "Turmeric Powder (Salem, Lakadong 5%)", "Coriander Powder", "Cumin Powder", "Black Pepper Powder", "Ginger Powder", "Garam Masala Blends", "Sambar & Rasam Masala"],
                 anim: "flip-left" as AnimationType,
@@ -642,7 +643,7 @@ export default function Presentation() {
               {
                 title: "Whole Spices & Seeds",
                 image: seedJarsImg,
-                imageAlt: "Premium Whole Seeds Collection - Cape NatureX Organic",
+                imageAlt: "Premium Whole Seeds Collection - Bright Fame Organic",
                 color: COLORS.turmericGold,
                 items: ["Cumin Seeds (Singapore, Europe, Regular Grade)", "Coriander Seeds (Eagle, Scooter)", "Fennel Seeds", "Fenugreek Seeds", "Natural & Hulled Sesame Seeds", "Black Sesame Seeds", "Mustard Seeds (Yellow & Brown)", "Whole Red Chilli & Turmeric Fingers"],
                 anim: "flip-up" as AnimationType,
@@ -650,7 +651,7 @@ export default function Presentation() {
               {
                 title: "Herbal Powders",
                 image: cuminPowderPkgImg,
-                imageAlt: "Organic Herbal Powder Product - Cape NatureX Organic",
+                imageAlt: "Organic Herbal Powder Product - Bright Fame Organic",
                 color: COLORS.herbalGreen,
                 items: ["Moringa Leaf Powder", "Ashwagandha Root Powder", "Brahmi (Bacopa) Powder", "Neem Leaf Powder", "Amla (Indian Gooseberry) Powder", "Tulsi (Holy Basil) Powder", "Shatavari Powder", "Triphala Churna Powder"],
                 anim: "swing-in" as AnimationType,
@@ -737,7 +738,7 @@ export default function Presentation() {
               <div className="rounded-2xl overflow-hidden pres-card-hover" style={{ border: `1px solid ${COLORS.earthBrown}15` }}>
                 <img 
                   src={aerialFactoryImg}
-                  alt="Aerial view of Cape NatureX Organic manufacturing facility"
+                  alt="Aerial view of Bright Fame Organic manufacturing facility"
                   className="w-full h-48 sm:h-64 md:h-72 object-cover"
                 />
                 <div className="p-3 sm:p-4 text-center" style={{ background: `${COLORS.earthBrown}06` }}>
@@ -747,7 +748,7 @@ export default function Presentation() {
               <div className="rounded-2xl overflow-hidden pres-card-hover" style={{ border: `1px solid ${COLORS.earthBrown}15` }}>
                 <img 
                   src={factoryInsideImg}
-                  alt="Inside Cape NatureX sorting and processing plant"
+                  alt="Inside Bright Fame sorting and processing plant"
                   className="w-full h-48 sm:h-64 md:h-72 object-cover"
                 />
                 <div className="p-3 sm:p-4 text-center" style={{ background: `${COLORS.earthBrown}06` }}>
@@ -1296,7 +1297,7 @@ export default function Presentation() {
             <div className="rounded-2xl overflow-hidden mb-10 sm:mb-14 pres-card-hover" style={{ border: `1px solid ${COLORS.turmericGold}15` }}>
               <img 
                 src={aerialContainersImg}
-                alt="Aerial view of Cape NatureX factory with export containers ready for dispatch"
+                alt="Aerial view of Bright Fame factory with export containers ready for dispatch"
                 className="w-full h-48 sm:h-64 md:h-80 object-cover"
               />
               <div className="p-3 sm:p-4 text-center" style={{ background: `${COLORS.turmericGold}06` }}>
@@ -1355,7 +1356,7 @@ export default function Presentation() {
               {
                 name: "Dr. Niraj Patel",
                 role: "Founder & Managing Director",
-                summary: "Visionary leader who built Cape NatureX Organic from the ground up. With extensive experience in India's agricultural export sector, he guides strategic direction, market expansion, and long-term business growth. Under his leadership, the company has achieved Three Star Export House status and expanded to serve buyers across multiple continents.",
+                summary: "Visionary leader who built Bright Fame Organic from the ground up. With extensive experience in India's agricultural export sector, he guides strategic direction, market expansion, and long-term business growth. Under his leadership, the company has achieved Three Star Export House status and expanded to serve buyers across multiple continents.",
                 color: COLORS.turmericGold,
               },
               {
@@ -1415,10 +1416,10 @@ export default function Presentation() {
                 Partnership Advantage
               </p>
               <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
-                Why Cape NatureX Organic for Private Label
+                Why Bright Fame Organic for Private Label
               </h2>
               <p className="text-sm sm:text-base text-gray-400 max-w-3xl mx-auto mb-4 sm:mb-6 leading-relaxed">
-                Choosing Cape NatureX Organic as your private label partner means accessing an integrated supply chain
+                Choosing Bright Fame Organic as your private label partner means accessing an integrated supply chain 
                 that covers everything from certified organic sourcing to retail-ready packaging — all under one roof 
                 with transparent pricing, reliable timelines, and uncompromising quality standards.
               </p>
@@ -1512,11 +1513,11 @@ export default function Presentation() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="fade-up">
             <img 
-              src="/cape-naturex-logo.png"
-              alt="Cape NatureX Organic Logo"
+              src={bfiLogoImg} 
+              alt="Bright Fame Organic Logo" 
               className="h-14 sm:h-20 w-auto object-contain mx-auto mb-3 sm:mb-4"
             />
-            <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Cape NatureX Organic</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Bright Fame Organic</h3>
             <p className="text-xs sm:text-sm mb-1" style={{ color: COLORS.turmericGold }}>
               Three Star Export House
             </p>
@@ -1527,7 +1528,7 @@ export default function Presentation() {
               This presentation is prepared exclusively for partnership discussions. All information is confidential.
             </p>
             <p className="text-[10px] sm:text-xs text-gray-500 mt-3 sm:mt-4">
-              &copy; {new Date().getFullYear()} Cape NatureX Organic. All rights reserved.
+              &copy; {new Date().getFullYear()} Bright Fame Organic. All rights reserved.
             </p>
           </Anim>
         </div>

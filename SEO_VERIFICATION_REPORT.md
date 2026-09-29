@@ -35,11 +35,11 @@ The major Google Search Console issue showing pages as "Discovered - currently n
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Cape NatureX Organic Pvt. Ltd.",
+  "name": "Bright Fame Organic Pvt. Ltd.",
   "alternateName": "BFI Organic",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "C/O Cape NatureX International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
+    "streetAddress": "C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
     "addressLocality": "Mehsana",
     "addressRegion": "Gujarat",
     "postalCode": "384001",

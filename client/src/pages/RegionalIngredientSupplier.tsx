@@ -18,29 +18,29 @@ const marketPages: Record<Market, {
   buyerTypes: string[];
 }> = {
   usa: {
-    title: "Organic Ingredient Supplier for USA B2B Buyers | Cape NatureX",
+    title: "Organic Ingredient Supplier for USA B2B Buyers | Bright Fame",
     description: "Source bulk organic ingredients, herbal powders and botanical extracts from India for USA food, supplement and wellness product requirements.",
     eyebrow: "B2B supply for the United States",
     heading: "Organic Ingredient Supplier for USA Buyers",
-    intro: "Cape NatureX Organic supports US importers, distributors and manufacturers evaluating bulk herbs, spices, powders and extracts from India.",
+    intro: "Bright Fame Organic supports US importers, distributors and manufacturers evaluating bulk herbs, spices, powders and extracts from India.",
     location: "United States",
     buyerTypes: ["Food and beverage manufacturers", "Dietary supplement companies", "Ingredient distributors"],
   },
   germany: {
-    title: "Organic Ingredient Supplier for Germany | Cape NatureX Organic",
+    title: "Organic Ingredient Supplier for Germany | Bright Fame Organic",
     description: "Source bulk organic spices, herbs, powders and botanical ingredients from India for German food, nutraceutical and distribution requirements.",
     eyebrow: "B2B ingredient sourcing for Germany",
     heading: "Organic Ingredient Supplier for Germany",
-    intro: "Cape NatureX Organic works with German buyers sourcing bulk organic and botanical ingredients from India for food, wellness and nutraceutical applications.",
+    intro: "Bright Fame Organic works with German buyers sourcing bulk organic and botanical ingredients from India for food, wellness and nutraceutical applications.",
     location: "Germany",
     buyerTypes: ["Food and spice manufacturers", "Nutraceutical businesses", "Organic ingredient distributors"],
   },
   uae: {
-    title: "Organic Ingredient Exporter to UAE | Cape NatureX Organic",
+    title: "Organic Ingredient Exporter to UAE | Bright Fame Organic",
     description: "Source bulk organic herbs, spices, powders and botanical extracts from India with documentation and logistics coordination for UAE buyers.",
     eyebrow: "Bulk ingredient exports to the UAE",
     heading: "Organic Ingredient Exporter to UAE",
-    intro: "Cape NatureX Organic supports UAE importers, distributors and manufacturers sourcing bulk organic and botanical ingredients from India.",
+    intro: "Bright Fame Organic supports UAE importers, distributors and manufacturers sourcing bulk organic and botanical ingredients from India.",
     location: "United Arab Emirates",
     buyerTypes: ["Food and beverage businesses", "Wellness product companies", "Importers and ingredient distributors"],
   },
@@ -66,7 +66,7 @@ export default function RegionalIngredientSupplier({ market }: { market: Market 
     <div className="min-h-screen bg-background">
       <Header />
       <main>
-        <section className="bg-gradient-to-br from-[#203b23] via-[#294a2c] to-[#557342] py-20 text-white">
+        <section className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-800 py-20 text-white">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-4xl text-center">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium">
@@ -119,7 +119,7 @@ export default function RegionalIngredientSupplier({ market }: { market: Market 
                   </div>
                 ))}
               </div>
-              <p className="mt-8 rounded-lg border border-[#d6e0c9] bg-[#f0f4eb] p-4 text-sm leading-6 text-[#294a2c]">
+              <p className="mt-8 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
                 Product availability, certifications and documents vary by ingredient. Buyers should confirm the current specification and regulatory suitability for their intended market and application.
               </p>
             </div>

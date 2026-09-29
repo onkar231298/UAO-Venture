@@ -52,7 +52,7 @@ export default function NewsletterSubscription({
       
       toast({
         title: "Successfully Subscribed!",
-        description: "Thank you for subscribing to our newsletter. You'll receive the latest updates from Cape NatureX Organic.",
+        description: "Thank you for subscribing to our newsletter. You'll receive the latest updates from Bright Fame Organic.",
         duration: 5000,
       });
 
@@ -84,8 +84,8 @@ export default function NewsletterSubscription({
     return (
       <div className={`text-center ${variant === "footer" ? "py-4" : "py-6"}`}>
         <div className="flex items-center justify-center mb-2">
-          <CheckCircle className="h-6 w-6 text-[#718b57] mr-2" />
-          <h3 className="text-lg font-semibold text-[#294a2c]">
+          <CheckCircle className="h-6 w-6 text-green-600 mr-2" />
+          <h3 className="text-lg font-semibold text-green-700">
             Thanks for Subscribing!
           </h3>
         </div>
@@ -100,7 +100,7 @@ export default function NewsletterSubscription({
     return (
       <div className="bg-gray-50 p-4 rounded-lg">
         <div className="flex items-center mb-2">
-          <Mail className="h-5 w-5 text-[#718b57] mr-2" />
+          <Mail className="h-5 w-5 text-orange-600 mr-2" />
           <h3 className="font-semibold text-gray-900">Newsletter</h3>
         </div>
         <p className="text-sm text-gray-600 mb-3">
@@ -119,7 +119,7 @@ export default function NewsletterSubscription({
             type="submit" 
             disabled={isLoading}
             size="sm"
-            className="bg-[#294a2c] hover:bg-[#203b23]"
+            className="bg-orange-600 hover:bg-orange-700"
           >
             {isLoading ? "..." : "Subscribe"}
           </Button>
@@ -142,7 +142,7 @@ export default function NewsletterSubscription({
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="bg-[#294a2c] hover:bg-[#203b23]"
+          className="bg-orange-600 hover:bg-orange-700"
         >
           {isLoading ? "Subscribing..." : "Subscribe"}
         </Button>
@@ -158,7 +158,7 @@ export default function NewsletterSubscription({
           Stay Updated
         </h3>
         <p className="text-gray-600 mb-4">
-          Get the latest insights and updates from Cape NatureX Organic delivered to your inbox.
+          Get the latest insights and updates from Bright Fame Organic delivered to your inbox.
         </p>
         <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
           <Input
@@ -172,7 +172,7 @@ export default function NewsletterSubscription({
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="bg-[#294a2c] hover:bg-[#203b23]"
+            className="bg-orange-600 hover:bg-orange-700"
           >
             {isLoading ? "Subscribing..." : "Subscribe"}
           </Button>

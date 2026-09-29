@@ -1021,14 +1021,14 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     doc.pipe(res);
 
     // Header with company logo - position it properly without overlap
-    const logoPath = path.resolve(process.cwd(), 'cape-naturex-logo.png');
+    const logoPath = path.resolve(process.cwd(), 'bfi-logo.png');
     
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 220, 30, { width: 150 });
       doc.y = 120; // Move cursor well below the logo
     } else {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
-         .text('Cape NatureX ORGANIC', { align: 'center' });
+         .text('BRIGHT FAME ORGANIC', { align: 'center' });
       doc.moveDown(1);
     }
     

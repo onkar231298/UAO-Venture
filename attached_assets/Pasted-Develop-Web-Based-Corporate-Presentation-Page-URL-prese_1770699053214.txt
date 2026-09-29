@@ -8,10 +8,10 @@ PROJECT OBJECTIVE
 
 Develop a premium, corporate web-based presentation page for:
 
-Cape NatureX Organic
-(Organic-focused sister concern of Cape NatureX International)
+Bright Fame Organic
+(Organic-focused sister concern of Bright Fame International)
 
-Cape NatureX International is recognized as a Three Star Export House (Government of India).
+Bright Fame International is recognized as a Three Star Export House (Government of India).
 
 This page will be presented to the National Purchase Head of Reliance for private label spices and herbal powders.
 
@@ -58,7 +58,7 @@ No flashy graphics. No clutter.
 
 Headline:
 
-Cape NatureX Organic
+Bright Fame Organic
 Private Label Spice & Herbal Manufacturing Partner
 
 Subheading:
@@ -67,7 +67,7 @@ Structured Sourcing. Controlled Processing. Retail-Ready Packaging.
 
 Highlight badge under heading:
 
-“Sister Concern of Cape NatureX International – Three Star Export House”
+“Sister Concern of Bright Fame International – Three Star Export House”
 
 Background: Premium spice/herbal visual with subtle overlay.
 
@@ -82,7 +82,7 @@ Group Foundation & Export Recognition
 
 Content:
 
-Brief explanation that Cape NatureX Organic operates as the organic division of Cape NatureX International.
+Brief explanation that Bright Fame Organic operates as the organic division of Bright Fame International.
 
 Mention only here:
 	•	Recognized Three Star Export House
@@ -251,7 +251,7 @@ This section builds operational confidence.
 🔟 STRATEGIC PARTNERSHIP VALUE
 
 Title:
-Why Cape NatureX Organic for Private Label
+Why Bright Fame Organic for Private Label
 
 Summarize capabilities without repeating detailed explanations:
 	•	Strong origin control

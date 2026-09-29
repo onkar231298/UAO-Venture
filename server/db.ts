@@ -12,10 +12,4 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-pool.on('error', (error: Error & { code?: string }) => {
-  console.error('[Database] Pooled connection error:', {
-    message: error.message,
-    code: error.code,
-  });
-});
 export const db = drizzle({ client: pool, schema });

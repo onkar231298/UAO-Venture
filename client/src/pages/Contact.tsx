@@ -20,11 +20,11 @@ export default function Contact() {
   });
 
   useEffect(() => {
-    document.title = "Contact Cape NatureX Organic - Get in Touch for Organic Ingredient Inquiries";
+    document.title = "Contact Bright Fame Organic - Get in Touch for Organic Ingredient Inquiries";
 
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Contact Cape NatureX Organic for premium organic ingredients. Speak with Omkar Suryavanshi, Director – Business Development, at +91-7249847439. Get expert consultation, samples and competitive quotes.');
+      metaDescription.setAttribute('content', 'Contact Bright Fame Organic for premium organic ingredients. Speak with Omkar Suryavanshi, Director – Business Development, at +91-7249847439. Get expert consultation, samples and competitive quotes.');
     }
 
     const personSchema = {
@@ -36,7 +36,7 @@ export default function Contact() {
       "email": "admin@bright-organic.com",
       "worksFor": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd.",
+        "name": "Bright Fame Organic Pvt. Ltd.",
         "url": "https://bright-organic.com"
       },
       "url": "https://bright-organic.com/contact"
@@ -75,7 +75,7 @@ export default function Contact() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Contact Cape NatureX Organic
+              Contact Bright Fame Organic
             </h1>
             <p className="text-xl opacity-90 mb-8">
               Get in touch with our organic ingredient experts. We're here to help 
@@ -278,7 +278,7 @@ export default function Contact() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Globe className="w-5 h-5 text-green-600" />
-                      Why Choose Cape NatureX Organic?
+                      Why Choose Bright Fame Organic?
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">

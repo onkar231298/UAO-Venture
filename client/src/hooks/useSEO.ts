@@ -29,7 +29,7 @@ export function useSEO({
     // Apply page-specific SEO
     if (title) {
       const fullTitle = settings?.enableAutoMetaTags 
-        ? `${title} | ${settings.siteTitle || 'Cape NatureX Organic'}`
+        ? `${title} | ${settings.siteTitle || 'Bright Fame Organic'}`
         : title;
       document.title = fullTitle;
     }

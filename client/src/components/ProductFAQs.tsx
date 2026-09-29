@@ -35,7 +35,7 @@ const generateDefaultFAQs = (product: Product): ProductFaq[] => {
       },
       {
         question: `Where can I buy bulk ${product.name} for supplement manufacturing in Europe and USA?`,
-        answer: `Cape NatureX Organic supplies bulk ${product.name} directly to supplement manufacturers across Europe, USA, Canada, and Asia. We offer competitive wholesale pricing with USDA and EU organic certifications. Contact us for MOQ and pricing details.`
+        answer: `Bright Fame Organic supplies bulk ${product.name} directly to supplement manufacturers across Europe, USA, Canada, and Asia. We offer competitive wholesale pricing with USDA and EU organic certifications. Contact us for MOQ and pricing details.`
       },
       {
         question: `What is the shelf life and storage requirements for ${product.name}?`,

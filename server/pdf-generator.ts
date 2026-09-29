@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Resolved logo path for reliable loading in all environments
-const logoPath = path.resolve(process.cwd(), 'cape-naturex-logo.png');
+const logoPath = path.resolve(__dirname, 'bfi-logo.png');
 
 interface QuotationData {
   id: number;
@@ -72,7 +72,7 @@ interface CustomerData {
 }
 
 const companyDetails = {
-  name: "Cape NatureX Organic Pvt. Ltd.",
+  name: "Bright Fame Organic Pvt. Ltd.",
   address2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road",
   address3: "Kansarakui, Mehsana, Gujarat 384001",
   phone: "+91-7249847439",

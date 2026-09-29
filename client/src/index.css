@@ -113,77 +113,101 @@
   -ms-overflow-style: none;
 }
 
-/* Cape NatureX brand background utilities */
+/* Light Green Theme Utility Classes */
 .bg-green-theme-primary {
-  background-color: var(--green-bg-primary);
+  background-color: hsl(var(--green-bg-primary));
 }
 
 .bg-green-theme-secondary {
-  background-color: var(--green-bg-secondary);
+  background-color: hsl(var(--green-bg-secondary));
 }
 
 .bg-green-theme-accent {
-  background-color: var(--green-accent);
+  background-color: hsl(var(--green-accent));
 }
 
 /* Alternating section backgrounds for visual hierarchy */
 .section-primary {
-  background-color: var(--background);
+  background-color: hsl(var(--background));
 }
 
 .section-secondary {
   background-color: hsl(0, 0%, 100%);
 }
 
-/* Card styling */
+/* Enhanced card styling for light green theme */
 .card-enhanced {
   background-color: hsl(0, 0%, 100%);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--border);
+  border: 1px solid hsl(var(--border));
 }
 
-/* Keep public pages on the same soft background across layouts */
+/* Force light green background on body and root elements */
 body {
-  background-color: var(--background) !important;
+  background-color: hsl(140, 30%, 96%) !important;
 }
 
 .bg-background {
-  background-color: var(--background) !important;
+  background-color: hsl(140, 30%, 96%) !important;
 }
 
 :root {
-  /* Cape NatureX: the forest and olive tones are sampled from the logo. */
-  --background: #f7f9f4;
-  --foreground: #233326;
-  --muted: #f0f4ec;
-  --muted-foreground: #5a6b5c;
-  --popover: #ffffff;
-  --popover-foreground: #233326;
-  --card: #ffffff;
-  --card-foreground: #233326;
-  --border: #dce7d6;
-  --input: #dce7d6;
-  --primary: #294a2c;
-  --primary-foreground: #ffffff;
-  --secondary: #edf4e7;
-  --secondary-foreground: #294a2c;
-  --accent: #eef4e7;
-  --accent-foreground: #294a2c;
-  --destructive: #dc3545;
-  --destructive-foreground: #ffffff;
-  --ring: #718b57;
+  /* LIGHT GREEN THEME - Active Theme */
+  /* To revert to original: comment out this block and uncomment "ORIGINAL THEME BACKUP" below */
+  
+  --background: hsl(140, 30%, 96%);           /* More visible light sage green background */
+  --foreground: hsl(210, 10%, 23%);
+  --muted: hsl(140, 20%, 94%);               /* Slightly greener muted */
+  --muted-foreground: hsl(210, 6%, 56%);
+  --popover: hsl(0, 0%, 100%);               /* Keep popovers white */
+  --popover-foreground: hsl(210, 10%, 23%);
+  --card: hsl(0, 0%, 100%);                  /* Keep cards white for contrast */
+  --card-foreground: hsl(210, 10%, 23%);
+  --border: hsl(140, 15%, 92%);
+  --input: hsl(140, 15%, 92%);
+  --primary: hsl(140, 70%, 35%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(140, 20%, 95%);
+  --secondary-foreground: hsl(210, 10%, 23%);
+  --accent: hsl(140, 25%, 94%);
+  --accent-foreground: hsl(210, 10%, 23%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(140, 70%, 35%);
   --radius: 0.5rem;
-
-  --green-primary: #386f40;
-  --green-secondary: #294a2c;
-  --green-light: #eaf2e1;
-  --green-accent: #f4f8ee;
-  --green-dark: #213f25;
-  --green-bg-primary: #f7f9f4;
-  --green-bg-secondary: #eef4e7;
-  --bfi-primary: #294a2c;
-  --bfi-primary-light: #718b57;
-  --bfi-accent: #edf4e7;
+  
+  /* ORIGINAL THEME BACKUP - To revert, uncomment this block and comment out above */
+  /*
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(210, 10%, 23%);
+  --muted: hsl(140, 12%, 97%);
+  --muted-foreground: hsl(210, 6%, 56%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(210, 10%, 23%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(210, 10%, 23%);
+  --border: hsl(140, 15%, 92%);
+  --input: hsl(140, 15%, 92%);
+  --primary: hsl(140, 70%, 35%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(140, 20%, 95%);
+  --secondary-foreground: hsl(210, 10%, 23%);
+  --accent: hsl(140, 25%, 94%);
+  --accent-foreground: hsl(210, 10%, 23%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(140, 70%, 35%);
+  --radius: 0.5rem;
+  */
+  
+  /* Professional B2B Green Theme - Enhanced for Light Green Background */
+  --green-primary: hsl(140, 70%, 35%);     /* Deep professional green */
+  --green-secondary: hsl(140, 60%, 45%);   /* Medium green for hovers */
+  --green-light: hsl(140, 40%, 85%);       /* Light green for backgrounds */
+  --green-accent: hsl(140, 25%, 94%);      /* Very light green accent */
+  --green-dark: hsl(140, 80%, 25%);        /* Dark green for emphasis */
+  --green-bg-primary: hsl(140, 30%, 96%);  /* Main background green */
+  --green-bg-secondary: hsl(140, 20%, 94%); /* Secondary background green */
   
   /* Neutral Professional Colors */
   --gray-50: hsl(140, 12%, 98%);
@@ -198,7 +222,7 @@ body {
   --gray-900: hsl(210, 15%, 12%);
   
   /* Status Colors */
-  --success: #386f40;
+  --success: hsl(140, 70%, 35%);
   --warning: hsl(45, 95%, 55%);
   --error: hsl(0, 85%, 58%);
   --info: hsl(200, 85%, 55%);
@@ -206,12 +230,12 @@ body {
   /* Sidebar Colors - Essential for mobile sidebar visibility */
   --sidebar-background: hsl(0, 0%, 100%);
   --sidebar-foreground: hsl(210, 10%, 23%);
-  --sidebar-border: #dce7d6;
-  --sidebar-accent: #eef4e7;
-  --sidebar-accent-foreground: #294a2c;
-  --sidebar-primary: #294a2c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #718b57;
+  --sidebar-border: hsl(140, 15%, 92%);
+  --sidebar-accent: hsl(140, 25%, 94%);
+  --sidebar-accent-foreground: hsl(210, 10%, 23%);
+  --sidebar-primary: hsl(140, 70%, 35%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-ring: hsl(140, 70%, 35%);
 }
 
 .dark {
@@ -225,7 +249,7 @@ body {
   --card-foreground: hsl(0, 0%, 95%);
   --border: hsl(140, 10%, 18%);
   --input: hsl(140, 10%, 18%);
-  --primary: #95b259;
+  --primary: hsl(142, 76%, 30%);
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(240, 3.7%, 15.9%);
   --secondary-foreground: hsl(0, 0%, 98%);
@@ -233,7 +257,7 @@ body {
   --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: #95b259;
+  --ring: hsl(240, 4.9%, 83.9%);
   --radius: 0.5rem;
   
   /* Sidebar Colors - Dark Mode */
@@ -242,9 +266,9 @@ body {
   --sidebar-border: hsl(140, 10%, 18%);
   --sidebar-accent: hsl(240, 3.7%, 15.9%);
   --sidebar-accent-foreground: hsl(0, 0%, 98%);
-  --sidebar-primary: #718b57;
+  --sidebar-primary: hsl(142, 76%, 30%);
   --sidebar-primary-foreground: hsl(211, 100%, 99%);
-  --sidebar-ring: #95b259;
+  --sidebar-ring: hsl(240, 4.9%, 83.9%);
 }
 
 @layer base {
@@ -266,17 +290,17 @@ body {
   }
   
   ::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+    background-color: hsl(var(--muted-foreground) / 0.3);
     @apply rounded-full;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+    background-color: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
 @layer components {
-  /* Cape NatureX Organic specific components */
+  /* Bright Fame Organic specific components */
   .bfi-gradient {
     background: linear-gradient(135deg, var(--bfi-primary) 0%, var(--bfi-primary-light) 100%);
   }
@@ -441,7 +465,7 @@ body {
     -webkit-line-clamp: 2;
   }
   
-  /* Custom utilities for Cape NatureX Organic */
+  /* Custom utilities for Bright Fame Organic */
   .bg-bfi-primary {
     background-color: var(--bfi-primary);
   }

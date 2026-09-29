@@ -101,9 +101,9 @@ class SEOService {
        ...configuredSchema,
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic",
+      "name": "Bright Fame Organic",
        "url": "https://bright-organic.com",
-       "logo": "https://bright-organic.com/cape-naturex-logo.png",
+       "logo": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",
@@ -136,8 +136,8 @@ class SEOService {
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
-      "name": "Cape NatureX Organic",
-       "image": "https://bright-organic.com/cape-naturex-logo.png",
+      "name": "Bright Fame Organic",
+       "image": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
       "address": {
         "@type": "PostalAddress",

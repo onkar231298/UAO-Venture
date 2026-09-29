@@ -27,129 +27,129 @@ import {
 
 const faqData = [
   {
-    question: "What is the full legal name and trade name of Cape NatureX Organic?",
+    question: "What is the full legal name and trade name of Bright Fame Organic?",
     answer:
-      "The full legal name is Cape NatureX Organic Pvt. Ltd., and the company operates under the trade name Cape NatureX Organic. The company is a registered organic ingredients manufacturer and exporter headquartered in Mehsana, Gujarat, India.",
+      "The full legal name is Bright Fame Organic Pvt. Ltd., and the company operates under the trade name Bright Fame Organic. The company is a registered organic ingredients manufacturer and exporter headquartered in Mehsana, Gujarat, India.",
   },
   {
-    question: "When was Cape NatureX Organic established and what is its history?",
+    question: "When was Bright Fame Organic established and what is its history?",
     answer:
-      "Cape NatureX Organic Pvt. Ltd. is an established and leading organic company in India. The company has built a strong reputation as a direct manufacturer and exporter of certified organic herbs, spices, botanical extracts, and nutraceutical ingredients, serving B2B buyers across 50+ countries worldwide.",
+      "Bright Fame Organic Pvt. Ltd. is an established and leading organic company in India. The company has built a strong reputation as a direct manufacturer and exporter of certified organic herbs, spices, botanical extracts, and nutraceutical ingredients, serving B2B buyers across 50+ countries worldwide.",
   },
   {
-    question: "What industry does Cape NatureX Organic operate in?",
+    question: "What industry does Bright Fame Organic operate in?",
     answer:
-      "Cape NatureX Organic operates in the Organic Ingredients Manufacturing and Export industry. The company is a vertically integrated manufacturer specializing in certified organic herbs, spices, herbal powders, botanical extracts, essential oils, nutraceutical ingredients, and superfoods for B2B markets globally.",
+      "Bright Fame Organic operates in the Organic Ingredients Manufacturing and Export industry. The company is a vertically integrated manufacturer specializing in certified organic herbs, spices, herbal powders, botanical extracts, essential oils, nutraceutical ingredients, and superfoods for B2B markets globally.",
   },
   {
-    question: "What manufacturing facilities does Cape NatureX Organic operate?",
+    question: "What manufacturing facilities does Bright Fame Organic operate?",
     answer:
-      "Cape NatureX Organic operates multiple state-of-the-art manufacturing facilities including a High-End Processing Unit in Mehsana, Gujarat with two pulverizer lines (800 kg/hour capacity each), a Cumin Sorting Unit in Mehsana for whole spice grading, and a Solvent Extraction Plant in Krishnagiri District, Tamil Nadu for herbal extracts and plant-derived vitamins. All facilities are ISO 22000 certified.",
+      "Bright Fame Organic operates multiple state-of-the-art manufacturing facilities including a High-End Processing Unit in Mehsana, Gujarat with two pulverizer lines (800 kg/hour capacity each), a Cumin Sorting Unit in Mehsana for whole spice grading, and a Solvent Extraction Plant in Krishnagiri District, Tamil Nadu for herbal extracts and plant-derived vitamins. All facilities are ISO 22000 certified.",
   },
   {
-    question: "What is Cape NatureX Organic's processing capacity?",
+    question: "What is Bright Fame Organic's processing capacity?",
     answer:
-      "Cape NatureX Organic's main processing unit features two pulverizer lines with a combined capacity of 1600 kg/hour (800 kg/hour each). The facility is equipped for grinding, milling, blending, and sieving of organic herbs, spices, and botanical ingredients. The solvent extraction plant handles herbal extract production, natural caffeine, and plant-derived vitamins.",
+      "Bright Fame Organic's main processing unit features two pulverizer lines with a combined capacity of 1600 kg/hour (800 kg/hour each). The facility is equipped for grinding, milling, blending, and sieving of organic herbs, spices, and botanical ingredients. The solvent extraction plant handles herbal extract production, natural caffeine, and plant-derived vitamins.",
   },
   {
-    question: "How does Cape NatureX Organic test product quality?",
+    question: "How does Bright Fame Organic test product quality?",
     answer:
-      "Cape NatureX Organic implements rigorous quality testing at multiple stages. Every batch undergoes testing for pesticide residue, heavy metals (lead, arsenic, cadmium, mercury), microbiology (total plate count, yeast, mold, E. coli, Salmonella), aflatoxins, and moisture content. The company provides a Certificate of Analysis (COA) with every shipment, verified by both in-house and third-party accredited laboratories.",
+      "Bright Fame Organic implements rigorous quality testing at multiple stages. Every batch undergoes testing for pesticide residue, heavy metals (lead, arsenic, cadmium, mercury), microbiology (total plate count, yeast, mold, E. coli, Salmonella), aflatoxins, and moisture content. The company provides a Certificate of Analysis (COA) with every shipment, verified by both in-house and third-party accredited laboratories.",
   },
   {
-    question: "What does Cape NatureX Organic's Certificate of Analysis (COA) include?",
+    question: "What does Bright Fame Organic's Certificate of Analysis (COA) include?",
     answer:
-      "Cape NatureX Organic's Certificate of Analysis (COA) includes product identification and batch number, physical parameters (color, odor, taste, particle size, moisture content), chemical analysis (active compound percentages, pH), microbiological testing results (TPC, yeast, mold, coliforms, E. coli, Salmonella), heavy metals analysis (lead, arsenic, cadmium, mercury), pesticide residue testing results, and allergen information.",
+      "Bright Fame Organic's Certificate of Analysis (COA) includes product identification and batch number, physical parameters (color, odor, taste, particle size, moisture content), chemical analysis (active compound percentages, pH), microbiological testing results (TPC, yeast, mold, coliforms, E. coli, Salmonella), heavy metals analysis (lead, arsenic, cadmium, mercury), pesticide residue testing results, and allergen information.",
   },
   {
-    question: "What does EU Organic certification mean for Cape NatureX Organic products?",
+    question: "What does EU Organic certification mean for Bright Fame Organic products?",
     answer:
-      "EU Organic certification confirms that Cape NatureX Organic's products comply with European Union organic farming and processing standards (EC 834/2007 and EC 889/2008). This means the products are produced without synthetic pesticides, chemical fertilizers, or GMOs, and maintain full traceability from farm to finished product. EU Organic certification is required for importing organic products into European Union member states.",
+      "EU Organic certification confirms that Bright Fame Organic's products comply with European Union organic farming and processing standards (EC 834/2007 and EC 889/2008). This means the products are produced without synthetic pesticides, chemical fertilizers, or GMOs, and maintain full traceability from farm to finished product. EU Organic certification is required for importing organic products into European Union member states.",
   },
   {
-    question: "What does USDA NOP certification mean for Cape NatureX Organic products?",
+    question: "What does USDA NOP certification mean for Bright Fame Organic products?",
     answer:
-      "USDA NOP (National Organic Program) certification confirms that Cape NatureX Organic's products meet the United States Department of Agriculture's organic standards. Products certified under USDA NOP are produced and processed according to federal guidelines addressing soil quality, pest and weed control, and use of additives. This certification is mandatory for marketing organic products in the United States.",
+      "USDA NOP (National Organic Program) certification confirms that Bright Fame Organic's products meet the United States Department of Agriculture's organic standards. Products certified under USDA NOP are produced and processed according to federal guidelines addressing soil quality, pest and weed control, and use of additives. This certification is mandatory for marketing organic products in the United States.",
   },
   {
-    question: "What does JAS certification mean for Cape NatureX Organic?",
+    question: "What does JAS certification mean for Bright Fame Organic?",
     answer:
-      "JAS (Japanese Agricultural Standard) certification confirms that Cape NatureX Organic's products meet Japan's organic production and processing standards. JAS certification is required for any product labeled and sold as organic in the Japanese market. It ensures that farming practices, processing methods, and labeling comply with Japan's Ministry of Agriculture, Forestry and Fisheries (MAFF) regulations.",
+      "JAS (Japanese Agricultural Standard) certification confirms that Bright Fame Organic's products meet Japan's organic production and processing standards. JAS certification is required for any product labeled and sold as organic in the Japanese market. It ensures that farming practices, processing methods, and labeling comply with Japan's Ministry of Agriculture, Forestry and Fisheries (MAFF) regulations.",
   },
   {
-    question: "What does ISO 22000 certification mean for Cape NatureX Organic?",
+    question: "What does ISO 22000 certification mean for Bright Fame Organic?",
     answer:
-      "ISO 22000:2018 certification confirms that Cape NatureX Organic has implemented an effective Food Safety Management System (FSMS). This international standard integrates HACCP principles with prerequisite programs and ensures systematic identification and control of food safety hazards throughout the supply chain, from raw material sourcing through processing, packaging, and distribution.",
+      "ISO 22000:2018 certification confirms that Bright Fame Organic has implemented an effective Food Safety Management System (FSMS). This international standard integrates HACCP principles with prerequisite programs and ensures systematic identification and control of food safety hazards throughout the supply chain, from raw material sourcing through processing, packaging, and distribution.",
   },
   {
-    question: "What does HACCP certification mean for Cape NatureX Organic's manufacturing?",
+    question: "What does HACCP certification mean for Bright Fame Organic's manufacturing?",
     answer:
-      "HACCP (Hazard Analysis and Critical Control Points) certification confirms that Cape NatureX Organic has implemented a systematic preventive approach to food safety. The HACCP system identifies physical, chemical, and biological hazards in the production process and establishes critical control points to prevent, eliminate, or reduce these hazards to safe levels. This is essential for meeting international food safety requirements.",
+      "HACCP (Hazard Analysis and Critical Control Points) certification confirms that Bright Fame Organic has implemented a systematic preventive approach to food safety. The HACCP system identifies physical, chemical, and biological hazards in the production process and establishes critical control points to prevent, eliminate, or reduce these hazards to safe levels. This is essential for meeting international food safety requirements.",
   },
   {
-    question: "Which countries does Cape NatureX Organic export to and what documentation is provided?",
+    question: "Which countries does Bright Fame Organic export to and what documentation is provided?",
     answer:
-      "Cape NatureX Organic exports to over 50 countries including the USA, EU member states (Germany, France, Netherlands, Italy, Spain), UK, Canada, Australia, Japan, South Korea, and countries across the Middle East, Southeast Asia, and Africa. Export documentation includes Certificate of Analysis (COA), MSDS, organic certificates, phytosanitary certificates, certificate of origin, and any country-specific compliance documentation required by the importing nation.",
+      "Bright Fame Organic exports to over 50 countries including the USA, EU member states (Germany, France, Netherlands, Italy, Spain), UK, Canada, Australia, Japan, South Korea, and countries across the Middle East, Southeast Asia, and Africa. Export documentation includes Certificate of Analysis (COA), MSDS, organic certificates, phytosanitary certificates, certificate of origin, and any country-specific compliance documentation required by the importing nation.",
   },
   {
-    question: "What shipping and logistics terms does Cape NatureX Organic offer?",
+    question: "What shipping and logistics terms does Bright Fame Organic offer?",
     answer:
-      "Cape NatureX Organic offers flexible international shipping terms including FOB (Free on Board), CIF (Cost, Insurance, and Freight), and CFR (Cost and Freight). The company handles export documentation, customs clearance support, and coordination with freight forwarders. Products are shipped in food-grade packaging with proper labeling and documentation for smooth customs clearance at the destination.",
+      "Bright Fame Organic offers flexible international shipping terms including FOB (Free on Board), CIF (Cost, Insurance, and Freight), and CFR (Cost and Freight). The company handles export documentation, customs clearance support, and coordination with freight forwarders. Products are shipped in food-grade packaging with proper labeling and documentation for smooth customs clearance at the destination.",
   },
   {
-    question: "What product categories does Cape NatureX Organic offer?",
+    question: "What product categories does Bright Fame Organic offer?",
     answer:
-      "Cape NatureX Organic offers 1000+ SKUs across the following categories: organic herbs (Ashwagandha, Tulsi, Brahmi, Moringa, Shatavari), organic spices (turmeric, cumin, coriander, fenugreek, black pepper), herbal powders, botanical extracts, essential oils, oleoresins, nutraceutical ingredients, spray-dried fruit and vegetable powders, superfoods and super greens, plant-based proteins, mushroom powders, seeds and grains, teas and infusions, probiotics and enzymes, and custom blends.",
+      "Bright Fame Organic offers 1000+ SKUs across the following categories: organic herbs (Ashwagandha, Tulsi, Brahmi, Moringa, Shatavari), organic spices (turmeric, cumin, coriander, fenugreek, black pepper), herbal powders, botanical extracts, essential oils, oleoresins, nutraceutical ingredients, spray-dried fruit and vegetable powders, superfoods and super greens, plant-based proteins, mushroom powders, seeds and grains, teas and infusions, probiotics and enzymes, and custom blends.",
   },
   {
-    question: "Does Cape NatureX Organic offer custom formulation and blending services?",
+    question: "Does Bright Fame Organic offer custom formulation and blending services?",
     answer:
-      "Yes, Cape NatureX Organic provides custom formulation and blending services for B2B buyers. The company can develop custom ingredient blends, proprietary formulations, and specialized products based on customer specifications. Services include ingredient selection, ratio optimization, stability testing, and scale-up from lab to commercial production. Private label packaging is also available.",
+      "Yes, Bright Fame Organic provides custom formulation and blending services for B2B buyers. The company can develop custom ingredient blends, proprietary formulations, and specialized products based on customer specifications. Services include ingredient selection, ratio optimization, stability testing, and scale-up from lab to commercial production. Private label packaging is also available.",
   },
   {
-    question: "What sustainability practices does Cape NatureX Organic follow?",
+    question: "What sustainability practices does Bright Fame Organic follow?",
     answer:
-      "Cape NatureX Organic is committed to sustainable practices including organic farming on 950 hectares of certified farmland without synthetic pesticides or chemical fertilizers, water conservation and soil health management, biodiversity preservation through crop rotation and natural pest control, sustainable harvesting methods that protect long-term crop viability, responsible waste management at processing facilities, and energy-efficient manufacturing processes.",
+      "Bright Fame Organic is committed to sustainable practices including organic farming on 950 hectares of certified farmland without synthetic pesticides or chemical fertilizers, water conservation and soil health management, biodiversity preservation through crop rotation and natural pest control, sustainable harvesting methods that protect long-term crop viability, responsible waste management at processing facilities, and energy-efficient manufacturing processes.",
   },
   {
-    question: "How does Cape NatureX Organic manage its organic farmland?",
+    question: "How does Bright Fame Organic manage its organic farmland?",
     answer:
-      "Cape NatureX Organic manages 950 hectares of farmland under organic certification across multiple regions in India. The farmland is cultivated following organic agricultural practices compliant with EU Organic, USDA NOP, and NPOP standards. This includes no use of synthetic pesticides or chemical fertilizers, natural pest management, crop rotation, composting, and regular soil testing. The farmland provides a controlled and traceable source of raw materials.",
+      "Bright Fame Organic manages 950 hectares of farmland under organic certification across multiple regions in India. The farmland is cultivated following organic agricultural practices compliant with EU Organic, USDA NOP, and NPOP standards. This includes no use of synthetic pesticides or chemical fertilizers, natural pest management, crop rotation, composting, and regular soil testing. The farmland provides a controlled and traceable source of raw materials.",
   },
   {
-    question: "What packaging capabilities does Cape NatureX Organic have?",
+    question: "What packaging capabilities does Bright Fame Organic have?",
     answer:
-      "Cape NatureX Organic operates an integrated packaging facility equipped with Form-Fill-Seal (FFS) machines in a clean room environment. Packaging options include standee pouches (100g, 250g, 500g, 1kg), bulk bags (25kg, 50kg), drums, and customized packaging. The clean room facility ensures contamination-free packaging meeting pharmaceutical and food-grade standards. Private label and custom packaging with buyer branding is also available.",
+      "Bright Fame Organic operates an integrated packaging facility equipped with Form-Fill-Seal (FFS) machines in a clean room environment. Packaging options include standee pouches (100g, 250g, 500g, 1kg), bulk bags (25kg, 50kg), drums, and customized packaging. The clean room facility ensures contamination-free packaging meeting pharmaceutical and food-grade standards. Private label and custom packaging with buyer branding is also available.",
   },
   {
-    question: "What is Cape NatureX Organic's sample policy?",
+    question: "What is Bright Fame Organic's sample policy?",
     answer:
-      "Cape NatureX Organic provides product samples for verified business inquiries. To request a sample, buyers can submit an inquiry through the website or contact the sales team directly. Samples are dispatched with relevant documentation including Certificate of Analysis (COA) and organic certificates. The sales team typically responds within 24-48 hours with sample availability, pricing, and shipping details.",
+      "Bright Fame Organic provides product samples for verified business inquiries. To request a sample, buyers can submit an inquiry through the website or contact the sales team directly. Samples are dispatched with relevant documentation including Certificate of Analysis (COA) and organic certificates. The sales team typically responds within 24-48 hours with sample availability, pricing, and shipping details.",
   },
   {
-    question: "What is the minimum order quantity (MOQ) at Cape NatureX Organic?",
+    question: "What is the minimum order quantity (MOQ) at Bright Fame Organic?",
     answer:
-      "The standard minimum order quantity (MOQ) at Cape NatureX Organic is typically 25 kg for most products. MOQs may vary depending on the specific product, processing requirements (such as custom grinding or blending), and packaging specifications. For specialty items, custom extracts, or proprietary formulations, MOQs may be higher. Contact the sales team for specific MOQ information for your required products.",
+      "The standard minimum order quantity (MOQ) at Bright Fame Organic is typically 25 kg for most products. MOQs may vary depending on the specific product, processing requirements (such as custom grinding or blending), and packaging specifications. For specialty items, custom extracts, or proprietary formulations, MOQs may be higher. Contact the sales team for specific MOQ information for your required products.",
   },
   {
-    question: "What regulatory compliance does Cape NatureX Organic maintain for exports?",
+    question: "What regulatory compliance does Bright Fame Organic maintain for exports?",
     answer:
-      "Cape NatureX Organic maintains comprehensive regulatory compliance for international exports including FSSAI (Food Safety and Standards Authority of India) registration, FDA (U.S. Food and Drug Administration) compliance for products exported to the USA, EU food safety regulations compliance, APEDA (Agricultural and Processed Food Products Export Development Authority) registration, and adherence to import regulations of all destination countries. The company provides all necessary compliance documentation with each shipment.",
+      "Bright Fame Organic maintains comprehensive regulatory compliance for international exports including FSSAI (Food Safety and Standards Authority of India) registration, FDA (U.S. Food and Drug Administration) compliance for products exported to the USA, EU food safety regulations compliance, APEDA (Agricultural and Processed Food Products Export Development Authority) registration, and adherence to import regulations of all destination countries. The company provides all necessary compliance documentation with each shipment.",
   },
   {
-    question: "How does Cape NatureX Organic ensure traceability of its products?",
+    question: "How does Bright Fame Organic ensure traceability of its products?",
     answer:
-      "Cape NatureX Organic maintains complete farm-to-formula traceability for all products. Each batch is assigned a unique lot number that traces back to the specific farm or sourcing location, harvest date, processing records, quality test results, and packaging details. This traceability system ensures that any product can be tracked through every stage of the supply chain, from raw material sourcing to final delivery.",
+      "Bright Fame Organic maintains complete farm-to-formula traceability for all products. Each batch is assigned a unique lot number that traces back to the specific farm or sourcing location, harvest date, processing records, quality test results, and packaging details. This traceability system ensures that any product can be tracked through every stage of the supply chain, from raw material sourcing to final delivery.",
   },
   {
-    question: "What makes Cape NatureX Organic different from other organic ingredient suppliers?",
+    question: "What makes Bright Fame Organic different from other organic ingredient suppliers?",
     answer:
-      "Cape NatureX Organic differentiates itself through six key factors: (1) Direct manufacturer with own processing facilities, not a broker or trader. (2) Own organic farmland of 950 hectares, ensuring supply chain control. (3) Multi-certification compliance with EU Organic, USDA NOP, JAS, NPOP, ISO 22000, HACCP, and GMP. (4) In-house quality control laboratory for rigorous testing. (5) Custom formulation and private label support. (6) Proven global export experience across 50+ countries with full documentation support.",
+      "Bright Fame Organic differentiates itself through six key factors: (1) Direct manufacturer with own processing facilities, not a broker or trader. (2) Own organic farmland of 950 hectares, ensuring supply chain control. (3) Multi-certification compliance with EU Organic, USDA NOP, JAS, NPOP, ISO 22000, HACCP, and GMP. (4) In-house quality control laboratory for rigorous testing. (5) Custom formulation and private label support. (6) Proven global export experience across 50+ countries with full documentation support.",
   },
   {
-    question: "How can I contact Cape NatureX Organic for a business inquiry?",
+    question: "How can I contact Bright Fame Organic for a business inquiry?",
     answer:
-      "Business inquiries can be submitted through the Cape NatureX Organic website contact form or inquiry form. The sales team is available to discuss product specifications, pricing, MOQs, sample requests, and custom requirements. For quotation requests, provide details such as product name, required quantity, quality specifications, desired packaging, and destination country. The team typically responds within 24-48 hours.",
+      "Business inquiries can be submitted through the Bright Fame Organic website contact form or inquiry form. The sales team is available to discuss product specifications, pricing, MOQs, sample requests, and custom requirements. For quotation requests, provide details such as product name, required quantity, quality specifications, desired packaging, and destination country. The team typically responds within 24-48 hours.",
   },
 ];
 
@@ -196,10 +196,10 @@ export default function AboutAEO() {
         <section className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Company Profile - Cape NatureX Organic Pvt. Ltd.
+              Company Profile - Bright Fame Organic Pvt. Ltd.
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              A structured overview of Cape NatureX Organic, a certified organic ingredients manufacturer and exporter from India.
+              A structured overview of Bright Fame Organic, a certified organic ingredients manufacturer and exporter from India.
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export default function AboutAEO() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-sm">Full Legal Name</h3>
-                      <p className="text-sm text-gray-600" itemProp="legalName">Cape NatureX Organic Pvt. Ltd.</p>
+                      <p className="text-sm text-gray-600" itemProp="legalName">Bright Fame Organic Pvt. Ltd.</p>
                     </div>
                   </div>
 
@@ -223,7 +223,7 @@ export default function AboutAEO() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-sm">Trade Name</h3>
-                      <p className="text-sm text-gray-600" itemProp="alternateName">Cape NatureX Organic</p>
+                      <p className="text-sm text-gray-600" itemProp="alternateName">Bright Fame Organic</p>
                     </div>
                   </div>
 
@@ -330,7 +330,7 @@ export default function AboutAEO() {
               Farm-to-Formula Supply Chain Process
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              A transparent, step-by-step overview of how Cape NatureX Organic sources, processes, and delivers certified organic ingredients.
+              A transparent, step-by-step overview of how Bright Fame Organic sources, processes, and delivers certified organic ingredients.
             </p>
           </div>
 
@@ -446,7 +446,7 @@ export default function AboutAEO() {
               Third-Party Validation & Compliance
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Independent certifications, quality standards, and regulatory compliance that validate Cape NatureX Organic's products and processes.
+              Independent certifications, quality standards, and regulatory compliance that validate Bright Fame Organic's products and processes.
             </p>
           </div>
 
@@ -589,10 +589,10 @@ export default function AboutAEO() {
         <section className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Cape NatureX Organic is an Industry Expert
+              Why Bright Fame Organic is an Industry Expert
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Key differentiators that establish Cape NatureX Organic as a trusted authority in organic ingredients manufacturing and export.
+              Key differentiators that establish Bright Fame Organic as a trusted authority in organic ingredients manufacturing and export.
             </p>
           </div>
 
@@ -606,7 +606,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  Cape NatureX Organic owns and operates its own processing facilities, including pulverizer lines and solvent extraction plants. As a direct manufacturer (not a broker or trader), the company offers better pricing, quality control, and supply reliability.
+                  Bright Fame Organic owns and operates its own processing facilities, including pulverizer lines and solvent extraction plants. As a direct manufacturer (not a broker or trader), the company offers better pricing, quality control, and supply reliability.
                 </p>
               </CardContent>
             </Card>
@@ -620,7 +620,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  With 950 hectares of farmland under organic certification, Cape NatureX Organic controls the supply chain from seed to finished product. This vertical integration ensures traceability, consistent quality, and uninterrupted supply.
+                  With 950 hectares of farmland under organic certification, Bright Fame Organic controls the supply chain from seed to finished product. This vertical integration ensures traceability, consistent quality, and uninterrupted supply.
                 </p>
               </CardContent>
             </Card>
@@ -634,7 +634,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  Certified by EU Organic, USDA NOP, JAS, NPOP, India Organic, ISO 22000, HACCP, and GMP. This multi-certification compliance enables Cape NatureX Organic to serve buyers across all major global markets.
+                  Certified by EU Organic, USDA NOP, JAS, NPOP, India Organic, ISO 22000, HACCP, and GMP. This multi-certification compliance enables Bright Fame Organic to serve buyers across all major global markets.
                 </p>
               </CardContent>
             </Card>
@@ -648,7 +648,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  Cape NatureX Organic operates its own quality control laboratory for testing pesticide residue, heavy metals, microbiology, aflatoxins, and active compound analysis. Results are verified by independent third-party accredited laboratories.
+                  Bright Fame Organic operates its own quality control laboratory for testing pesticide residue, heavy metals, microbiology, aflatoxins, and active compound analysis. Results are verified by independent third-party accredited laboratories.
                 </p>
               </CardContent>
             </Card>
@@ -662,7 +662,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  Cape NatureX Organic offers custom blending, proprietary formulation development, and private label services. The team supports ingredient selection, ratio optimization, stability testing, and scale-up from lab to production.
+                  Bright Fame Organic offers custom blending, proprietary formulation development, and private label services. The team supports ingredient selection, ratio optimization, stability testing, and scale-up from lab to production.
                 </p>
               </CardContent>
             </Card>
@@ -676,7 +676,7 @@ export default function AboutAEO() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm">
-                  Proven export experience across 50+ countries with comprehensive documentation support. Cape NatureX Organic handles FOB, CIF, and CFR shipping terms, customs documentation, and country-specific regulatory compliance.
+                  Proven export experience across 50+ countries with comprehensive documentation support. Bright Fame Organic handles FOB, CIF, and CFR shipping terms, customs documentation, and country-specific regulatory compliance.
                 </p>
               </CardContent>
             </Card>
@@ -687,10 +687,10 @@ export default function AboutAEO() {
         <section className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Frequently Asked Questions About Cape NatureX Organic
+              Frequently Asked Questions About Bright Fame Organic
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Comprehensive answers about Cape NatureX Organic's company profile, manufacturing, quality standards, certifications, and export capabilities.
+              Comprehensive answers about Bright Fame Organic's company profile, manufacturing, quality standards, certifications, and export capabilities.
             </p>
           </div>
 

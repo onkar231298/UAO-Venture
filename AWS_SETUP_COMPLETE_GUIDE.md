@@ -14,8 +14,8 @@
 3. **Contact Information**
    - Choose "Business" or "Personal"
    - Fill in your business details:
-     - Company name: Cape NatureX Organic Pvt. Ltd.
-     - Address: C/O Cape NatureX International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001
+     - Company name: Bright Fame Organic Pvt. Ltd.
+     - Address: C/O Bright Fame International, Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001
      - Phone: +91-7249847439
 
 4. **Payment Information**

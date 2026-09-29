@@ -60,7 +60,7 @@ const FallbackApp = {
                   <div style="background: #f0f9ff; padding: 30px; border-radius: 8px;">
                     <h3 style="font-size: 20px; font-weight: 600; color: #374151; margin-bottom: 20px;">Company Info</h3>
                     <div style="space-y: 12px;">
-                      <p><span style="font-weight: 500;">Supplier:</span> Cape NatureX Organic Pvt. Ltd.</p>
+                      <p><span style="font-weight: 500;">Supplier:</span> Bright Fame Organic Pvt. Ltd.</p>
                       <p><span style="font-weight: 500;">Quality:</span> Premium Grade</p>
                       <p><span style="font-weight: 500;">Certification:</span> Organic Certified</p>
                     </div>
@@ -89,7 +89,7 @@ const FallbackApp = {
         <div style="max-width: 1200px; margin: 0 auto; padding: 40px;">
           <div style="text-align: center; background: white; border-radius: 12px; padding: 60px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
             <h1 style="font-size: 48px; font-weight: bold; color: #1f2937; margin-bottom: 16px;">
-              Cape NatureX Organic
+              Bright Fame Organic
             </h1>
             <h2 style="font-size: 24px; color: #6b7280; margin-bottom: 40px;">
               Premium B2B Organic Ingredients

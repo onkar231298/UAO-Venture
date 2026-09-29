@@ -21,10 +21,10 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "alternateName": "Cape NatureX Organic",
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
-      "logo": `${baseUrl}/cape-naturex-logo.png`,
+      "logo": `${baseUrl}/bfi-logo.png`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide."
     };
 
@@ -73,7 +73,7 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
               "image": product.mainImage,
               "brand": {
                 "@type": "Brand",
-                "name": "Cape NatureX Organic"
+                "name": "Bright Fame Organic"
               },
               "offers": {
                 "@type": "Offer",

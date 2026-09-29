@@ -1,4 +1,4 @@
-modules = ["web", "nodejs-22", "python-base-3.13", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -18,10 +18,6 @@ externalPort = 80
 [[ports]]
 localPort = 5001
 externalPort = 3000
-
-[[ports]]
-localPort = 23636
-externalPort = 3001
 
 [env]
 PORT = "5000"
@@ -55,8 +51,3 @@ integrations = ["javascript_object_storage:1.0.0", "javascript_database:1.0.0", 
 [userenv.shared]
 AWS_DOCUMENTS_BUCKET_NAME = "eurka-unjha-bucket-production"
 EMAIL_LOGO_URL = "https://bright-organic.com/bfi-logo.png"
-AWS_S3_BUCKET_NAME = "eurka-unjha-bucket-production"
-
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 180000

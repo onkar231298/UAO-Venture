@@ -16,11 +16,11 @@ export default function HomeStructuredData() {
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "alternateName": "Cape NatureX Organic",
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
-      "logo": `${baseUrl}/cape-naturex-logo.png`,
-      "image": `${baseUrl}/cape-naturex-logo.png`,
+      "logo": `${baseUrl}/bfi-logo.png`,
+      "image": `${baseUrl}/bfi-logo.png`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide. USDA and EU certified organic products from India.",
       "address": {
         "@type": "PostalAddress",
@@ -108,12 +108,12 @@ export default function HomeStructuredData() {
       "subOrganization": [
         {
           "@type": "Organization",
-          "name": "Cape NatureX Organic - Food Ingredients Division",
+          "name": "Bright Fame Organic - Food Ingredients Division",
           "url": `${baseUrl}/food-ingredients`
         },
         {
           "@type": "Organization",
-          "name": "Cape NatureX Organic - Organic Herbs Division",
+          "name": "Bright Fame Organic - Organic Herbs Division",
           "url": `${baseUrl}/organic-herbs`
         }
       ]
@@ -123,13 +123,13 @@ export default function HomeStructuredData() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Cape NatureX Organic - Premium B2B Organic Ingredients",
-      "alternateName": "Cape NatureX Organic",
+      "name": "Bright Fame Organic - Premium B2B Organic Ingredients",
+      "alternateName": "Bright Fame Organic",
       "url": baseUrl,
       "description": "Leading B2B marketplace for certified organic ingredients, herbs, spices, and botanical extracts. USDA and EU organic certified products from India.",
       "publisher": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd."
+        "name": "Bright Fame Organic Pvt. Ltd."
       },
       "potentialAction": {
         "@type": "SearchAction",
@@ -146,7 +146,7 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "name": "Main Site Navigation",
-      "description": "Primary navigation pages for Cape NatureX Organic website",
+      "description": "Primary navigation pages for Bright Fame Organic website",
       "itemListElement": [
         {
           "@type": "SiteNavigationElement",
@@ -166,7 +166,7 @@ export default function HomeStructuredData() {
           "@type": "SiteNavigationElement",
           "position": 3,
           "name": "About Us",
-          "description": "Learn about Cape NatureX Organic - 25+ years of organic ingredient expertise",
+          "description": "Learn about Bright Fame Organic - 25+ years of organic ingredient expertise",
           "url": `${baseUrl}/about`
         },
         {
@@ -226,8 +226,8 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#organization`,
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "image": `${baseUrl}/cape-naturex-logo.png`,
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "image": `${baseUrl}/bfi-logo.png`,
       "telephone": "+91-7249847439",
       "email": "admin@bfiorganic.com",
       "address": {

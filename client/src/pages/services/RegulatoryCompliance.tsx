@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function RegulatoryCompliance() {
   useEffect(() => {
-    document.title = "Regulatory Compliance Services - Cape NatureX Organic";
+    document.title = "Regulatory Compliance Services - Bright Fame Organic";
   }, []);
 
   return (

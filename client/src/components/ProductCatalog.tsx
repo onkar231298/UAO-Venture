@@ -195,7 +195,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
               </Badge>
             )}
             {groupMode && (
-              <Badge variant="default" className="text-xs sm:text-sm bg-[#e8eee1] text-[#294a2c]">
+              <Badge variant="default" className="text-xs sm:text-sm bg-blue-100 text-blue-800">
                 Similar Products Grouped
               </Badge>
             )}

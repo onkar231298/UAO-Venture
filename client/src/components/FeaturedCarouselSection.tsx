@@ -126,7 +126,7 @@ export default function FeaturedCarouselSection() {
 
   if (loading) {
     return (
-      <section className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-green-50 to-emerald-50">
+      <section className="py-8 sm:py-12 lg:py-16" style={{background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)"}}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Featured Products</h2>
@@ -143,7 +143,7 @@ export default function FeaturedCarouselSection() {
   }
 
   return (
-    <section className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-green-50 to-emerald-50">
+    <section className="py-8 sm:py-12 lg:py-16" style={{background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)"}}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Featured Products</h2>

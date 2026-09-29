@@ -145,7 +145,7 @@ export default function BlogPost() {
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  <span>Cape NatureX Organic Team</span>
+                  <span>Bright Fame Organic Team</span>
                 </div>
                 {post.publishedAt && (
                   <div className="flex items-center gap-1">

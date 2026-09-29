@@ -31,7 +31,7 @@ export class S3NotFoundError extends Error {
   }
 }
 
-// AWS S3 Service for Cape NatureX Organic Platform
+// AWS S3 Service for Bright Fame Organic Platform
 export class AWSS3Service {
   private bucketName: string;
 

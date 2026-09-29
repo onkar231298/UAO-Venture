@@ -63,7 +63,7 @@ const faqs = [
 
 export default function BulkOrganicExporter() {
   useEffect(() => {
-    document.title = "Bulk Organic Ingredients Exporter India | Wholesale Organic Herbs Spices | Cape NatureX Organic";
+    document.title = "Bulk Organic Ingredients Exporter India | Wholesale Organic Herbs Spices | Bright Fame Organic";
 
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
@@ -112,7 +112,7 @@ export default function BulkOrganicExporter() {
               </div>
             </div>
             <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Bulk Organic Ingredients Exporter from India | Cape NatureX Organic
+              Bulk Organic Ingredients Exporter from India | Bright Fame Organic
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Direct manufacturer and wholesale supplier of certified organic herbs, spices, and botanical ingredients.

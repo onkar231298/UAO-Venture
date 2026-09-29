@@ -6,7 +6,7 @@ import {
   resolveSharedMailchimpConfiguration,
 } from "./bulkEmailCampaignService";
 
-const shared = { audienceId: "audience", fromEmail: "sales@bright-organic.com", fromName: "Cape NatureX Organic" };
+const shared = { audienceId: "audience", fromEmail: "sales@bright-organic.com", fromName: "Bright Fame Organic" };
 const expected = { ...shared, replyToEmail: "sales@bright-organic.com" };
 const current = { configuration: shared, conflicts: [] };
 

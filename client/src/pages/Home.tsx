@@ -14,7 +14,7 @@ import { KnowledgeHubAEO } from "@/components/KnowledgeHubAEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, MessageSquare, FileText, ShoppingCart, BarChart3, Bell, Award, Globe, Users, TrendingUp, Wheat, Leaf } from "lucide-react";
+import { Package, MessageSquare, FileText, ShoppingCart, BarChart3, Bell, Award, Globe, Users, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -38,7 +38,7 @@ export default function Home() {
       <section className="py-8 bg-white">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Premium Organic Ingredients Supplier - Cape NatureX Organic
+            Premium Organic Ingredients Supplier - Bright Fame Organic
           </h1>
           <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6">
             Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.
@@ -63,7 +63,7 @@ export default function Home() {
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <a href="/food-ingredients" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-700"><Wheat className="h-6 w-6" aria-hidden="true" /></div>
+              <div className="text-4xl mb-4 text-center">🍞</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 Food Grade Ingredients
               </h3>
@@ -76,7 +76,7 @@ export default function Home() {
             </a>
             
             <a href="/organic-herbs" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><Leaf className="h-6 w-6" aria-hidden="true" /></div>
+              <div className="text-4xl mb-4 text-center">🌿</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 Premium Organic Herbs
               </h3>
@@ -89,7 +89,7 @@ export default function Home() {
             </a>
             
             <a href="/eu-organic-spices" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-700"><Globe className="h-6 w-6" aria-hidden="true" /></div>
+              <div className="text-4xl mb-4 text-center">🇪🇺</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
                 EU Certified Spices
               </h3>
@@ -168,7 +168,7 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Partner with Us?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands of satisfied customers who trust Cape NatureX Organics for their ingredient needs
+            Join thousands of satisfied customers who trust Bright Fame Organics for their ingredient needs
           </p>
           <div className="space-x-4">
             <Button 

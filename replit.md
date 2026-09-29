@@ -1,4 +1,4 @@
-# Cape NatureX Organic B2B Platform
+# Bright Fame Organic B2B Platform
 
 ## Overview
 This platform is a comprehensive B2B solution for organic products, featuring a customer-facing e-commerce website and a role-based internal CRM system. Its primary purpose is to facilitate product discovery, streamline inquiry management, and support end-to-end business operations across various departments. The platform aims to simplify B2B transactions for organic products, managing the entire inquiry-to-order lifecycle with a company-centric approach. The business vision is to provide a robust, scalable platform that streamlines B2B organic product transactions, enhancing efficiency for both buyers and sellers and opening new market potentials.
@@ -168,8 +168,3 @@ Preferred communication style: Simple, everyday language.
 - **Radix UI**: Provides accessible and unstyled component primitives.
 - **Lucide React**: An icon library for various UI elements.
 - **Date-fns**: Utilized for efficient date manipulation operations.
-
-## Replit Setup
-- **Run locally in Replit**: `npm run dev` through the configured `Start application` workflow on port 5000.
-- **Development database**: Apply the current schema with `npm run db:push` before the first run when the database is empty.
-- **Optional services**: AWS S3, email, AI, reCAPTCHA, and voice integrations require their corresponding environment variables. The public site can run without those service credentials, but related features remain unavailable.

@@ -200,17 +200,17 @@ export default function ProductDetailBFI() {
     if (!optimizedTitle) {
       // Generate keyword-optimized title based on product type
       if (productName.includes('amla')) {
-        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | Cape NatureX Organic`;
+        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('haritaki')) {
-        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | Cape NatureX Organic`;
+        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('turmeric')) {
-        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | Cape NatureX Organic`;
+        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | Bright Fame Organic`;
       } else if (productName.includes('ashwagandha')) {
-        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | Cape NatureX Organic`;
+        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | Bright Fame Organic`;
       } else {
         // Generic optimization
         const category = product.category?.name || 'Organic Ingredients';
-        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | Cape NatureX Organic`;
+        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | Bright Fame Organic`;
       }
     }
     
@@ -244,13 +244,13 @@ export default function ProductDetailBFI() {
     if (product) {
       // Update page title with optimized SEO title
       const optimizedTitle = generateOptimizedTitle(product);
-      if (document.title === 'Vite + React + TS' || !document.title.includes('Cape NatureX Organic')) {
+      if (document.title === 'Vite + React + TS' || !document.title.includes('Bright Fame Organic')) {
         document.title = optimizedTitle;
       }
       
       // Update meta description with optimized SEO description
       let metaDescription = document.querySelector('meta[name="description"]');
-      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('Cape NatureX Organic')) {
+      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('Bright Fame Organic')) {
         if (!metaDescription) {
           metaDescription = document.createElement('meta');
           metaDescription.setAttribute('name', 'description');
@@ -345,7 +345,7 @@ export default function ProductDetailBFI() {
         productPrice={product.priceUSD || product.rate}
         currency="USD"
         availability={product.currentStock && parseFloat(product.currentStock.toString()) > 0 ? 'InStock' : 'OutOfStock'}
-        brand="Cape NatureX Organic"
+        brand="Bright Fame Organic"
         category={product.category?.name || product.healthSupport}
         geoTargeting={['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']}
       />
@@ -449,8 +449,8 @@ export default function ProductDetailBFI() {
                       key={index}
                       className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                         index === currentImageIndex 
-                          ? 'border-[#718b57] ring-2 ring-[#dce7cf]'
-                          : 'border-gray-200 hover:border-[#95b259]'
+                          ? 'border-orange-500 ring-2 ring-orange-200' 
+                          : 'border-gray-200 hover:border-orange-300'
                       }`}
                       onClick={() => goToImage(index)}
                     >
@@ -528,7 +528,7 @@ export default function ProductDetailBFI() {
               <div className="flex gap-2 mb-6">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="bg-[#294a2c] hover:bg-[#203b23] text-white">
+                    <Button className="bg-orange-600 hover:bg-orange-700 text-white">
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Request Quote
                     </Button>
@@ -559,11 +559,11 @@ export default function ProductDetailBFI() {
               </div>
 
               {/* Enhanced Inquiry Form */}
-              <Card className="bg-[#eef3e8] border-[#cbd8bd] mb-6">
+              <Card className="bg-blue-50 border-blue-200 mb-6">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm text-[#294a2c]">Submit Bid for High Volume</h4>
-                    <MessageSquare className="w-4 h-4 text-[#718b57]" />
+                    <h4 className="font-medium text-sm text-blue-900">Submit Bid for High Volume</h4>
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
                   </div>
                   <EnhancedInquiryForm 
                     product={product as any} 
@@ -589,12 +589,12 @@ export default function ProductDetailBFI() {
 
           {/* Sample Request Section - Spans Middle and Right Columns */}
           <div className="lg:col-span-8 lg:col-start-5 mb-6">
-            <Card className="w-full max-w-none bg-gradient-to-r from-[#f3f6ed] to-[#e8efdc] border-[#cbd8bd]">
+            <Card className="w-full max-w-none bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#dce7cf] rounded-full flex items-center justify-center">
-                      <Beaker className="w-5 h-5 text-[#718b57]" />
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Beaker className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Request a Free Sample</h3>
@@ -622,19 +622,19 @@ export default function ProductDetailBFI() {
           {/* Product Information Tabs Section - Spans Middle and Right Columns */}
           <div className="lg:col-span-8 lg:col-start-5 -mt-4">
             <Card className="w-full max-w-none">
-              <CardHeader className="pb-3 bg-gradient-to-r from-[#f3f6ed] to-[#e8efdc] rounded-t-lg">
-                <CardTitle className="text-lg text-[#294a2c] flex items-center gap-2">
-                  <Package className="w-5 h-5 text-[#718b57]" />
+              <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-lg">
+                <CardTitle className="text-lg text-orange-900 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-orange-600" />
                   Product Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs defaultValue="description" className="w-full">
                   <TabsList className="grid w-full grid-cols-4 mb-0 rounded-none border-b bg-gray-50">
-                    <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-[#718b57]">Description</TabsTrigger>
-                    <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-[#718b57]">Product Spec</TabsTrigger>
-                    <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-[#718b57]">FAQs</TabsTrigger>
-                    <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-[#718b57]">Other Vendors</TabsTrigger>
+                    <TabsTrigger value="description" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Description</TabsTrigger>
+                    <TabsTrigger value="spec" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Product Spec</TabsTrigger>
+                    <TabsTrigger value="faqs" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">FAQs</TabsTrigger>
+                    <TabsTrigger value="vendors" className="text-xs px-2 py-3 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500">Other Vendors</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="spec" className="m-0 p-4 space-y-4">
@@ -674,7 +674,7 @@ export default function ProductDetailBFI() {
 
                           {/* Certifications & Tags Display */}
                           {((product.certifications && (product.certifications as string[]).length > 0) || ((product as any).tags && ((product as any).tags as string[]).length > 0)) && (
-                            <div className="mt-6 p-4 bg-[#eef3e8] border border-[#cbd8bd] rounded-lg">
+                            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                                 <Shield className="w-4 h-4" />
                                 Certifications & Quality Standards
@@ -740,7 +740,7 @@ export default function ProductDetailBFI() {
             <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageSquarePlus className="w-5 h-5 text-[#718b57]" />
+                  <MessageSquarePlus className="w-5 h-5 text-orange-600" />
                   Tell Us Your Requirement
                 </CardTitle>
                 <p className="text-sm text-gray-600">

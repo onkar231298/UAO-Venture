@@ -21,7 +21,7 @@ export default function CompanyStructuredData() {
       "jobTitle": "Director – Business Development",
       "worksFor": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd."
+        "name": "Bright Fame Organic Pvt. Ltd."
       },
       "telephone": PHONE,
       "email": EMAIL,
@@ -31,12 +31,12 @@ export default function CompanyStructuredData() {
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "alternateName": ["Cape NatureX Organic", "BFO"],
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "alternateName": ["Bright Fame Organic", "BFO"],
       "description": "India's leading B2B manufacturer and bulk exporter of EU Organic certified herbal powders, teas, whole herbs, whole spices, botanical extracts and spray dried ingredients. Direct manufacturer based in Mehsana, Gujarat, India.",
       "url": BASE_URL,
-      "logo": `${BASE_URL}/cape-naturex-logo.png`,
-      "image": `${BASE_URL}/cape-naturex-logo.png`,
+      "logo": `${BASE_URL}/bfi-logo.png`,
+      "image": `${BASE_URL}/bfi-logo.png`,
       "foundingDate": "2010",
       "address": address,
       "contactPoint": [
@@ -62,7 +62,7 @@ export default function CompanyStructuredData() {
       "founders": [
         {
           "@type": "Person",
-          "name": "Cape NatureX Organic Leadership Team"
+          "name": "Bright Fame Organic Leadership Team"
         }
       ],
       "sameAs": [
@@ -133,7 +133,7 @@ export default function CompanyStructuredData() {
       "email": EMAIL,
       "worksFor": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd.",
+        "name": "Bright Fame Organic Pvt. Ltd.",
         "url": BASE_URL
       },
       "url": `${BASE_URL}/contact`,
@@ -143,7 +143,7 @@ export default function CompanyStructuredData() {
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
+      "name": "Bright Fame Organic Pvt. Ltd.",
       "description": "India's top B2B manufacturer of EU Organic certified herbal ingredients. Factory-direct bulk supply to Europe and worldwide.",
       "url": BASE_URL,
       "telephone": PHONE,

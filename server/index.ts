@@ -185,8 +185,8 @@ app.use((req, res, next) => {
       const productSchema: Record<string, unknown> = {
         "@context": "https://schema.org", "@type": "Product", name: product.name, description,
         url: productUrl, sku: product.productId || undefined,
-        brand: { "@type": "Brand", name: "Cape NatureX Organic" },
-        manufacturer: { "@type": "Organization", name: "Cape NatureX Organic Pvt. Ltd.", url: CANONICAL_ORIGIN },
+        brand: { "@type": "Brand", name: "Bright Fame Organic" },
+        manufacturer: { "@type": "Organization", name: "Bright Fame Organic Pvt. Ltd.", url: CANONICAL_ORIGIN },
         image: productImage
           ? new URL(productImage, CANONICAL_ORIGIN).toString()
           : undefined,
@@ -225,11 +225,11 @@ app.use((req, res, next) => {
         : ["Worldwide"];
       const organization = {
         "@context": "https://schema.org", "@type": settings?.enableLocalSeo ? "LocalBusiness" : "Organization",
-        name: "Cape NatureX Organic", url: CANONICAL_ORIGIN, description,
+        name: "Bright Fame Organic", url: CANONICAL_ORIGIN, description,
         ...(settings?.businessLocation ? { address: settings.businessLocation } : {}),
         areaServed: served,
       };
-      jsonLd = [organization, { "@context": "https://schema.org", "@type": "WebSite", name: "Cape NatureX Organic", url: CANONICAL_ORIGIN }];
+      jsonLd = [organization, { "@context": "https://schema.org", "@type": "WebSite", name: "Bright Fame Organic", url: CANONICAL_ORIGIN }];
     } else {
       const pageSeo = STATIC_PAGE_SEO[pathName];
       if (pageSeo) {
@@ -275,7 +275,7 @@ app.use((req, res, next) => {
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Category Not Found - Cape NatureX Organic</title>
+            <title>Category Not Found - Bright Fame Organic</title>
             <meta name="robots" content="noindex, follow">
           </head>
           <body>
@@ -324,11 +324,11 @@ app.use((req, res, next) => {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${categoryName} - Premium Organic Ingredients | Cape NatureX Organic</title>
+    <title>${categoryName} - Premium Organic Ingredients | Bright Fame Organic</title>
     <meta name="description" content="Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy." />
     <meta name="keywords" content="${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic" />
     <link rel="canonical" href="${baseUrl}/ingredients/${slug}" />
-    <meta property="og:title" content="${categoryName} - Premium Organic Ingredients | Cape NatureX Organic" />
+    <meta property="og:title" content="${categoryName} - Premium Organic Ingredients | Bright Fame Organic" />
     <meta property="og:description" content="Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced." />
     <meta property="og:url" content="${baseUrl}/ingredients/${slug}" />
     <meta property="og:type" content="website" />
@@ -338,11 +338,11 @@ app.use((req, res, next) => {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       "name": "${categoryName}",
-      "description": "Premium ${categoryName.toLowerCase()} collection from Cape NatureX Organic",
+      "description": "Premium ${categoryName.toLowerCase()} collection from Bright Fame Organic",
       "url": "${baseUrl}/ingredients/${slug}",
       "isPartOf": {
         "@type": "WebSite",
-        "name": "Cape NatureX Organic",
+        "name": "Bright Fame Organic",
         "url": "${baseUrl}"
       },
       "breadcrumb": {
@@ -373,7 +373,7 @@ app.use((req, res, next) => {
 </head>
 <body>
     <h1>${categoryName}</h1>
-    <p>Premium ${categoryName.toLowerCase()} collection from Cape NatureX Organic</p>
+    <p>Premium ${categoryName.toLowerCase()} collection from Bright Fame Organic</p>
     <script>window.location.href = '/ingredients/${slug}';</script>
 </body>
 </html>`;
@@ -400,7 +400,7 @@ app.use((req, res, next) => {
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Page Not Found - Cape NatureX Organic</title>
+            <title>Page Not Found - Bright Fame Organic</title>
             <meta name="robots" content="noindex, follow">
           </head>
           <body>
@@ -449,11 +449,11 @@ app.use((req, res, next) => {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${healthSupportName} Supplements - Organic Ingredients | Cape NatureX Organic</title>
+    <title>${healthSupportName} Supplements - Organic Ingredients | Bright Fame Organic</title>
     <meta name="description" content="Premium organic ingredients for ${healthSupportName.toLowerCase()} support. Certified, pharmaceutical grade, and sustainably sourced for optimal health benefits." />
     <meta name="keywords" content="${healthSupportName.toLowerCase()}, ${healthSupportName.toLowerCase()} supplements, organic ${healthSupportName.toLowerCase()}, natural health" />
     <link rel="canonical" href="${baseUrl}/health-support/${slug}" />
-    <meta property="og:title" content="${healthSupportName} Supplements - Organic Ingredients | Cape NatureX Organic" />
+    <meta property="og:title" content="${healthSupportName} Supplements - Organic Ingredients | Bright Fame Organic" />
     <meta property="og:description" content="Premium organic ingredients for ${healthSupportName.toLowerCase()} support. Certified, pharmaceutical grade, and sustainably sourced." />
     <meta property="og:url" content="${baseUrl}/health-support/${slug}" />
     <meta property="og:type" content="website" />
@@ -467,7 +467,7 @@ app.use((req, res, next) => {
       "url": "${baseUrl}/health-support/${slug}",
       "isPartOf": {
         "@type": "WebSite",
-        "name": "Cape NatureX Organic",
+        "name": "Bright Fame Organic",
         "url": "${baseUrl}"
       },
       "breadcrumb": {
@@ -498,7 +498,7 @@ app.use((req, res, next) => {
 </head>
 <body>
     <h1>${healthSupportName} Supplements</h1>
-    <p>Premium organic ingredients for ${healthSupportName.toLowerCase()} support from Cape NatureX Organic</p>
+    <p>Premium organic ingredients for ${healthSupportName.toLowerCase()} support from Bright Fame Organic</p>
     <script>window.location.href = '/health-support/${slug}';</script>
 </body>
 </html>`;
@@ -513,84 +513,84 @@ app.use((req, res, next) => {
   // Server-side SEO for static pages
   const staticPagesSEO = {
     '/about': {
-      title: 'About Us - Leading Organic Ingredients Supplier | Cape NatureX Organic',
-      description: 'Learn about Cape NatureX Organic, a leading supplier of premium organic ingredients worldwide. Certified, sustainable, and pharmaceutical-grade products.',
-      keywords: 'about Cape NatureX Organic, organic ingredients supplier, certified organic, pharmaceutical grade'
+      title: 'About Us - Leading Organic Ingredients Supplier | Bright Fame Organic',
+      description: 'Learn about Bright Fame Organic, a leading supplier of premium organic ingredients worldwide. Certified, sustainable, and pharmaceutical-grade products.',
+      keywords: 'about Bright Fame Organic, organic ingredients supplier, certified organic, pharmaceutical grade'
     },
     '/contact': {
-      title: 'Contact Us - Cape NatureX Organic | Premium Organic Ingredients Supplier',
-      description: 'Get in touch with Cape NatureX Organic for premium organic ingredients. Contact our team for quotes, samples, and expert consultation.',
-      keywords: 'contact Cape NatureX Organic, organic ingredients contact, get quote, organic supplier contact'
+      title: 'Contact Us - Bright Fame Organic | Premium Organic Ingredients Supplier',
+      description: 'Get in touch with Bright Fame Organic for premium organic ingredients. Contact our team for quotes, samples, and expert consultation.',
+      keywords: 'contact Bright Fame Organic, organic ingredients contact, get quote, organic supplier contact'
     },
     '/blog': {
-      title: 'Blog - Organic Ingredients Insights | Cape NatureX Organic',
+      title: 'Blog - Organic Ingredients Insights | Bright Fame Organic',
       description: 'Stay updated with the latest insights on organic ingredients, health benefits, industry trends, and sustainable sourcing practices.',
       keywords: 'organic ingredients blog, health benefits, sustainable sourcing, industry insights'
     },
     '/industries': {
-      title: 'Industries We Serve - B2B Organic Ingredients Supplier | Cape NatureX Organic',
-      description: 'Cape NatureX Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant facility in Gujarat, India.',
+      title: 'Industries We Serve - B2B Organic Ingredients Supplier | Bright Fame Organic',
+      description: 'Bright Fame Organic supplies certified organic ingredients to pharmaceutical, food & beverage, nutraceutical, cosmetic, and herbal industries worldwide. ISO certified, GMP compliant facility in Gujarat, India.',
       keywords: 'organic ingredients supplier, pharmaceutical ingredients, food grade herbs, nutraceutical raw materials, cosmetic ingredients, B2B organic supplier, certified organic herbs'
     },
     '/certifications': {
-      title: 'Certifications & Quality Standards | Cape NatureX Organic',
-      description: 'Cape NatureX Organic holds ISO 9001:2015, USDA Organic, EU Organic, HACCP, and GMP certifications. View our quality certifications and compliance standards for organic ingredients.',
+      title: 'Certifications & Quality Standards | Bright Fame Organic',
+      description: 'Bright Fame Organic holds ISO 9001:2015, USDA Organic, EU Organic, HACCP, and GMP certifications. View our quality certifications and compliance standards for organic ingredients.',
       keywords: 'ISO certified organic, USDA organic certification, EU organic, HACCP, GMP, quality certifications, organic ingredients standards'
     },
     '/': {
-      title: 'Cape NatureX Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer',
-      description: 'Cape NatureX Organic (Cape NatureX Organic) - India\'s leading organic spice, herb & botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs.',
+      title: 'Bright Fame Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer',
+      description: 'Bright Fame Organic (Bright Fame Organic) - India\'s leading organic spice, herb & botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs.',
       keywords: 'organic spice supplier India, organic herb manufacturer Gujarat, EU organic certified exporter India, USDA NOP organic supplier, bulk organic ingredients India, organic Ashwagandha supplier, organic turmeric manufacturer, B2B organic ingredients'
     },
     '/about-us': {
-      title: 'About Cape NatureX Organic - Leading Organic Ingredient Manufacturer India | Own Farmland & Processing',
-      description: 'Cape NatureX Organic Pvt. Ltd. is a vertically integrated organic ingredient manufacturer based in Mehsana, Gujarat, India. Own 950-hectare certified farmland, state-of-the-art processing facilities (1600 kg/hr capacity), ISO 22000, HACCP, GMP certified. Direct manufacturer exporting to 50+ countries.',
-      keywords: 'Cape NatureX Organic about, organic manufacturer India, organic farmland Gujarat, direct organic manufacturer, vertically integrated organic company India'
+      title: 'About Bright Fame Organic - Leading Organic Ingredient Manufacturer India | Own Farmland & Processing',
+      description: 'Bright Fame Organic Pvt. Ltd. is a vertically integrated organic ingredient manufacturer based in Mehsana, Gujarat, India. Own 950-hectare certified farmland, state-of-the-art processing facilities (1600 kg/hr capacity), ISO 22000, HACCP, GMP certified. Direct manufacturer exporting to 50+ countries.',
+      keywords: 'Bright Fame Organic about, organic manufacturer India, organic farmland Gujarat, direct organic manufacturer, vertically integrated organic company India'
     },
     '/organic-spice-supplier-india': {
-      title: 'Top Organic Spice & Herb Supplier India | EU USDA JAS Certified | Cape NatureX Organic',
-      description: 'Cape NatureX Organic - India\'s leading organic spice, herb & botanical ingredient manufacturer. EU Organic, USDA NOP, JAS certified. Own 950ha farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs across herbs, spices, extracts.',
+      title: 'Top Organic Spice & Herb Supplier India | EU USDA JAS Certified | Bright Fame Organic',
+      description: 'Bright Fame Organic - India\'s leading organic spice, herb & botanical ingredient manufacturer. EU Organic, USDA NOP, JAS certified. Own 950ha farmland. Direct manufacturer with in-house QC lab. Exports to 50+ countries. 1000+ SKUs across herbs, spices, extracts.',
       keywords: 'organic spice supplier India, organic herb manufacturer, EU organic certified India, USDA NOP supplier India, organic ingredient exporter Gujarat, top organic supplier India EU market, bulk organic herbs India'
     },
     '/bulk-organic-exporter-india': {
-      title: 'Bulk Organic Ingredients Exporter India | Wholesale Organic Herbs Spices | Cape NatureX Organic',
-      description: 'Cape NatureX Organic - bulk organic ingredient exporter from India. 1600 kg/hr processing capacity, MOQ from 25kg. EU/USDA/JAS certified. Direct manufacturer pricing. Wholesale organic herbs, spices, extracts. FOB/CIF/CFR shipping. Complete export documentation.',
+      title: 'Bulk Organic Ingredients Exporter India | Wholesale Organic Herbs Spices | Bright Fame Organic',
+      description: 'Bright Fame Organic - bulk organic ingredient exporter from India. 1600 kg/hr processing capacity, MOQ from 25kg. EU/USDA/JAS certified. Direct manufacturer pricing. Wholesale organic herbs, spices, extracts. FOB/CIF/CFR shipping. Complete export documentation.',
       keywords: 'bulk organic ingredients India, wholesale organic supplier, organic exporter India, bulk organic herbs, wholesale organic spices, organic ingredients FOB India, bulk Ashwagandha supplier'
     },
     '/eu-organic-spices': {
-      title: 'EU Organic Spices Supplier India | EC 834/2007 Certified | Cape NatureX Organic',
-      description: 'EU certified organic spices from India by Cape NatureX Organic. EU Organic Regulation 834/2007 compliant. Premium Indian organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Direct manufacturer with clean room packaging.',
+      title: 'EU Organic Spices Supplier India | EC 834/2007 Certified | Bright Fame Organic',
+      description: 'EU certified organic spices from India by Bright Fame Organic. EU Organic Regulation 834/2007 compliant. Premium Indian organic turmeric, cumin, coriander, fenugreek, black pepper for European food manufacturers. Direct manufacturer with clean room packaging.',
       keywords: 'EU organic spices, European organic spice supplier, EU certified organic India, organic spices Germany, organic spices France, organic turmeric EU, organic cumin EU market'
     },
     '/organic-herbs': {
-      title: 'Organic Herbs Supplier India | Ashwagandha Moringa Tulsi Brahmi | Cape NatureX Organic',
-      description: 'Premium organic herbs from India by Cape NatureX Organic. Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla and 500+ herbal products. EU Organic, USDA NOP certified. Direct manufacturer with own farmland. Pharmaceutical and food grade.',
+      title: 'Organic Herbs Supplier India | Ashwagandha Moringa Tulsi Brahmi | Bright Fame Organic',
+      description: 'Premium organic herbs from India by Bright Fame Organic. Ashwagandha, Moringa, Tulsi, Brahmi, Shatavari, Neem, Amla and 500+ herbal products. EU Organic, USDA NOP certified. Direct manufacturer with own farmland. Pharmaceutical and food grade.',
       keywords: 'organic herbs supplier India, organic Ashwagandha manufacturer, organic Moringa powder, organic Tulsi supplier, organic Brahmi, bulk organic herbs India, herbal extract manufacturer India'
     },
     '/organic-ingredients-supplier-usa': {
-      title: 'Organic Ingredient Supplier for USA B2B Buyers | Cape NatureX',
+      title: 'Organic Ingredient Supplier for USA B2B Buyers | Bright Fame',
       description: 'Source bulk organic ingredients, herbal powders and botanical extracts from India for USA food, supplement and wellness product requirements.',
       keywords: 'organic ingredient supplier USA, bulk herbal ingredients USA, botanical extracts supplier USA'
     },
     '/organic-ingredients-supplier-germany': {
-      title: 'Organic Ingredient Supplier for Germany | Cape NatureX Organic',
+      title: 'Organic Ingredient Supplier for Germany | Bright Fame Organic',
       description: 'Source bulk organic spices, herbs, powders and botanical ingredients from India for German food, nutraceutical and distribution requirements.',
       keywords: 'organic ingredient supplier Germany, bulk organic spices Germany, herbal ingredients Germany'
     },
     '/organic-ingredients-exporter-uae': {
-      title: 'Organic Ingredient Exporter to UAE | Cape NatureX Organic',
+      title: 'Organic Ingredient Exporter to UAE | Bright Fame Organic',
       description: 'Source bulk organic herbs, spices, powders and botanical extracts from India with documentation and logistics coordination for UAE buyers.',
       keywords: 'organic ingredient exporter UAE, bulk organic ingredients UAE, herbal ingredients supplier UAE'
     },
     '/packaging-solutions': {
-      title: 'Organic Ingredient Packaging Solutions | FFS Clean Room | Cape NatureX Organic',
-      description: 'Cape NatureX Organic packaging solutions - Form-Fill-Seal (FFS) machines in clean room environment. Standee pouches 100g-1kg, bulk bags 25-50kg. Private label packaging. FDA & EU compliant. Multi-layer PET/AL/PE laminate.',
+      title: 'Organic Ingredient Packaging Solutions | FFS Clean Room | Bright Fame Organic',
+      description: 'Bright Fame Organic packaging solutions - Form-Fill-Seal (FFS) machines in clean room environment. Standee pouches 100g-1kg, bulk bags 25-50kg. Private label packaging. FDA & EU compliant. Multi-layer PET/AL/PE laminate.',
       keywords: 'organic ingredient packaging, FFS packaging organic, clean room packaging India, private label organic packaging, standee pouch organic'
     },
     '/presentation': {
-      title: 'Cape NatureX Organic Corporate Presentation | India\'s Leading Organic Manufacturer',
-      description: 'Explore Cape NatureX Organic\'s corporate presentation. Learn about our manufacturing facilities, organic farmland, certifications, product range, and global export capabilities. Direct organic ingredient manufacturer from Gujarat, India.',
-      keywords: 'Cape NatureX Organic presentation, organic manufacturer profile, corporate presentation organic company India'
+      title: 'Bright Fame Organic Corporate Presentation | India\'s Leading Organic Manufacturer',
+      description: 'Explore Bright Fame Organic\'s corporate presentation. Learn about our manufacturing facilities, organic farmland, certifications, product range, and global export capabilities. Direct organic ingredient manufacturer from Gujarat, India.',
+      keywords: 'Bright Fame Organic presentation, organic manufacturer profile, corporate presentation organic company India'
     }
   };
   // Keep the legacy bot-specific handlers aligned with the authoritative
@@ -633,7 +633,7 @@ app.use((req, res, next) => {
       "url": "${baseUrl}${path}",
       "isPartOf": {
         "@type": "WebSite",
-        "name": "Cape NatureX Organic",
+        "name": "Bright Fame Organic",
         "url": "${baseUrl}"
       }
     }
@@ -787,7 +787,7 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   });
 
   // llms.txt — AI search engine context file (like robots.txt but for LLMs)
-  // Helps ChatGPT, Perplexity, Gemini, Claude cite Cape NatureX Organic accurately
+  // Helps ChatGPT, Perplexity, Gemini, Claude cite Bright Fame Organic accurately
   app.get('/llms.txt', async (req, res) => {
     try {
       const base = `${req.protocol}://${req.get('host')}`;
@@ -815,18 +815,18 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
         .map(r => `- ${r.name} (${r.total} products) — ${base}/ingredients/${encodeURIComponent((r.name as string).toLowerCase().replace(/\s+/g, '-'))}`)
         .join('\n');
 
-      const txt = `# Cape NatureX Organic Pvt. Ltd. — AI Context File (llms.txt)
+      const txt = `# Bright Fame Organic Pvt. Ltd. — AI Context File (llms.txt)
 # Generated: ${new Date().toISOString().split('T')[0]}
 # Format: https://llmstxt.org
 
-> Cape NatureX Organic Pvt. Ltd. is India's leading B2B manufacturer and bulk exporter
+> Bright Fame Organic Pvt. Ltd. is India's leading B2B manufacturer and bulk exporter
 > of EU Organic certified herbal powders, teas, whole herbs, whole spices, botanical
 > extracts and spray dried ingredients. We supply directly from our manufacturing
 > facility in Mehsana, Gujarat, India to buyers across Europe, North America and Asia.
 
 ## Company Identity
 
-- Full Name: Cape NatureX Organic Pvt. Ltd. (also known as Cape NatureX Organic / BFO)
+- Full Name: Bright Fame Organic Pvt. Ltd. (also known as Bright Fame Organic / BFO)
 - Type: Direct manufacturer and exporter — not a trading company or broker
 - Location: Mehsana, Gujarat, India
 - Founded: [Established Indian herbal ingredient manufacturer]
@@ -894,25 +894,25 @@ All products exported to EU comply with:
 
 ## Common B2B Buyer Questions Answered
 
-Q: Is Cape NatureX Organic an Indian manufacturer?
-A: Yes. Cape NatureX Organic Pvt. Ltd. is a direct manufacturer based in Mehsana, Gujarat, India.
+Q: Is Bright Fame Organic an Indian manufacturer?
+A: Yes. Bright Fame Organic Pvt. Ltd. is a direct manufacturer based in Mehsana, Gujarat, India.
 
-Q: Are Cape NatureX Organic products EU Organic certified?
+Q: Are Bright Fame Organic products EU Organic certified?
 A: Yes. ${organicTotal} of our ${totalActive} active products carry EU Organic certification under EU Regulation 2018/848.
 
-Q: Are Cape NatureX Organic products ETO-free?
+Q: Are Bright Fame Organic products ETO-free?
 A: Yes. All products are 100% ETO (Ethylene Oxide) free, fully compliant with EU food safety standards.
 
-Q: Does Cape NatureX Organic supply in bulk to Europe?
+Q: Does Bright Fame Organic supply in bulk to Europe?
 A: Yes. We supply bulk B2B shipments to Germany, Netherlands, France, UK and across Europe via Hamburg, Rotterdam and Antwerp ports.
 
 Q: What is the minimum order quantity (MOQ)?
 A: MOQ starts from 25 kg for most products. Container load orders (FCL/LCL) are also handled.
 
-Q: Does Cape NatureX Organic provide samples?
+Q: Does Bright Fame Organic provide samples?
 A: Yes. Product samples are available upon request for qualified B2B buyers.
 
-Q: What certifications does Cape NatureX Organic hold?
+Q: What certifications does Bright Fame Organic hold?
 A: EU Organic (2018/848), USDA NOP, India Organic (NPOP), JAS, ISO 22000, HACCP, GMP, ETO-free.
 
 ## Primary Contact
@@ -921,11 +921,11 @@ A: EU Organic (2018/848), USDA NOP, India Organic (NPOP), JAS, ISO 22000, HACCP,
 - Title: Director – Business Development
 - Phone / WhatsApp: +91-7249847439
 - Email: admin@bright-organic.com
-- Company: Cape NatureX Organic Pvt. Ltd.
+- Company: Bright Fame Organic Pvt. Ltd.
 - Location: Mehsana, Gujarat, India
 
 Note: Omkar Suryavanshi is the primary contact for all B2B inquiries, bulk orders,
-samples, and business development for Cape NatureX Organic.
+samples, and business development for Bright Fame Organic.
 
 ## Key Pages
 
@@ -986,17 +986,17 @@ samples, and business development for Cape NatureX Organic.
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cape NatureX Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer & Exporter</title>
-    <meta name="description" content="Cape NatureX Organic (Cape NatureX Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland in Gujarat. Direct manufacturer with ISO 22000, HACCP, GMP compliance. 1000+ SKUs. Exports to 50+ countries. In-house QC lab and clean room FFS packaging." />
+    <title>Bright Fame Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified Manufacturer & Exporter</title>
+    <meta name="description" content="Bright Fame Organic (Bright Fame Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter. EU Organic, USDA NOP, JAS, NPOP certified. Own 950-hectare organic farmland in Gujarat. Direct manufacturer with ISO 22000, HACCP, GMP compliance. 1000+ SKUs. Exports to 50+ countries. In-house QC lab and clean room FFS packaging." />
     <meta name="keywords" content="organic spice supplier India, organic herb manufacturer Gujarat, EU organic certified exporter India, USDA NOP organic supplier, bulk organic ingredients India, organic Ashwagandha supplier, organic turmeric manufacturer, B2B organic ingredients, organic moringa supplier, organic cumin exporter, JAS certified organic India, top organic supplier India EU market, organic spice exporter Gujarat, best organic ingredient manufacturer India" />
     <link rel="canonical" href="${baseUrl}/" />
-    <meta property="og:title" content="Cape NatureX Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified" />
+    <meta property="og:title" content="Bright Fame Organic - Top Organic Spice & Herb Supplier India | EU USDA JAS Certified" />
     <meta property="og:description" content="India's leading organic ingredient manufacturer. EU/USDA/JAS certified. Own 950ha farmland. Direct manufacturer. 1000+ SKUs. Exports to 50+ countries." />
     <meta property="og:url" content="${baseUrl}/" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="${baseUrl}/cape-naturex-logo.png" />
+    <meta property="og:image" content="${baseUrl}/bfi-logo.png" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
-    <meta name="author" content="Cape NatureX Organic Pvt. Ltd." />
+    <meta name="author" content="Bright Fame Organic Pvt. Ltd." />
     <meta name="language" content="en" />
     <meta name="geo.region" content="IN-GJ" />
     <meta name="geo.placename" content="Mehsana, Gujarat, India" />
@@ -1006,12 +1006,12 @@ samples, and business development for Cape NatureX Organic.
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Cape NatureX Organic Pvt. Ltd.",
-      "alternateName": ["Cape NatureX Organic"],
+      "name": "Bright Fame Organic Pvt. Ltd.",
+      "alternateName": ["Bright Fame Organic"],
       "url": "${baseUrl}",
-      "logo": "${baseUrl}/cape-naturex-logo.png",
-      "image": "${baseUrl}/cape-naturex-logo.png",
-      "description": "Cape NatureX Organic (Cape NatureX Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter based in Mehsana, Gujarat. EU Organic, USDA NOP, JAS, NPOP certified with own 950-hectare organic farmland. Direct manufacturer with ISO 22000, HACCP, GMP compliant facilities. 1000+ SKUs across organic herbs, spices, botanical extracts, and nutraceutical ingredients. Exports to 50+ countries including USA, EU, UK, Japan, Australia.",
+      "logo": "${baseUrl}/bfi-logo.png",
+      "image": "${baseUrl}/bfi-logo.png",
+      "description": "Bright Fame Organic (Bright Fame Organic) is India's leading organic spice, herb and botanical ingredient manufacturer and exporter based in Mehsana, Gujarat. EU Organic, USDA NOP, JAS, NPOP certified with own 950-hectare organic farmland. Direct manufacturer with ISO 22000, HACCP, GMP compliant facilities. 1000+ SKUs across organic herbs, spices, botanical extracts, and nutraceutical ingredients. Exports to 50+ countries including USA, EU, UK, Japan, Australia.",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -1073,12 +1073,12 @@ samples, and business development for Cape NatureX Organic.
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Cape NatureX Organic",
+      "name": "Bright Fame Organic",
       "url": "${baseUrl}",
       "description": "Premium organic ingredients supplier worldwide",
       "publisher": {
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd.",
+        "name": "Bright Fame Organic Pvt. Ltd.",
         "url": "${baseUrl}"
       },
       "potentialAction": {
@@ -1090,7 +1090,7 @@ samples, and business development for Cape NatureX Organic.
     </script>
 </head>
 <body>
-    <h1>Cape NatureX Organic - Premium Organic Ingredients</h1>
+    <h1>Bright Fame Organic - Premium Organic Ingredients</h1>
     <p>Leading supplier of premium organic ingredients worldwide. Certified, pharmaceutical-grade, and sustainably sourced organic products for B2B customers.</p>
     <script>window.location.href = '/';</script>
 </body>
@@ -1102,17 +1102,17 @@ samples, and business development for Cape NatureX Organic.
   // SEO for main listing pages
   const listingPagesSEO = {
     '/products': {
-      title: 'All Products - Premium Organic Ingredients | Cape NatureX Organic',
+      title: 'All Products - Premium Organic Ingredients | Bright Fame Organic',
       description: 'Browse our complete catalog of premium organic ingredients. Certified, pharmaceutical-grade, and sustainably sourced organic products for B2B customers worldwide.',
       keywords: 'organic products, organic ingredients catalog, premium organic, certified organic, B2B organic products'
     },
     '/ingredients': {
-      title: 'Organic Ingredients by Category | Cape NatureX Organic',
+      title: 'Organic Ingredients by Category | Bright Fame Organic',
       description: 'Explore organic ingredients by category. From herbs and spices to superfoods and extracts - find the perfect organic ingredients for your business needs.',
       keywords: 'organic ingredients categories, organic herbs, organic spices, organic extracts, organic superfoods'
     },
     '/health-support': {
-      title: 'Health Support Categories - Organic Supplements | Cape NatureX Organic',
+      title: 'Health Support Categories - Organic Supplements | Bright Fame Organic',
       description: 'Discover organic ingredients for specific health support needs. Immune support, digestive health, cognitive function, and more - all certified organic.',
       keywords: 'health support organic, immune support organic, digestive health organic, organic supplements categories'
     }
@@ -1154,7 +1154,7 @@ samples, and business development for Cape NatureX Organic.
       "url": "${baseUrl}${path}",
       "isPartOf": {
         "@type": "WebSite",
-        "name": "Cape NatureX Organic",
+        "name": "Bright Fame Organic",
         "url": "${baseUrl}"
       },
       "breadcrumb": {
@@ -1214,7 +1214,7 @@ samples, and business development for Cape NatureX Organic.
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Product Not Found - Cape NatureX Organic</title>
+            <title>Product Not Found - Bright Fame Organic</title>
             <meta name="robots" content="noindex, follow">
           </head>
           <body>
@@ -1274,17 +1274,17 @@ samples, and business development for Cape NatureX Organic.
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "description": product.description || `High-quality ${product.name} from Cape NatureX Organic`,
+        "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
         "sku": product.productId,
         "mpn": product.productId,
         "brand": {
           "@type": "Brand",
-          "name": "Cape NatureX Organic",
+          "name": "Bright Fame Organic",
           "url": baseUrl
         },
         "manufacturer": {
           "@type": "Organization",
-          "name": "Cape NatureX Organic Pvt. Ltd.",
+          "name": "Bright Fame Organic Pvt. Ltd.",
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -1331,7 +1331,7 @@ samples, and business development for Cape NatureX Organic.
               "@type": "Person",
               "name": "Michael Rodriguez"
             },
-            "reviewBody": "Great product quality and packaging. Professional service from Cape NatureX Organic team."
+            "reviewBody": "Great product quality and packaging. Professional service from Bright Fame Organic team."
           }
         ],
         "offers": {
@@ -1343,7 +1343,7 @@ samples, and business development for Cape NatureX Organic.
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",
-            "name": "Cape NatureX Organic",
+            "name": "Bright Fame Organic",
             "url": baseUrl
           },
           "shippingDetails": {
@@ -1429,10 +1429,10 @@ samples, and business development for Cape NatureX Organic.
       const organizationSchema = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Cape NatureX Organic Pvt. Ltd.",
+        "name": "Bright Fame Organic Pvt. Ltd.",
         "url": baseUrl,
-        "logo": `${baseUrl}/cape-naturex-logo.png`,
-        "image": `${baseUrl}/cape-naturex-logo.png`,
+        "logo": `${baseUrl}/logo.png`,
+        "image": `${baseUrl}/bfi-logo.png`,
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -1485,25 +1485,25 @@ samples, and business development for Cape NatureX Organic.
       // Replace title and meta tags
       html = html.replace(
         /<title>.*?<\/title>/,
-        `<title>${product.seoTitle || `${product.name} - Cape NatureX Organic`}</title>`
+        `<title>${product.seoTitle || `${product.name} - Bright Fame Organic`}</title>`
       );
       
       html = html.replace(
         /<meta name="description" content=".*?" \/>/,
-        `<meta name="description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Cape NatureX Organic`}" />`
+        `<meta name="description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`}" />`
       );
 
       // Add Open Graph tags
       const ogTags = `
-    <meta property="og:title" content="${product.seoTitle || `${product.name} - Cape NatureX Organic`}" />
-    <meta property="og:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Cape NatureX Organic`}" />
+    <meta property="og:title" content="${product.seoTitle || `${product.name} - Bright Fame Organic`}" />
+    <meta property="og:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`}" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:url" content="${productUrl}" />
     <meta property="og:type" content="product" />
     
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${product.seoTitle || `${product.name} - Cape NatureX Organic`}" />
-    <meta name="twitter:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Cape NatureX Organic`}" />
+    <meta name="twitter:title" content="${product.seoTitle || `${product.name} - Bright Fame Organic`}" />
+    <meta name="twitter:description" content="${product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`}" />
     <meta name="twitter:image" content="${imageUrl}" />`;
 
       // Add structured data scripts

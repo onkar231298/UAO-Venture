@@ -78,7 +78,7 @@ export default function VideoParallaxHero() {
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
                 <span className="block">{activeSlide.title}</span>
                 <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium mt-2 sm:mt-4 text-green-400">
-                  Cape NatureX Organics
+                  Bright Fame Organics
                 </span>
               </h1>
               
