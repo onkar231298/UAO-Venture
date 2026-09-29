@@ -33,13 +33,11 @@ export class S3NotFoundError extends Error {
 
 // AWS S3 Service for Bright Fame Organic Platform
 export class AWSS3Service {
-  private bucketName: string;
-
-  constructor() {
+  private get bucketName(): string {
     if (!AWS_S3_BUCKET_NAME) {
       throw new Error('AWS_S3_BUCKET_NAME environment variable is required');
     }
-    this.bucketName = AWS_S3_BUCKET_NAME;
+    return AWS_S3_BUCKET_NAME;
   }
 
   // Generate presigned URL for uploading files
