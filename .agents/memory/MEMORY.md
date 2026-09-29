@@ -1,4 +1,3 @@
-- [Country cleanup](country-cleanup.md) — dev DB fully canonical; normalization centralized in shared/countries.ts on all write paths; PROD stays messy until owner runs the super-admin cleanup button post-republish.
 - [TipTap v3 setContent gotcha](tiptap-setcontent-v3.md) — v3 defaults emitUpdate:true; state→editor sync must pass {emitUpdate:false} or full-document email HTML gets mangled before send.
 - [AI email prompt completeness](ai-email-prompt-completeness.md) — gpt-4o drops trailing brief facts; the sentence-by-sentence self-check line in the prompt is load-bearing, don't trim it.
 - [SendGrid click tracking SSL](sendgrid-click-tracking-ssl.md) — click tracking disabled per-message: branded link subdomain has no SSL cert, https clicks get browser-blocked; don't re-enable without branded-link SSL.
