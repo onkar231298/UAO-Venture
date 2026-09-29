@@ -46,6 +46,7 @@ import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimelin
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
+import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { FollowUpScheduler } from "@/components/crm/FollowUpScheduler";
 import { CompleteFollowUpDialog } from "@/components/crm/CompleteFollowUpDialog";
@@ -1158,19 +1159,12 @@ export default function MyCompanies() {
     enabled: showConvertDialog,
   });
 
-  // Fetch contacts for selected company to get primary contact details
-  interface CompanyContact {
-    id: number;
+  // Fetch every contact for the selected company, not only the company-level primary fields.
+  interface CompanyContact extends ContactSummaryRow {
     companyId: number;
-    contactName: string;
-    designation?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    isPrimary: boolean;
-    isActive: boolean;
   }
   
-  const { data: selectedCompanyContacts } = useQuery<CompanyContact[]>({
+  const { data: selectedCompanyContacts, isLoading: contactsLoading, isError: contactsError } = useQuery<CompanyContact[]>({
     queryKey: ['/api/crm/companies', selectedCompany?.id, 'contacts'],
     queryFn: async () => {
       const response = await fetch(`/api/crm/companies/${selectedCompany?.id}/contacts`, {
@@ -1196,7 +1190,9 @@ export default function MyCompanies() {
   ).length;
 
   // Get the primary contact from the contacts list
-  const primaryContact = selectedCompanyContacts?.find(c => c.isPrimary) || selectedCompanyContacts?.[0];
+  const primaryContact = selectedCompanyContacts?.find(c => c.isPrimary)
+    || selectedCompanyContacts?.find(c => Boolean(c.email && selectedCompany?.primaryEmail &&
+      c.email.trim().toLowerCase() === selectedCompany.primaryEmail.trim().toLowerCase()));
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -2218,6 +2214,13 @@ export default function MyCompanies() {
                         </div>
                       </div>
                     </div>
+
+                    <CompanyContactSummary
+                      contacts={selectedCompanyContacts}
+                      primaryEmail={selectedCompany.primaryEmail}
+                      isLoading={contactsLoading}
+                      isError={contactsError}
+                    />
 
                     {/* Dialer Integration */}
                     {selectedCompany.primaryPhone && (

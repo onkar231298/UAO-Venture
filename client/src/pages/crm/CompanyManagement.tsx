@@ -63,6 +63,7 @@ import { ClickToCall, SendSmsButton, WhatsAppButton, Dialer } from "@/components
 import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimeline";
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyContactsTab as SharedCompanyContactsTab } from "@/components/crm/CompanyContactsTab";
+import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
@@ -799,6 +800,22 @@ export default function CompanyManagement() {
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    data: selectedCompanyContacts,
+    isLoading: contactsLoading,
+    isError: contactsError,
+  } = useQuery<ContactSummaryRow[]>({
+    queryKey: ['/api/crm/companies', selectedCompany?.id, 'contacts'],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/companies/${selectedCompany!.id}/contacts`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load company contacts');
+      return response.json();
+    },
+    enabled: viewDetailsOpen && !!selectedCompany,
+  });
+  const primaryNamedContact = selectedCompanyContacts?.find((contact) =>
+    contact.isPrimary || Boolean(contact.email && selectedCompany?.primaryEmail &&
+      contact.email.trim().toLowerCase() === selectedCompany.primaryEmail.trim().toLowerCase()));
 
   const trackView = (entityType: string, entityId: number, entityName: string) => {
     fetch('/api/crm/track-view', {
@@ -2803,7 +2820,7 @@ export default function CompanyManagement() {
                   <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
                   <TabsTrigger value="contacts" data-testid="tab-contacts" className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    Contacts
+                    Contacts{selectedCompanyContacts ? ` (${selectedCompanyContacts.length})` : ""}
                   </TabsTrigger>
                   <TabsTrigger value="emails" data-testid="tab-emails" className="flex items-center gap-1">
                     <Mail className="h-3 w-3" />
@@ -2864,11 +2881,11 @@ export default function CompanyManagement() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-500">Contact Name</p>
-                          <p className="font-medium">N/A</p>
+                          <p className="font-medium">{primaryNamedContact?.contactName || "Not linked to a named contact"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Designation</p>
-                          <p className="font-medium">N/A</p>
+                          <p className="font-medium">{primaryNamedContact?.designation || "N/A"}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Email</p>
@@ -2909,6 +2926,13 @@ export default function CompanyManagement() {
                           </div>
                         </div>
                       </div>
+
+                      <CompanyContactSummary
+                        contacts={selectedCompanyContacts}
+                        primaryEmail={selectedCompany.primaryEmail}
+                        isLoading={contactsLoading}
+                        isError={contactsError}
+                      />
 
                       {/* Dialer Integration */}
                       {selectedCompany.primaryPhone && (

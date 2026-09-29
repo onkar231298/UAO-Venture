@@ -45,6 +45,7 @@ import {
 import { Users, Phone, Mail, RefreshCw, UserPlus, MoreVertical, Edit2, Pin, Trash2 } from "lucide-react";
 import { WhatsAppButton } from "@/components/crm/Dialer";
 import { AiSalesEmailDialog } from "./AiSalesEmailDialog";
+import { isCompanyPrimaryContact } from "./CompanyContactSummary";
 
 interface CompanyContact {
   id: number;
@@ -289,15 +290,15 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
             
             {hasContacts ? (
               <>
-                <h4 className="font-medium text-sm text-muted-foreground pt-2">Department Contacts</h4>
+                <h4 className="font-medium text-sm text-muted-foreground pt-2">Saved contacts ({contacts!.length})</h4>
                 {contacts!.map((contact) => (
                   <div key={contact.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50">
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold">{contact.contactName}</p>
-                        {contact.isPrimary && (
-                          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Primary</Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                          {isCompanyPrimaryContact(contact, companyDetails?.primaryEmail) ? "Primary" : "Additional"}
+                        </Badge>
                         {contact.designation && (
                           <Badge variant="outline" className="text-xs">{contact.designation}</Badge>
                         )}
