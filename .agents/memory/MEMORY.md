@@ -24,3 +24,4 @@
 - [Company snapshot reconciliation](company-snapshot-reconciliation.md) — company/contact exports may rekey IDs; compare business identities and parent-linked contacts before import, not counts or raw IDs.
 - [Copied-site tag reconciliation](copied-site-tag-reconciliation.md) — product tables can be empty while tags are seeded; match taxonomy by slug and name, never by numeric source ID.
 - [Private files and Vite](vite-private-files.md) — Express static restrictions do not block Vite /@fs access to workspace backups; gate private paths before Vite.
+- [CRM data reset intent](crm-data-reset-intent.md) — the owner intentionally emptied company/contact data; never restore old exports without a new explicit request.
