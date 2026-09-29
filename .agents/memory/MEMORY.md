@@ -22,3 +22,4 @@
 - [SEO strategy rollout safety](seo-strategy-rollout-safety.md) — geo keywords need relevant landing content; metadata rollouts preview first and only replace positively identified generated copy.
 - [Mailchimp send retry safety](mailchimp-send-retry-safety.md) — uncertain or externally prepared bulk sends must reconcile, never retry; keep hosted attachments live until non-delivery is confirmed.
 - [Shared Mailchimp routing](shared-mailchimp-routing.md) — owner approved shared sales From AND Reply-To; automatic staff access, no setup tab; other mail services stay separate.
+- [Company snapshot reconciliation](company-snapshot-reconciliation.md) — company/contact exports may rekey IDs; compare business identities and parent-linked contacts before import, not counts or raw IDs.
