@@ -1814,7 +1814,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(products)
       .where(
-        and(eq(products.slug, slug), eq(products.isActive, true))
+        and(eq(products.slug, slug), eq(products.isActive, true), eq(products.isVisible, true))
       );
     return product;
   }

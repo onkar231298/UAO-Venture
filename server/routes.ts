@@ -1245,6 +1245,21 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
 
+  async function requirePublishedProduct(req: any, res: any, next: any) {
+    const rawId = req.params.productId ?? req.params.id;
+    if (!/^\d+$/.test(rawId || "")) return res.status(404).json({ message: "Product not found" });
+    try {
+      const product = await storage.getProduct(Number(rawId));
+      if (!product?.isActive || !product.isVisible) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      next();
+    } catch (error) {
+      console.error("Error checking public product visibility:", error);
+      res.status(500).json({ message: "Failed to fetch product" });
+    }
+  }
+
   // Server-side SEO endpoint for structured data (used by React component)
   app.get('/api/products/:slug/seo', async (req, res) => {
     try {
@@ -1619,7 +1634,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Get single product by ID - MUST be after specific routes
-  app.get('/api/products/:id', async (req, res) => {
+  app.get('/api/products/:id', requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const product = await storage.getProduct(productId);
@@ -2194,7 +2209,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
 
   // Get product documents
-  app.get('/api/products/:id/documents', async (req, res) => {
+  app.get('/api/products/:id/documents', requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const documents = await storage.getProductDocuments(productId);
@@ -2206,7 +2221,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Get frequently bought together products
-  app.get('/api/products/:id/frequently-bought-together', async (req, res) => {
+  app.get('/api/products/:id/frequently-bought-together', requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const limit = parseInt(req.query.limit as string) || 8;
@@ -2219,7 +2234,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Get similar/related products
-  app.get('/api/products/:id/similar', async (req, res) => {
+  app.get('/api/products/:id/similar', requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const limit = parseInt(req.query.limit as string) || 8;
@@ -5344,7 +5359,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Product-Category relationship endpoints
   
   // Get product with all its categories
-  app.get('/api/products/:id/categories', async (req, res) => {
+  const getProductCategories = async (req: any, res: any) => {
     try {
       const productId = parseInt(req.params.id);
       const productWithCategories = await storage.getProductWithCategories(productId);
@@ -5358,7 +5373,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       console.error("Error fetching product categories:", error);
       res.status(500).json({ message: "Failed to fetch product categories" });
     }
-  });
+  };
+  app.get('/api/products/:id/categories', requirePublishedProduct, getProductCategories);
+  app.get('/api/admin/products/:id/category-details', isAuthenticated, isAdminOrWebsiteManager, getProductCategories);
 
   // Get products by category (using junction table)
   app.get('/api/categories/:id/products', async (req, res) => {
@@ -5681,7 +5698,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // SEO ENHANCEMENT ROUTES
 
   // Product FAQ routes
-  app.get('/api/products/:productId/faqs', async (req, res) => {
+  app.get('/api/products/:productId/faqs', requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
       const faqs = await storage.getProductFaqs(productId);

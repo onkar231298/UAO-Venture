@@ -356,6 +356,14 @@ export const products = pgTable("products", {
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description"),
   specificationSheet: text("specification_sheet"), // HTML content for specifications
+  // Retained source fields from the earlier Website Management database.
+  unit: varchar("unit", { length: 50 }),
+  businessLicenseDocument: text("business_license_document"),
+  certificateRegistrationDocument: text("certificate_registration_document"),
+  images: jsonb("images"),
+  kosherDocument: text("kosher_document"),
+  organicNopDocument: text("organic_nop_document"),
+  seoKeywords: text("seo_keywords"),
   
   // Product Classification
   botanicalName: varchar("botanical_name", { length: 255 }),
@@ -464,6 +472,9 @@ export const products = pgTable("products", {
   internalNotes: text("internal_notes"), // For internal use only
   createdBy: varchar("created_by").references(() => users.id),
   updatedBy: varchar("updated_by").references(() => users.id),
+  // Source IDs are kept without implying that an equal ID belongs to the same person here.
+  sourceCreatedBy: varchar("source_created_by"),
+  sourceUpdatedBy: varchar("source_updated_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

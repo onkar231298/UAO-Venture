@@ -40,8 +40,30 @@ app.use('/api/webhooks/mailchimp', express.raw({ type: '*/*', limit: '64kb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Serve attached assets
-app.use('/attached_assets', express.static('attached_assets'));
+// Vite's development /@fs route can bypass the attached-assets static mount.
+// Reject private backups and raw transfer files before requests reach Vite.
+app.use((req, res, next) => {
+  let requestedPath: string;
+  try {
+    requestedPath = decodeURIComponent(req.path).replace(/\\/g, '/');
+  } catch {
+    return res.sendStatus(400);
+  }
+  const isFileRoute = requestedPath.startsWith('/@fs/') || requestedPath.startsWith('/attached_assets/');
+  if (/(?:^|\/)\.local(?:\/|$)/i.test(requestedPath) ||
+      (isFileRoute && /\.(?:zip|tar|gz|csv|tsv|sql|dump)$/i.test(requestedPath))) {
+    return res.sendStatus(404);
+  }
+  next();
+});
+
+// Never publish raw transfer archives or database exports from the asset directory.
+app.use('/attached_assets', (req, res, next) => {
+  if (/\.(?:zip|tar|gz|csv|tsv|sql|dump)$/i.test(req.path)) {
+    return res.sendStatus(404);
+  }
+  next();
+}, express.static('attached_assets'));
 
 app.use((req, res, next) => {
   const start = Date.now();

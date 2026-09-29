@@ -188,7 +188,7 @@ export default function ComprehensiveProductForm({
     if (product && product.id) {
       const loadProductCategories = async () => {
         try {
-          const response = await fetch(`/api/products/${product.id}/categories`);
+          const response = await fetch(`/api/admin/products/${product.id}/category-details`);
           if (response.ok) {
             const productWithCategories = await response.json();
             if (productWithCategories.categories) {
