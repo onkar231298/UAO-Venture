@@ -59,28 +59,7 @@ export async function setupAuth(app: Express) {
     { usernameField: 'email' },
     async (email, password, done) => {
       try {
-        // Check for admin credentials
-        if (email === 'admin@bfiorganic.com' && password === 'Change%^&*()') {
-          const adminUser = await storage.getUser('admin_001');
-          if (adminUser) {
-            const userSession = {
-              claims: {
-                sub: adminUser.id,
-                email: adminUser.email,
-                first_name: adminUser.firstName,
-                last_name: adminUser.lastName,
-                role: adminUser.role,
-                exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
-              },
-              isLocal: true,
-              isAdmin: true,
-              isStaff: false
-            };
-            return done(null, userSession);
-          }
-        }
-
-        // Check for sales staff credentials (database-based with hashed passwords)
+        // Authenticate all staff, including super admins, against their hashed passwords.
         const staffUser = await storage.verifyStaffCredentials(email, password);
         if (staffUser) {
           const userSession = {
@@ -93,7 +72,7 @@ export async function setupAuth(app: Express) {
               exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
             },
             isLocal: true,
-            isAdmin: false,
+            isAdmin: staffUser.role === 'super_admin' || staffUser.role === 'admin',
             isStaff: true
           };
           return done(null, userSession);
