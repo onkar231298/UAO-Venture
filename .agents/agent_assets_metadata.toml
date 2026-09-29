@@ -14,3 +14,17 @@ mtime_ms = 1789720453663
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:23733768-f995-402d-a684-d6fc6e34c6bd/b1d27d85-1c9c-4218-bdab-30e649eec0a4/74fb503a-adfb-413a-a641-69b95ed918e7"
 storage_version_token = "1789720468575086"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "BrCd1gJO3NKE61-VBQ7DZ"
+uri = "file://exports/company-data-2026-09-29.zip"
+type = "unspecified"
+title = "Company data export (ZIP)"
+description = "Development database snapshot: 2,307 companies and 1,273 contacts. Includes CSV, JSON, and a table-count README."
+logical_id = "abe4f89c-286e-4113-8835-96817c578369"
+content_hash = "sha256:b722c32e87ae5c86dc6058cac9f2555872e29e55478493335edb17b7bb07987c"
+size = 592819
+mtime_ms = 1790678120596
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:d6591722-9df7-4c90-864a-52b0edb02634/abe4f89c-286e-4113-8835-96817c578369/ac9a0f6f-2b4c-4113-acd3-2a5dc2a7aa2e"
+storage_version_token = "1790678143596568"
+content_type = "application/octet-stream"
