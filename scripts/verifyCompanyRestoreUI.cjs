@@ -12,7 +12,9 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const id = 'restore_ui_check_' + crypto.randomBytes(7).toString('hex');
 const email = `${id}@example.invalid`;
 const password = crypto.randomBytes(24).toString('hex');
-const writesMode = process.argv.includes('--writes');
+const adminWritesMode = process.argv.includes('--admin-writes');
+const writesMode = process.argv.includes('--writes') || adminWritesMode;
+const appOrigin = process.env.TEST_APP_ORIGIN || 'http://127.0.0.1:5000';
 let temporaryCompanyId;
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'restore-ui-'));
 const db = new Client({ connectionString: process.env.DATABASE_URL });
@@ -51,7 +53,7 @@ async function main() {
     await db.query(
       `INSERT INTO users (id, email, password, role, user_type, account_status, is_active, first_name, last_name)
        VALUES ($1, $2, $3, $4, 'staff', 'active', true, 'Restore', 'Verification')`,
-      [id, email, bcrypt.hashSync(password, 10), writesMode ? 'sales_executive' : 'super_admin'],
+      [id, email, bcrypt.hashSync(password, 10), writesMode && !adminWritesMode ? 'sales_executive' : 'super_admin'],
     );
     browser = spawn('chromium', [
       '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run',
@@ -74,14 +76,14 @@ async function main() {
       else item.resolve(message);
     });
     await command('Page.enable');
-    await command('Page.navigate', { url: 'http://127.0.0.1:5000/login' });
+    await command('Page.navigate', { url: `${appOrigin}/login` });
     await until("document.readyState === 'complete'", 'login page');
     const login = await evaluate(`fetch('/admin/login', {
       method: 'POST', credentials: 'include',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({email: ${JSON.stringify(email)}, password: ${JSON.stringify(password)}})
     }).then(r => ({ok:r.ok, redirected:r.redirected, url:r.url}))`);
-    if (!login.ok || !login.url.endsWith(writesMode ? '/sales' : '/admin')) throw new Error('Temporary staff login failed');
+    if (!login.ok || !login.url.endsWith(writesMode && !adminWritesMode ? '/sales' : '/admin')) throw new Error('Temporary staff login failed');
     if (writesMode) {
       await evaluate("import('/src/lib/queryClient.ts').then(module => { window.testApiRequest=module.apiRequest; return true; })");
       const seed = {
@@ -92,6 +94,32 @@ async function main() {
       const created = await evaluate(`window.testApiRequest('/api/crm/companies', {method:'POST',body:JSON.stringify(${JSON.stringify(seed)})}).then(r=>r.json())`);
       temporaryCompanyId = created.id;
       if (!temporaryCompanyId) throw new Error('Create company did not return an ID');
+      if (adminWritesMode) {
+        await command('Page.navigate', { url: `${appOrigin}/admin/dashboard/crm/companies` });
+        await until("Boolean(document.querySelector('[placeholder^=\"Search companies\"]'))", 'admin company search');
+        await evaluate(`(() => {const input=document.querySelector('[placeholder^="Search companies"]');
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(seed.companyName)});
+          input.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
+        await until(`Boolean(document.querySelector('[data-testid="button-view-company-${created.id}"]'))`, 'admin company row');
+        await evaluate(`document.querySelector('[data-testid="button-view-company-${created.id}"]').click()`);
+        await until("Boolean(document.querySelector('[data-testid=\"button-edit-company\"]'))", 'admin edit control');
+        await evaluate("document.querySelector('[data-testid=\"button-edit-company\"]').click()");
+        await until("Boolean(document.querySelector('[data-testid=\"input-edit-company-name\"]'))", 'admin edit form');
+        await evaluate(`(() => {const set=(selector,value)=>{const input=document.querySelector(selector);
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value);
+          input.dispatchEvent(new Event('input',{bubbles:true}));};
+          set('[data-testid="input-edit-company-name"]',${JSON.stringify(seed.companyName + ' edited')});
+          set('[data-testid="input-edit-email"]','verification@example.invalid');
+          set('[data-testid="input-edit-phone"]','9876543210');
+          document.querySelector('[data-testid="button-submit-edit"]').click();return true;})()`);
+        await until("!document.querySelector('[data-testid=\"input-edit-company-name\"]')", 'admin company save');
+        const saved = (await db.query('SELECT company_name, primary_email, primary_phone, gst_number FROM companies WHERE id=$1',[created.id])).rows[0];
+        if (saved.company_name !== seed.companyName + ' edited' || saved.primary_email !== 'verification@example.invalid' ||
+            saved.primary_phone !== '9876543210' || saved.gst_number !== seed.gstNumber) throw new Error('Admin company save persistence failed');
+        console.log(JSON.stringify({companyEditAdminUI:'passed',emailAndPhonePersisted:true,existingCompanyFieldsPreserved:true}));
+        await evaluate("fetch('/api/logout',{credentials:'include'}).then(r=>r.status)");
+        return;
+      }
       for (const legacy of [true, false]) {
         const fields = { contactName: legacy ? 'Legacy contact' : 'Options contact', email: '', isPrimary: false, phone: '1234567890', whatsapp: '1234567891' };
         const expression = legacy
@@ -105,7 +133,7 @@ async function main() {
           : `window.testApiRequest('/api/crm/contacts/${contact.id}',{method:'PATCH',body:JSON.stringify(${JSON.stringify(patch)})})`
         }.then(r=>r.json())`);
       }
-      await command('Page.navigate', { url: 'http://127.0.0.1:5000/sales/my-companies' });
+      await command('Page.navigate', { url: `${appOrigin}/sales/my-companies` });
       await until(`Boolean(document.querySelector('[data-testid="row-company-${created.id}"]'))`, 'Sales company row');
       await evaluate(`document.querySelector('[data-testid="row-company-${created.id}"]').click()`);
       await until("Boolean([...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit Company'))", 'Sales company details');
@@ -145,7 +173,7 @@ async function main() {
       await evaluate("fetch('/api/logout',{credentials:'include'}).then(r=>r.status)");
       return;
     }
-    await command('Page.navigate', { url: 'http://127.0.0.1:5000/admin/dashboard/crm/companies' });
+    await command('Page.navigate', { url: `${appOrigin}/admin/dashboard/crm/companies` });
     await sleep(3500);
     const state = await evaluate("({path:location.pathname,buttons:document.querySelectorAll('[data-testid^=\"button-view-company-\"]').length,hasSearch:!!document.querySelector('[placeholder^=\"Search companies\"]'),hasLogin:!!document.querySelector('input[type=\"password\"]')})");
     console.log('Browser company page state:', JSON.stringify(state));
