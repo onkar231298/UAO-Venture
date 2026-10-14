@@ -1041,12 +1041,14 @@ export default function CompanyManagement() {
     mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companySchema> }) => {
       // Exclude departmentPhones and additionalEmails from the payload to prevent data loss
       const { departmentPhones, additionalEmails, ...updateData } = data;
-      return await apiRequest(`/api/crm/companies/${companyId}`, {
+      const response = await apiRequest(`/api/crm/companies/${companyId}`, {
         method: "PATCH",
         body: JSON.stringify(updateData),
       });
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (savedCompany: Company) => {
+      setSelectedCompany(current => current?.id === savedCompany.id ? savedCompany : current);
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
       setEditDialogOpen(false);
       setCompanyToEdit(null);

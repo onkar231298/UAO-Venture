@@ -147,8 +147,8 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
       setAddContactDialogOpen(false);
       addContactForm.reset();
     },
-    onError: () => {
-      toast({ title: "Failed to add contact", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to add contact", description: error.message, variant: "destructive" });
     },
   });
 
@@ -166,8 +166,8 @@ export function CompanyContactsTab({ companyId, companyDetails }: CompanyContact
       setEditContactDialogOpen(false);
       setContactToEdit(null);
     },
-    onError: () => {
-      toast({ title: "Failed to update contact", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to update contact", description: error.message, variant: "destructive" });
     },
   });
 

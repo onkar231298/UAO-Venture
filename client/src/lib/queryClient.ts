@@ -7,15 +7,30 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+type ApiRequestOptions = {
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
+};
+
+export function apiRequest(url: string, options?: ApiRequestOptions): Promise<Response>;
+export function apiRequest(method: string, url: string, data?: unknown): Promise<Response>;
 export async function apiRequest(
   url: string,
-  options?: {
-    method?: string;
-    body?: string;
-    headers?: Record<string, string>;
-  }
+  optionsOrUrl?: ApiRequestOptions | string,
+  data?: unknown,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Older CRM forms use (method, url, data); newer forms use (url, options).
+  // Explicitly support both so a method can never become the fetch URL.
+  const methodFirst = typeof optionsOrUrl === "string";
+  const requestUrl = methodFirst ? optionsOrUrl : url;
+  const options: ApiRequestOptions | undefined = methodFirst
+    ? { method: url, body: data === undefined ? undefined : JSON.stringify(data) }
+    : optionsOrUrl;
+  if (methodFirst && !/^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/i.test(url)) {
+    throw new Error("Invalid API request method");
+  }
+  const res = await fetch(requestUrl, {
     method: options?.method || "GET",
     headers: {
       "Content-Type": "application/json",

@@ -13,3 +13,9 @@ Screenshot tooling can't log in, so authenticated routes need a curl session:
 - Node helper scripts must live in the workspace root, not /tmp — ESM resolves packages relative to the script file.
 
 **Why:** without this recipe the only feasible check on guarded endpoints is an unauthenticated 401, which proves nothing about the real flow. Login and background polling can create extra records even when the test itself is read-only.
+
+For authenticated browser tests, select Radix tabs with real pointer events after a nested dialog has finished closing and restoring focus. An immediate DOM `.click()` can leave the prior tab active and falsely report that its content is missing.
+
+**Why:** contact-tab tests stalled despite successful company saves; allowing focus restoration and using pointer input made the actual Sales form test pass.
+
+**How to apply:** When a UI test cannot find a tab's content, check the selected tab and focus state before treating it as an application failure.

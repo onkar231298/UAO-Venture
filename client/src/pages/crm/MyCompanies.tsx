@@ -886,6 +886,12 @@ interface Company {
   companyName: string;
   primaryEmail: string | null;
   primaryPhone: string | null;
+  gstNumber?: string | null;
+  industryType?: string | null;
+  companySize?: string | null;
+  addressStreet?: string | null;
+  addressState?: string | null;
+  addressZip?: string | null;
   addressCity: string | null;
   addressCountry: string | null;
   origin: string | null;
@@ -1466,12 +1472,14 @@ export default function MyCompanies() {
   // Edit company mutation
   const editCompanyMutation = useMutation({
     mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companyEditSchema> }) => {
-      return apiRequest(`/api/crm/companies/${companyId}`, {
+      const response = await apiRequest(`/api/crm/companies/${companyId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (savedCompany: Company) => {
+      setSelectedCompany(current => current?.id === savedCompany.id ? savedCompany : current);
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
       setShowEditDialog(false);
       setCompanyToEdit(null);
@@ -1497,15 +1505,15 @@ export default function MyCompanies() {
       companyName: company.companyName || "",
       primaryEmail: company.primaryEmail || "",
       primaryPhone: company.primaryPhone || "",
-      gstNumber: "",
-      industryType: "",
-      companySize: "",
+      gstNumber: company.gstNumber || "",
+      industryType: company.industryType || "",
+      companySize: company.companySize || "",
       website: company.website || "",
-      addressStreet: "",
+      addressStreet: company.addressStreet || "",
       addressCity: company.addressCity || "",
-      addressState: "",
+      addressState: company.addressState || "",
       addressCountry: company.addressCountry || "",
-      addressZip: "",
+      addressZip: company.addressZip || "",
     });
     setShowEditDialog(true);
   };

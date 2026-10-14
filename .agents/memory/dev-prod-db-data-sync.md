@@ -5,10 +5,18 @@ description: Why workspace data changes don't appear on the published site, and 
 
 # Dev vs prod database — data does NOT auto-sync
 
+## Owner's publication requirement
+
+The owner wants the development and published databases to be the same, and all company information to be present on the live site whenever they publish. Include the separate company-contact rows when checking company-data completeness.
+
+**Why:** The user explicitly asked to keep this requirement in mind.
+
+**How to apply:** Before publication, establish how the company and contact records will reach the live database and verify their completeness. Do not describe schema publishing as record synchronization, or silently replace live-only changes.
+
 On this project (Replit-managed Postgres), the **development** database and the
 **production** (published/live) database are SEPARATE databases with independently
-diverging data. Confirmed concretely: at one point dev had ~99 companies assigned
-while prod still had ~1,793 assigned, same total row count.
+diverging data. Check current deployment status rather than assuming a production
+database exists.
 
 **Why this matters:** Any SQL/data change the agent makes (e.g. via `executeSql`
 in the code-execution sandbox) hits the DEVELOPMENT database only. The live site

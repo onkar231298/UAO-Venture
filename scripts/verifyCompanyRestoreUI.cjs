@@ -12,6 +12,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const id = 'restore_ui_check_' + crypto.randomBytes(7).toString('hex');
 const email = `${id}@example.invalid`;
 const password = crypto.randomBytes(24).toString('hex');
+const writesMode = process.argv.includes('--writes');
+let temporaryCompanyId;
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'restore-ui-'));
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 let browser, socket, counter = 0;
@@ -48,8 +50,8 @@ async function main() {
   try {
     await db.query(
       `INSERT INTO users (id, email, password, role, user_type, account_status, is_active, first_name, last_name)
-       VALUES ($1, $2, $3, 'super_admin', 'staff', 'active', true, 'Restore', 'Verification')`,
-      [id, email, bcrypt.hashSync(password, 10)],
+       VALUES ($1, $2, $3, $4, 'staff', 'active', true, 'Restore', 'Verification')`,
+      [id, email, bcrypt.hashSync(password, 10), writesMode ? 'sales_executive' : 'super_admin'],
     );
     browser = spawn('chromium', [
       '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run',
@@ -79,7 +81,70 @@ async function main() {
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({email: ${JSON.stringify(email)}, password: ${JSON.stringify(password)}})
     }).then(r => ({ok:r.ok, redirected:r.redirected, url:r.url}))`);
-    if (!login.ok || !login.url.endsWith('/admin')) throw new Error('Temporary staff login failed');
+    if (!login.ok || !login.url.endsWith(writesMode ? '/sales' : '/admin')) throw new Error('Temporary staff login failed');
+    if (writesMode) {
+      await evaluate("import('/src/lib/queryClient.ts').then(module => { window.testApiRequest=module.apiRequest; return true; })");
+      const seed = {
+        companyName: `Company write verification ${id}`, assignedTo: id,
+        gstNumber: `TEST-${id}`, industryType: 'food', companySize: 'small',
+        addressStreet: 'Test Street', addressState: 'Test State', addressZip: '12345',
+      };
+      const created = await evaluate(`window.testApiRequest('/api/crm/companies', {method:'POST',body:JSON.stringify(${JSON.stringify(seed)})}).then(r=>r.json())`);
+      temporaryCompanyId = created.id;
+      if (!temporaryCompanyId) throw new Error('Create company did not return an ID');
+      for (const legacy of [true, false]) {
+        const fields = { contactName: legacy ? 'Legacy contact' : 'Options contact', email: '', isPrimary: false, phone: '1234567890', whatsapp: '1234567891' };
+        const expression = legacy
+          ? `window.testApiRequest('POST','/api/crm/companies/${created.id}/contacts',${JSON.stringify(fields)})`
+          : `window.testApiRequest('/api/crm/companies/${created.id}/contacts',{method:'POST',body:JSON.stringify(${JSON.stringify(fields)})})`;
+        const contact = await evaluate(`${expression}.then(r=>r.json())`);
+        if (contact.companyId !== created.id) throw new Error('Contact was not saved to the correct company');
+        const patch = { designation: 'Edited successfully' };
+        await evaluate(`${legacy
+          ? `window.testApiRequest('PATCH','/api/crm/contacts/${contact.id}',${JSON.stringify(patch)})`
+          : `window.testApiRequest('/api/crm/contacts/${contact.id}',{method:'PATCH',body:JSON.stringify(${JSON.stringify(patch)})})`
+        }.then(r=>r.json())`);
+      }
+      await command('Page.navigate', { url: 'http://127.0.0.1:5000/sales/my-companies' });
+      await until(`Boolean(document.querySelector('[data-testid="row-company-${created.id}"]'))`, 'Sales company row');
+      await evaluate(`document.querySelector('[data-testid="row-company-${created.id}"]').click()`);
+      await until("Boolean([...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit Company'))", 'Sales company details');
+      await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit Company').click()");
+      await until("Boolean(document.querySelector('input[name=\"companyName\"]'))", 'Sales edit form');
+      const before = await evaluate("Object.fromEntries(['gstNumber','industryType','companySize','addressStreet','addressState','addressZip'].map(name=>[name,document.querySelector(`[name=\"${name}\"]`)?.value]))");
+      for (const key of Object.keys(before)) {
+        if (before[key] !== seed[key]) throw new Error(`Sales edit form lost existing ${key}`);
+      }
+      await evaluate(`(() => {const input=document.querySelector('input[name="companyName"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Edited company verification');
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+        input.closest('form').requestSubmit(); return true;})()`);
+      await until("!document.querySelector('input[name=\"companyName\"]')", 'Sales save to complete');
+      const saved = (await db.query('SELECT company_name,gst_number,address_street,address_state,address_zip FROM companies WHERE id=$1', [created.id])).rows[0];
+      if (saved.company_name !== 'Edited company verification' || saved.gst_number !== seed.gstNumber ||
+          saved.address_street !== seed.addressStreet || saved.address_state !== seed.addressState || saved.address_zip !== seed.addressZip) {
+        throw new Error('Saved Sales company does not match edit form');
+      }
+      // Let the edit dialog finish restoring focus before selecting another tab.
+      await sleep(450);
+      const contactTabPoint = await evaluate("(() => {const tab=[...document.querySelectorAll('[role=\"tab\"]')].find(b=>b.textContent.trim()==='Contacts');tab.scrollIntoView({block:'center'});const r=tab.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()");
+      await command('Input.dispatchMouseEvent', {type:'mousePressed',button:'left',clickCount:1,...contactTabPoint});
+      await command('Input.dispatchMouseEvent', {type:'mouseReleased',button:'left',clickCount:1,...contactTabPoint});
+      await until("Boolean(document.querySelector('[data-testid=\"button-add-contact\"]'))", 'Sales contacts tab');
+      await evaluate("document.querySelector('[data-testid=\"button-add-contact\"]').click()");
+      await until("Boolean(document.querySelector('[data-testid=\"input-contact-name\"]'))", 'Sales new contact dialog');
+      await evaluate(`(() => {const input=document.querySelector('[data-testid="input-contact-name"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Contact saved from Sales UI');
+        input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('[data-testid="button-save-contact"]').click();return true;})()`);
+      await until("!document.querySelector('[data-testid=\"input-contact-name\"]')", 'Sales contact save');
+      const contactRows = (await db.query('SELECT contact_name,designation,email,is_primary FROM company_contacts WHERE company_id=$1 ORDER BY id', [created.id])).rows;
+      if (contactRows.length !== 3 || !contactRows.some(c=>c.contact_name === 'Contact saved from Sales UI') ||
+          contactRows.slice(0,2).some(c=>c.designation !== 'Edited successfully')) throw new Error('Contact create or edit persistence check failed');
+      console.log(JSON.stringify({companyCreate:'passed',companyEditSalesUI:'passed',existingCompanyFieldsPreserved:true,
+        contactCreateBothSignatures:'passed',contactEditBothSignatures:'passed',contactCreateSalesUI:'passed',persistedContacts:3}));
+      await evaluate("fetch('/api/logout',{credentials:'include'}).then(r=>r.status)");
+      return;
+    }
     await command('Page.navigate', { url: 'http://127.0.0.1:5000/admin/dashboard/crm/companies' });
     await sleep(3500);
     const state = await evaluate("({path:location.pathname,buttons:document.querySelectorAll('[data-testid^=\"button-view-company-\"]').length,hasSearch:!!document.querySelector('[placeholder^=\"Search companies\"]'),hasLogin:!!document.querySelector('input[type=\"password\"]')})");
@@ -108,7 +173,7 @@ async function main() {
       const clicked = await evaluate(`(() => { const b=document.querySelector('[data-testid="button-view-company-${target.company_id}"]'); if (!b) return false; b.click(); return true; })()`);
       if (!clicked) throw new Error(`Company ${target.company_id} view control missing`);
       await until("Boolean(document.querySelector('[data-testid=\"tab-contacts\"]'))", 'company details dialog');
-      await evaluate("document.querySelector('[data-testid=\"tab-contacts\"]').click()");
+      await evaluate("(() => {const tab=document.querySelector('[data-testid=\"tab-contacts\"]');tab.focus();tab.click();return true;})()");
       const names = (await db.query(
         'SELECT contact_name FROM company_contacts WHERE company_id=$1 ORDER BY id',
         [target.company_id],
@@ -135,6 +200,7 @@ async function main() {
     if (socket) socket.close();
     if (browser) browser.kill('SIGKILL');
     try {
+      if (temporaryCompanyId) await db.query('DELETE FROM companies WHERE id=$1 AND assigned_to=$2', [temporaryCompanyId, id]);
       await db.query('DELETE FROM activity_heartbeats WHERE user_id=$1', [id]);
       await db.query('DELETE FROM daily_performance_summary WHERE user_id=$1', [id]);
       await db.query('DELETE FROM notifications WHERE user_id=$1', [id]);
