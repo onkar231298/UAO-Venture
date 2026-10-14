@@ -7,9 +7,9 @@ description: Why workspace data changes don't appear on the published site, and 
 
 ## Owner's publication requirement
 
-The owner wants the development and published databases to be the same, and all company information to be present on the live site whenever they publish. Include the separate company-contact rows when checking company-data completeness.
+The owner chose “Match data when publishing,” not shared live data at all times. Keep development and published databases separate, and ensure all company information and the separate company-contact rows are present on the live site when publishing.
 
-**Why:** The user explicitly asked to keep this requirement in mind.
+**Why:** The user explicitly asked to remember company-data parity and selected publication-time matching rather than development edits immediately affecting live data.
 
 **How to apply:** Before publication, establish how the company and contact records will reach the live database and verify their completeness. Do not describe schema publishing as record synchronization, or silently replace live-only changes.
 
