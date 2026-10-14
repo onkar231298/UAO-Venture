@@ -27,6 +27,10 @@ async function main() {
     await assert.rejects(apiRequest("not-a-method", "/api/crm/companies"), /Invalid API request method/);
     globalThis.fetch = async () => new Response('{"message":"Invalid company data"}', { status: 400 });
     await assert.rejects(apiRequest("/api/crm/companies"), /400.*Invalid company data/);
+    let attempts = 0;
+    globalThis.fetch = async () => { attempts++; throw new TypeError("Failed to fetch"); };
+    await assert.rejects(apiRequest("/api/crm/companies/1/update", {method:"POST",body:"{}"}), /save could not be confirmed/);
+    assert.equal(attempts, 1, "An uncertain write must not be retried");
     console.log("PASS: both request signatures, create/edit/delete bodies, credentials, GET, and failure handling");
   } finally {
     globalThis.fetch = originalFetch;

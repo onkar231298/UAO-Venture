@@ -1472,8 +1472,8 @@ export default function MyCompanies() {
   // Edit company mutation
   const editCompanyMutation = useMutation({
     mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companyEditSchema> }) => {
-      const response = await apiRequest(`/api/crm/companies/${companyId}`, {
-        method: 'PATCH',
+      const response = await apiRequest(`/api/crm/companies/${companyId}/update`, {
+        method: 'POST',
         body: JSON.stringify(data),
       });
       return response.json();

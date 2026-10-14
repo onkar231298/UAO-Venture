@@ -1041,8 +1041,8 @@ export default function CompanyManagement() {
     mutationFn: async ({ companyId, data }: { companyId: number; data: z.infer<typeof companySchema> }) => {
       // Exclude departmentPhones and additionalEmails from the payload to prevent data loss
       const { departmentPhones, additionalEmails, ...updateData } = data;
-      const response = await apiRequest(`/api/crm/companies/${companyId}`, {
-        method: "PATCH",
+      const response = await apiRequest(`/api/crm/companies/${companyId}/update`, {
+        method: "POST",
         body: JSON.stringify(updateData),
       });
       return response.json();

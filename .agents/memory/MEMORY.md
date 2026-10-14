@@ -25,3 +25,4 @@
 - [Copied-site tag reconciliation](copied-site-tag-reconciliation.md) — product tables can be empty while tags are seeded; match taxonomy by slug and name, never by numeric source ID.
 - [Private files and Vite](vite-private-files.md) — Express static restrictions do not block Vite /@fs access to workspace backups; gate private paths before Vite.
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
+- [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.

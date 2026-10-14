@@ -30,7 +30,9 @@ export async function apiRequest(
   if (methodFirst && !/^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/i.test(url)) {
     throw new Error("Invalid API request method");
   }
-  const res = await fetch(requestUrl, {
+  let res: Response;
+  try {
+    res = await fetch(requestUrl, {
     method: options?.method || "GET",
     headers: {
       "Content-Type": "application/json",
@@ -38,7 +40,16 @@ export async function apiRequest(
     },
     body: options?.body,
     credentials: "include",
-  });
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      const isWrite = !/^(GET|HEAD)$/i.test(options?.method || "GET");
+      throw new Error(isWrite
+        ? "The connection was interrupted, so the save could not be confirmed. Reopen the company to check its details before saving again."
+        : "Could not connect to the server. Check your connection and reload the page.");
+    }
+    throw error;
+  }
 
   await throwIfResNotOk(res);
   return res;

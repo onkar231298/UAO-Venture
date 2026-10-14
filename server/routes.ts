@@ -7342,15 +7342,27 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.patch('/api/crm/companies/:id', isAuthenticated, async (req: any, res) => {
+  const updateCompanyDetails = async (req: any, res: any) => {
     try {
-      const company = await storage.updateCompany(parseInt(req.params.id), req.body);
+      const companyId = Number(req.params.id);
+      if (!Number.isSafeInteger(companyId) || companyId <= 0) {
+        return res.status(400).json({ message: "Invalid company ID" });
+      }
+      const company = await storage.updateCompany(companyId, req.body);
+      if (!company) return res.status(404).json({ message: "Company not found" });
       res.json(company);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating company:', error);
+      if (error.code === '23505' && error.constraint === 'companies_gst_number_key') {
+        return res.status(400).json({ message: "A company with this GST number already exists. Please use a different GST number or leave it blank." });
+      }
       res.status(500).json({ message: "Failed to update company" });
     }
-  });
+  };
+  app.patch('/api/crm/companies/:id', isAuthenticated, updateCompanyDetails);
+  // Explicit update action avoids PATCH restrictions in some browser/network paths.
+  // Use the same handler; never retry a write whose delivery is uncertain.
+  app.post('/api/crm/companies/:id/update', isAuthenticated, updateCompanyDetails);
 
   // Mark / Unmark company as irrelevant
   app.patch('/api/crm/companies/:id/mark-irrelevant', isAuthenticated, async (req: any, res) => {
