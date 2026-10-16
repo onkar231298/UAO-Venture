@@ -97,6 +97,9 @@ export default function AdminDashboard() {
     enabled: !!(user && ((user as any).role === 'admin' || (user as any).role === 'super_admin')),
   });
   const unresolvedSecurityAlerts = securityAlertsCount?.total ?? 0;
+  const adminDisplayName = [adminUser?.firstName, adminUser?.lastName].filter(Boolean).join(" ").trim()
+    || adminUser?.email?.split("@")[0]
+    || "Admin";
 
   useEffect(() => {
     if (!isLoading) {
@@ -434,13 +437,14 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <PortalThemeToggle />
               <NotificationBell />
-              <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
+              <Badge variant="secondary" className="bfo-role-badge hidden md:inline-flex bg-green-100 text-green-800">
                 {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
               </Badge>
-              <Avatar className="h-8 w-8">
+              <span className="bfo-user-name" title={adminDisplayName}>{adminDisplayName}</span>
+              <Avatar className="h-8 w-8" aria-label={`Profile: ${adminDisplayName}`} title={adminDisplayName}>
                 <AvatarFallback className="bg-blue-600 text-white">
                   {(adminUser as any)?.firstName?.[0] || 'A'}
                   {(adminUser as any)?.lastName?.[0] || 'D'}

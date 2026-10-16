@@ -272,6 +272,24 @@ async function checkNestedNavigation() {
   await until("location.pathname.includes('/crm/companies') && !!document.querySelector('[data-testid=\"company-context-desk\"]')",'nested company navigation');
   const revealed=await evaluate("(() => {const b=[...document.querySelectorAll('.bfo-nav-group-toggle')].find(n=>n.textContent.trim()==='OPERATIONS');return b?.getAttribute('aria-expanded')==='true' && !b.nextElementSibling.hidden && !document.querySelector('.bfo-sidebar-branch__children').hidden})()");
   if(!revealed)throw Error('Active company ancestor stayed collapsed');
+  await clickText('aside nav button','System Settings');
+  await until("document.querySelector('aside nav button[aria-current=\"page\"]')?.textContent.includes('System Settings')",'active System Settings item');
+  const activeSidebar=await evaluate(`(() => {
+    const button=[...document.querySelectorAll('aside nav button[aria-current="page"]')].find(node=>node.textContent.includes('System Settings'));
+    if(!button)return null;
+    const style=getComputedStyle(button),rail=getComputedStyle(document.querySelector('.bfo-workspace-rail'));
+    const rgb=value=>value.match(/[\\d.]+/g).slice(0,3).map(Number);
+    const luminance=value=>rgb(value).map(channel=>{channel/=255;return channel<=.04045?channel/12.92:((channel+.055)/1.055)**2.4}).reduce((sum,channel,index)=>sum+channel*[.2126,.7152,.0722][index],0);
+    const foreground=luminance(style.color),background=luminance(style.backgroundColor);
+    const contrast=(Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05);
+    return {contrast,background:style.backgroundColor,rail:rail.backgroundColor,transition:style.transitionDuration,shadow:style.boxShadow,visible:button.getBoundingClientRect().width>0&&button.getBoundingClientRect().height>0};
+  })()`);
+  if(!activeSidebar||activeSidebar.contrast<4.5||activeSidebar.background===activeSidebar.rail||
+    activeSidebar.transition!=='0s'||!activeSidebar.shadow||!activeSidebar.visible) {
+    throw Error('Selected sidebar destination is not immediately distinct and readable: '+JSON.stringify(activeSidebar));
+  }
+  await navigate('/admin/dashboard/crm/companies');
+  await until("!!document.querySelector('[data-testid=\"company-context-desk\"]')",'restore company page after active-state check');
   await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
   await until("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='false'",'compact hierarchy');
   await evaluate("document.querySelector('.bfo-sidebar-branch .bfo-branch-toggle').click()");

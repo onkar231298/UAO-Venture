@@ -106,9 +106,12 @@
 }
 
 .bfo-portal-root .bfo-sidebar-branch__children > button[aria-current="page"] {
-  color: var(--bfo-sidebar-accent, #f4bb66) !important;
-  background: var(--bfo-accent-soft, rgba(213, 133, 31, .2)) !important;
-  border-color: var(--bfo-accent, #D5851F) !important;
+  color: var(--bfo-sidebar-text, #EDF3F7) !important;
+  background: var(--bfo-sidebar-active-bg, #314b70) !important;
+  border-color: var(--bfo-sidebar-accent, #f4bb66) !important;
+  box-shadow: inset 3px 0 0 var(--bfo-sidebar-accent, #f4bb66);
+  font-weight: 650;
+  transition: none !important;
 }
 
 /* In the icon-only rail, preserve the Sales icon and mark it as expandable. */

@@ -54,6 +54,7 @@ export function portalPaletteTokens(id: PortalPaletteId, mode: PortalMode): Reco
     "--bfo-accent": palette.accent, "--bfo-accent-soft": soft,
     "--bfo-action": palette.action, "--bfo-on-action": "#FFFFFF",
     "--bfo-accent-readable": surface.accentReadable,
+    "--bfo-sidebar-active-bg": `color-mix(in srgb, ${palette.dark.accentReadable} 24%, ${palette.sidebar})`,
     "--bfo-sidebar-text": "#EDF3F7", "--bfo-sidebar-muted": "#C1CFDA",
     "--bfo-sidebar-accent": palette.dark.accentReadable,
     "--bfo-sidebar-hover": "rgba(255,255,255,.12)",
