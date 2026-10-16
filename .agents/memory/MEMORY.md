@@ -26,3 +26,4 @@
 - [Private files and Vite](vite-private-files.md) — Express static restrictions do not block Vite /@fs access to workspace backups; gate private paths before Vite.
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
 - [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.
+- [All-user redesign scope](interface-redesign-scope.md) — same style across all signed-in roles; preserving every available option is the owner's highest priority.
