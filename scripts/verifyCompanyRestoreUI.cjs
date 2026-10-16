@@ -168,8 +168,10 @@ async function main() {
       const contactRows = (await db.query('SELECT contact_name,designation,email,is_primary FROM company_contacts WHERE company_id=$1 ORDER BY id', [created.id])).rows;
       if (contactRows.length !== 3 || !contactRows.some(c=>c.contact_name === 'Contact saved from Sales UI') ||
           contactRows.slice(0,2).some(c=>c.designation !== 'Edited successfully')) throw new Error('Contact create or edit persistence check failed');
+      await command('Page.navigate', { url: `${appOrigin}/sales/my-companies?search=Legacy%20contact` });
+      await until(`Boolean(document.querySelector('[data-testid="row-company-${created.id}"]'))`, 'company found by separate contact name');
       console.log(JSON.stringify({companyCreate:'passed',companyEditSalesUI:'passed',existingCompanyFieldsPreserved:true,
-        contactCreateBothSignatures:'passed',contactEditBothSignatures:'passed',contactCreateSalesUI:'passed',persistedContacts:3}));
+        contactCreateBothSignatures:'passed',contactEditBothSignatures:'passed',contactCreateSalesUI:'passed',persistedContacts:3,contactNameSearch:'passed'}));
       await evaluate("fetch('/api/logout',{credentials:'include'}).then(r=>r.status)");
       return;
     }

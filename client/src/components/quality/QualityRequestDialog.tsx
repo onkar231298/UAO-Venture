@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +16,16 @@ interface QualityRequestDialogProps {
   customerName?: string;
   triggerClassName?: string;
   triggerLabel?: string;
+  initialOpen?: boolean;
 }
 
-export function QualityRequestDialog({ companyName, customerName, triggerClassName, triggerLabel }: QualityRequestDialogProps) {
-  const [open, setOpen] = useState(false);
+export function QualityRequestDialog({ companyName, customerName, triggerClassName, triggerLabel, initialOpen = false }: QualityRequestDialogProps) {
+  const [open, setOpen] = useState(initialOpen);
   const [activeTab, setActiveTab] = useState("document");
   const { toast } = useToast();
+  useEffect(() => {
+    if (initialOpen) setOpen(true);
+  }, [initialOpen]);
 
   const [docForm, setDocForm] = useState({
     documentType: "coa",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,18 +26,36 @@ import {
   Menu,
   X,
   MessageCircle,
+  ChevronDown,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { MyAttendance } from "@/components/hr/MyAttendance";
+import { useSearch } from "wouter";
+import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
+import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
+
+const toggleStaffNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
+  const button = event.currentTarget;
+  const expanded = button.getAttribute("aria-expanded") === "true";
+  button.setAttribute("aria-expanded", String(!expanded));
+  button.querySelector("svg")?.classList.toggle("-rotate-90", expanded);
+  button.nextElementSibling?.toggleAttribute("hidden", expanded);
+};
 
 export default function StaffDashboard() {
+  const routeSearch = useSearch();
   const { toast } = useToast();
   const [staffUser, setStaffUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => new URLSearchParams(window.location.search).get('section') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { user, isAuthenticated, isLoading } = useAuth();
+  useEffect(() => {
+    const target = new URLSearchParams(routeSearch).get("section");
+    if (target) setActiveSection(target);
+  }, [routeSearch]);
 
   const getUserModules = (role: string) => {
     const modules: any = {
@@ -152,7 +170,6 @@ export default function StaffDashboard() {
     'my-attendance': 'My Attendance',
     settings: 'Profile Settings',
   };
-
   const handleModuleClick = (module: string) => {
     if (module === 'quality') {
       window.location.href = '/quality/dashboard';
@@ -162,7 +179,23 @@ export default function StaffDashboard() {
     }
   };
 
+  const staffNavItems: PortalNavDestination[] = [
+    { key: "overview", label: "Dashboard", icon: LayoutDashboard, active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
+    { key: "chat", label: "Internal Chat", icon: MessageCircle, badge: chatUnreadData?.count || undefined, onSelect: () => { window.location.href = "/chat"; } },
+    ...userModules.map((module: string) => ({
+      key: module,
+      label: moduleLabels[module] || module,
+      icon: moduleIcons[module] || Package,
+      active: activeSection === module,
+      onSelect: () => handleModuleClick(module),
+    })),
+    { key: "my-attendance", label: "My Attendance", icon: Calendar, active: activeSection === "my-attendance", onSelect: () => setActiveSection("my-attendance") },
+    { key: "settings", label: "Profile Settings", icon: Settings, active: activeSection === "settings", onSelect: () => setActiveSection("settings") },
+    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+  ];
+
   return (
+    <PortalThemeProvider className="bfo-staff-portal">
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {sidebarOpen && (
         <div
@@ -188,9 +221,7 @@ export default function StaffDashboard() {
         <nav className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-6">
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                MAIN
-              </h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleStaffNavGroup}><span>MAIN</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 <button
                   onClick={() => { setActiveSection('overview'); setSidebarOpen(false); }}
@@ -220,9 +251,7 @@ export default function StaffDashboard() {
 
             {userModules.length > 0 && (
               <div>
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  MY MODULES
-                </h3>
+                <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleStaffNavGroup}><span>MY MODULES</span><ChevronDown size={14} /></button>
                 <div className="space-y-1">
                   {userModules.map((module: string) => {
                     const Icon = moduleIcons[module] || Package;
@@ -247,9 +276,7 @@ export default function StaffDashboard() {
             )}
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                HR
-              </h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleStaffNavGroup}><span>HR</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 <button
                   onClick={() => { setActiveSection('my-attendance'); setSidebarOpen(false); }}
@@ -266,9 +293,7 @@ export default function StaffDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                PROFILE
-              </h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleStaffNavGroup}><span>PROFILE</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 <button
                   onClick={() => { setActiveSection('settings'); setSidebarOpen(false); }}
@@ -316,6 +341,8 @@ export default function StaffDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <PunchInOutButton />
+              <PortalTopbarActions role={(staffUser as any)?.role || "staff"} />
+              <PortalThemeToggle />
               <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}
               </Badge>
@@ -434,5 +461,7 @@ export default function StaffDashboard() {
         </div>
       </main>
     </div>
+    <PortalMobileNav items={staffNavItems} primaryKeys={["overview", ...(userModules[0] ? [userModules[0]] : []), "my-attendance", "chat"]} />
+    </PortalThemeProvider>
   );
 }

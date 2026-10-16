@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useRoute } from "wouter";
+import { Link, useLocation, useRoute, useSearch } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -34,6 +34,7 @@ interface ProductFilters {
 
 export default function Products() {
   const [location] = useLocation();
+  const searchParamsString = useSearch();
   const [, healthSupportParams] = useRoute("/health-support/:slug");
   
   // Determine if we're on a health support route
@@ -61,6 +62,10 @@ export default function Products() {
   };
 
   const [filters, setFilters] = useState<ProductFilters>(initializeFiltersFromURL);
+  const routeSearch = new URLSearchParams(searchParamsString).get("search") || "";
+  useEffect(() => {
+    setFilters((current) => current.search === routeSearch ? current : { ...current, search: routeSearch });
+  }, [routeSearch]);
 
   // Handle browser back/forward navigation and health support route changes
   useEffect(() => {

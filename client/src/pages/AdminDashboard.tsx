@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import SalesManagement from "@/pages/crm/SalesManagement";
 import SampleRequestsPage from "@/pages/crm/SampleRequestsPage";
@@ -23,6 +23,7 @@ import SecurityMonitor from "@/pages/admin/SecurityMonitor";
 import SalesActivityLogs from "@/pages/admin/SalesActivityLogs";
 import DocumentUpload from "@/pages/admin/DocumentUpload";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
 import {
   Users,
   Package,
@@ -57,9 +58,19 @@ import {
   ShieldAlert,
   ClipboardList,
   Upload,
+  ChevronDown,
 } from "lucide-react";
+import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
+const toggleNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
+  const button = event.currentTarget;
+  const expanded = button.getAttribute("aria-expanded") === "true";
+  button.setAttribute("aria-expanded", String(!expanded));
+  button.querySelector("svg")?.classList.toggle("-rotate-90", expanded);
+  button.nextElementSibling?.toggleAttribute("hidden", expanded);
+};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -71,6 +82,7 @@ export default function AdminDashboard() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [location, setLocation] = useLocation();
+  const searchParams = useSearch();
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -114,6 +126,11 @@ export default function AdminDashboard() {
   }, [isAuthenticated, isLoading, user, toast]);
 
   useEffect(() => {
+    const requestedSection = new URLSearchParams(window.location.search).get("section");
+    if (requestedSection) {
+      setActiveSection(requestedSection);
+      return;
+    }
     if (location.includes('/dashboard/crm/leads')) {
       setActiveSection('sales-crm');
     } else if (location.includes('/dashboard/crm/companies')) {
@@ -133,7 +150,7 @@ export default function AdminDashboard() {
     } else if (location.includes('/dashboard')) {
       setActiveSection('overview');
     }
-  }, [location]);
+  }, [location, searchParams]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -227,8 +244,38 @@ export default function AdminDashboard() {
       <span className="truncate">{label}</span>
     </button>
   );
+  const adminNavItems: PortalNavDestination[] = [
+    { key: "overview", label: "Dashboard", icon: LayoutDashboard, active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
+    { key: "company-management", label: "Company Management", icon: Building2, active: activeSection === "company-management", onSelect: () => setLocation("/admin/dashboard/crm/companies") },
+    { key: "sales-crm", label: "Lead Management", icon: Users, active: activeSection === "sales-crm", onSelect: () => setLocation("/admin/dashboard/crm/leads") },
+    { key: "sales", label: "Sales Management", icon: TrendingUp, active: activeSection === "sales", onSelect: () => setActiveSection("sales") },
+    { key: "enquiry-sample", label: "Customer Inquiries", icon: Send, active: activeSection === "enquiry-sample", onSelect: () => setActiveSection("enquiry-sample") },
+    { key: "sample-requests", label: "Sample Requests", icon: Package, active: activeSection === "sample-requests", onSelect: () => setActiveSection("sample-requests") },
+    { key: "high-volume-bids", label: "High Volume Bids", icon: TrendingUp, active: activeSection === "high-volume-bids", onSelect: () => setActiveSection("high-volume-bids") },
+    { key: "quotation-negotiations", label: "Quote Negotiations", icon: DollarSign, active: activeSection === "quotation-negotiations", onSelect: () => setActiveSection("quotation-negotiations") },
+    { key: "sales-orders", label: "Sales Orders", icon: ShoppingCart, active: activeSection === "sales-orders", onSelect: () => setActiveSection("sales-orders") },
+    { key: "duplicate-review", label: "Duplicate Review", icon: Activity, active: activeSection === "duplicate-review", onSelect: () => setActiveSection("duplicate-review") },
+    { key: "inventory", label: "Inventory Management", icon: Warehouse, active: activeSection === "inventory", onSelect: () => setActiveSection("inventory") },
+    { key: "purchase", label: "Purchase Management", icon: ShoppingCart, active: activeSection === "purchase", onSelect: () => setActiveSection("purchase") },
+    { key: "logistics", label: "Logistics Management", icon: Truck, active: activeSection === "logistics", onSelect: () => setActiveSection("logistics") },
+    { key: "accounts", label: "Accounts & Finance", icon: Calculator, active: activeSection === "accounts", onSelect: () => setActiveSection("accounts") },
+    { key: "website", label: "Website Management", icon: Globe, active: activeSection === "website", onSelect: () => setActiveSection("website") },
+    { key: "newsletter", label: "Newsletter", icon: Mail, active: activeSection === "newsletter", onSelect: () => setActiveSection("newsletter") },
+    { key: "blog", label: "Blog Management", icon: FileText, active: activeSection === "blog", onSelect: () => setActiveSection("blog") },
+    { key: "users", label: "User Management", icon: Users, active: activeSection === "users", onSelect: () => setActiveSection("users") },
+    { key: "hr-management", label: "HR Management", icon: Clock, active: activeSection === "hr-management", onSelect: () => setActiveSection("hr-management") },
+    { key: "quality-management", label: "Quality Management", icon: ClipboardCheck, active: activeSection === "quality-management", onSelect: () => setActiveSection("quality-management") },
+    { key: "sales-activity-logs", label: "Sales Activity Logs", icon: ClipboardList, active: activeSection === "sales-activity-logs", onSelect: () => setActiveSection("sales-activity-logs") },
+    { key: "security-monitor", label: "Security & Activity", icon: ShieldAlert, active: activeSection === "security-monitor", onSelect: () => setActiveSection("security-monitor") },
+    { key: "analytics", label: "Analytics & Reports", icon: BarChart3, active: activeSection === "analytics", onSelect: () => setActiveSection("analytics") },
+    ...(adminUser?.role === "super_admin" ? [{ key: "documents", label: "Document Upload", icon: Upload, active: activeSection === "documents", onSelect: () => setActiveSection("documents") }] : []),
+    { key: "settings", label: "System Settings", icon: Settings, active: activeSection === "settings", onSelect: () => setActiveSection("settings") },
+    { key: "website-home", label: "Back to Website", icon: Globe, onSelect: () => setLocation("/") },
+    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+  ];
 
   return (
+    <PortalThemeProvider className="bfo-admin-portal">
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {sidebarOpen && (
         <div
@@ -260,14 +307,14 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-6">
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">MAIN</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>MAIN</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('overview', 'Dashboard', LayoutDashboard, activeSection === 'overview', () => setLocation('/admin/dashboard'))}
               </div>
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">OPERATIONS</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>OPERATIONS</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('inventory', 'Inventory Management', Warehouse, activeSection === 'inventory', () => setActiveSection('inventory'))}
                 {navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}
@@ -292,7 +339,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">WEBSITE & CONTENT</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>WEBSITE &amp; CONTENT</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('website', 'Website Management', Globe, activeSection === 'website', () => setActiveSection('website'))}
                 {navButton('newsletter', 'Newsletter', Mail, activeSection === 'newsletter', () => setActiveSection('newsletter'))}
@@ -301,7 +348,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PEOPLE & COMPLIANCE</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>PEOPLE &amp; COMPLIANCE</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('users', 'User Management', Users, activeSection === 'users', () => setActiveSection('users'))}
                 {navButton('hr-management', 'HR Management', Clock, activeSection === 'hr-management', () => setActiveSection('hr-management'))}
@@ -327,7 +374,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ANALYTICS</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>ANALYTICS</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('analytics', 'Analytics & Reports', BarChart3, activeSection === 'analytics', () => setActiveSection('analytics'))}
               </div>
@@ -335,7 +382,7 @@ export default function AdminDashboard() {
 
             {(adminUser as any)?.role === 'super_admin' && (
               <div>
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ADMIN TOOLS</h3>
+                <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>ADMIN TOOLS</span><ChevronDown size={14} /></button>
                 <div className="space-y-1">
                   {navButton('documents', 'Document Upload', Upload, activeSection === 'documents', () => setActiveSection('documents'))}
                 </div>
@@ -343,7 +390,7 @@ export default function AdminDashboard() {
             )}
 
             <div>
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">PROFILE</h3>
+              <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>PROFILE</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('settings', 'System Settings', Settings, activeSection === 'settings', () => setActiveSection('settings'))}
               </div>
@@ -380,6 +427,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
+              <PortalTopbarActions role={(adminUser as any)?.role || "admin"} />
+              <PortalThemeToggle />
               <NotificationBell />
               <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">
                 {(adminUser as any)?.role?.replace('_', ' ').toUpperCase()}
@@ -807,5 +856,7 @@ export default function AdminDashboard() {
         </div>
       </main>
     </div>
+    <PortalMobileNav items={adminNavItems} primaryKeys={["overview", "company-management", "sales-crm", "enquiry-sample"]} />
+    </PortalThemeProvider>
   );
 }

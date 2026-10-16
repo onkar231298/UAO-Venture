@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, ChangeEvent } from "react";
+import { useEffect, useState, useMemo, useRef, ChangeEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,8 +47,21 @@ import {
   Package,
   MapPin,
   Truck,
+  ChevronDown,
 } from "lucide-react";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
+import { useSearch } from "wouter";
+import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
+import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
+
+const toggleQualityNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
+  const button = event.currentTarget;
+  const expanded = button.getAttribute("aria-expanded") === "true";
+  button.setAttribute("aria-expanded", String(!expanded));
+  button.querySelector("svg")?.classList.toggle("-rotate-90", expanded);
+  button.nextElementSibling?.toggleAttribute("hidden", expanded);
+};
 
 // ==================== STATUS BADGE HELPER ====================
 function getStatusBadge(status: string) {
@@ -127,12 +140,17 @@ const sidebarSections = [
 
 // ==================== MAIN COMPONENT ====================
 export default function QualityDashboard() {
+  const routeSearch = useSearch();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [qualityUser, setQualityUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState("overview");
+  const [activeSection, setActiveSection] = useState(() => new URLSearchParams(window.location.search).get("section") || "overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => {
+    const target = new URLSearchParams(routeSearch).get("section");
+    if (target) setActiveSection(target);
+  }, [routeSearch]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -181,8 +199,19 @@ export default function QualityDashboard() {
     "my-attendance": "My Attendance",
     "profile-settings": "Profile Settings",
   };
+  const qualityNavItems: PortalNavDestination[] = [
+    ...sidebarSections.flatMap((section) => section.items.map((item) => ({
+      key: item.key,
+      label: item.label,
+      icon: item.icon,
+      active: activeSection === item.key,
+      onSelect: () => setActiveSection(item.key),
+    }))),
+    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+  ];
 
   return (
+    <PortalThemeProvider className="bfo-quality-portal">
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {sidebarOpen && (
         <div
@@ -210,9 +239,9 @@ export default function QualityDashboard() {
           <div className="space-y-6">
             {sidebarSections.map((section) => (
               <div key={section.label}>
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  {section.label}
-                </h3>
+                <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleQualityNavGroup}>
+                  <span>{section.label}</span><ChevronDown size={14} />
+                </button>
                 <div className="space-y-1">
                   {section.items.map((item) => {
                     const Icon = item.icon;
@@ -268,6 +297,8 @@ export default function QualityDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <PunchInOutButton />
+              <PortalTopbarActions role={(qualityUser as any)?.role || "quality"} />
+              <PortalThemeToggle />
               <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}
               </Badge>
@@ -306,6 +337,8 @@ export default function QualityDashboard() {
         </div>
       </main>
     </div>
+    <PortalMobileNav items={qualityNavItems} primaryKeys={["overview", "sample-requests", "field-quality-records", "test-reports"]} />
+    </PortalThemeProvider>
   );
 }
 
@@ -725,7 +758,7 @@ function SampleRequestsSection() {
 function DocumentRequestsSection() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(() => new URLSearchParams(window.location.search).get("create") === "document");
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [formData, setFormData] = useState({ documentType: "", productName: "", description: "", priority: "normal", notes: "", title: "" });
@@ -2128,7 +2161,7 @@ function NCRsSection() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(() => new URLSearchParams(window.location.search).get("create") === "ncr");
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [formData, setFormData] = useState({ title: "", description: "", severity: "minor", category: "", batchNumber: "", affectedProduct: "", rootCause: "", correctiveAction: "" });
@@ -2345,7 +2378,7 @@ function FieldQualityRecordsSection() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [showTypePickerDialog, setShowTypePickerDialog] = useState(false);
+  const [showTypePickerDialog, setShowTypePickerDialog] = useState(() => new URLSearchParams(window.location.search).get("create") === "record");
   const [createFormType, setCreateFormType] = useState<"IRF" | "TRF" | "loading_inspection" | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);

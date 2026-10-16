@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CANONICAL_COUNTRIES } from "@shared/countries";
@@ -74,15 +75,19 @@ function sourceBadge(source?: string | null) {
 }
 
 export default function SalesSampleRequestsPage() {
+  const locationSearch = useSearch();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [source, setSource] = useState("all");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<SampleRequest | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(() => new URLSearchParams(window.location.search).get("create") === "sample");
   const [form, setForm] = useState(blankForm);
   const pageSize = 50;
+  useEffect(() => {
+    if (new URLSearchParams(locationSearch).get("create") === "sample") setCreateOpen(true);
+  }, [locationSearch]);
 
   const { data, isLoading, isError, error } = useQuery<{ requests: SampleRequest[]; total: number }>({
     queryKey: ["/api/sales/sample-requests", {

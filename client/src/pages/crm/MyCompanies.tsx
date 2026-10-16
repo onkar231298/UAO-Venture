@@ -1083,7 +1083,7 @@ function DraggableCompanyCard({ company, onClick, onMarkIrrelevant, onMarkReleva
 export default function MyCompanies() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
@@ -1291,6 +1291,10 @@ export default function MyCompanies() {
   // Auto-open a company dialog when arriving with ?openCompany=<id> (e.g. from follow-up lists)
   const searchParamsString = useSearch();
   const [, setLocation] = useLocation();
+  const portalSearch = new URLSearchParams(searchParamsString).get("search");
+  useEffect(() => {
+    if (portalSearch) setSearchTerm(portalSearch);
+  }, [portalSearch]);
   const openParamHandled = useRef(false);
   useEffect(() => {
     if (openParamHandled.current) return;
@@ -1585,6 +1589,9 @@ export default function MyCompanies() {
   const filteredCompanies = myCompanies.filter((company) => {
     const q = searchTerm.trim().toLowerCase();
     const matchesSearch = !q ||
+      // The authorized server search also matches separate contact rows. Do not
+      // discard those results just because the company name itself differs.
+      q === debouncedSearch.toLowerCase() ||
       company.companyName.toLowerCase().includes(q) ||
       (company.primaryEmail?.toLowerCase().includes(q) ?? false) ||
       ((company as any).primaryPhone?.toLowerCase().includes(q) ?? false);
@@ -3007,7 +3014,7 @@ export default function MyCompanies() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-3 pt-4 border-t bfo-dialog-form-footer">
                 <Button
                   type="button"
                   variant="outline"

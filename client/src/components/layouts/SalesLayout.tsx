@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { PortalOverlay } from "@/components/portal/PortalOverlay";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   Home,
@@ -19,8 +21,13 @@ import {
   ClipboardList,
   MessageCircle,
   Package,
+  ChevronDown,
+  AlarmClockCheck,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
+import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
+import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 interface SalesLayoutProps {
   children: React.ReactNode;
@@ -37,10 +44,26 @@ interface DashboardData {
   };
 }
 
+interface FollowUpTask {
+  id: number;
+  companyId?: number;
+  companyName?: string | null;
+  title: string;
+}
+
+interface FollowUpPanelData {
+  overdueCount: number;
+  todayCount: number;
+  overdue?: FollowUpTask[];
+  today?: FollowUpTask[];
+}
+
 export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [todayOpen, setTodayOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const userRole = (user as any)?.role || 'sales_executive';
   const roleDisplayName = userRole.replace(/_/g, ' ').toUpperCase();
 
@@ -49,11 +72,10 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
     enabled: !!user,
   });
 
-  const { data: followUpData } = useQuery<{ overdueCount: number; todayCount: number }>({
+  const { data: followUpData, isLoading: isFollowUpsLoading, isError: isFollowUpsError, refetch: refetchFollowUps } = useQuery<FollowUpPanelData>({
     queryKey: ['/api/crm/follow-ups/today'],
     enabled: !!user,
     refetchInterval: 5 * 60 * 1000,
-    select: (d: any) => ({ overdueCount: d?.overdueCount || 0, todayCount: d?.todayCount || 0 }),
   });
 
   const followUpBadge = (followUpData?.overdueCount || 0) + (followUpData?.todayCount || 0);
@@ -117,8 +139,19 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
       ],
     },
   ];
+  const mobileItems: PortalNavDestination[] = [...sidebarSections.flatMap((section) =>
+    section.items.map((item) => ({
+      key: item.key,
+      label: item.label,
+      icon: item.icon,
+      active: location === item.key,
+      badge: item.badge,
+      onSelect: () => setLocation(item.key),
+    })),
+  ), { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } }];
 
   return (
+    <PortalThemeProvider className="bfo-sales-portal">
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {sidebarOpen && (
         <div
@@ -155,13 +188,19 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="space-y-6">
+          <div className="space-y-5">
             {sidebarSections.map((section) => (
               <div key={section.label}>
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  {section.label}
-                </h3>
-                <div className="space-y-1">
+                <button
+                  type="button"
+                  className="bfo-nav-group-toggle"
+                  aria-expanded={!collapsedSections[section.label]}
+                  onClick={() => setCollapsedSections((current) => ({ ...current, [section.label]: !current[section.label] }))}
+                >
+                  <span>{section.label}</span>
+                  <ChevronDown className={collapsedSections[section.label] ? "-rotate-90" : ""} size={14} />
+                </button>
+                {!collapsedSections[section.label] && <div className="space-y-1">
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.key);
@@ -184,7 +223,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
                       </Link>
                     );
                   })}
-                </div>
+                </div>}
               </div>
             ))}
           </div>
@@ -218,6 +257,20 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
             </div>
             <div className="flex items-center gap-3">
               <PunchInOutButton />
+              <PortalTopbarActions role={userRole} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="bfo-today-trigger"
+                aria-expanded={todayOpen}
+                onClick={() => setTodayOpen((open) => !open)}
+              >
+                <AlarmClockCheck size={16} />
+                <span>Today</span>
+                {followUpBadge > 0 && <Badge className="ml-1">{followUpBadge}</Badge>}
+              </Button>
+              <PortalThemeToggle />
               <NotificationBell />
               <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}
@@ -230,5 +283,65 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
         </div>
       </main>
     </div>
+    <PortalOverlay open={todayOpen} onOpenChange={setTodayOpen} title="Today follow-ups" className="bfo-today-panel">
+          <div className="bfo-today-heading">
+            <div>
+              <p className="bfo-eyebrow">Sales workspace</p>
+              <h2>Today</h2>
+              <p className="text-sm text-muted-foreground">Authorized follow-ups from your CRM.</p>
+            </div>
+            <button type="button" aria-label="Close Today panel" onClick={() => setTodayOpen(false)}><X size={18} /></button>
+          </div>
+          <div className="bfo-today-summary">
+            <div><strong>{followUpData?.overdueCount ?? 0}</strong><span>Overdue</span></div>
+            <div><strong>{followUpData?.todayCount ?? 0}</strong><span>Due today</span></div>
+          </div>
+          <div className="bfo-today-list">
+            {isFollowUpsLoading && (
+              <div className="bfo-today-skeleton" aria-label="Loading today's follow-ups">
+                <div /><div /><div />
+              </div>
+            )}
+            {isFollowUpsError && (
+              <div className="bfo-today-empty">
+                <strong>Follow-ups could not be loaded</strong>
+                <span>Check your connection and retry.</span>
+                <Button type="button" variant="outline" onClick={() => refetchFollowUps()}>Retry</Button>
+              </div>
+            )}
+            {!isFollowUpsLoading && !isFollowUpsError && followUpData?.overdue?.map((task) => (
+              <button key={`overdue-${task.id}`} type="button" className="is-overdue" onClick={() => {
+                setTodayOpen(false);
+                if (task.companyId) setLocation(`/sales/my-companies?openCompany=${task.companyId}&tab=followups`);
+                else setLocation("/sales/follow-ups");
+              }}>
+                <span><strong>{task.title}</strong><small>{task.companyName || "Company not specified"}</small></span>
+                <em>Overdue</em>
+              </button>
+            ))}
+            {!isFollowUpsLoading && !isFollowUpsError && followUpData?.today?.map((task) => (
+              <button key={`today-${task.id}`} type="button" onClick={() => {
+                setTodayOpen(false);
+                if (task.companyId) setLocation(`/sales/my-companies?openCompany=${task.companyId}&tab=followups`);
+                else setLocation("/sales/follow-ups");
+              }}>
+                <span><strong>{task.title}</strong><small>{task.companyName || "Company not specified"}</small></span>
+                <em>Today</em>
+              </button>
+            ))}
+            {!isFollowUpsLoading && !isFollowUpsError && !(followUpData?.overdue?.length || followUpData?.today?.length) && (
+              <div className="bfo-today-empty">
+                <AlarmClockCheck size={22} />
+                <strong>No follow-ups due</strong>
+                <span>Nothing overdue or scheduled for today.</span>
+              </div>
+            )}
+          </div>
+          <Button type="button" variant="outline" className="w-full" onClick={() => { setTodayOpen(false); setLocation("/sales/follow-ups"); }}>
+            View all follow-ups
+          </Button>
+    </PortalOverlay>
+    <PortalMobileNav items={mobileItems} primaryKeys={["/sales", "/sales/my-companies", "/sales/follow-ups", "/chat"]} />
+    </PortalThemeProvider>
   );
 }

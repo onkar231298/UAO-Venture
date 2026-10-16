@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Link } from "wouter";
 import TestMultiCurrency from "@/pages/TestMultiCurrency";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -78,6 +78,14 @@ import SalesSampleRequestsPage from "@/pages/sales/SalesSampleRequestsPage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import InternalChat from "@/pages/InternalChat";
 import { InternalChatLauncher } from "@/components/InternalChatLauncher";
+import { PortalThemeProvider } from "@/components/portal/PortalTheme";
+import "./styles/portal-theme.css";
+import CustomerSidebar from "@/components/CustomerSidebar";
+import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
+import { PortalThemeToggle } from "@/components/portal/PortalTheme";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
+import { SalesLayout } from "@/components/layouts/SalesLayout";
+import { LayoutDashboard, Building2, AlarmClock, MessageCircle, FileText, Target, Package, ClipboardCheck, Calendar, Users, Settings, LogOut, TrendingUp } from "lucide-react";
 
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 
@@ -90,6 +98,140 @@ function ProductRedirect({ params }: { params: { slug: string } }) {
   }, [params.slug, setLocation]);
   
   return null;
+}
+
+function CustomerProductsPortal() {
+  return (
+    <PortalThemeProvider className="bfo-customer-standalone">
+      <div className="bfo-customer-standalone-shell">
+        <CustomerSidebar />
+        <main className="bfo-customer-standalone-content">
+          <div className="bfo-standalone-toolbar">
+            <Link href="/customer/dashboard" className="bfo-portal-link"><LayoutDashboard size={16} />Customer portal</Link>
+            <PortalTopbarActions role="customer" />
+            <PortalThemeToggle />
+          </div>
+          <Products />
+        </main>
+      </div>
+    </PortalThemeProvider>
+  );
+}
+
+function CustomerProfilePortal() {
+  return (
+    <PortalThemeProvider className="bfo-customer-standalone">
+      <div className="bfo-customer-standalone-shell">
+        <CustomerSidebar />
+        <main className="bfo-customer-standalone-content">
+          <div className="bfo-standalone-toolbar">
+            <Link href="/customer/dashboard" className="bfo-portal-link"><LayoutDashboard size={16} />Customer portal</Link>
+            <PortalTopbarActions role="customer" />
+            <PortalThemeToggle />
+          </div>
+          <CustomerProfile />
+        </main>
+      </div>
+    </PortalThemeProvider>
+  );
+}
+
+function ChatPortal() {
+  const { user } = useAuth();
+  const role = (user as any)?.role || "";
+  if (!user) return <PortalThemeProvider className="bfo-chat-portal"><InternalChat /></PortalThemeProvider>;
+  const homeHref = role === "admin" || role === "super_admin" ? "/admin"
+    : role.startsWith("sales") ? "/sales"
+      : role.startsWith("quality") ? "/quality/dashboard" : "/staff";
+  const chatNavItems: PortalNavDestination[] = [
+    { key: "home", label: "Dashboard", icon: LayoutDashboard, onSelect: () => { window.location.href = homeHref; } },
+    { key: "/chat", label: "Internal Chat", icon: MessageCircle, active: true, onSelect: () => { window.location.href = "/chat"; } },
+    ...(role.startsWith("sales") ? [
+      { key: "/sales/my-companies", label: "My Companies", icon: Building2, onSelect: () => { window.location.href = "/sales/my-companies"; } },
+      { key: "/sales/follow-ups", label: "Follow-ups", icon: AlarmClock, onSelect: () => { window.location.href = "/sales/follow-ups"; } },
+      { key: "/sales/leads", label: "My Leads", icon: Target, onSelect: () => { window.location.href = "/sales/leads"; } },
+      { key: "/sales/my-sales", label: "My Sales & Quotations", icon: FileText, onSelect: () => { window.location.href = "/sales/my-sales"; } },
+      { key: "/sales/sample-requests", label: "Sample Requests", icon: Package, onSelect: () => { window.location.href = "/sales/sample-requests"; } },
+      { key: "/sales/quality-requests", label: "Quality Requests", icon: ClipboardCheck, onSelect: () => { window.location.href = "/sales/quality-requests"; } },
+      { key: "/sales/my-attendance", label: "My Attendance", icon: Calendar, onSelect: () => { window.location.href = "/sales/my-attendance"; } },
+      { key: "/sales/my-activity-log", label: "My Activity Log", icon: FileText, onSelect: () => { window.location.href = "/sales/my-activity-log"; } },
+      { key: "/crm/email-settings", label: "Email Settings", icon: Settings, onSelect: () => { window.location.href = "/crm/email-settings"; } },
+    ] : role === "admin" || role === "super_admin" ? [
+      { key: "/admin", label: "Dashboard", icon: LayoutDashboard, onSelect: () => { window.location.href = "/admin"; } },
+      { key: "/admin/inventory", label: "Inventory Management", icon: Package, onSelect: () => { window.location.href = "/admin?section=inventory"; } },
+      { key: "/admin/sales", label: "Sales Management", icon: FileText, onSelect: () => { window.location.href = "/admin?section=sales"; } },
+      { key: "/admin/inquiries", label: "Customer Inquiries", icon: MessageCircle, onSelect: () => { window.location.href = "/admin?section=enquiry-sample"; } },
+      { key: "/admin/samples", label: "Sample Requests", icon: Package, onSelect: () => { window.location.href = "/admin?section=sample-requests"; } },
+      { key: "/admin/bids", label: "High Volume Bids", icon: TrendingUp, onSelect: () => { window.location.href = "/admin?section=high-volume-bids"; } },
+      { key: "/admin/negotiations", label: "Quote Negotiations", icon: FileText, onSelect: () => { window.location.href = "/admin?section=quotation-negotiations"; } },
+      { key: "/admin/orders", label: "Sales Orders", icon: Package, onSelect: () => { window.location.href = "/admin?section=sales-orders"; } },
+      { key: "/admin/leads", label: "Lead Management", icon: Target, onSelect: () => { window.location.href = "/admin/dashboard/crm/leads"; } },
+      { key: "/admin/companies", label: "Company Management", icon: Building2, onSelect: () => { window.location.href = "/admin/dashboard/crm/companies"; } },
+      { key: "/admin/duplicates", label: "Duplicate Review", icon: Users, onSelect: () => { window.location.href = "/admin?section=duplicate-review"; } },
+      { key: "/admin/purchase", label: "Purchase Management", icon: Package, onSelect: () => { window.location.href = "/admin?section=purchase"; } },
+      { key: "/admin/logistics", label: "Logistics Management", icon: Package, onSelect: () => { window.location.href = "/admin?section=logistics"; } },
+      { key: "/admin/accounts", label: "Accounts & Finance", icon: FileText, onSelect: () => { window.location.href = "/admin?section=accounts"; } },
+      { key: "/admin/website", label: "Website Management", icon: Settings, onSelect: () => { window.location.href = "/admin?section=website"; } },
+      { key: "/admin/newsletter", label: "Newsletter", icon: FileText, onSelect: () => { window.location.href = "/admin?section=newsletter"; } },
+      { key: "/admin/blog", label: "Blog Management", icon: FileText, onSelect: () => { window.location.href = "/admin?section=blog"; } },
+      { key: "/admin/users", label: "User Management", icon: Users, onSelect: () => { window.location.href = "/admin?section=users"; } },
+      { key: "/admin/hr", label: "HR Management", icon: Users, onSelect: () => { window.location.href = "/admin?section=hr-management"; } },
+      { key: "/admin/quality", label: "Quality Management", icon: ClipboardCheck, onSelect: () => { window.location.href = "/admin?section=quality-management"; } },
+      { key: "/admin/activity", label: "Sales Activity Logs", icon: FileText, onSelect: () => { window.location.href = "/admin?section=sales-activity-logs"; } },
+      { key: "/admin/security", label: "Security & Activity", icon: Settings, onSelect: () => { window.location.href = "/admin?section=security-monitor"; } },
+      { key: "/admin/analytics", label: "Analytics & Reports", icon: FileText, onSelect: () => { window.location.href = "/admin?section=analytics"; } },
+      ...(role === "super_admin" ? [{ key: "/admin/documents", label: "Document Upload", icon: FileText, onSelect: () => { window.location.href = "/admin?section=documents"; } }] : []),
+      { key: "/admin/settings", label: "System Settings", icon: Settings, onSelect: () => { window.location.href = "/admin?section=settings"; } },
+    ] : role.startsWith("quality") ? [
+      { key: "/quality/dashboard", label: "Dashboard", icon: LayoutDashboard, onSelect: () => { window.location.href = "/quality/dashboard"; } },
+      { key: "/quality/sample-requests", label: "Sample Requests", icon: Package, onSelect: () => { window.location.href = "/quality/dashboard?section=sample-requests"; } },
+      { key: "/quality/document-requests", label: "Document Requests", icon: FileText, onSelect: () => { window.location.href = "/quality/dashboard?section=document-requests"; } },
+      { key: "/quality/records", label: "Testing Records", icon: ClipboardCheck, onSelect: () => { window.location.href = "/quality/dashboard?section=field-quality-records"; } },
+      { key: "/quality/reports", label: "Test Reports", icon: FileText, onSelect: () => { window.location.href = "/quality/dashboard?section=test-reports"; } },
+      { key: "/quality/batches", label: "Batch Management", icon: Package, onSelect: () => { window.location.href = "/quality/dashboard?section=batch-management"; } },
+      { key: "/quality/vendors", label: "Material Vendors", icon: Building2, onSelect: () => { window.location.href = "/quality/dashboard?section=material-vendors"; } },
+      { key: "/quality/vendor-approvals", label: "Customer Vendor Approvals", icon: Users, onSelect: () => { window.location.href = "/quality/dashboard?section=customer-vendor-approvals"; } },
+      { key: "/quality/ncrs", label: "Non-Conformance Reports", icon: ClipboardCheck, onSelect: () => { window.location.href = "/quality/dashboard?section=ncrs"; } },
+      { key: "/quality/website", label: "Website Management", icon: Settings, onSelect: () => { window.location.href = "/quality/dashboard?section=website-management"; } },
+      { key: "/quality/attendance", label: "My Attendance", icon: Calendar, onSelect: () => { window.location.href = "/quality/dashboard?section=my-attendance"; } },
+      { key: "/quality/profile", label: "Profile Settings", icon: Settings, onSelect: () => { window.location.href = "/quality/dashboard?section=profile-settings"; } },
+    ] : [
+      ...(({
+        sales_manager: ["sales", "analytics"], sales_executive: ["sales"],
+        purchase_manager: ["purchase", "analytics"], purchase_executive: ["purchase"],
+        inventory_manager: ["inventory", "analytics"], inventory_executive: ["inventory"],
+        logistics_manager: ["logistics", "analytics"], logistics_executive: ["logistics"],
+        accounts_manager: ["accounts", "analytics"], accounts_executive: ["accounts"],
+        seo_manager: ["website", "analytics"], website_manager: ["website"],
+        quality_manager: ["quality", "analytics"], quality_executive: ["quality"],
+      } as Record<string, string[]>)[role] || []).map((module) => ({
+        key: `/staff/${module}`, label: `${module[0].toUpperCase()}${module.slice(1)} Management`,
+        icon: module === "quality" ? ClipboardCheck : Package,
+        onSelect: () => { window.location.href = module === "quality" ? "/quality/dashboard" : `/staff?section=${module}`; },
+      })),
+      { key: "/staff", label: "Staff Dashboard", icon: LayoutDashboard, onSelect: () => { window.location.href = "/staff"; } },
+      { key: "/staff/attendance", label: "My Attendance", icon: Calendar, onSelect: () => { window.location.href = "/staff?section=my-attendance"; } },
+      { key: "/staff/settings", label: "Profile Settings", icon: Settings, onSelect: () => { window.location.href = "/staff?section=settings"; } },
+    ]),
+    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+  ];
+  return (
+    <PortalThemeProvider className="bfo-chat-portal">
+      <div className="bfo-chat-standalone">
+        <div className="bfo-standalone-toolbar">
+          <Link href={homeHref} className="bfo-portal-link"><LayoutDashboard size={16} />Back to {role.split("_")[0] || "workspace"}</Link>
+          <PortalTopbarActions role={role} />
+          <PortalThemeToggle />
+        </div>
+        <InternalChat />
+      </div>
+      <PortalMobileNav items={chatNavItems} primaryKeys={role.startsWith("sales") ? ["home", "/sales/my-companies", "/sales/follow-ups", "/chat"] : role === "admin" || role === "super_admin" ? ["home", "/admin/companies", "/admin/leads", "/admin/inquiries"] : role.startsWith("quality") ? ["home", "/quality/sample-requests", "/quality/records", "/quality/reports"] : ["home", chatNavItems[2]?.key || "/chat", "/staff/attendance", "/chat"]} />
+    </PortalThemeProvider>
+  );
+}
+
+function EmailSettingsPortal() {
+  return <SalesLayout title="Email Settings" subtitle="Manage your assigned mailbox"><EmailSettings /></SalesLayout>;
 }
 
 function Router() {
@@ -119,10 +261,10 @@ function Router() {
       <Route path="/login" component={UnifiedLogin} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/chat" component={InternalChat} />
+      <Route path="/chat" component={ChatPortal} />
 
       <Route path="/register" component={CustomerRegistration} />
-      <Route path="/customer/profile" component={CustomerProfile} />
+      <Route path="/customer/profile" component={CustomerProfilePortal} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
       <Route path="/customer/inquiries" component={CustomerDashboard} />
       <Route path="/customer/high-volume-bids" component={CustomerDashboard} />
@@ -131,8 +273,8 @@ function Router() {
       <Route path="/customer/quotes" component={CustomerDashboard} />
       <Route path="/customer/downloads" component={CustomerDashboard} />
       <Route path="/customer/catalogs" component={CustomerDashboard} />
-      <Route path="/customer/products" component={Products} />
-      <Route path="/customer/search" component={Products} />
+      <Route path="/customer/products" component={CustomerProductsPortal} />
+      <Route path="/customer/search" component={CustomerProductsPortal} />
       <Route path="/products/:slug" component={ProductDetail} />
       
       {/* Redirect old product URLs to new format */}
@@ -191,7 +333,7 @@ function Router() {
               <Route path="/sales/my-activity-log" component={MyActivityLog} />
               <Route path="/sales/sample-requests" component={SalesSampleRequestsPage} />
               <Route path="/sales/*" component={SalesPersonDashboard} />
-              <Route path="/crm/email-settings" component={EmailSettings} />
+              <Route path="/crm/email-settings" component={EmailSettingsPortal} />
             </>
           ) : null}
           
@@ -199,6 +341,7 @@ function Router() {
           {((user as any).role !== 'admin' && (user as any).role !== 'super_admin' && (user as any).role !== 'customer') ? (
             <>
               <Route path="/staff/*" component={StaffDashboard} />
+              <Route path="/staff" component={StaffDashboard} />
               <Route path="/quality/dashboard" component={QualityDashboard} />
               <Route path="/quality/dashboard/*" component={QualityDashboard} />
             </>

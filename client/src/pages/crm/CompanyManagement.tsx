@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -762,6 +763,8 @@ function CompanyContactsTab({ companyId, companyDetails }: { companyId: number; 
 }
 
 export default function CompanyManagement() {
+  const locationSearch = useSearch();
+  const routeParams = new URLSearchParams(locationSearch);
   const { user } = useAuth();
 
   const normalizeCountriesMutation = useMutation({
@@ -787,7 +790,7 @@ export default function CompanyManagement() {
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => routeParams.get("search") || "");
   const [industryFilter, setIndustryFilter] = useState<string>("all");
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -796,10 +799,16 @@ export default function CompanyManagement() {
   const [assignedToFilter, setAssignedToFilter] = useState<string>("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(() => routeParams.get("create") === "company");
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(locationSearch);
+    const nextSearch = params.get("search");
+    if (nextSearch) setSearchTerm(nextSearch);
+    if (params.get("create") === "company") setCreateDialogOpen(true);
+  }, [locationSearch]);
   const {
     data: selectedCompanyContacts,
     isLoading: contactsLoading,
@@ -2695,7 +2704,7 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end pt-4">
+              <div className="flex gap-2 justify-end pt-4 bfo-dialog-form-footer">
                 <Button
                   type="button"
                   variant="outline"
@@ -3640,7 +3649,7 @@ export default function CompanyManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end pt-4">
+              <div className="flex gap-2 justify-end pt-4 bfo-dialog-form-footer">
                 <Button
                   type="button"
                   variant="outline"
@@ -3826,7 +3835,7 @@ export default function CompanyManagement() {
               </Button>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-3 pt-4 border-t bfo-dialog-form-footer">
               <Button 
                 variant="outline" 
                 onClick={() => {

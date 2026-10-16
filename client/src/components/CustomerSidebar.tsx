@@ -18,13 +18,18 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Home
+  Home,
+  Menu,
+  X,
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
+import { PortalThemeToggle } from "@/components/portal/PortalTheme";
+import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 export default function CustomerSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { customer, logoutCustomer } = useCustomerAuth();
 
@@ -103,29 +108,62 @@ export default function CustomerSidebar() {
   const highVolumeBidsCount = inquiriesData?.inquiries?.filter((inq: any) => inq.inquiryType === 'high_volume_bid').length || 0;
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard" },
-    { icon: Package, label: "Sample Requests", href: "/customer/sample-requests", badge: sampleRequestsCount.toString() },
-    { icon: Package, label: "Browse Products", href: "/customer/products" },
-    { icon: Search, label: "Search", href: "/customer/search" },
-    { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString() },
-    { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: savedProductsCount.toString() },
-    { icon: FileText, label: "Quotations", href: "/customer/quotes", badge: quotationsCount.toString() },
-    { icon: Download, label: "Downloads", href: "/customer/downloads" },
-    { icon: FileText, label: "Catalogs", href: "/customer/catalogs" },
-    { icon: User, label: "My Profile", href: "/customer/profile" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/customer/dashboard", group: "OVERVIEW" },
+    { icon: Package, label: "Sample Requests", href: "/customer/sample-requests", badge: sampleRequestsCount.toString(), group: "ORDERS & REQUESTS" },
+    { icon: Package, label: "Browse Products", href: "/customer/products", group: "PRODUCT CATALOG" },
+    { icon: Search, label: "Search", href: "/customer/search", group: "PRODUCT CATALOG" },
+    { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString(), group: "ORDERS & REQUESTS" },
+    { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: savedProductsCount.toString(), group: "PRODUCT CATALOG" },
+    { icon: FileText, label: "Quotations", href: "/customer/quotes", badge: quotationsCount.toString(), group: "ORDERS & REQUESTS" },
+    { icon: Download, label: "Downloads", href: "/customer/downloads", group: "RESOURCES" },
+    { icon: FileText, label: "Catalogs", href: "/customer/catalogs", group: "RESOURCES" },
+    { icon: User, label: "My Profile", href: "/customer/profile", group: "ACCOUNT" },
+  ];
+  const menuGroups = [...new Set(menuItems.map((item) => item.group))];
+  const mobileItems: PortalNavDestination[] = [
+    ...menuItems.map((item) => ({
+      key: item.href,
+      label: item.label,
+      icon: item.icon,
+      active: isActive(item.href),
+      badge: item.badge,
+      onSelect: () => setLocation(item.href),
+    })),
+    { key: "website", label: "Back to Website", icon: Home, onSelect: () => setLocation("/") },
+    { key: "settings", label: "Settings", icon: Settings, onSelect: () => undefined },
+    { key: "logout", label: "Logout", icon: LogOut, onSelect: () => { logoutCustomer(); setLocation("/"); } },
   ];
 
-  const isActive = (href: string) => {
+  function isActive(href: string) {
     if (href === "/customer/dashboard") {
       return location === href;
     }
     return location.startsWith(href);
-  };
+  }
 
   return (
-    <div className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
+    <>
+    <button
+      type="button"
+      className="bfo-customer-mobile-trigger"
+      aria-label="Open customer navigation"
+      aria-expanded={mobileOpen}
+      onClick={() => setMobileOpen(true)}
+    >
+      <Menu className="w-5 h-5" />
+      <span>Menu</span>
+    </button>
+    {mobileOpen && (
+      <button
+        type="button"
+        className="bfo-customer-mobile-overlay"
+        aria-label="Close customer navigation"
+        onClick={() => setMobileOpen(false)}
+      />
+    )}
+    <div className={`bfo-customer-sidebar bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
-    } min-h-screen flex flex-col`}>
+    } min-h-screen flex flex-col ${mobileOpen ? 'bfo-mobile-open' : ''}`}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -148,6 +186,14 @@ export default function CustomerSidebar() {
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
+          <button
+            type="button"
+            className="bfo-customer-mobile-close"
+            aria-label="Close customer navigation"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -177,39 +223,44 @@ export default function CustomerSidebar() {
 
       {/* Navigation Menu */}
       <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <Button
-              variant={isActive(item.href) ? "default" : "ghost"}
-              className={`w-full justify-start h-10 ${
-                isCollapsed ? 'px-2' : 'px-3'
-              } ${
-                isActive(item.href) 
-                  ? 'bg-green-600 text-white hover:bg-green-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {item.badge && (
-                    <Badge 
-                      variant="secondary" 
-                      className="ml-auto text-xs bg-gray-200 text-gray-700"
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </Button>
-          </Link>
+        {menuGroups.map((group) => (
+          <details key={group} className="bfo-customer-nav-group" open>
+            {!isCollapsed && <summary>{group}</summary>}
+            <div className="space-y-1">
+              {menuItems.filter((item) => item.group === group).map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                  <Button
+                    variant={isActive(item.href) ? "default" : "ghost"}
+                    className={`w-full justify-start h-10 ${
+                      isCollapsed ? 'px-2' : 'px-3'
+                    } ${
+                      isActive(item.href)
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                    {!isCollapsed && (
+                      <>
+                        <span className="flex-1 text-left">{item.label}</span>
+                        {item.badge && (
+                          <Badge variant="secondary" className="ml-auto text-xs bg-gray-200 text-gray-700">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </details>
         ))}
       </nav>
 
       {/* Footer Actions */}
       <div className="p-4 border-t border-gray-200 space-y-2">
+        <PortalThemeToggle className="w-full" />
         <Button
           variant="ghost"
           className={`w-full justify-start h-10 ${
@@ -246,5 +297,7 @@ export default function CustomerSidebar() {
         </Button>
       </div>
     </div>
+    <PortalMobileNav items={mobileItems} primaryKeys={["/customer/dashboard", "/customer/sample-requests", "/customer/products", "/customer/inquiries"]} />
+    </>
   );
 }

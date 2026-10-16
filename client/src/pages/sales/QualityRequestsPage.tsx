@@ -75,6 +75,7 @@ export default function QualityRequestsPage() {
           <QualityRequestDialog
             triggerLabel="New Quality Request"
             triggerClassName="bg-green-600 hover:bg-green-700 text-white"
+            initialOpen={new URLSearchParams(window.location.search).get("create") === "quality"}
           />
         </div>
 
