@@ -76,6 +76,9 @@ async function checkMobile(role,options) {
   return {destinations:count,allOptionsInMore:true,focusTrapped:trapped,escapeClosed:true,tabletOverflow};
 }
 async function checkTheme(role) {
+  await evaluate("localStorage.setItem('bfo-portal-theme','dark')");
+  await command('Page.reload',{ignoreCache:true});
+  await until("document.body?.dataset.portalTheme==='dark' && !!document.querySelector('.bfo-theme-toggle')",'initial dark theme '+role);
   await evaluate("document.querySelector('.bfo-theme-toggle').click()");
   await until("document.body?.dataset.portalTheme==='light'",'light theme '+role);
   await shot(role+'-light');
@@ -90,36 +93,20 @@ async function checkShortcuts(role) {
   const sales=role==='sales_executive';
   const base=admin?'/admin':sales?'/sales':role==='customer'?'/customer/dashboard':'/quality/dashboard';
   await navigate(base);
-  await until("!!document.querySelector('.bfo-create-trigger')",'quick actions '+role);
-  const result={};
-  if(admin||sales||role==='customer') {
-    await evaluate(`(() => {const input=document.querySelector('.bfo-global-search input');
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Portal search verification');
-      input.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
-    await evaluate("document.querySelector('.bfo-global-search').requestSubmit()");
-    await until("new URLSearchParams(location.search).get('search')==='Portal search verification'",'search shortcut '+role);
-    if(role!=='customer')await until("document.querySelector('[placeholder^=\"Search companies\"]')?.value==='Portal search verification'",'existing company search '+role);
-    result.searchRoutedToExistingWorkflow=true;
-    await navigate(base);
-    await until("!!document.querySelector('.bfo-create-trigger')",'create toolbar');
+  await until("!!document.querySelector('.bfo-portal-root')",'workspace '+role);
+  const duplicateControls=await evaluate("document.querySelectorAll('.bfo-global-search,.bfo-create-trigger').length");
+  if(duplicateControls)throw Error('Duplicated header controls remain '+role);
+  const result={noDuplicateHeaderControls:true};
+  if(admin || sales) {
+    await navigate(admin?'/admin/dashboard/crm/companies':'/sales/my-companies');
+    await until("!!document.querySelector('[data-testid=\"company-context-desk\"]')",'company desk '+role);
+    const searches=await evaluate("document.querySelectorAll('main input[placeholder^=\"Search companies\"]').length");
+    if(searches!==1)throw Error('Expected one original company search '+role+': '+searches);
+    result.originalCompanySearchRetained=true;
+    await until("!document.querySelector('[data-testid=\"company-context-desk\"]').textContent.includes('Loading people')",'company contacts '+role);
+    result.companyDesk=true;
+    await shot(role+'-company-workspace');
   }
-  const label=admin?'Add company':sales?'Create sample request':role==='customer'?'Start an inquiry':'New document request';
-  for(let attempt=0;attempt<(role==='customer'?1:2);attempt++) {
-    const point=await evaluate("(() => {const r=document.querySelector('.bfo-create-trigger').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()");
-    await command('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});
-    await command('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point});
-    await until("!!document.querySelector('[role=\"menuitem\"]')",'quick menu');
-    await evaluate(`[...document.querySelectorAll('[role="menuitem"]')].find(n=>n.textContent.startsWith(${JSON.stringify(label)})).click()`);
-    if(role==='customer') {
-      await until("location.pathname==='/customer/products'",'customer browse shortcut');
-    } else {
-      await until("!!document.querySelector('[role=\"dialog\"] input')",'existing create form '+role);
-      await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-      await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-      await until("!document.querySelector('[role=\"dialog\"]')",'dismiss unused create form '+role);
-    }
-  }
-  result.quickCreateAndReopen=true;
   if(sales) {
     await navigate('/sales');
     await until("!!document.querySelector('[aria-label=\"Open Today panel\"]') || [...document.querySelectorAll('button')].some(n=>n.textContent.trim()==='Today')",'Today control');
@@ -177,7 +164,7 @@ async function main() {
     browser=spawn('chromium',['--headless=new','--no-sandbox','--disable-dev-shm-usage',`--user-data-dir=${profile}`,'--remote-debugging-port=0','about:blank'],{stdio:'ignore'});
     for(let i=0;i<70&&!fs.existsSync(path.join(profile,'DevToolsActivePort'));i++)await sleep(100);
     const port=fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n')[0];
-    const pages=await(await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    const pages=await require('./browser-devtools.cjs').getDevToolsPages(port);
     socket=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);
     await new Promise((r,j)=>{socket.once('open',r);socket.once('error',j)});
     socket.on('message',bytes=>{

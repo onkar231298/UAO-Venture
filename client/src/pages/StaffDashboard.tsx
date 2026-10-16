@@ -32,7 +32,6 @@ import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { MyAttendance } from "@/components/hr/MyAttendance";
 import { useSearch } from "wouter";
 import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
-import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 const toggleStaffNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -204,7 +203,7 @@ export default function StaffDashboard() {
         />
       )}
 
-      <aside className={`${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden'} md:flex w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
+      <aside className={`bfo-workspace-rail ${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden'} md:flex w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Staff Portal</h2>
@@ -313,6 +312,8 @@ export default function StaffDashboard() {
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
+            aria-label="Log out"
+            title="Log out"
             onClick={() => (window.location.href = "/api/logout")}
             className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           >
@@ -341,7 +342,6 @@ export default function StaffDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <PunchInOutButton />
-              <PortalTopbarActions role={(staffUser as any)?.role || "staff"} />
               <PortalThemeToggle />
               <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}

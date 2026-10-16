@@ -30,3 +30,13 @@ environment constraint, not evidence that an individual route is broken.
 **How to apply:** Keep credentials and temporary records isolated per role. If a
 browser command times out after many navigations, reproduce in a fresh browser
 before changing app behavior or reporting a regression.
+
+Chromium's loopback DevTools discovery can return app-preview HTML through the
+workspace's global fetch path even though Chromium is healthy.
+
+**Why:** direct Node HTTP requests reached the debug server when fetch returned
+HTML at the same loopback port. Retrying or replacing the application was unnecessary.
+
+**How to apply:** if `/json/list` is unexpectedly HTML, use `node:http` with an explicit
+loopback hostname and port for discovery. Await Chromium exit before removing
+its profile directory so cleanup errors do not hide the original test failure.

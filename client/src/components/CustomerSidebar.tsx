@@ -19,8 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  Menu,
-  X,
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +27,6 @@ import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/
 
 export default function CustomerSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { customer, logoutCustomer } = useCustomerAuth();
 
@@ -143,27 +140,9 @@ export default function CustomerSidebar() {
 
   return (
     <>
-    <button
-      type="button"
-      className="bfo-customer-mobile-trigger"
-      aria-label="Open customer navigation"
-      aria-expanded={mobileOpen}
-      onClick={() => setMobileOpen(true)}
-    >
-      <Menu className="w-5 h-5" />
-      <span>Menu</span>
-    </button>
-    {mobileOpen && (
-      <button
-        type="button"
-        className="bfo-customer-mobile-overlay"
-        aria-label="Close customer navigation"
-        onClick={() => setMobileOpen(false)}
-      />
-    )}
-    <div className={`bfo-customer-sidebar bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
+    <div className={`bfo-workspace-rail bfo-customer-sidebar bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
-    } min-h-screen flex flex-col ${mobileOpen ? 'bfo-mobile-open' : ''}`}>
+    } min-h-screen flex flex-col`}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -186,14 +165,6 @@ export default function CustomerSidebar() {
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
-          <button
-            type="button"
-            className="bfo-customer-mobile-close"
-            aria-label="Close customer navigation"
-            onClick={() => setMobileOpen(false)}
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -228,7 +199,7 @@ export default function CustomerSidebar() {
             {!isCollapsed && <summary>{group}</summary>}
             <div className="space-y-1">
               {menuItems.filter((item) => item.group === group).map((item) => (
-                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                <Link key={item.href} href={item.href}>
                   <Button
                     variant={isActive(item.href) ? "default" : "ghost"}
                     className={`w-full justify-start h-10 ${
@@ -263,6 +234,7 @@ export default function CustomerSidebar() {
         <PortalThemeToggle className="w-full" />
         <Button
           variant="ghost"
+          title="Back to Website"
           className={`w-full justify-start h-10 ${
             isCollapsed ? 'px-2' : 'px-3'
           } text-gray-700 hover:bg-gray-100`}
@@ -274,6 +246,7 @@ export default function CustomerSidebar() {
         
         <Button
           variant="ghost"
+          title="Settings"
           className={`w-full justify-start h-10 ${
             isCollapsed ? 'px-2' : 'px-3'
           } text-gray-700 hover:bg-gray-100`}
@@ -284,6 +257,8 @@ export default function CustomerSidebar() {
         
         <Button
           variant="ghost"
+          title="Logout"
+          aria-label="Logout"
           className={`w-full justify-start h-10 ${
             isCollapsed ? 'px-2' : 'px-3'
           } text-red-600 hover:bg-red-50`}
@@ -297,7 +272,7 @@ export default function CustomerSidebar() {
         </Button>
       </div>
     </div>
-    <PortalMobileNav items={mobileItems} primaryKeys={["/customer/dashboard", "/customer/sample-requests", "/customer/products", "/customer/inquiries"]} />
+    <PortalMobileNav items={mobileItems} primaryKeys={["/customer/dashboard", "/customer/sample-requests", "/customer/products", "/customer/inquiries"]} showThemeToggle />
     </>
   );
 }

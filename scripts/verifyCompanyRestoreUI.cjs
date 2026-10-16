@@ -63,7 +63,7 @@ async function main() {
     for (let i = 0; i < 60 && !fs.existsSync(portFile); i++) await sleep(200);
     if (!fs.existsSync(portFile)) throw new Error('Chromium did not start');
     const port = Number(fs.readFileSync(portFile, 'utf8').split('\n')[0]);
-    const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    const pages = await require('./browser-devtools.cjs').getDevToolsPages(port);
     const page = pages.find(p => p.type === 'page');
     socket = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
@@ -214,7 +214,14 @@ async function main() {
           ${JSON.stringify(names)}.every(name => panel.textContent.includes(name)) ? true : false; })()`,
       `visible contact names for company ${target.company_id}`, 35);
       if (!shown) throw new Error(`Contact names not rendered for company ${target.company_id}`);
-      opened.push({ companyId: target.company_id, visibleContacts: target.total });
+      await until(`document.querySelectorAll('[data-testid^="context-contact-"]').length === ${target.total}`,
+        'company desk contact count', 35);
+      const expectedIds = (await db.query('SELECT id FROM company_contacts WHERE company_id=$1', [target.company_id])).rows.map(row => row.id);
+      const deskIds = await evaluate("[...document.querySelectorAll('[data-testid^=\"context-contact-\"]')].map(row=>Number(row.dataset.testid.replace('context-contact-',''))).sort((a,b)=>a-b)");
+      if (JSON.stringify(deskIds) !== JSON.stringify(expectedIds.sort((a,b)=>a-b))) {
+        throw new Error(`Company ${target.company_id}: side desk contact ownership mismatch`);
+      }
+      opened.push({ companyId: target.company_id, visibleContacts: target.total, deskContactsAndOwnership: true });
       await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
       await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
       await until("!document.querySelector('[data-testid=\"tab-contacts\"]')", 'company dialog to close');

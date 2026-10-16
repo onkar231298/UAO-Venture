@@ -15,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
-import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -2259,9 +2258,6 @@ export default function CustomerDashboard() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="bfo-customer-workbar">
-            <PortalTopbarActions role="customer" />
-          </div>
           {/* Render main content based on route */}
           {renderMainContent()}
         </div>

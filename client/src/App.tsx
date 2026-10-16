@@ -81,7 +81,6 @@ import { InternalChatLauncher } from "@/components/InternalChatLauncher";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
 import "./styles/portal-theme.css";
 import CustomerSidebar from "@/components/CustomerSidebar";
-import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
 import { PortalThemeToggle } from "@/components/portal/PortalTheme";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 import { SalesLayout } from "@/components/layouts/SalesLayout";
@@ -108,7 +107,6 @@ function CustomerProductsPortal() {
         <main className="bfo-customer-standalone-content">
           <div className="bfo-standalone-toolbar">
             <Link href="/customer/dashboard" className="bfo-portal-link"><LayoutDashboard size={16} />Customer portal</Link>
-            <PortalTopbarActions role="customer" />
             <PortalThemeToggle />
           </div>
           <Products />
@@ -126,7 +124,6 @@ function CustomerProfilePortal() {
         <main className="bfo-customer-standalone-content">
           <div className="bfo-standalone-toolbar">
             <Link href="/customer/dashboard" className="bfo-portal-link"><LayoutDashboard size={16} />Customer portal</Link>
-            <PortalTopbarActions role="customer" />
             <PortalThemeToggle />
           </div>
           <CustomerProfile />
@@ -220,7 +217,6 @@ function ChatPortal() {
       <div className="bfo-chat-standalone">
         <div className="bfo-standalone-toolbar">
           <Link href={homeHref} className="bfo-portal-link"><LayoutDashboard size={16} />Back to {role.split("_")[0] || "workspace"}</Link>
-          <PortalTopbarActions role={role} />
           <PortalThemeToggle />
         </div>
         <InternalChat />

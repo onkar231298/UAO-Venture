@@ -2,7 +2,7 @@
 
 ## Scope and evidence
 
-The V12 redesign is scoped to signed-in workspaces. The public storefront,
+The approved workspace redesign is scoped to signed-in workspaces. The public storefront,
 authentication mechanisms, permissions and server endpoints are not redesigned.
 
 Before visual changes, `scripts/check-interface-options.cjs --record` recorded
@@ -41,8 +41,8 @@ level in the baseline, not replaced by dashboard summary cards.
 
 ## Before → after mapping
 
-* Original role-specific sidebar actions → same sidebar actions and original
-  permission conditions, with collapsible labelled groups.
+* Original role-specific sidebar actions → compact desktop rail and complete
+  labelled All destinations dialog, with original permission conditions.
 * Original desktop pages and handlers → same pages and handlers inside the
   scoped theme; no module replaced by a mockup.
 * Original dialogs, form fields, tabs, filters, sorting, pagination, context
@@ -52,8 +52,15 @@ level in the baseline, not replaced by dashboard summary cards.
   and compact mobile navigation.
 * Standalone customer products/search/profile, chat and mailbox settings → same
   components with themed workspace navigation.
-* New search/Create shortcuts → existing authorized destinations and workflows;
-  shortcuts do not grant permissions or introduce a separate API.
+* Duplicate global search/Create shortcuts → removed; original page search,
+  filters and create actions remain in their existing workflows.
+* Existing account utilities → desktop bottom utility dock and full destinations
+  menu; mobile has one navigation dock rather than stacked utility bars.
+* Company pages → original records/actions plus an authenticated company/people
+  side desk. Every returned contact remains separate, including blank-email and
+  non-primary contacts. Context switches validate company ownership and share the
+  existing contacts query cache. The desk does not generate extra company-access
+  events merely by rendering.
 * Departmental `/staff` landing → exact route alias to the existing guarded
   StaffDashboard. The pre-existing `/staff/*` route remains registered.
 
@@ -108,11 +115,11 @@ the company export response.
 | Theme persistence | Admin, Sales, departmental and Customer light/dark switching survived reload |
 | Mobile navigation | Admin, Sales, departmental, Quality and Customer dock capped at five destinations; original navigation in More; dialog focus and Escape checked |
 | Tablet layout | Five portal families checked at 820×1180; no document-level horizontal overflow; compact headers wrap their controls instead of clipping them |
-| Search and Create | Admin, Sales, Quality and Customer existing destinations checked; create forms reopened after cancellation |
+| Search and Create | Duplicate header controls absent; original company search retained; existing Admin/Sales company forms exercised |
 | Sales Today panel | Existing real-data follow-up panel opened and closed with Escape |
 | Admin and Sales company edits | Actual forms saved; company fields, email and phone checked directly in development PostgreSQL |
 | Contacts | Three temporary blank-email/non-primary contacts persisted; both request signatures and actual Sales contact form checked; separate contact-name search returned the owning company |
-| Existing multi-contact companies | Three companies opened with 15, 14 and 11 visible contacts |
+| Existing multi-contact companies | Three companies opened with 15, 14 and 11 visible contacts; side-desk IDs/counts matched their owning company directly against PostgreSQL |
 | Company export | HTTP 200, XLSX MIME type, 4,837,059 bytes |
 | Build | `npm run build` passed; existing large-bundle warning remains |
 | Test cleanup | No temporary portal-check users remained |

@@ -47,6 +47,7 @@ import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
+import { CompanyContextDesk } from "@/components/crm/CompanyContextDesk";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { FollowUpScheduler } from "@/components/crm/FollowUpScheduler";
 import { CompleteFollowUpDialog } from "@/components/crm/CompleteFollowUpDialog";
@@ -1606,6 +1607,8 @@ export default function MyCompanies() {
   };
 
   const activeCompany = activeId ? myCompanies.find(c => c.id.toString() === activeId) : null;
+  const contextCompany = (selectedCompany && myCompanies.find((company) => company.id === selectedCompany.id))
+    || selectedCompany || activeCompany || myCompanies[0] || null;
 
   const stats = {
     total: myCompanies.length,
@@ -1626,6 +1629,8 @@ export default function MyCompanies() {
 
   return (
     <SalesLayout title="My Companies" subtitle="Manage companies assigned to you">
+      <div className="crm-company-workspace">
+      <section className="crm-company-workspace__main" aria-label="My company records">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <div className="flex items-center gap-2">
@@ -1697,26 +1702,26 @@ export default function MyCompanies() {
           </div>
         </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 crm-company-workspace__sales-stats">
+        <Card className="crm-company-workspace__sales-stat">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">Total Assigned</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="crm-company-workspace__sales-stat">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-blue-600">{stats.new}</div>
             <p className="text-xs text-muted-foreground">New Companies</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="crm-company-workspace__sales-stat">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-purple-600">{stats.engaged}</div>
             <p className="text-xs text-muted-foreground">Engaged/Qualified</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="crm-company-workspace__sales-stat">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-green-600">{stats.customers}</div>
             <p className="text-xs text-muted-foreground">Customers</p>
@@ -1919,7 +1924,7 @@ export default function MyCompanies() {
         </DndContext>
       ) : (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto crm-company-workspace__table">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
@@ -3100,6 +3105,15 @@ export default function MyCompanies() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
+      </section>
+      <CompanyContextDesk
+        company={contextCompany}
+        ownerName={contextCompany?.assignedTo === user?.id
+          ? [user?.firstName, user?.lastName].filter(Boolean).join(" ") || contextCompany.assignedTo
+          : contextCompany?.assignedTo}
+        onView={contextCompany ? () => handleOpenCompany(contextCompany) : undefined}
+      />
       </div>
     </SalesLayout>
   );

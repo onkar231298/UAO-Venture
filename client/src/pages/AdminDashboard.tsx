@@ -60,7 +60,6 @@ import {
   Upload,
   ChevronDown,
 } from "lucide-react";
-import { PortalTopbarActions } from "@/components/portal/PortalTopbarActions";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
@@ -284,7 +283,7 @@ export default function AdminDashboard() {
         />
       )}
 
-      <aside className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
+      <aside className={`bfo-workspace-rail ${sidebarOpen ? 'flex' : 'hidden'} md:flex fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-col`}>
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
@@ -400,6 +399,8 @@ export default function AdminDashboard() {
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
+            aria-label="Log out"
+            title="Log out"
             onClick={() => window.location.href = '/api/logout'}
             className="w-full flex items-center px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           >
@@ -427,7 +428,6 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <PortalTopbarActions role={(adminUser as any)?.role || "admin"} />
               <PortalThemeToggle />
               <NotificationBell />
               <Badge variant="secondary" className="hidden md:inline-flex bg-green-100 text-green-800">

@@ -65,6 +65,7 @@ import { CompanyActivityTimeline } from "@/components/crm/CompanyActivityTimelin
 import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyContactsTab as SharedCompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
+import { CompanyContextDesk } from "@/components/crm/CompanyContextDesk";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
@@ -1262,6 +1263,8 @@ export default function CompanyManagement() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+  const contextCompany = (selectedCompany && companies.find((company) => company.id === selectedCompany.id))
+    || selectedCompany || paginatedCompanies[0] || companies[0] || null;
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -1453,8 +1456,10 @@ export default function CompanyManagement() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <div className="crm-company-workspace">
+      <section className="crm-company-workspace__main space-y-6" aria-label="Company records">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center crm-company-workspace__heading">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-company-management">
             {isAdmin ? "Company Management" : "My Companies"}
@@ -1569,6 +1574,25 @@ export default function CompanyManagement() {
           <option key={c} value={c} />
         ))}
       </datalist>
+
+      <div className="crm-company-workspace__metrics" aria-label="Company summary" data-testid="company-summary-metrics">
+        <div className="crm-company-workspace__metric">
+          <span>Total</span>
+          <strong data-testid="text-total-companies">{total}</strong>
+        </div>
+        <div className="crm-company-workspace__metric">
+          <span>Website</span>
+          <strong data-testid="text-website-companies">{companies.filter(c => c.origin === 'website').length}</strong>
+        </div>
+        <div className="crm-company-workspace__metric">
+          <span>Assigned</span>
+          <strong data-testid="text-assigned-companies">{companies.filter(c => c.assignedTo).length}</strong>
+        </div>
+        <div className="crm-company-workspace__metric">
+          <span>Unassigned</span>
+          <strong data-testid="text-unassigned-companies">{companies.filter(c => !c.assignedTo).length}</strong>
+        </div>
+      </div>
 
       {/* Stage Filter Tabs */}
       <Tabs value={stageFilter} onValueChange={setStageFilter} className="w-full">
@@ -1735,60 +1759,6 @@ export default function CompanyManagement() {
           )}
         </CardContent>
       </Card>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold" data-testid="text-total-companies">{total}</p>
-              </div>
-              <Building2 className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Website</p>
-                <p className="text-2xl font-bold text-blue-600" data-testid="text-website-companies">
-                  {companies.filter(c => c.origin === 'website').length}
-                </p>
-              </div>
-              <Globe className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Assigned</p>
-                <p className="text-2xl font-bold text-green-600" data-testid="text-assigned-companies">
-                  {companies.filter(c => c.assignedTo).length}
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Unassigned</p>
-                <p className="text-2xl font-bold text-amber-600" data-testid="text-unassigned-companies">
-                  {companies.filter(c => !c.assignedTo).length}
-                </p>
-              </div>
-              <Building2 className="h-8 w-8 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Bulk Actions Bar */}
       {selectedCompanies.length > 0 && (
@@ -2222,6 +2192,23 @@ export default function CompanyManagement() {
           )}
         </CardContent>
       </Card>
+
+      </section>
+      <CompanyContextDesk
+        company={contextCompany}
+        ownerName={contextCompany?.assignedTo
+          ? (() => {
+              const rep = salesReps.find((item) => item.id === contextCompany.assignedTo);
+              return rep ? `${rep.firstName} ${rep.lastName}` : contextCompany.assignedTo;
+            })()
+          : null}
+        onView={contextCompany ? () => {
+          setSelectedCompany(contextCompany);
+          setViewDetailsOpen(true);
+          trackView('company', contextCompany.id, contextCompany.companyName);
+        } : undefined}
+      />
+      </div>
 
       {/* Create Company Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

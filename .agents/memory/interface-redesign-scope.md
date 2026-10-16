@@ -1,6 +1,6 @@
 ---
 name: All-user interface redesign scope
-description: Owner's scope and option-preservation requirement for the V12-inspired redesign.
+description: Owner's scope and option-preservation requirement for the approved workspace redesign.
 ---
 
 The owner wants all users' signed-in interfaces in the same style, not only Admin and Sales. Their most important requirement is: "dont miss any avalble option while doing this".
@@ -14,3 +14,9 @@ The owner rejected colour/font/theme-only changes as insufficient. They want the
 **Why:** the owner corrected the delivered redesign and supplied the video again.
 
 **How to apply:** improve layout and hierarchy rather than merely recolouring existing screens; keep existing actions available without adding redundant toolbar copies. Use their supplied palette: navy #172B4D sidebar/header, warm white #F7F7F2 background, amber #D5851F primary actions, sage #87A96B success, white #FFFFFF cards/tables, muted red #C94C4C urgent states.
+
+The owner approved the revised compact-navigation layout across all users, with the clarification: "this looks okay but dont change any alredy avaliable".
+
+**Why:** approval is for layout placement and visual hierarchy, not replacing business workflows or reducing role-specific choices.
+
+**How to apply:** retain original forms, actions, fields, role restrictions and full navigation access while applying the approved structure; do not treat the mockup's fictional records as application data.

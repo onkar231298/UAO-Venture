@@ -1,37 +1,39 @@
 /* V12-inspired operational workspace theme. Scoped to authenticated portal roots. */
 .bfo-portal-root {
-  --bfo-bg: #17191b;
-  --bfo-sidebar: rgba(27, 29, 31, .94);
-  --bfo-panel: #222527;
-  --bfo-panel-raised: #292c2e;
-  --bfo-input: #1b1e20;
-  --bfo-border: #393d3f;
-  --bfo-text: #f2f0ec;
-  --bfo-muted: #a4a5a2;
-  --bfo-accent: #ef7d43;
-  --bfo-accent-soft: rgba(239, 125, 67, .14);
-  --bfo-shadow: 0 12px 34px rgba(0, 0, 0, .18);
-  --background: hsl(210 4% 10%);
-  --foreground: hsl(40 15% 93%);
-  --card: hsl(195 4% 14%);
-  --card-foreground: hsl(40 15% 93%);
-  --popover: hsl(195 4% 14%);
-  --popover-foreground: hsl(40 15% 93%);
-  --primary: hsl(20 83% 60%);
-  --primary-foreground: hsl(23 27% 11%);
-  --secondary: hsl(195 6% 17%);
-  --secondary-foreground: hsl(40 15% 93%);
-  --muted: hsl(195 6% 17%);
-  --muted-foreground: hsl(90 2% 64%);
-  --accent: hsl(27 6% 19%);
-  --accent-foreground: hsl(40 15% 93%);
-  --border: hsl(195 5% 24%);
-  --input: hsl(195 5% 24%);
-  --ring: hsl(20 83% 60%);
+  --bfo-bg: #F7F7F2;
+  --bfo-sidebar: #172B4D;
+  --bfo-panel: #FFFFFF;
+  --bfo-panel-raised: #FFFFFF;
+  --bfo-input: #FFFFFF;
+  --bfo-border: #E2E5E5;
+  --bfo-text: #24334A;
+  --bfo-muted: #728096;
+  --bfo-accent: #D5851F;
+  --bfo-success: #87A96B;
+  --bfo-urgent: #C94C4C;
+  --bfo-accent-soft: rgba(213, 133, 31, .14);
+  --bfo-shadow: 0 12px 34px rgba(23, 43, 77, .08);
+  --background: hsl(60 20% 96%);
+  --foreground: hsl(215 34% 21%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(215 34% 21%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(215 34% 21%);
+  --primary: hsl(35 75% 48%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(60 20% 96%);
+  --secondary-foreground: hsl(215 34% 21%);
+  --muted: hsl(60 20% 96%);
+  --muted-foreground: hsl(215 12% 52%);
+  --accent: hsl(90 18% 93%);
+  --accent-foreground: hsl(215 34% 21%);
+  --border: hsl(180 5% 89%);
+  --input: hsl(180 5% 89%);
+  --ring: hsl(35 75% 48%);
   color: var(--bfo-text);
   background: var(--bfo-bg);
   min-height: 100dvh;
-  color-scheme: dark;
+  color-scheme: light;
 }
 .bfo-portal-root > .h-screen {
   height: 100dvh !important;
@@ -39,37 +41,67 @@
 }
 
 .bfo-portal-root[data-portal-theme="light"] {
-  --bfo-bg: #eeece8;
-  --bfo-sidebar: rgba(248, 247, 244, .96);
-  --bfo-panel: #fbfaf7;
-  --bfo-panel-raised: #f1efea;
-  --bfo-input: #fffefa;
-  --bfo-border: #d8d4cd;
-  --bfo-text: #272727;
-  --bfo-muted: #6f706e;
-  --bfo-accent: #c95f2d;
-  --bfo-accent-soft: rgba(201, 95, 45, .11);
-  --bfo-shadow: 0 12px 30px rgba(51, 42, 33, .08);
-  --background: hsl(40 13% 92%);
-  --foreground: hsl(0 0% 15%);
-  --card: hsl(45 33% 98%);
-  --card-foreground: hsl(0 0% 15%);
-  --popover: hsl(45 33% 98%);
-  --popover-foreground: hsl(0 0% 15%);
-  --primary: hsl(19 63% 48%);
-  --primary-foreground: hsl(30 100% 98%);
-  --secondary: hsl(45 20% 93%);
-  --secondary-foreground: hsl(0 0% 15%);
-  --muted: hsl(45 20% 93%);
-  --muted-foreground: hsl(90 1% 44%);
-  --accent: hsl(22 53% 93%);
-  --accent-foreground: hsl(23 30% 18%);
-  --border: hsl(40 11% 83%);
-  --input: hsl(40 11% 83%);
-  --ring: hsl(19 63% 48%);
+  --bfo-bg: #F7F7F2;
+  --bfo-sidebar: #172B4D;
+  --bfo-panel: #FFFFFF;
+  --bfo-panel-raised: #FFFFFF;
+  --bfo-input: #FFFFFF;
+  --bfo-border: #E2E5E5;
+  --bfo-text: #24334A;
+  --bfo-muted: #728096;
+  --bfo-accent: #D5851F;
+  --bfo-accent-soft: rgba(213, 133, 31, .12);
+  --bfo-shadow: 0 12px 30px rgba(23, 43, 77, .08);
+  --background: hsl(60 20% 96%);
+  --foreground: hsl(215 34% 21%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(215 34% 21%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(215 34% 21%);
+  --primary: hsl(35 75% 48%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(60 20% 96%);
+  --secondary-foreground: hsl(215 34% 21%);
+  --muted: hsl(60 20% 96%);
+  --muted-foreground: hsl(215 12% 52%);
+  --accent: hsl(90 18% 93%);
+  --accent-foreground: hsl(215 34% 21%);
+  --border: hsl(180 5% 89%);
+  --input: hsl(180 5% 89%);
+  --ring: hsl(35 75% 48%);
   color: var(--bfo-text);
   background: var(--bfo-bg);
   color-scheme: light;
+}
+.bfo-portal-root[data-portal-theme="dark"] {
+  --bfo-bg: #17202d;
+  --bfo-sidebar: #172B4D;
+  --bfo-panel: #263449;
+  --bfo-panel-raised: #304057;
+  --bfo-input: #202d40;
+  --bfo-border: #43536a;
+  --bfo-text: #edf1f5;
+  --bfo-muted: #aab6c5;
+  --bfo-accent: #D5851F;
+  --bfo-accent-soft: rgba(213, 133, 31, .16);
+  --background: hsl(215 32% 13%);
+  --foreground: hsl(210 20% 95%);
+  --card: hsl(215 27% 22%);
+  --card-foreground: hsl(210 20% 95%);
+  --popover: hsl(215 27% 22%);
+  --popover-foreground: hsl(210 20% 95%);
+  --primary: hsl(35 75% 48%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(215 22% 29%);
+  --secondary-foreground: hsl(210 20% 95%);
+  --muted: hsl(215 22% 29%);
+  --muted-foreground: hsl(215 15% 72%);
+  --accent: hsl(215 22% 29%);
+  --accent-foreground: hsl(210 20% 95%);
+  --border: hsl(215 20% 34%);
+  --input: hsl(215 20% 34%);
+  --ring: hsl(35 75% 48%);
+  color-scheme: dark;
 }
 
 body.bfo-portal-active {
@@ -88,28 +120,36 @@ body.bfo-portal-active [role="menu"] .bg-background {
 .bfo-portal-root [class~="bg-white/80"] {
   background-color: var(--bfo-panel-raised) !important;
 }
-.bfo-portal-root[data-portal-theme="dark"] :is(.bg-green-50, .bg-green-100) {
-  background-color: #15382c !important;
+.bfo-portal-root :is(.bg-green-50, .bg-green-100) {
+  background-color: color-mix(in srgb, var(--bfo-success) 16%, var(--bfo-panel)) !important;
 }
-.bfo-portal-root[data-portal-theme="dark"] :is(.text-green-700, .text-green-800, .text-green-900) {
-  color: #8ee3b4 !important;
+.bfo-portal-root :is(.text-green-700, .text-green-800, .text-green-900) {
+  color: color-mix(in srgb, var(--bfo-success) 78%, var(--bfo-text)) !important;
 }
-body.bfo-portal-active[data-portal-theme="dark"] [role="dialog"] :is(.bg-green-50, .bg-green-100) {
-  background-color: #15382c !important;
+.bfo-portal-root :is(.bg-red-50, .bg-red-100) {
+  background-color: color-mix(in srgb, var(--bfo-urgent) 14%, var(--bfo-panel)) !important;
 }
-body.bfo-portal-active[data-portal-theme="dark"] [role="dialog"] :is(.text-green-700, .text-green-800, .text-green-900) {
-  color: #8ee3b4 !important;
+.bfo-portal-root :is(.text-red-700, .text-red-800, .text-red-900) {
+  color: var(--bfo-urgent) !important;
+}
+body.bfo-portal-active [role="dialog"] :is(.bg-green-50, .bg-green-100) {
+  background-color: color-mix(in srgb, var(--bfo-success) 16%, var(--bfo-panel)) !important;
+}
+body.bfo-portal-active [role="dialog"] :is(.text-green-700, .text-green-800, .text-green-900) {
+  color: color-mix(in srgb, var(--bfo-success) 78%, var(--bfo-text)) !important;
 }
 body.bfo-portal-active * {
   border-color: var(--border, var(--bfo-border, #393d3f));
 }
 
 /* Repaint legacy Tailwind utility surfaces while retaining their layout and handlers. */
-.bfo-portal-root .bg-gray-50,
 .bfo-portal-root .bg-gray-100,
-.bfo-portal-root .bg-slate-50,
 .bfo-portal-root .bg-slate-100 {
   background-color: var(--bfo-panel-raised) !important;
+}
+.bfo-portal-root .bg-gray-50,
+.bfo-portal-root .bg-slate-50 {
+  background-color: var(--bfo-bg) !important;
 }
 .bfo-portal-root .bg-white,
 .bfo-portal-root .bg-card,
@@ -169,41 +209,201 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   outline-offset: 2px;
 }
 
-.bfo-portal-root aside {
+.bfo-portal-root aside.bfo-workspace-rail {
   background: var(--bfo-sidebar) !important;
-  border-color: var(--bfo-border) !important;
+  border-color: rgba(255, 255, 255, .14) !important;
   backdrop-filter: blur(14px);
 }
 .bfo-portal-root aside nav h3 {
-  color: var(--bfo-muted) !important;
+  color: #d4dceb !important;
   letter-spacing: .12em;
   font-size: .64rem;
 }
 .bfo-portal-root aside nav button,
 .bfo-portal-root aside nav a,
 .bfo-portal-root aside nav a button {
-  color: var(--bfo-muted);
+  color: #dbe2eb;
   border-color: transparent;
   transition: background-color .16s ease, color .16s ease, transform .16s ease;
 }
 .bfo-portal-root aside nav button:hover,
 .bfo-portal-root aside nav a:hover,
 .bfo-portal-root aside nav a:hover button {
-  color: var(--bfo-text) !important;
-  background: var(--bfo-panel-raised) !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, .12) !important;
 }
 .bfo-portal-root aside nav button[class*="bg-blue-100"],
 .bfo-portal-root aside nav button[class*="bg-green-100"],
 .bfo-portal-root aside nav a button[class*="bg-green-600"] {
-  background: var(--bfo-accent-soft) !important;
-  border-color: color-mix(in srgb, var(--bfo-accent) 40%, transparent) !important;
-  color: var(--bfo-accent) !important;
+  background: rgba(213, 133, 31, .2) !important;
+  border-color: rgba(213, 133, 31, .55) !important;
+  color: #f4bb66 !important;
 }
-.bfo-portal-root header {
-  background: color-mix(in srgb, var(--bfo-panel) 92%, transparent) !important;
-  border-color: var(--bfo-border) !important;
-  backdrop-filter: blur(14px);
+.bfo-portal-root .bfo-workspace-rail {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  flex: 0 0 68px !important;
+  overflow: visible;
+  color: #dbe2eb;
+  background: #172B4D !important;
 }
+.bfo-portal-root .bfo-workspace-rail > div:first-child {
+  min-height: 56px;
+  justify-content: center;
+  padding: 8px !important;
+}
+.bfo-portal-root .bfo-workspace-rail > div:first-child h2,
+.bfo-portal-root .bfo-workspace-rail > div:first-child p,
+.bfo-portal-root .bfo-workspace-rail > div:first-child a,
+.bfo-portal-root .bfo-workspace-rail > div:first-child > div > div,
+.bfo-portal-root .bfo-workspace-rail nav .bfo-nav-group-toggle span,
+.bfo-portal-root .bfo-workspace-rail nav button > span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav {
+  padding: 8px 7px !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav > div,
+.bfo-portal-root .bfo-workspace-rail nav > div > div,
+.bfo-portal-root .bfo-workspace-rail nav .space-y-1,
+.bfo-portal-root .bfo-workspace-rail nav .space-y-5,
+.bfo-portal-root .bfo-workspace-rail nav .space-y-6 {
+  margin: 0 !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav .bfo-nav-group-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  min-height: 24px;
+  justify-content: center;
+  margin: 2px 0 !important;
+  padding: 0 !important;
+  overflow: visible;
+  opacity: .75;
+}
+.bfo-portal-root .bfo-workspace-rail nav details > summary {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  padding: 0 !important;
+  margin: 2px 0 !important;
+  overflow: hidden;
+  color: #dbe2eb;
+}
+.bfo-portal-root .bfo-workspace-rail nav details > summary:hover,
+.bfo-portal-root .bfo-workspace-rail nav details > summary:focus-visible {
+  z-index: 100;
+  width: max-content;
+  height: auto;
+  overflow: visible;
+  padding: 7px 10px !important;
+  color: #fff;
+  background: #10213c;
+  border-radius: 6px;
+}
+.bfo-portal-root .bfo-workspace-rail nav .bfo-nav-group-toggle:hover > span,
+.bfo-portal-root .bfo-workspace-rail nav .bfo-nav-group-toggle:focus-visible > span {
+  position: absolute !important;
+  z-index: 100;
+  left: 50px;
+  top: 50%;
+  width: auto !important;
+  height: auto !important;
+  clip: auto !important;
+  padding: 7px 10px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform: translateY(-50%);
+  color: #fff;
+  background: #10213c;
+  border-radius: 6px;
+  white-space: nowrap !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle),
+.bfo-portal-root .bfo-workspace-rail nav a > button {
+  position: relative;
+  width: 44px !important;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0 !important;
+  margin: 3px 0;
+  border: 1px solid transparent !important;
+  color: #dbe2eb !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle) > svg,
+.bfo-portal-root .bfo-workspace-rail nav a > button > svg {
+  width: 19px;
+  height: 19px;
+  margin: 0 !important;
+}
+.bfo-portal-root .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle):hover > span,
+.bfo-portal-root .bfo-workspace-rail nav a > button:hover > span,
+.bfo-portal-root .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle):focus-visible > span,
+.bfo-portal-root .bfo-workspace-rail nav a > button:focus-visible > span {
+  position: absolute !important;
+  z-index: 100;
+  left: 50px;
+  top: 50%;
+  width: auto !important;
+  height: auto !important;
+  clip: auto !important;
+  padding: 7px 10px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform: translateY(-50%);
+  color: #fff;
+  background: #10213c;
+  border-radius: 6px;
+  box-shadow: 0 5px 18px rgba(16, 33, 60, .25);
+  white-space: nowrap !important;
+}
+.bfo-portal-root .bfo-workspace-rail > div:last-child {
+  padding: 8px !important;
+}
+.bfo-portal-root .bfo-workspace-rail > div:last-child button {
+  width: 44px !important;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0 !important;
+  overflow: hidden;
+  color: #f3c5c2 !important;
+}
+.bfo-portal-root .bfo-workspace-rail > div:last-child button svg {
+  flex: 0 0 auto;
+  margin: 0 !important;
+}
+.bfo-portal-root .bfo-workspace-rail > div:last-child button:not(:has(svg)) { display: none; }
+.bfo-portal-root > .flex.h-screen > main > header {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  min-height: 56px;
+  background: #172B4D !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(21, 39, 69, .14);
+}
+.bfo-portal-root > .flex.h-screen > main > header * { color: #fff !important; }
+.bfo-portal-root > .flex.h-screen > main > header .text-gray-600,
+.bfo-portal-root > .flex.h-screen > main > header .text-gray-400,
+.bfo-portal-root > .flex.h-screen > main > header .text-gray-500 { color: #d4dceb !important; }
+.bfo-portal-root > .flex.h-screen > main > header .bfo-theme-toggle {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .2);
+}
+.bfo-portal-root > .flex.h-screen > main > header button:hover { background-color: rgba(255, 255, 255, .12); }
 .bfo-nav-group-toggle {
   width: 100%;
   display: flex;
@@ -316,19 +516,20 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   top: 0;
   z-index: 35;
   padding: 10px 16px;
-  background: var(--bfo-panel);
-  border-bottom: 1px solid var(--bfo-border);
+  color: #fff;
+  background: #172B4D;
+  border-bottom: 1px solid rgba(255, 255, 255, .16);
 }
 .bfo-portal-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--bfo-muted);
+  color: #dbe2eb;
   font-size: 13px;
   font-weight: 600;
 }
 .bfo-portal-link:hover {
-  color: var(--bfo-accent);
+  color: #f4bb66;
 }
 .bfo-customer-standalone-shell {
   display: flex;
@@ -339,6 +540,10 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   min-width: 0;
 }
 .bfo-mobile-dock {
+  display: none;
+}
+.bfo-utility-dock { display: none; }
+.bfo-desktop-destinations {
   display: none;
 }
 .bfo-more-scrim,
@@ -375,9 +580,19 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 }
 .bfo-modal-content.bfo-more-sheet {
   left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  width: min(calc(100% - 24px), 620px);
+  top: 72px;
+  right: auto;
+  bottom: 12px;
+  left: 78px;
+  transform: none;
+  width: min(570px, calc(100vw - 92px));
+  max-height: none;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--bfo-panel);
+  border: 1px solid var(--bfo-border);
+  border-radius: 14px;
+  box-shadow: var(--bfo-shadow);
 }
 .bfo-modal-content.bfo-today-panel {
   right: 0;
@@ -444,6 +659,11 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 .bfo-more-grid button small {
   margin-left: auto;
   color: var(--bfo-accent);
+}
+.bfo-more-utilities {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 .bfo-today-scrim {
   align-items: stretch;
@@ -609,14 +829,27 @@ body.bfo-portal-active [role="dialog"] [role="combobox"] {
   border-color: var(--bfo-border, #393d3f);
 }
 body.bfo-portal-active[data-portal-theme="light"] {
-  background: #eeece8;
-  color: #272727;
-  --bfo-panel: #fbfaf7;
-  --bfo-panel-raised: #f1efea;
-  --bfo-input: #fffefa;
-  --bfo-border: #d8d4cd;
-  --bfo-text: #272727;
-  --bfo-muted: #6f706e;
+  background: #F7F7F2;
+  color: #24334A;
+  --bfo-panel: #FFFFFF;
+  --bfo-panel-raised: #FFFFFF;
+  --bfo-input: #FFFFFF;
+  --bfo-border: #E2E5E5;
+  --bfo-text: #24334A;
+  --bfo-muted: #728096;
+  --bfo-accent: #D5851F;
+  --sidebar-background: hsl(215 54% 20%);
+}
+body.bfo-portal-active[data-portal-theme="dark"] {
+  --bfo-bg: #17202d;
+  --bfo-sidebar: #172B4D;
+  --bfo-panel: #263449;
+  --bfo-panel-raised: #304057;
+  --bfo-input: #202d40;
+  --bfo-border: #43536a;
+  --bfo-text: #edf1f5;
+  --bfo-muted: #aab6c5;
+  --bfo-accent: #D5851F;
 }
 
 .bfo-theme-toggle {
@@ -626,17 +859,17 @@ body.bfo-portal-active[data-portal-theme="light"] {
   justify-content: center;
   gap: 8px;
   padding: 0 11px;
-  color: var(--bfo-text, #f2f0ec);
-  background: var(--bfo-panel-raised, #292c2e);
-  border: 1px solid var(--bfo-border, #393d3f);
+  color: var(--bfo-text, #24334A);
+  background: var(--bfo-panel-raised, #FFFFFF);
+  border: 1px solid var(--bfo-border, #E2E5E5);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 .bfo-theme-toggle:hover {
-  border-color: var(--bfo-accent, #ef7d43);
-  color: var(--bfo-accent, #ef7d43);
+  border-color: var(--bfo-accent, #D5851F);
+  color: var(--bfo-accent, #D5851F);
 }
 .bfo-theme-floating {
   position: fixed;
@@ -679,34 +912,29 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   background: var(--card, #222527);
   border-top: 1px solid var(--border, #393d3f);
 }
-.bfo-customer-mobile-trigger,
-.bfo-customer-mobile-close,
-.bfo-customer-mobile-overlay {
-  display: none;
-}
 /* A narrow work area must wrap toolbar controls, not clip attendance,
    notifications or the profile behind the scrollable main column. */
 @media (max-width: 1100px) {
-  .bfo-portal-root header {
+  .bfo-portal-root > .flex.h-screen > main > header {
     flex-wrap: wrap;
     gap: 12px;
   }
-  .bfo-portal-root header > div {
+  .bfo-portal-root > .flex.h-screen > main > header > div {
     min-width: 0;
   }
-  .bfo-portal-root header > div:last-child {
+  .bfo-portal-root > .flex.h-screen > main > header > div:last-child {
     flex-wrap: wrap;
     justify-content: flex-start;
     max-width: 100%;
     gap: 8px;
   }
-  .bfo-portal-root header .flex {
+  .bfo-portal-root > .flex.h-screen > main > header .flex {
     min-width: 0;
     max-width: 100%;
     flex-wrap: wrap;
     gap: 8px;
   }
-  .bfo-portal-root header .bfo-topbar-actions {
+  .bfo-portal-root > .flex.h-screen > main > header .bfo-topbar-actions {
     flex-wrap: wrap;
     max-width: 100%;
   }
@@ -715,10 +943,9 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   .bfo-portal-root {
     min-height: 100dvh;
   }
-  .bfo-portal-root aside {
-    max-height: 100dvh;
-    z-index: 70;
-  }
+  .bfo-portal-root aside.bfo-workspace-rail,
+  .bfo-customer-sidebar.bfo-workspace-rail { display: none !important; }
+  .bfo-portal-root > .flex.h-screen > main > header button:has(.lucide-menu) { display: none !important; }
   .bfo-theme-floating {
     top: auto;
     bottom: max(14px, env(safe-area-inset-bottom));
@@ -729,63 +956,9 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   .bfo-portal-root.bfo-customer-portal {
     display: block;
   }
-  .bfo-customer-mobile-trigger {
-    display: inline-flex;
-    position: fixed;
-    z-index: 65;
-    top: max(10px, env(safe-area-inset-top));
-    left: 12px;
-    align-items: center;
-    gap: 7px;
-    min-height: 42px;
-    padding: 0 12px;
-    color: var(--bfo-text);
-    background: var(--bfo-panel);
-    border: 1px solid var(--bfo-border);
-    border-radius: 11px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .bfo-customer-mobile-overlay {
-    display: block;
-    position: fixed;
-    z-index: 69;
-    inset: 0;
-    background: rgba(10, 11, 12, .65);
-  }
-  .bfo-customer-sidebar {
-    display: none !important;
-  }
-  .bfo-customer-sidebar.bfo-mobile-open {
-    display: flex !important;
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 70;
-    width: min(86vw, 320px) !important;
-    min-height: 100dvh !important;
-    overflow-y: auto;
-    box-shadow: 14px 0 40px rgba(0, 0, 0, .28);
-  }
-  .bfo-customer-sidebar nav {
-    overflow-y: auto;
-  }
-  .bfo-customer-mobile-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    color: var(--bfo-muted);
-    background: var(--bfo-panel-raised);
-    border: 1px solid var(--bfo-border);
-    border-radius: 9px;
-  }
   .bfo-portal-root.bfo-customer-portal > .min-h-screen > .flex-1 {
     width: 100%;
     min-width: 0;
-  }
-  .bfo-customer-portal > .min-h-screen > .flex-1 > div:first-child {
-    padding-top: 64px;
   }
   .bfo-topbar-actions {
     gap: 6px;
@@ -816,8 +989,8 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     min-height: calc(62px + env(safe-area-inset-bottom));
     padding: 7px 4px max(7px, env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--bfo-sidebar) 94%, transparent);
-    border-top: 1px solid var(--bfo-border);
+    background: #172B4D;
+    border-top: 1px solid rgba(255, 255, 255, .14);
     backdrop-filter: blur(14px);
   }
   .bfo-mobile-dock button {
@@ -827,14 +1000,14 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     justify-items: center;
     gap: 4px;
     min-width: 0;
-    color: var(--bfo-muted);
+    color: #dbe2eb;
     background: transparent;
     border: 0;
     font-size: 9px;
     font-weight: 600;
   }
   .bfo-mobile-dock button.is-active {
-    color: var(--bfo-accent);
+    color: #f4bb66;
   }
   .bfo-mobile-dock button i {
     position: absolute;
@@ -856,13 +1029,111 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   }
   .bfo-customer-standalone-content > .bfo-standalone-toolbar {
     flex-wrap: wrap;
-    padding-left: 64px;
   }
   .bfo-more-scrim {
     z-index: 100;
   }
+  .bfo-desktop-destinations { display: none !important; }
+  .bfo-modal-content.bfo-more-sheet {
+    top: auto;
+    right: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 24px), 620px);
+    max-height: min(78dvh, 720px);
+    padding: 18px;
+    border-radius: 18px 18px 10px 10px;
+  }
   .bfo-today-panel {
     width: 100%;
+  }
+}
+@media (min-width: 768px) {
+  .bfo-portal-root .bfo-workspace-rail > div:first-child {
+    position: relative;
+  }
+  .bfo-portal-root .bfo-workspace-rail > div:first-child::before {
+    content: "CN";
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #D5851F;
+    border-radius: 10px;
+    color: #f2bb70;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  /* Utilities are moved to the dock, not repeated as a second desktop footer. */
+  .bfo-portal-root .bfo-workspace-rail > div:last-child {
+    display: none;
+  }
+  .bfo-utility-dock {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: fixed;
+    bottom: 10px;
+    left: calc(50% + 34px);
+    transform: translateX(-50%);
+    z-index: 25;
+    max-width: calc(100vw - 120px);
+    padding: 5px 8px;
+    background: #172B4D;
+    color: #dbe2eb;
+    border: 1px solid #425573;
+    border-radius: 9px;
+    box-shadow: 0 6px 22px #10213c30;
+  }
+  .bfo-utility-dock button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 0;
+    background: transparent;
+    color: #dbe2eb;
+    border-radius: 5px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  .bfo-utility-dock button:hover {
+    background: #ffffff16;
+    color: #fff;
+  }
+  .bfo-portal-root > .flex.h-screen > main {
+    padding-bottom: 66px;
+  }
+  .bfo-portal-root > .flex.h-screen > main > header,
+  .bfo-customer-standalone-content > .bfo-standalone-toolbar {
+    width: calc(100% + 68px);
+    margin-left: -68px;
+    padding-left: 84px;
+  }
+  .bfo-desktop-destinations {
+    position: fixed;
+    z-index: 45;
+    left: 8px;
+    bottom: 66px;
+    display: block;
+  }
+  .bfo-desktop-destinations button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: #dbe2eb;
+    background: #172B4D;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 9px;
+    box-shadow: 0 5px 18px rgba(16, 33, 60, .2);
+  }
+  .bfo-desktop-destinations button:hover,
+  .bfo-desktop-destinations button:focus-visible {
+    color: #fff;
+    background: #263e66;
   }
 }
 @media (prefers-reduced-motion: reduce) {
