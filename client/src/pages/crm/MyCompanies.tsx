@@ -48,6 +48,7 @@ import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { CompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
 import { CompanyContextDesk } from "@/components/crm/CompanyContextDesk";
+import { CompanyDeskControls } from "@/components/crm/CompanyDeskControls";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { FollowUpScheduler } from "@/components/crm/FollowUpScheduler";
 import { CompleteFollowUpDialog } from "@/components/crm/CompleteFollowUpDialog";
@@ -1607,8 +1608,15 @@ export default function MyCompanies() {
   };
 
   const activeCompany = activeId ? myCompanies.find(c => c.id.toString() === activeId) : null;
-  const contextCompany = (selectedCompany && myCompanies.find((company) => company.id === selectedCompany.id))
-    || selectedCompany || activeCompany || myCompanies[0] || null;
+  const [previewCompanyId, setPreviewCompanyId] = useState<number | null>(null);
+  const [deskVisible, setDeskVisible] = useState(true);
+  useEffect(() => {
+    if (selectedCompany) setPreviewCompanyId(selectedCompany.id);
+  }, [selectedCompany?.id]);
+  const contextCompany = filteredCompanies.find((company) => company.id === previewCompanyId)
+    || filteredCompanies.find((company) => company.id === selectedCompany?.id)
+    || activeCompany || filteredCompanies[0] || null;
+  const previewCompany = (id: number) => { setPreviewCompanyId(id); setDeskVisible(true); };
 
   const stats = {
     total: myCompanies.length,
@@ -1629,7 +1637,9 @@ export default function MyCompanies() {
 
   return (
     <SalesLayout title="My Companies" subtitle="Manage companies assigned to you">
-      <div className="crm-company-workspace">
+      <CompanyDeskControls companies={filteredCompanies} companyId={contextCompany?.id} visible={deskVisible}
+        onSelect={previewCompany} onToggle={() => setDeskVisible((visible) => !visible)} />
+      <div className={`crm-company-workspace ${deskVisible ? "" : "crm-company-workspace--desk-hidden"}`}>
       <section className="crm-company-workspace__main" aria-label="My company records">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
@@ -1962,7 +1972,7 @@ export default function MyCompanies() {
                     return (
                       <tr 
                         key={company.id} 
-                        className="border-b hover:bg-gray-50 cursor-pointer"
+                        className={`border-b hover:bg-gray-50 cursor-pointer ${company.id === contextCompany?.id ? "crm-company-row--focused" : ""}`}
                         onClick={() => handleOpenCompany(company)}
                         data-testid={`row-company-${company.id}`}
                       >
@@ -1979,7 +1989,14 @@ export default function MyCompanies() {
                           />
                         </td>
                         <td className="p-3">
-                          <div className={`font-medium ${company.isIrrelevant ? 'text-gray-400' : ''}`}>{company.companyName}</div>
+                          <div className={`font-medium ${company.isIrrelevant ? 'text-gray-400' : ''}`}>{company.companyName}
+                          <button type="button" className="crm-company-preview"
+                            aria-label={`Preview ${company.companyName}`} title="Show in people desk"
+                            data-testid={`button-preview-company-${company.id}`}
+                            onClick={(event) => { event.stopPropagation(); previewCompany(company.id); }}>
+                            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                          </div>
                           {company.origin === 'website' && (
                             <Badge variant="outline" className="text-xs bg-green-50 text-green-700 mt-1">
                               Website
@@ -3107,13 +3124,13 @@ export default function MyCompanies() {
       </Dialog>
       </div>
       </section>
-      <CompanyContextDesk
+      {deskVisible && <CompanyContextDesk
         company={contextCompany}
         ownerName={contextCompany?.assignedTo === user?.id
           ? [user?.firstName, user?.lastName].filter(Boolean).join(" ") || contextCompany.assignedTo
           : contextCompany?.assignedTo}
         onView={contextCompany ? () => handleOpenCompany(contextCompany) : undefined}
-      />
+      />}
       </div>
     </SalesLayout>
   );

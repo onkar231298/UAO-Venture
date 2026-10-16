@@ -97,6 +97,19 @@ async function checkShortcuts(role) {
   const duplicateControls=await evaluate("document.querySelectorAll('.bfo-global-search,.bfo-create-trigger').length");
   if(duplicateControls)throw Error('Duplicated header controls remain '+role);
   const result={noDuplicateHeaderControls:true};
+  await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
+  await until("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='true'",'expanded sidebar '+role);
+  await until("document.querySelector('.bfo-workspace-rail').getBoundingClientRect().width>=240",'sidebar expansion animation '+role);
+  const toggleState=await evaluate("(() => {const b=document.querySelector('[data-testid=\"button-toggle-sidebar\"]');const r=b.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,width:r.width,height:r.height,viewport:innerHeight,visible:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===b}})()");
+  if(!toggleState.visible)throw Error('Sidebar toggle not visibly clickable '+role+': '+JSON.stringify(toggleState));
+  const railWidth=await evaluate("document.querySelector('.bfo-workspace-rail').getBoundingClientRect().width");
+  if(railWidth<230)throw Error('Sidebar did not expand '+role+' '+JSON.stringify(await evaluate("({width:document.querySelector('.bfo-workspace-rail').getBoundingClientRect().width,display:getComputedStyle(document.querySelector('.bfo-workspace-rail')).display,viewport:innerWidth,roots:[...document.querySelectorAll('.bfo-portal-root')].map(r=>({name:r.className,expanded:r.dataset.sidebarExpanded}))})")));
+  await shot(role+'-expanded-sidebar');
+  await command('Page.reload',{ignoreCache:true});
+  await until("document.querySelector('.bfo-portal-root')?.dataset.sidebarExpanded==='true'",'persisted sidebar '+role);
+  await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
+  await until("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='false'",'collapsed sidebar '+role);
+  result.sidebarExpandCollapseAndPersistence=true;
   if(admin || sales) {
     await navigate(admin?'/admin/dashboard/crm/companies':'/sales/my-companies');
     await until("!!document.querySelector('[data-testid=\"company-context-desk\"]')",'company desk '+role);
@@ -105,6 +118,14 @@ async function checkShortcuts(role) {
     result.originalCompanySearchRetained=true;
     await until("!document.querySelector('[data-testid=\"company-context-desk\"]').textContent.includes('Loading people')",'company contacts '+role);
     result.companyDesk=true;
+    const widthBefore=await evaluate("document.querySelector('.crm-company-workspace__main').getBoundingClientRect().width");
+    await evaluate("document.querySelector('[data-testid=\"button-toggle-company-desk\"]').click()");
+    await until("!document.querySelector('[data-testid=\"company-context-desk\"]')",'hidden company desk '+role);
+    const widthAfter=await evaluate("document.querySelector('.crm-company-workspace__main').getBoundingClientRect().width");
+    if(widthAfter<widthBefore+200)throw Error('Hiding desk did not reclaim table space '+role);
+    await evaluate("document.querySelector('[data-testid=\"button-toggle-company-desk\"]').click()");
+    await until("!!document.querySelector('[data-testid=\"company-context-desk\"]')",'restored company desk '+role);
+    result.hideDeskReclaimsTableWidth=true;
     await shot(role+'-company-workspace');
   }
   if(sales) {

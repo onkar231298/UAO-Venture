@@ -20,3 +20,9 @@ The owner approved the revised compact-navigation layout across all users, with 
 **Why:** approval is for layout placement and visual hierarchy, not replacing business workflows or reducing role-specific choices.
 
 **How to apply:** retain original forms, actions, fields, role restrictions and full navigation access while applying the approved structure; do not treat the mockup's fictional records as application data.
+
+The owner likes the short company details in the right-side people desk, but prioritizes efficient space use and wants the left sidebar expandable.
+
+**Why:** the owner explicitly liked the desk while correcting poor space management and its first-company-only behavior.
+
+**How to apply:** retain the compact company/people context as a design direction, allow selecting other companies without requiring full details, and keep navigation and detail panels adjustable so they do not unnecessarily reduce the records area.

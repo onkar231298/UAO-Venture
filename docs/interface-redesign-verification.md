@@ -43,6 +43,7 @@ level in the baseline, not replaced by dashboard summary cards.
 
 * Original role-specific sidebar actions → compact desktop rail and complete
   labelled All destinations dialog, with original permission conditions.
+  Desktop Expand/Collapse sidebar exposes labels and remembers the preference.
 * Original desktop pages and handlers → same pages and handlers inside the
   scoped theme; no module replaced by a mockup.
 * Original dialogs, form fields, tabs, filters, sorting, pagination, context
@@ -61,6 +62,8 @@ level in the baseline, not replaced by dashboard summary cards.
   non-primary contacts. Context switches validate company ownership and share the
   existing contacts query cache. The desk does not generate extra company-access
   events merely by rendering.
+  Row preview buttons and the company selector switch context without opening
+  the full dialog; hiding the desk restores the records area's full width.
 * Departmental `/staff` landing → exact route alias to the existing guarded
   StaffDashboard. The pre-existing `/staff/*` route remains registered.
 

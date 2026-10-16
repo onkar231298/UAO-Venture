@@ -1,7 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { MoreHorizontal, X } from "lucide-react";
 import { PortalOverlay } from "./PortalOverlay";
-import { PortalThemeToggle } from "./PortalTheme";
+import { PortalThemeToggle, PortalSidebarToggle } from "./PortalTheme";
 
 export interface PortalNavDestination {
   key: string;
@@ -36,6 +36,7 @@ export function PortalMobileNav({
 
   return (
     <>
+      <PortalSidebarToggle />
       <PortalOverlay open={moreOpen} onOpenChange={setMoreOpen}
         title="All workspace destinations" className="bfo-more-sheet">
             <div className="bfo-more-heading">

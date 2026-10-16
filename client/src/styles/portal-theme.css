@@ -1114,7 +1114,7 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   }
   .bfo-desktop-destinations {
     position: fixed;
-    z-index: 45;
+    z-index: 60;
     left: 8px;
     bottom: 66px;
     display: block;
@@ -1144,4 +1144,106 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+.bfo-sidebar-toggle { display: none; }
+@media (min-width: 768px) {
+  .bfo-sidebar-toggle {
+    position: fixed;
+    bottom: 14px;
+    left: 12px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 44px;
+    min-height: 38px;
+    color: #dbe2eb;
+    background: #172B4D;
+    border: 1px solid #425573;
+    border-radius: 7px;
+  }
+  .bfo-sidebar-toggle > span { display: none; }
+  .bfo-sidebar-toggle:hover { background: #263e66; }
+  .bfo-customer-sidebar > div:first-child button { display: none; }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail {
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    flex-basis: 248px !important;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail > div:first-child {
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail > div:first-child::after {
+    content: "Workspace";
+    color: #edf1f5;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav {
+    padding: 8px 10px 116px !important;
+    overflow-x: hidden !important;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle),
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav a > button {
+    width: 100% !important;
+    justify-content: flex-start;
+    padding: 8px 10px !important;
+    text-align: left;
+    gap: 10px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav :is(button, .bfo-nav-group-toggle) > span,
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav button:hover > span,
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav button:focus-visible > span {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    clip: auto !important;
+    overflow: visible !important;
+    transform: none !important;
+    background: transparent !important;
+    white-space: normal !important;
+    border: 0 !important;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav .bfo-nav-group-toggle,
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav details > summary {
+    width: 100%;
+    min-height: 30px;
+    height: auto;
+    padding: 7px 8px !important;
+    justify-content: flex-start;
+    font-size: 11px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] > .flex.h-screen > main > header,
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-customer-standalone-content > .bfo-standalone-toolbar {
+    width: calc(100% + 248px);
+    margin-left: -248px;
+    padding-left: 264px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-sidebar-toggle {
+    width: 224px;
+    justify-content: flex-start;
+    padding: 8px 12px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-sidebar-toggle > span { display: inline; }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-desktop-destinations button {
+    width: 232px;
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 14px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-desktop-destinations button::after {
+    content: "All destinations";
+    font-size: 12px;
+  }
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-utility-dock { left: calc(50% + 124px); }
 }

@@ -187,6 +187,13 @@ async function main() {
       GROUP BY p.id ORDER BY count(*) DESC, p.id LIMIT 3
     `)).rows;
     if (targets.length !== 3) throw new Error('Fewer than three multi-contact companies in database');
+    for (const target of targets) {
+      await evaluate(`(() => {const select=document.querySelector('[data-testid="select-preview-company"]');
+        select.value='${target.company_id}';select.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+      await until(`document.querySelector('[data-testid="company-context-desk"]')?.dataset.companyId==='${target.company_id}'
+        && document.querySelectorAll('[data-testid^="context-contact-"]').length===${target.total}`,
+        'dropdown switches company and contacts without full dialog', 35);
+    }
     const opened = [];
     for (const target of targets) {
       await evaluate(`(() => {
@@ -200,6 +207,10 @@ async function main() {
         `Boolean(document.querySelector('[data-testid="button-view-company-${target.company_id}"]'))`,
         `search result for company ${target.company_id}`, 35,
       );
+      await evaluate(`document.querySelector('[data-testid="button-preview-company-${target.company_id}"]').click()`);
+      await until(`document.querySelector('[data-testid="company-context-desk"]')?.dataset.companyId==='${target.company_id}'`,
+        'preview desk company ownership', 35);
+      if (await evaluate("!!document.querySelector('[data-testid=\"tab-contacts\"]')")) throw new Error('Preview unexpectedly opened full details');
       const clicked = await evaluate(`(() => { const b=document.querySelector('[data-testid="button-view-company-${target.company_id}"]'); if (!b) return false; b.click(); return true; })()`);
       if (!clicked) throw new Error(`Company ${target.company_id} view control missing`);
       await until("Boolean(document.querySelector('[data-testid=\"tab-contacts\"]'))", 'company details dialog');

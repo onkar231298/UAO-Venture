@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 type PortalTheme = "dark" | "light";
 const ThemeContext = createContext<{ theme: PortalTheme; toggle: () => void } | null>(null);
+const SidebarContext = createContext<{ expanded: boolean; toggle: () => void } | null>(null);
 
 export function PortalThemeProvider({
   children,
@@ -13,6 +14,16 @@ export function PortalThemeProvider({
   className?: string;
   showToggle?: boolean;
 }) {
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    try { return localStorage.getItem("bfo-sidebar-expanded") === "true"; } catch { return false; }
+  });
+  const sidebar = useMemo(() => ({
+    expanded: sidebarExpanded,
+    toggle: () => setSidebarExpanded((current) => {
+      try { localStorage.setItem("bfo-sidebar-expanded", String(!current)); } catch { /* Session-only preference. */ }
+      return !current;
+    }),
+  }), [sidebarExpanded]);
   const [theme, setTheme] = useState<PortalTheme>(() => {
     try {
       const savedTheme = localStorage.getItem("bfo-portal-theme");
@@ -99,11 +110,26 @@ export function PortalThemeProvider({
 
   return (
     <ThemeContext.Provider value={value}>
-      <div className={`bfo-portal-root ${className}`} data-portal-theme={theme}>
+      <SidebarContext.Provider value={sidebar}>
+      <div className={`bfo-portal-root ${className}`} data-portal-theme={theme} data-sidebar-expanded={sidebarExpanded}>
         {showToggle && <PortalThemeToggle className="bfo-theme-floating" />}
         {children}
       </div>
+      </SidebarContext.Provider>
     </ThemeContext.Provider>
+  );
+}
+
+export function PortalSidebarToggle() {
+  const sidebar = useContext(SidebarContext);
+  if (!sidebar) return null;
+  const Icon = sidebar.expanded ? PanelLeftClose : PanelLeftOpen;
+  return (
+    <button type="button" className="bfo-sidebar-toggle" onClick={sidebar.toggle}
+      aria-expanded={sidebar.expanded} aria-label={sidebar.expanded ? "Collapse sidebar" : "Expand sidebar"}
+      title={sidebar.expanded ? "Collapse sidebar" : "Expand sidebar"} data-testid="button-toggle-sidebar">
+      <Icon size={19} aria-hidden="true" /><span>{sidebar.expanded ? "Collapse sidebar" : "Expand sidebar"}</span>
+    </button>
   );
 }
 

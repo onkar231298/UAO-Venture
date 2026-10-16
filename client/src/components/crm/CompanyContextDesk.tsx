@@ -71,7 +71,7 @@ export function CompanyContextDesk({ company, onView, ownerName }: CompanyContex
     .join(", ");
 
   return (
-    <aside className="crm-company-desk" aria-label="Selected company and people" data-testid="company-context-desk">
+    <aside className="crm-company-desk" aria-label="Selected company and people" data-testid="company-context-desk" data-company-id={companyId}>
       <div className="crm-company-desk__header">
         <span>Company &amp; people desk</span>
         <h2>{company?.companyName || "Choose a company"}</h2>

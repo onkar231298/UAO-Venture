@@ -66,6 +66,7 @@ import { CompanyEmailsTab } from "@/components/crm/CompanyEmailsTab";
 import { CompanyContactsTab as SharedCompanyContactsTab } from "@/components/crm/CompanyContactsTab";
 import { CompanyContactSummary, type ContactSummaryRow } from "@/components/crm/CompanyContactSummary";
 import { CompanyContextDesk } from "@/components/crm/CompanyContextDesk";
+import { CompanyDeskControls } from "@/components/crm/CompanyDeskControls";
 import { CompanyCallsTab } from "@/components/crm/CompanyCallsTab";
 import { BulkEmailComposer } from "@/components/crm/BulkEmailComposer";
 import { QualityRequestDialog } from "@/components/quality/QualityRequestDialog";
@@ -1263,8 +1264,15 @@ export default function CompanyManagement() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-  const contextCompany = (selectedCompany && companies.find((company) => company.id === selectedCompany.id))
-    || selectedCompany || paginatedCompanies[0] || companies[0] || null;
+  const [previewCompanyId, setPreviewCompanyId] = useState<number | null>(null);
+  const [deskVisible, setDeskVisible] = useState(true);
+  useEffect(() => {
+    if (selectedCompany) setPreviewCompanyId(selectedCompany.id);
+  }, [selectedCompany?.id]);
+  const contextCompany = companies.find((company) => company.id === previewCompanyId)
+    || companies.find((company) => company.id === selectedCompany?.id)
+    || paginatedCompanies[0] || null;
+  const previewCompany = (id: number) => { setPreviewCompanyId(id); setDeskVisible(true); };
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -1456,7 +1464,9 @@ export default function CompanyManagement() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="crm-company-workspace">
+      <CompanyDeskControls companies={companies} companyId={contextCompany?.id} visible={deskVisible}
+        onSelect={previewCompany} onToggle={() => setDeskVisible((visible) => !visible)} />
+      <div className={`crm-company-workspace ${deskVisible ? "" : "crm-company-workspace--desk-hidden"}`}>
       <section className="crm-company-workspace__main space-y-6" aria-label="Company records">
       {/* Header */}
       <div className="flex justify-between items-center crm-company-workspace__heading">
@@ -1949,7 +1959,10 @@ export default function CompanyManagement() {
                           <TableRow 
                             key={company.id} 
                             data-testid={`row-company-${company.id}`}
-                            className={isSelected ? "bg-blue-50" : ""}
+                            className={`${isSelected ? "bg-blue-50" : ""} ${company.id === contextCompany?.id ? "crm-company-row--focused" : ""}`}
+                            onClick={(event) => {
+                              if (!(event.target as HTMLElement).closest("button,a,input,[role=checkbox]")) previewCompany(company.id);
+                            }}
                           >
                             <TableCell>
                               <Checkbox 
@@ -1964,6 +1977,12 @@ export default function CompanyManagement() {
                                 <div>
                                   <p className="font-medium" data-testid={`text-company-name-${company.id}`}>
                                     {company.companyName}
+                                  <button type="button" className="crm-company-preview"
+                                    aria-label={`Preview ${company.companyName}`} title="Show in people desk"
+                                    data-testid={`button-preview-company-${company.id}`}
+                                    onClick={(event) => { event.stopPropagation(); previewCompany(company.id); }}>
+                                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                                  </button>
                                   </p>
                                   {company.primaryEmail && (
                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -2194,7 +2213,7 @@ export default function CompanyManagement() {
       </Card>
 
       </section>
-      <CompanyContextDesk
+      {deskVisible && <CompanyContextDesk
         company={contextCompany}
         ownerName={contextCompany?.assignedTo
           ? (() => {
@@ -2207,7 +2226,7 @@ export default function CompanyManagement() {
           setViewDetailsOpen(true);
           trackView('company', contextCompany.id, contextCompany.companyName);
         } : undefined}
-      />
+      />}
       </div>
 
       {/* Create Company Dialog */}
