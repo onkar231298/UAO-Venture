@@ -1,0 +1,19 @@
+kind = "design"
+previewPath = "/__workspace-layout/"
+title = "Workspace layout redesign"
+description = "Current and revised workspace layouts using extracted components, without operational database changes."
+version = "1.0.0"
+id = "artifacts/workspace-layout-mockup"
+router = "path"
+
+[[services]]
+name = "Component Preview Server"
+paths = [ "/__workspace-layout/" ]
+localPort = 19397
+
+[services.development]
+run = "npm run dev"
+
+[services.env]
+PORT = "19397"
+BASE_PATH = "/__workspace-layout/"

@@ -1,0 +1,153 @@
+/* Extracted from client/src/styles/portal-theme.css; scoped to this preview only. */
+.bfo-portal-root {
+  --bfo-bg: #17191b;
+  --bfo-sidebar: rgba(27, 29, 31, .94);
+  --bfo-panel: #222527;
+  --bfo-panel-raised: #292c2e;
+  --bfo-input: #1b1e20;
+  --bfo-border: #393d3f;
+  --bfo-text: #f2f0ec;
+  --bfo-muted: #a4a5a2;
+  --bfo-accent: #ef7d43;
+  --bfo-accent-soft: rgba(239, 125, 67, .14);
+  --bfo-shadow: 0 12px 34px rgba(0, 0, 0, .18);
+  --background: hsl(210 4% 10%);
+  --foreground: hsl(40 15% 93%);
+  --card: hsl(195 4% 14%);
+  --card-foreground: hsl(40 15% 93%);
+  --popover: hsl(195 4% 14%);
+  --popover-foreground: hsl(40 15% 93%);
+  --primary: hsl(20 83% 60%);
+  --primary-foreground: hsl(23 27% 11%);
+  --secondary: hsl(195 6% 17%);
+  --secondary-foreground: hsl(40 15% 93%);
+  --muted: hsl(195 6% 17%);
+  --muted-foreground: hsl(90 2% 64%);
+  --accent: hsl(27 6% 19%);
+  --accent-foreground: hsl(40 15% 93%);
+  --border: hsl(195 5% 24%);
+  --input: hsl(195 5% 24%);
+  --ring: hsl(20 83% 60%);
+  color: var(--bfo-text);
+  background: var(--bfo-bg);
+  min-height: 100dvh;
+  color-scheme: dark;
+}
+.bfo-portal-root[data-portal-theme="light"] {
+  --bfo-bg: #eeece8;
+  --bfo-sidebar: rgba(248, 247, 244, .96);
+  --bfo-panel: #fbfaf7;
+  --bfo-panel-raised: #f1efea;
+  --bfo-input: #fffefa;
+  --bfo-border: #d8d4cd;
+  --bfo-text: #272727;
+  --bfo-muted: #6f706e;
+  --bfo-accent: #c95f2d;
+  --bfo-accent-soft: rgba(201, 95, 45, .11);
+  --background: hsl(40 13% 92%);
+  --foreground: hsl(0 0% 15%);
+  --card: hsl(45 33% 98%);
+  --card-foreground: hsl(0 0% 15%);
+  --popover: hsl(45 33% 98%);
+  --popover-foreground: hsl(0 0% 15%);
+  --primary: hsl(19 63% 48%);
+  --primary-foreground: hsl(30 100% 98%);
+  --secondary: hsl(45 20% 93%);
+  --secondary-foreground: hsl(0 0% 15%);
+  --muted: hsl(45 20% 93%);
+  --muted-foreground: hsl(90 1% 44%);
+  --accent: hsl(22 53% 93%);
+  --accent-foreground: hsl(23 30% 18%);
+  --border: hsl(40 11% 83%);
+  --input: hsl(40 11% 83%);
+  --ring: hsl(19 63% 48%);
+  color: var(--bfo-text);
+  background: var(--bfo-bg);
+  color-scheme: light;
+}
+.bfo-portal-root > .h-screen { height: 100dvh !important; min-height: 100dvh; }
+.bfo-portal-root .bg-gray-50,
+.bfo-portal-root .bg-gray-100,
+.bfo-portal-root .bg-slate-50,
+.bfo-portal-root .bg-slate-100 { background-color: var(--bfo-panel-raised) !important; }
+.bfo-portal-root .bg-white,
+.bfo-portal-root .bg-card,
+.bfo-portal-root [data-card] { background-color: var(--bfo-panel) !important; }
+.bfo-portal-root .bg-gray-900 { background-color: var(--bfo-bg) !important; }
+.bfo-portal-root .text-gray-900,
+.bfo-portal-root .text-gray-800,
+.bfo-portal-root .text-gray-700,
+.bfo-portal-root .text-card-foreground { color: var(--bfo-text) !important; }
+.bfo-portal-root .text-gray-600,
+.bfo-portal-root .text-gray-500,
+.bfo-portal-root .text-muted-foreground { color: var(--bfo-muted) !important; }
+.bfo-portal-root .border-gray-100,
+.bfo-portal-root .border-gray-200,
+.bfo-portal-root .border-gray-300,
+.bfo-portal-root .border-border { border-color: var(--bfo-border) !important; }
+.bfo-portal-root .shadow-sm,
+.bfo-portal-root .shadow,
+.bfo-portal-root .shadow-md { box-shadow: var(--bfo-shadow); }
+.bfo-portal-root input:not([type="checkbox"]):not([type="radio"]),
+.bfo-portal-root textarea,
+.bfo-portal-root select,
+.bfo-portal-root [role="combobox"] {
+  background-color: var(--bfo-input);
+  color: var(--bfo-text);
+  border-color: var(--bfo-border);
+}
+.bfo-portal-root input::placeholder,
+.bfo-portal-root textarea::placeholder { color: var(--bfo-muted); }
+.bfo-portal-root button:focus-visible,
+.bfo-portal-root a:focus-visible,
+.bfo-portal-root input:focus-visible,
+.bfo-portal-root textarea:focus-visible,
+.bfo-portal-root select:focus-visible {
+  outline: 2px solid var(--bfo-accent) !important;
+  outline-offset: 2px;
+}
+.bfo-portal-root aside {
+  background: var(--bfo-sidebar) !important;
+  border-color: var(--bfo-border) !important;
+  backdrop-filter: blur(14px);
+}
+.bfo-portal-root aside nav button { color: var(--bfo-muted); }
+.bfo-portal-root aside nav button:hover { color: var(--bfo-text) !important; background: var(--bfo-panel-raised) !important; }
+.bfo-portal-root aside nav button[class*="bg-blue-100"] {
+  background: var(--bfo-accent-soft) !important;
+  border-color: color-mix(in srgb, var(--bfo-accent) 40%, transparent) !important;
+  color: var(--bfo-accent) !important;
+}
+.bfo-portal-root header {
+  background: color-mix(in srgb, var(--bfo-panel) 92%, transparent) !important;
+  border-color: var(--bfo-border) !important;
+  backdrop-filter: blur(14px);
+}
+.bfo-nav-group-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 8px 12px; margin: 2px 0 5px; color: var(--bfo-muted);
+  background: transparent; border: 0; border-radius: 8px; text-align: left;
+  text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 700;
+}
+.bfo-nav-group-toggle:hover { color: var(--bfo-text); background: var(--bfo-panel-raised); }
+.bfo-portal-root main { background-color: var(--bfo-bg); }
+.bfo-portal-root [class*="rounded-lg"][class*="border"],
+.bfo-portal-root [class*="rounded-xl"][class*="border"] { border-color: var(--bfo-border); }
+.bfo-portal-root table { color: var(--bfo-text); }
+.bfo-portal-root th { color: var(--bfo-muted); background-color: var(--bfo-panel-raised); }
+.bfo-portal-root tr:hover td { background-color: color-mix(in srgb, var(--bfo-panel-raised) 70%, transparent); }
+.bfo-portal-root [role="tablist"] { background-color: var(--bfo-panel-raised); border-color: var(--bfo-border); }
+.bfo-portal-root [role="tab"][data-state="active"] {
+  background-color: var(--bfo-panel) !important; color: var(--bfo-accent) !important;
+}
+.bfo-theme-toggle {
+  min-height: 36px; display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 0 11px; color: var(--bfo-text); background: var(--bfo-panel-raised);
+  border: 1px solid var(--bfo-border); border-radius: 10px; font-size: 12px;
+  font-weight: 600; white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .bfo-portal-root aside { max-height: 100dvh; z-index: 70; }
+  .bfo-theme-toggle span { display: none; }
+  .bfo-portal-root > .h-screen > main { padding-bottom: 20px; }
+}
