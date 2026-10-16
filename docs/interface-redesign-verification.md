@@ -92,3 +92,32 @@ the company export response.
   `/admin/dashboard/crm/...` remain in use.
 * The repository has pre-existing TypeScript diagnostic debt. A production bundle
   or syntax-only transpile is not evidence of a clean full semantic type check.
+* Customer login currently returns customer data without establishing the staff
+  session expected by the existing customer sample-request read endpoint.
+  Customer sample-request fetches returned 401 in the browser checks. Navigation
+  and styling were verified, but that business flow was not marked passed.
+  Authentication changes are explicitly outside this redesign.
+
+## Recorded results
+
+| Check | Result |
+|---|---|
+| Original semantic controls | 5,018 recorded; 5,018 matched; 0 missing |
+| Staff-role navigation | All 16 roles checked with real temporary staff sign-in; no browser runtime exceptions |
+| Customer navigation | Customer login, dashboard and seven existing sections rendered; no browser runtime exceptions |
+| Theme persistence | Admin, Sales, departmental and Customer light/dark switching survived reload |
+| Mobile navigation | Admin, Sales, departmental, Quality and Customer dock capped at five destinations; original navigation in More; dialog focus and Escape checked |
+| Tablet layout | Five portal families checked at 820×1180; no document-level horizontal overflow; compact headers wrap their controls instead of clipping them |
+| Search and Create | Admin, Sales, Quality and Customer existing destinations checked; create forms reopened after cancellation |
+| Sales Today panel | Existing real-data follow-up panel opened and closed with Escape |
+| Admin and Sales company edits | Actual forms saved; company fields, email and phone checked directly in development PostgreSQL |
+| Contacts | Three temporary blank-email/non-primary contacts persisted; both request signatures and actual Sales contact form checked; separate contact-name search returned the owning company |
+| Existing multi-contact companies | Three companies opened with 15, 14 and 11 visible contacts |
+| Company export | HTTP 200, XLSX MIME type, 4,837,059 bytes |
+| Build | `npm run build` passed; existing large-bundle warning remains |
+| Test cleanup | No temporary portal-check users remained |
+| Public site | No workspace-theme leakage; homepage visually checked |
+
+The option inventory is exhaustive at source-control level. Browser checks are
+representative workflow checks, not a claim that every conditional record state,
+destructive action, upload, download or populated business scenario was exercised.

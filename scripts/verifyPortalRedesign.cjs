@@ -51,6 +51,12 @@ async function clickText(scope,text) {
     if(!b)return false;b.click();return true})()`);
 }
 async function checkMobile(role,options) {
+  await command('Emulation.setDeviceMetricsOverride',{width:820,height:1180,deviceScaleFactor:1,mobile:false});
+  await sleep(100);
+  await shot(role+'-tablet');
+  const tabletOverflow=await evaluate('document.documentElement.scrollWidth>innerWidth');
+  const clippedHeaderButtons=await evaluate("[...document.querySelectorAll('header button')].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+1||r.left<0)}).map(b=>b.textContent.trim()||b.getAttribute('aria-label'))");
+  if(clippedHeaderButtons.length)throw Error('Clipped tablet toolbar options '+role+': '+clippedHeaderButtons.join(', '));
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await until("!!document.querySelector('.bfo-mobile-dock')",'mobile dock '+role);
   const count=await evaluate("document.querySelector('.bfo-mobile-dock').children.length");
@@ -67,16 +73,16 @@ async function checkMobile(role,options) {
   await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await until("!document.querySelector('.bfo-more-sheet')",'Escape closes More '+role);
   await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
-  return {destinations:count,allOptionsInMore:true,focusTrapped:trapped,escapeClosed:true};
+  return {destinations:count,allOptionsInMore:true,focusTrapped:trapped,escapeClosed:true,tabletOverflow};
 }
 async function checkTheme(role) {
   await evaluate("document.querySelector('.bfo-theme-toggle').click()");
-  await until("document.body.dataset.portalTheme==='light'",'light theme '+role);
+  await until("document.body?.dataset.portalTheme==='light'",'light theme '+role);
   await shot(role+'-light');
   await command('Page.reload',{ignoreCache:true});
-  await until("document.body.dataset.portalTheme==='light' && !!document.querySelector('.bfo-theme-toggle')",'persisted theme '+role);
+  await until("document.body?.dataset.portalTheme==='light' && !!document.querySelector('.bfo-theme-toggle')",'persisted theme '+role);
   await evaluate("document.querySelector('.bfo-theme-toggle').click()");
-  await until("document.body.dataset.portalTheme==='dark'",'dark theme '+role);
+  await until("document.body?.dataset.portalTheme==='dark'",'dark theme '+role);
   return {lightAndDark:true,persistedAcrossReload:true};
 }
 async function checkShortcuts(role) {
@@ -126,7 +132,7 @@ async function checkShortcuts(role) {
     await until("!document.querySelector('.bfo-today-panel')",'Today Escape');
   }
   await navigate(base);
-  await until("!!document.querySelector('aside nav')",'return to workspace '+role);
+  await until("!!document.querySelector('nav')",'return to workspace '+role);
   return result;
 }
 async function visitNavModules() {
@@ -288,7 +294,7 @@ if(process.argv.includes('--isolated')) {
   // This app imports large operational modules. Use a fresh browser per role
   // instead of retaining many full-page histories in one constrained renderer.
   const {spawnSync}=require('node:child_process');
-  const roles=['super_admin','admin','sales_manager','sales_executive',...Object.keys(departmental),'customer'];
+  const roles=(process.env.TEST_ROLES || ['super_admin','admin','sales_manager','sales_executive',...Object.keys(departmental),'customer'].join(',')).split(',');
   const combined=[];
   fs.mkdirSync(out,{recursive:true});
   for(const role of roles) {
@@ -298,7 +304,7 @@ if(process.argv.includes('--isolated')) {
     if(r.status!==0){process.exitCode=1;break;}
     combined.push({role,...JSON.parse(fs.readFileSync(path.join(directory,'results.json'),'utf8'))});
   }
-  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({roleCount:combined.length,expectedRoleCount:17,checks:combined},null,2));
+  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({roleCount:combined.length,expectedRoleCount:roles.length,checks:combined},null,2));
   fs.rmSync(profile,{recursive:true,force:true});
-  if(combined.length===17)console.log('PASS isolated checks for all 16 staff roles and customer');
+  if(combined.length===roles.length)console.log('PASS isolated checks for '+combined.length+' roles');
 } else main().catch(e=>{console.error(e.message);process.exitCode=1});

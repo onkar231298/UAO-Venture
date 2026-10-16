@@ -19,3 +19,14 @@ For authenticated browser tests, select Radix tabs with real pointer events afte
 **Why:** contact-tab tests stalled despite successful company saves; allowing focus restoration and using pointer input made the actual Sales form test pass.
 
 **How to apply:** When a UI test cannot find a tab's content, check the selected tab and focus state before treating it as an application failure.
+
+For a multi-role browser sweep in this workspace, use a fresh browser process per
+role instead of retaining many full-page navigations in one renderer.
+
+**Why:** long multi-role runs repeatedly stopped responding to browser evaluation
+commands, while the same routes passed in isolated role runs. This is a test
+environment constraint, not evidence that an individual route is broken.
+
+**How to apply:** Keep credentials and temporary records isolated per role. If a
+browser command times out after many navigations, reproduce in a fresh browser
+before changing app behavior or reporting a regression.

@@ -297,7 +297,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   border-radius: 5px;
   font: 10px ui-monospace, monospace;
 }
-.bfo-create-trigger {
+.bfo-portal-root .bfo-create-trigger {
   gap: 6px;
   background: var(--bfo-accent) !important;
   border-color: var(--bfo-accent) !important;
@@ -683,6 +683,33 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
 .bfo-customer-mobile-close,
 .bfo-customer-mobile-overlay {
   display: none;
+}
+/* A narrow work area must wrap toolbar controls, not clip attendance,
+   notifications or the profile behind the scrollable main column. */
+@media (max-width: 1100px) {
+  .bfo-portal-root header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .bfo-portal-root header > div {
+    min-width: 0;
+  }
+  .bfo-portal-root header > div:last-child {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    max-width: 100%;
+    gap: 8px;
+  }
+  .bfo-portal-root header .flex {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .bfo-portal-root header .bfo-topbar-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
 }
 @media (max-width: 767px) {
   .bfo-portal-root {
