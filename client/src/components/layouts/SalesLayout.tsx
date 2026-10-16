@@ -23,6 +23,7 @@ import {
   Package,
   ChevronDown,
   AlarmClockCheck,
+  Palette,
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
@@ -134,6 +135,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
     {
       label: "SETTINGS",
       items: [
+        { key: "/sales/appearance", label: "Appearance", icon: Palette },
         { key: "/crm/email-settings", label: "Email Settings", icon: Mail },
       ],
     },
@@ -142,12 +144,13 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
     section.items.map((item) => ({
       key: item.key,
       label: item.label,
+      group: section.label,
       icon: item.icon,
       active: location === item.key,
       badge: item.badge,
       onSelect: () => setLocation(item.key),
     })),
-  ), { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } }];
+  ), { key: "logout", label: "Log out", icon: LogOut, group: "PROFILE", onSelect: () => { window.location.href = "/api/logout"; } }];
 
   return (
     <PortalThemeProvider className="bfo-sales-portal">
@@ -243,8 +246,8 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
 
       <main className="flex-1 overflow-auto">
         <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="px-4 md:px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
+          <div className="px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -256,7 +259,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
                 {subtitle && <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <PunchInOutButton />
               <Button
                 type="button"
@@ -272,7 +275,7 @@ export function SalesLayout({ children, title, subtitle }: SalesLayoutProps) {
               </Button>
               <PortalThemeToggle />
               <NotificationBell />
-              <Badge variant="secondary" className="hidden md:inline-flex bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="bfo-role-badge hidden md:inline-flex bg-blue-100 text-blue-800">
                 {roleDisplayName}
               </Badge>
             </div>

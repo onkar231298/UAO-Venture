@@ -121,14 +121,15 @@ export default function CustomerSidebar() {
     ...menuItems.map((item) => ({
       key: item.href,
       label: item.label,
+      group: item.group,
       icon: item.icon,
       active: isActive(item.href),
       badge: item.badge,
       onSelect: () => setLocation(item.href),
     })),
-    { key: "website", label: "Back to Website", icon: Home, onSelect: () => setLocation("/") },
-    { key: "settings", label: "Settings", icon: Settings, onSelect: () => undefined },
-    { key: "logout", label: "Logout", icon: LogOut, onSelect: () => { logoutCustomer(); setLocation("/"); } },
+    { key: "website", label: "Back to Website", icon: Home, group: "ACCOUNT", onSelect: () => setLocation("/") },
+    { key: "settings", label: "Settings", icon: Settings, group: "ACCOUNT", onSelect: () => undefined },
+    { key: "logout", label: "Logout", icon: LogOut, group: "ACCOUNT", onSelect: () => { logoutCustomer(); setLocation("/"); } },
   ];
 
   function isActive(href: string) {

@@ -50,6 +50,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import WebsiteManagement from "@/pages/crm/WebsiteManagement";
+import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 import { useSearch } from "wouter";
 import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
@@ -202,11 +203,12 @@ export default function QualityDashboard() {
     ...sidebarSections.flatMap((section) => section.items.map((item) => ({
       key: item.key,
       label: item.label,
+      group: section.label,
       icon: item.icon,
       active: activeSection === item.key,
       onSelect: () => setActiveSection(item.key),
     }))),
-    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+    { key: "logout", label: "Log out", icon: LogOut, group: "PROFILE", onSelect: () => { window.location.href = "/api/logout"; } },
   ];
 
   return (
@@ -319,6 +321,8 @@ export default function QualityDashboard() {
           {activeSection === "website-management" && <WebsiteManagement />}
           {activeSection === "my-attendance" && <MyAttendance />}
           {activeSection === "profile-settings" && (
+            <>
+            <PortalAppearanceSettings />
             <Card>
               <CardHeader>
                 <CardTitle>Profile Settings</CardTitle>
@@ -333,6 +337,7 @@ export default function QualityDashboard() {
                 </div>
               </CardContent>
             </Card>
+            </>
           )}
         </div>
       </main>

@@ -113,7 +113,7 @@ body.bfo-portal-active {
 .bfo-portal-root .bg-background,
 body.bfo-portal-active [role="dialog"] .bg-background,
 body.bfo-portal-active [role="menu"] .bg-background {
-  background-color: var(--bfo-bg) !important;
+  background-color: var(--bfo-panel, var(--bfo-bg)) !important;
 }
 .bfo-portal-root [class~="bg-white/50"],
 .bfo-portal-root [class~="bg-white/60"],
@@ -139,7 +139,7 @@ body.bfo-portal-active [role="dialog"] :is(.text-green-700, .text-green-800, .te
   color: color-mix(in srgb, var(--bfo-success) 78%, var(--bfo-text)) !important;
 }
 body.bfo-portal-active * {
-  border-color: var(--border, var(--bfo-border, #393d3f));
+  border-color: var(--bfo-border, var(--border, #393d3f));
 }
 
 /* Repaint legacy Tailwind utility surfaces while retaining their layout and handlers. */
@@ -190,7 +190,7 @@ body.bfo-portal-active * {
 .bfo-portal-root textarea,
 .bfo-portal-root select,
 .bfo-portal-root [role="combobox"] {
-  background-color: var(--bfo-input);
+  background-color: var(--bfo-input) !important;
   color: var(--bfo-text);
   border-color: var(--bfo-border);
 }
@@ -211,33 +211,37 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 
 .bfo-portal-root aside.bfo-workspace-rail {
   background: var(--bfo-sidebar) !important;
-  border-color: rgba(255, 255, 255, .14) !important;
+  border-color: var(--bfo-border, rgba(255, 255, 255, .14)) !important;
   backdrop-filter: blur(14px);
 }
 .bfo-portal-root aside nav h3 {
-  color: #d4dceb !important;
+  color: var(--bfo-sidebar-muted, #d4dceb) !important;
   letter-spacing: .12em;
   font-size: .64rem;
 }
 .bfo-portal-root aside nav button,
 .bfo-portal-root aside nav a,
 .bfo-portal-root aside nav a button {
-  color: #dbe2eb;
+  color: var(--bfo-sidebar-text, #dbe2eb);
   border-color: transparent;
   transition: background-color .16s ease, color .16s ease, transform .16s ease;
 }
 .bfo-portal-root aside nav button:hover,
 .bfo-portal-root aside nav a:hover,
 .bfo-portal-root aside nav a:hover button {
-  color: #fff !important;
-  background: rgba(255, 255, 255, .12) !important;
+  color: var(--bfo-sidebar-text, #fff) !important;
+  background: var(--bfo-sidebar-hover, rgba(255, 255, 255, .12)) !important;
 }
 .bfo-portal-root aside nav button[class*="bg-blue-100"],
 .bfo-portal-root aside nav button[class*="bg-green-100"],
 .bfo-portal-root aside nav a button[class*="bg-green-600"] {
-  background: rgba(213, 133, 31, .2) !important;
-  border-color: rgba(213, 133, 31, .55) !important;
-  color: #f4bb66 !important;
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .2)) !important;
+  border-color: var(--bfo-accent, #D5851F) !important;
+  color: var(--bfo-sidebar-accent, #f4bb66) !important;
+}
+.bfo-portal-root aside nav :is(button, a):focus-visible,
+.bfo-portal-root > .flex.h-screen > main > header :is(button, a):focus-visible {
+  outline-color: var(--bfo-sidebar-accent, #f4bb66) !important;
 }
 .bfo-portal-root .bfo-workspace-rail {
   width: 68px !important;
@@ -245,8 +249,8 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   max-width: 68px !important;
   flex: 0 0 68px !important;
   overflow: visible;
-  color: #dbe2eb;
-  background: #172B4D !important;
+  color: var(--bfo-sidebar-text, #dbe2eb);
+  background: var(--bfo-sidebar) !important;
 }
 .bfo-portal-root .bfo-workspace-rail > div:first-child {
   min-height: 56px;
@@ -299,7 +303,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   padding: 0 !important;
   margin: 2px 0 !important;
   overflow: hidden;
-  color: #dbe2eb;
+  color: var(--bfo-sidebar-text, #dbe2eb);
 }
 .bfo-portal-root .bfo-workspace-rail nav details > summary:hover,
 .bfo-portal-root .bfo-workspace-rail nav details > summary:focus-visible {
@@ -308,8 +312,8 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   height: auto;
   overflow: visible;
   padding: 7px 10px !important;
-  color: #fff;
-  background: #10213c;
+  color: var(--bfo-sidebar-text, #fff);
+  background: var(--bfo-sidebar, #10213c);
   border-radius: 6px;
 }
 .bfo-portal-root .bfo-workspace-rail nav .bfo-nav-group-toggle:hover > span,
@@ -325,8 +329,8 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   margin: 0 !important;
   overflow: visible !important;
   transform: translateY(-50%);
-  color: #fff;
-  background: #10213c;
+  color: var(--bfo-sidebar-text, #fff);
+  background: var(--bfo-sidebar, #10213c);
   border-radius: 6px;
   white-space: nowrap !important;
 }
@@ -339,7 +343,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   padding: 0 !important;
   margin: 3px 0;
   border: 1px solid transparent !important;
-  color: #dbe2eb !important;
+  color: var(--bfo-sidebar-text, #dbe2eb) !important;
 }
 .bfo-portal-root .bfo-workspace-rail nav button:not(.bfo-nav-group-toggle) > svg,
 .bfo-portal-root .bfo-workspace-rail nav a > button > svg {
@@ -362,8 +366,8 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   margin: 0 !important;
   overflow: visible !important;
   transform: translateY(-50%);
-  color: #fff;
-  background: #10213c;
+  color: var(--bfo-sidebar-text, #fff);
+  background: var(--bfo-sidebar, #10213c);
   border-radius: 6px;
   box-shadow: 0 5px 18px rgba(16, 33, 60, .25);
   white-space: nowrap !important;
@@ -389,21 +393,26 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   top: 0;
   z-index: 35;
   min-height: 56px;
-  background: #172B4D !important;
+  background: var(--bfo-sidebar) !important;
   border-color: rgba(255, 255, 255, .16) !important;
-  color: #fff;
+  color: var(--bfo-sidebar-text, #fff);
   box-shadow: 0 2px 10px rgba(21, 39, 69, .14);
 }
-.bfo-portal-root > .flex.h-screen > main > header * { color: #fff !important; }
+.bfo-portal-root > .flex.h-screen > main > header * { color: var(--bfo-sidebar-text, #fff) !important; }
 .bfo-portal-root > .flex.h-screen > main > header .text-gray-600,
 .bfo-portal-root > .flex.h-screen > main > header .text-gray-400,
-.bfo-portal-root > .flex.h-screen > main > header .text-gray-500 { color: #d4dceb !important; }
+.bfo-portal-root > .flex.h-screen > main > header .text-gray-500 { color: var(--bfo-sidebar-muted, #d4dceb) !important; }
 .bfo-portal-root > .flex.h-screen > main > header .bfo-theme-toggle {
-  color: #fff !important;
-  background: rgba(255, 255, 255, .08);
-  border-color: rgba(255, 255, 255, .2);
+  color: var(--bfo-sidebar-text, #fff) !important;
+  background: var(--bfo-sidebar-hover, rgba(255, 255, 255, .08));
+  border-color: var(--bfo-border, rgba(255, 255, 255, .2));
 }
-.bfo-portal-root > .flex.h-screen > main > header button:hover { background-color: rgba(255, 255, 255, .12); }
+.bfo-portal-root > .flex.h-screen > main > header button:hover { background-color: var(--bfo-sidebar-hover, rgba(255, 255, 255, .12)); }
+.bfo-portal-root > .flex.h-screen > main > header .bfo-role-badge {
+  color: var(--bfo-sidebar-text, #fff) !important;
+  background: var(--bfo-sidebar-hover, rgba(255, 255, 255, .12)) !important;
+  border: 1px solid rgba(255, 255, 255, .24) !important;
+}
 .bfo-nav-group-toggle {
   width: 100%;
   display: flex;
@@ -412,7 +421,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   gap: 8px;
   padding: 8px 12px;
   margin: 2px 0 5px;
-  color: var(--bfo-muted);
+  color: var(--bfo-sidebar-muted, var(--bfo-muted));
   background: transparent;
   border: 0;
   border-radius: 8px;
@@ -423,8 +432,8 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   font-weight: 700;
 }
 .bfo-nav-group-toggle:hover {
-  color: var(--bfo-text);
-  background: var(--bfo-panel-raised);
+  color: var(--bfo-sidebar-text, var(--bfo-text));
+  background: var(--bfo-sidebar-hover, var(--bfo-panel-raised));
 }
 .bfo-nav-group-toggle svg {
   transition: transform .16s ease;
@@ -437,7 +446,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 }
 .bfo-customer-nav-group > summary {
   padding: 8px 12px 4px;
-  color: var(--bfo-muted);
+  color: var(--bfo-sidebar-muted, var(--bfo-muted));
   letter-spacing: .12em;
   font-size: 10px;
   font-weight: 700;
@@ -499,9 +508,9 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 }
 .bfo-portal-root .bfo-create-trigger {
   gap: 6px;
-  background: var(--bfo-accent) !important;
-  border-color: var(--bfo-accent) !important;
-  color: #251a14 !important;
+  background: var(--bfo-action, var(--bfo-accent)) !important;
+  border-color: var(--bfo-action, var(--bfo-accent)) !important;
+  color: var(--bfo-on-action, #fff) !important;
 }
 .bfo-customer-workbar,
 .bfo-standalone-toolbar {
@@ -516,20 +525,20 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
   top: 0;
   z-index: 35;
   padding: 10px 16px;
-  color: #fff;
-  background: #172B4D;
+  color: var(--bfo-sidebar-text, #fff);
+  background: var(--bfo-sidebar);
   border-bottom: 1px solid rgba(255, 255, 255, .16);
 }
 .bfo-portal-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #dbe2eb;
+  color: var(--bfo-sidebar-text, #dbe2eb);
   font-size: 13px;
   font-weight: 600;
 }
 .bfo-portal-link:hover {
-  color: #f4bb66;
+  color: var(--bfo-sidebar-accent, #f4bb66);
 }
 .bfo-customer-standalone-shell {
   display: flex;
@@ -720,7 +729,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 .bfo-today-list > button span { display: grid; gap: 4px; }
 .bfo-today-list > button small,
 .bfo-today-list > button em { color: var(--bfo-muted); font-size: 11px; font-style: normal; }
-.bfo-today-list > button.is-overdue em { color: #ff9e7a; }
+.bfo-today-list > button.is-overdue em { color: var(--bfo-urgent, #ff9e7a); }
 .bfo-today-empty {
   flex: 1;
   min-height: 180px;
@@ -767,7 +776,7 @@ body.bfo-portal-active [role="dialog"] input:focus-visible {
 }
 .bfo-portal-root [role="tab"][data-state="active"] {
   background-color: var(--bfo-panel) !important;
-  color: var(--bfo-accent) !important;
+  color: var(--bfo-accent-readable, var(--bfo-accent)) !important;
 }
 .bfo-portal-root [role="dialog"],
 .bfo-portal-root [data-radix-popper-content-wrapper] > *,
@@ -824,32 +833,17 @@ body.bfo-portal-active [role="dialog"] input:not([type="checkbox"]):not([type="r
 body.bfo-portal-active [role="dialog"] textarea,
 body.bfo-portal-active [role="dialog"] select,
 body.bfo-portal-active [role="dialog"] [role="combobox"] {
-  background-color: var(--bfo-input, #1b1e20);
+  background-color: var(--bfo-input, #1b1e20) !important;
   color: var(--bfo-text, #f2f0ec);
   border-color: var(--bfo-border, #393d3f);
 }
 body.bfo-portal-active[data-portal-theme="light"] {
-  background: #F7F7F2;
-  color: #24334A;
-  --bfo-panel: #FFFFFF;
-  --bfo-panel-raised: #FFFFFF;
-  --bfo-input: #FFFFFF;
-  --bfo-border: #E2E5E5;
-  --bfo-text: #24334A;
-  --bfo-muted: #728096;
-  --bfo-accent: #D5851F;
-  --sidebar-background: hsl(215 54% 20%);
+  background: var(--bfo-bg, #F7F7F2);
+  color: var(--bfo-text, #24334A);
 }
 body.bfo-portal-active[data-portal-theme="dark"] {
-  --bfo-bg: #17202d;
-  --bfo-sidebar: #172B4D;
-  --bfo-panel: #263449;
-  --bfo-panel-raised: #304057;
-  --bfo-input: #202d40;
-  --bfo-border: #43536a;
-  --bfo-text: #edf1f5;
-  --bfo-muted: #aab6c5;
-  --bfo-accent: #D5851F;
+  background: var(--bfo-bg, #17202d);
+  color: var(--bfo-text, #edf1f5);
 }
 
 .bfo-theme-toggle {
@@ -989,7 +983,7 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     min-height: calc(62px + env(safe-area-inset-bottom));
     padding: 7px 4px max(7px, env(safe-area-inset-bottom));
-    background: #172B4D;
+    background: var(--bfo-sidebar);
     border-top: 1px solid rgba(255, 255, 255, .14);
     backdrop-filter: blur(14px);
   }
@@ -1000,14 +994,14 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     justify-items: center;
     gap: 4px;
     min-width: 0;
-    color: #dbe2eb;
+    color: var(--bfo-sidebar-text, #dbe2eb);
     background: transparent;
     border: 0;
     font-size: 9px;
     font-weight: 600;
   }
   .bfo-mobile-dock button.is-active {
-    color: #f4bb66;
+    color: var(--bfo-sidebar-accent, #f4bb66);
   }
   .bfo-mobile-dock button i {
     position: absolute;
@@ -1015,8 +1009,8 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     right: calc(50% - 20px);
     min-width: 15px;
     padding: 1px 4px;
-    color: #211811;
-    background: var(--bfo-accent);
+    color: var(--bfo-on-action, #fff);
+    background: var(--bfo-action, var(--bfo-accent));
     border-radius: 8px;
     font: 700 9px ui-monospace, monospace;
     font-style: normal;
@@ -1059,9 +1053,9 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     height: 38px;
     display: grid;
     place-items: center;
-    border: 1px solid #D5851F;
+    border: 1px solid var(--bfo-accent, #D5851F);
     border-radius: 10px;
-    color: #f2bb70;
+    color: var(--bfo-sidebar-accent, #f2bb70);
     font-size: 13px;
     font-weight: 700;
   }
@@ -1080,11 +1074,11 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     z-index: 25;
     max-width: calc(100vw - 120px);
     padding: 5px 8px;
-    background: #172B4D;
-    color: #dbe2eb;
-    border: 1px solid #425573;
+    background: var(--bfo-sidebar);
+    color: var(--bfo-sidebar-text, #dbe2eb);
+    border: 1px solid var(--bfo-border, #425573);
     border-radius: 9px;
-    box-shadow: 0 6px 22px #10213c30;
+    box-shadow: var(--bfo-shadow, 0 6px 22px #10213c30);
   }
   .bfo-utility-dock button {
     display: flex;
@@ -1094,14 +1088,14 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     padding: 6px 10px;
     border: 0;
     background: transparent;
-    color: #dbe2eb;
+    color: var(--bfo-sidebar-text, #dbe2eb);
     border-radius: 5px;
     white-space: nowrap;
     font-size: 12px;
   }
   .bfo-utility-dock button:hover {
-    background: #ffffff16;
-    color: #fff;
+    background: var(--bfo-sidebar-hover, #ffffff16);
+    color: var(--bfo-sidebar-text, #fff);
   }
   .bfo-portal-root > .flex.h-screen > main {
     padding-bottom: 66px;
@@ -1124,16 +1118,16 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     place-items: center;
     width: 44px;
     height: 44px;
-    color: #dbe2eb;
-    background: #172B4D;
-    border: 1px solid rgba(255, 255, 255, .2);
+    color: var(--bfo-sidebar-text, #dbe2eb);
+    background: var(--bfo-sidebar);
+    border: 1px solid var(--bfo-border, rgba(255, 255, 255, .2));
     border-radius: 9px;
-    box-shadow: 0 5px 18px rgba(16, 33, 60, .2);
+    box-shadow: var(--bfo-shadow, 0 5px 18px rgba(16, 33, 60, .2));
   }
   .bfo-desktop-destinations button:hover,
   .bfo-desktop-destinations button:focus-visible {
-    color: #fff;
-    background: #263e66;
+    color: var(--bfo-sidebar-text, #fff);
+    background: var(--bfo-sidebar-hover, #263e66);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1159,13 +1153,13 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
     gap: 10px;
     width: 44px;
     min-height: 38px;
-    color: #dbe2eb;
-    background: #172B4D;
-    border: 1px solid #425573;
+    color: var(--bfo-sidebar-text, #dbe2eb);
+    background: var(--bfo-sidebar);
+    border: 1px solid var(--bfo-border, #425573);
     border-radius: 7px;
   }
   .bfo-sidebar-toggle > span { display: none; }
-  .bfo-sidebar-toggle:hover { background: #263e66; }
+  .bfo-sidebar-toggle:hover { background: var(--bfo-sidebar-hover, #263e66); }
   .bfo-customer-sidebar > div:first-child button { display: none; }
   .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail {
     width: 248px !important;
@@ -1180,7 +1174,7 @@ body.bfo-portal-active [role="dialog"] .bfo-dialog-form-footer {
   }
   .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail > div:first-child::after {
     content: "Workspace";
-    color: #edf1f5;
+    color: var(--bfo-sidebar-text, #edf1f5);
     font-size: 15px;
     font-weight: 600;
   }

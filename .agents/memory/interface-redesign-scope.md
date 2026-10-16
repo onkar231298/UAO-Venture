@@ -26,3 +26,18 @@ The owner likes the short company details in the right-side people desk, but pri
 **Why:** the owner explicitly liked the desk while correcting poor space management and its first-company-only behavior.
 
 **How to apply:** retain the compact company/people context as a design direction, allow selecting other companies without requiring full details, and keep navigation and detail panels adjustable so they do not unnecessarily reduce the records area.
+
+The owner approved explicit parent/child navigation: parent groups and sections with sub-options need disclosure arrows and indented children, consistently in expanded, compact and mobile menus.
+
+**Why:** the owner could not readily tell that Sales Management has its own sub-options within Operations.
+
+**How to apply:** keep page-label navigation separate from submenu disclosure, show children under their existing parent, reveal active-page ancestors, and do not flatten the hierarchy or invent new permissions.
+
+CRM colour themes are personal settings, including for the Sales team, not a
+company-wide branding control.
+
+**Why:** the owner requested rich, focused backend colour combinations and said
+Sales staff should be able to change their own theme.
+
+**How to apply:** keep choices separate between accounts and away from public-site
+branding. Be explicit about browser-only persistence until account syncing is added.

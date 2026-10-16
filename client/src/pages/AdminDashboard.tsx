@@ -61,6 +61,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
+import { PortalSidebarBranch } from "@/components/portal/PortalNavigation";
 
 const salesSubKeys = ['sales', 'enquiry-sample', 'sample-requests', 'high-volume-bids', 'quotation-negotiations', 'sales-orders', 'sales-crm', 'company-management', 'duplicate-review'];
 const toggleNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -238,6 +239,7 @@ export default function AdminDashboard() {
           : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
       }`}
       data-testid={testId}
+      aria-current={isActive && (key !== "sales" || activeSection === "sales") ? "page" : undefined}
     >
       <Icon className={`mr-3 flex-shrink-0 ${size === 'small' ? 'h-4 w-4' : 'h-5 w-5'}`} />
       <span className="truncate">{label}</span>
@@ -245,16 +247,16 @@ export default function AdminDashboard() {
   );
   const adminNavItems: PortalNavDestination[] = [
     { key: "overview", label: "Dashboard", icon: LayoutDashboard, active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
-    { key: "company-management", label: "Company Management", icon: Building2, active: activeSection === "company-management", onSelect: () => setLocation("/admin/dashboard/crm/companies") },
-    { key: "sales-crm", label: "Lead Management", icon: Users, active: activeSection === "sales-crm", onSelect: () => setLocation("/admin/dashboard/crm/leads") },
+    { key: "inventory", label: "Inventory Management", icon: Warehouse, active: activeSection === "inventory", onSelect: () => setActiveSection("inventory") },
     { key: "sales", label: "Sales Management", icon: TrendingUp, active: activeSection === "sales", onSelect: () => setActiveSection("sales") },
     { key: "enquiry-sample", label: "Customer Inquiries", icon: Send, active: activeSection === "enquiry-sample", onSelect: () => setActiveSection("enquiry-sample") },
     { key: "sample-requests", label: "Sample Requests", icon: Package, active: activeSection === "sample-requests", onSelect: () => setActiveSection("sample-requests") },
     { key: "high-volume-bids", label: "High Volume Bids", icon: TrendingUp, active: activeSection === "high-volume-bids", onSelect: () => setActiveSection("high-volume-bids") },
     { key: "quotation-negotiations", label: "Quote Negotiations", icon: DollarSign, active: activeSection === "quotation-negotiations", onSelect: () => setActiveSection("quotation-negotiations") },
     { key: "sales-orders", label: "Sales Orders", icon: ShoppingCart, active: activeSection === "sales-orders", onSelect: () => setActiveSection("sales-orders") },
+    { key: "sales-crm", label: "Lead Management", icon: Users, active: activeSection === "sales-crm", onSelect: () => setLocation("/admin/dashboard/crm/leads") },
+    { key: "company-management", label: "Company Management", icon: Building2, active: activeSection === "company-management", onSelect: () => setLocation("/admin/dashboard/crm/companies") },
     { key: "duplicate-review", label: "Duplicate Review", icon: Activity, active: activeSection === "duplicate-review", onSelect: () => setActiveSection("duplicate-review") },
-    { key: "inventory", label: "Inventory Management", icon: Warehouse, active: activeSection === "inventory", onSelect: () => setActiveSection("inventory") },
     { key: "purchase", label: "Purchase Management", icon: ShoppingCart, active: activeSection === "purchase", onSelect: () => setActiveSection("purchase") },
     { key: "logistics", label: "Logistics Management", icon: Truck, active: activeSection === "logistics", onSelect: () => setActiveSection("logistics") },
     { key: "accounts", label: "Accounts & Finance", icon: Calculator, active: activeSection === "accounts", onSelect: () => setActiveSection("accounts") },
@@ -271,7 +273,15 @@ export default function AdminDashboard() {
     { key: "settings", label: "System Settings", icon: Settings, active: activeSection === "settings", onSelect: () => setActiveSection("settings") },
     { key: "website-home", label: "Back to Website", icon: Globe, onSelect: () => setLocation("/") },
     { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
-  ];
+  ].map((item) => ({
+    ...item,
+    parentKey: salesSubKeys.includes(item.key) && item.key !== "sales" ? "sales" : undefined,
+    group: item.key === "overview" ? "Main"
+      : ["inventory", "purchase", "logistics", "accounts", ...salesSubKeys].includes(item.key) ? "Operations"
+      : ["website", "newsletter", "blog"].includes(item.key) ? "Website & Content"
+      : ["users", "hr-management", "quality-management", "sales-activity-logs", "security-monitor"].includes(item.key) ? "People & Compliance"
+      : item.key === "analytics" ? "Analytics" : item.key === "documents" ? "Admin Tools" : "Profile",
+  }));
 
   return (
     <PortalThemeProvider className="bfo-admin-portal">
@@ -316,10 +326,8 @@ export default function AdminDashboard() {
               <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>OPERATIONS</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('inventory', 'Inventory Management', Warehouse, activeSection === 'inventory', () => setActiveSection('inventory'))}
-                {navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}
-
-                {salesSubKeys.includes(activeSection) && (
-                  <div className="ml-6 mt-1 space-y-1">
+                <PortalSidebarBranch label="Sales Management" active={salesSubKeys.includes(activeSection)} activeKey={activeSection}
+                  trigger={navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}>
                     {navButton('enquiry-sample', 'Customer Inquiries', Send, activeSection === 'enquiry-sample', () => setActiveSection('enquiry-sample'), 'small')}
                     {navButton('sample-requests', 'Sample Requests', Package, activeSection === 'sample-requests', () => setActiveSection('sample-requests'), 'small', 'nav-sample-requests')}
                     {navButton('high-volume-bids', 'High Volume Bids', TrendingUp, activeSection === 'high-volume-bids', () => setActiveSection('high-volume-bids'), 'small', 'nav-high-volume-bids')}
@@ -328,8 +336,7 @@ export default function AdminDashboard() {
                     {navButton('sales-crm', 'Lead Management', Users, activeSection === 'sales-crm', () => setLocation('/admin/dashboard/crm/leads'), 'small')}
                     {navButton('company-management', 'Company Management', Building2, activeSection === 'company-management', () => setLocation('/admin/dashboard/crm/companies'), 'small', 'nav-company-management')}
                     {navButton('duplicate-review', 'Duplicate Review', Activity, activeSection === 'duplicate-review', () => setActiveSection('duplicate-review'), 'small', 'nav-duplicate-review')}
-                  </div>
-                )}
+                </PortalSidebarBranch>
 
                 {navButton('purchase', 'Purchase Management', ShoppingCart, activeSection === 'purchase', () => setActiveSection('purchase'))}
                 {navButton('logistics', 'Logistics Management', Truck, activeSection === 'logistics', () => setActiveSection('logistics'))}

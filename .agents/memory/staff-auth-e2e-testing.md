@@ -40,3 +40,12 @@ HTML at the same loopback port. Retrying or replacing the application was unnece
 **How to apply:** if `/json/list` is unexpectedly HTML, use `node:http` with an explicit
 loopback hostname and port for discovery. Await Chromium exit before removing
 its profile directory so cleanup errors do not hide the original test failure.
+
+Fixture cleanup must lock the owned user row before deleting dependent activity
+records and the user in one transaction, after stopping the browser.
+
+**Why:** an in-flight heartbeat can otherwise recreate a child row between deletes,
+causing a foreign-key cleanup failure that masks the actual browser-test error.
+
+**How to apply:** limit cleanup to the test-owned user, wait for browser exit,
+lock that user before deleting children, and log the verification error before cleanup.

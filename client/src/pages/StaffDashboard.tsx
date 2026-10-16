@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
+import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -179,18 +180,19 @@ export default function StaffDashboard() {
   };
 
   const staffNavItems: PortalNavDestination[] = [
-    { key: "overview", label: "Dashboard", icon: LayoutDashboard, active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
-    { key: "chat", label: "Internal Chat", icon: MessageCircle, badge: chatUnreadData?.count || undefined, onSelect: () => { window.location.href = "/chat"; } },
+    { key: "overview", label: "Dashboard", icon: LayoutDashboard, group: "MAIN", active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
+    { key: "chat", label: "Internal Chat", icon: MessageCircle, group: "MAIN", badge: chatUnreadData?.count || undefined, onSelect: () => { window.location.href = "/chat"; } },
     ...userModules.map((module: string) => ({
       key: module,
+      group: "MY MODULES",
       label: moduleLabels[module] || module,
       icon: moduleIcons[module] || Package,
       active: activeSection === module,
       onSelect: () => handleModuleClick(module),
     })),
-    { key: "my-attendance", label: "My Attendance", icon: Calendar, active: activeSection === "my-attendance", onSelect: () => setActiveSection("my-attendance") },
-    { key: "settings", label: "Profile Settings", icon: Settings, active: activeSection === "settings", onSelect: () => setActiveSection("settings") },
-    { key: "logout", label: "Log out", icon: LogOut, onSelect: () => { window.location.href = "/api/logout"; } },
+    { key: "my-attendance", label: "My Attendance", icon: Calendar, group: "HR", active: activeSection === "my-attendance", onSelect: () => setActiveSection("my-attendance") },
+    { key: "settings", label: "Profile Settings", icon: Settings, group: "PROFILE", active: activeSection === "settings", onSelect: () => setActiveSection("settings") },
+    { key: "logout", label: "Log out", icon: LogOut, group: "PROFILE", onSelect: () => { window.location.href = "/api/logout"; } },
   ];
 
   return (
@@ -443,7 +445,8 @@ export default function StaffDashboard() {
             <MyAttendance />
           )}
 
-          {activeSection !== 'overview' && activeSection !== 'my-attendance' && (
+          {activeSection === 'settings' && <PortalAppearanceSettings />}
+          {activeSection !== 'overview' && activeSection !== 'my-attendance' && activeSection !== 'settings' && (
             <Card>
               <CardHeader>
                 <CardTitle>

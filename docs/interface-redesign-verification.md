@@ -72,6 +72,9 @@ level in the baseline, not replaced by dashboard summary cards.
 ```sh
 node scripts/check-interface-options.cjs
 TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" node scripts/verifyPortalRedesign.cjs --isolated
+TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" TEST_ROLES=super_admin node scripts/verifyPortalRedesign.cjs --staff-only --nested-only
+node_modules/.bin/tsx scripts/checkPortalAppearance.ts
+TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" TEST_ROLES=super_admin,admin,sales_manager,sales_executive,inventory_manager,quality_manager node scripts/verifyPortalRedesign.cjs --isolated --appearance-only
 TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" node scripts/verifyCompanyRestoreUI.cjs --admin-writes
 TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" node scripts/verifyCompanyRestoreUI.cjs --writes
 TEST_APP_ORIGIN="https://$REPLIT_DEV_DOMAIN" node scripts/verifyCompanyRestoreUI.cjs
@@ -131,3 +134,49 @@ the company export response.
 The option inventory is exhaustive at source-control level. Browser checks are
 representative workflow checks, not a claim that every conditional record state,
 destructive action, upload, download or populated business scenario was exercised.
+
+## Nested navigation checks
+
+The hierarchy update was checked with Super Admin, ordinary Admin, Sales,
+departmental Staff, Quality and Customer accounts. The original 5,018-control
+inventory still matches with zero missing controls; the production build passes.
+
+Focused checks verify all eight existing Sales children, expansion without
+navigation, the original parent page link, independent collapse, automatic
+reopening of active-page ancestors, compact-rail flyout and Escape dismissal,
+and mobile parent/child placement with exactly one copy of each destination.
+Existing Super Admin-only Document Upload visibility remains unchanged.
+
+Run the focused hierarchy test in a fresh browser rather than appending it to
+the long all-module navigation sweep. Test cleanup stops Chromium and locks the
+owned fixture user before deleting activity records, preventing late heartbeats
+from masking a verification failure.
+
+## Personal appearance checks
+
+Four coordinated palettes each support light and dark mode. Admin System Settings
+retains Email Configuration and Document Numbers and adds an Appearance tab.
+Sales has a dedicated Appearance destination under Settings, alongside the
+unchanged Email Settings destination. Staff and Quality expose the same chooser
+in their existing profile settings. Preferences are account-scoped in this browser,
+not database-backed or automatically shared between devices.
+
+All eight palette/mode combinations were exercised for Super Admin, Admin, Sales
+Manager, Sales Executive, Inventory Manager and Quality Manager. Checks cover
+workspace, rail, header and body-portalled token application, heading readability,
+keyboard radio selection, reload persistence and 390px layout without horizontal
+overflow. Two actual temporary Sales accounts in the same browser confirm separate
+choices and restoration after switching back. Public-page cleanup is checked after
+leaving the portal. Customer smoke checks also pass.
+
+The final Sales checks additionally assert settled palette-card backgrounds,
+themed company search inputs, and the responsive header. Captures wait for existing
+colour transitions so they do not mistake intermediate light/dark frames for the
+settled appearance.
+
+Pure preference checks cover invalid saved values, blocked storage and default
+values. Base body/muted/sidebar text and primary action contrast pass at least
+4.5:1 across the eight combinations. This is not an exhaustive accessibility audit
+of every existing status badge, populated chart, dialog or business-record state.
+The original 5,018-control inventory still reports no missing controls, the
+production build passes, and all temporary test accounts were removed.

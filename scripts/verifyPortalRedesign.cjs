@@ -12,6 +12,7 @@ const out = process.env.TEST_OUTPUT_DIR || '/tmp/portal-redesign-check';
 const before = process.argv.includes('--baseline');
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const userId = 'portal_check_'+crypto.randomBytes(8).toString('hex');
+const ownedUserIds = [userId];
 const email = userId+'@example.invalid';
 const password = crypto.randomBytes(24).toString('hex');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(),'portal-browser-'));
@@ -43,6 +44,8 @@ async function navigate(route) {
   await until("document.readyState==='complete'",'document '+route);
 }
 async function shot(name) {
+  // Capture the settled palette rather than a light/dark CSS-transition frame.
+  await sleep(250);
   const r=await command('Page.captureScreenshot',{format:'jpeg',quality:70});
   fs.writeFileSync(path.join(out,name+'.jpg'),Buffer.from(r.data,'base64'));
 }
@@ -66,6 +69,8 @@ async function checkMobile(role,options) {
   const all=await evaluate("document.querySelector('.bfo-more-sheet').textContent");
   const missing=options.filter(o=>!all.includes(o));
   if(missing.length)throw Error(role+' More missing '+missing.join(', '));
+  const groups=await evaluate("document.querySelectorAll('.bfo-more-sheet .bfo-nav-tree-group > summary').length");
+  if(!groups)throw Error('More lost navigation groups '+role);
   const trapped=await evaluate("document.querySelector('.bfo-more-sheet').contains(document.activeElement)");
   if(!trapped)throw Error('More did not receive keyboard focus '+role);
   await shot(role+'-mobile-more');
@@ -75,9 +80,91 @@ async function checkMobile(role,options) {
   await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
   return {destinations:count,allOptionsInMore:true,focusTrapped:trapped,escapeClosed:true,tabletOverflow};
 }
-async function checkTheme(role) {
-  await evaluate("localStorage.setItem('bfo-portal-theme','dark')");
+async function checkAppearance(role) {
+  const admin=role==='super_admin'||role==='admin';
+  const sales=role.startsWith('sales');
+  const route=admin?'/admin?section=settings':sales?'/sales/appearance':role.startsWith('quality')?'/quality/dashboard?section=profile-settings':'/staff?section=settings';
+  async function openSettings() {
+    await navigate(route);
+    if(admin) {
+      await until("!!document.querySelector('[data-testid=\"tab-appearance\"]')",'appearance tab');
+      await evaluate("document.querySelector('[data-testid=\"tab-appearance\"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))");
+    }
+    await until("!!document.querySelector('[data-testid=\"appearance-settings\"]')",'appearance settings '+role);
+  }
+  await openSettings();
+  if(admin && !await evaluate("!!document.querySelector('[data-testid=\"tab-email\"]')&&!!document.querySelector('[data-testid=\"tab-documents\"]')"))
+    throw Error('Existing system settings tabs missing');
+  if(sales && !await evaluate("[...document.querySelectorAll('aside nav a,aside nav button')].some(n=>n.textContent.trim()==='Email Settings')"))
+    throw Error('Existing Sales Email Settings missing');
+  let combinations=0;
+  for(const palette of ['navy-amber','ocean-teal','forest-sage','plum-gold']) for(const mode of ['light','dark']) {
+    await evaluate(`document.querySelector('[data-testid="theme-palette-${palette}"]').click();document.querySelector('[data-testid="appearance-mode-${mode}"]').click()`);
+    await until(`document.querySelector('.bfo-portal-root')?.dataset.portalPalette==='${palette}'&&document.body.dataset.portalTheme==='${mode}'`,'palette '+palette+'/'+mode);
+    await sleep(200);
+    const colours=await evaluate(`(async()=>{
+      const {PORTAL_PALETTES}=await import('/src/components/portal/portalPalettes.ts');
+      const palette=PORTAL_PALETTES.find(p=>p.id===${JSON.stringify(palette)});
+      const root=document.querySelector('.bfo-portal-root'),rail=document.querySelector('.bfo-workspace-rail'),header=document.querySelector('header');
+      function rgb(value){const el=document.createElement('i');el.style.color=value;document.body.append(el);const c=getComputedStyle(el).color;el.remove();return c;}
+      return {root:getComputedStyle(root).backgroundColor===rgb(palette[${JSON.stringify(mode)}].bg),
+        rail:!!rail&&getComputedStyle(rail).backgroundColor===rgb(palette.sidebar),
+        header:!!header&&getComputedStyle(header).backgroundColor===rgb(palette.sidebar),
+        heading:getComputedStyle(document.querySelector('.portal-appearance h2')).color===rgb(palette[${JSON.stringify(mode)}].text),
+        description:getComputedStyle(document.querySelector('.portal-appearance__heading p')).color===rgb(palette[${JSON.stringify(mode)}].muted),
+        cards:getComputedStyle(document.querySelector('.portal-appearance__palette[aria-checked="false"]')).backgroundColor===rgb(palette[${JSON.stringify(mode)}].panel),
+        body:getComputedStyle(document.body).getPropertyValue('--bfo-sidebar').trim()===palette.sidebar,
+        radio:document.querySelector('[data-testid="theme-palette-${palette}"]').getAttribute('aria-checked')==='true'};
+    })()`);
+    if(Object.values(colours).some(v=>!v))throw Error('Incomplete palette application '+palette+'/'+mode+': '+JSON.stringify(colours));
+    combinations++;
+  }
+  await shot(role+'-appearance-plum-dark');
+  await evaluate("document.querySelector('[data-testid=\"theme-palette-ocean-teal\"]').click();document.querySelector('[data-testid=\"appearance-mode-light\"]').click()");
+  await shot(role+'-appearance-ocean-light');
   await command('Page.reload',{ignoreCache:true});
+  await until("document.body.dataset.portalPalette==='ocean-teal'&&document.body.dataset.portalTheme==='light'",'account preference persists');
+  await openSettings();
+  await evaluate("document.querySelector('[data-testid=\"theme-palette-ocean-teal\"]').focus()");
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight'});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight'});
+  await until("document.body.dataset.portalPalette==='forest-sage'",'keyboard radio selection');
+  await evaluate("document.querySelector('[data-testid=\"theme-palette-ocean-teal\"]').click();document.querySelector('[data-testid=\"appearance-mode-dark\"]').click()");
+  await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  if(await evaluate('document.documentElement.scrollWidth>innerWidth'))throw Error('Mobile appearance overflows');
+  await shot(role+'-appearance-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  if(sales) {
+    await navigate('/sales/my-companies');
+    await until("!!document.querySelector('.bfo-sales-portal')&&!!document.querySelector('main input')",'themed company form');
+    const inputs=await evaluate("getComputedStyle(document.querySelector('main input')).backgroundColor");
+    if(inputs!=='rgb(19, 48, 57)')throw Error('Company inputs did not adopt dark Ocean palette: '+inputs);
+    await shot(role+'-appearance-companies');
+    const otherId=userId+'_other';ownedUserIds.push(otherId);
+    await db.query(`INSERT INTO users(id,email,password,role,user_type,account_status,is_active,first_name,last_name)
+      VALUES($1,$2,$3,'sales_executive','staff','active',true,'Other','Verification')`,[otherId,otherId+'@example.invalid',bcrypt.hashSync(password,10)]);
+    async function loginAs(address) {
+      await navigate('/login');
+      await evaluate("fetch('/api/logout',{credentials:'include'}).then(r=>r.status)");
+      const status=await evaluate(`fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams(${JSON.stringify({email:address,password})}).toString()}).then(r=>r.status)`);
+      if(status!==200)throw Error('Appearance account switch login failed');
+      await openSettings();
+    }
+    await loginAs(otherId+'@example.invalid');
+    if(!await evaluate("document.body.dataset.portalPalette==='navy-amber'"))throw Error('Another user inherited palette');
+    await evaluate("document.querySelector('[data-testid=\"theme-palette-forest-sage\"]').click()");
+    await loginAs(email);
+    if(!await evaluate("document.body.dataset.portalPalette==='ocean-teal'&&document.body.dataset.portalTheme==='dark'"))throw Error('Account preferences contaminated');
+  }
+  await navigate('/');
+  await until("!document.body.classList.contains('bfo-portal-active')",'public theme cleanup');
+  if(await evaluate("!!document.body.dataset.portalPalette||!!document.body.style.getPropertyValue('--bfo-sidebar')"))throw Error('Personal colours leaked onto public site');
+  return {combinations,persistedAcrossReload:true,keyboardSelection:true,mobileOverflow:false,accountIsolation:sales?'two real accounts':'covered by Sales test',publicSiteUnchanged:true};
+}
+async function checkTheme(role) {
+  if(await evaluate("document.body.dataset.portalTheme==='light'"))
+    await evaluate("document.querySelector('.bfo-theme-toggle').click()");
   await until("document.body?.dataset.portalTheme==='dark' && !!document.querySelector('.bfo-theme-toggle')",'initial dark theme '+role);
   await evaluate("document.querySelector('.bfo-theme-toggle').click()");
   await until("document.body?.dataset.portalTheme==='light'",'light theme '+role);
@@ -144,6 +231,8 @@ async function checkShortcuts(role) {
   return result;
 }
 async function visitNavModules() {
+  const expandedBefore=await evaluate("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='true'");
+  if(!expandedBefore)await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
   // Read-only section changes; never invoke record actions, logout or website links.
   await clickText('aside nav button','Sales Management');
   const labels=await evaluate("[...document.querySelectorAll('aside nav button:not(.bfo-nav-group-toggle)')].map(n=>n.textContent.trim()).filter(Boolean)");
@@ -156,7 +245,54 @@ async function visitNavModules() {
     if(content.length<10)throw Error('Empty module '+label);
     visited.push({label,rendered:true,preExistingPlaceholder:/coming soon/i.test(content)});
   }
+  if(!expandedBefore)await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
   return visited;
+}
+async function checkNestedNavigation() {
+  await navigate('/admin?section=overview');
+  await until("!!document.querySelector('.bfo-sidebar-branch')",'Sales branch');
+  await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
+  await until("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='true'",'expanded hierarchical sidebar');
+  const children=['Customer Inquiries','Sample Requests','High Volume Bids','Quote Negotiations','Sales Orders','Lead Management','Company Management','Duplicate Review'];
+  await evaluate("document.querySelector('.bfo-sidebar-branch .bfo-branch-toggle').click()");
+  await until("document.querySelector('.bfo-sidebar-branch__children')?.hidden===false",'independent Sales submenu expansion');
+  const shown=await evaluate("document.querySelector('.bfo-sidebar-branch__children').textContent");
+  if(children.some(label=>!shown.includes(label)))throw Error('Sales submenu lost destinations');
+  const noNavigation=await evaluate("new URLSearchParams(location.search).get('section')==='overview' && document.querySelector('header h1')?.textContent.trim()==='Dashboard'");
+  if(!noNavigation)throw Error('Expanding Sales changed the page');
+  await shot('admin-nested-sidebar');
+  await evaluate("document.querySelector('.bfo-sidebar-branch .bfo-branch-toggle').click()");
+  await until("getComputedStyle(document.querySelector('.bfo-sidebar-branch__children')).display==='none'",'Sales submenu collapse');
+  await clickText('aside nav button','Sales Management');
+  await until("document.querySelector('.bfo-sidebar-branch__children')?.hidden===false",'active Sales ancestor auto-expansion');
+  await evaluate("[...document.querySelectorAll('.bfo-nav-group-toggle')].find(b=>b.textContent.trim()==='OPERATIONS').click()");
+  await evaluate("document.querySelector('.bfo-desktop-destinations button').click()");
+  await until("!!document.querySelector('.bfo-more-sheet')",'desktop full hierarchy');
+  await evaluate("document.querySelector('.bfo-more-sheet [data-nav-key=\"company-management\"]').click()");
+  await until("location.pathname.includes('/crm/companies') && !!document.querySelector('[data-testid=\"company-context-desk\"]')",'nested company navigation');
+  const revealed=await evaluate("(() => {const b=[...document.querySelectorAll('.bfo-nav-group-toggle')].find(n=>n.textContent.trim()==='OPERATIONS');return b?.getAttribute('aria-expanded')==='true' && !b.nextElementSibling.hidden && !document.querySelector('.bfo-sidebar-branch__children').hidden})()");
+  if(!revealed)throw Error('Active company ancestor stayed collapsed');
+  await evaluate("document.querySelector('[data-testid=\"button-toggle-sidebar\"]').click()");
+  await until("document.querySelector('.bfo-portal-root').dataset.sidebarExpanded==='false'",'compact hierarchy');
+  await evaluate("document.querySelector('.bfo-sidebar-branch .bfo-branch-toggle').click()");
+  await until("!!document.querySelector('.bfo-submenu-popover')",'compact Sales flyout');
+  const compactText=await evaluate("document.querySelector('.bfo-submenu-popover').textContent");
+  if(children.some(label=>!compactText.includes(label)))throw Error('Compact flyout lost Sales options');
+  await shot('admin-compact-sales-submenu');
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await until("!document.querySelector('.bfo-submenu-popover')",'compact flyout Escape');
+  await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await clickText('.bfo-mobile-dock button','More');
+  await until("!!document.querySelector('.bfo-nav-tree-branch')",'mobile nested destinations');
+  const mobile=await evaluate("(() => {const leaf=document.querySelector('.bfo-more-sheet [data-nav-key=\"company-management\"]');const branch=leaf?.closest('.bfo-nav-tree-branch');return {parent:branch?.querySelector('summary button')?.textContent.trim(),open:branch?.open,current:leaf?.getAttribute('aria-current'),duplicates:document.querySelectorAll('.bfo-more-sheet [data-nav-key=\"company-management\"]').length}})()");
+  if(mobile.parent!=='Sales Management'||!mobile.open||mobile.current!=='page'||mobile.duplicates!==1)throw Error('Incorrect mobile hierarchy: '+JSON.stringify(mobile));
+  await shot('admin-mobile-nested-sales');
+  await evaluate("document.querySelector('.bfo-more-sheet [data-nav-key=\"enquiry-sample\"]').click()");
+  await until("!document.querySelector('.bfo-more-sheet')",'mobile child selection closes menu');
+  await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  await navigate('/admin');
+  return {allEightSalesChildren:true,independentDisclosure:true,pageLinkPreserved:true,activeAncestorsReveal:true,compactFlyout:true,mobileHierarchy:true};
 }
 const departmental = {
   purchase_manager:['Purchase Management','Analytics & Reports'],purchase_executive:['Purchase Management'],
@@ -223,14 +359,21 @@ async function main() {
         const themed=await evaluate("document.documentElement.hasAttribute('data-portal-theme') || document.body.hasAttribute('data-portal-theme') || !!document.querySelector('[data-portal-theme]')");
         current.themed=themed;
         if(!themed)throw Error('Missing portal theme '+role);
-        if(['super_admin','sales_executive','inventory_manager'].includes(role)) {
+        if(process.argv.includes('--appearance-only')) {
+          current.appearance=await checkAppearance(role);
+          results.push(current);
+          continue;
+        }
+        const nestedOnly=process.argv.includes('--nested-only');
+        if(nestedOnly)current.nestedNavigation=await checkNestedNavigation();
+        if(!nestedOnly && ['super_admin','sales_executive','inventory_manager'].includes(role)) {
           current.theme=await checkTheme(role);
           current.mobile=await checkMobile(role,role==='super_admin'?[...options,'Document Upload']:options);
         }
-        if(['super_admin','inventory_manager'].includes(role)) {
+        if(!nestedOnly && ['super_admin','inventory_manager'].includes(role)) {
           current.modules=await visitNavModules();
         }
-        if(['super_admin','sales_executive'].includes(role))current.shortcuts=await checkShortcuts(role);
+        if(!nestedOnly && ['super_admin','sales_executive'].includes(role))current.shortcuts=await checkShortcuts(role);
       }
       results.push(current);
       fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,runtimeExceptions:errors},null,2));
@@ -289,11 +432,21 @@ async function main() {
     fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({phase:before?'before':'after',results,runtimeExceptions:errors},null,2));
     if(errors.length)throw Error('Browser runtime exceptions: '+errors.join('; '));
     console.log('PASS all role smoke checks. Results:',path.join(out,'results.json'));
+  } catch(error) {
+    console.error('Verification failure:',error.message);
+    throw error;
   } finally {
-    if(socket)socket.close();if(browser)browser.kill('SIGKILL');
+    if(socket)socket.close();
+    if(browser && browser.exitCode===null) {
+      browser.kill('SIGKILL');
+      await new Promise(resolve=>browser.once('exit',resolve));
+    }
+    await db.query('BEGIN');
+    await db.query('SELECT id FROM users WHERE id=ANY($1::text[]) ORDER BY id FOR UPDATE',[ownedUserIds]);
     for(const table of ['activity_heartbeats','daily_performance_summary','notifications','user_access_events','user_login_logs'])
-      await db.query(`DELETE FROM ${table} WHERE user_id=$1`,[userId]);
-    await db.query('DELETE FROM users WHERE id=$1',[userId]);
+      await db.query(`DELETE FROM ${table} WHERE user_id=ANY($1::text[])`,[ownedUserIds]);
+    await db.query('DELETE FROM users WHERE id=ANY($1::text[])',[ownedUserIds]);
+    await db.query('COMMIT');
     await db.end();
     for(let i=0;i<4;i++)try{fs.rmSync(profile,{recursive:true,force:true});break}catch(e){if(i===3)console.error(e.message);await sleep(300)}
   }
@@ -307,7 +460,8 @@ if(process.argv.includes('--isolated')) {
   fs.mkdirSync(out,{recursive:true});
   for(const role of roles) {
     const directory=path.join(out,role);
-    const r=spawnSync(process.execPath,[__filename,role==='customer'?'--customer-only':'--staff-only'],{
+    const focused=process.argv.filter(flag=>['--nested-only','--appearance-only'].includes(flag));
+    const r=spawnSync(process.execPath,[__filename,role==='customer'?'--customer-only':'--staff-only',...focused],{
       env:{...process.env,TEST_ROLES:role,TEST_OUTPUT_DIR:directory},stdio:'inherit',timeout:100000});
     if(r.status!==0){process.exitCode=1;break;}
     combined.push({role,...JSON.parse(fs.readFileSync(path.join(directory,'results.json'),'utf8'))});

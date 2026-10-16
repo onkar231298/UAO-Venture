@@ -1,8 +1,8 @@
 .crm-company-workspace,
 .crm-company-desk {
-  --crm-desk-navy: #172b4d;
-  --crm-desk-paper: #f7f7f2;
-  --crm-desk-amber: #d5851f;
+  --crm-desk-navy: var(--bfo-sidebar, #172b4d);
+  --crm-desk-paper: var(--bfo-bg, #f7f7f2);
+  --crm-desk-amber: var(--bfo-accent, #d5851f);
   --crm-desk-ink: var(--bfo-text, #24334a);
   --crm-desk-muted: var(--bfo-muted, #728096);
   --crm-desk-line: var(--bfo-border, #e2e5e5);
@@ -31,18 +31,18 @@
   overflow: hidden;
   position: sticky;
   top: 1rem;
-  box-shadow: 0 4px 18px #172b4d0b;
+  box-shadow: var(--bfo-shadow, 0 4px 18px #172b4d0b);
 }
 
 .crm-company-desk__header {
   padding: 11px 13px;
-  color: #fff;
+  color: var(--bfo-sidebar-text, #fff);
   background: var(--crm-desk-navy);
 }
 
 .crm-company-desk__header > span {
   display: block;
-  color: #d5deea;
+  color: var(--bfo-sidebar-muted, #d5deea);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .1em;
@@ -59,7 +59,7 @@
 
 .crm-company-desk__header p {
   margin: 0;
-  color: #d5deea;
+  color: var(--bfo-sidebar-muted, #d5deea);
   font-size: 11px;
   overflow-wrap: anywhere;
 }
@@ -211,10 +211,10 @@
 .crm-company-desk__notice {
   margin: 8px 0;
   padding: 9px;
-  border: 1px solid #e7c6b1;
+  border: 1px solid color-mix(in srgb, var(--bfo-accent) 38%, var(--crm-desk-line));
   border-radius: 6px;
-  color: #7b3b28;
-  background: #fff7f0;
+  color: var(--bfo-accent-readable, #7b3b28);
+  background: color-mix(in srgb, var(--bfo-accent) 12%, var(--bfo-panel));
   font-size: 11px;
 }
 

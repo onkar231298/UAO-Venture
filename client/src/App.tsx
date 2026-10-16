@@ -87,6 +87,7 @@ import { SalesLayout } from "@/components/layouts/SalesLayout";
 import { LayoutDashboard, Building2, AlarmClock, MessageCircle, FileText, Target, Package, ClipboardCheck, Calendar, Users, Settings, LogOut, TrendingUp } from "lucide-react";
 
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
+import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 
 // Helper component for product URL redirect
 function ProductRedirect({ params }: { params: { slug: string } }) {
@@ -153,6 +154,7 @@ function ChatPortal() {
       { key: "/sales/my-attendance", label: "My Attendance", icon: Calendar, onSelect: () => { window.location.href = "/sales/my-attendance"; } },
       { key: "/sales/my-activity-log", label: "My Activity Log", icon: FileText, onSelect: () => { window.location.href = "/sales/my-activity-log"; } },
       { key: "/crm/email-settings", label: "Email Settings", icon: Settings, onSelect: () => { window.location.href = "/crm/email-settings"; } },
+      { key: "/sales/appearance", label: "Appearance", icon: Settings, onSelect: () => { window.location.href = "/sales/appearance"; } },
     ] : role === "admin" || role === "super_admin" ? [
       { key: "/admin", label: "Dashboard", icon: LayoutDashboard, onSelect: () => { window.location.href = "/admin"; } },
       { key: "/admin/inventory", label: "Inventory Management", icon: Package, onSelect: () => { window.location.href = "/admin?section=inventory"; } },
@@ -228,6 +230,10 @@ function ChatPortal() {
 
 function EmailSettingsPortal() {
   return <SalesLayout title="Email Settings" subtitle="Manage your assigned mailbox"><EmailSettings /></SalesLayout>;
+}
+
+function SalesAppearancePortal() {
+  return <SalesLayout title="Appearance Settings" subtitle="Personalise your CRM workspace"><PortalAppearanceSettings /></SalesLayout>;
 }
 
 function Router() {
@@ -320,6 +326,7 @@ function Router() {
           {((user as any).role === 'sales_executive' || (user as any).role === 'sales_manager') ? (
             <>
               <Route path="/sales" component={SalesPersonDashboard} />
+              <Route path="/sales/appearance" component={SalesAppearancePortal} />
               <Route path="/sales/leads" component={SalesLeadManagement} />
               <Route path="/sales/my-companies" component={MyCompanies} />
               <Route path="/sales/follow-ups" component={FollowUpsPage} />

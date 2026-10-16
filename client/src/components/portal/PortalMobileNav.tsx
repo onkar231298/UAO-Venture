@@ -1,7 +1,8 @@
-import { useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { MoreHorizontal, X } from "lucide-react";
 import { PortalOverlay } from "./PortalOverlay";
 import { PortalThemeToggle, PortalSidebarToggle } from "./PortalTheme";
+import { PortalNavigationTree, revealActiveSidebar } from "./PortalNavigation";
 
 export interface PortalNavDestination {
   key: string;
@@ -10,6 +11,8 @@ export interface PortalNavDestination {
   onSelect: () => void;
   active?: boolean;
   badge?: string | number;
+  group?: string;
+  parentKey?: string;
 }
 
 export function PortalMobileNav({
@@ -22,6 +25,12 @@ export function PortalMobileNav({
   showThemeToggle?: boolean;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const markerRef = useRef<HTMLSpanElement>(null);
+  const activeKeys = items.filter((item) => item.active).map((item) => item.key).join("|");
+  useEffect(() => {
+    const root = markerRef.current?.closest<HTMLElement>(".bfo-portal-root");
+    if (root) revealActiveSidebar(items, root);
+  }, [activeKeys]);
   const primaryItems = primaryKeys
     .map((key) => items.find((item) => item.key === key))
     .filter((item): item is PortalNavDestination => !!item);
@@ -36,6 +45,7 @@ export function PortalMobileNav({
 
   return (
     <>
+      <span ref={markerRef} hidden />
       <PortalSidebarToggle />
       <PortalOverlay open={moreOpen} onOpenChange={setMoreOpen}
         title="All workspace destinations" className="bfo-more-sheet">
@@ -48,23 +58,7 @@ export function PortalMobileNav({
                 <X size={18} />
               </button>
             </div>
-            <div className="bfo-more-grid">
-              {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    type="button"
-                    key={item.key}
-                    className={item.active ? "is-active" : ""}
-                    onClick={() => selectItem(item)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                    {item.badge !== undefined && <small>{item.badge}</small>}
-                  </button>
-                );
-              })}
-            </div>
+            <PortalNavigationTree items={items} onSelect={selectItem} />
             {showThemeToggle && <div className="bfo-more-utilities"><PortalThemeToggle /></div>}
       </PortalOverlay>
       <nav className="bfo-desktop-destinations" aria-label="Workspace destinations">

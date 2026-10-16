@@ -1,0 +1,380 @@
+/*
+ * Portal nested navigation
+ * Loaded after portal-theme.css so these narrowly-scoped rules can refine its
+ * rail/button defaults without changing the existing navigation components.
+ */
+
+/* Sales Management branch in the desktop workspace rail. */
+.bfo-portal-root .bfo-sidebar-branch {
+  position: relative;
+  min-width: 0;
+  overflow: visible;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__heading > button:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bfo-portal-root .bfo-branch-toggle {
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  color: var(--bfo-sidebar-text, #dbe2eb);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.bfo-portal-root .bfo-branch-toggle:hover,
+.bfo-portal-root .bfo-branch-toggle:focus-visible {
+  color: var(--bfo-sidebar-text, #fff);
+  background: var(--bfo-sidebar-hover, rgba(255, 255, 255, .12));
+}
+
+.bfo-portal-root .bfo-branch-toggle:focus-visible,
+.bfo-portal-root .bfo-branch-toggle:focus-visible,
+.bfo-portal-root .bfo-sidebar-branch__heading > button:focus-visible {
+  outline: 2px solid var(--bfo-sidebar-accent, #f4bb66);
+  outline-offset: 2px;
+}
+
+.bfo-portal-root .bfo-nav-tree :focus-visible,
+.bfo-submenu-popover :focus-visible {
+  outline: 2px solid var(--bfo-accent-readable, var(--bfo-accent, #f0b456));
+  outline-offset: 2px;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__children {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 5px 18px;
+  padding: 3px 0 3px 10px;
+  border-left: 1px solid var(--bfo-border, rgba(219, 226, 235, .34));
+}
+.bfo-portal-root .bfo-sidebar-branch__children[hidden] { display: none !important; }
+
+/* Rail defaults use !important widths; disclosures must stay independent. */
+.bfo-portal-root .bfo-workspace-rail nav .bfo-sidebar-branch__heading > .bfo-branch-toggle {
+  flex: 0 0 30px;
+  width: 30px !important;
+  min-width: 30px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 !important;
+  justify-content: center;
+}
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-workspace-rail nav .bfo-sidebar-branch__heading > .bfo-branch-toggle {
+  width: 24px !important;
+  min-width: 24px;
+  min-height: 24px;
+  height: 24px;
+  color: var(--bfo-sidebar-accent, #f4bb66) !important;
+  background: var(--bfo-sidebar) !important;
+  border: 1px solid var(--bfo-sidebar-accent, #f4bb66) !important;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__children > button {
+  width: 100% !important;
+  min-width: 0;
+  min-height: 38px;
+  margin: 0 !important;
+  padding: 7px 9px !important;
+  justify-content: flex-start;
+  gap: 9px;
+  text-align: left;
+  border-radius: 6px;
+  color: var(--bfo-sidebar-text, #dbe2eb) !important;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__children > button:hover {
+  color: var(--bfo-sidebar-text, #fff) !important;
+  background: var(--bfo-sidebar-hover, rgba(255, 255, 255, .1)) !important;
+}
+
+.bfo-portal-root .bfo-sidebar-branch__children > button[aria-current="page"] {
+  color: var(--bfo-sidebar-accent, #f4bb66) !important;
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .2)) !important;
+  border-color: var(--bfo-accent, #D5851F) !important;
+}
+
+/* In the icon-only rail, preserve the Sales icon and mark it as expandable. */
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-sidebar-branch__heading {
+  width: 44px;
+  height: 48px;
+  margin: 1px 0;
+}
+
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-sidebar-branch__heading > button:first-child {
+  width: 44px !important;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 0 !important;
+  justify-content: center;
+}
+
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-branch-toggle {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 1px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0;
+  color: var(--bfo-sidebar-accent, #f4bb66);
+  background: var(--bfo-sidebar);
+  border-color: var(--bfo-sidebar-accent, #f4bb66);
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(8, 20, 38, .45);
+}
+
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-branch-toggle:focus-visible {
+  background: var(--bfo-sidebar-hover, #263e66);
+}
+
+.bfo-portal-root[data-sidebar-expanded="false"] .bfo-sidebar-branch__children {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-sidebar-branch__heading {
+    gap: 3px;
+  }
+
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-sidebar-branch__heading > button:first-child {
+    min-height: 40px;
+  }
+
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-sidebar-branch__children {
+    margin-left: 19px;
+    padding-left: 10px;
+  }
+
+  /* Let child labels/tooltips extend beyond the nested branch without clipping. */
+  .bfo-portal-root[data-sidebar-expanded="true"] .bfo-workspace-rail nav {
+    overflow-x: visible !important;
+  }
+}
+
+/* Radix popover is portalled under body and therefore uses explicit token fallbacks. */
+.bfo-submenu-popover {
+  z-index: 110;
+  width: min(260px, calc(100vw - 24px));
+  padding: 8px;
+  color: var(--bfo-text, #24334a);
+  background: var(--bfo-panel, #fff);
+  border: 1px solid var(--bfo-border, #e2e5e5);
+  border-radius: 11px;
+  box-shadow: 0 12px 30px rgba(23, 43, 77, .2);
+}
+
+.bfo-submenu-popover h3 {
+  margin: 1px 7px 7px;
+  padding: 4px 0 8px;
+  color: var(--bfo-muted, #728096);
+  border-bottom: 1px solid var(--bfo-border, #e2e5e5);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.bfo-submenu-popover > button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 9px;
+  gap: 9px;
+  color: var(--bfo-text, #24334a);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.bfo-submenu-popover > button:hover {
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .12));
+}
+
+.bfo-submenu-popover > button[aria-current="page"] {
+  color: var(--bfo-accent-readable, #9a5b0f);
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .14));
+  border-color: var(--bfo-accent, rgba(213, 133, 31, .3));
+  font-weight: 650;
+}
+
+/* Shared destination sheet / mobile More hierarchy: one readable tree, not a tile grid. */
+.bfo-more-grid.bfo-nav-tree {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.bfo-nav-tree-group,
+.bfo-nav-tree-branch {
+  min-width: 0;
+}
+
+.bfo-nav-tree-group > summary,
+.bfo-nav-tree-branch > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 7px 9px;
+  gap: 10px;
+  color: var(--bfo-text, #24334a);
+  background: var(--bfo-panel-raised, #fff);
+  border: 1px solid var(--bfo-border, #e2e5e5);
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.bfo-nav-tree-group > summary::-webkit-details-marker,
+.bfo-nav-tree-branch > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bfo-nav-tree-group > summary::marker,
+.bfo-nav-tree-branch > summary::marker {
+  content: "";
+}
+
+.bfo-nav-tree-group > summary {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bfo-nav-tree-branch > summary {
+  min-height: 38px;
+  margin: 3px 0;
+  color: var(--bfo-muted, #728096);
+  background: transparent;
+  border-color: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bfo-nav-tree-group > summary:hover,
+.bfo-nav-tree-branch > summary:hover {
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .12));
+}
+
+.bfo-nav-tree-group > summary:focus-visible,
+.bfo-nav-tree-branch > summary:focus-visible,
+.bfo-nav-tree-leaf:focus-visible {
+  outline: 2px solid var(--bfo-accent, #d5851f);
+  outline-offset: 2px;
+}
+
+.bfo-nav-tree-group__items {
+  display: grid;
+  gap: 3px;
+  padding: 5px 0 7px 10px;
+}
+
+.bfo-nav-tree-children {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 5px 10px;
+  padding: 3px 0 4px 10px;
+  border-left: 1px solid var(--bfo-border, #e2e5e5);
+}
+
+.bfo-nav-tree-leaf {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  gap: 9px;
+  color: var(--bfo-text, #24334a);
+  text-align: left;
+  background: var(--bfo-panel-raised, #fff);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.bfo-nav-tree-branch > summary .bfo-nav-tree-leaf {
+  width: auto;
+  min-height: 36px;
+  padding: 4px 2px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bfo-nav-tree-leaf:hover {
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .12));
+}
+
+.bfo-nav-tree-leaf[aria-current="page"],
+.bfo-nav-tree-branch[data-active="true"] > summary {
+  color: var(--bfo-accent-readable, #9a5b0f);
+  background: var(--bfo-accent-soft, rgba(213, 133, 31, .13));
+  border-color: var(--bfo-accent, rgba(213, 133, 31, .3));
+}
+
+.bfo-nav-tree-branch[data-active="true"] > summary {
+  font-weight: 700;
+}
+
+.bfo-nav-chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--bfo-muted, #728096);
+  transition: transform .16s ease, color .16s ease;
+}
+
+.bfo-nav-tree details:not([open]) > summary .bfo-nav-chevron {
+  transform: rotate(-90deg);
+}
+
+.bfo-nav-tree details[open] > summary .bfo-nav-chevron {
+  transform: rotate(0deg);
+}
+
+@media (max-width: 767px) {
+  .bfo-more-grid.bfo-nav-tree {
+    gap: 5px;
+  }
+
+  .bfo-nav-tree-group > summary,
+  .bfo-nav-tree-branch > summary {
+    min-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfo-nav-chevron,
+  .bfo-portal-root .bfo-branch-toggle {
+    transition: none;
+  }
+}

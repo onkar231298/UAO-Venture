@@ -12,6 +12,7 @@ import { Loader2, Save, FileText, Mail, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import EmailConfigManagement from "./EmailConfigManagement";
+import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 
 interface DocumentNumberSetting {
   id: number;
@@ -313,11 +314,12 @@ export default function SystemSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
-        <p className="text-muted-foreground">Configure system-wide settings and preferences</p>
+        <p className="text-muted-foreground">Configure system settings and your personal workspace appearance</p>
       </div>
 
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="flex h-auto w-full max-w-2xl flex-wrap justify-start gap-1">
+          <TabsTrigger value="appearance" data-testid="tab-appearance">Appearance</TabsTrigger>
           <TabsTrigger value="email" className="flex items-center gap-2" data-testid="tab-email">
             <Mail className="h-4 w-4" />
             Email Configuration
@@ -328,6 +330,9 @@ export default function SystemSettings() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="appearance" className="mt-6">
+          <PortalAppearanceSettings />
+        </TabsContent>
         <TabsContent value="email" className="mt-6">
           <EmailConfigManagement />
         </TabsContent>
