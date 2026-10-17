@@ -18,6 +18,8 @@ const fixtureSlides = [
     description:
       "Traceable organic turmeric with dependable specifications, careful processing and export-ready documentation for food, wellness and personal-care manufacturers.",
     backgroundImage: `data:image/svg+xml,${encodeURIComponent(fixtureSvg)}`,
+    imagePositionX: 73,
+    imagePositionY: 28,
     textColor: "white",
     displayOrder: 1,
     isActive: true,
@@ -162,19 +164,19 @@ try {
   await send("Page.addScriptToEvaluateOnNewDocument", { source: fixtureResponsePatch });
   await send("Page.navigate", { url: baseUrl });
 
-  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients. Built for Your Business.", "the first built-in facility slide");
+  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients for Your Next Product", "the first built-in facility slide");
   await waitFor(
-    async () => (await evaluate(`document.querySelectorAll('[aria-label="Choose a slide"] button').length`)) === 3,
-    "the active managed fixture to join the two facility slides",
+    async () => (await evaluate(`document.querySelectorAll('[aria-label="Choose a slide"] button').length`)) === 10,
+    "the active managed fixture to join the nine facility slides",
   );
   assert.equal(
     await evaluate(`document.querySelectorAll('[aria-label="Choose a slide"] button').length`),
-    3,
-    "the carousel should contain two facility slides followed by the one active CMS fixture",
+    10,
+    "the carousel should contain nine facility slides followed by the one active CMS fixture",
   );
 
-  await evaluate(`document.querySelector('[aria-label="Go to slide 2"]').click()`);
-  await waitFor(async () => (await activeSlideTitle()) === "Let’s Talk About Your Next Order", "the second built-in facility slide");
+  await evaluate(`document.querySelector('[aria-label="Go to slide 9"]').click()`);
+  await waitFor(async () => (await activeSlideTitle()) === "Ready for the Next Step", "the last built-in facility slide");
   await evaluate(`document.querySelector('[aria-label="Next slide"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the managed CMS slide after both facility slides");
 
@@ -194,6 +196,7 @@ try {
     };
     return {
       imageLoaded: Boolean(image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0),
+      imagePosition: getComputedStyle(image).objectPosition,
       title: title?.textContent?.trim(),
       titleVisible: visible(title),
       subtitleVisible: visible(subtitle),
@@ -208,15 +211,16 @@ try {
   })()`);
   assert.equal(managedSlideState.title, managedTitle);
   assert.equal(managedSlideState.imageLoaded, true, "the managed slide image should load");
+  assert.equal(managedSlideState.imagePosition, "73% 28%", "the managed slide should use its saved focal position");
   assert.equal(managedSlideState.titleVisible, true, "the managed title should be visible");
   assert.equal(managedSlideState.subtitleVisible, true, "the managed subtitle should be visible");
   assert.equal(managedSlideState.descriptionVisible, true, "the managed description should be visible");
-  assert.equal(managedSlideState.activeIndicator, "Go to slide 3", "the CMS indicator should be active");
+  assert.equal(managedSlideState.activeIndicator, "Go to slide 10", "the CMS indicator should be active");
   assert.deepEqual(
     managedSlideState.ctas.map(({ label, href, visible }) => ({ label, href, visible })),
     [
       { label: "Explore Products", href: "/products", visible: true },
-      { label: "Contact Our Team", href: "/contact", visible: true },
+      { label: "Talk to Our Team", href: "/contact", visible: true },
     ],
     "both CTA links should remain visible and point to their destinations on a managed slide",
   );
@@ -228,22 +232,22 @@ try {
       `the managed slide CTA to open ${destination}`,
     );
     await send("Page.navigate", { url: baseUrl });
-    await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients. Built for Your Business.", "the facility slide after returning from a CTA destination");
+    await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients for Your Next Product", "the facility slide after returning from a CTA destination");
     await waitFor(
-      async () => (await evaluate(`document.querySelectorAll('[aria-label="Choose a slide"] button').length`)) === 3,
+      async () => (await evaluate(`document.querySelectorAll('[aria-label="Choose a slide"] button').length`)) === 10,
       "the managed fixture after returning from a CTA destination",
     );
-    await evaluate(`document.querySelector('[aria-label="Go to slide 3"]').click()`);
+    await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
     await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the managed slide after returning from a CTA destination");
   }
 
   await evaluate(`document.querySelector('[aria-label="Previous slide"]').click()`);
-  await waitFor(async () => (await activeSlideTitle()) === "Let’s Talk About Your Next Order", "the previous arrow to return from the managed slide");
+  await waitFor(async () => (await activeSlideTitle()) === "Ready for the Next Step", "the previous arrow to return from the managed slide");
   await evaluate(`document.querySelector('[aria-label="Next slide"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the next arrow to return to the managed slide");
   await evaluate(`document.querySelector('[aria-label="Go to slide 1"]').click()`);
-  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients. Built for Your Business.", "the first slide indicator");
-  await evaluate(`document.querySelector('[aria-label="Go to slide 3"]').click()`);
+  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients for Your Next Product", "the first slide indicator");
+  await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the managed slide indicator");
 
   await evaluate(`document.querySelector('[aria-label="Pause automatic slide advance"]').click(); document.activeElement?.blur();`);
@@ -284,7 +288,7 @@ try {
       title: rect(title),
       description: rect(description),
       ctas: ctas.map((link) => ({ href: new URL(link.href).pathname, visible: link.getBoundingClientRect().width > 0 })),
-      controlsVisible: ["Previous slide", "Next slide", "Go to slide 3"]
+      controlsVisible: ["Previous slide", "Next slide", "Go to slide 10"]
         .every((label) => {
           const control = carousel?.querySelector('[aria-label="' + label + '"]');
           return Boolean(control && control.getBoundingClientRect().width > 0 && control.getBoundingClientRect().height > 0);
@@ -310,12 +314,12 @@ try {
     "both CTA destinations should remain available on mobile",
   );
   await evaluate(`document.querySelector('[aria-label="Previous slide"]').click()`);
-  await waitFor(async () => (await activeSlideTitle()) === "Let’s Talk About Your Next Order", "the mobile previous arrow");
+  await waitFor(async () => (await activeSlideTitle()) === "Ready for the Next Step", "the mobile previous arrow");
   await evaluate(`document.querySelector('[aria-label="Next slide"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the mobile next arrow");
   await evaluate(`document.querySelector('[aria-label="Go to slide 1"]').click()`);
-  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients. Built for Your Business.", "the mobile first indicator");
-  await evaluate(`document.querySelector('[aria-label="Go to slide 3"]').click()`);
+  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients for Your Next Product", "the mobile first indicator");
+  await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the mobile managed-slide indicator");
 
   await setViewport(1280, 1000, false);

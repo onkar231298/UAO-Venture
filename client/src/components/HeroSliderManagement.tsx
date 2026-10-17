@@ -16,6 +16,8 @@ interface HeroSlide {
   subtitle: string;
   description: string;
   backgroundImage: string;
+  imagePositionX: number;
+  imagePositionY: number;
   textColor: string;
   buttonText?: string | null;
   buttonLink?: string | null;
@@ -32,6 +34,8 @@ interface HeroSlideFormData {
   subtitle?: string;
   description?: string;
   backgroundImage: string;
+  imagePositionX: number;
+  imagePositionY: number;
   textColor: string;
   buttonText?: string;
   buttonLink?: string;
@@ -154,6 +158,9 @@ export default function HeroSliderManagement() {
                           src={slide.backgroundImage}
                           alt={slide.title}
                           className="w-full h-full object-cover"
+                          style={{
+                            objectPosition: `${slide.imagePositionX ?? 50}% ${slide.imagePositionY ?? 50}%`,
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -294,6 +301,8 @@ function HeroSlideForm({
     subtitle: slide?.subtitle || "",
     description: slide?.description || "",
     backgroundImage: slide?.backgroundImage || "",
+    imagePositionX: slide?.imagePositionX ?? 50,
+    imagePositionY: slide?.imagePositionY ?? 50,
     textColor: slide?.textColor || "white",
     buttonText: slide?.buttonText || "",
     buttonLink: slide?.buttonLink || "",
@@ -361,6 +370,49 @@ function HeroSlideForm({
           required
         />
       </div>
+
+      <fieldset className="space-y-3 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-semibold">Image focal point</legend>
+        <p className="text-sm text-gray-600">
+          Choose which part of the photo stays visible when it is cropped. Center is the default.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium">
+            Horizontal: {formData.imagePositionX}%
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={formData.imagePositionX}
+              onChange={(e) => setFormData({ ...formData, imagePositionX: Number(e.target.value) })}
+              className="mt-2 block w-full"
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            Vertical: {formData.imagePositionY}%
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={formData.imagePositionY}
+              onChange={(e) => setFormData({ ...formData, imagePositionY: Number(e.target.value) })}
+              className="mt-2 block w-full"
+            />
+          </label>
+        </div>
+        {formData.backgroundImage && (
+          <div className="h-40 overflow-hidden rounded-md bg-gray-100">
+            <img
+              src={formData.backgroundImage}
+              alt="Focal point preview"
+              className="h-full w-full object-cover"
+              style={{ objectPosition: `${formData.imagePositionX}% ${formData.imagePositionY}%` }}
+            />
+          </div>
+        )}
+      </fieldset>
 
       <div className="flex gap-4">
         <div className="flex-1">

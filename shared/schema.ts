@@ -131,6 +131,8 @@ export const heroSlides = pgTable("hero_slides", {
   subtitle: varchar("subtitle", { length: 255 }),
   description: text("description"),
   backgroundImage: varchar("background_image", { length: 500 }).notNull(),
+  imagePositionX: integer("image_position_x").notNull().default(50),
+  imagePositionY: integer("image_position_y").notNull().default(50),
   textColor: varchar("text_color", { length: 20 }).default("white"), // white, black
   buttonText: varchar("button_text", { length: 100 }),
   buttonLink: varchar("button_link", { length: 500 }),
@@ -1247,6 +1249,8 @@ export const insertHeroSlideSchema = createInsertSchema(heroSlides).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
+  imagePositionX: z.number().int().min(0).max(100).optional(),
+  imagePositionY: z.number().int().min(0).max(100).optional(),
   buttonText: z.string().max(100).nullable().optional(),
   buttonLink: heroActionDestinationSchema.nullable().optional(),
   secondaryButtonText: z.string().max(100).nullable().optional(),

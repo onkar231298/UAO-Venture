@@ -25,6 +25,8 @@ interface HeroSlide {
   subtitle: string;
   description: string;
   backgroundImage: string;
+  imagePositionX?: number | null;
+  imagePositionY?: number | null;
   textColor: string;
   isActive: boolean;
   imageAlt?: string;
@@ -277,6 +279,9 @@ export default function SimpleHeroSlider() {
               src={slide.backgroundImage}
               alt={slide.imageAlt || "Atlas Ingredients facility"}
               className="hero-slide-photo-dissolve absolute inset-0 h-full w-full object-cover object-center"
+              style={{
+                objectPosition: `${slide.imagePositionX ?? 50}% ${slide.imagePositionY ?? 50}%`,
+              }}
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#173c2b]/55 via-transparent to-[#173c2b]/5" />
             <div className="absolute bottom-4 left-4 z-10 rounded-full border border-white/45 bg-[#f8f7ef]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#244332] backdrop-blur sm:bottom-6 sm:left-6 sm:text-[11px]">
