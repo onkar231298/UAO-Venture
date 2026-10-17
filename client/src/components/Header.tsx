@@ -48,6 +48,7 @@ export default function Header() {
   const [showCategorySidebar, setShowCategorySidebar] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [mobileIngredientsOpen, setMobileIngredientsOpen] = useState(false);
+  const [mobileIndustriesOpen, setMobileIndustriesOpen] = useState(false);
   const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>("");
@@ -79,7 +80,7 @@ export default function Header() {
   });
 
   // Fetch health supports for health support dropdown
-  const { data: healthSupports = [] } = useQuery({
+  const { data: healthSupports = [] } = useQuery<Array<{ id: number; name: string; slug: string }>>({
     queryKey: ["/api/health-supports"],
   });
 
@@ -447,7 +448,7 @@ export default function Header() {
             
             {/* User Actions */}
             <div className="bfo-header-user-actions flex items-center">
-              <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
+              <Button aria-label="Wishlist" variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
                 <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
@@ -532,7 +533,7 @@ export default function Header() {
                 </DropdownMenu>
               ) : (
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
+                  <Button aria-label="Log in" variant="ghost" size="sm" className="text-gray-600 hover:text-green-600 hover:bg-green-50">
                     <User className="w-4 h-4 mr-2" />
                     <span className="hidden sm:inline">Login</span>
                   </Button>
@@ -604,18 +605,19 @@ export default function Header() {
 
             {/* Contact Info */}
             <div className="bfo-header-support hidden lg:flex items-center space-x-4 text-sm">
-              <div className="flex items-center space-x-2">
+              <a href="tel:+917249847439" className="bfo-header-phone flex items-center space-x-2" aria-label="Call Customer Support at +91-7249847439">
                 <Phone className="w-4 h-4" />
                 <div>
                   <div className="text-green-200 text-xs">Customer Support</div>
                   <div className="font-medium">+91-7249847439</div>
                 </div>
-              </div>
+              </a>
               <a 
                 href="https://wa.me/917249847439" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 hover:text-green-200 transition-colors cursor-pointer"
+                aria-label="Contact Customer Support on WhatsApp"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>WhatsApp</span>
@@ -694,27 +696,47 @@ export default function Header() {
                 >
                   → View All Ingredients
                 </Link>
-                {categories && categories.slice(0, 6).map((category: any) => (
+                {categories && categories.map((category: any) => (
                   <Link 
                     key={category.id}
-                    href={`/ingredients/${category.slug}`}
+                    href={`/ingredients/${category.name
+                      .toLowerCase()
+                      .replace(/[^a-z0-9\s]/g, '')
+                      .replace(/\s+/g, '-')
+                      .replace(/-+/g, '-')
+                      .trim()}`}
                     className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
                     onClick={() => setShowMobileMenu(false)}
                   >
                     • {category.name}
                   </Link>
                 ))}
-                {categories && categories.length > 6 && (
-                  <Link 
-                    href="/ingredients" 
-                    className="block py-2 text-sm text-green-600 font-medium"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    + View {categories.length - 6} more categories
-                  </Link>
-                )}
               </CollapsibleContent>
             </Collapsible>
+
+              {/* Industries Accordion */}
+              <Collapsible open={mobileIndustriesOpen} onOpenChange={setMobileIndustriesOpen}>
+                <CollapsibleTrigger className="bfo-mobile-accordion-trigger flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100">
+                      <ShoppingCart className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <span className="font-medium">Industries</span>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileIndustriesOpen ? 'rotate-90' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="bfo-mobile-subnav pl-3 space-y-1 mt-2">
+                  <Link href="/food-ingredients" className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors" onClick={() => setShowMobileMenu(false)}>
+                    Food Ingredients
+                  </Link>
+                  <Link href="/organic-herbs" className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors" onClick={() => setShowMobileMenu(false)}>
+                    Organic Herbs
+                  </Link>
+                  <Link href="/eu-organic-spices" className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors" onClick={() => setShowMobileMenu(false)}>
+                    EU Organic Spices
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Health Support Accordion */}
               <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
@@ -735,7 +757,7 @@ export default function Header() {
                 >
                   → View All Health Support
                 </Link>
-                {healthSupports && healthSupports.slice(0, 6).map((healthSupport: any) => (
+                {healthSupports && healthSupports.map((healthSupport: any) => (
                   <Link 
                     key={healthSupport.id}
                     href={`/health-support/${healthSupport.slug}`}
@@ -745,15 +767,6 @@ export default function Header() {
                     • {healthSupport.name}
                   </Link>
                 ))}
-                {healthSupports && healthSupports.length > 6 && (
-                  <Link 
-                    href="/products" 
-                    className="block py-2 text-sm text-green-600 font-medium"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    + View {healthSupports.length - 6} more options
-                  </Link>
-                )}
               </CollapsibleContent>
             </Collapsible>
               
@@ -822,6 +835,29 @@ export default function Header() {
                 </div>
                 <span className="font-medium">Certifications</span>
               </Link>
+
+              <button
+                type="button"
+                aria-label="Wishlist"
+                className="bfo-mobile-link bfo-mobile-wishlist"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50">
+                  <Heart className="w-4 h-4 text-rose-600" />
+                </div>
+                <span className="font-medium">Wishlist</span>
+                <span className="bfo-mobile-wishlist-count">0</span>
+              </button>
+
+              <div className="bfo-mobile-support" aria-label="Customer support">
+                <a href="tel:+917249847439" aria-label="Call Customer Support at +91-7249847439">
+                  <Phone className="w-4 h-4" />
+                  <span>+91-7249847439</span>
+                </a>
+                <a href="https://wa.me/917249847439" target="_blank" rel="noopener noreferrer" aria-label="Contact Customer Support on WhatsApp">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </a>
+              </div>
             </nav>
           </div>
         </div>
