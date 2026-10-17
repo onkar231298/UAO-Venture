@@ -25,6 +25,7 @@
 - [Company snapshot reconciliation](company-snapshot-reconciliation.md) — company/contact exports may rekey IDs; compare business identities and parent-linked contacts before import, not counts or raw IDs.
 - [Copied-site tag reconciliation](copied-site-tag-reconciliation.md) — product tables can be empty while tags are seeded; match taxonomy by slug and name, never by numeric source ID.
 - [Hero slide test data safety](hero-slide-test-data-safety.md) — verify managed carousel slides with isolated fixtures or staging, never by changing live CMS records.
+- [Browser CDP keyboard tests](browser-cdp-keyboard-tests.md) — Chromium needs rawKeyDown, char, and keyUp events for Enter to activate a focused button in the CDP harness.
 - [Private files and Vite](vite-private-files.md) — Express static restrictions do not block Vite /@fs access to workspace backups; gate private paths before Vite.
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
 - [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.

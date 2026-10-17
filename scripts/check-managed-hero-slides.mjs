@@ -104,6 +104,31 @@ async function activeSlideTitle() {
   );
 }
 
+async function pressKey(key) {
+  const windowsVirtualKeyCode = key === "Enter" ? 13 : key === "Tab" ? 9 : 32;
+  await send("Input.dispatchKeyEvent", {
+    type: "rawKeyDown",
+    key,
+    code: key === " " ? "Space" : key,
+    windowsVirtualKeyCode,
+  });
+  if (key === "Enter" || key === " ") {
+    await send("Input.dispatchKeyEvent", {
+      type: "char",
+      key,
+      text: key === "Enter" ? "\r" : " ",
+      unmodifiedText: key === "Enter" ? "\r" : " ",
+      windowsVirtualKeyCode,
+    });
+  }
+  await send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key,
+    code: key === " " ? "Space" : key,
+    windowsVirtualKeyCode,
+  });
+}
+
 try {
   await waitFor(async () => {
     try {
@@ -142,6 +167,7 @@ try {
 
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Page.bringToFront");
   await send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
   });
@@ -250,6 +276,63 @@ try {
   await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the managed slide indicator");
 
+  const slideGroup = await evaluate(
+    `document.querySelector('[aria-roledescription="slide"]')?.getAttribute("aria-label")`,
+  );
+  assert.equal(
+    slideGroup,
+    "Slide 10 of 10: Managed Organic Turmeric for Global Formulations",
+    "the current slide should have an accessible position and title",
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('[aria-label="Go to slide 10"]')?.getAttribute("aria-current")`),
+    "true",
+    "the current slide selector should be identified as current",
+  );
+
+  await evaluate(`document.querySelector('[aria-label="Previous slide"]').focus()`);
+  await delay(100);
+  assert.equal(
+    await evaluate(`document.activeElement?.getAttribute("aria-label")`),
+    "Previous slide",
+    "the previous control should receive keyboard focus",
+  );
+  await pressKey("Enter");
+  await waitFor(async () => (await activeSlideTitle()) === "Ready for the Next Step", "keyboard activation of the previous control");
+  await evaluate(`document.querySelector('[aria-label="Next slide"]').focus()`);
+  await pressKey("Enter");
+  await waitFor(async () => (await activeSlideTitle()) === managedTitle, "keyboard activation of the next control");
+  await evaluate(`document.querySelector('[aria-label="Go to slide 2"]').focus()`);
+  await pressKey("Enter");
+  await waitFor(async () => (await activeSlideTitle()) === "Let’s Plan Your Next Order", "keyboard activation of a slide selector");
+  assert.equal(
+    await evaluate(`document.querySelector('[aria-label="Go to slide 2"]')?.getAttribute("aria-current")`),
+    "true",
+    "keyboard slide selection should update the current indicator",
+  );
+  await evaluate(`document.querySelector('[aria-label="Go to slide 2"]').focus()`);
+  await pressKey("Tab");
+  assert.equal(
+    await evaluate(`document.activeElement?.matches(":focus-visible")`),
+    true,
+    "keyboard tabbing should leave a visible focus target",
+  );
+  await evaluate(`document.querySelector('[aria-label="Pause automatic slide advance"]').focus()`);
+  await pressKey("Enter");
+  assert.equal(
+    await evaluate(`document.querySelector('[aria-label="Resume automatic slide advance"]')?.getAttribute("aria-pressed")`),
+    "true",
+    "keyboard activation should pause automatic slide advance",
+  );
+  await pressKey("Enter");
+  assert.equal(
+    await evaluate(`document.querySelector('[aria-label="Pause automatic slide advance"]')?.getAttribute("aria-pressed")`),
+    "false",
+    "keyboard activation should resume automatic slide advance",
+  );
+
+  await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
+  await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the managed slide after keyboard controls");
   await evaluate(`document.querySelector('[aria-label="Pause automatic slide advance"]').click(); document.activeElement?.blur();`);
   assert.equal(
     await evaluate(`document.querySelector('[aria-label="Resume automatic slide advance"]')?.getAttribute('aria-pressed')`),
@@ -322,6 +405,17 @@ try {
   await evaluate(`document.querySelector('[aria-label="Go to slide 10"]').click()`);
   await waitFor(async () => (await activeSlideTitle()) === managedTitle, "the mobile managed-slide indicator");
 
+  await evaluate(`document.querySelector('[aria-label="Resume automatic slide advance"]')?.click(); document.activeElement?.blur();`);
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+  });
+  await delay(6200);
+  assert.equal(
+    await activeSlideTitle(),
+    managedTitle,
+    "automatic slide advance should stop when reduced motion is enabled while the page is open",
+  );
+
   await setViewport(1280, 1000, false);
   await delay(150);
   const desktopPositions = await evaluate(`(() => {
@@ -348,6 +442,15 @@ try {
   assert.equal(desktopPositions.title, managedTitle);
   assert.ok(desktopPositions.copyLeft >= desktopPositions.imageRight - 1, "desktop should show the image and text in separate side-by-side columns");
   assert.ok(desktopPositions.titleTop >= desktopPositions.copyTop && desktopPositions.descriptionBottom <= desktopPositions.copyBottom, "managed text should stay inside the desktop copy panel");
+
+  await send("Page.navigate", { url: baseUrl });
+  await waitFor(async () => (await activeSlideTitle()) === "Organic Ingredients for Your Next Product", "the first slide with reduced motion enabled");
+  await delay(6200);
+  assert.equal(
+    await activeSlideTitle(),
+    "Organic Ingredients for Your Next Product",
+    "automatic slide advance should remain off when reduced motion is enabled at page load",
+  );
 
   console.log("Managed hero slide browser check passed (fixture only; no CMS records changed).");
 } catch (error) {

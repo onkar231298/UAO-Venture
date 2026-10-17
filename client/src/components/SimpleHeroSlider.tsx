@@ -53,6 +53,9 @@ export default function SimpleHeroSlider() {
   const [isPaused, setIsPaused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hasFocus, setHasFocus] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const shouldPause = isPaused || isHovered || hasFocus;
 
   const { data: slides = [] } = useQuery<HeroSlide[]>({
@@ -235,19 +238,25 @@ export default function SimpleHeroSlider() {
     setCurrentSlide((index) => Math.min(index, activeSlides.length - 1));
   }, [activeSlides.length]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(media.matches);
+
+    media.addEventListener("change", updatePreference);
+    return () => media.removeEventListener("change", updatePreference);
+  }, []);
+
   const safeCurrentSlide = Math.max(0, Math.min(currentSlide, activeSlides.length - 1));
 
   useEffect(() => {
-    if (activeSlides.length <= 1 || shouldPause) return;
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (media.matches) return;
+    if (activeSlides.length <= 1 || shouldPause || prefersReducedMotion) return;
 
     const interval = window.setInterval(() => {
       setCurrentSlide((previous) => (previous + 1) % activeSlides.length);
     }, 6000);
 
     return () => window.clearInterval(interval);
-  }, [activeSlides.length, shouldPause]);
+  }, [activeSlides.length, prefersReducedMotion, shouldPause]);
 
   const nextSlide = () => setCurrentSlide((previous) => (previous + 1) % activeSlides.length);
   const prevSlide = () => setCurrentSlide((previous) => (previous - 1 + activeSlides.length) % activeSlides.length);
@@ -315,7 +324,13 @@ export default function SimpleHeroSlider() {
               <span className="h-px w-8 bg-[#a6bd8c]" aria-hidden="true" />
               Organic supply, considered
             </div>
-            <div key={`copy-${slide.id}`} className="hero-slide-copy-dissolve">
+            <div
+              key={`copy-${slide.id}`}
+              className="hero-slide-copy-dissolve"
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Slide ${safeCurrentSlide + 1} of ${activeSlides.length}: ${slide.title}`}
+            >
               <h1 className="hero-slide-title max-w-[16ch] break-words font-serif text-[clamp(1.8rem,8vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
                 {slide.title}
               </h1>
