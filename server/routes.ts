@@ -92,6 +92,7 @@ import {
 import { eq, and, or, ne, isNotNull, isNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { companyLengthErrors } from "./companyValidation";
 import multer from "multer";
 import { productImageUpload, heroSliderUpload, qualityAttachmentUpload, validateQualityFileBytes, uploadQualityAttachment, isAllowedAttachmentExt, generatePresignedUrl, getImageUrl, deleteFromS3, extractOwnedQualityAttachmentKey, generateDocumentPresignedUrl, getDocumentPublicUrl, deleteDocumentFromS3 } from "./s3Upload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -7319,6 +7320,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.post('/api/crm/companies', isAuthenticated, async (req: any, res) => {
     try {
+      const lengthErrors = companyLengthErrors(req.body);
+      if (lengthErrors.length) {
+        return res.status(400).json({ message: lengthErrors.map(error => error.message).join(" "), errors: lengthErrors });
+      }
       const userId = req.user.claims.sub;
       const { departmentPhones, additionalEmails, ...companyFields } = req.body;
       
@@ -7397,6 +7402,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const companyId = Number(req.params.id);
       if (!Number.isSafeInteger(companyId) || companyId <= 0) {
         return res.status(400).json({ message: "Invalid company ID" });
+      }
+      const lengthErrors = companyLengthErrors(req.body);
+      if (lengthErrors.length) {
+        return res.status(400).json({ message: lengthErrors.map(error => error.message).join(" "), errors: lengthErrors });
       }
       const company = await storage.updateCompany(companyId, req.body);
       if (!company) return res.status(404).json({ message: "Company not found" });
