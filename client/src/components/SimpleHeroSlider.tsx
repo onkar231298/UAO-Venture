@@ -98,7 +98,7 @@ export default function SimpleHeroSlider() {
 
   return (
     <section
-      className="relative isolate overflow-hidden bg-[#edf4e9] px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
+      className="relative isolate overflow-hidden bg-[#edf4e9] px-0 py-3 sm:py-5 lg:py-6"
       aria-roledescription="carousel"
       aria-label="Bright Fame Organic — organic ingredients for business"
       onMouseEnter={() => setIsHovered(true)}
@@ -108,9 +108,9 @@ export default function SimpleHeroSlider() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHasFocus(false);
       }}
     >
-      <div className="mx-auto max-w-[1320px]">
+      <div className="w-full">
         <div
-          className="grid overflow-hidden rounded-[1.35rem] border border-[#31563d] bg-[#173c2b] shadow-[0_22px_65px_-38px_rgba(28,54,39,0.5)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
+          className="grid w-full overflow-hidden rounded-none border-y border-[#31563d] bg-[#173c2b] shadow-[0_18px_55px_-38px_rgba(28,54,39,0.48)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
           aria-live="off"
         >
           <div className="group relative min-h-[225px] overflow-hidden bg-[#dce2d2] sm:min-h-[290px] md:min-h-full">
