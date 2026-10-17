@@ -852,6 +852,10 @@ body {
   will-change: opacity, filter, transform;
 }
 
+.hero-slide-title {
+  text-wrap: balance;
+}
+
 .certification-marquee-viewport {
   overflow: hidden;
   position: relative;
@@ -992,6 +996,13 @@ button.certification-ticker-card:hover {
       rgba(23, 60, 43, 0.48) 56%,
       #173c2b 100%
     );
+  }
+}
+
+@media (max-width: 360px) {
+  .hero-slide-title {
+    max-width: 100%;
+    font-size: clamp(1.8rem, 8.5vw, 2rem);
   }
 }
 

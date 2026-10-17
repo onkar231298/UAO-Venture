@@ -51,61 +51,6 @@ export default function Home() {
       {/* Featured Products Section - Positioned between header and about */}
       <FeaturedCarouselSection />
       
-      {/* Industry Focus Section for SEO */}
-      <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-100">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Industry-Specific Organic Solutions
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Specialized organic ingredients for food manufacturing, pharmaceutical, and European markets
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <a href="/food-ingredients" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🍞</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
-                Food Grade Ingredients
-              </h3>
-              <p className="text-gray-600 mb-4">
-                EU certified organic herbs and spices for food manufacturers. HACCP compliant with complete documentation.
-              </p>
-              <div className="text-green-600 font-medium group-hover:text-green-700">
-                Explore Food Ingredients →
-              </div>
-            </a>
-            
-            <a href="/organic-herbs" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🌿</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
-                Premium Organic Herbs
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Medicinal and Ayurvedic herbs for pharmaceutical and nutraceutical industries. Traditional expertise meets modern quality.
-              </p>
-              <div className="text-green-600 font-medium group-hover:text-green-700">
-                Browse Organic Herbs →
-              </div>
-            </a>
-            
-            <a href="/eu-organic-spices" className="group bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4 text-center">🇪🇺</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
-                EU Certified Spices
-              </h3>
-              <p className="text-gray-600 mb-4">
-                European market ready organic spices meeting EU Regulation 834/2007. Direct from India to your facility.
-              </p>
-              <div className="text-green-600 font-medium group-hover:text-green-700">
-                View EU Spices →
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* About Section - White background for contrast */}
       <section className="py-16 section-secondary">
         <div className="container mx-auto px-4">
