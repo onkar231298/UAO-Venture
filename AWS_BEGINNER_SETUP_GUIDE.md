@@ -20,7 +20,7 @@ You need these 4 credentials for your product images:
    - AWS account name: `BFI-Organic-Account`
 4. **Choose**: Business account
 5. **Enter your company details**:
-   - Company name: Bright Fame Organics
+   - Company name: Atlas Ingredients
    - Phone number, address, etc.
 6. **Payment**: Add a credit card (required, but you won't be charged much)
 7. **Identity verification**: Enter phone number for SMS verification

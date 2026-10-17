@@ -101,7 +101,7 @@ class SEOService {
        ...configuredSchema,
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Bright Fame Organic",
+      "name": "Atlas Ingredients",
        "url": "https://bright-organic.com",
        "logo": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
@@ -136,7 +136,7 @@ class SEOService {
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
-      "name": "Bright Fame Organic",
+      "name": "Atlas Ingredients",
        "image": "https://bright-organic.com/logo.png",
       "description": this.settings.siteDescription,
       "address": {

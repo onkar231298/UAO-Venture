@@ -28,7 +28,7 @@ export default function CategoryStructuredData({ category, products = [], totalP
         "item": {
           "@type": "Product",
           "name": product.name,
-          "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
+          "description": product.description || `High-quality ${product.name} from Atlas Ingredients`,
           "url": `${baseUrl}/products/${product.slug}`,
           "image": product.mainImage?.startsWith('http') 
             ? product.mainImage 
@@ -36,7 +36,7 @@ export default function CategoryStructuredData({ category, products = [], totalP
           "sku": product.productId,
           "brand": {
             "@type": "Brand",
-            "name": "Bright Fame Organic"
+            "name": "Atlas Ingredients"
           },
           "offers": {
             "@type": "Offer",
@@ -86,7 +86,7 @@ export default function CategoryStructuredData({ category, products = [], totalP
       },
       "isPartOf": {
         "@type": "WebSite",
-        "name": "Bright Fame Organic",
+        "name": "Atlas Ingredients",
         "url": baseUrl
       },
       "about": {
@@ -150,7 +150,7 @@ function generateCategoryFAQs(category: Category) {
   const baseFAQs = [
     {
       question: `What are the applications of organic ${categoryName}?`,
-      answer: `Organic ${categoryName} from Bright Fame Organic are used in pharmaceutical manufacturing, nutraceutical formulations, food & beverage processing, cosmetic applications, and supplement production. All products meet international quality standards.`
+      answer: `Organic ${categoryName} from Atlas Ingredients are used in pharmaceutical manufacturing, nutraceutical formulations, food & beverage processing, cosmetic applications, and supplement production. All products meet international quality standards.`
     },
     {
       question: `Are your ${categoryName} certified organic for international markets?`,

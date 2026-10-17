@@ -10,11 +10,10 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-green-600 font-bold text-sm">Bright Fame Organic</span>
+                <span className="text-green-600 font-bold text-sm">Atlas Ingredients</span>
               </div>
               <div>
-                <h3 className="font-bold text-lg"><strong>Bright Fame Organic</strong></h3>
-                <p className="text-xs text-green-200">Pvt. Ltd.</p>
+                <h3 className="font-bold text-lg"><strong>Atlas Ingredients</strong></h3>
               </div>
             </div>
             <p className="text-sm text-green-100 leading-relaxed">
@@ -84,7 +83,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-green-500 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-green-100">
-          <p>&copy; 2024 Bright Fame Organic Pvt. Ltd. All rights reserved.</p>
+          <p>&copy; 2024 Atlas Ingredients All rights reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
             <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>

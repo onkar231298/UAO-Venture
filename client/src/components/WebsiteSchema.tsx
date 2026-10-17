@@ -8,8 +8,8 @@ export default function WebsiteSchema() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Bright Fame Organic - Premium Organic Ingredients Supplier",
-      "alternateName": "Bright Fame Organic",
+      "name": "Atlas Ingredients - Premium Organic Ingredients Supplier",
+      "alternateName": "Atlas Ingredients",
       "url": baseUrl,
       "description": "Leading global supplier of certified organic ingredients, spices, herbs, and botanical extracts for pharmaceutical, nutraceutical, and food industries.",
       "potentialAction": {
@@ -29,7 +29,7 @@ export default function WebsiteSchema() {
       "copyrightYear": new Date().getFullYear(),
       "copyrightHolder": {
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd."
+        "name": "Atlas Ingredients"
       }
     };
 
@@ -38,8 +38,8 @@ export default function WebsiteSchema() {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#localbusiness`,
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "image": `${baseUrl}/bfi-logo.png`,
+      "name": "Atlas Ingredients",
+      "image": `${baseUrl}/atlas-ingredients-logo.svg`,
       "telephone": "+91-7249847439",
       "email": "admin@bright-organic.com",
       "address": {

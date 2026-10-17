@@ -33,10 +33,10 @@ function ProductPage({ productSlug }) {
 
   // Homepage for root path
   return createElement('div', { style: { padding: '20px', fontFamily: 'Arial' } },
-    createElement('h1', { style: { color: '#2c5530', fontSize: '32px' } }, 'Bright Fame Organic'),
+    createElement('h1', { style: { color: '#2c5530', fontSize: '32px' } }, 'Atlas Ingredients'),
     createElement('h2', { style: { color: '#666', fontSize: '24px' } }, 'Premium Organic Ingredients'),
     createElement('p', { style: { fontSize: '18px' } }, 
-      'Welcome to Bright Fame Organic - your trusted partner for certified organic ingredients.'
+      'Welcome to Atlas Ingredients - your trusted partner for certified organic ingredients.'
     ),
     createElement('div', { style: { marginTop: '30px' } },
       createElement('p', null, '✓ Product page refresh now works correctly')

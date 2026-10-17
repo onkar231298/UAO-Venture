@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function LogisticsSolutions() {
   useEffect(() => {
-    document.title = "Logistics Solutions - Bright Fame Organic";
+    document.title = "Logistics Solutions - Atlas Ingredients";
   }, []);
 
   return (

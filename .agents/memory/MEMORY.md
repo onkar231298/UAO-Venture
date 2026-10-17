@@ -29,3 +29,4 @@
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
 - [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.
 - [All-user redesign scope](interface-redesign-scope.md) — same style across all signed-in roles; preserving every available option is the owner's highest priority.
+- [Atlas Ingredients rebrand](atlas-ingredients-rebrand.md) — Use Atlas Ingredients in active app content; keep existing domains and email addresses until replacements are supplied.

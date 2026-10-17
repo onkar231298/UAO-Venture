@@ -6,7 +6,6 @@ import { isAuthenticated } from "./replitAuth";
 import { objectStorageClient } from "./objectStorage";
 import PDFDocument from "pdfkit";
 import path from "path";
-import fs from "fs";
 import {
   calculateSalaryAmounts,
   calculateSalaryPeriod,
@@ -1020,17 +1019,10 @@ router.get("/api/hr/admin/salary-slip/download/:userId/:month/:year", isAuthenti
     
     doc.pipe(res);
 
-    // Header with company logo - position it properly without overlap
-    const logoPath = path.resolve(process.cwd(), 'bfi-logo.png');
-    
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 220, 30, { width: 150 });
-      doc.y = 120; // Move cursor well below the logo
-    } else {
-      doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
-         .text('BRIGHT FAME ORGANIC', { align: 'center' });
-      doc.moveDown(1);
-    }
+    // Text wordmark header
+    doc.fontSize(24).font('Helvetica-Bold').fillColor('#166534')
+       .text('ATLAS INGREDIENTS', { align: 'center' });
+    doc.moveDown(1);
     
     // Salary Slip title - with proper spacing after logo
     doc.moveDown(1);

@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function CustomPackaging() {
   useEffect(() => {
-    document.title = "Custom Packaging Services - Bright Fame Organic";
+    document.title = "Custom Packaging Services - Atlas Ingredients";
   }, []);
 
   return (

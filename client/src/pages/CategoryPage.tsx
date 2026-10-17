@@ -105,7 +105,7 @@ export default function CategoryPage() {
 
   // Initialize SEO for category page
   useSEO({
-    title: `${categoryName} - Premium Organic Ingredients | Bright Fame Organic`,
+    title: `${categoryName} - Premium Organic Ingredients | Atlas Ingredients`,
     description: `Discover our premium ${categoryName.toLowerCase()} collection. Certified organic, pharmaceutical grade, and sustainably sourced for maximum quality and efficacy.`,
     keywords: `${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, natural ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic`,
     canonicalUrl: `${window.location.origin}/ingredients/${slug}`,
@@ -135,7 +135,7 @@ export default function CategoryPage() {
         />
       )}
       <EnhancedSEOHead
-        title={`${categoryName} - Premium Organic Ingredients | Bright Fame Organic`}
+        title={`${categoryName} - Premium Organic Ingredients | Atlas Ingredients`}
         description={`Explore our comprehensive collection of organic ${categoryName.toLowerCase()}. Certified organic, sustainably sourced, and available for bulk purchase worldwide. Perfect for pharmaceutical, nutraceutical, and food applications.`}
         keywords={`${categoryName.toLowerCase()}, organic ${categoryName.toLowerCase()}, bulk ${categoryName.toLowerCase()}, wholesale ${categoryName.toLowerCase()}, pharmaceutical grade, certified organic, B2B ingredients`}
         canonicalUrl={`${window.location.origin}/ingredients/${slug}`}

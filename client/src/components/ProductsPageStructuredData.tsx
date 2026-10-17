@@ -21,10 +21,10 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "Bright Fame Organic",
+      "name": "Atlas Ingredients",
+      "alternateName": "Atlas Ingredients",
       "url": baseUrl,
-      "logo": `${baseUrl}/bfi-logo.png`,
+      "logo": `${baseUrl}/atlas-ingredients-logo.svg`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide."
     };
 
@@ -73,7 +73,7 @@ export default function ProductsPageStructuredData({ products }: ProductsPageStr
               "image": product.mainImage,
               "brand": {
                 "@type": "Brand",
-                "name": "Bright Fame Organic"
+                "name": "Atlas Ingredients"
               },
               "offers": {
                 "@type": "Offer",

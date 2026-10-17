@@ -69,7 +69,7 @@ export default function SearchResults() {
 
   // Initialize SEO for search results page
   useSEO({
-    title: searchQuery ? `Search Results for "${searchQuery}" - Bright Fame Organic` : 'Search Results - Bright Fame Organic',
+    title: searchQuery ? `Search Results for "${searchQuery}" - Atlas Ingredients` : 'Search Results - Atlas Ingredients',
     description: searchQuery ? `Search results for "${searchQuery}". Find premium organic ingredients, herbal extracts, and natural products matching your search.` : 'Search for premium organic ingredients and natural products.',
     keywords: searchQuery ? `${searchQuery}, organic ingredients, herbal extracts, natural products, search results` : 'organic ingredients, search, natural products',
     canonicalUrl: `${window.location.origin}/search/${searchQuery ? encodeURIComponent(searchQuery) : ''}`,

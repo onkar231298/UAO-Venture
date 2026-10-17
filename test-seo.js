@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// SEO Testing Script for Bright Fame Organic Platform
+// SEO Testing Script for Atlas Ingredients Platform
 import https from 'https';
 import http from 'http';
 

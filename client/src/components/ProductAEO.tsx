@@ -113,7 +113,7 @@ export function ProductAEO({ product }: ProductAEOProps) {
             className="space-y-4 text-sm text-gray-700"
           >
             <p>
-              This product is sourced from {product.origin ? `certified farms in ${product.origin}` : "certified organic farms in India"} by Bright Fame Organic Pvt. Ltd. (Bright Fame Organic), a vertically integrated manufacturer and exporter based in Mehsana, Gujarat, India.
+              This product is sourced from {product.origin ? `certified farms in ${product.origin}` : "certified organic farms in India"} by Atlas Ingredients, a vertically integrated manufacturer and exporter based in Mehsana, Gujarat, India.
             </p>
             <p>
               Quality testing includes in-house laboratory analysis at ISO-certified facilities, third-party verification, microbiological testing, heavy metals analysis, pesticide residue testing, and aflatoxin screening. Every batch undergoes HACCP-compliant processing and is tested to meet international pharmacopoeia and food safety standards.
@@ -134,17 +134,17 @@ export function ProductAEO({ product }: ProductAEOProps) {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-emerald-800">
             <Star className="h-5 w-5" />
-            Why Source {product.name} from Bright Fame Organic
+            Why Source {product.name} from Atlas Ingredients
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-3 text-sm" aria-label="Reasons to buy from Bright Fame Organic">
+          <ul className="space-y-3 text-sm" aria-label="Reasons to buy from Atlas Ingredients">
             <li className="flex items-start gap-3">
               <Factory className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
               <div>
                 <span className="font-medium text-gray-900">Direct Manufacturer Pricing:</span>{" "}
                 <span className="text-gray-700">
-                  Bright Fame Organic is a direct manufacturer, not a trading company. Buyers get factory-direct pricing without middlemen, ensuring competitive rates for bulk orders.
+                  Atlas Ingredients is a direct manufacturer, not a trading company. Buyers get factory-direct pricing without middlemen, ensuring competitive rates for bulk orders.
                 </span>
               </div>
             </li>

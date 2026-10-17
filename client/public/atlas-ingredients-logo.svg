@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 76" role="img" aria-labelledby="title">
+  <title id="title">Atlas Ingredients</title>
+  <g fill="none" stroke="#174b37" stroke-width="3">
+    <path d="M38 10c-2 13-8 23-19 31 11-1 19-7 24-17 4 10 12 16 23 17C54 32 48 22 46 10"/>
+    <path d="M20 48c7-5 16-7 25-7 9 0 18 2 25 7"/>
+  </g>
+  <text x="82" y="37" fill="#174b37" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" letter-spacing="1">ATLAS</text>
+  <text x="83" y="61" fill="#a56b24" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="3.2">INGREDIENTS</text>
+</svg>

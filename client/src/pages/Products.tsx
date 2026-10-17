@@ -210,7 +210,7 @@ export default function Products() {
   // Update SEO when on health support route
   useEffect(() => {
     if (healthSupportSlug && currentHealthSupport) {
-      document.title = `${currentHealthSupport.name} - Organic Ingredients | Bright Fame Organic`;
+      document.title = `${currentHealthSupport.name} - Organic Ingredients | Atlas Ingredients`;
       
       let metaDescription = document.querySelector('meta[name="description"]');
       if (!metaDescription) {

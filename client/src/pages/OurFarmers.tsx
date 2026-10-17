@@ -26,7 +26,7 @@ export default function OurFarmers() {
             {/* Main Content */}
             <div className="prose prose-lg max-w-none mb-12">
               <p className="text-lg text-gray-700 leading-relaxed mb-8">
-                At Bright Fame Organic, our farmers are not just suppliers – they are our partners, our family, and the backbone of our mission. 
+                At Atlas Ingredients, our farmers are not just suppliers – they are our partners, our family, and the backbone of our mission.
                 We work hand-in-hand with farming communities across India, nurturing a shared vision of sustainable, chemical-free agriculture.
               </p>
               

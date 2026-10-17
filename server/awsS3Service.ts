@@ -31,7 +31,7 @@ export class S3NotFoundError extends Error {
   }
 }
 
-// AWS S3 Service for Bright Fame Organic Platform
+// AWS S3 Service for Atlas Ingredients Platform
 export class AWSS3Service {
   private get bucketName(): string {
     if (!AWS_S3_BUCKET_NAME) {

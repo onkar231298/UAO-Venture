@@ -12,7 +12,7 @@ function SectionHeading() {
     <header className="featured-products-heading">
       <p className="featured-products-eyebrow">
         <Leaf aria-hidden="true" />
-        Bright Fame Organic
+        Atlas Ingredients
       </p>
       <h2>Featured Products</h2>
       <p className="featured-products-intro">

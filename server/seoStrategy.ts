@@ -1,7 +1,7 @@
 export type PageSeo = { title: string; description: string; keywords: string };
 
 export const HOME_SEO: PageSeo = {
-  title: "Bulk Organic Ingredients Supplier India | Bright Fame Organic",
+  title: "Bulk Organic Ingredients Supplier India | Atlas Ingredients",
   description: "Source bulk organic ingredients, herbal powders, botanical extracts and nutraceutical raw materials from a B2B supplier and exporter in India.",
   keywords: "bulk organic ingredients supplier, organic ingredients manufacturer India, B2B organic ingredients supplier, wholesale botanical ingredients",
 };
@@ -13,12 +13,12 @@ export const COLLECTION_PAGE_SEO: Record<"/products" | "/ingredients" | "/health
     keywords: "bulk organic ingredients, herbal ingredient catalog, botanical extract products, nutraceutical raw materials supplier",
   },
   "/ingredients": {
-    title: "Organic Ingredient Categories for Bulk Buyers | Bright Fame",
+    title: "Organic Ingredient Categories for Bulk Buyers | Atlas Ingredients",
     description: "Explore organic herbs, spices, powders, extracts, teas and other ingredient categories available for wholesale and manufacturing requirements.",
     keywords: "organic ingredient categories, wholesale herbal ingredients, bulk botanical ingredients",
   },
   "/health-support": {
-    title: "Botanical Ingredients by Health Application | Bright Fame",
+    title: "Botanical Ingredients by Health Application | Atlas Ingredients",
     description: "Find botanical and nutraceutical ingredients by intended formulation area, with specifications and documentation available for B2B evaluation.",
     keywords: "botanical ingredients for formulations, nutraceutical ingredients by application, plant based health ingredients",
   },
@@ -29,7 +29,7 @@ const cleanName = (value: string) => value.replace(/\s+/g, " ").trim();
 export function categoryPageSeo(name: string): PageSeo {
   const category = cleanName(name);
   return {
-    title: `Bulk ${category} Supplier India | Bright Fame Organic`,
+    title: `Bulk ${category} Supplier India | Atlas Ingredients`,
     description: `Source ${category.toLowerCase()} in bulk from India for food, herbal and nutraceutical manufacturing. Request specifications, samples and supply details.`,
     keywords: `bulk ${category.toLowerCase()} supplier, ${category.toLowerCase()} manufacturer India, wholesale ${category.toLowerCase()}`,
   };

@@ -27,17 +27,17 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
       "@context": "https://schema.org/",
       "@type": "Product",
       "name": product.name,
-      "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
+      "description": product.description || `High-quality ${product.name} from Atlas Ingredients`,
       "sku": product.productId,
       "mpn": product.productId,
       "brand": {
         "@type": "Brand",
-        "name": "Bright Fame Organic",
+        "name": "Atlas Ingredients",
         "url": baseUrl
       },
       "manufacturer": {
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd.",
+        "name": "Atlas Ingredients",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -62,7 +62,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
         "itemCondition": "https://schema.org/NewCondition",
         "seller": {
           "@type": "Organization",
-          "name": "Bright Fame Organic",
+          "name": "Atlas Ingredients",
           "url": baseUrl
         },
         "acceptedPaymentMethod": [
@@ -161,11 +161,11 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "Bright Fame Organic",
+      "name": "Atlas Ingredients",
+      "alternateName": "Atlas Ingredients",
       "url": baseUrl,
-      "logo": `${baseUrl}/bfi-logo.png`,
-      "image": `${baseUrl}/bfi-logo.png`,
+      "logo": `${baseUrl}/atlas-ingredients-logo.svg`,
+      "image": `${baseUrl}/atlas-ingredients-logo.svg`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide.",
       "address": {
         "@type": "PostalAddress",
@@ -243,7 +243,7 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
     });
 
     // Update page meta tags
-    document.title = product.seoTitle || `${product.name} - Bright Fame Organic`;
+    document.title = product.seoTitle || `${product.name} - Atlas Ingredients`;
     
     // Update meta description
     let metaDescription = document.querySelector('meta[name="description"]') as HTMLMetaElement;
@@ -252,16 +252,16 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
       metaDescription.name = 'description';
       document.head.appendChild(metaDescription);
     }
-    metaDescription.content = product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`;
+    metaDescription.content = product.seoDescription || product.description || `High-quality ${product.name} from Atlas Ingredients`;
 
     // Update Open Graph tags
     const ogTags = [
-      { property: 'og:title', content: product.seoTitle || `${product.name} - Bright Fame Organic` },
-      { property: 'og:description', content: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic` },
+      { property: 'og:title', content: product.seoTitle || `${product.name} - Atlas Ingredients` },
+      { property: 'og:description', content: product.seoDescription || product.description || `High-quality ${product.name} from Atlas Ingredients` },
       { property: 'og:image', content: imageUrl },
       { property: 'og:url', content: productUrl },
       { property: 'og:type', content: 'product' },
-      { property: 'product:brand', content: 'Bright Fame Organic' },
+      { property: 'product:brand', content: 'Atlas Ingredients' },
       { property: 'product:availability', content: product.currentStock && parseFloat(product.currentStock.toString()) > 0 ? 'in stock' : 'out of stock' },
       { property: 'product:condition', content: 'new' },
       { property: 'product:price:amount', content: (product.priceUSD || product.rate || 0).toString() },
@@ -281,8 +281,8 @@ export default function StructuredData({ product, faqs }: StructuredDataProps) {
     // Update Twitter Card tags
     const twitterTags = [
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: product.seoTitle || `${product.name} - Bright Fame Organic` },
-      { name: 'twitter:description', content: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic` },
+      { name: 'twitter:title', content: product.seoTitle || `${product.name} - Atlas Ingredients` },
+      { name: 'twitter:description', content: product.seoDescription || product.description || `High-quality ${product.name} from Atlas Ingredients` },
       { name: 'twitter:image', content: imageUrl }
     ];
 

@@ -1,15 +1,5 @@
 import PDFDocument from 'pdfkit';
 import converter from 'number-to-words';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Resolved logo path for reliable loading in all environments
-const logoPath = path.resolve(__dirname, 'bfi-logo.png');
 
 interface QuotationData {
   id: number;
@@ -72,7 +62,7 @@ interface CustomerData {
 }
 
 const companyDetails = {
-  name: "Bright Fame Organic Pvt. Ltd.",
+  name: "Atlas Ingredients",
   address2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road",
   address3: "Kansarakui, Mehsana, Gujarat 384001",
   phone: "+91-7249847439",
@@ -142,17 +132,10 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   const orangeColor = '#ff8c00';
   const greenColor = '#28a745';
   
-  // Header with centered logo (compact)
+  // Text wordmark header
   let yPos = 10;
-  
-  try {
-    const logoWidth = 120;
-    const pageWidth = 595;
-    const logoX = (pageWidth - logoWidth) / 2;
-    doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 55] });
-  } catch (error) {
-    console.log('Logo not found at', logoPath, ', skipping logo insertion');
-  }
+  doc.fontSize(18).font('Helvetica-Bold').fillColor('#174b37')
+    .text('ATLAS INGREDIENTS', 0, yPos + 12, { align: 'center' });
   
   yPos += 65;
   
@@ -499,20 +482,9 @@ function createSalesOrderPDF(order: SalesOrderData, customer: SalesOrderCustomer
   const darkGray = '#333';
   let yPos = 40;
   
-  // Header with company logo - matching quotation PDF size and style
-  try {
-    if (fs.existsSync(logoPath)) {
-      const logoWidth = 140;
-      const pageWidth = 595; // A4 page width in points
-      const logoX = (pageWidth - logoWidth) / 2;
-      console.log('[SO PDF] Adding logo from:', logoPath);
-      doc.image(logoPath, logoX, yPos, { width: logoWidth, fit: [logoWidth, 70] });
-    } else {
-      console.log('[SO PDF] Logo file not found at:', logoPath);
-    }
-  } catch (error) {
-    console.error('[SO PDF] Error loading logo:', error);
-  }
+  // Text wordmark header
+  doc.fontSize(18).font('Helvetica-Bold').fillColor('#174b37')
+    .text('ATLAS INGREDIENTS', 0, yPos + 18, { align: 'center' });
   
   // Header bar with title - positioned after logo with proper spacing like quotation
   yPos += 100;

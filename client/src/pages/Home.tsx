@@ -38,7 +38,7 @@ export default function Home() {
       <section className="py-8 bg-white">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Premium Organic Ingredients Supplier - Bright Fame Organic
+            Premium Organic Ingredients Supplier - Atlas Ingredients
           </h1>
           <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6">
             Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.
@@ -168,7 +168,7 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Partner with Us?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands of satisfied customers who trust Bright Fame Organics for their ingredient needs
+            Join thousands of satisfied customers who trust Atlas Ingredients for their ingredient needs
           </p>
           <div className="space-x-4">
             <Button 

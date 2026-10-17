@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function PrivacyPolicy() {
   useEffect(() => {
-    document.title = "Privacy Policy - Bright Fame Organic";
+    document.title = "Privacy Policy - Atlas Ingredients";
   }, []);
 
   return (
@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Introduction</h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Bright Fame Organic Pvt. Ltd. ("Bright Fame Organic", "we", "us", or "our") operates the Bright Fame Organic website and B2B platform for organic ingredients. This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service.
+                Atlas Ingredients ("Atlas Ingredients", "we", "us", or "our") operates the Atlas Ingredients website and B2B platform for organic ingredients. This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service.
               </p>
             </section>
 
@@ -132,7 +132,7 @@ export default function PrivacyPolicy() {
               </p>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Bright Fame Organic Pvt. Ltd.</strong><br />
+                  <strong>Atlas Ingredients</strong><br />
                   Email: admin@bright-organic.com<br />
                   Address: Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001<br />
                   Phone: +91-7249847439

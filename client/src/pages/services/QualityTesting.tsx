@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function QualityTesting() {
   useEffect(() => {
-    document.title = "Quality Testing Services - Bright Fame Organic";
+    document.title = "Quality Testing Services - Atlas Ingredients";
   }, []);
 
   return (
@@ -30,7 +30,7 @@ export default function QualityTesting() {
               Our Testing Capabilities
             </h2>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              At Bright Fame Organic, we maintain state-of-the-art testing facilities to ensure every product meets international quality standards. Our comprehensive testing protocols guarantee the purity, potency, and safety of all organic ingredients.
+              At Atlas Ingredients, we maintain state-of-the-art testing facilities to ensure every product meets international quality standards. Our comprehensive testing protocols guarantee the purity, potency, and safety of all organic ingredients.
             </p>
           </div>
 

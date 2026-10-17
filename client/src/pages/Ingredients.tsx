@@ -15,7 +15,7 @@ export default function Ingredients() {
   });
 
   useEffect(() => {
-    document.title = "Organic Ingredients - Premium Herbs, Extracts & Nutraceuticals | Bright Fame Organic";
+    document.title = "Organic Ingredients - Premium Herbs, Extracts & Nutraceuticals | Atlas Ingredients";
     
     // Add meta description
     const metaDescription = document.querySelector('meta[name="description"]');

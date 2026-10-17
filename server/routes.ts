@@ -771,8 +771,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             encryptedAppPassword: connectedConfig.titanAppPasswordEncrypted!,
           }, {
             to: [email],
-            subject: 'Reset Your Password - Bright Fame Organic',
-            fromName: 'Bright Fame Organic',
+            subject: 'Reset Your Password - Atlas Ingredients',
+            fromName: 'Atlas Ingredients',
             bodyHtml: `
               <!DOCTYPE html>
               <html>
@@ -782,7 +782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               </head>
               <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                  <h1 style="color: #16a34a; margin-bottom: 10px;">Bright Fame Organic</h1>
+                  <h1 style="color: #16a34a; margin-bottom: 10px;">Atlas Ingredients</h1>
                 </div>
                 
                 <h2 style="color: #333;">Reset Your Password</h2>
@@ -812,14 +812,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
                 
                 <p style="color: #999; font-size: 12px; text-align: center;">
-                  &copy; ${new Date().getFullYear()} Bright Fame Organic. All rights reserved.<br>
+                  &copy; ${new Date().getFullYear()} Atlas Ingredients. All rights reserved.<br>
                   This is an automated message, please do not reply.
                 </p>
               </body>
               </html>
             `,
             bodyText: `
-Reset Your Password - Bright Fame Organic
+Reset Your Password - Atlas Ingredients
 
 Hello ${customer.firstName || 'Customer'},
 
@@ -831,7 +831,7 @@ ${resetUrl}
 
 If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
 
-© ${new Date().getFullYear()} Bright Fame Organic. All rights reserved.
+© ${new Date().getFullYear()} Atlas Ingredients. All rights reserved.
             `,
           });
           
@@ -1309,17 +1309,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "description": product.description || `High-quality ${product.name} from Bright Fame Organic`,
+        "description": product.description || `High-quality ${product.name} from Atlas Ingredients`,
         "sku": product.productId,
         "mpn": product.productId,
         "brand": {
           "@type": "Brand",
-          "name": "Bright Fame Organic",
+          "name": "Atlas Ingredients",
           "url": baseUrl
         },
         "manufacturer": {
           "@type": "Organization",
-          "name": "Bright Fame Organic Pvt. Ltd.",
+          "name": "Atlas Ingredients",
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui",
@@ -1343,7 +1343,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
             "@type": "Organization",
-            "name": "Bright Fame Organic",
+            "name": "Atlas Ingredients",
             "url": baseUrl
           }
         },
@@ -1408,7 +1408,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const organizationSchema = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd.",
+        "name": "Atlas Ingredients",
         "url": baseUrl,
         "logo": `${baseUrl}/logo.png`,
         "address": {
@@ -1428,11 +1428,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         organizationSchema: organizationSchema,
         faqSchema: faqSchema,
         seoData: {
-          title: product.seoTitle || `${product.name} - Bright Fame Organic`,
-          description: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`,
+          title: product.seoTitle || `${product.name} - Atlas Ingredients`,
+          description: product.seoDescription || product.description || `High-quality ${product.name} from Atlas Ingredients`,
           canonical: productUrl,
-          ogTitle: product.seoTitle || `${product.name} - Bright Fame Organic`,
-          ogDescription: product.seoDescription || product.description || `High-quality ${product.name} from Bright Fame Organic`,
+          ogTitle: product.seoTitle || `${product.name} - Atlas Ingredients`,
+          ogDescription: product.seoDescription || product.description || `High-quality ${product.name} from Atlas Ingredients`,
           ogImage: imageUrl,
           ogUrl: productUrl
         }
@@ -6511,7 +6511,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           fingerprint, category: "content", severity: metrics.impressions >= 100 ? "high" : "medium",
           title, description: `${metrics.impressions} impressions, ${metrics.clicks} clicks, ${(metrics.ctr * 100).toFixed(2)}% CTR, average position ${metrics.position.toFixed(1)}.`,
           recommendation, sourceUrl, targetUrl: existingPage || null,
-          evidence: { query, ...metrics, intent: "Derived from the exact imported query; validate intent before publishing.", suggestedTitle: existingPage ? null : `${query.replace(/\b\w/g, (character) => character.toUpperCase())} | Bright Fame Organic`, questions: [`What does a buyer need to know about ${query}?`, `Which existing Bright Fame Organic products or capabilities factually relate to ${query}?`] },
+          evidence: { query, ...metrics, intent: "Derived from the exact imported query; validate intent before publishing.", suggestedTitle: existingPage ? null : `${query.replace(/\b\w/g, (character) => character.toUpperCase())} | Atlas Ingredients`, questions: [`What does a buyer need to know about ${query}?`, `Which existing Atlas Ingredients products or capabilities factually relate to ${query}?`] },
         })];
       }).sort((a, b) => Number(b.evidence.impressions) - Number(a.evidence.impressions)).slice(0, 50);
       const internalLinkOpportunities: any[] = [];
@@ -13439,11 +13439,11 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
 
       const logoUrl = process.env.EMAIL_LOGO_URL;
 
-      let systemPrompt = `You are a world-class HTML email designer and senior B2B copywriter for Bright Fame Organic, a premium B2B spice and food ingredient exporter. Never use the abbreviation "BFI" anywhere — the company is always called "Bright Fame Organic". Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
+      let systemPrompt = `You are a world-class HTML email designer and senior B2B copywriter for Atlas Ingredients, a premium B2B spice and food ingredient exporter. Never use the abbreviation "BFI" anywhere — the company is always called "Atlas Ingredients". Your job is to produce COMPLETE, production-ready, visually stunning HTML email documents that look like they came from a Fortune 500 marketing team — not plain text, not basic boxes.
 
 THE BRIEF IS THE BLUEPRINT: Briefs may be long structured documents (markdown with headings, bullet lists, exact copy, multiple buttons with labels and links, color directions, greetings and sign-offs). When the brief specifies its own sections, order, wording, colors or buttons, follow the brief EXACTLY — reproduce its sections in its order with its exact headlines, copy, button labels and URLs. The brief's color directions override the default green palette below: when the brief asks for specific accent colours (e.g. "red and green"), genuinely apply them across headline colors, highlight-row borders and backgrounds, and buttons, using tasteful email-safe hexes (e.g. deep red #b91c1c with light red background #fef2f2). Use the DEFAULT STRUCTURE below only for whatever the brief leaves unspecified.
 
-DEFAULT STRUCTURE (for anything the brief does not itself define; a simple brief gets all of these in order): 1. LOGO HEADER BAND: If a logo URL is provided, the band background must be WHITE (#ffffff) with a 4px solid #15803d bottom border, and the logo centered using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="Bright Fame Organic" width="200" style="display:block;width:200px;max-width:65%;height:auto;border:0;margin:0 auto;padding:20px 0;">. If no logo URL is provided, render a full-width band with background color #15803d and a styled text header instead: white bold 26px company name "Bright Fame Organic" centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: One highlight row per product or key point in the brief — create as many rows as the brief requires (minimum 2, no upper limit). Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280 — use a real fact from the brief if one is given, otherwise a modest generic line like "Your trusted partner for premium organic ingredients" — styled with a subtle top and bottom border in #d1fae5. Never invent statistics. 5. CTA BUTTONS: Prominent buttons, each centered in its own table row. Every button <a> tag must have: background-color #15803d (or the accent color the brief requests); color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). If the brief defines multiple buttons, render EVERY one of them in the brief's order with its exact label (emojis included) and its exact URL — never invent, alter or drop a URL. Secondary buttons may use a white background with a 2px solid border and text in the accent color. 6. CLOSING: A warm 2-sentence closing paragraph, a sign-off with a name placeholder, and "The Bright Fame Organic Team". 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text containing EXACTLY this company info (never a placeholder): line 1: "Bright Fame Organic Pvt. Ltd." — line 2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India" — line 3: "+91-7249847439 | admin@bright-organic.com" — line 4: "© ${new Date().getFullYear()} Bright Fame Organic Pvt. Ltd. All rights reserved." — then a plain "Unsubscribe" hyperlink. If the brief asks for extra footer items (website link, registration link, copyright line, etc.), add them as centered text links ABOVE the address lines — the address block is always present and never replaced. Never invent social media URLs: if the brief asks for LinkedIn or other social icons without giving their URLs, leave them out and use only links you actually have.
+DEFAULT STRUCTURE (for anything the brief does not itself define; a simple brief gets all of these in order): 1. LOGO HEADER BAND: If a logo URL is provided, the band background must be WHITE (#ffffff) with a 4px solid #15803d bottom border, and the logo centered using EXACTLY this tag and no other: <img src="REPLACE_WITH_YOUR_LOGO_URL" alt="Atlas Ingredients" width="200" style="display:block;width:200px;max-width:65%;height:auto;border:0;margin:0 auto;padding:20px 0;">. If no logo URL is provided, render a full-width band with background color #15803d and a styled text header instead: white bold 26px company name "Atlas Ingredients" centered on the green band. 2. HERO SECTION: A bold, attention-grabbing headline in dark green #15803d, 26–30px, font-weight 800. Below it, a compelling 2–3 sentence opening paragraph in #374151, 16px, line-height 1.7. 3. VALUE / PRODUCT SECTION: One highlight row per product or key point in the brief — create as many rows as the brief requires (minimum 2, no upper limit). Each row is a table cell with background #f0fdf4 (very light green), a 4px solid left border in #16a34a, padding 16px 20px, with a bold title in #15803d and a description in #4b5563. 4. SOCIAL PROOF OR TRUST LINE: One row with centered italic text in #6b7280 — use a real fact from the brief if one is given, otherwise a modest generic line like "Your trusted partner for premium organic ingredients" — styled with a subtle top and bottom border in #d1fae5. Never invent statistics. 5. CTA BUTTONS: Prominent buttons, each centered in its own table row. Every button <a> tag must have: background-color #15803d (or the accent color the brief requests); color #ffffff; font-weight bold; font-size 16px; padding 15px 40px; border-radius 8px; text-decoration none; display inline-block; letter-spacing 0.5px; box-shadow 0 4px 12px rgba(21,128,61,0.35). If the brief defines multiple buttons, render EVERY one of them in the brief's order with its exact label (emojis included) and its exact URL — never invent, alter or drop a URL. Secondary buttons may use a white background with a 2px solid border and text in the accent color. 6. CLOSING: A warm 2-sentence closing paragraph, a sign-off with a name placeholder, and "The Atlas Ingredients Team". 7. FOOTER: Full-width light gray #f9fafb band with small 12px #9ca3af centered text containing EXACTLY this company info (never a placeholder): line 1: "Atlas Ingredients" — line 2: "Opp. Murlidhar Guest House, Mehsana-Vishnagar Road, Kansarakui, Mehsana, Gujarat 384001, India" — line 3: "+91-7249847439 | admin@bright-organic.com" — line 4: "© ${new Date().getFullYear()} Atlas Ingredients All rights reserved." — then a plain "Unsubscribe" hyperlink. If the brief asks for extra footer items (website link, registration link, copyright line, etc.), add them as centered text links ABOVE the address lines — the address block is always present and never replaced. Never invent social media URLs: if the brief asks for LinkedIn or other social icons without giving their URLs, leave them out and use only links you actually have.
 
 CONTENT COMPLETENESS — HIGHEST PRIORITY: The user's brief is the single source of truth. Include EVERY fact from the brief: product names, specifications, numbers, certifications, prices, MOQs, packaging details, dates, AND all shipping/logistics/timeline/location/contact details — nothing may be dropped, shortened away or vaguely summarized. If the brief lists many items, create one highlight row per item rather than omitting any. Shipping, delivery and logistics facts that do not fit a product row must still appear — put them in the hero paragraph, an extra highlight row, or the closing paragraph. Before you output, silently re-read the brief sentence by sentence and confirm each fact appears somewhere in the email; if any fact is missing, add it. Never invent products, certifications, statistics or claims that are not in the brief.
 

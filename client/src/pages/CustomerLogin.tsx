@@ -127,7 +127,7 @@ export default function CustomerLogin() {
               </div>
               <CardTitle className="text-2xl">Customer Login</CardTitle>
               <CardDescription>
-                Sign in to your Bright Fame Organic customer account
+                Sign in to your Atlas Ingredients customer account
               </CardDescription>
             </CardHeader>
             <CardContent>

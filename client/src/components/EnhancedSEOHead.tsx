@@ -25,7 +25,7 @@ export default function EnhancedSEOHead({
   productPrice,
   currency = 'USD',
   availability,
-  brand = 'Bright Fame Organic',
+  brand = 'Atlas Ingredients',
   category,
   geoTargeting = ['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']
 }: EnhancedSEOHeadProps) {
@@ -45,7 +45,7 @@ export default function EnhancedSEOHead({
     updateMetaTag('og:title', title, 'property');
     updateMetaTag('og:description', description, 'property');
     updateMetaTag('og:type', pageType === 'product' ? 'product' : 'website', 'property');
-    updateMetaTag('og:site_name', 'Bright Fame Organic - Premium Organic Ingredients', 'property');
+    updateMetaTag('og:site_name', 'Atlas Ingredients - Premium Organic Ingredients', 'property');
     updateMetaTag('og:locale', 'en_US', 'property');
     
     if (canonicalUrl) {
@@ -110,9 +110,9 @@ export default function EnhancedSEOHead({
     updateMetaTag('bingbot', 'index, follow');
 
     // Additional SEO meta tags
-    updateMetaTag('author', 'Bright Fame Organic Pvt. Ltd.');
-    updateMetaTag('publisher', 'Bright Fame Organic');
-    updateMetaTag('copyright', `© ${new Date().getFullYear()} Bright Fame Organic Pvt. Ltd.`);
+    updateMetaTag('author', 'Atlas Ingredients');
+    updateMetaTag('publisher', 'Atlas Ingredients');
+    updateMetaTag('copyright', `© ${new Date().getFullYear()} Atlas Ingredients`);
     updateMetaTag('language', 'English');
     updateMetaTag('revisit-after', '7 days');
 

@@ -91,7 +91,7 @@ function showReactFailureMessage() {
       <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <div style="text-align: center; background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); max-width: 500px;">
           <div style="width: 50px; height: 50px; margin: 0 auto 1.5rem; border: 3px solid #e5e7eb; border-top: 3px solid #059669; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-          <h1 style="color: #1f2937; margin-bottom: 1rem; font-size: 24px;">Bright Fame Organic Loading...</h1>
+          <h1 style="color: #1f2937; margin-bottom: 1rem; font-size: 24px;">Atlas Ingredients Loading...</h1>
           <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.5;">Your website is starting up. This may take a moment.</p>
           <button onclick="window.location.reload()" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Refresh Page</button>
         </div>

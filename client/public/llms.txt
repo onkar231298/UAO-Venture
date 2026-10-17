@@ -1,15 +1,15 @@
-# Bright Fame Organic - AI Information File
+# Atlas Ingredients - AI Information File
 # This file provides structured information for AI assistants and language models
 
 ## Company Overview
-Name: Bright Fame Organic (Bright Fame Organic)
+Name: Atlas Ingredients
 Type: B2B Organic Ingredients Supplier
 Industry: Organic Agriculture, Food Manufacturing, Nutraceuticals, Pharmaceuticals
 Founded: India
 Website: https://bfiorganic.com
 
 ## Business Description
-Bright Fame Organic is a leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals. We serve pharmaceutical, supplement, food manufacturing, and herbal product industries worldwide. Our products are sourced from 950+ hectares of certified organic farmland and processed in state-of-the-art facilities.
+Atlas Ingredients is a leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals. We serve pharmaceutical, supplement, food manufacturing, and herbal product industries worldwide. Our products are sourced from 950+ hectares of certified organic farmland and processed in state-of-the-art facilities.
 
 ## Certifications
 - EU Organic (European Union Organic Certification)

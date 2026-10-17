@@ -76,7 +76,7 @@ export default function SimpleHeroSlider() {
     {
       id: 2,
       title: "Let’s Plan Your Next Order",
-      subtitle: "Connect with Bright Fame Organic",
+      subtitle: "Connect with Atlas Ingredients",
       description: "Share your ingredient specifications, target quantities and delivery needs with our team.",
       backgroundImage: facilityFront,
       imageAlt: "Front exterior view of a landscaped facility with a glass-fronted entrance",
@@ -221,8 +221,8 @@ export default function SimpleHeroSlider() {
             ),
           ].filter((action): action is HeroAction => action !== null),
           imageAlt: slide.title
-            ? `${slide.title} — Bright Fame Organic`
-            : "Bright Fame Organic ingredient range",
+            ? `${slide.title} — Atlas Ingredients`
+            : "Atlas Ingredients ingredient range",
         };
       }),
     [slides],
@@ -258,7 +258,7 @@ export default function SimpleHeroSlider() {
     <section
       className="relative isolate overflow-hidden bg-[#edf4e9] px-0 py-3 sm:py-5 lg:py-6"
       aria-roledescription="carousel"
-      aria-label="Bright Fame Organic — organic ingredients for business"
+      aria-label="Atlas Ingredients — organic ingredients for business"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onFocusCapture={() => setHasFocus(true)}
@@ -268,19 +268,19 @@ export default function SimpleHeroSlider() {
     >
       <div className="w-full">
         <div
-          className="grid w-full overflow-hidden rounded-none border-y border-[#31563d] bg-[#173c2b] shadow-[0_18px_55px_-38px_rgba(28,54,39,0.48)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
+          className="hero-slider-frame grid w-full overflow-hidden rounded-none border-y border-[#31563d] bg-[#173c2b] shadow-[0_18px_55px_-38px_rgba(28,54,39,0.48)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
           aria-live="off"
         >
-          <div className="group relative min-h-[225px] overflow-hidden bg-[#dce2d2] sm:min-h-[290px] md:min-h-full">
+          <div className="hero-photo-frame group relative min-h-[225px] overflow-hidden bg-[#dce2d2] sm:min-h-[290px] md:min-h-full">
             <img
               key={`image-${slide.id}`}
               src={slide.backgroundImage}
-              alt={slide.imageAlt || "Bright Fame Organic facility"}
-              className="absolute inset-0 h-full w-full object-cover object-center motion-safe:animate-[slideInLeft_500ms_ease-out_both] motion-reduce:animate-none"
+              alt={slide.imageAlt || "Atlas Ingredients facility"}
+              className="hero-slide-photo-dissolve absolute inset-0 h-full w-full object-cover object-center"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#173c2b]/55 via-transparent to-[#173c2b]/5" />
-            <div className="absolute bottom-4 left-4 rounded-full border border-white/45 bg-[#f8f7ef]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#244332] backdrop-blur sm:bottom-6 sm:left-6 sm:text-[11px]">
-              Bright Fame Organic
+            <div className="absolute bottom-4 left-4 z-10 rounded-full border border-white/45 bg-[#f8f7ef]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#244332] backdrop-blur sm:bottom-6 sm:left-6 sm:text-[11px]">
+              Atlas Ingredients
             </div>
 
             {activeSlides.length > 1 && (
@@ -305,12 +305,12 @@ export default function SimpleHeroSlider() {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col justify-center px-6 py-8 sm:px-9 sm:py-10 md:px-7 md:py-9 lg:px-14 lg:py-14">
+          <div className="hero-slider-copy-panel flex min-w-0 flex-col justify-center px-6 py-8 sm:px-9 sm:py-10 md:px-7 md:py-9 lg:px-14 lg:py-14">
             <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4e5bd] sm:text-[11px]">
               <span className="h-px w-8 bg-[#a6bd8c]" aria-hidden="true" />
               Organic supply, considered
             </div>
-            <div key={`copy-${slide.id}`} className="motion-safe:animate-[slideInLeft_500ms_ease-out_both] motion-reduce:animate-none">
+            <div key={`copy-${slide.id}`} className="hero-slide-copy-dissolve">
               <h1 className="max-w-[13ch] font-serif text-[2.15rem] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
                 {slide.title}
               </h1>

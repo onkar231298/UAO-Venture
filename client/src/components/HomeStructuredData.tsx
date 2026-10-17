@@ -16,11 +16,11 @@ export default function HomeStructuredData() {
     const organizationSchema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "alternateName": "Bright Fame Organic",
+      "name": "Atlas Ingredients",
+      "alternateName": "Atlas Ingredients",
       "url": baseUrl,
-      "logo": `${baseUrl}/bfi-logo.png`,
-      "image": `${baseUrl}/bfi-logo.png`,
+      "logo": `${baseUrl}/atlas-ingredients-logo.svg`,
+      "image": `${baseUrl}/atlas-ingredients-logo.svg`,
       "description": "Leading supplier of certified organic ingredients, spices, herbs, and botanical extracts for B2B customers worldwide. USDA and EU certified organic products from India.",
       "address": {
         "@type": "PostalAddress",
@@ -108,12 +108,12 @@ export default function HomeStructuredData() {
       "subOrganization": [
         {
           "@type": "Organization",
-          "name": "Bright Fame Organic - Food Ingredients Division",
+          "name": "Atlas Ingredients - Food Ingredients Division",
           "url": `${baseUrl}/food-ingredients`
         },
         {
           "@type": "Organization",
-          "name": "Bright Fame Organic - Organic Herbs Division",
+          "name": "Atlas Ingredients - Organic Herbs Division",
           "url": `${baseUrl}/organic-herbs`
         }
       ]
@@ -123,13 +123,13 @@ export default function HomeStructuredData() {
     const websiteSchema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Bright Fame Organic - Premium B2B Organic Ingredients",
-      "alternateName": "Bright Fame Organic",
+      "name": "Atlas Ingredients - Premium B2B Organic Ingredients",
+      "alternateName": "Atlas Ingredients",
       "url": baseUrl,
       "description": "Leading B2B marketplace for certified organic ingredients, herbs, spices, and botanical extracts. USDA and EU organic certified products from India.",
       "publisher": {
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd."
+        "name": "Atlas Ingredients"
       },
       "potentialAction": {
         "@type": "SearchAction",
@@ -146,7 +146,7 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "name": "Main Site Navigation",
-      "description": "Primary navigation pages for Bright Fame Organic website",
+      "description": "Primary navigation pages for Atlas Ingredients website",
       "itemListElement": [
         {
           "@type": "SiteNavigationElement",
@@ -166,7 +166,7 @@ export default function HomeStructuredData() {
           "@type": "SiteNavigationElement",
           "position": 3,
           "name": "About Us",
-          "description": "Learn about Bright Fame Organic - 25+ years of organic ingredient expertise",
+          "description": "Learn about Atlas Ingredients - 25+ years of organic ingredient expertise",
           "url": `${baseUrl}/about`
         },
         {
@@ -226,8 +226,8 @@ export default function HomeStructuredData() {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "@id": `${baseUrl}#organization`,
-      "name": "Bright Fame Organic Pvt. Ltd.",
-      "image": `${baseUrl}/bfi-logo.png`,
+      "name": "Atlas Ingredients",
+      "image": `${baseUrl}/atlas-ingredients-logo.svg`,
       "telephone": "+91-7249847439",
       "email": "admin@bfiorganic.com",
       "address": {

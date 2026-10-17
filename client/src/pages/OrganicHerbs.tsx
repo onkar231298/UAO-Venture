@@ -9,7 +9,7 @@ import { Leaf, Award, Globe, Shield, FileCheck, Microscope } from "lucide-react"
 
 export default function OrganicHerbs() {
   useEffect(() => {
-    document.title = "Organic Herbs Supplier - EU Certified Medicinal & Culinary Herbs | Bright Fame Organic";
+    document.title = "Organic Herbs Supplier - EU Certified Medicinal & Culinary Herbs | Atlas Ingredients";
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
@@ -25,11 +25,11 @@ export default function OrganicHerbs() {
       "category": "Organic Herbs",
       "brand": {
         "@type": "Brand",
-        "name": "Bright Fame Organic"
+        "name": "Atlas Ingredients"
       },
       "manufacturer": {
         "@type": "Organization",
-        "name": "Bright Fame Organic Pvt. Ltd.",
+        "name": "Atlas Ingredients",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "IN",

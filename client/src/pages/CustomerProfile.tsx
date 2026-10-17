@@ -190,7 +190,7 @@ export default function CustomerProfile() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
-            <CardDescription className="text-sm">Your recent interactions with Bright Fame Organic</CardDescription>
+            <CardDescription className="text-sm">Your recent interactions with Atlas Ingredients</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-gray-500">

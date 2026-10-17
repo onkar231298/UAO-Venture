@@ -200,17 +200,17 @@ export default function ProductDetailBFI() {
     if (!optimizedTitle) {
       // Generate keyword-optimized title based on product type
       if (productName.includes('amla')) {
-        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | Bright Fame Organic`;
+        optimizedTitle = `Organic Amla Powder | Indian Gooseberry Extract | ${product.name} | Atlas Ingredients`;
       } else if (productName.includes('haritaki')) {
-        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | Bright Fame Organic`;
+        optimizedTitle = `Haritaki Powder | Terminalia Chebula | Ayurvedic Ingredients | ${product.name} | Atlas Ingredients`;
       } else if (productName.includes('turmeric')) {
-        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | Bright Fame Organic`;
+        optimizedTitle = `Organic Turmeric Powder | Curcumin Extract | ${product.name} | Atlas Ingredients`;
       } else if (productName.includes('ashwagandha')) {
-        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | Bright Fame Organic`;
+        optimizedTitle = `Ashwagandha Extract | Organic Root Powder | ${product.name} | Atlas Ingredients`;
       } else {
         // Generic optimization
         const category = product.category?.name || 'Organic Ingredients';
-        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | Bright Fame Organic`;
+        optimizedTitle = `${product.name} | ${category} | Bulk Organic Supplier | Atlas Ingredients`;
       }
     }
     
@@ -244,13 +244,13 @@ export default function ProductDetailBFI() {
     if (product) {
       // Update page title with optimized SEO title
       const optimizedTitle = generateOptimizedTitle(product);
-      if (document.title === 'Vite + React + TS' || !document.title.includes('Bright Fame Organic')) {
+      if (document.title === 'Vite + React + TS' || !document.title.includes('Atlas Ingredients')) {
         document.title = optimizedTitle;
       }
       
       // Update meta description with optimized SEO description
       let metaDescription = document.querySelector('meta[name="description"]');
-      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('Bright Fame Organic')) {
+      if (!metaDescription || metaDescription.getAttribute('content') === '' || !metaDescription.getAttribute('content')?.includes('Atlas Ingredients')) {
         if (!metaDescription) {
           metaDescription = document.createElement('meta');
           metaDescription.setAttribute('name', 'description');
@@ -345,7 +345,7 @@ export default function ProductDetailBFI() {
         productPrice={product.priceUSD || product.rate}
         currency="USD"
         availability={product.currentStock && parseFloat(product.currentStock.toString()) > 0 ? 'InStock' : 'OutOfStock'}
-        brand="Bright Fame Organic"
+        brand="Atlas Ingredients"
         category={product.category?.name || product.healthSupport}
         geoTargeting={['US', 'CA', 'GB', 'EU', 'IN', 'CN', 'JP', 'KR']}
       />
