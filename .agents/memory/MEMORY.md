@@ -24,6 +24,7 @@
 - [Shared Mailchimp routing](shared-mailchimp-routing.md) — owner approved shared sales From AND Reply-To; automatic staff access, no setup tab; other mail services stay separate.
 - [Company snapshot reconciliation](company-snapshot-reconciliation.md) — company/contact exports may rekey IDs; compare business identities and parent-linked contacts before import, not counts or raw IDs.
 - [Copied-site tag reconciliation](copied-site-tag-reconciliation.md) — product tables can be empty while tags are seeded; match taxonomy by slug and name, never by numeric source ID.
+- [Hero slide test data safety](hero-slide-test-data-safety.md) — verify managed carousel slides with isolated fixtures or staging, never by changing live CMS records.
 - [Private files and Vite](vite-private-files.md) — Express static restrictions do not block Vite /@fs access to workspace backups; gate private paths before Vite.
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
 - [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.
