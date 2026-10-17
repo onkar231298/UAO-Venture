@@ -11,6 +11,7 @@
 - [Typecheck suppression](typecheck-suppression.md) — syntax-broken files hide ALL semantic tsc errors; baseline debt is huge, judge new work by changed lines; OOM abort ≠ pass.
 - [Internal chat integrity](internal-chat-integrity.md) — group lifecycle writes share a conversation lock; frequently polled chat summaries must remain bounded and set-based.
 - [Schema publishing workflow](schema-deployment-workflow.md) — shared/schema.ts drives schema; apply dev changes directly and production changes through Publish schema diff, never runtime migrations.
+- [Post-merge dependency setup](post-merge-pnpm-setup.md) — post-merge installs use pnpm's frozen lockfile; the npm lockfile is stale and requests packages blocked by policy.
 - [Development database environment](database-env.md) — the running app uses DATABASE_URL; verify the target before applying development schema changes.
 - [Titan Sent mirroring](titan-sent-mirroring.md) — SMTP submissions do not populate Titan Sent; append the delivered RFC message via IMAP and never retry SMTP after append failure.
 - [AI sales draft boundaries](ai-sales-draft-boundaries.md) — website research, generation, and delivery are separate trust boundaries; AI send revalidates recipient and rejects unsupported claims.
