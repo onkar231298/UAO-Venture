@@ -10,6 +10,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "test:hero-slides": "node scripts/check-managed-hero-slides.mjs",
+    "test:hero-mobile": "node --test scripts/check-hero-mobile-layout.mjs",
     "db:push": "drizzle-kit push",
     "seo:preview-strategy": "tsx scripts/applyB2bSeoStrategy.ts",
     "seo:apply-strategy": "tsx scripts/applyB2bSeoStrategy.ts --apply"

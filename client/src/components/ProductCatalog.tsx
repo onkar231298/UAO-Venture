@@ -340,7 +340,7 @@ export default function ProductCatalog({ showHeader = true, limit }: ProductCata
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-2">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
           <Button
             variant="outline"
             size="sm"

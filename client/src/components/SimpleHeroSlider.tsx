@@ -316,27 +316,27 @@ export default function SimpleHeroSlider() {
               Organic supply, considered
             </div>
             <div key={`copy-${slide.id}`} className="hero-slide-copy-dissolve">
-              <h1 className="hero-slide-title max-w-[16ch] font-serif text-[clamp(1.8rem,8vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
+              <h1 className="hero-slide-title max-w-[16ch] break-words font-serif text-[clamp(1.8rem,8vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
                 {slide.title}
               </h1>
-              <h2 className="mt-4 text-base font-semibold leading-snug text-[#d4e5bd] sm:mt-5 sm:text-lg">
+              <h2 className="mt-4 break-words text-base font-semibold leading-snug text-[#d4e5bd] sm:mt-5 sm:text-lg">
                 {slide.subtitle}
               </h2>
-              <p className="mt-3 max-w-[42ch] text-sm leading-7 text-white/85 sm:mt-4 sm:text-base sm:leading-8">
+              <p className="mt-3 max-w-[42ch] break-words text-sm leading-7 text-white/85 sm:mt-4 sm:text-base sm:leading-8">
                 {slide.description}
               </p>
             </div>
 
             {slide.actions.length > 0 && (
-              <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap sm:mt-8">
+              <div className="mt-7 flex min-w-0 flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap sm:mt-8">
                 {slide.actions.map((action, index) => (
                   <Button
                     key={`${action.href}-${index}`}
                     asChild
                     variant={index === 0 ? "default" : "outline"}
                     className={index === 0
-                      ? "h-auto min-h-12 w-full max-w-full whitespace-normal break-words justify-center rounded-md bg-[#d7e6c4] px-4 py-3 text-center font-semibold leading-snug text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"
-                      : "h-auto min-h-12 w-full max-w-full whitespace-normal break-words justify-center rounded-md border-white/55 bg-transparent px-4 py-3 text-center font-semibold leading-snug text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"}
+                      ? "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md bg-[#d7e6c4] px-4 py-3 text-center font-semibold leading-snug text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"
+                      : "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md border-white/55 bg-transparent px-4 py-3 text-center font-semibold leading-snug text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"}
                   >
                     <a
                       href={action.href}
@@ -365,19 +365,24 @@ export default function SimpleHeroSlider() {
                     key={`${index}-${item.id}`}
                     type="button"
                     onClick={() => setCurrentSlide(index)}
-                    className={`h-2.5 rounded-full transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42] focus-visible:ring-offset-2 ${
-                      index === safeCurrentSlide ? "w-7 bg-[#315d42]" : "w-2.5 bg-[#a8b09e] hover:bg-[#68785c]"
-                    }`}
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42] focus-visible:ring-offset-2"
                     aria-label={`Go to slide ${index + 1}`}
                     aria-current={index === safeCurrentSlide ? "true" : undefined}
-                  />
+                  >
+                    <span
+                      className={`h-2.5 rounded-full transition-colors duration-300 ${
+                      index === safeCurrentSlide ? "w-7 bg-[#315d42]" : "w-2.5 bg-[#a8b09e] hover:bg-[#68785c]"
+                    }`}
+                      aria-hidden="true"
+                    />
+                  </button>
                 ))}
               </div>
               <span className="mx-0.5 h-4 w-px bg-[#d5d9cf]" aria-hidden="true" />
               <button
                 type="button"
                 onClick={() => setIsPaused((paused) => !paused)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#31513a] transition-colors hover:bg-[#e8ecdf] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#31513a] transition-colors hover:bg-[#e8ecdf] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42]"
                 aria-label={isPaused ? "Resume automatic slide advance" : "Pause automatic slide advance"}
                 aria-pressed={isPaused}
               >
