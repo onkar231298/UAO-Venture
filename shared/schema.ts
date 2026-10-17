@@ -17,6 +17,7 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { isSafeHeroActionDestination } from "./heroSlideActions";
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -133,6 +134,8 @@ export const heroSlides = pgTable("hero_slides", {
   textColor: varchar("text_color", { length: 20 }).default("white"), // white, black
   buttonText: varchar("button_text", { length: 100 }),
   buttonLink: varchar("button_link", { length: 500 }),
+  secondaryButtonText: varchar("secondary_button_text", { length: 100 }),
+  secondaryButtonLink: varchar("secondary_button_link", { length: 500 }),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1234,6 +1237,24 @@ export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({
   updatedAt: true,
 });
 
+const heroActionDestinationSchema = z.string()
+  .trim()
+  .max(500)
+  .refine(isSafeHeroActionDestination, "Use a supported internal page or a safe HTTP(S) URL.");
+
+export const insertHeroSlideSchema = createInsertSchema(heroSlides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  buttonText: z.string().max(100).nullable().optional(),
+  buttonLink: heroActionDestinationSchema.nullable().optional(),
+  secondaryButtonText: z.string().max(100).nullable().optional(),
+  secondaryButtonLink: heroActionDestinationSchema.nullable().optional(),
+});
+
+export const updateHeroSlideSchema = insertHeroSlideSchema.partial();
+
 export const insertSampleRequestSchema = createInsertSchema(sampleRequests).omit({
   id: true,
   requestId: true,
@@ -1367,6 +1388,8 @@ export type ProductWithAll = Product & {
 };
 export type HeroSlider = typeof heroSliders.$inferSelect;
 export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
+export type HeroSlide = typeof heroSlides.$inferSelect;
+export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type SampleRequest = typeof sampleRequests.$inferSelect;
 export type InsertSampleRequest = z.infer<typeof insertSampleRequestSchema>;
 export type Inventory = typeof inventory.$inferSelect;

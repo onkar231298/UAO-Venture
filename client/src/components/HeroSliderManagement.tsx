@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Edit, Trash2, Image, MoveUp, MoveDown, Eye } from "lucide-react";
+import { isSafeHeroActionDestination } from "@shared/heroSlideActions";
 
 interface HeroSlide {
   id: number;
@@ -16,8 +17,10 @@ interface HeroSlide {
   description: string;
   backgroundImage: string;
   textColor: string;
-  buttonText: string;
-  buttonLink: string;
+  buttonText?: string | null;
+  buttonLink?: string | null;
+  secondaryButtonText?: string | null;
+  secondaryButtonLink?: string | null;
   displayOrder: number;
   isActive: boolean;
   createdAt: string;
@@ -32,6 +35,8 @@ interface HeroSlideFormData {
   textColor: string;
   buttonText?: string;
   buttonLink?: string;
+  secondaryButtonText?: string;
+  secondaryButtonLink?: string;
   displayOrder: number;
   isActive: boolean;
 }
@@ -43,7 +48,7 @@ export default function HeroSliderManagement() {
 
   // Fetch hero slides
   const { data: slides = [], isLoading } = useQuery<HeroSlide[]>({
-    queryKey: ["/api/hero-slides"],
+    queryKey: ["/api/admin/hero-slides"],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -55,6 +60,7 @@ export default function HeroSliderManagement() {
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-slides"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hero-slides"] });
       toast({
         title: "Success",
@@ -79,6 +85,7 @@ export default function HeroSliderManagement() {
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-slides"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hero-slides"] });
       toast({
         title: "Success",
@@ -178,8 +185,10 @@ export default function HeroSliderManagement() {
                           )}
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span>Text Color: {slide.textColor}</span>
-                            {slide.buttonText && (
-                              <span>Button: "{slide.buttonText}"</span>
+                            {(slide.buttonText || slide.secondaryButtonText) && (
+                              <span>
+                                Actions: {[slide.buttonText, slide.secondaryButtonText].filter(Boolean).join(" · ")}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -288,12 +297,24 @@ function HeroSlideForm({
     textColor: slide?.textColor || "white",
     buttonText: slide?.buttonText || "",
     buttonLink: slide?.buttonLink || "",
+    secondaryButtonText: slide?.secondaryButtonText || "",
+    secondaryButtonLink: slide?.secondaryButtonLink || "",
     displayOrder: slide?.displayOrder || 1,
     isActive: slide?.isActive ?? true,
   });
+  const [destinationErrors, setDestinationErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
+    if (!isSafeHeroActionDestination(formData.buttonLink || "")) {
+      errors.buttonLink = "Enter a supported internal page or a safe HTTP(S) URL.";
+    }
+    if (!isSafeHeroActionDestination(formData.secondaryButtonLink || "")) {
+      errors.secondaryButtonLink = "Enter a supported internal page or a safe HTTP(S) URL.";
+    }
+    setDestinationErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     onSubmit(formData);
   };
 
@@ -366,27 +387,76 @@ function HeroSlideForm({
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-2">Button Text</label>
+      <fieldset className="space-y-3 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-semibold">First button</legend>
+        <p className="text-sm text-gray-600">If left blank, visitors see “Explore Products” linking to /products.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-2">Button label</label>
           <input
             type="text"
             value={formData.buttonText}
             onChange={(e) => setFormData({ ...formData, buttonText: e.target.value })}
             className="w-full p-2 border rounded-lg"
+            maxLength={100}
+            placeholder="e.g. Explore Products"
           />
-        </div>
-
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-2">Button Link</label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Destination</label>
           <input
-            type="url"
+            type="text"
             value={formData.buttonLink}
-            onChange={(e) => setFormData({ ...formData, buttonLink: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, buttonLink: e.target.value });
+              setDestinationErrors((errors) => ({ ...errors, buttonLink: "" }));
+            }}
             className="w-full p-2 border rounded-lg"
+            maxLength={500}
+            placeholder="/products or https://example.com"
           />
+            {destinationErrors.buttonLink && (
+              <p className="mt-1 text-sm text-red-600" role="alert">{destinationErrors.buttonLink}</p>
+            )}
+          </div>
         </div>
-      </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-semibold">Second button</legend>
+        <p className="text-sm text-gray-600">If left blank, visitors see “Contact Our Team” linking to /contact.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-2">Button label</label>
+            <input
+              type="text"
+              value={formData.secondaryButtonText}
+              onChange={(e) => setFormData({ ...formData, secondaryButtonText: e.target.value })}
+              className="w-full p-2 border rounded-lg"
+              maxLength={100}
+              placeholder="e.g. Contact Our Team"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Destination</label>
+            <input
+              type="text"
+              value={formData.secondaryButtonLink}
+              onChange={(e) => {
+                setFormData({ ...formData, secondaryButtonLink: e.target.value });
+                setDestinationErrors((errors) => ({ ...errors, secondaryButtonLink: "" }));
+              }}
+              className="w-full p-2 border rounded-lg"
+              maxLength={500}
+              placeholder="/contact or https://example.com"
+            />
+            {destinationErrors.secondaryButtonLink && (
+              <p className="mt-1 text-sm text-red-600" role="alert">{destinationErrors.secondaryButtonLink}</p>
+            )}
+          </div>
+        </div>
+      </fieldset>
 
       <div className="flex items-center gap-2">
         <input

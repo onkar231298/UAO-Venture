@@ -17,6 +17,8 @@ import {
   insertHealthSupportRelationSchema,
   insertProductTagSchema,
   insertHeroSliderSchema,
+  insertHeroSlideSchema,
+  updateHeroSlideSchema,
   insertProductDocumentSchema,
   insertSampleRequestSchema,
   insertProductFaqSchema,
@@ -2166,9 +2168,25 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/hero-slides', async (req, res) => {
     try {
       const slides = await storage.getHeroSlides();
-      res.json(slides);
+      res.json(slides.filter((slide) => slide.isActive));
     } catch (error) {
       console.error("Error fetching hero slides:", error);
+      res.status(500).json({ message: "Failed to fetch hero slides" });
+    }
+  });
+
+  // Get all hero slides for the editor, including inactive slides.
+  app.get('/api/admin/hero-slides', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || (!user.role?.includes('admin') && user.role !== 'website_manager' && user.role !== 'quality_manager' && user.role !== 'quality_executive')) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      res.json(await storage.getHeroSlides());
+    } catch (error) {
+      console.error("Error fetching hero slides for management:", error);
       res.status(500).json({ message: "Failed to fetch hero slides" });
     }
   });
@@ -2183,10 +2201,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const slideData = insertHeroSliderSchema.parse(req.body);
+      const slideData = insertHeroSlideSchema.parse(req.body);
       const slide = await storage.createHeroSlide(slideData);
       res.json(slide);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid hero slide data", errors: error.issues });
+      }
       console.error("Error creating hero slide:", error);
       res.status(500).json({ message: "Failed to create hero slide" });
     }
@@ -2203,10 +2224,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
 
       const { id } = req.params;
-      const slideData = req.body;
+      const slideData = updateHeroSlideSchema.parse(req.body);
       const slide = await storage.updateHeroSlide(parseInt(id), slideData);
+      if (!slide) return res.status(404).json({ message: "Hero slide not found" });
       res.json(slide);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid hero slide data", errors: error.issues });
+      }
       console.error("Error updating hero slide:", error);
       res.status(500).json({ message: "Failed to update hero slide" });
     }

@@ -11,6 +11,13 @@ import packagingArea from "@assets/WhatsApp_Image_2026-10-17_at_9.37.50_AM_17922
 import steamSterilisation from "@assets/WhatsApp_Image_2026-10-17_at_9.42.51_AM_1792213063351.jpeg";
 import dispatchArea from "@assets/WhatsApp_Image_2026-10-17_at_9.47.43_AM_1792213063352.jpeg";
 import laboratory from "@assets/WhatsApp_Image_2026-10-17_at_9.50.22_AM_1792213063348.jpeg";
+import { getSafeHeroActionHref, isExternalHeroActionHref } from "@shared/heroSlideActions";
+
+interface HeroAction {
+  label: string;
+  href: string;
+  external: boolean;
+}
 
 interface HeroSlide {
   id: number;
@@ -27,6 +34,16 @@ interface HeroSlide {
   secondaryCtaHref?: string;
   buttonText?: string | null;
   buttonLink?: string | null;
+  secondaryButtonText?: string | null;
+  secondaryButtonLink?: string | null;
+  actions: HeroAction[];
+}
+
+function makeHeroAction(label: string | null | undefined, destination: string | null | undefined): HeroAction | null {
+  const href = getSafeHeroActionHref(destination);
+  const safeLabel = label?.trim();
+  if (!safeLabel || !href) return null;
+  return { label: safeLabel, href, external: isExternalHeroActionHref(href) };
 }
 
 export default function SimpleHeroSlider() {
@@ -41,7 +58,7 @@ export default function SimpleHeroSlider() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const facilitySlides: HeroSlide[] = [
+  const facilitySlideContent: Omit<HeroSlide, "actions">[] = [
     {
       id: 1,
       title: "Organic Ingredients for Your Next Product",
@@ -170,21 +187,39 @@ export default function SimpleHeroSlider() {
     },
   ];
 
+  const facilitySlides: HeroSlide[] = facilitySlideContent.map((slide) => ({
+    ...slide,
+    actions: [
+      makeHeroAction(slide.ctaLabel, slide.ctaHref),
+      makeHeroAction(slide.secondaryCtaLabel, slide.secondaryCtaHref),
+    ].filter((action): action is HeroAction => action !== null),
+  }));
+
   const activeCmsSlides = useMemo(
     () =>
       slides.filter((slide) => slide.isActive).map((slide) => {
         const configuredButtonText = slide.buttonText?.trim();
         const configuredButtonLink = slide.buttonLink?.trim();
         const buttonSuggestsContact = /contact|talk|discuss|enquir|inquir|quote/i.test(configuredButtonText || "");
-        const ctaHref = configuredButtonLink || (buttonSuggestsContact ? "/contact" : "/products");
-        const hasContactPrimary = /\/contact(?:\/|$|[?#])/i.test(ctaHref);
+        const inferredPrimaryHref = buttonSuggestsContact ? "/contact" : "/products";
+        const primaryHref = configuredButtonLink || inferredPrimaryHref;
+        const safePrimaryHref = getSafeHeroActionHref(primaryHref);
+        const hasContactPrimary = safePrimaryHref
+          ? /^\/contact(?:\/|$|[?#])/i.test(safePrimaryHref)
+          : false;
 
         return {
           ...slide,
-          ctaLabel: configuredButtonText || (hasContactPrimary ? "Talk to Our Team" : "Explore Products"),
-          ctaHref,
-          secondaryCtaLabel: hasContactPrimary ? "Explore Products" : "Talk to Our Team",
-          secondaryCtaHref: hasContactPrimary ? "/products" : "/contact",
+          actions: [
+            makeHeroAction(
+              configuredButtonText || (hasContactPrimary ? "Talk to Our Team" : "Explore Products"),
+              primaryHref,
+            ),
+            makeHeroAction(
+              slide.secondaryButtonText?.trim() || (hasContactPrimary ? "Explore Products" : "Talk to Our Team"),
+              slide.secondaryButtonLink?.trim() || (hasContactPrimary ? "/products" : "/contact"),
+            ),
+          ].filter((action): action is HeroAction => action !== null),
           imageAlt: slide.title
             ? `${slide.title} — Bright Fame Organic`
             : "Bright Fame Organic ingredient range",
@@ -287,23 +322,28 @@ export default function SimpleHeroSlider() {
               </p>
             </div>
 
-            <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row sm:mt-8">
-              <Button
-                asChild
-                className="h-12 w-fit max-w-full justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4]"
-              >
-                <a href={slide.ctaHref || "/products"}>{slide.ctaLabel || "Explore Products"}</a>
-              </Button>
-              {slide.secondaryCtaLabel && slide.secondaryCtaHref && (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-12 w-fit max-w-full justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4]"
-                >
-                  <a href={slide.secondaryCtaHref}>{slide.secondaryCtaLabel}</a>
-                </Button>
-              )}
-            </div>
+            {slide.actions.length > 0 && (
+              <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row sm:mt-8">
+                {slide.actions.map((action, index) => (
+                  <Button
+                    key={`${action.href}-${index}`}
+                    asChild
+                    variant={index === 0 ? "default" : "outline"}
+                    className={index === 0
+                      ? "h-12 w-fit max-w-full justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4]"
+                      : "h-12 w-fit max-w-full justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4]"}
+                  >
+                    <a
+                      href={action.href}
+                      target={action.external ? "_blank" : undefined}
+                      rel={action.external ? "noopener noreferrer" : undefined}
+                    >
+                      {action.label}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

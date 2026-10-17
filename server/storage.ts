@@ -71,6 +71,8 @@ import {
   type InsertProductTag,
   type HeroSlider,
   type InsertHeroSlider,
+  type HeroSlide,
+  type InsertHeroSlide,
   type SampleRequest,
   type InsertSampleRequest,
   type Inventory,
@@ -3590,39 +3592,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Hero slider operations
-  async getHeroSlides(): Promise<any[]> {
+  async getHeroSlides(): Promise<HeroSlide[]> {
     const slides = await db
       .select()
       .from(heroSlides)
-      .where(eq(heroSlides.isActive, true))
       .orderBy(asc(heroSlides.displayOrder));
     return slides;
   }
 
-  async getHeroSlide(id: number): Promise<HeroSlider | undefined> {
-    const [slide] = await db.select().from(heroSliders).where(eq(heroSliders.id, id));
+  async getHeroSlide(id: number): Promise<HeroSlide | undefined> {
+    const [slide] = await db.select().from(heroSlides).where(eq(heroSlides.id, id));
     return slide;
   }
 
-  async createHeroSlide(slide: InsertHeroSlider): Promise<HeroSlider> {
+  async createHeroSlide(slide: InsertHeroSlide): Promise<HeroSlide> {
     const [newSlide] = await db
-      .insert(heroSliders)
+      .insert(heroSlides)
       .values(slide)
       .returning();
     return newSlide;
   }
 
-  async updateHeroSlide(id: number, slide: Partial<InsertHeroSlider>): Promise<HeroSlider> {
+  async updateHeroSlide(id: number, slide: Partial<InsertHeroSlide>): Promise<HeroSlide> {
     const [updatedSlide] = await db
-      .update(heroSliders)
+      .update(heroSlides)
       .set({ ...slide, updatedAt: new Date() })
-      .where(eq(heroSliders.id, id))
+      .where(eq(heroSlides.id, id))
       .returning();
     return updatedSlide;
   }
 
   async deleteHeroSlide(id: number): Promise<void> {
-    await db.delete(heroSliders).where(eq(heroSliders.id, id));
+    await db.delete(heroSlides).where(eq(heroSlides.id, id));
   }
 
   // Sales order operations
