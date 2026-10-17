@@ -549,8 +549,9 @@ export default function Header() {
           <div className="flex items-center">
             <div className="bfo-header-category-wrap relative">
               <button 
+                aria-label="Open all product categories"
                 aria-expanded={showCategorySidebar}
-                className="bfo-header-category-button flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
+                className="bfo-header-category-button flex items-center text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
                 onClick={() => setShowCategorySidebar(!showCategorySidebar)}
               >
                 <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -560,7 +561,7 @@ export default function Header() {
             </div>
             
             {/* Search Bar */}
-            <div className="bfo-header-search-area flex-1 relative max-w-2xl">
+            <div className="bfo-header-search-area relative">
               <form onSubmit={handleSearch} className="bfo-header-search-form relative">
                 <input
                   type="text"

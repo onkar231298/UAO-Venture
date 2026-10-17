@@ -140,15 +140,21 @@ header.bfo-refined-header {
 }
 
 .bfo-header-search-inner > div {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
+  justify-content: center;
   gap: 17px;
 }
 
 .bfo-header-category-wrap,
 .bfo-header-search-area {
   position: relative;
+}
+
+.bfo-header-category-wrap {
+  flex: 0 0 auto;
 }
 
 .bfo-header-search-band .bfo-header-category-button {
@@ -173,9 +179,9 @@ header.bfo-refined-header {
 }
 
 .bfo-header-search-area {
-  min-width: 160px;
-  flex: 1 1 520px;
-  max-width: 690px;
+  min-width: 0;
+  flex: 0 1 520px;
+  max-width: 520px;
 }
 
 .bfo-header-search-form {
@@ -233,9 +239,13 @@ header.bfo-refined-header {
 }
 
 .bfo-header-support {
+  position: absolute;
+  top: 50%;
+  right: 0;
   flex: 0 0 auto;
   gap: 20px;
-  margin-left: auto;
+  margin-left: 0;
+  transform: translateY(-50%);
   font-size: 12px;
 }
 
@@ -389,6 +399,22 @@ header.bfo-refined-header {
   .bfo-header-support {
     gap: 14px;
   }
+
+  .bfo-header-search-area {
+    flex-basis: 520px;
+    max-width: 520px;
+  }
+}
+
+@media (max-width: 1220px) {
+  .bfo-header-support {
+    display: none !important;
+  }
+
+  .bfo-header-search-area {
+    flex-basis: 640px;
+    max-width: 640px;
+  }
 }
 
 @media (max-width: 1050px) {
@@ -422,6 +448,11 @@ header.bfo-refined-header {
 
   .bfo-header-support {
     gap: 11px;
+  }
+
+  .bfo-header-search-area {
+    flex-basis: 600px;
+    max-width: 600px;
   }
 }
 
@@ -520,6 +551,8 @@ header.bfo-refined-header {
 
   .bfo-header-search-area {
     min-width: 0;
+    flex: 1 1 auto;
+    max-width: none;
   }
 
   .bfo-header-search-input {
