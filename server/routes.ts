@@ -146,8 +146,30 @@ import {
   type WebsiteProductMatch,
 } from "./email/aiSalesDraft";
 import { registerChatRoutes } from "./chatRoutes";
+import { createPortalAppearanceHandlers } from "./portalAppearance";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const portalAppearanceHandlers = createPortalAppearanceHandlers({
+    getUserById: (userId) => storage.getUser(userId),
+    savePreference: async (userId, preference, onlyIfMissing) => {
+      const conditions = [
+        eq(users.id, userId),
+        eq(users.userType, "staff"),
+      ];
+      if (onlyIfMissing) conditions.push(isNull(users.portalAppearance));
+      const [updated] = await db.update(users)
+        .set({ portalAppearance: preference, updatedAt: new Date() })
+        .where(and(...conditions))
+        .returning({ portalAppearance: users.portalAppearance });
+      if (updated) return updated.portalAppearance;
+      if (onlyIfMissing) {
+        const current = await storage.getUser(userId);
+        if (current?.userType === "staff") return current.portalAppearance;
+      }
+      return undefined;
+    },
+  });
+
   // Initialize services
   const s3Service = new AWSS3Service();
   const isEmailAdmin = (user: any) => ["admin", "super_admin"].includes(user?.role);
@@ -306,6 +328,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Auth routes
+  app.get("/api/auth/appearance", isAuthenticated, portalAppearanceHandlers.get);
+  app.put("/api/auth/appearance", isAuthenticated, portalAppearanceHandlers.put);
+
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

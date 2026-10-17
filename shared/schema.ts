@@ -76,6 +76,12 @@ export const ALL_STAFF_ROLES = [
 
 export type StaffRole = typeof ALL_STAFF_ROLES[number];
 
+export const portalAppearancePreferenceSchema = z.object({
+  mode: z.enum(["light", "dark"]),
+  palette: z.enum(["navy-amber", "ocean-teal", "forest-sage", "plum-gold"]),
+}).strict();
+export type PortalAppearancePreference = z.infer<typeof portalAppearancePreferenceSchema>;
+
 // User storage table for Replit Auth and role management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
@@ -97,6 +103,7 @@ export const users = pgTable("users", {
   country: varchar("country"),
   industryType: varchar("industry_type"),
   accountStatus: varchar("account_status").default("active"), // pending, active, suspended
+  portalAppearance: jsonb("portal_appearance").$type<PortalAppearancePreference | null>(),
   referralSource: varchar("referral_source"),
   registrationIp: varchar("registration_ip"),
   isActive: boolean("is_active").default(true),
@@ -2005,6 +2012,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  portalAppearance: true,
 }).extend({
   email: z.string().email("Please enter a valid email address"),
   firstName: z.string().min(1, "First name is required"),

@@ -7,7 +7,15 @@ import "../../styles/portal-appearance.css";
 type AppearanceMode = "light" | "dark";
 
 export default function PortalAppearanceSettings() {
-  const { theme, palette: paletteId, setPalette, setTheme, storageAvailable } = usePortalAppearance();
+  const {
+    theme,
+    palette: paletteId,
+    setPalette,
+    setTheme,
+    storageAvailable,
+    syncStatus,
+    accountSyncEnabled,
+  } = usePortalAppearance();
   const paletteGroupRef = useRef<HTMLDivElement>(null);
   const modeGroupRef = useRef<HTMLDivElement>(null);
   const currentPalette = PORTAL_PALETTES.find((palette) => palette.id === paletteId) ?? PORTAL_PALETTES[0];
@@ -48,11 +56,31 @@ export default function PortalAppearanceSettings() {
 
       <div className="portal-appearance__scope" role="note">
         <span className="portal-appearance__scope-dot" aria-hidden="true" />
-        <span><strong>Personal setting</strong> — applies to your account in this browser only. It won’t change the workspace for teammates or the public website.</span>
+        <span>
+          <strong>Personal setting</strong> — {accountSyncEnabled
+            ? "saved to your staff account and available wherever you sign in. It won’t change the workspace for teammates or the public website."
+            : "saved in this browser only. It won’t change the workspace for teammates or the public website."}
+        </span>
       </div>
+      {accountSyncEnabled && syncStatus === "loading" && (
+        <p className="portal-appearance__sync-status" role="status">Loading your saved account appearance…</p>
+      )}
+      {accountSyncEnabled && syncStatus === "saving" && (
+        <p className="portal-appearance__sync-status" role="status">Saving your appearance to your account…</p>
+      )}
+      {accountSyncEnabled && syncStatus === "saved" && (
+        <p className="portal-appearance__sync-status" role="status">Appearance saved to your account.</p>
+      )}
+      {accountSyncEnabled && syncStatus === "error" && (
+        <p className="portal-appearance__warning portal-appearance__warning--error" role="alert">
+          Your appearance could not be loaded or saved to your account. Your current choice is kept in this browser; check your connection and try again.
+        </p>
+      )}
       {!storageAvailable && (
         <p className="portal-appearance__warning" role="status">
-          Your browser can’t save this preference right now. Changes will last for this session only.
+          {accountSyncEnabled
+            ? "Your browser could not save a local copy. Account syncing may still keep your preference available on other devices."
+            : "Your browser can’t save this preference right now. Changes will last for this session only."}
         </p>
       )}
 

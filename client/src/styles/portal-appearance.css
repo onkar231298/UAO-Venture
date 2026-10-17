@@ -94,6 +94,19 @@
   line-height: 1.45;
 }
 
+.portal-appearance__warning--error {
+  border-color: #e2b4b4;
+  background: #fff0f0;
+  color: #8d3030;
+}
+
+.portal-appearance__sync-status {
+  margin-top: 9px !important;
+  color: var(--appearance-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .portal-appearance__section {
   margin-top: 22px;
 }
