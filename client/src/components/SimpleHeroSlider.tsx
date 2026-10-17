@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import aerialFacility from "@assets/WhatsApp_Image_2026-10-17_at_8.01.44_AM_(1)_1792207629039.jpeg";
 import facilityFront from "@assets/WhatsApp_Image_2026-10-17_at_8.01.43_AM_(1)_1792207629041.jpeg";
+import rawMaterialReceiving from "@assets/WhatsApp_Image_2026-10-17_at_9.15.32_AM_1792213063349.jpeg";
+import ingredientSorting from "@assets/WhatsApp_Image_2026-10-17_at_9.24.20_AM_1792213063350.jpeg";
+import processingEquipment from "@assets/WhatsApp_Image_2026-10-17_at_9.28.03_AM_1792213063351.jpeg";
+import packagingArea from "@assets/WhatsApp_Image_2026-10-17_at_9.37.50_AM_1792213063351.jpeg";
+import steamSterilisation from "@assets/WhatsApp_Image_2026-10-17_at_9.42.51_AM_1792213063351.jpeg";
+import dispatchArea from "@assets/WhatsApp_Image_2026-10-17_at_9.47.43_AM_1792213063352.jpeg";
+import laboratory from "@assets/WhatsApp_Image_2026-10-17_at_9.50.22_AM_1792213063348.jpeg";
 
 interface HeroSlide {
   id: number;
@@ -16,6 +23,10 @@ interface HeroSlide {
   imageAlt?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  buttonText?: string | null;
+  buttonLink?: string | null;
 }
 
 export default function SimpleHeroSlider() {
@@ -33,40 +44,152 @@ export default function SimpleHeroSlider() {
   const facilitySlides: HeroSlide[] = [
     {
       id: 1,
-      title: "Organic Ingredients. Built for Your Business.",
+      title: "Organic Ingredients for Your Next Product",
       subtitle: "Explore our ingredient range",
-      description: "Discover herbs, spices, extracts and botanical ingredients for your next formulation.",
+      description: "Find organic herbs, spices, extracts and botanicals for your food, wellness and manufacturing needs.",
       backgroundImage: aerialFacility,
       imageAlt: "Aerial view of a landscaped industrial facility and surrounding grounds",
       textColor: "white",
       isActive: true,
       ctaLabel: "Explore Products",
       ctaHref: "/products",
+      secondaryCtaLabel: "Talk to Our Team",
+      secondaryCtaHref: "/contact",
     },
     {
       id: 2,
-      title: "Let’s Talk About Your Next Order",
+      title: "Let’s Plan Your Next Order",
       subtitle: "Connect with Bright Fame Organic",
-      description: "Share your specifications, quantity and delivery requirements with our team.",
+      description: "Share your ingredient specifications, target quantities and delivery needs with our team.",
       backgroundImage: facilityFront,
       imageAlt: "Front exterior view of a landscaped facility with a glass-fronted entrance",
       textColor: "white",
       isActive: true,
-      ctaLabel: "Contact Our Team",
+      ctaLabel: "Talk to Our Team",
       ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 3,
+      title: "Ingredient Receiving & Inspection",
+      subtitle: "A careful start for every order",
+      description: "See the receiving and sampling areas where incoming ingredients are prepared for review.",
+      backgroundImage: rawMaterialReceiving,
+      imageAlt: "Raw materials arriving at a receiving and inspection area",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Discuss Your Requirements",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 4,
+      title: "Careful Sorting, Step by Step",
+      subtitle: "A closer look at ingredient preparation",
+      description: "Our team sorts turmeric as ingredients move through the preparation process.",
+      backgroundImage: ingredientSorting,
+      imageAlt: "Workers sorting turmeric in a clean production area",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Explore Products",
+      ctaHref: "/products",
+      secondaryCtaLabel: "Talk to Our Team",
+      secondaryCtaHref: "/contact",
+    },
+    {
+      id: 5,
+      title: "Processing Equipment, Up Close",
+      subtitle: "From raw ingredient to finished product",
+      description: "Explore the machinery and production spaces shown across our facility.",
+      backgroundImage: processingEquipment,
+      imageAlt: "Stainless steel ingredient processing equipment on the production floor",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Ask About Processing",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 6,
+      title: "Steam Sterilisation Area",
+      subtitle: "A look inside our facility",
+      description: "See the dedicated steam sterilisation space and speak with our team about your product needs.",
+      backgroundImage: steamSterilisation,
+      imageAlt: "Steam sterilisation equipment in a dedicated production area",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Discuss Your Requirements",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 7,
+      title: "Laboratory & Sample Review",
+      subtitle: "Discuss your quality requirements",
+      description: "Take a closer look at the laboratory space and measurement equipment used for product review.",
+      backgroundImage: laboratory,
+      imageAlt: "Laboratory workspace with testing equipment and a seated technician",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Discuss Quality Needs",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 8,
+      title: "Packaging for Your Supply Needs",
+      subtitle: "A view of the packaging area",
+      description: "Talk with us about packaging formats, order quantities and delivery requirements.",
+      backgroundImage: packagingArea,
+      imageAlt: "Workers preparing ingredient packages in the packaging area",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Discuss Packaging",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
+    },
+    {
+      id: 9,
+      title: "Ready for the Next Step",
+      subtitle: "Plan your next supply",
+      description: "Share the quantities and delivery timing you need, and our team can discuss next steps.",
+      backgroundImage: dispatchArea,
+      imageAlt: "Packaged raw materials and forklift in the dispatch area",
+      textColor: "white",
+      isActive: true,
+      ctaLabel: "Talk to Our Team",
+      ctaHref: "/contact",
+      secondaryCtaLabel: "Explore Products",
+      secondaryCtaHref: "/products",
     },
   ];
 
   const activeCmsSlides = useMemo(
     () =>
-      slides.filter((slide) => slide.isActive).map((slide) => ({
-        ...slide,
-        ctaLabel: "Explore Products",
-        ctaHref: "/products",
-        imageAlt: slide.title
-          ? `${slide.title} — Bright Fame Organic`
-          : "Bright Fame Organic ingredient range",
-      })),
+      slides.filter((slide) => slide.isActive).map((slide) => {
+        const configuredButtonText = slide.buttonText?.trim();
+        const configuredButtonLink = slide.buttonLink?.trim();
+        const buttonSuggestsContact = /contact|talk|discuss|enquir|inquir|quote/i.test(configuredButtonText || "");
+        const ctaHref = configuredButtonLink || (buttonSuggestsContact ? "/contact" : "/products");
+        const hasContactPrimary = /\/contact(?:\/|$|[?#])/i.test(ctaHref);
+
+        return {
+          ...slide,
+          ctaLabel: configuredButtonText || (hasContactPrimary ? "Talk to Our Team" : "Explore Products"),
+          ctaHref,
+          secondaryCtaLabel: hasContactPrimary ? "Explore Products" : "Talk to Our Team",
+          secondaryCtaHref: hasContactPrimary ? "/products" : "/contact",
+          imageAlt: slide.title
+            ? `${slide.title} — Bright Fame Organic`
+            : "Bright Fame Organic ingredient range",
+        };
+      }),
     [slides],
   );
   const activeSlides = useMemo(() => [...facilitySlides, ...activeCmsSlides], [activeCmsSlides]);
@@ -167,17 +290,19 @@ export default function SimpleHeroSlider() {
             <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row sm:mt-8">
               <Button
                 asChild
-                className="h-12 justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4]"
+                className="h-12 w-fit max-w-full justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4]"
               >
-                <a href="/products">Explore Products</a>
+                <a href={slide.ctaHref || "/products"}>{slide.ctaLabel || "Explore Products"}</a>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-12 justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4]"
-              >
-                <a href="/contact">Contact Our Team</a>
-              </Button>
+              {slide.secondaryCtaLabel && slide.secondaryCtaHref && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-12 w-fit max-w-full justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4]"
+                >
+                  <a href={slide.secondaryCtaHref}>{slide.secondaryCtaLabel}</a>
+                </Button>
+              )}
             </div>
           </div>
         </div>
