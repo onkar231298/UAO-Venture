@@ -305,13 +305,13 @@ export default function SimpleHeroSlider() {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col justify-center px-6 py-8 sm:px-9 sm:py-10 md:px-9 md:py-12 lg:px-14 lg:py-14">
+          <div className="flex min-w-0 flex-col justify-center px-6 py-8 sm:px-9 sm:py-10 md:px-7 md:py-9 lg:px-14 lg:py-14">
             <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4e5bd] sm:text-[11px]">
               <span className="h-px w-8 bg-[#a6bd8c]" aria-hidden="true" />
               Organic supply, considered
             </div>
             <div key={`copy-${slide.id}`} className="motion-safe:animate-[slideInLeft_500ms_ease-out_both] motion-reduce:animate-none">
-              <h1 className="max-w-[13ch] font-serif text-[2.15rem] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-[3.6rem]">
+              <h1 className="max-w-[13ch] font-serif text-[2.15rem] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
                 {slide.title}
               </h1>
               <h2 className="mt-4 text-base font-semibold leading-snug text-[#d4e5bd] sm:mt-5 sm:text-lg">
@@ -323,15 +323,15 @@ export default function SimpleHeroSlider() {
             </div>
 
             {slide.actions.length > 0 && (
-              <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row sm:mt-8">
+              <div className="mt-7 flex flex-col gap-3 min-[420px]:flex-row sm:mt-8 md:flex-wrap">
                 {slide.actions.map((action, index) => (
                   <Button
                     key={`${action.href}-${index}`}
                     asChild
                     variant={index === 0 ? "default" : "outline"}
                     className={index === 0
-                      ? "h-12 w-fit max-w-full justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4]"
-                      : "h-12 w-fit max-w-full justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4]"}
+                      ? "h-12 w-fit max-w-full justify-center rounded-md bg-[#d7e6c4] px-5 font-semibold text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4] md:px-3 lg:px-5"
+                      : "h-12 w-fit max-w-full justify-center rounded-md border-white/55 bg-transparent px-5 font-semibold text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4] md:px-3 lg:px-5"}
                   >
                     <a
                       href={action.href}
