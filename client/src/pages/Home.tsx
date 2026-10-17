@@ -9,6 +9,7 @@ import HomeStructuredData from "@/components/HomeStructuredData";
 import WebsiteSchema from "@/components/WebsiteSchema";
 import CompanyStructuredData from "@/components/CompanyStructuredData";
 import SimpleHeroSlider from "@/components/SimpleHeroSlider";
+import CertificationTicker from "@/components/CertificationTicker";
 import HomepageAEO from "@/components/HomepageAEO";
 import { KnowledgeHubAEO } from "@/components/KnowledgeHubAEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ export default function Home() {
           <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6">
             Leading B2B supplier of certified organic herbs, spices, extracts, and nutraceuticals for pharmaceutical, supplement, and food industries worldwide.
           </p>
+          <CertificationTicker />
         </div>
       </section>
 
