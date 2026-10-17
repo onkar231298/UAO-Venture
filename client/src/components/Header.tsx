@@ -36,6 +36,7 @@ import {
   Award,
   MessageCircle
 } from "lucide-react";
+import "./Header.css";
 
 export default function Header() {
   const [location, setLocation] = useLocation();
@@ -51,6 +52,8 @@ export default function Header() {
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
+  const isPathActive = (...paths: string[]) =>
+    paths.some((path) => location === path || (path !== "/" && location.startsWith(`${path}/`)));
 
   // Fetch detected country based on IP
   useEffect(() => {
@@ -170,18 +173,18 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+    <header className="bfo-refined-header bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
       {/* Main Header */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-between">
+      <div className="bfo-header-top-inner container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="bfo-header-row flex items-center justify-between">
           {/* Left Side - Logo */}
-          <div className="flex items-center">
+          <div className="bfo-header-brand flex items-center">
             <Link href="/">
               <div className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
                 <img 
                   src="/attached_assets/Final Logo_1753730040470.png" 
                   alt="Bright Fame Organic" 
-                  className="h-10 sm:h-12 w-auto object-contain"
+                  className="bfo-header-logo h-10 sm:h-12 w-auto object-contain"
                 />
               </div>
             </Link>
@@ -190,7 +193,9 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="ml-4 lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
+              aria-label={showMobileMenu ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={showMobileMenu}
+              className="bfo-header-mobile-toggle ml-4 lg:hidden text-gray-600 hover:text-green-600 hover:bg-green-50"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <Menu className="h-5 w-5" />
@@ -198,20 +203,20 @@ export default function Header() {
           </div>
 
           {/* Center - Navigation */}
-          <nav className="hidden lg:flex items-center space-x-3 xl:space-x-5">
-            <Link href="/" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600' : ''}`}>
+          <nav aria-label="Main navigation" className="bfo-header-nav hidden lg:flex items-center">
+            <Link href="/" aria-current={location === "/" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Home
             </Link>
-            <Link href="/products" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600' : ''}`}>
+            <Link href="/products" aria-current={location === "/products" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Products
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/ingredients") ? "is-current" : ""}`}>
                   Ingredients <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="bfo-nav-dropdown w-[500px] p-3 shadow-xl border border-gray-200" align="start">
                 {/* All Ingredients Link */}
                   <Link href="/products">
                     <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
@@ -287,11 +292,11 @@ export default function Header() {
               {/* Industries Dropdown - NEW for SEO */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                  <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/food-ingredients", "/organic-herbs", "/eu-organic-spices") ? "is-current" : ""}`}>
                     Industries <ChevronDown className="ml-1 h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80 p-3 shadow-xl border border-gray-200" align="start">
+                <DropdownMenuContent className="bfo-nav-dropdown w-80 p-3 shadow-xl border border-gray-200" align="start">
                   <div className="space-y-2">
                     <Link href="/food-ingredients">
                       <DropdownMenuItem className="p-3 hover:bg-green-50 cursor-pointer rounded-md border border-gray-100">
@@ -326,11 +331,11 @@ export default function Header() {
               {/* Health Support Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/health-support") ? "is-current" : ""}`}>
                   Health Support <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[500px] p-3 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="bfo-nav-dropdown w-[500px] p-3 shadow-xl border border-gray-200" align="start">
                   {/* All Health Support Link */}
                   <Link href="/products">
                     <DropdownMenuItem className="mb-3 bg-green-500 hover:bg-green-600 font-semibold text-white py-3 rounded-md text-center cursor-pointer">
@@ -398,11 +403,11 @@ export default function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0">
+                <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/about-us", "/our-team", "/our-farmers") ? "is-current" : ""}`}>
                   About <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 p-2 shadow-xl border border-gray-200" align="start">
+              <DropdownMenuContent className="bfo-nav-dropdown w-48 p-2 shadow-xl border border-gray-200" align="start">
                 <Link href="/about-us">
                   <DropdownMenuItem className="text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer">
                     About Us
@@ -420,19 +425,19 @@ export default function Header() {
                 </Link>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="/contact" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600' : ''}`}>
+            <Link href="/contact" aria-current={location === "/contact" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Contact
             </Link>
-            <Link href="/certifications" className={`text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-600 border-green-600' : ''}`}>
+            <Link href="/certifications" aria-current={location === "/certifications" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Certifications
             </Link>
           </nav>
 
           {/* Right Side - User Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="bfo-header-actions flex items-center">
             {/* Country Indicator */}
             {detectedCountry && (
-              <div className="hidden md:flex items-center space-x-2">
+              <div className="bfo-header-country-indicator hidden md:flex items-center space-x-2">
                 <div className="flex items-center space-x-1 text-sm text-gray-600">
                   <Globe className="w-4 h-4" />
                   <span>{detectedCountry}</span>
@@ -441,7 +446,7 @@ export default function Header() {
             )}
             
             {/* User Actions */}
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="bfo-header-user-actions flex items-center">
               <Button variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
                 <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
@@ -539,12 +544,13 @@ export default function Header() {
       </div>
 
       {/* Search Bar */}
-      <div className="bg-green-600 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <div className="relative">
+      <div className="bfo-header-search-band bg-green-600 text-white">
+        <div className="bfo-header-search-inner container mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center">
+            <div className="bfo-header-category-wrap relative">
               <button 
-                className="flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
+                aria-expanded={showCategorySidebar}
+                className="bfo-header-category-button flex items-center space-x-1 text-xs sm:text-sm bg-green-700 hover:bg-green-800 px-3 py-2 rounded-lg transition-colors"
                 onClick={() => setShowCategorySidebar(!showCategorySidebar)}
               >
                 <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -554,8 +560,8 @@ export default function Header() {
             </div>
             
             {/* Search Bar */}
-            <div className="flex-1 relative max-w-2xl">
-              <form onSubmit={handleSearch} className="relative">
+            <div className="bfo-header-search-area flex-1 relative max-w-2xl">
+              <form onSubmit={handleSearch} className="bfo-header-search-form relative">
                 <input
                   type="text"
                   placeholder="Search for organic ingredients..."
@@ -564,10 +570,12 @@ export default function Header() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full px-4 py-2 pl-4 pr-12 text-sm text-gray-900 bg-white border border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
+                  aria-label="Search organic ingredients"
+                  className="bfo-header-search-input w-full px-4 py-2 pl-4 pr-12 text-sm text-gray-900 bg-white border border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
                 />
                 <button
                   type="submit"
+                  aria-label="Search"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-700"
                 >
                   <Search className="w-4 h-4" />
@@ -576,7 +584,7 @@ export default function Header() {
 
               {/* Search Suggestions */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
+                <div className="bfo-header-search-suggestions absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
                   {suggestions.map((product) => (
                     <div
                       key={product.id}
@@ -594,7 +602,7 @@ export default function Header() {
             </div>
 
             {/* Contact Info */}
-            <div className="hidden lg:flex items-center space-x-4 text-sm">
+            <div className="bfo-header-support hidden lg:flex items-center space-x-4 text-sm">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
                 <div>
@@ -618,12 +626,12 @@ export default function Header() {
 
       {/* Mobile Navigation Menu */}
       {showMobileMenu && (
-        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+        <div className="bfo-header-mobile-menu lg:hidden bg-white border-t border-gray-200 shadow-lg">
           <div className="container mx-auto px-4 py-2">
-            <nav className="space-y-1">
+            <nav aria-label="Mobile navigation" className="bfo-mobile-nav">
               <Link 
                 href="/" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
                   location === '/' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
@@ -638,7 +646,7 @@ export default function Header() {
               
               <Link 
                 href="/products" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
                   location === '/products' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
@@ -653,7 +661,7 @@ export default function Header() {
 
               <Link 
                 href="/blog" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
                   location === '/blog' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
@@ -668,7 +676,7 @@ export default function Header() {
 
               {/* Ingredients Accordion */}
               <Collapsible open={mobileIngredientsOpen} onOpenChange={setMobileIngredientsOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                <CollapsibleTrigger className="bfo-mobile-accordion-trigger flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100">
                       <Leaf className="w-4 h-4 text-emerald-600" />
@@ -677,7 +685,7 @@ export default function Header() {
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileIngredientsOpen ? 'rotate-90' : ''}`} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-3 space-y-1 mt-2">
+                <CollapsibleContent className="bfo-mobile-subnav pl-3 space-y-1 mt-2">
                 <Link 
                   href="/ingredients" 
                   className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
@@ -709,7 +717,7 @@ export default function Header() {
 
               {/* Health Support Accordion */}
               <Collapsible open={mobileHealthSupportOpen} onOpenChange={setMobileHealthSupportOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                <CollapsibleTrigger className="bfo-mobile-accordion-trigger flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100">
                       <Heart className="w-4 h-4 text-purple-600" />
@@ -718,7 +726,7 @@ export default function Header() {
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileHealthSupportOpen ? 'rotate-90' : ''}`} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-3 space-y-1 mt-2">
+                <CollapsibleContent className="bfo-mobile-subnav pl-3 space-y-1 mt-2">
                 <Link 
                   href="/products" 
                   className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
@@ -750,7 +758,7 @@ export default function Header() {
               
               {/* About Accordion */}
               <Collapsible open={mobileAboutOpen} onOpenChange={setMobileAboutOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
+                <CollapsibleTrigger className="bfo-mobile-accordion-trigger flex items-center justify-between w-full py-3 px-3 rounded-lg text-gray-700 hover:text-green-600 hover:bg-gray-50 transition-all duration-200">
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
                       <Info className="w-4 h-4 text-indigo-600" />
@@ -759,7 +767,7 @@ export default function Header() {
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileAboutOpen ? 'rotate-90' : ''}`} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-3 space-y-1 mt-2">
+                <CollapsibleContent className="bfo-mobile-subnav pl-3 space-y-1 mt-2">
                   <Link 
                     href="/about-us" 
                     className="block py-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
@@ -786,7 +794,7 @@ export default function Header() {
               
               <Link 
                 href="/contact" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
                   location === '/contact' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
@@ -801,7 +809,7 @@ export default function Header() {
               
               <Link 
                 href="/certifications" 
-                className={`flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
+                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
                   location === '/certifications' 
                     ? 'text-green-600 bg-green-50 font-medium' 
                     : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
