@@ -47,6 +47,11 @@ export type SeoCrawlerResult = {
   skippedPageCount: number;
   excludedPageCount: number;
   timeLimitReached: boolean;
+  totalEligiblePageCount: number;
+  nextCursor: number;
+  complete: boolean;
+  sitemapReadComplete: boolean;
+  snapshotHash: string;
   findings: SeoCrawlerFinding[];
   pages: CrawledSeoPage[];
   performance: {
@@ -334,11 +339,14 @@ export async function runSeoCrawlerAudit(options: {
   environment: "development" | "production";
   maxPages?: number;
   concurrency?: number;
+  offset?: number;
+  snapshotHash?: string;
 }): Promise<SeoCrawlerResult> {
   const base = new URL(options.baseUrl);
   const origin = base.origin;
   const maxPages = Math.max(1, Math.min(MAX_PAGES, options.maxPages || DEFAULT_MAX_PAGES));
   const concurrency = Math.max(1, Math.min(MAX_CONCURRENCY, options.concurrency || 3));
+  const offset = Math.max(0, Math.floor(options.offset || 0));
   const deadlineAt = Date.now() + 90_000;
   const requestPage = async (url: string) => {
     const remainingMs = deadlineAt - Date.now();
@@ -427,19 +435,28 @@ export async function runSeoCrawlerAudit(options: {
   }
   const sitemapUrls = Array.from(sitemapUrlsSet);
   const startUrl = new URL("/", origin).toString();
-  const candidates = Array.from(new Set([startUrl, ...sitemapUrls]));
   const sitemapSet = new Set(sitemapUrls);
-  const preflightFindings = [
-    ...sitemapUrls.filter(url => PRIVATE_PATH.test(new URL(url).pathname)).map(url =>
-      finding("indexing", "high", "restricted-sitemap-url", "A restricted or login URL is in the sitemap", "This URL points to an API, staff, login, or administration path that should not be advertised for indexing.", "Remove it from the sitemap and keep access restrictions in place.", url, { listedInSitemap: true })),
-    ...sitemapUrls.filter(url => robotsDisallows(new URL(url).pathname, robots)).map(url =>
-      finding("indexing", "high", "robots-blocks-sitemap-page", "Robots rules block a URL listed in the sitemap", "The URL is in sitemap.xml but matches a Disallow rule in robots.txt.", "Review the crawl rule and sitemap together; do not change either automatically.", url, { robotsUrl })),
-  ];
-  const eligiblePageUrls = candidates.filter(url => {
+  const eligibleSitemapUrls = sitemapUrls.filter(url => {
     const path = new URL(url).pathname;
     return !PRIVATE_PATH.test(path) && !STATIC_ASSET.test(path) && !robotsDisallows(path, robots);
   });
-  const pageUrls = eligiblePageUrls.slice(0, maxPages);
+  const snapshotHash = createHash("sha256").update(`${robots}\n${eligibleSitemapUrls.join("\n")}\n${sitemapErrors.join("\n")}`).digest("hex");
+  if (options.snapshotHash && options.snapshotHash !== snapshotHash) {
+    throw new Error("SEO_SITEMAP_CHANGED");
+  }
+  const preflightFindings: SeoCrawlerFinding[] = [];
+  if (offset === 0) {
+    for (const url of sitemapUrls) {
+      if (PRIVATE_PATH.test(new URL(url).pathname)) {
+        preflightFindings.push(finding("indexing", "high", "restricted-sitemap-url", "A restricted or login URL is in the sitemap", "This URL points to an API, staff, login, or administration path that should not be advertised for indexing.", "Remove it from the sitemap and keep access restrictions in place.", url, { listedInSitemap: true }));
+      }
+      if (robotsDisallows(new URL(url).pathname, robots)) {
+        preflightFindings.push(finding("indexing", "high", "robots-blocks-sitemap-page", "Robots rules block a URL listed in the sitemap", "The URL is in sitemap.xml but matches a Disallow rule in robots.txt.", "Review the crawl rule and sitemap together; do not change either automatically.", url, { robotsUrl }));
+      }
+    }
+  }
+  const eligibleBatch = eligibleSitemapUrls.slice(offset, offset + maxPages);
+  const pageUrls = Array.from(new Set([...(offset === 0 ? [startUrl] : []), ...eligibleBatch]));
   const pageResultsWithSkipped = await mapLimit(pageUrls, concurrency, async url => {
     if (Date.now() >= deadlineAt) return null;
     const response = await requestPage(url);
@@ -455,31 +472,13 @@ export async function runSeoCrawlerAudit(options: {
     return analysis;
   });
   const pageResults = pageResultsWithSkipped.filter((result): result is NonNullable<typeof result> => result !== null);
-  const completedSeedPageCount = pageResults.length;
-
-  const crawled = new Map(pageResults.map(result => [result.page.url, result]));
-  const discoveredPages = new Map<string, string>();
-  for (const result of pageResults) {
-    for (const href of result.page.links) {
-      let target: URL;
-      try { target = new URL(href, result.page.url); } catch { continue; }
-      if (target.origin !== origin || target.username || target.password || target.search || target.hash || PRIVATE_PATH.test(target.pathname) || STATIC_ASSET.test(target.pathname) || robotsDisallows(target.pathname, robots)) continue;
-      const normalized = normalizePageUrl(target.toString());
-      if (normalized && !crawled.has(normalized) && !discoveredPages.has(normalized)) discoveredPages.set(normalized, result.page.url);
-    }
+  const completedUrls = new Set(pageResults.map(result => result.page.url));
+  let completedEligibleCount = 0;
+  for (const url of eligibleBatch) {
+    if (!completedUrls.has(url)) break;
+    completedEligibleCount += 1;
   }
-  const remainingPageSlots = Math.max(0, maxPages - pageResults.length);
-  const discoveredUrls = Array.from(discoveredPages.keys()).slice(0, remainingPageSlots);
-  const linkedPageResultsWithSkipped = await mapLimit(discoveredUrls, concurrency, async url => {
-    if (Date.now() >= deadlineAt) return null;
-    const response = await requestPage(url);
-    const analysis = analyzeSeoHtml(url, response.body, response.status, response.contentType, response.durationMs, sitemapSet.has(url), (response as any).robotsHeader || "");
-    if (response.error) analysis.findings.push(finding("indexing", "high", "page-fetch-failed", "Public page could not be fetched", response.error, "Confirm the page is publicly reachable from the running server and returns a successful response.", url, { error: response.error }));
-    return analysis;
-  });
-  const linkedPageResults = linkedPageResultsWithSkipped.filter((result): result is NonNullable<typeof result> => result !== null);
-  pageResults.push(...linkedPageResults);
-  for (const result of pageResults) crawled.set(result.page.url, result);
+  const nextCursor = offset + completedEligibleCount;
   const uniqueLinks = new Map<string, string>();
   for (const result of pageResults) {
     for (const href of result.page.links) {
@@ -531,10 +530,10 @@ export async function runSeoCrawlerAudit(options: {
   };
   duplicateGroups("title");
   duplicateGroups("description");
-  if (sitemapErrors.length || sitemapUrls.length === 0) {
+  if (offset === 0 && (sitemapErrors.length || sitemapUrls.length === 0)) {
     findings.push(finding("indexing", "high", "sitemap-unavailable-or-empty", "A readable sitemap could not be verified", sitemapErrors.length ? sitemapErrors.join("; ") : "The sitemap returned no same-site page URLs.", "Make sure the public sitemap is accessible, contains canonical page URLs, and is referenced from robots.txt.", sitemapUrl, { errors: sitemapErrors }));
   }
-  if (!robots) {
+  if (offset === 0 && !robots) {
     findings.push(finding("indexing", "medium", "robots-unavailable", "robots.txt could not be read", `The crawler received HTTP ${robotsResponse.status || "no response"} from robots.txt.`, "Confirm that robots.txt is intentionally absent or returns the site's crawl rules.", robotsUrl, { status: robotsResponse.status }));
   }
   const durations = pageResults.filter(result => result.page.status >= 200 && result.page.status < 400).map(result => result.page.durationMs).sort((a, b) => a - b);
@@ -544,15 +543,21 @@ export async function runSeoCrawlerAudit(options: {
   if (options.environment === "production" && p75Ms > 3_000) {
     findings.push(finding("content", "low", "production-page-response-time", "Public page responses are slow in this crawl", `The 75th percentile response time was ${p75Ms} ms.`, "Review production measurements alongside Core Web Vitals and repeat at low crawl concurrency; response time alone is not a ranking verdict.", startUrl, { p75Ms, medianMs, advisoryOnly: true }));
   }
+  const sitemapReadComplete = sitemapErrors.length === 0 && sitemapUrls.length > 0;
   return {
     generatedAt: new Date().toISOString(),
     environment: options.environment,
     startUrl,
     sitemapUrlCount: sitemapUrls.length,
     scannedPageCount: pageResults.length,
-    skippedPageCount: Math.max(0, eligiblePageUrls.length - completedSeedPageCount) + Math.max(0, discoveredPages.size - linkedPageResults.length),
-    excludedPageCount: Math.max(0, candidates.length - eligiblePageUrls.length),
+    skippedPageCount: Math.max(0, eligibleSitemapUrls.length - nextCursor),
+    excludedPageCount: offset === 0 ? Math.max(0, sitemapUrls.length - eligibleSitemapUrls.length) : 0,
     timeLimitReached: Date.now() >= deadlineAt,
+    totalEligiblePageCount: eligibleSitemapUrls.length,
+    nextCursor,
+    complete: nextCursor >= eligibleSitemapUrls.length && sitemapReadComplete,
+    sitemapReadComplete,
+    snapshotHash,
     findings: findings.sort((a, b) => {
       const severityWeight = { critical: 0, high: 1, medium: 2, low: 3 };
       return severityWeight[a.severity] - severityWeight[b.severity] || a.sourceUrl.localeCompare(b.sourceUrl);

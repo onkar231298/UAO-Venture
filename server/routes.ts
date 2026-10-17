@@ -6445,12 +6445,26 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       );
       const isAllowedHost = isAllowedLocalHost || isAllowedPublicHost;
       if (!isAllowedHost) return res.status(400).json({ message: "SEO crawl is only available for this site's public host." });
+      const input = z.object({
+        offset: z.number().int().min(0).max(1_000_000).default(0),
+        snapshotHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+      }).parse(req.body ?? {});
+      if (input.offset > 0 && !input.snapshotHash) {
+        return res.status(400).json({ message: "A sitemap snapshot is required to continue this crawl." });
+      }
       const protocol = isLocalHost ? "http" : "https";
       const baseUrl = `${protocol}://${hostUrl.host}`;
       const environment = req.app.get("env") === "production" ? "production" : "development";
-      const report = await runSeoCrawlerAudit({ baseUrl, environment, maxPages: 300, concurrency: 3 });
+      const report = await runSeoCrawlerAudit({
+        baseUrl, environment, maxPages: 300, concurrency: 3,
+        offset: input.offset, snapshotHash: input.snapshotHash,
+      });
       res.json(report);
     } catch (error) {
+      if (error instanceof Error && error.message === "SEO_SITEMAP_CHANGED") {
+        return res.status(409).json({ code: "SITEMAP_CHANGED", message: "The sitemap or robots rules changed during this crawl. Start a new full crawl to get a consistent report." });
+      }
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid crawler audit request." });
       console.error("SEO crawler audit failed:", error);
       res.status(500).json({ message: "Could not complete the read-only crawler audit." });
     }

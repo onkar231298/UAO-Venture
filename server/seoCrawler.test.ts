@@ -67,7 +67,7 @@ test("malformed JSON-LD and multiple H1 headings are surfaced", () => {
   assert.ok(findings.some(item => item.title === "Rendered page has 2 H1 headings"));
 });
 
-test("the crawl samples same-host sitemap pages and checks internal links without judging dev timing", async () => {
+test("the crawl continues through a same-host sitemap in resumable batches and checks internal links", async () => {
   const server = createServer((req, res) => {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
     if (url.pathname === "/robots.txt") {
@@ -105,18 +105,70 @@ test("the crawl samples same-host sitemap pages and checks internal links withou
     const report = await runSeoCrawlerAudit({
       baseUrl: `http://127.0.0.1:${address.port}`,
       environment: "development",
-      maxPages: 10,
+      maxPages: 1,
       concurrency: 2,
     });
-    assert.equal(report.scannedPageCount, 3);
+    assert.equal(report.scannedPageCount, 1);
     assert.equal(report.sitemapUrlCount, 3);
+    assert.equal(report.totalEligiblePageCount, 2);
+    assert.equal(report.nextCursor, 1);
+    assert.equal(report.complete, false);
+    assert.equal(report.sitemapReadComplete, true);
     assert.equal(report.performance.environment, "development");
     assert.match(report.performance.advisory, /not representative/);
     assert.ok(report.findings.some(item => item.title === "Robots rules block a URL listed in the sitemap"));
-    assert.ok(report.findings.some(item => item.title === "Duplicate rendered page title"));
-    assert.ok(report.findings.some(item => item.title === "Duplicate rendered meta description"));
     assert.equal(report.excludedPageCount, 1);
     assert.ok(report.findings.some(item => item.title === "Internal link did not reach a successful page" && item.targetUrl?.endsWith("/broken")));
+    await assert.rejects(() => runSeoCrawlerAudit({
+      baseUrl: `http://127.0.0.1:${address.port}`,
+      environment: "development",
+      maxPages: 1,
+      offset: report.nextCursor,
+      snapshotHash: "0".repeat(64),
+    }), /SEO_SITEMAP_CHANGED/);
+    const continuation = await runSeoCrawlerAudit({
+      baseUrl: `http://127.0.0.1:${address.port}`,
+      environment: "development",
+      maxPages: 1,
+      offset: report.nextCursor,
+      snapshotHash: report.snapshotHash,
+    });
+    assert.equal(continuation.scannedPageCount, 1);
+    assert.equal(continuation.complete, true);
+    assert.equal(continuation.sitemapReadComplete, true);
+    assert.equal(continuation.nextCursor, 2);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
+});
+
+test("does not mark the full crawl complete when the sitemap cannot be read", async () => {
+  const server = createServer((req, res) => {
+    const url = new URL(req.url || "/", `http://${req.headers.host}`);
+    if (url.pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end(`User-agent: *\nSitemap: http://${req.headers.host}/sitemap.xml\n`);
+      return;
+    }
+    if (url.pathname === "/sitemap.xml") {
+      res.writeHead(503, { "content-type": "text/plain" });
+      res.end("Unavailable");
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(validHome);
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  try {
+    const report = await runSeoCrawlerAudit({
+      baseUrl: `http://127.0.0.1:${address.port}`,
+      environment: "development",
+    });
+    assert.equal(report.sitemapReadComplete, false);
+    assert.equal(report.complete, false);
+    assert.ok(report.findings.some(item => item.title === "A readable sitemap could not be verified"));
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }

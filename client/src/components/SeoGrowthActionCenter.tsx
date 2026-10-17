@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, ExternalLink, Link2, RefreshCw, Search, Target } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -75,10 +75,16 @@ type CrawlerAudit = {
   generatedAt: string;
   environment: "development" | "production";
   sitemapUrlCount: number;
+  totalEligiblePageCount: number;
+  nextCursor: number;
+  complete: boolean;
+  sitemapReadComplete: boolean;
+  snapshotHash: string;
   scannedPageCount: number;
   skippedPageCount: number;
   excludedPageCount: number;
   timeLimitReached: boolean;
+  pages: { url: string; status: number; title: string; description: string; durationMs: number }[];
   findings: {
     fingerprint: string;
     category: string;
@@ -120,6 +126,67 @@ const severityClass: Record<Opportunity["severity"], string> = {
 };
 const shortUrl = (url: string) => url.replace("https://bright-organic.com", "") || "/";
 
+function mergeCrawlerBatch(previous: CrawlerAudit | null, batch: CrawlerAudit, offset: number): CrawlerAudit {
+  const pagesByUrl = new Map<string, CrawlerAudit["pages"][number]>();
+  if (offset > 0) (previous?.pages || []).forEach(page => pagesByUrl.set(page.url, page));
+  batch.pages.forEach(page => pagesByUrl.set(page.url, page));
+  const pages = Array.from(pagesByUrl.values());
+  const existingFindings = [
+    ...(offset > 0 ? previous?.findings || [] : []),
+    ...batch.findings,
+  ].filter(item => item.title !== "Duplicate rendered page title" && item.title !== "Duplicate rendered meta description");
+  const findingsByFingerprint = new Map(existingFindings.map(item => [item.fingerprint, item]));
+
+  const addDuplicates = (field: "title" | "description") => {
+    const groups = new Map<string, CrawlerAudit["pages"]>();
+    pages.forEach(page => {
+      const value = page[field].trim().toLowerCase();
+      if (!value) return;
+      const group = groups.get(value) || [];
+      group.push(page);
+      groups.set(value, group);
+    });
+    groups.forEach(group => {
+      if (group.length < 2) return;
+      group.forEach(page => findingsByFingerprint.set(`full-crawl:${field}:${page.url}`, {
+        fingerprint: `full-crawl:${field}:${page.url}`,
+        category: "metadata",
+        severity: field === "title" ? "high" : "medium",
+        title: field === "title" ? "Duplicate rendered page title" : "Duplicate rendered meta description",
+        description: `${group.length} crawled pages share the same ${field}.`,
+        recommendation: `Write a unique, page-specific ${field}. Review the page intent and copy first; length is secondary.`,
+        sourceUrl: page.url,
+      }));
+    });
+  };
+  addDuplicates("title");
+  addDuplicates("description");
+
+  const successfulDurations = pages.filter(page => page.status >= 200 && page.status < 400).map(page => page.durationMs).sort((a, b) => a - b);
+  const percentile = (ratio: number) => successfulDurations.length
+    ? successfulDurations[Math.min(successfulDurations.length - 1, Math.ceil(successfulDurations.length * ratio) - 1)]
+    : 0;
+
+  return {
+    ...batch,
+    pages,
+    scannedPageCount: pages.length,
+    excludedPageCount: offset > 0 ? previous?.excludedPageCount || 0 : batch.excludedPageCount,
+    timeLimitReached: Boolean(previous?.timeLimitReached || batch.timeLimitReached),
+    findings: Array.from(findingsByFingerprint.values()).sort((a, b) => {
+      const severityWeight = { critical: 0, high: 1, medium: 2, low: 3 };
+      return severityWeight[a.severity] - severityWeight[b.severity] || a.sourceUrl.localeCompare(b.sourceUrl);
+    }),
+    performance: {
+      ...batch.performance,
+      requestCount: successfulDurations.length,
+      medianMs: percentile(0.5),
+      p75Ms: percentile(0.75),
+      slowPageCount: successfulDurations.filter(duration => duration > 3_000).length,
+    },
+  };
+}
+
 export default function SeoGrowthActionCenter() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -135,6 +202,9 @@ export default function SeoGrowthActionCenter() {
   const [selectedPage, setSelectedPage] = useState<SeoPage | null>(null);
   const [replacementReview, setReplacementReview] = useState<KeywordReview | null>(null);
   const [crawlerReport, setCrawlerReport] = useState<CrawlerAudit | null>(null);
+  const [crawlerPauseRequested, setCrawlerPauseRequested] = useState(false);
+  const crawlerReportRef = useRef<CrawlerAudit | null>(null);
+  const crawlerPauseRequestedRef = useRef(false);
 
   const { data, isLoading, error } = useQuery<GrowthData>({ queryKey: ["/api/admin/seo/growth-opportunities"] });
   const { data: reviews = [] } = useQuery<KeywordReview[]>({ queryKey: ["/api/admin/seo/keyword-reviews"] });
@@ -184,12 +254,47 @@ export default function SeoGrowthActionCenter() {
     },
   });
   const crawlerMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("/api/admin/seo/crawler-audit", { method: "POST" });
-      return await response.json() as CrawlerAudit;
+    mutationFn: async (startingOffset: number) => {
+      let offset = startingOffset;
+      let accumulated = startingOffset === 0 ? null : crawlerReportRef.current;
+      crawlerPauseRequestedRef.current = false;
+      setCrawlerPauseRequested(false);
+      while (true) {
+        const response = await apiRequest("/api/admin/seo/crawler-audit", {
+          method: "POST",
+          body: JSON.stringify({
+            offset,
+            ...(accumulated ? { snapshotHash: accumulated.snapshotHash } : {}),
+          }),
+        });
+        const batch = await response.json() as CrawlerAudit;
+        accumulated = mergeCrawlerBatch(accumulated, batch, offset);
+        crawlerReportRef.current = accumulated;
+        setCrawlerReport(accumulated);
+        if (batch.complete || batch.nextCursor <= offset || crawlerPauseRequestedRef.current) return accumulated;
+        offset = batch.nextCursor;
+      }
     },
-    onSuccess: report => setCrawlerReport(report),
-    onError: (mutationError: Error) => toast({ title: "Crawler audit failed", description: mutationError.message, variant: "destructive" }),
+    onSuccess: report => {
+      crawlerReportRef.current = report;
+      setCrawlerReport(report);
+      setCrawlerPauseRequested(false);
+      crawlerPauseRequestedRef.current = false;
+      toast(report.complete
+        ? { title: "Full sitemap crawl complete", description: `Checked ${report.nextCursor.toLocaleString()} eligible sitemap URLs.` }
+        : { title: "Crawl paused", description: `${report.skippedPageCount.toLocaleString()} sitemap URLs remain. Continue whenever you are ready.` });
+    },
+    onError: (mutationError: Error) => {
+      setCrawlerPauseRequested(false);
+      crawlerPauseRequestedRef.current = false;
+      if (mutationError.message.includes("SITEMAP_CHANGED")) {
+        crawlerReportRef.current = null;
+        setCrawlerReport(null);
+        toast({ title: "Sitemap changed during the crawl", description: "The partial report was cleared. Start a new full crawl for a consistent result.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Crawler audit failed", description: mutationError.message, variant: "destructive" });
+    },
   });
 
   const filteredOpportunities = useMemo(() => {
@@ -218,6 +323,22 @@ export default function SeoGrowthActionCenter() {
     setPageSearch("");
     setSelectedPage(row.mapping ? data?.pages.find((page) => page.url === row.mapping?.pageUrl) || null : null);
   };
+  const startCrawlerAudit = () => {
+    const existing = crawlerReportRef.current;
+    const canContinue = Boolean(existing && !existing.complete && existing.skippedPageCount > 0);
+    const offset = canContinue && existing ? existing.nextCursor : 0;
+    if (offset === 0) {
+      crawlerReportRef.current = null;
+      setCrawlerReport(null);
+    }
+    crawlerPauseRequestedRef.current = false;
+    setCrawlerPauseRequested(false);
+    crawlerMutation.mutate(offset);
+  };
+  const pauseCrawlerAfterBatch = () => {
+    crawlerPauseRequestedRef.current = true;
+    setCrawlerPauseRequested(true);
+  };
 
   if (isLoading) return <Card><CardContent className="py-10 text-center text-muted-foreground">Scanning indexable pages and Search Console evidence…</CardContent></Card>;
   if (error || !data) return <Card><CardContent className="py-10 text-center text-destructive">The SEO opportunity scan could not be loaded.</CardContent></Card>;
@@ -229,28 +350,44 @@ export default function SeoGrowthActionCenter() {
     </div>
 
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <CardHeader className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div>
           <CardTitle>Public HTML crawler audit</CardTitle>
-          <CardDescription>Checks the HTML and same-site links actually returned to a crawler, including sitemap, robots, canonical, headings, image alt attributes, and JSON-LD. Read-only; it does not change SEO settings or page content.</CardDescription>
+          <CardDescription>Checks actual public HTML and same-site links, including sitemap, robots, canonical, headings, image alt attributes, and JSON-LD. Read-only; it does not change SEO settings or page content.</CardDescription>
         </div>
-        <Button className="shrink-0" onClick={() => crawlerMutation.mutate()} disabled={crawlerMutation.isPending}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${crawlerMutation.isPending ? "animate-spin" : ""}`} />
-          {crawlerMutation.isPending ? "Crawling…" : "Run crawl"}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button onClick={startCrawlerAudit} disabled={crawlerMutation.isPending}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${crawlerMutation.isPending ? "animate-spin" : ""}`} />
+            {crawlerMutation.isPending ? "Crawling…" : crawlerReport && !crawlerReport.complete && crawlerReport.skippedPageCount > 0 ? "Continue full crawl" : crawlerReport && !crawlerReport.complete ? "Retry full crawl" : "Run full sitemap crawl"}
+          </Button>
+          {crawlerMutation.isPending ? <Button variant="outline" onClick={pauseCrawlerAfterBatch}>
+            {crawlerPauseRequested ? "Pausing after this batch…" : "Pause after batch"}
+          </Button> : null}
+        </div>
       </CardHeader>
       {crawlerReport ? <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Pages crawled", value: crawlerReport.scannedPageCount.toLocaleString() },
+            { label: "Sitemap URLs checked", value: `${crawlerReport.nextCursor.toLocaleString()} / ${crawlerReport.totalEligiblePageCount.toLocaleString()}` },
             { label: "Sitemap URLs", value: crawlerReport.sitemapUrlCount.toLocaleString() },
             { label: "Findings", value: crawlerReport.findings.length.toLocaleString() },
             { label: `${crawlerReport.performance.environment === "production" ? "Production" : "Development"} p75 response`, value: `${crawlerReport.performance.p75Ms.toLocaleString()} ms` },
           ].map(item => <div key={item.label} className="rounded-md border p-3"><p className="text-xs text-muted-foreground">{item.label}</p><p className="text-lg font-semibold">{item.value}</p></div>)}
         </div>
+        <div>
+          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+            <span>{crawlerMutation.isPending ? "Full crawl in progress" : !crawlerReport.sitemapReadComplete ? "Sitemap coverage incomplete" : crawlerReport.complete ? "Full sitemap crawl complete" : "Crawl paused"}</span>
+            <span>{crawlerReport.totalEligiblePageCount ? Math.round((crawlerReport.nextCursor / crawlerReport.totalEligiblePageCount) * 100) : 100}%</span>
+          </div>
+          <div role="progressbar" aria-label="Sitemap crawl progress" aria-valuemin={0} aria-valuemax={crawlerReport.totalEligiblePageCount} aria-valuenow={crawlerReport.nextCursor} className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-primary transition-all" style={{ width: `${crawlerReport.totalEligiblePageCount ? Math.min(100, (crawlerReport.nextCursor / crawlerReport.totalEligiblePageCount) * 100) : 100}%` }} />
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Crawl completed {new Date(crawlerReport.generatedAt).toLocaleString()}. Median response {crawlerReport.performance.medianMs.toLocaleString()} ms across {crawlerReport.performance.requestCount} successful page responses. {crawlerReport.performance.advisory}
-          {crawlerReport.skippedPageCount > 0 ? ` ${crawlerReport.skippedPageCount.toLocaleString()} URLs were not included${crawlerReport.timeLimitReached ? " because the 90-second audit limit was reached." : " because this audit is capped at 300 pages."}` : ""}
+          Latest batch completed {new Date(crawlerReport.generatedAt).toLocaleString()}. Median response {crawlerReport.performance.medianMs.toLocaleString()} ms across {crawlerReport.performance.requestCount} successful page responses. {crawlerReport.performance.advisory}
+          {crawlerReport.skippedPageCount > 0 ? ` ${crawlerReport.skippedPageCount.toLocaleString()} eligible sitemap URLs remain; the crawl continues in separate batches.` : ""}
+          {!crawlerReport.sitemapReadComplete ? " The sitemap was empty or one or more sitemap files could not be read, so full coverage is not confirmed." : ""}
+          {crawlerReport.timeLimitReached ? " A batch reached its 90-second safety limit; the crawl resumes from its next unfinished URL." : ""}
           {crawlerReport.excludedPageCount > 0 ? ` ${crawlerReport.excludedPageCount.toLocaleString()} restricted, robots-blocked, or static URLs were excluded from fetching.` : ""}
         </p>
         {crawlerReport.findings.length ? <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
@@ -268,9 +405,9 @@ export default function SeoGrowthActionCenter() {
             {item.targetUrl ? <p className="truncate text-xs text-muted-foreground">Target: {shortUrl(item.targetUrl)}</p> : null}
           </div>)}
           {crawlerReport.findings.length > 40 ? <p className="py-2 text-center text-sm text-muted-foreground">Showing the first 40 of {crawlerReport.findings.length} findings.</p> : null}
-        </div> : <p className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">No issues were found in this crawl sample.</p>}
+        </div> : <p className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{crawlerReport.complete ? "No issues were found in the full sitemap crawl." : "No issues were found in the pages checked so far."}</p>}
       </CardContent> : <CardContent className="pt-0 text-sm text-muted-foreground">
-        The audit checks up to 300 public URLs per run with low request concurrency. Development timings are labeled as diagnostic only; use the production build for representative response-time measurements.
+        The full sitemap is processed in batches of up to 300 pages with low request concurrency. You can pause after a batch and continue later. Development timings are labeled as diagnostic only; use the production build for representative response-time measurements.
       </CardContent>}
     </Card>
 
