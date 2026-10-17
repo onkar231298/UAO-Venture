@@ -173,6 +173,10 @@ export default function Header() {
     window.location.href = "/api/logout";
   };
 
+  const handleWishlistClick = () => {
+    setLocation(isCustomerAuthenticated ? "/customer/saved" : "/login");
+  };
+
   return (
     <header className="bfo-refined-header bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
       {/* Main Header */}
@@ -448,7 +452,7 @@ export default function Header() {
             
             {/* User Actions */}
             <div className="bfo-header-user-actions flex items-center">
-              <Button aria-label="Wishlist" variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
+              <Button aria-label="Wishlist" onClick={handleWishlistClick} variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
                 <Heart className="w-5 h-5" />
                 <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
               </Button>
@@ -839,6 +843,7 @@ export default function Header() {
               <button
                 type="button"
                 aria-label="Wishlist"
+                onClick={handleWishlistClick}
                 className="bfo-mobile-link bfo-mobile-wishlist"
               >
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50">
