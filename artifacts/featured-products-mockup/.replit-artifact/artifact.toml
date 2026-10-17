@@ -1,0 +1,19 @@
+kind = "design"
+previewPath = "/__featured-products-mockup/"
+title = "Featured product slider redesign"
+description = "Isolated live previews for the current and redesigned featured-product slider."
+version = "1.0.0"
+id = "artifacts/featured-products-mockup"
+router = "path"
+
+[[services]]
+name = "Component Preview Server"
+paths = [ "/__featured-products-mockup/" ]
+localPort = 19907
+
+[services.development]
+run = "npm run dev"
+
+[services.env]
+PORT = "19907"
+BASE_PATH = "/__featured-products-mockup/"
