@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ExternalLink, Link2, Search, Target } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Link2, RefreshCw, Search, Target } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,33 @@ type KeywordReview = {
   status: "proposed" | "approved" | "rejected" | "applied";
   createdAt: string;
 };
+type CrawlerAudit = {
+  generatedAt: string;
+  environment: "development" | "production";
+  sitemapUrlCount: number;
+  scannedPageCount: number;
+  skippedPageCount: number;
+  excludedPageCount: number;
+  timeLimitReached: boolean;
+  findings: {
+    fingerprint: string;
+    category: string;
+    severity: "critical" | "high" | "medium" | "low";
+    title: string;
+    description: string;
+    recommendation: string;
+    sourceUrl: string;
+    targetUrl?: string;
+  }[];
+  performance: {
+    environment: "development" | "production";
+    requestCount: number;
+    medianMs: number;
+    p75Ms: number;
+    slowPageCount: number;
+    advisory: string;
+  };
+};
 
 const statusLabel: Record<Opportunity["status"], string> = {
   open: "Open",
@@ -107,6 +134,7 @@ export default function SeoGrowthActionCenter() {
   const [pageSearch, setPageSearch] = useState("");
   const [selectedPage, setSelectedPage] = useState<SeoPage | null>(null);
   const [replacementReview, setReplacementReview] = useState<KeywordReview | null>(null);
+  const [crawlerReport, setCrawlerReport] = useState<CrawlerAudit | null>(null);
 
   const { data, isLoading, error } = useQuery<GrowthData>({ queryKey: ["/api/admin/seo/growth-opportunities"] });
   const { data: reviews = [] } = useQuery<KeywordReview[]>({ queryKey: ["/api/admin/seo/keyword-reviews"] });
@@ -155,6 +183,14 @@ export default function SeoGrowthActionCenter() {
       toast({ title: "Could not apply replacement", description: mutationError.message, variant: "destructive" });
     },
   });
+  const crawlerMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("/api/admin/seo/crawler-audit", { method: "POST" });
+      return await response.json() as CrawlerAudit;
+    },
+    onSuccess: report => setCrawlerReport(report),
+    onError: (mutationError: Error) => toast({ title: "Crawler audit failed", description: mutationError.message, variant: "destructive" }),
+  });
 
   const filteredOpportunities = useMemo(() => {
     const search = opportunitySearch.trim().toLowerCase();
@@ -191,6 +227,52 @@ export default function SeoGrowthActionCenter() {
       <h2 className="text-xl font-semibold">SEO growth action center</h2>
       <p className="text-sm text-muted-foreground">Prioritized findings from current site content and imported Search Console evidence. Nothing is published automatically.</p>
     </div>
+
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Public HTML crawler audit</CardTitle>
+          <CardDescription>Checks the HTML and same-site links actually returned to a crawler, including sitemap, robots, canonical, headings, image alt attributes, and JSON-LD. Read-only; it does not change SEO settings or page content.</CardDescription>
+        </div>
+        <Button className="shrink-0" onClick={() => crawlerMutation.mutate()} disabled={crawlerMutation.isPending}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${crawlerMutation.isPending ? "animate-spin" : ""}`} />
+          {crawlerMutation.isPending ? "Crawling…" : "Run crawl"}
+        </Button>
+      </CardHeader>
+      {crawlerReport ? <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Pages crawled", value: crawlerReport.scannedPageCount.toLocaleString() },
+            { label: "Sitemap URLs", value: crawlerReport.sitemapUrlCount.toLocaleString() },
+            { label: "Findings", value: crawlerReport.findings.length.toLocaleString() },
+            { label: `${crawlerReport.performance.environment === "production" ? "Production" : "Development"} p75 response`, value: `${crawlerReport.performance.p75Ms.toLocaleString()} ms` },
+          ].map(item => <div key={item.label} className="rounded-md border p-3"><p className="text-xs text-muted-foreground">{item.label}</p><p className="text-lg font-semibold">{item.value}</p></div>)}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Crawl completed {new Date(crawlerReport.generatedAt).toLocaleString()}. Median response {crawlerReport.performance.medianMs.toLocaleString()} ms across {crawlerReport.performance.requestCount} successful page responses. {crawlerReport.performance.advisory}
+          {crawlerReport.skippedPageCount > 0 ? ` ${crawlerReport.skippedPageCount.toLocaleString()} URLs were not included${crawlerReport.timeLimitReached ? " because the 90-second audit limit was reached." : " because this audit is capped at 300 pages."}` : ""}
+          {crawlerReport.excludedPageCount > 0 ? ` ${crawlerReport.excludedPageCount.toLocaleString()} restricted, robots-blocked, or static URLs were excluded from fetching.` : ""}
+        </p>
+        {crawlerReport.findings.length ? <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+          {crawlerReport.findings.slice(0, 40).map(item => <div key={item.fingerprint} className="rounded-md border p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={severityClass[item.severity]}>{item.severity}</Badge>
+              <Badge variant="outline">{item.category.replaceAll("_", " ")}</Badge>
+              <span className="font-medium">{item.title}</span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+            <p className="mt-1 text-sm">{item.recommendation}</p>
+            <a className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-xs text-primary underline" href={item.sourceUrl} target="_blank" rel="noreferrer">
+              {shortUrl(item.sourceUrl)} <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+            {item.targetUrl ? <p className="truncate text-xs text-muted-foreground">Target: {shortUrl(item.targetUrl)}</p> : null}
+          </div>)}
+          {crawlerReport.findings.length > 40 ? <p className="py-2 text-center text-sm text-muted-foreground">Showing the first 40 of {crawlerReport.findings.length} findings.</p> : null}
+        </div> : <p className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">No issues were found in this crawl sample.</p>}
+      </CardContent> : <CardContent className="pt-0 text-sm text-muted-foreground">
+        The audit checks up to 300 public URLs per run with low request concurrency. Development timings are labeled as diagnostic only; use the production build for representative response-time measurements.
+      </CardContent>}
+    </Card>
 
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {[

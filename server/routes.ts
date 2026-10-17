@@ -105,6 +105,7 @@ import { generateProductSEO } from "./seoGenerator";
 import { CANONICAL_ORIGIN, STATIC_PAGE_SEO } from "./seo";
 import { COLLECTION_PAGE_SEO, HOME_SEO, KEYWORD_ASSIGNMENTS, categoryPageSeo, healthSupportPageSeo } from "./seoStrategy";
 import { auditSeoPages, canonicalPageUrl, detectCompetingPages, isCriticalSeoFindingResolved, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
+import { runSeoCrawlerAudit } from "./seoCrawler";
 import {
   buildSitemapEntries,
   isIndexableSitemapBlogPost,
@@ -6424,6 +6425,34 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
       console.error("Error applying SEO keyword replacement:", error);
       res.status(500).json({ message: "Failed to apply keyword replacement" });
+    }
+  });
+
+  app.post('/api/admin/seo/crawler-audit', isAuthenticated, isSeoManager, async (req: any, res) => {
+    try {
+      const host = String(req.get("host") || "").trim();
+      const hostUrl = new URL(`https://${host}`);
+      const hostname = hostUrl.hostname.toLowerCase();
+      const canonicalHostname = new URL(CANONICAL_ORIGIN).hostname;
+      const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
+      const expectedLocalPort = String(Number(process.env.PORT || 5000));
+      const isAllowedLocalHost = isLocalHost && hostUrl.port === expectedLocalPort;
+      const isAllowedPublicHost = !hostUrl.port && (
+        hostname === canonicalHostname
+        || hostname === `www.${canonicalHostname}`
+        || hostname.endsWith(".replit.dev")
+        || hostname.endsWith(".replit.app")
+      );
+      const isAllowedHost = isAllowedLocalHost || isAllowedPublicHost;
+      if (!isAllowedHost) return res.status(400).json({ message: "SEO crawl is only available for this site's public host." });
+      const protocol = isLocalHost ? "http" : "https";
+      const baseUrl = `${protocol}://${hostUrl.host}`;
+      const environment = req.app.get("env") === "production" ? "production" : "development";
+      const report = await runSeoCrawlerAudit({ baseUrl, environment, maxPages: 300, concurrency: 3 });
+      res.json(report);
+    } catch (error) {
+      console.error("SEO crawler audit failed:", error);
+      res.status(500).json({ message: "Could not complete the read-only crawler audit." });
     }
   });
 

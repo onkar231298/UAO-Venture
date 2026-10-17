@@ -275,6 +275,9 @@ importers:
       googleapis:
         specifier: ^167.0.0
         version: 167.0.0
+      htmlparser2:
+        specifier: ^12.0.0
+        version: 12.0.0
       imapflow:
         specifier: ^1.7.4
         version: 1.7.8

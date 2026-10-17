@@ -105,6 +105,7 @@
     "framer-motion": "^11.13.1",
     "google-auth-library": "^10.2.0",
     "googleapis": "^167.0.0",
+    "htmlparser2": "^12.0.0",
     "imapflow": "^1.7.4",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
