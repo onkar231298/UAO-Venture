@@ -4,6 +4,8 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import CustomerSidebar from "@/components/CustomerSidebar";
+import CustomerRequestDialog from "@/components/CustomerRequestDialog";
+import CustomerFavoriteButton from "@/components/CustomerFavoriteButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,6 @@ import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
-import { getCustomerSavedProducts, removeCustomerSavedProduct } from "@/lib/customerSavedProducts";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -31,6 +32,8 @@ export default function CustomerDashboard() {
   const [counterNotes, setCounterNotes] = useState("");
   const [selectedBidForTracking, setSelectedBidForTracking] = useState<any>(null);
   const [showBidTrackingDialog, setShowBidTrackingDialog] = useState(false);
+  const [showCustomerRequestDialog, setShowCustomerRequestDialog] = useState(false);
+  const [customerRequestType, setCustomerRequestType] = useState<"high_volume_bid" | "quote_request">("quote_request");
 
   // Data fetching for customer-specific data with auto-refresh every 30 seconds
   const { data: inquiries, isLoading: inquiriesLoading, refetch: refetchInquiries, isRefetching: isRefetchingInquiries } = useQuery({
@@ -40,9 +43,9 @@ export default function CustomerDashboard() {
   });
 
   const { data: savedProducts, isLoading: savedLoading, refetch: refetchSaved, isRefetching: isRefetchingSaved } = useQuery({
-    queryKey: ["customer-saved-products", customer?.id],
-    queryFn: () => customer?.id ? getCustomerSavedProducts(customer.id) : [],
+    queryKey: [`/api/customer/saved-products/${customer?.id}`],
     enabled: isCustomerAuthenticated && !!customer?.id,
+    refetchInterval: 30000,
   });
 
   const { data: quotations, isLoading: quotationsLoading, refetch: refetchQuotations, isRefetching: isRefetchingQuotations } = useQuery({
@@ -92,6 +95,15 @@ export default function CustomerDashboard() {
   const regularInquiries = allInquiries.filter((inq: any) => inq.inquiryType !== 'high_volume_bid');
 
   const queryClient = useQueryClient();
+  const startCustomerRequest = (type: "high_volume_bid" | "quote_request") => {
+    setCustomerRequestType(type);
+    setShowCustomerRequestDialog(true);
+  };
+
+  const refreshAfterCustomerRequest = () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customer?.id}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/customer/quotations/${customer?.id}`] });
+  };
 
   // Accept quotation mutation
   const acceptQuotationMutation = useMutation({
@@ -256,7 +268,7 @@ export default function CustomerDashboard() {
       case 'inquiries':
         return renderInquiries();
       case 'high-volume-bids':
-        return renderInquiries();
+        return renderInquiries(); // Redirect to inquiries with tabs
       case 'saved':
         return renderSavedProducts();
       case 'quotes':
@@ -341,7 +353,7 @@ export default function CustomerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Quotes</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{quotations?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{quotations?.quotations?.length || 0}</p>
               </div>
               <FileText className="w-8 h-8 text-green-600" />
             </div>
@@ -397,10 +409,19 @@ export default function CustomerDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingInquiries ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            className="min-h-[44px] flex-1 sm:flex-none"
+            data-testid="button-new-high-volume-bid"
+            onClick={() => startCustomerRequest("high_volume_bid")}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Bid Request
+          </Button>
           <Button 
             className="min-h-[44px] flex-1 sm:flex-none" 
             data-testid="button-new-inquiry"
-            onClick={() => setLocation('/customer/products')}
+            onClick={() => startCustomerRequest("quote_request")}
           >
             <Plus className="w-4 h-4 mr-2" />
             New Inquiry
@@ -410,12 +431,15 @@ export default function CustomerDashboard() {
 
       {/* Tabbed Interface */}
       <Tabs
-        key={location}
-        defaultValue={location === "/customer/high-volume-bids" ? "high-volume-bids" : "inquiries"}
+        value={location.endsWith("/high-volume-bids") ? "high-volume-bids" : "inquiries"}
         onValueChange={(value) => {
-          if (value === "high-volume-bids") setLocation("/customer/high-volume-bids");
-          else if (value === "received-quotes") setLocation("/customer/quotes");
-          else setLocation("/customer/inquiries");
+          if (value === "high-volume-bids") {
+            setLocation("/customer/high-volume-bids");
+          } else if (value === "received-quotes") {
+            setLocation("/customer/quotes");
+          } else {
+            setLocation("/customer/inquiries");
+          }
         }}
         className="w-full"
       >
@@ -695,7 +719,7 @@ export default function CustomerDashboard() {
                 <div className="text-center py-8">
                   <MessageSquare className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No inquiries found</p>
-                  <Button className="mt-4" onClick={() => setLocation('/products')}>
+                  <Button className="mt-4" onClick={() => startCustomerRequest("quote_request")}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit Your First Inquiry
                   </Button>
@@ -1043,7 +1067,7 @@ export default function CustomerDashboard() {
                 <div className="text-center py-8">
                   <TrendingUp className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No high volume bids found</p>
-                  <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
+                  <Button className="mt-4" onClick={() => startCustomerRequest("high_volume_bid")}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit High Volume Bid
                   </Button>
@@ -1264,7 +1288,7 @@ export default function CustomerDashboard() {
                                     <FileText className="w-4 h-4 mr-2" />
                                     Download PDF
                                   </Button>
-                                  <Button variant="outline" onClick={() => setLocation('/contact')}>
+                                  <Button variant="outline" onClick={() => setLocation("/contact")}>
                                     <MessageSquare className="w-4 h-4 mr-2" />
                                     Contact Sales
                                   </Button>
@@ -1294,7 +1318,7 @@ export default function CustomerDashboard() {
                   <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No quotations received yet</p>
                   <p className="text-xs text-gray-400 mb-4">Quotations will appear here after our sales team reviews your inquiries.</p>
-                  <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
+                   <Button className="mt-4" onClick={() => startCustomerRequest("quote_request")}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit an Inquiry
                   </Button>
@@ -1332,28 +1356,14 @@ export default function CustomerDashboard() {
                   <h3 className="font-semibold">{product.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">{product.category}</p>
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-lg font-bold">{product.price ? `$${product.price}` : "Contact for Price"}</span>
+                    <span className="text-sm font-medium">
+                      {product.price ? `${product.price} / ${product.priceUnit || "unit"}` : "Contact for price"}
+                    </span>
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => setLocation(product.slug ? `/products/${encodeURIComponent(product.slug)}` : '/customer/products')}>View Details</Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          try {
-                            removeCustomerSavedProduct(customer!.id, product.id);
-                            queryClient.invalidateQueries({ queryKey: ["customer-saved-products", customer?.id] });
-                            toast({ title: "Removed from saved products" });
-                          } catch (error) {
-                            toast({
-                              title: "Could not remove saved product",
-                              description: error instanceof Error ? error.message : "Please try again.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        Remove
+                      <Button size="sm" variant="outline" onClick={() => setLocation(product.slug ? `/products/${product.slug}` : "/customer/products")}>
+                        View Details
                       </Button>
+                      <CustomerFavoriteButton productId={product.id} productName={product.name} />
                     </div>
                   </div>
                 </div>
@@ -1363,7 +1373,7 @@ export default function CustomerDashboard() {
             <div className="text-center py-8">
               <Heart className="mx-auto w-12 h-12 text-gray-400 mb-4" />
               <p className="text-gray-500">No saved products yet</p>
-              <Button className="mt-4" onClick={() => setLocation('/customer/products')}>Browse Products</Button>
+              <Button className="mt-4" onClick={() => setLocation("/customer/products")}>Browse Products</Button>
             </div>
           )}
         </CardContent>
@@ -1375,16 +1385,22 @@ export default function CustomerDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">My Quotations</h1>
-        <Button 
-          variant="outline"
-          size="sm"
-          data-testid="button-refresh-quotations"
-          onClick={() => refetchQuotations()}
-          disabled={isRefetchingQuotations}
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingQuotations ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="button-refresh-quotations"
+            onClick={() => refetchQuotations()}
+            disabled={isRefetchingQuotations}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefetchingQuotations ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => startCustomerRequest("quote_request")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Request Quote
+          </Button>
+        </div>
       </div>
       
       {/* Quotation Process Explanation */}
@@ -1717,11 +1733,11 @@ export default function CustomerDashboard() {
                                   </Button>
                                 </>
                               )}
-                              <Button variant="outline" onClick={() => window.open(`/api/quotations/${quotation.id}/pdf`, '_blank', 'noopener,noreferrer')}>
+                              <Button variant="outline" onClick={() => window.open(`/api/quotations/${quotation.id}/pdf`, "_blank", "noopener,noreferrer")}>
                                 <FileText className="w-4 h-4 mr-2" />
                                 Download PDF
                               </Button>
-                              <Button variant="outline" onClick={() => setLocation('/contact')}>
+                              <Button variant="outline" onClick={() => setLocation("/contact")}>
                                 <MessageSquare className="w-4 h-4 mr-2" />
                                 Contact Sales
                               </Button>
@@ -1847,19 +1863,37 @@ export default function CustomerDashboard() {
       <h1 className="text-3xl font-bold text-gray-900">Downloads</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Available Downloads</CardTitle>
-          <CardDescription>Access your certificates, specifications and documents</CardDescription>
+          <CardTitle>Your quotation PDFs</CardTitle>
+          <CardDescription>Download quotations issued for your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-700 font-medium">No customer documents have been shared yet</p>
-            <p className="text-sm text-gray-500 mt-2">Ask our team for certificates, specifications, or documents related to your account.</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button variant="outline" onClick={() => setLocation('/customer/catalogs')}>View Catalogs</Button>
-              <Button onClick={() => setLocation('/contact')}>Contact Sales</Button>
+          {quotationsLoading ? (
+            <div className="animate-pulse h-16 rounded bg-gray-100" />
+          ) : (quotations?.quotations || []).filter((quote: any) => ["sent", "accepted"].includes(quote.status)).length ? (
+            <div className="space-y-3">
+              {(quotations?.quotations || [])
+                .filter((quote: any) => ["sent", "accepted"].includes(quote.status))
+                .map((quote: any) => (
+                  <div key={quote.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold">{quote.quotationId}</p>
+                      <p className="text-sm text-gray-500">
+                        {quote.createdAt ? format(new Date(quote.createdAt), "MMM d, yyyy") : "Date unavailable"} · {quote.status}
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={() => window.open(`/api/quotations/${quote.id}/pdf`, "_blank", "noopener,noreferrer")}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </div>
+                ))}
             </div>
-          </div>
+          ) : (
+            <div className="py-8 text-center">
+              <FileText className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+              <p className="text-gray-500">Quotation PDFs will appear here when your team sends a quote.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1870,33 +1904,17 @@ export default function CustomerDashboard() {
       <h1 className="text-3xl font-bold text-gray-900">Product Catalogs</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Available Catalogs</CardTitle>
-          <CardDescription>Browse our latest product catalogs</CardDescription>
+          <CardTitle>Online product catalog</CardTitle>
+          <CardDescription>Browse the current products, specifications and ordering information.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Package className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-700 font-medium">No downloadable product catalog is currently published</p>
-            <p className="text-sm text-gray-500 mt-2">Browse the live product list or contact our team to request the latest catalog.</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button variant="outline" onClick={() => setLocation('/customer/products')}>Browse Products</Button>
-              <Button onClick={() => setLocation('/contact')}>Request a Catalog</Button>
-            </div>
+          <div className="py-8 text-center">
+            <Package className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+            <p className="mb-4 text-gray-600">There is no separate catalog PDF uploaded. The online catalog is kept current as products change.</p>
+            <Button onClick={() => setLocation("/customer/products")}>
+              Browse Products
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderSettings = () => (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customer Portal Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">Choose the colors and display mode for your own customer portal.</p>
-      </div>
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <PortalAppearanceSettings />
         </CardContent>
       </Card>
     </div>
@@ -1939,11 +1957,25 @@ export default function CustomerDashboard() {
     </div>
   );
 
+  const renderSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customer Portal Settings</h1>
+        <p className="mt-1 text-sm text-gray-600">Choose the colors and display mode for your customer portal.</p>
+      </div>
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <PortalAppearanceSettings />
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const renderHighVolumeBids = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">High Volume Bids</h1>
-        <Button onClick={() => setLocation('/customer/products')}>
+        <Button onClick={() => startCustomerRequest("high_volume_bid")}>
           <Plus className="w-4 h-4 mr-2" />
           New Bid Request
         </Button>
@@ -2173,7 +2205,7 @@ export default function CustomerDashboard() {
               <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids yet</h3>
               <p className="text-gray-600 mb-4">You haven't submitted any high volume bid requests yet.</p>
-              <Button onClick={() => setLocation('/customer/products')}>
+              <Button onClick={() => startCustomerRequest("high_volume_bid")}>
                 <Plus className="w-4 h-4 mr-2" />
                 Submit High Volume Bid
               </Button>
@@ -2285,7 +2317,7 @@ export default function CustomerDashboard() {
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests yet</h3>
               <p className="text-gray-600">You haven't requested any product samples yet.</p>
-              <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
+              <Button className="mt-4" onClick={() => setLocation("/customer/products")}>
                 Browse Products
               </Button>
             </CardContent>
@@ -2736,6 +2768,12 @@ export default function CustomerDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <CustomerRequestDialog
+        open={showCustomerRequestDialog}
+        onOpenChange={setShowCustomerRequestDialog}
+        requestType={customerRequestType}
+        onSubmitted={refreshAfterCustomerRequest}
+      />
     </div>
     </PortalThemeProvider>
   );

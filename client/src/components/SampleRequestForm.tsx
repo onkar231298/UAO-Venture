@@ -22,6 +22,7 @@ interface SampleRequestFormProps {
   product: Product;
   isAuthenticated: boolean;
   customerData?: any;
+  compact?: boolean;
   triggerLabel?: string;
   triggerClassName?: string;
   triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -31,7 +32,8 @@ export function SampleRequestForm({
   product,
   isAuthenticated,
   customerData,
-  triggerLabel = "Request Sample",
+  compact = false,
+  triggerLabel,
   triggerClassName,
   triggerVariant,
 }: SampleRequestFormProps) {
@@ -136,9 +138,14 @@ export function SampleRequestForm({
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant={triggerVariant} className={triggerClassName ?? "bg-orange-600 hover:bg-orange-700 text-white"}>
-          <Beaker className="w-4 h-4 mr-2" />
-          {triggerLabel}
+        <Button
+          variant={triggerVariant}
+          className={triggerClassName ?? (compact
+            ? "h-10 whitespace-nowrap bg-orange-600 px-2.5 text-xs text-white hover:bg-orange-700"
+            : "bg-orange-600 text-white hover:bg-orange-700")}
+        >
+          <Beaker className={compact ? "mr-1 h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
+          {triggerLabel ?? (compact ? "Sample" : "Request Sample")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

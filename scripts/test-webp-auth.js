@@ -10,7 +10,7 @@ async function testWebPWithDirectFormData() {
 
   try {
     // Create a simple test using curl command instead for authentication
-    const testImagePath = path.join(__dirname, '..', 'attached_assets', 'Final Logo_1753729864655.png');
+    const testImagePath = path.join(__dirname, '..', 'archive', 'legacy-company-documents', 'logos', 'Final Logo_1753729864655.png');
     
     if (!fs.existsSync(testImagePath)) {
       console.log('❌ Test image not found:', testImagePath);

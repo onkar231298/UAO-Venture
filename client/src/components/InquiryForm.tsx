@@ -34,7 +34,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
     unit: "kg",
     message: "",
     urgency: "normal",
-    inquiryType: "bulk_order", // Explicitly set inquiry type for regular quote requests
+    inquiryType: "quote_request",
     // Contact Information - auto-filled if customer is logged in
     contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
     companyName: customerData?.companyName || "",
@@ -73,7 +73,7 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
         unit: "kg",
         message: "",
         urgency: "normal",
-        inquiryType: "bulk_order",
+        inquiryType: "quote_request",
         contactName: "",
         companyName: "",
         phoneNumber: "",
@@ -83,6 +83,9 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      if (customerData?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customerData.id}`] });
+      }
       
       if (onSuccess) {
         onSuccess();

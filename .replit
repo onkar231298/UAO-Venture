@@ -62,7 +62,7 @@ integrations = ["javascript_object_storage:1.0.0", "javascript_database:1.0.0", 
 
 [userenv.shared]
 AWS_DOCUMENTS_BUCKET_NAME = "eurka-unjha-bucket-production"
-EMAIL_LOGO_URL = "https://bright-organic.com/bfi-logo.png"
+EMAIL_LOGO_URL = "https://bright-organic.com/atlas-ingredients-logo.svg"
 
 [postMerge]
 path = "scripts/post-merge.sh"

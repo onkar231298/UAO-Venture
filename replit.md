@@ -151,7 +151,7 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### AI
-- **OpenAI (gpt-4o)**: Powers "Generate with AI" in the bulk email composer (`POST /api/email-generator/generate`). Emails use the company logo from the `EMAIL_LOGO_URL` shared env var (production URL `https://bright-organic.com/bfi-logo.png`, white header band). `{{contact_name}}` personalization is opt-in via a checkbox in the AI dialog (default off); when on, SendGrid replaces it with each recipient's real name at send time.
+- **OpenAI (gpt-4o)**: Powers "Generate with AI" in the bulk email composer (`POST /api/email-generator/generate`). Emails use the Atlas Ingredients logo from the `EMAIL_LOGO_URL` shared env var (`https://bright-organic.com/atlas-ingredients-logo.svg`, white header band). Do not restore the archived Bright Fame logo. `{{contact_name}}` personalization is opt-in via a checkbox in the AI dialog (default off); when on, SendGrid replaces it with each recipient's real name at send time.
 
 ### Database
 - **Neon PostgreSQL**: Serverless PostgreSQL database solution.

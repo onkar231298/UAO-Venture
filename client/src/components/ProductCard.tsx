@@ -1,18 +1,15 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import InquiryForm from "./InquiryForm";
+import CustomerFavoriteButton from "./CustomerFavoriteButton";
 import { SampleRequestForm } from "./SampleRequestForm";
 import OptimizedImage from "./OptimizedImage";
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { isCustomerProductSaved, toggleCustomerSavedProduct } from "@/lib/customerSavedProducts";
 import { getProductPrice, formatPrice } from '@/lib/currencyUtils';
-import { Heart, MessageSquare, MapPin, PackageCheck } from "lucide-react";
+import { MessageSquare, MapPin, PackageCheck } from "lucide-react";
 import type { Product, ProductType } from "@shared/schema";
 import { PrimaryProductType } from "./ProductTypeDisplay";
 
@@ -24,56 +21,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, variant = "default" }: ProductCardProps) {
   const { currency } = useCurrency();
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isSaved, setIsSaved] = useState(false);
   const isCatalog = variant === "catalog";
-
-  useEffect(() => {
-    const syncSavedState = () => {
-      setIsSaved(customer?.id ? isCustomerProductSaved(customer.id, product.id) : false);
-    };
-
-    syncSavedState();
-    const handleSavedProductsChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ customerId?: string }>).detail;
-      if (detail?.customerId === customer?.id) syncSavedState();
-    };
-    window.addEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === `atlas_customer_saved_products:${customer?.id}`) syncSavedState();
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [customer?.id, product.id]);
-
-  const handleSaveProduct = () => {
-    if (!customer?.id || !isCustomerAuthenticated) {
-      toast({
-        title: "Sign in to save products",
-        description: "Saved products are kept with your customer account on this browser.",
-      });
-      setLocation("/login");
-      return;
-    }
-
-    try {
-      const saved = toggleCustomerSavedProduct(customer.id, product);
-      setIsSaved(saved);
-      queryClient.invalidateQueries({ queryKey: ["customer-saved-products", customer.id] });
-      toast({ title: saved ? "Product saved" : "Product removed from saved products" });
-    } catch (error) {
-      toast({
-        title: "Could not save product",
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
   
   // Get the product image - prioritize WebP fields over legacy fields
   const galleryImages = product.galleryImages as string[] | null;
@@ -126,18 +74,14 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
           </div>
         </Link>
         <div className={isCatalog ? "absolute right-4 top-4 z-10" : "absolute top-1 sm:top-2 right-1 sm:right-2"}>
-          <Button
-            size="sm"
-            variant="secondary"
-            aria-label={isSaved ? `Remove ${product.name} from saved products` : `Save ${product.name} to favorites`}
-            aria-pressed={isSaved}
-            onClick={handleSaveProduct}
+          <CustomerFavoriteButton
+            productId={product.id}
+            productName={product.name}
             className={isCatalog
-              ? `catalog-favorite-button h-10 w-10 rounded-full p-0 ${isSaved ? "text-rose-600" : ""}`
-              : `h-6 w-6 sm:h-8 sm:w-8 p-0 ${isSaved ? "text-rose-600" : ""}`}
-          >
-            <Heart className={`${isCatalog ? "h-[18px] w-[18px]" : "w-3 h-3 sm:w-4 sm:h-4"} ${isSaved ? "fill-current text-rose-600" : ""}`} />
-          </Button>
+              ? "catalog-favorite-button h-10 w-10 rounded-full p-0"
+              : "h-6 w-6 sm:h-8 sm:w-8 p-0"}
+            iconClassName={isCatalog ? "h-[18px] w-[18px]" : "w-3 h-3 sm:w-4 sm:h-4"}
+          />
         </div>
       </div>
 
@@ -232,9 +176,7 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
             product={product}
             isAuthenticated={isCustomerAuthenticated}
             customerData={customer}
-            triggerLabel="Sample"
-            triggerVariant="outline"
-            triggerClassName={isCatalog ? "catalog-sample-button" : "text-sm"}
+            compact
           />
         </div>
       </CardContent>

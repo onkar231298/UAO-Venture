@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
 import xlsx from "xlsx";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isCustomerAuthenticated, createCustomerSessionUser } from "./replitAuth";
 import hrRoutes from "./hrRoutes";
 import { 
   insertInquirySchema, 
@@ -85,6 +85,7 @@ import {
   fieldQualityTestResults,
   salesCallLogs,
   users,
+  customerSavedProducts,
    userEmailConfigs,
   uploadedDocuments,
   insertUploadedDocumentSchema,
@@ -643,7 +644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer login route
   app.post('/api/auth/customer-login', async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const password = String(req.body?.password || "");
       
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -651,7 +653,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Find customer by email
       const customer = await storage.getUserByEmail(email);
-      if (!customer || customer.userType !== 'customer') {
+      if (!customer || customer.userType !== 'customer' || customer.isActive === false ||
+          customer.accountStatus === "suspended") {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
@@ -661,15 +664,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Return customer info (without password)
-      const { password: _, ...customerInfo } = customer;
-      res.json({
-        message: "Login successful",
-        user: customerInfo
+      const sessionUser = createCustomerSessionUser(customer);
+      req.logIn(sessionUser, (loginError: any) => {
+        if (loginError) {
+          console.error("Customer session could not be established:", loginError);
+          return res.status(500).json({ message: "Login failed" });
+        }
+
+        req.session.save((saveError: any) => {
+          if (saveError) {
+            console.error("Customer session could not be saved:", saveError);
+            return res.status(500).json({ message: "Login failed" });
+          }
+
+          const user = {
+            id: customer.id,
+            email: customer.email,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            companyName: customer.companyName,
+            phoneNumber: customer.phoneNumber,
+            streetAddress: customer.streetAddress,
+            city: customer.city,
+            state: customer.state,
+            postalCode: customer.postalCode,
+            country: customer.country,
+            industryType: customer.industryType,
+            accountStatus: customer.accountStatus,
+            createdAt: customer.createdAt,
+            updatedAt: customer.updatedAt,
+          };
+          return res.json({ message: "Login successful", user });
+        });
       });
     } catch (error) {
       console.error("Error during customer login:", error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get('/api/auth/customer-session', isCustomerAuthenticated, (req: any, res) => {
+    const customer = req.customerUser;
+    res.json({
+      user: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        companyName: customer.companyName,
+        phoneNumber: customer.phoneNumber,
+        streetAddress: customer.streetAddress,
+        city: customer.city,
+        state: customer.state,
+        postalCode: customer.postalCode,
+        country: customer.country,
+        industryType: customer.industryType,
+        accountStatus: customer.accountStatus,
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+      },
+    });
+  });
+
+  app.put('/api/customer/profile', isCustomerAuthenticated, async (req: any, res) => {
+    try {
+      const profileSchema = z.object({
+        firstName: z.string().trim().min(1).max(100),
+        lastName: z.string().trim().min(1).max(100),
+        companyName: z.string().trim().min(1).max(255),
+        phoneNumber: z.string().trim().max(50),
+        streetAddress: z.string().trim().max(500),
+        city: z.string().trim().max(100),
+        state: z.string().trim().max(100),
+        postalCode: z.string().trim().max(20),
+        country: z.string().trim().max(100),
+        industryType: z.string().trim().max(100),
+      }).strict();
+      const parsed = profileSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: "Check the profile fields and try again",
+          errors: parsed.error.flatten(),
+        });
+      }
+
+      const updatedCustomer = await storage.updateCustomer(req.user.claims.sub, parsed.data);
+      if (!updatedCustomer || updatedCustomer.userType !== "customer") {
+        return res.status(404).json({ message: "Customer account not found" });
+      }
+      return res.json({
+        user: {
+          id: updatedCustomer.id,
+          email: updatedCustomer.email,
+          firstName: updatedCustomer.firstName,
+          lastName: updatedCustomer.lastName,
+          companyName: updatedCustomer.companyName,
+          phoneNumber: updatedCustomer.phoneNumber,
+          streetAddress: updatedCustomer.streetAddress,
+          city: updatedCustomer.city,
+          state: updatedCustomer.state,
+          postalCode: updatedCustomer.postalCode,
+          country: updatedCustomer.country,
+          industryType: updatedCustomer.industryType,
+          accountStatus: updatedCustomer.accountStatus,
+          createdAt: updatedCustomer.createdAt,
+          updatedAt: updatedCustomer.updatedAt,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating customer profile:", error);
+      return res.status(500).json({ message: "Failed to update profile" });
     }
   });
 
@@ -2261,7 +2365,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
 
   // Get product documents
-  app.get('/api/products/:id/documents', requirePublishedProduct, async (req, res) => {
+  app.get('/api/products/:id/documents', isAuthenticated, requirePublishedProduct, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const documents = await storage.getProductDocuments(productId);
@@ -2305,16 +2409,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     try {
       console.log('[INQUIRY DEBUG] Request body:', JSON.stringify(req.body, null, 2));
       
-      let customerId = null;
-      
-      // Check if admin user is authenticated
-      if (req.user && req.user.claims && req.user.claims.sub) {
-        customerId = req.user.claims.sub;
-      }
-      // For customer users, customerId should be sent from frontend
-      else if (req.body.customerId) {
-        customerId = req.body.customerId;
-      }
+      // Associate authenticated submissions with the server-side identity.
+      // Guest inquiries remain supported, but client-supplied IDs are ignored.
+      const sessionUser = req.user as any;
+      const customerId = sessionUser?.claims?.sub
+        ? sessionUser.claims.sub
+        : null;
       
       console.log('[INQUIRY DEBUG] Customer ID:', customerId);
       
@@ -2431,9 +2531,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Customer-specific endpoints (no auth required, customer ID from request body)
-  app.get('/api/customer/inquiries/:customerId', async (req: any, res) => {
+  app.get('/api/customer/inquiries/:customerId', isCustomerAuthenticated, async (req: any, res) => {
     try {
-      const customerId = req.params.customerId;
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "You can only view your own inquiries" });
+      }
       const { status, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
@@ -2454,7 +2557,91 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.get('/api/customer/sample-requests/:customerId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/customer/saved-products/:customerId', isCustomerAuthenticated, async (req: any, res) => {
+    try {
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "You can only view your own saved products" });
+      }
+
+      const savedProducts = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          slug: products.slug,
+          productId: products.productId,
+          category: categories.name,
+          price: products.basePrice,
+          priceUnit: products.priceUnit,
+          imageUrl: products.mainImageMedium,
+          savedAt: customerSavedProducts.createdAt,
+        })
+        .from(customerSavedProducts)
+        .innerJoin(products, eq(customerSavedProducts.productId, products.id))
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(and(
+          eq(customerSavedProducts.customerId, customerId),
+          eq(products.isActive, true),
+        ))
+        .orderBy(desc(customerSavedProducts.createdAt));
+      return res.json(savedProducts);
+    } catch (error) {
+      console.error("Error fetching saved customer products:", error);
+      return res.status(500).json({ message: "Failed to fetch saved products" });
+    }
+  });
+
+  app.post('/api/customer/saved-products/:customerId/:productId', isCustomerAuthenticated, async (req: any, res) => {
+    try {
+      const customerId = req.user.claims.sub;
+      const productId = Number(req.params.productId);
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      if (!Number.isInteger(productId) || productId <= 0) {
+        return res.status(400).json({ message: "Invalid product" });
+      }
+
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, productId), eq(products.isActive, true)))
+        .limit(1);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      await db.insert(customerSavedProducts)
+        .values({ customerId, productId })
+        .onConflictDoNothing();
+      return res.status(201).json({ saved: true });
+    } catch (error) {
+      console.error("Error saving customer product:", error);
+      return res.status(500).json({ message: "Failed to save product" });
+    }
+  });
+
+  app.delete('/api/customer/saved-products/:customerId/:productId', isCustomerAuthenticated, async (req: any, res) => {
+    try {
+      const customerId = req.user.claims.sub;
+      const productId = Number(req.params.productId);
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      if (!Number.isInteger(productId) || productId <= 0) {
+        return res.status(400).json({ message: "Invalid product" });
+      }
+
+      await db.delete(customerSavedProducts).where(and(
+        eq(customerSavedProducts.customerId, customerId),
+        eq(customerSavedProducts.productId, productId),
+      ));
+      return res.json({ saved: false });
+    } catch (error) {
+      console.error("Error removing saved customer product:", error);
+      return res.status(500).json({ message: "Failed to remove saved product" });
+    }
+  });
+
+  app.get('/api/customer/sample-requests/:customerId', isCustomerAuthenticated, async (req: any, res) => {
     try {
       const customerId = req.params.customerId;
       const authenticatedCustomerId = req.user?.claims?.sub;
@@ -2481,9 +2668,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
-  app.get('/api/customer/quotations/:customerId', async (req: any, res) => {
+  app.get('/api/customer/quotations/:customerId', isCustomerAuthenticated, async (req: any, res) => {
     try {
-      const customerId = req.params.customerId;
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "You can only view your own quotations" });
+      }
       const { status, limit = '50', offset = '0' } = req.query;
       
       const filters: any = {
@@ -2540,10 +2730,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Customer endpoint for responding to bid revisions (accept/reject)
-  app.post('/api/customer/bid-revisions/:customerId/:revisionId/respond', async (req: any, res) => {
+  app.post('/api/customer/bid-revisions/:customerId/:revisionId/respond', isCustomerAuthenticated, async (req: any, res) => {
     try {
       const revisionId = parseInt(req.params.revisionId);
-      const customerId = req.params.customerId;
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const { status, responseNotes } = req.body;
 
       if (status !== 'accepted' && status !== 'rejected') {
@@ -3005,16 +3198,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   // Create sample request (for both logged in and non-logged users)
   app.post('/api/sample-requests', async (req: any, res) => {
     try {
-      let customerId = null;
-      
-      // Check if admin user is authenticated
-      if (req.user && req.user.claims && req.user.claims.sub) {
-        customerId = req.user.claims.sub;
-      }
-      // For customer users, customerId should be sent from frontend
-      else if (req.body.customerId) {
-        customerId = req.body.customerId;
-      }
+      // Link signed-in requests to the session identity; never trust a customer
+      // ID submitted by the browser. Anonymous sample requests remain supported.
+      const customerId = req.user?.claims?.sub || null;
       
       const requestData = insertSampleRequestSchema.parse({ 
         ...req.body, 
@@ -3275,9 +3461,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Customer marks sample request as delivered
-  app.patch('/api/customer/sample-requests/:customerId/:requestId/delivered', async (req: any, res) => {
+  app.patch('/api/customer/sample-requests/:customerId/:requestId/delivered', isCustomerAuthenticated, async (req: any, res) => {
     try {
-      const customerId = req.params.customerId;
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const requestId = parseInt(req.params.requestId);
       
       // Get the sample request
@@ -3566,11 +3755,29 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Accept quotation (for customers)
-  app.patch('/api/quotations/:id/accept', async (req: any, res) => {
+  app.patch('/api/quotations/:id/accept', isCustomerAuthenticated, async (req: any, res) => {
     try {
       const quotationId = parseInt(req.params.id);
-      const quotation = await storage.updateQuotation(quotationId, { 
-        status: 'accepted'
+      const customerId = req.user.claims.sub;
+      const currentQuotation = await storage.getQuotation(quotationId);
+      if (!currentQuotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      const relatedInquiry = currentQuotation.inquiryId
+        ? await storage.getInquiry(currentQuotation.inquiryId)
+        : undefined;
+      const quotationOwnerId = currentQuotation.customerId ?? relatedInquiry?.customerId;
+      if (quotationOwnerId !== customerId) {
+        return res.status(403).json({ message: "You can only accept your own quotations" });
+      }
+      if (currentQuotation.status !== "sent") {
+        return res.status(409).json({ message: "Only sent quotations can be accepted" });
+      }
+
+      const quotation = await storage.updateQuotation(quotationId, {
+        status: 'accepted',
+        customerId,
       });
       
       // If this quotation is linked to a high volume bid, update the bid status
@@ -3724,9 +3931,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Counter-offer on quotation (for customers - follows customer endpoint pattern)
-  app.post('/api/quotations/:customerId/:id/counter-offer', async (req: any, res) => {
+  app.post('/api/quotations/:customerId/:id/counter-offer', isCustomerAuthenticated, async (req: any, res) => {
     try {
-      const customerId = req.params.customerId;
+      const customerId = req.user.claims.sub;
+      if (req.params.customerId !== customerId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       const quotationId = parseInt(req.params.id);
       const { counterPrice, notes } = req.body;
 
@@ -3735,7 +3945,25 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(400).json({ message: "Valid counter price is required" });
       }
 
-      // Storage method will verify the quotation belongs to this customer
+      const quotationBeforeOffer = await storage.getQuotation(quotationId);
+      if (!quotationBeforeOffer) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      const relatedInquiry = quotationBeforeOffer.inquiryId
+        ? await storage.getInquiry(quotationBeforeOffer.inquiryId)
+        : undefined;
+      const quotationOwnerId = quotationBeforeOffer.customerId ?? relatedInquiry?.customerId;
+      if (quotationOwnerId !== customerId) {
+        return res.status(403).json({ message: "You can only counter your own quotations" });
+      }
+      if (quotationBeforeOffer.status !== "sent" && quotationBeforeOffer.status !== "pending") {
+        return res.status(409).json({ message: "This quotation can no longer be negotiated" });
+      }
+      if (!quotationBeforeOffer.customerId) {
+        await storage.updateQuotation(quotationId, { customerId });
+      }
+
+      // Storage performs a second ownership check before writing the counter-offer.
       const quotation = await storage.submitCounterOffer(quotationId, customerId, counterPrice, notes || '');
       res.json(quotation);
     } catch (error: any) {
@@ -3822,6 +4050,13 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   app.get('/api/quotations/:id/pdf', async (req: any, res) => {
     try {
       const quotationId = parseInt(req.params.id);
+      const sessionUser = req.user as any;
+      if (!req.isAuthenticated?.() || !sessionUser?.isLocal) {
+        return res.status(401).json({ message: "Login required" });
+      }
+      if (sessionUser.isStaff !== true && sessionUser.claims?.role !== "customer") {
+        return res.status(403).json({ message: "Access denied" });
+      }
       
       // Get quotation with product details
       const result = await storage.getQuotations({ 
@@ -3832,6 +4067,16 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const quotation = result.quotations.find(q => q.id === quotationId);
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
+      }
+      if (sessionUser.isStaff !== true) {
+        const customerId = sessionUser.claims?.sub;
+        const relatedInquiry = quotation.inquiryId
+          ? await storage.getInquiry(quotation.inquiryId)
+          : undefined;
+        const quotationOwnerId = quotation.customerId ?? relatedInquiry?.customerId;
+        if (quotationOwnerId !== customerId) {
+          return res.status(403).json({ message: "You can only download your own quotations" });
+        }
       }
 
       // Fetch quotation items
@@ -9764,14 +10009,18 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Customer tracking endpoint for high volume bids
-  app.get('/api/customer/high-volume-bids/:inquiryId/tracking', async (req: any, res) => {
+  app.get('/api/customer/high-volume-bids/:inquiryId/tracking', isCustomerAuthenticated, async (req: any, res) => {
     try {
       const inquiryId = parseInt(req.params.inquiryId);
+      const customerId = req.user.claims.sub;
       
       const inquiry = await storage.getInquiry(inquiryId);
       
       if (!inquiry) {
         return res.status(404).json({ message: "Inquiry not found" });
+      }
+      if (inquiry.customerId !== customerId) {
+        return res.status(403).json({ message: "You can only track your own bids" });
       }
       
       // Fetch customer-visible negotiations

@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
-import { getCustomerSavedProducts } from "@/lib/customerSavedProducts";
 import type { Category, Product } from "@shared/schema";
 import CategorySidebar from "@/components/CategorySidebar";
 import { Button } from "@/components/ui/button";
@@ -43,6 +42,11 @@ export default function Header() {
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
+  const { data: savedProducts = [] } = useQuery<any[]>({
+    queryKey: [`/api/customer/saved-products/${customer?.id}`],
+    enabled: isCustomerAuthenticated && !!customer?.id,
+  });
+  const wishlistCount = isCustomerAuthenticated ? savedProducts.length : 0;
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -53,31 +57,9 @@ export default function Header() {
   const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>("");
-  const [wishlistCount, setWishlistCount] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const isPathActive = (...paths: string[]) =>
     paths.some((path) => location === path || (path !== "/" && location.startsWith(`${path}/`)));
-
-  useEffect(() => {
-    const syncWishlistCount = () => {
-      setWishlistCount(customer?.id ? getCustomerSavedProducts(customer.id).length : 0);
-    };
-    const handleSavedProductsChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ customerId?: string }>).detail;
-      if (detail?.customerId === customer?.id) syncWishlistCount();
-    };
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === `atlas_customer_saved_products:${customer?.id}`) syncWishlistCount();
-    };
-
-    syncWishlistCount();
-    window.addEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [customer?.id]);
 
   // Fetch detected country based on IP
   useEffect(() => {

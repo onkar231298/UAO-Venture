@@ -36,7 +36,7 @@ async function testRealWebPUpload() {
     // Step 2: Upload a test image
     console.log('\n📸 Step 2: Uploading test image...');
     
-    const testImagePath = path.join(__dirname, '..', 'attached_assets', 'Final Logo_1753729864655.png');
+    const testImagePath = path.join(__dirname, '..', 'archive', 'legacy-company-documents', 'logos', 'Final Logo_1753729864655.png');
     
     if (!fs.existsSync(testImagePath)) {
       console.log('❌ Test image not found:', testImagePath);

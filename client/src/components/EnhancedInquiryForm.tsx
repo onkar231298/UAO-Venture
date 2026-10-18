@@ -177,7 +177,7 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       <DialogTrigger asChild>
         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
           <MessageSquarePlus className="w-4 h-4 mr-2" />
-          Bid for High Volume
+          {inquiryType === "high_volume_bid" ? "Bid for High Volume" : "Submit Product Inquiry"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -427,7 +427,13 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
             className="bg-blue-600 hover:bg-blue-700"
             onClick={handleSubmit}
           >
-            {createInquiryMutation.isPending ? "Submitting..." : "Submit Bid for High Volume"}
+            {createInquiryMutation.isPending
+              ? "Submitting..."
+              : inquiryType === "high_volume_bid"
+                ? "Submit Bid for High Volume"
+                : inquiryType === "quote_request"
+                  ? "Request Quote"
+                  : "Submit Inquiry"}
           </Button>
         </div>
       </DialogContent>

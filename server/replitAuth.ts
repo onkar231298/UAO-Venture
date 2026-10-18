@@ -78,46 +78,6 @@ export async function setupAuth(app: Express) {
           return done(null, userSession);
         }
 
-        // Check for demo customer credentials
-        const demoCustomers = [
-          { email: 'customer@example.com', password: 'customer123', id: 'cust_001', firstName: 'John', lastName: 'Doe' },
-          { email: 'buyer@company.com', password: 'buyer123', id: 'cust_002', firstName: 'Jane', lastName: 'Smith' }
-        ];
-
-        const customer = demoCustomers.find(c => c.email === email && c.password === password);
-        if (customer) {
-          // Create/get customer from database
-          let customerUser = await storage.getUser(customer.id);
-          if (!customerUser) {
-            customerUser = await storage.upsertUser({
-              id: customer.id,
-              email: customer.email,
-              firstName: customer.firstName,
-              lastName: customer.lastName,
-              role: 'customer',
-              companyName: "",
-              phoneNumber: "",
-              address: "",
-              profileImageUrl: ""
-            });
-          }
-
-          const userSession = {
-            claims: {
-              sub: customerUser.id,
-              email: customerUser.email,
-              first_name: customerUser.firstName,
-              last_name: customerUser.lastName,
-              role: customerUser.role,
-              exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
-            },
-            isLocal: true,
-            isAdmin: false,
-            isStaff: false
-          };
-          return done(null, userSession);
-        }
-
         return done(null, false);
       } catch (error) {
         return done(error);
@@ -238,11 +198,49 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Customer login endpoint
-  app.post("/customer/login", passport.authenticate('local', {
-    successRedirect: '/customer/dashboard',
-    failureRedirect: '/login?error=customer_failed'
-  }));
+  // The customer form login is backed by the same database credentials as the
+  // JSON login endpoint; never authenticate customers through the staff strategy.
+  app.post("/customer/login", async (req: any, res) => {
+    try {
+      const customer = await storage.getUserByEmail(String(req.body?.email || "").trim().toLowerCase());
+      const password = String(req.body?.password || "");
+      if (!customer || customer.userType !== "customer" || customer.isActive === false ||
+          customer.accountStatus === "suspended" || !customer.password ||
+          !(await bcrypt.compare(password, customer.password))) {
+        return res.redirect("/login?error=customer_failed");
+      }
+
+      req.session.regenerate((regenerateError: any) => {
+        if (regenerateError) return res.redirect("/login?error=customer_failed");
+        req.logIn(createCustomerSessionUser(customer), (loginError: any) => {
+          if (loginError) return res.redirect("/login?error=customer_failed");
+          req.session.save((saveError: any) => {
+            if (saveError) return res.redirect("/login?error=customer_failed");
+            return res.redirect("/customer/dashboard");
+          });
+        });
+      });
+    } catch (error) {
+      console.error("[Customer Login] Failed to authenticate customer:", error);
+      return res.redirect("/login?error=customer_failed");
+    }
+  });
+}
+
+export function createCustomerSessionUser(customer: any) {
+  return {
+    claims: {
+      sub: customer.id,
+      email: customer.email,
+      first_name: customer.firstName,
+      last_name: customer.lastName,
+      role: "customer",
+      exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60),
+    },
+    isLocal: true,
+    isAdmin: false,
+    isStaff: false,
+  };
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
@@ -254,6 +252,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   // Handle local admin sessions
   if (user.isLocal) {
+    if (user.isStaff !== true || user.claims?.role === "customer") {
+      return res.status(403).json({ message: "Staff access required" });
+    }
     // Check if admin session is still valid
     if (user.claims && user.claims.exp) {
       const now = Math.floor(Date.now() / 1000);
@@ -268,4 +269,30 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   // Reject any non-local sessions (Replit Auth removed)
   return res.status(401).json({ message: "Unauthorized" });
+};
+
+export const isCustomerAuthenticated: RequestHandler = async (req, res, next) => {
+  const user = req.user as any;
+  if (!req.isAuthenticated() || !user?.isLocal || user.isStaff !== false ||
+      user.claims?.role !== "customer" || !user.claims?.sub) {
+    return res.status(401).json({ message: "Customer login required" });
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (user.claims.exp && now > user.claims.exp) {
+    return res.status(401).json({ message: "Session expired" });
+  }
+
+  try {
+    const customer = await storage.getUser(user.claims.sub);
+    if (!customer || customer.userType !== "customer" || customer.isActive === false ||
+        customer.accountStatus === "suspended") {
+      return res.status(403).json({ message: "Customer account is unavailable" });
+    }
+    (req as any).customerUser = customer;
+    return next();
+  } catch (error) {
+    console.error("[Customer Auth] Failed to verify customer account:", error);
+    return res.status(500).json({ message: "Unable to verify customer account" });
+  }
 };

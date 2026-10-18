@@ -508,6 +508,16 @@ export const productDocuments = pgTable("product_documents", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const customerSavedProducts = pgTable("customer_saved_products", {
+  id: serial("id").primaryKey(),
+  customerId: varchar("customer_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("customer_saved_products_customer_product_unique").on(table.customerId, table.productId),
+  index("customer_saved_products_customer_id_idx").on(table.customerId),
+]);
+
 // Product tags for filtering and SEO
 export const productTags = pgTable("product_tags", {
   id: serial("id").primaryKey(),
@@ -1043,6 +1053,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   salesOrders: many(salesOrders),
   purchaseOrders: many(purchaseOrders),
   uploadedDocuments: many(productDocuments),
+  savedProducts: many(customerSavedProducts),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -1062,8 +1073,14 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   inquiries: many(inquiries),
   quotationItems: many(quotationItems),
   tagRelations: many(productTagRelations),
+  savedByCustomers: many(customerSavedProducts),
   creator: one(users, { fields: [products.createdBy], references: [users.id] }),
   updater: one(users, { fields: [products.updatedBy], references: [users.id] }),
+}));
+
+export const customerSavedProductsRelations = relations(customerSavedProducts, ({ one }) => ({
+  customer: one(users, { fields: [customerSavedProducts.customerId], references: [users.id] }),
+  product: one(products, { fields: [customerSavedProducts.productId], references: [products.id] }),
 }));
 
 export const productTagsRelations = relations(productTags, ({ many }) => ({

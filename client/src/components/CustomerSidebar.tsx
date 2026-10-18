@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
-import { getCustomerSavedProducts } from "@/lib/customerSavedProducts";
 import { PortalThemeToggle } from "@/components/portal/PortalTheme";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
@@ -67,8 +66,18 @@ export default function CustomerSidebar() {
 
   // Fetch saved products count
   const { data: savedProductsData } = useQuery({
-    queryKey: ["customer-saved-products", customer?.id],
-    queryFn: () => customer?.id ? getCustomerSavedProducts(customer.id) : [],
+    queryKey: ["/api/customer/saved-products", customer?.id],
+    queryFn: async () => {
+      if (!customer?.id) return [];
+      try {
+        const response = await fetch(`/api/customer/saved-products/${customer.id}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        return [];
+      }
+    },
     enabled: !!customer?.id,
   });
 
@@ -141,10 +150,12 @@ export default function CustomerSidebar() {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">BFO</span>
-              </div>
+            <div className="flex flex-col gap-2">
+              <img
+                src="/atlas-ingredients-logo.svg"
+                alt="Atlas Ingredients"
+                className="h-8 w-[132px] object-contain object-left"
+              />
               <div>
                 <h2 className="font-semibold text-gray-900">Customer Portal</h2>
                 <p className="text-xs text-gray-500">Organic Ingredients</p>
@@ -245,7 +256,7 @@ export default function CustomerSidebar() {
           className={`w-full justify-start h-10 ${
             isCollapsed ? 'px-2' : 'px-3'
           } ${isActive("/customer/settings") ? "bg-green-100 text-green-800" : "text-gray-700 hover:bg-gray-100"}`}
-          onClick={() => setLocation("/customer/settings")}
+          onClick={() => setLocation('/customer/settings')}
         >
           <Settings className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
           {!isCollapsed && "Settings"}

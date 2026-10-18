@@ -1,15 +1,72 @@
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Package, MessageSquare, FileText, ShoppingCart, User, Building, Phone, Mail, MapPin, Calendar } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 export default function CustomerProfile() {
-  const { customer, isCustomerAuthenticated, logoutCustomer } = useCustomerAuth();
+  const { customer, isCustomerAuthenticated, loginCustomer, logoutCustomer } = useCustomerAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [editing, setEditing] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    companyName: "",
+    phoneNumber: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+    industryType: "",
+  });
+
+  useEffect(() => {
+    if (!customer) return;
+    setProfileForm({
+      firstName: customer.firstName || "",
+      lastName: customer.lastName || "",
+      companyName: customer.companyName || "",
+      phoneNumber: customer.phoneNumber || "",
+      streetAddress: customer.streetAddress || "",
+      city: customer.city || "",
+      state: customer.state || "",
+      postalCode: customer.postalCode || "",
+      country: customer.country || "",
+      industryType: customer.industryType || "",
+    });
+  }, [customer]);
+
+  const profileMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/customer/profile", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileForm),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.message || "Could not save profile");
+      return result.user;
+    },
+    onSuccess: (updatedCustomer) => {
+      loginCustomer(updatedCustomer);
+      setEditing(false);
+      toast({ title: "Profile updated", description: "Your account details have been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not save profile", description: error.message, variant: "destructive" });
+    },
+  });
 
   if (!isCustomerAuthenticated || !customer) {
     return (
@@ -57,53 +114,43 @@ export default function CustomerProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Full Name</label>
-                      <p className="text-lg font-semibold">{customer.firstName} {customer.lastName}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Email Address</label>
-                      <p className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        {customer.email}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Phone Number</label>
-                      <p className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        {customer.phoneNumber}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company</label>
-                      <p className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-gray-400" />
-                        {customer.companyName}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Country</label>
-                      <p className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        {customer.country}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Industry</label>
-                      <p>{customer.industryType}</p>
+                <form
+                  className="space-y-5"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    profileMutation.mutate();
+                  }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {([
+                      ["firstName", "First name"],
+                      ["lastName", "Last name"],
+                      ["companyName", "Company"],
+                      ["phoneNumber", "Phone number"],
+                      ["streetAddress", "Street address"],
+                      ["city", "City"],
+                      ["state", "State / Province"],
+                      ["postalCode", "Postal code"],
+                      ["country", "Country"],
+                      ["industryType", "Industry"],
+                    ] as const).map(([field, label]) => (
+                      <div key={field} className="space-y-2">
+                        <Label htmlFor={`customer-profile-${field}`}>{label}</Label>
+                        <Input
+                          id={`customer-profile-${field}`}
+                          value={profileForm[field]}
+                          disabled={!editing || profileMutation.isPending}
+                          required={["firstName", "lastName", "companyName"].includes(field)}
+                          onChange={(event) => setProfileForm({ ...profileForm, [field]: event.target.value })}
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <Label>Email address</Label>
+                      <Input value={customer.email} disabled />
+                      <p className="text-xs text-gray-500">Contact support to change your sign-in email.</p>
                     </div>
                   </div>
-                </div>
                 
                 <div className="pt-4 border-t">
                   <div className="flex items-center justify-between">
@@ -125,6 +172,35 @@ export default function CustomerProfile() {
                     </div>
                   </div>
                 </div>
+                  <div className="flex justify-end gap-2">
+                    {editing ? (
+                      <>
+                        <Button type="button" variant="outline" onClick={() => {
+                          setProfileForm({
+                            firstName: customer.firstName || "",
+                            lastName: customer.lastName || "",
+                            companyName: customer.companyName || "",
+                            phoneNumber: customer.phoneNumber || "",
+                            streetAddress: customer.streetAddress || "",
+                            city: customer.city || "",
+                            state: customer.state || "",
+                            postalCode: customer.postalCode || "",
+                            country: customer.country || "",
+                            industryType: customer.industryType || "",
+                          });
+                          setEditing(false);
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={profileMutation.isPending}>
+                          {profileMutation.isPending ? "Saving…" : "Save changes"}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button type="button" onClick={() => setEditing(true)}>Edit profile</Button>
+                    )}
+                  </div>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -142,15 +218,15 @@ export default function CustomerProfile() {
                   <Package className="w-4 h-4 mr-2" />
                   Browse Products
                 </Button>
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-submit-inquiry" onClick={() => setLocation('/customer/products')}>
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-submit-inquiry" onClick={() => setLocation('/customer/inquiries')}>
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Submit Inquiry
                 </Button>
                 <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-download-catalog" onClick={() => setLocation('/customer/catalogs')}>
                   <FileText className="w-4 h-4 mr-2" />
-                  Catalogs & Downloads
+                  Download Catalog
                 </Button>
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-request-quote" onClick={() => setLocation('/customer/products')}>
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-request-quote" onClick={() => setLocation('/customer/inquiries')}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Request Quote
                 </Button>
@@ -165,7 +241,7 @@ export default function CustomerProfile() {
                 <Button 
                   variant="outline" 
                   className="w-full min-h-[44px]"
-                  onClick={() => setLocation('/customer/products')}
+                  onClick={() => setLocation('/products')}
                   data-testid="button-explore-products"
                 >
                   Explore Products
