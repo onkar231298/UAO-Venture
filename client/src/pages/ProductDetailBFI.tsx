@@ -1,5 +1,5 @@
-import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation, useParams } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import { SpecificationSheetViewer } from "@/components/SpecificationSheetViewer";
 import ProductFAQs from "@/components/ProductFAQs";
@@ -11,6 +11,7 @@ import ProtectedDocuments from "@/components/ProtectedDocuments";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useState, useEffect } from "react";
+import { isCustomerProductSaved, toggleCustomerSavedProduct } from "@/lib/customerSavedProducts";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InquiryForm from "@/components/InquiryForm";
@@ -59,6 +60,8 @@ export default function ProductDetailBFI() {
   const { user, isAuthenticated } = useAuth() as { user: any; isAuthenticated: boolean };
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   
   // Handle direct page load/refresh scenario
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function ProductDetailBFI() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
@@ -80,6 +84,41 @@ export default function ProductDetailBFI() {
     },
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    const syncSavedState = () => {
+      setIsSaved(customer?.id && product?.id ? isCustomerProductSaved(customer.id, product.id) : false);
+    };
+    const handleSavedProductsChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ customerId?: string }>).detail;
+      if (detail?.customerId === customer?.id) syncSavedState();
+    };
+    syncSavedState();
+    window.addEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
+    return () => window.removeEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
+  }, [customer?.id, product?.id]);
+
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    if (!customer?.id || !isCustomerAuthenticated) {
+      toast({ title: "Sign in to save products", description: "Your saved products are kept with your customer account on this browser." });
+      setLocation("/login");
+      return;
+    }
+
+    try {
+      const saved = toggleCustomerSavedProduct(customer.id, product);
+      setIsSaved(saved);
+      queryClient.invalidateQueries({ queryKey: ["customer-saved-products", customer.id] });
+      toast({ title: saved ? "Product saved" : "Product removed from saved products" });
+    } catch (error) {
+      toast({
+        title: "Could not update your wishlist",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: documents } = useQuery<ProductDocument[]>({
     queryKey: ["/api/products", product?.id, "documents"],
@@ -547,9 +586,9 @@ export default function ProductDetailBFI() {
                   </DialogContent>
                 </Dialog>
 
-                <Button variant="outline" size="default">
-                  <Heart className="w-4 h-4 mr-2" />
-                  Wishlist
+                <Button variant="outline" size="default" onClick={handleToggleWishlist} aria-pressed={isSaved}>
+                  <Heart className={`w-4 h-4 mr-2 ${isSaved ? "fill-current text-rose-600" : ""}`} />
+                  {isSaved ? "Saved" : "Wishlist"}
                 </Button>
 
                 <Button variant="outline" size="default">

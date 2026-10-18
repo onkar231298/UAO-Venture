@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
+import { getCustomerSavedProducts } from "@/lib/customerSavedProducts";
 import type { Category, Product } from "@shared/schema";
 import CategorySidebar from "@/components/CategorySidebar";
 import { Button } from "@/components/ui/button";
@@ -52,9 +53,31 @@ export default function Header() {
   const [mobileHealthSupportOpen, setMobileHealthSupportOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>("");
+  const [wishlistCount, setWishlistCount] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const isPathActive = (...paths: string[]) =>
     paths.some((path) => location === path || (path !== "/" && location.startsWith(`${path}/`)));
+
+  useEffect(() => {
+    const syncWishlistCount = () => {
+      setWishlistCount(customer?.id ? getCustomerSavedProducts(customer.id).length : 0);
+    };
+    const handleSavedProductsChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ customerId?: string }>).detail;
+      if (detail?.customerId === customer?.id) syncWishlistCount();
+    };
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === `atlas_customer_saved_products:${customer?.id}`) syncWishlistCount();
+    };
+
+    syncWishlistCount();
+    window.addEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("atlas-customer-saved-products-changed", handleSavedProductsChanged);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [customer?.id]);
 
   // Fetch detected country based on IP
   useEffect(() => {
@@ -454,7 +477,7 @@ export default function Header() {
             <div className="bfo-header-user-actions flex items-center">
               <Button aria-label="Wishlist" onClick={handleWishlistClick} variant="ghost" size="sm" className="hidden sm:flex text-gray-600 hover:text-red-500 hover:bg-red-50">
                 <Heart className="w-5 h-5" />
-                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">0</span>
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-1">{wishlistCount}</span>
               </Button>
 
               {/* Show different UI based on authentication status */}
@@ -850,7 +873,7 @@ export default function Header() {
                   <Heart className="w-4 h-4 text-rose-600" />
                 </div>
                 <span className="font-medium">Wishlist</span>
-                <span className="bfo-mobile-wishlist-count">0</span>
+                <span className="bfo-mobile-wishlist-count">{wishlistCount}</span>
               </button>
 
               <div className="bfo-mobile-support" aria-label="Customer support">

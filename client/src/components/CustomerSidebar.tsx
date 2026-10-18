@@ -19,9 +19,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
+  TrendingUp,
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useQuery } from "@tanstack/react-query";
+import { getCustomerSavedProducts } from "@/lib/customerSavedProducts";
 import { PortalThemeToggle } from "@/components/portal/PortalTheme";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
@@ -65,18 +67,8 @@ export default function CustomerSidebar() {
 
   // Fetch saved products count
   const { data: savedProductsData } = useQuery({
-    queryKey: ["/api/customer/saved-products", customer?.id],
-    queryFn: async () => {
-      if (!customer?.id) return [];
-      try {
-        const response = await fetch(`/api/customer/saved-products/${customer.id}`);
-        if (!response.ok) return [];
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        return [];
-      }
-    },
+    queryKey: ["customer-saved-products", customer?.id],
+    queryFn: () => customer?.id ? getCustomerSavedProducts(customer.id) : [],
     enabled: !!customer?.id,
   });
 
@@ -110,6 +102,7 @@ export default function CustomerSidebar() {
     { icon: Package, label: "Browse Products", href: "/customer/products", group: "PRODUCT CATALOG" },
     { icon: Search, label: "Search", href: "/customer/search", group: "PRODUCT CATALOG" },
     { icon: MessageSquare, label: "My Inquiries", href: "/customer/inquiries", badge: inquiriesCount.toString(), group: "ORDERS & REQUESTS" },
+    { icon: TrendingUp, label: "High Volume Bids", href: "/customer/high-volume-bids", badge: highVolumeBidsCount.toString(), group: "ORDERS & REQUESTS" },
     { icon: Heart, label: "Saved Products", href: "/customer/saved", badge: savedProductsCount.toString(), group: "PRODUCT CATALOG" },
     { icon: FileText, label: "Quotations", href: "/customer/quotes", badge: quotationsCount.toString(), group: "ORDERS & REQUESTS" },
     { icon: Download, label: "Downloads", href: "/customer/downloads", group: "RESOURCES" },
@@ -128,7 +121,7 @@ export default function CustomerSidebar() {
       onSelect: () => setLocation(item.href),
     })),
     { key: "website", label: "Back to Website", icon: Home, group: "ACCOUNT", onSelect: () => setLocation("/") },
-    { key: "settings", label: "Settings", icon: Settings, group: "ACCOUNT", onSelect: () => undefined },
+    { key: "settings", label: "Settings", icon: Settings, group: "ACCOUNT", onSelect: () => setLocation("/customer/settings") },
     { key: "logout", label: "Logout", icon: LogOut, group: "ACCOUNT", onSelect: () => { logoutCustomer(); setLocation("/"); } },
   ];
 
@@ -248,9 +241,11 @@ export default function CustomerSidebar() {
         <Button
           variant="ghost"
           title="Settings"
+          aria-label="Settings"
           className={`w-full justify-start h-10 ${
             isCollapsed ? 'px-2' : 'px-3'
-          } text-gray-700 hover:bg-gray-100`}
+          } ${isActive("/customer/settings") ? "bg-green-100 text-green-800" : "text-gray-700 hover:bg-gray-100"}`}
+          onClick={() => setLocation("/customer/settings")}
         >
           <Settings className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
           {!isCollapsed && "Settings"}

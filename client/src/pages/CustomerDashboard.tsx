@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
+import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
+import { getCustomerSavedProducts, removeCustomerSavedProduct } from "@/lib/customerSavedProducts";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -38,9 +40,9 @@ export default function CustomerDashboard() {
   });
 
   const { data: savedProducts, isLoading: savedLoading, refetch: refetchSaved, isRefetching: isRefetchingSaved } = useQuery({
-    queryKey: [`/api/customer/saved-products/${customer?.id}`],
+    queryKey: ["customer-saved-products", customer?.id],
+    queryFn: () => customer?.id ? getCustomerSavedProducts(customer.id) : [],
     enabled: isCustomerAuthenticated && !!customer?.id,
-    refetchInterval: 30000,
   });
 
   const { data: quotations, isLoading: quotationsLoading, refetch: refetchQuotations, isRefetching: isRefetchingQuotations } = useQuery({
@@ -254,7 +256,7 @@ export default function CustomerDashboard() {
       case 'inquiries':
         return renderInquiries();
       case 'high-volume-bids':
-        return renderInquiries(); // Redirect to inquiries with tabs
+        return renderInquiries();
       case 'saved':
         return renderSavedProducts();
       case 'quotes':
@@ -267,6 +269,8 @@ export default function CustomerDashboard() {
         return renderCatalogs();
       case 'profile':
         return renderProfile();
+      case 'settings':
+        return renderSettings();
       default:
         return renderDashboardOverview();
     }
@@ -396,7 +400,7 @@ export default function CustomerDashboard() {
           <Button 
             className="min-h-[44px] flex-1 sm:flex-none" 
             data-testid="button-new-inquiry"
-            onClick={() => setLocation('/products')}
+            onClick={() => setLocation('/customer/products')}
           >
             <Plus className="w-4 h-4 mr-2" />
             New Inquiry
@@ -405,7 +409,16 @@ export default function CustomerDashboard() {
       </div>
 
       {/* Tabbed Interface */}
-      <Tabs defaultValue="inquiries" className="w-full">
+      <Tabs
+        key={location}
+        defaultValue={location === "/customer/high-volume-bids" ? "high-volume-bids" : "inquiries"}
+        onValueChange={(value) => {
+          if (value === "high-volume-bids") setLocation("/customer/high-volume-bids");
+          else if (value === "received-quotes") setLocation("/customer/quotes");
+          else setLocation("/customer/inquiries");
+        }}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="inquiries">My Enquiry</TabsTrigger>
           <TabsTrigger value="high-volume-bids">High Volume Bid</TabsTrigger>
@@ -1030,7 +1043,7 @@ export default function CustomerDashboard() {
                 <div className="text-center py-8">
                   <TrendingUp className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No high volume bids found</p>
-                  <Button className="mt-4">
+                  <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit High Volume Bid
                   </Button>
@@ -1251,7 +1264,7 @@ export default function CustomerDashboard() {
                                     <FileText className="w-4 h-4 mr-2" />
                                     Download PDF
                                   </Button>
-                                  <Button variant="outline">
+                                  <Button variant="outline" onClick={() => setLocation('/contact')}>
                                     <MessageSquare className="w-4 h-4 mr-2" />
                                     Contact Sales
                                   </Button>
@@ -1281,7 +1294,7 @@ export default function CustomerDashboard() {
                   <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No quotations received yet</p>
                   <p className="text-xs text-gray-400 mb-4">Quotations will appear here after our sales team reviews your inquiries.</p>
-                  <Button className="mt-4">
+                  <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
                     <Plus className="w-4 h-4 mr-2" />
                     Submit an Inquiry
                   </Button>
@@ -1319,8 +1332,29 @@ export default function CustomerDashboard() {
                   <h3 className="font-semibold">{product.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">{product.category}</p>
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-lg font-bold">${product.price}</span>
-                    <Button size="sm">View Details</Button>
+                    <span className="text-lg font-bold">{product.price ? `$${product.price}` : "Contact for Price"}</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => setLocation(product.slug ? `/products/${encodeURIComponent(product.slug)}` : '/customer/products')}>View Details</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          try {
+                            removeCustomerSavedProduct(customer!.id, product.id);
+                            queryClient.invalidateQueries({ queryKey: ["customer-saved-products", customer?.id] });
+                            toast({ title: "Removed from saved products" });
+                          } catch (error) {
+                            toast({
+                              title: "Could not remove saved product",
+                              description: error instanceof Error ? error.message : "Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1329,7 +1363,7 @@ export default function CustomerDashboard() {
             <div className="text-center py-8">
               <Heart className="mx-auto w-12 h-12 text-gray-400 mb-4" />
               <p className="text-gray-500">No saved products yet</p>
-              <Button className="mt-4">Browse Products</Button>
+              <Button className="mt-4" onClick={() => setLocation('/customer/products')}>Browse Products</Button>
             </div>
           )}
         </CardContent>
@@ -1683,11 +1717,11 @@ export default function CustomerDashboard() {
                                   </Button>
                                 </>
                               )}
-                              <Button variant="outline">
+                              <Button variant="outline" onClick={() => window.open(`/api/quotations/${quotation.id}/pdf`, '_blank', 'noopener,noreferrer')}>
                                 <FileText className="w-4 h-4 mr-2" />
                                 Download PDF
                               </Button>
-                              <Button variant="outline">
+                              <Button variant="outline" onClick={() => setLocation('/contact')}>
                                 <MessageSquare className="w-4 h-4 mr-2" />
                                 Contact Sales
                               </Button>
@@ -1819,7 +1853,12 @@ export default function CustomerDashboard() {
         <CardContent>
           <div className="text-center py-8">
             <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-500">No downloads available yet</p>
+            <p className="text-gray-700 font-medium">No customer documents have been shared yet</p>
+            <p className="text-sm text-gray-500 mt-2">Ask our team for certificates, specifications, or documents related to your account.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button variant="outline" onClick={() => setLocation('/customer/catalogs')}>View Catalogs</Button>
+              <Button onClick={() => setLocation('/contact')}>Contact Sales</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1837,8 +1876,27 @@ export default function CustomerDashboard() {
         <CardContent>
           <div className="text-center py-8">
             <Package className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-500">No catalogs available yet</p>
+            <p className="text-gray-700 font-medium">No downloadable product catalog is currently published</p>
+            <p className="text-sm text-gray-500 mt-2">Browse the live product list or contact our team to request the latest catalog.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button variant="outline" onClick={() => setLocation('/customer/products')}>Browse Products</Button>
+              <Button onClick={() => setLocation('/contact')}>Request a Catalog</Button>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customer Portal Settings</h1>
+        <p className="mt-1 text-sm text-gray-600">Choose the colors and display mode for your own customer portal.</p>
+      </div>
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <PortalAppearanceSettings />
         </CardContent>
       </Card>
     </div>
@@ -1885,7 +1943,7 @@ export default function CustomerDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">High Volume Bids</h1>
-        <Button>
+        <Button onClick={() => setLocation('/customer/products')}>
           <Plus className="w-4 h-4 mr-2" />
           New Bid Request
         </Button>
@@ -2115,7 +2173,7 @@ export default function CustomerDashboard() {
               <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No high volume bids yet</h3>
               <p className="text-gray-600 mb-4">You haven't submitted any high volume bid requests yet.</p>
-              <Button>
+              <Button onClick={() => setLocation('/customer/products')}>
                 <Plus className="w-4 h-4 mr-2" />
                 Submit High Volume Bid
               </Button>
@@ -2227,6 +2285,9 @@ export default function CustomerDashboard() {
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No sample requests yet</h3>
               <p className="text-gray-600">You haven't requested any product samples yet.</p>
+              <Button className="mt-4" onClick={() => setLocation('/customer/products')}>
+                Browse Products
+              </Button>
             </CardContent>
           </Card>
         )}

@@ -22,9 +22,19 @@ interface SampleRequestFormProps {
   product: Product;
   isAuthenticated: boolean;
   customerData?: any;
+  triggerLabel?: string;
+  triggerClassName?: string;
+  triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 }
 
-export function SampleRequestForm({ product, isAuthenticated, customerData }: SampleRequestFormProps) {
+export function SampleRequestForm({
+  product,
+  isAuthenticated,
+  customerData,
+  triggerLabel = "Request Sample",
+  triggerClassName,
+  triggerVariant,
+}: SampleRequestFormProps) {
   const [formData, setFormData] = useState({
     // Contact Information - auto-filled if customer is logged in
     contactName: customerData ? `${customerData.firstName} ${customerData.lastName}` : "",
@@ -126,9 +136,9 @@ export function SampleRequestForm({ product, isAuthenticated, customerData }: Sa
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+        <Button variant={triggerVariant} className={triggerClassName ?? "bg-orange-600 hover:bg-orange-700 text-white"}>
           <Beaker className="w-4 h-4 mr-2" />
-          Request Sample
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

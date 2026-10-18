@@ -138,19 +138,19 @@ export default function CustomerProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-browse-products">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-browse-products" onClick={() => setLocation('/customer/products')}>
                   <Package className="w-4 h-4 mr-2" />
                   Browse Products
                 </Button>
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-submit-inquiry">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-submit-inquiry" onClick={() => setLocation('/customer/products')}>
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Submit Inquiry
                 </Button>
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-download-catalog">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-download-catalog" onClick={() => setLocation('/customer/catalogs')}>
                   <FileText className="w-4 h-4 mr-2" />
-                  Download Catalog
+                  Catalogs & Downloads
                 </Button>
-                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-request-quote">
+                <Button className="w-full justify-start min-h-[44px]" variant="outline" data-testid="button-request-quote" onClick={() => setLocation('/customer/products')}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Request Quote
                 </Button>
@@ -165,7 +165,7 @@ export default function CustomerProfile() {
                 <Button 
                   variant="outline" 
                   className="w-full min-h-[44px]"
-                  onClick={() => setLocation('/products')}
+                  onClick={() => setLocation('/customer/products')}
                   data-testid="button-explore-products"
                 >
                   Explore Products

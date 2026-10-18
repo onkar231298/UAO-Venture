@@ -267,6 +267,7 @@ function Router() {
 
       <Route path="/register" component={CustomerRegistration} />
       <Route path="/customer/profile" component={CustomerProfilePortal} />
+      <Route path="/customer/settings" component={CustomerDashboard} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
       <Route path="/customer/inquiries" component={CustomerDashboard} />
       <Route path="/customer/high-volume-bids" component={CustomerDashboard} />
