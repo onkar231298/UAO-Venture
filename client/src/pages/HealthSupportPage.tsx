@@ -276,7 +276,7 @@ export default function HealthSupportPage() {
   // Early return for invalid slug only after all hooks are called
   if (!slug) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="atlas-public-theme min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
@@ -289,7 +289,7 @@ export default function HealthSupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}

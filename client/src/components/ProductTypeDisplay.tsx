@@ -7,6 +7,7 @@ interface ProductTypeDisplayProps {
   showPrimaryOnly?: boolean;
   className?: string;
   size?: "sm" | "md" | "lg";
+  appearance?: "default" | "catalog";
 }
 
 const typeIcons: Record<string, any> = {
@@ -19,7 +20,8 @@ export function ProductTypeDisplay({
   types, 
   showPrimaryOnly = false, 
   className = "",
-  size = "sm"
+  size = "sm",
+  appearance = "default"
 }: ProductTypeDisplayProps) {
   if (!types || types.length === 0) return null;
 
@@ -51,7 +53,7 @@ export function ProductTypeDisplay({
           <Badge
             key={`${type.id}-${index}`}
             variant={isPrimary ? "default" : "secondary"}
-            className={`${sizeClasses[size]} flex items-center gap-1 ${isPrimary ? 'bg-green-600 hover:bg-green-700' : ''}`}
+            className={`${sizeClasses[size]} flex items-center gap-1 ${isPrimary ? 'bg-green-600 hover:bg-green-700' : ''} ${appearance === "catalog" ? "catalog-type-badge" : ""}`}
             style={{
               backgroundColor: isPrimary && type.color ? type.color : undefined,
             }}
@@ -71,14 +73,16 @@ export function ProductTypeDisplay({
 export function PrimaryProductType({ 
   types, 
   className = "",
-  size = "sm" 
-}: Pick<ProductTypeDisplayProps, 'types' | 'className' | 'size'>) {
+  size = "sm",
+  appearance = "default"
+}: Pick<ProductTypeDisplayProps, 'types' | 'className' | 'size' | 'appearance'>) {
   return (
     <ProductTypeDisplay 
       types={types} 
       showPrimaryOnly={true} 
       className={className}
       size={size}
+      appearance={appearance}
     />
   );
 }

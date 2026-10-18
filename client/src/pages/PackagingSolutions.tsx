@@ -28,13 +28,13 @@ import cleanroomFacilityImg from "@assets/image_1770705325041.png";
 
 
 const COLORS = {
-  turmericGold: "#C89B2B",
-  herbalGreen: "#2E5E3E",
-  offWhite: "#F8F5EF",
-  charcoal: "#2C2C2C",
-  cleanWhite: "#FFFFFF",
-  lightGray: "#F4F6F8",
-  steelBlue: "#3B5998",
+  turmericGold: "#D7E19A",
+  herbalGreen: "#173C2B",
+  offWhite: "#F8F7EF",
+  charcoal: "#173C2B",
+  cleanWhite: "#FFFEFA",
+  lightGray: "#EDF4E9",
+  steelBlue: "#386B4B",
 };
 
 const skuData = [
@@ -112,13 +112,13 @@ export default function PackagingSolutions() {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.lightGray, fontFamily: "'Inter', sans-serif" }}>
+    <div className="atlas-public-theme min-h-screen" style={{ background: COLORS.lightGray, fontFamily: "'Inter', sans-serif" }}>
 
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.charcoal} 0%, #1a1a2e 50%, ${COLORS.herbalGreen} 100%)` }}>
+      <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.charcoal} 0%, #143624 50%, ${COLORS.herbalGreen} 100%)` }}>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(200,155,43,0.3) 0%, transparent 50%),
+            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(174,198,149,0.3) 0%, transparent 50%),
                               radial-gradient(circle at 80% 20%, rgba(46,94,62,0.3) 0%, transparent 50%),
                               radial-gradient(circle at 50% 80%, rgba(59,89,152,0.2) 0%, transparent 50%)`
           }} />
@@ -132,7 +132,7 @@ export default function PackagingSolutions() {
             <img src={atlasLogoImg} alt="Atlas Ingredients" className="h-16 sm:h-24 md:h-32 w-auto object-contain mx-auto mb-4 sm:mb-6 drop-shadow-2xl" />
           </Anim>
           <Anim type="fade-up" delay={300}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 sm:mb-6 text-xs sm:text-sm font-medium" style={{ background: "rgba(200,155,43,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 sm:mb-6 text-xs sm:text-sm font-medium" style={{ background: "rgba(215,225,154,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}>
               <Star className="w-3.5 h-3.5" />
               Private Label Packaging Solutions
             </div>
@@ -393,7 +393,7 @@ export default function PackagingSolutions() {
       </section>
 
       {/* CTA / Contact */}
-      <section className="py-16 sm:py-20" style={{ background: `linear-gradient(135deg, ${COLORS.herbalGreen}, #1a3a2a)` }}>
+      <section className="py-16 sm:py-20" style={{ background: `linear-gradient(135deg, ${COLORS.herbalGreen}, #143624)` }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <Anim type="scale-up">
             <img src={atlasLogoImg} alt="Atlas Ingredients Logo" className="h-12 sm:h-16 w-auto object-contain mx-auto mb-4 sm:mb-6" />

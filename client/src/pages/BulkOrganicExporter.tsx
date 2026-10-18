@@ -99,7 +99,7 @@ export default function BulkOrganicExporter() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
 
       <section className="bg-gradient-to-br from-emerald-50 to-green-100 py-16">

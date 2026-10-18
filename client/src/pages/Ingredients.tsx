@@ -27,7 +27,7 @@ export default function Ingredients() {
   const totalCategories = categories?.filter(cat => cat.isActive)?.length || 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}

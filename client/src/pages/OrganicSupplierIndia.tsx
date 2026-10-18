@@ -296,7 +296,7 @@ export default function OrganicSupplierIndia() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
 
       <section className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-20">

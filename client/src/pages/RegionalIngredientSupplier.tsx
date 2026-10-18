@@ -63,7 +63,7 @@ export default function RegionalIngredientSupplier({ market }: { market: Market 
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       <main>
         <section className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-800 py-20 text-white">

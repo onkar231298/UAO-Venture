@@ -41,7 +41,7 @@ export default function HealthSupport() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}

@@ -9,7 +9,7 @@ export default function CustomPackaging() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="atlas-public-theme min-h-screen bg-white dark:bg-gray-900">
       <Header />
       <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">

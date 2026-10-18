@@ -52,7 +52,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       
       {/* Atlas Ingredients Hero Slider with Warehouse Image */}

@@ -5,7 +5,7 @@ import { Sprout, Heart, Users, Award, Handshake, CheckCircle, Leaf, Globe2 } fro
 
 export default function OurFarmers() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="atlas-public-theme min-h-screen bg-gray-50">
       <Header />
       
       <section className="py-16">

@@ -8,7 +8,7 @@ import { Award, Factory, Leaf, Shield, Globe2, CheckCircle, Zap, Truck, Settings
 
 export default function AboutUs() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <AboutUsFAQSchema />
       <Header />
       

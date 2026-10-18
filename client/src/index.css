@@ -182,6 +182,23 @@ body {
 }
 
 :root {
+  /* Shared Atlas public-site palette: botanical forest, sage, and warm paper. */
+  --atlas-forest: #173c2b;
+  --atlas-forest-deep: #143624;
+  --atlas-forest-mid: #2e6844;
+  --atlas-leaf: #386b4b;
+  --atlas-sage: #d7e6c4;
+  --atlas-sage-soft: #edf4e9;
+  --atlas-sage-wash: #f1f5eb;
+  --atlas-paper: #f8f7ef;
+  --atlas-cream: #fffefa;
+  --atlas-ink: #293a31;
+  --atlas-body: #536255;
+  --atlas-muted: #829084;
+  --atlas-border: #dfe8df;
+  --atlas-border-soft: #e3eae2;
+  --atlas-accent: #d7e19a;
+
   /* LIGHT GREEN THEME - Active Theme */
   /* To revert to original: comment out this block and uncomment "ORIGINAL THEME BACKUP" below */
   
@@ -820,7 +837,7 @@ body {
 .hero-slider-frame {
   background-image:
     radial-gradient(ellipse at 84% 12%, rgba(174, 198, 149, 0.13), transparent 42%),
-    linear-gradient(135deg, #173c2b 0%, #194832 58%, #153526 100%);
+    linear-gradient(135deg, var(--atlas-forest) 0%, var(--atlas-leaf) 58%, var(--atlas-forest-deep) 100%);
 }
 
 .hero-slider-copy-panel {
@@ -838,7 +855,7 @@ body {
     90deg,
     rgba(23, 60, 43, 0) 0%,
     rgba(23, 60, 43, 0.42) 48%,
-    #173c2b 100%
+    var(--atlas-forest) 100%
   );
 }
 
@@ -894,11 +911,11 @@ body {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  border: 1px solid #e1e7dc;
+  border: 1px solid var(--atlas-border);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.94);
   padding: 8px;
-  color: #34463a;
+  color: var(--atlas-ink);
   text-align: center;
   box-shadow: 0 3px 12px rgba(34, 58, 40, 0.045);
 }
@@ -910,17 +927,17 @@ button.certification-ticker-card {
 
 button.certification-ticker-card:hover {
   transform: translateY(-2px);
-  border-color: #9db99a;
+  border-color: var(--atlas-sage);
   box-shadow: 0 8px 20px rgba(34, 58, 40, 0.12);
 }
 
 .certification-ticker-card:focus-visible {
-  outline: 2px solid #315d42;
+  outline: 2px solid var(--atlas-forest-mid);
   outline-offset: 2px;
 }
 
 .certification-ticker-name {
-  color: #536255;
+  color: var(--atlas-body);
   font-size: 10px;
   font-weight: 600;
   line-height: 1.2;
@@ -1031,3 +1048,495 @@ button.certification-ticker-card:hover {
   }
 }
 /* Force cache bust 1753793542 */
+
+/* Public marketing and storefront share the Atlas botanical / warm-neutral palette.
+   Scope the bridge to public page roots so portal themes and semantic statuses stay intact. */
+.atlas-public-theme .text-gray-900,
+.atlas-public-theme .text-gray-800 {
+  color: var(--atlas-ink) !important;
+}
+
+.atlas-public-theme .text-gray-700,
+.atlas-public-theme .text-gray-600 {
+  color: var(--atlas-body) !important;
+}
+
+.atlas-public-theme .text-gray-500,
+.atlas-public-theme .text-gray-400 {
+  color: var(--atlas-muted) !important;
+}
+
+.atlas-public-theme .bg-white {
+  background-color: var(--atlas-cream) !important;
+}
+
+.atlas-public-theme .bg-gray-50 {
+  background-color: var(--atlas-paper) !important;
+}
+
+.atlas-public-theme .bg-gray-100,
+.atlas-public-theme .bg-gray-200 {
+  background-color: var(--atlas-sage-wash) !important;
+}
+
+.atlas-public-theme .border-gray-100,
+.atlas-public-theme .border-gray-200 {
+  border-color: var(--atlas-border) !important;
+}
+
+.atlas-public-theme .text-green-600,
+.atlas-public-theme .text-green-700,
+.atlas-public-theme .text-emerald-600,
+.atlas-public-theme .text-emerald-700 {
+  color: var(--atlas-forest-mid) !important;
+}
+
+.atlas-public-theme .bg-green-600,
+.atlas-public-theme .bg-green-700,
+.atlas-public-theme .bg-emerald-600,
+.atlas-public-theme .bg-emerald-700 {
+  background-color: var(--atlas-leaf) !important;
+}
+
+.atlas-public-theme .hover\:bg-green-700:hover,
+.atlas-public-theme .hover\:bg-green-800:hover,
+.atlas-public-theme .hover\:bg-emerald-700:hover {
+  background-color: var(--atlas-forest) !important;
+}
+
+.atlas-public-theme .bg-green-50,
+.atlas-public-theme .bg-green-100,
+.atlas-public-theme .bg-emerald-50,
+.atlas-public-theme .bg-emerald-100 {
+  background-color: var(--atlas-sage-soft) !important;
+}
+
+.atlas-public-theme .text-green-800,
+.atlas-public-theme .text-emerald-800 {
+  color: var(--atlas-forest) !important;
+}
+
+.atlas-public-theme .text-green-100,
+.atlas-public-theme .text-green-200,
+.atlas-public-theme .text-emerald-100,
+.atlas-public-theme .text-emerald-200 {
+  color: var(--atlas-paper) !important;
+}
+
+.atlas-public-theme .border-green-200,
+.atlas-public-theme .border-green-600 {
+  border-color: var(--atlas-border) !important;
+}
+
+.atlas-public-theme .border-green-500 {
+  border-color: var(--atlas-leaf) !important;
+}
+
+/* Premium all-products catalog cards — deliberately scoped to the opt-in card variant. */
+.catalog-product-card {
+  overflow: hidden;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--atlas-border);
+  border-radius: 16px;
+  background: var(--atlas-cream);
+  box-shadow: 0 4px 18px rgba(31, 58, 39, 0.055);
+  color: var(--atlas-ink);
+  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.25, 1), box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.catalog-product-card:hover {
+  transform: translateY(-4px);
+  border-color: #c8d8c8;
+  box-shadow: 0 16px 36px rgba(31, 58, 39, 0.12);
+}
+
+.catalog-product-visual {
+  position: relative;
+  overflow: hidden;
+  background: var(--atlas-sage-wash);
+}
+
+.catalog-product-image {
+  position: relative;
+  aspect-ratio: 1.22 / 1;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(255, 254, 250, 0.86), transparent 56%),
+    linear-gradient(145deg, #e9efdf, #dbe6d8);
+}
+
+.catalog-product-image > a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.catalog-product-image > a > .relative {
+  position: absolute;
+  inset: 0;
+}
+
+.catalog-product-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalog-image-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 254, 250, 0.74), transparent 59%),
+    linear-gradient(145deg, #e9efdf, #dbe6d8);
+}
+
+.catalog-placeholder-rule {
+  width: 38%;
+  height: 1px;
+  background: rgba(56, 107, 75, 0.25);
+}
+
+.catalog-no-image-label {
+  padding: 8px 12px;
+  border: 1px solid rgba(56, 107, 75, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.62);
+  color: var(--atlas-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.catalog-image-index {
+  position: absolute;
+  right: 15px;
+  bottom: 13px;
+  color: rgba(255, 254, 250, 0.94);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-shadow: 0 1px 8px rgba(20, 54, 36, 0.48);
+  pointer-events: none;
+}
+
+.catalog-type-badge {
+  min-height: 27px;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  border-radius: 999px !important;
+  padding: 5px 10px !important;
+  color: #fffefa !important;
+  box-shadow: 0 3px 11px rgba(20, 54, 36, 0.16);
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.045em;
+}
+
+.catalog-favorite-button {
+  border: 1px solid rgba(255, 254, 250, 0.8);
+  background: rgba(255, 254, 250, 0.9);
+  color: var(--atlas-forest);
+  box-shadow: 0 3px 12px rgba(20, 54, 36, 0.14);
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.catalog-favorite-button:hover {
+  transform: scale(1.06);
+  background: var(--atlas-cream);
+  color: var(--atlas-forest);
+}
+
+.catalog-product-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 19px 20px 15px;
+}
+
+.catalog-product-heading {
+  min-height: 97px;
+}
+
+.catalog-sku {
+  margin-bottom: 8px;
+  color: var(--atlas-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.catalog-sku span {
+  margin-left: 5px;
+  color: var(--atlas-body);
+  letter-spacing: 0.08em;
+}
+
+.catalog-product-name {
+  color: var(--atlas-forest);
+  font-size: clamp(17px, 1.45vw, 20px);
+  font-weight: 650;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.catalog-botanical {
+  margin-top: 5px;
+  overflow: hidden;
+  color: #768577;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-product-facts {
+  display: flex;
+  min-height: 61px;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--atlas-border-soft);
+  padding: 9px 0;
+}
+
+.catalog-fact {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--atlas-ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.catalog-fact > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  color: var(--atlas-leaf);
+  stroke-width: 1.7;
+}
+
+.catalog-fact > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.catalog-fact-label {
+  margin-bottom: 3px;
+  color: var(--atlas-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.catalog-product-price {
+  display: flex;
+  margin-top: auto;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--atlas-border-soft);
+  padding-top: 14px;
+}
+
+.catalog-price-value {
+  color: var(--atlas-forest);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.catalog-price-unit {
+  margin-top: 4px;
+  color: var(--atlas-muted);
+  font-size: 10px;
+  letter-spacing: 0.025em;
+}
+
+.catalog-product-actions {
+  padding: 0 20px 19px;
+}
+
+.catalog-quote-button {
+  min-height: 41px;
+  border: 1px solid var(--atlas-forest);
+  border-radius: 7px;
+  background: var(--atlas-forest);
+  color: var(--atlas-cream);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.catalog-quote-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--atlas-forest-deep);
+  background: var(--atlas-forest-deep);
+}
+
+.catalog-sample-button {
+  min-height: 41px;
+  border-color: #cbd9ca;
+  border-radius: 7px;
+  background: transparent;
+  padding-inline: 17px;
+  color: var(--atlas-forest);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.catalog-sample-button:hover {
+  border-color: var(--atlas-leaf);
+  background: var(--atlas-sage-soft);
+  color: var(--atlas-forest);
+}
+
+@media (max-width: 640px) {
+  .catalog-product-content {
+    padding: 17px 16px 13px;
+  }
+
+  .catalog-product-heading {
+    min-height: 88px;
+  }
+
+  .catalog-product-facts {
+    gap: 12px;
+  }
+
+  .catalog-fact {
+    font-size: 10px;
+  }
+
+  .catalog-product-actions {
+    padding: 0 16px 16px;
+  }
+
+  .catalog-price-value {
+    font-size: 19px;
+  }
+}
+
+/* Legacy public-page accents were often blue, orange, or purple. These are
+   decorative brand accents (not status/data colors), so bring them into Atlas green. */
+.atlas-public-theme .text-blue-600,
+.atlas-public-theme .text-blue-700,
+.atlas-public-theme .text-blue-800,
+.atlas-public-theme .text-indigo-600,
+.atlas-public-theme .text-purple-600,
+.atlas-public-theme .text-purple-700,
+.atlas-public-theme .text-orange-600,
+.atlas-public-theme .text-orange-700,
+.atlas-public-theme .text-orange-900,
+.atlas-public-theme .text-teal-600,
+.atlas-public-theme .text-teal-700 {
+  color: var(--atlas-forest-mid) !important;
+}
+
+.atlas-public-theme .bg-blue-50,
+.atlas-public-theme .bg-blue-100,
+.atlas-public-theme .bg-indigo-50,
+.atlas-public-theme .bg-indigo-100,
+.atlas-public-theme .bg-purple-50,
+.atlas-public-theme .bg-purple-100,
+.atlas-public-theme .bg-orange-50,
+.atlas-public-theme .bg-orange-100,
+.atlas-public-theme .bg-teal-50,
+.atlas-public-theme .bg-teal-100 {
+  background-color: var(--atlas-sage-soft) !important;
+}
+
+.atlas-public-theme .bg-blue-600,
+.atlas-public-theme .bg-blue-700,
+.atlas-public-theme .bg-purple-600,
+.atlas-public-theme .bg-orange-600,
+.atlas-public-theme .bg-teal-600 {
+  background-color: var(--atlas-leaf) !important;
+}
+
+.atlas-public-theme .border-blue-200,
+.atlas-public-theme .border-indigo-200,
+.atlas-public-theme .border-purple-200,
+.atlas-public-theme .border-orange-200,
+.atlas-public-theme .border-orange-300,
+.atlas-public-theme .border-orange-500,
+.atlas-public-theme .border-teal-200 {
+  border-color: var(--atlas-border) !important;
+}
+
+.atlas-public-theme .hover\:bg-blue-700:hover,
+.atlas-public-theme .hover\:bg-purple-700:hover,
+.atlas-public-theme .hover\:bg-orange-700:hover,
+.atlas-public-theme .hover\:bg-teal-700:hover {
+  background-color: var(--atlas-forest) !important;
+}
+
+.atlas-public-theme .ring-orange-200 {
+  --tw-ring-color: var(--atlas-sage) !important;
+}
+
+.atlas-public-theme .from-orange-50 {
+  --tw-gradient-from: var(--atlas-sage-soft) var(--tw-gradient-from-position) !important;
+}
+
+.atlas-public-theme .from-blue-50,
+.atlas-public-theme .from-indigo-50 {
+  --tw-gradient-from: var(--atlas-sage-soft) var(--tw-gradient-from-position) !important;
+}
+
+.atlas-public-theme .to-yellow-50,
+.atlas-public-theme .to-amber-50,
+.atlas-public-theme .to-indigo-100 {
+  --tw-gradient-to: var(--atlas-paper) var(--tw-gradient-to-position) !important;
+}
+
+.atlas-public-theme .from-emerald-950 {
+  --tw-gradient-from: var(--atlas-forest-deep) var(--tw-gradient-from-position) !important;
+}
+
+.atlas-public-theme .via-emerald-900 {
+  --tw-gradient-via: var(--atlas-forest) !important;
+}
+
+.atlas-public-theme .to-teal-800 {
+  --tw-gradient-to: var(--atlas-forest) var(--tw-gradient-to-position) !important;
+}
+
+.atlas-public-theme .hover\:text-orange-600:hover {
+  color: var(--atlas-forest-mid) !important;
+}
+
+/* Informational callouts keep their blue semantic cue instead of becoming brand accents. */
+.atlas-public-theme .atlas-semantic-info.bg-blue-50 {
+  background-color: #eff6ff !important;
+}
+
+.atlas-public-theme .atlas-semantic-info.border-blue-200 {
+  border-color: #bfdbfe !important;
+}
+
+.atlas-public-theme .atlas-semantic-info .text-blue-900 {
+  color: #1e3a8a !important;
+}
+
+.atlas-public-theme .atlas-semantic-info .text-blue-600 {
+  color: #2563eb !important;
+}

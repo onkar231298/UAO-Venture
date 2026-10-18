@@ -109,7 +109,7 @@ export default function UnifiedLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-500 to-yellow-400 flex flex-col">
+    <div className="atlas-public-theme min-h-screen bg-gradient-to-br from-[var(--atlas-forest)] via-[var(--atlas-leaf)] to-[var(--atlas-forest-mid)] flex flex-col">
       {/* Main content area with centered card */}
       <div className="flex-1 flex items-center justify-center p-4 pb-8">
         <Card className="w-full max-w-md">

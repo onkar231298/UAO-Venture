@@ -26,7 +26,7 @@ export default function Home() {
 
   // Show the same homepage for ALL users regardless of login status or role
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <HomeStructuredData />
       <WebsiteSchema />
       <CompanyStructuredData />
@@ -111,7 +111,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+      <section className="py-20 bg-gradient-to-r from-[var(--atlas-forest)] to-[var(--atlas-leaf)] text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Partner with Us?</h2>
           <p className="text-xl mb-8 opacity-90">

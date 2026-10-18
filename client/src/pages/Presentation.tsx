@@ -46,12 +46,13 @@ import ffsMachineImg from "@assets/image_1770704939826.png";
 import cleanroomFacilityImg from "@assets/image_1770705325041.png";
 
 const COLORS = {
-  turmericGold: "#C89B2B",
-  herbalGreen: "#2E5E3E",
+  turmericGold: "#D7E19A",
+  herbalGreen: "#173C2B",
   chilliRed: "#9E1B1B",
   earthBrown: "#5A3E2B",
-  offWhite: "#F8F5EF",
-  charcoal: "#2C2C2C",
+  offWhite: "#F8F7EF",
+  charcoal: "#293A31",
+  cleanWhite: "#FFFEFA",
 };
 
 const sections = [
@@ -266,12 +267,12 @@ export default function Presentation() {
   };
 
   return (
-    <div className="presentation-page" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: COLORS.charcoal }}>
+    <div className="atlas-public-theme presentation-page" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: COLORS.charcoal }}>
       {/* Sticky Navigation */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
         style={{
-          background: navVisible ? "rgba(44,44,44,0.97)" : "transparent",
+          background: navVisible ? "rgba(23,60,43,0.97)" : "transparent",
           backdropFilter: navVisible ? "blur(12px)" : "none",
           transform: navVisible ? "translateY(0)" : "translateY(-100%)",
           borderBottom: navVisible ? `2px solid ${COLORS.turmericGold}` : "none",
@@ -323,7 +324,7 @@ export default function Presentation() {
             alt="Atlas Ingredients Corporate Headquarters"
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(44,44,44,0.85) 0%, rgba(90,62,43,0.75) 50%, rgba(46,94,62,0.8) 100%)" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(23,60,43,0.92) 0%, rgba(46,94,62,0.78) 50%, rgba(23,60,43,0.82) 100%)" }} />
         </div>
 
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -362,7 +363,7 @@ export default function Presentation() {
           <Anim type="fade-up" delay={400}>
             <div
               className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full mb-6 sm:mb-8 text-xs sm:text-sm font-medium pres-badge-glow"
-              style={{ background: "rgba(200,155,43,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}
+              style={{ background: "rgba(215,225,154,0.15)", border: `1px solid ${COLORS.turmericGold}`, color: COLORS.turmericGold }}
             >
               <Star className="w-3 h-3 sm:w-4 sm:h-4 pres-spin-slow" />
               <span className="hidden sm:inline">Three Star Export House</span>
@@ -465,7 +466,7 @@ export default function Presentation() {
                 { icon: <Globe className="w-6 sm:w-7 h-6 sm:h-7" />, title: "Government-Recognized Performance", desc: "Recognized by DGFT (Directorate General of Foreign Trade) for sustained export growth and quality standards across multiple markets. This recognition opens doors to trade promotion schemes and duty benefits.", color: COLORS.chilliRed },
               ].map((item, i) => (
                 <Anim key={i} type="slide-right" delay={300 + i * 200}>
-                  <div className="p-4 sm:p-6 rounded-2xl pres-card-hover" style={{ background: "white", border: "1px solid #e5e7eb" }}>
+                  <div className="p-4 sm:p-6 rounded-2xl pres-card-hover" style={{ background: COLORS.cleanWhite, border: "1px solid var(--atlas-border)" }}>
                     <div className="flex items-start gap-3 sm:gap-4">
                       <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${item.color}15` }}>
                         <span style={{ color: item.color }}>{item.icon}</span>
@@ -501,7 +502,7 @@ export default function Presentation() {
       {/* ═══════════════════════════════════════════════════════════════════
           3. SOURCING NETWORK
          ═══════════════════════════════════════════════════════════════════ */}
-      <section id="sourcing" className="py-16 sm:py-24 md:py-32" style={{ background: "white" }}>
+      <section id="sourcing" className="py-16 sm:py-24 md:py-32" style={{ background: COLORS.cleanWhite }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <Anim type="zoom-in">
             <div className="text-center mb-10 sm:mb-16">
@@ -697,7 +698,7 @@ export default function Presentation() {
                 { img: seedJarsCloseImg, alt: "Premium Seeds Collection", label: "Premium Seeds Collection" },
               ].map((item, i) => (
                 <Anim key={i} type="scale-up" delay={900 + i * 150}>
-                  <div className="rounded-xl overflow-hidden pres-card-hover" style={{ border: "1px solid #e5e7eb" }}>
+                  <div className="rounded-xl overflow-hidden pres-card-hover" style={{ border: "1px solid var(--atlas-border)" }}>
                     <img src={item.img} alt={item.alt} className="w-full h-32 sm:h-40 md:h-48 object-cover" />
                     <div className="p-2 sm:p-3 text-center bg-white">
                       <p className="text-[10px] sm:text-xs font-medium text-gray-600">{item.label}</p>
@@ -715,7 +716,7 @@ export default function Presentation() {
       {/* ═══════════════════════════════════════════════════════════════════
           5. MANUFACTURING
          ═══════════════════════════════════════════════════════════════════ */}
-      <section id="manufacturing" className="py-16 sm:py-24 md:py-32" style={{ background: "white" }}>
+      <section id="manufacturing" className="py-16 sm:py-24 md:py-32" style={{ background: COLORS.cleanWhite }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <Anim type="rotate-in">
             <div className="text-center mb-10 sm:mb-16">
@@ -974,7 +975,7 @@ export default function Presentation() {
               <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6" style={{ color: COLORS.charcoal }}>
                 Standee Pouch Packaging Solutions
               </h2>
-              <p className="text-sm sm:text-base md:text-lg max-w-3xl mx-auto" style={{ color: "#666" }}>
+              <p className="text-sm sm:text-base md:text-lg max-w-3xl mx-auto" style={{ color: "var(--atlas-body)" }}>
                 Premium blank white standee pouches with clear windows, packed in our fully automatic FFS facility inside an ISO-certified clean room with epoxy flooring and strict food safety protocols.
               </p>
             </div>
@@ -1187,7 +1188,7 @@ export default function Presentation() {
                   { icon: <CheckCircle2 className="w-4 sm:w-5 h-4 sm:h-5" />, title: "Error-Free Documentation", desc: "Software-driven documentation eliminates manual entry errors across all export and compliance documents including commercial invoices, packing lists, and health certificates." },
                 ].map((item, i) => (
                   <Anim key={i} type="flip-up" delay={300 + i * 150}>
-                    <div className="flex gap-2 sm:gap-3 items-start p-3 sm:p-4 bg-white rounded-xl pres-card-hover" style={{ border: "1px solid #e5e7eb" }}>
+                    <div className="flex gap-2 sm:gap-3 items-start p-3 sm:p-4 bg-white rounded-xl pres-card-hover" style={{ border: "1px solid var(--atlas-border)" }}>
                       <span className="shrink-0 mt-0.5" style={{ color: COLORS.herbalGreen }}>{item.icon}</span>
                       <div>
                         <h4 className="font-semibold text-xs sm:text-sm">{item.title}</h4>
@@ -1274,7 +1275,7 @@ export default function Presentation() {
       {/* ═══════════════════════════════════════════════════════════════════
           9. EXPORT LOGISTICS
          ═══════════════════════════════════════════════════════════════════ */}
-      <section id="logistics" className="py-16 sm:py-24 md:py-32" style={{ background: "white" }}>
+      <section id="logistics" className="py-16 sm:py-24 md:py-32" style={{ background: COLORS.cleanWhite }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <Anim type="fade-down">
             <div className="text-center mb-10 sm:mb-16">
@@ -1385,7 +1386,7 @@ export default function Presentation() {
               },
             ].map((member, i) => (
               <Anim key={i} type="drop-in" delay={200 + i * 180}>
-                <div className="bg-white rounded-2xl overflow-hidden h-full pres-card-lift" style={{ border: "1px solid #e5e7eb" }}>
+                <div className="bg-white rounded-2xl overflow-hidden h-full pres-card-lift" style={{ border: "1px solid var(--atlas-border)" }}>
                   <div className="h-36 sm:h-48 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${member.color}12, ${member.color}06)` }}>
                     <div className="w-16 sm:w-24 h-16 sm:h-24 rounded-full flex items-center justify-center pres-avatar-float" style={{ background: `${member.color}15`, border: `2px solid ${member.color}30` }}>
                       <Users className="w-7 sm:w-10 h-7 sm:h-10" style={{ color: member.color }} />

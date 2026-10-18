@@ -117,7 +117,7 @@ export default function CustomerRegistration() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="atlas-public-theme min-h-screen bg-gradient-to-br from-[var(--atlas-sage-soft)] to-[var(--atlas-paper)] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -149,7 +149,7 @@ export default function CustomerRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4">
+    <div className="atlas-public-theme min-h-screen bg-gradient-to-br from-[var(--atlas-sage-soft)] to-[var(--atlas-paper)] py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">

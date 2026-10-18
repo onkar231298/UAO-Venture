@@ -296,7 +296,7 @@ export default function ProductDetailBFI() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="atlas-public-theme min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
@@ -317,7 +317,7 @@ export default function ProductDetailBFI() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className={`min-h-screen bg-background ${window.location.pathname.startsWith("/customer/") ? "" : "atlas-public-theme"}`}>
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
@@ -332,7 +332,7 @@ export default function ProductDetailBFI() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${window.location.pathname.startsWith("/customer/") ? "" : "atlas-public-theme"}`}>
       {/* Structured Data for SEO */}
       <StructuredData product={product} faqs={faqs} />
       <EnhancedSEOHead
@@ -559,7 +559,7 @@ export default function ProductDetailBFI() {
               </div>
 
               {/* Enhanced Inquiry Form */}
-              <Card className="bg-blue-50 border-blue-200 mb-6">
+              <Card className="atlas-semantic-info bg-blue-50 border-blue-200 mb-6">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-sm text-blue-900">Submit Bid for High Volume</h4>
@@ -674,7 +674,7 @@ export default function ProductDetailBFI() {
 
                           {/* Certifications & Tags Display */}
                           {((product.certifications && (product.certifications as string[]).length > 0) || ((product as any).tags && ((product as any).tags as string[]).length > 0)) && (
-                            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="atlas-semantic-info mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                                 <Shield className="w-4 h-4" />
                                 Certifications & Quality Standards

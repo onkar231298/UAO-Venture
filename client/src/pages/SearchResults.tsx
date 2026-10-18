@@ -88,7 +88,7 @@ export default function SearchResults() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="atlas-public-theme min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
@@ -108,7 +108,7 @@ export default function SearchResults() {
   // Show empty search state
   if (!searchQuery?.trim()) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="atlas-public-theme min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
@@ -126,7 +126,7 @@ export default function SearchResults() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="atlas-public-theme min-h-screen bg-background">
       <Header />
       
       <div className="container mx-auto px-4 py-8">

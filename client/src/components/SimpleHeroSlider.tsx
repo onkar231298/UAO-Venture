@@ -267,7 +267,7 @@ export default function SimpleHeroSlider() {
 
   return (
     <section
-      className="relative isolate overflow-hidden bg-[#edf4e9] px-0 py-3 sm:py-5 lg:py-6"
+      className="relative isolate overflow-hidden bg-[var(--atlas-sage-soft)] px-0 py-3 sm:py-5 lg:py-6"
       aria-roledescription="carousel"
       aria-label="Atlas Ingredients — organic ingredients for business"
       onMouseEnter={() => setIsHovered(true)}
@@ -279,10 +279,10 @@ export default function SimpleHeroSlider() {
     >
       <div className="w-full">
         <div
-          className="hero-slider-frame grid w-full overflow-hidden rounded-none border-y border-[#31563d] bg-[#173c2b] shadow-[0_18px_55px_-38px_rgba(28,54,39,0.48)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
+          className="hero-slider-frame grid w-full overflow-hidden rounded-none border-y border-[var(--atlas-forest-mid)] bg-[var(--atlas-forest)] shadow-[0_18px_55px_-38px_rgba(28,54,39,0.48)] md:min-h-[430px] md:grid-cols-[1.03fr_0.97fr] lg:min-h-[500px]"
           aria-live="off"
         >
-          <div className="hero-photo-frame group relative min-h-[225px] overflow-hidden bg-[#dce2d2] sm:min-h-[290px] md:min-h-full">
+          <div className="hero-photo-frame group relative min-h-[225px] overflow-hidden bg-[var(--atlas-sage)] sm:min-h-[290px] md:min-h-full">
             <img
               key={`image-${slide.id}`}
               src={slide.backgroundImage}
@@ -292,8 +292,8 @@ export default function SimpleHeroSlider() {
                 objectPosition: `${slide.imagePositionX ?? 50}% ${slide.imagePositionY ?? 50}%`,
               }}
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#173c2b]/55 via-transparent to-[#173c2b]/5" />
-            <div className="absolute bottom-4 left-4 z-10 rounded-full border border-white/45 bg-[#f8f7ef]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#244332] backdrop-blur sm:bottom-6 sm:left-6 sm:text-[11px]">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--atlas-forest)]/55 via-transparent to-[var(--atlas-forest)]/5" />
+            <div className="absolute bottom-4 left-4 z-10 rounded-full border border-white/45 bg-[var(--atlas-paper)]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--atlas-forest)] backdrop-blur sm:bottom-6 sm:left-6 sm:text-[11px]">
               Atlas Ingredients
             </div>
 
@@ -302,7 +302,7 @@ export default function SimpleHeroSlider() {
                 <button
                   type="button"
                   onClick={prevSlide}
-                  className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#173c2b]/80 text-white shadow-md backdrop-blur transition-colors hover:bg-[#173c2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e1edc9] focus-visible:ring-offset-2 focus-visible:ring-offset-[#173c2b] sm:left-5 sm:h-11 sm:w-11"
+                  className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[var(--atlas-forest)]/80 text-white shadow-md backdrop-blur transition-colors hover:bg-[var(--atlas-forest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-sage)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--atlas-forest)] sm:left-5 sm:h-11 sm:w-11"
                   aria-label="Previous slide"
                 >
                   <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -310,7 +310,7 @@ export default function SimpleHeroSlider() {
                 <button
                   type="button"
                   onClick={nextSlide}
-                  className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#173c2b]/80 text-white shadow-md backdrop-blur transition-colors hover:bg-[#173c2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e1edc9] focus-visible:ring-offset-2 focus-visible:ring-offset-[#173c2b] sm:right-5 sm:h-11 sm:w-11"
+                  className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[var(--atlas-forest)]/80 text-white shadow-md backdrop-blur transition-colors hover:bg-[var(--atlas-forest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-sage)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--atlas-forest)] sm:right-5 sm:h-11 sm:w-11"
                   aria-label="Next slide"
                 >
                   <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -320,8 +320,8 @@ export default function SimpleHeroSlider() {
           </div>
 
           <div className="hero-slider-copy-panel flex min-w-0 flex-col justify-center px-6 py-8 max-[360px]:px-5 sm:px-9 sm:py-10 md:px-7 md:py-9 lg:px-14 lg:py-14">
-            <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4e5bd] sm:text-[11px]">
-              <span className="h-px w-8 bg-[#a6bd8c]" aria-hidden="true" />
+            <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--atlas-sage)] sm:text-[11px]">
+              <span className="h-px w-8 bg-[var(--atlas-sage)]" aria-hidden="true" />
               Organic supply, considered
             </div>
             <div
@@ -334,7 +334,7 @@ export default function SimpleHeroSlider() {
               <h1 className="hero-slide-title max-w-[16ch] break-words font-serif text-[clamp(1.8rem,8vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl md:text-[2.75rem] lg:text-[3.6rem]">
                 {slide.title}
               </h1>
-              <h2 className="mt-4 break-words text-base font-semibold leading-snug text-[#d4e5bd] sm:mt-5 sm:text-lg">
+              <h2 className="mt-4 break-words text-base font-semibold leading-snug text-[var(--atlas-sage)] sm:mt-5 sm:text-lg">
                 {slide.subtitle}
               </h2>
               <p className="mt-3 max-w-[42ch] break-words text-sm leading-7 text-white/85 sm:mt-4 sm:text-base sm:leading-8">
@@ -350,8 +350,8 @@ export default function SimpleHeroSlider() {
                     asChild
                     variant={index === 0 ? "default" : "outline"}
                     className={index === 0
-                      ? "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md bg-[#d7e6c4] px-4 py-3 text-center font-semibold leading-snug text-[#173c2b] shadow-sm transition-colors hover:bg-white focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"
-                      : "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md border-white/55 bg-transparent px-4 py-3 text-center font-semibold leading-snug text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[#d7e6c4] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"}
+                      ? "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md bg-[var(--atlas-sage)] px-4 py-3 text-center font-semibold leading-snug text-[var(--atlas-forest)] shadow-sm transition-colors hover:bg-[var(--atlas-paper)] focus-visible:ring-[var(--atlas-sage)] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"
+                      : "h-auto min-h-12 w-full max-w-full justify-center whitespace-normal break-words rounded-md border-white/55 bg-transparent px-4 py-3 text-center font-semibold leading-snug text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:ring-[var(--atlas-sage)] min-[420px]:w-fit min-[420px]:px-5 md:px-3 lg:px-5"}
                   >
                     <a
                       href={action.href}
@@ -369,35 +369,35 @@ export default function SimpleHeroSlider() {
 
         {activeSlides.length > 1 && (
           <div className="flex min-h-14 flex-wrap items-center justify-center gap-x-4 gap-y-2 px-2 pt-3 sm:justify-between sm:px-1 sm:pt-4">
-            <span className="hidden text-xs font-medium tracking-wide text-[#66715e] sm:block">
-              {String(safeCurrentSlide + 1).padStart(2, "0")} <span className="mx-1 text-[#a8ae9d]">/</span>{" "}
+            <span className="hidden text-xs font-medium tracking-wide text-[var(--atlas-body)] sm:block">
+              {String(safeCurrentSlide + 1).padStart(2, "0")} <span className="mx-1 text-[var(--atlas-muted)]">/</span>{" "}
               {String(activeSlides.length).padStart(2, "0")}
             </span>
-            <div className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-[#d2d7c9] bg-[#fbfaf5] px-3 py-2">
+            <div className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-[var(--atlas-border)] bg-[var(--atlas-cream)] px-3 py-2">
               <div className="flex shrink-0 items-center gap-2" role="group" aria-label="Choose a slide">
                 {activeSlides.map((item, index) => (
                   <button
                     key={`${index}-${item.id}`}
                     type="button"
                     onClick={() => setCurrentSlide(index)}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42] focus-visible:ring-offset-2"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-forest-mid)] focus-visible:ring-offset-2"
                     aria-label={`Go to slide ${index + 1}`}
                     aria-current={index === safeCurrentSlide ? "true" : undefined}
                   >
                     <span
                       className={`h-2.5 rounded-full transition-colors duration-300 ${
-                      index === safeCurrentSlide ? "w-7 bg-[#315d42]" : "w-2.5 bg-[#a8b09e] hover:bg-[#68785c]"
+                      index === safeCurrentSlide ? "w-7 bg-[var(--atlas-forest-mid)]" : "w-2.5 bg-[var(--atlas-muted)] hover:bg-[var(--atlas-leaf)]"
                     }`}
                       aria-hidden="true"
                     />
                   </button>
                 ))}
               </div>
-              <span className="mx-0.5 h-4 w-px bg-[#d5d9cf]" aria-hidden="true" />
+              <span className="mx-0.5 h-4 w-px bg-[var(--atlas-border)]" aria-hidden="true" />
               <button
                 type="button"
                 onClick={() => setIsPaused((paused) => !paused)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#31513a] transition-colors hover:bg-[#e8ecdf] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315d42]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--atlas-forest)] transition-colors hover:bg-[var(--atlas-sage-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-forest-mid)]"
                 aria-label={isPaused ? "Resume automatic slide advance" : "Pause automatic slide advance"}
                 aria-pressed={isPaused}
               >

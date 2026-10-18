@@ -126,7 +126,7 @@ export default function Industries() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="atlas-public-theme min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-1">

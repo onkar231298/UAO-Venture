@@ -317,7 +317,7 @@ export default function Products() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${window.location.pathname.startsWith("/customer/") ? "" : "atlas-public-theme"}`}>
       <ProductsPageStructuredData products={productsData?.products || []} />
       <Header />
       
@@ -647,7 +647,7 @@ export default function Products() {
               ) : productsData?.products && productsData.products.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {productsData.products.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                    <ProductCard key={product.id} product={product} variant="catalog" />
                   ))}
                 </div>
               ) : (
