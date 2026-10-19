@@ -27,6 +27,21 @@ interface QuotationItem {
   specifications: string;
 }
 
+const syncPaymentTermsLine = (terms: string, paymentTerms: string) => {
+  const lines = terms.split(/\r?\n/);
+  const lineIndex = lines.findIndex((line) => /^\s*Payment\s+Terms\s*:/i.test(line));
+
+  if (lineIndex >= 0) {
+    if (paymentTerms.trim()) {
+      lines[lineIndex] = `Payment Terms: ${paymentTerms.trim()}`;
+    } else {
+      lines.splice(lineIndex, 1);
+    }
+  }
+
+  return lines.join("\n");
+};
+
 export default function QuotationForm({
   inquiry,
   onSubmit,
@@ -43,6 +58,10 @@ export default function QuotationForm({
     status: isEditing ? "draft" : (initialQuotation?.status || "draft"),
     currency: initialQuotation?.currency || "USD",
     priceType: initialQuotation?.priceType || "ex_warehouse",
+    paymentTerms: initialQuotation?.paymentTerms
+      || initialQuotation?.terms?.match(/^\s*Payment Terms:\s*([^\r\n]+)/im)?.[1]?.trim()
+      || "30 days net",
+    leadTime: initialQuotation?.leadTime || "As available",
     terms: initialQuotation?.terms || `Payment Terms: 30 days net
 Delivery: Ex-works
 Validity: 30 days from quotation date
@@ -158,8 +177,10 @@ Packaging: Standard export packaging`,
       discountAmount: discountAmount.toString(),
       currency: formData.currency,
       priceType: formData.priceType,
+      paymentTerms: formData.paymentTerms.trim() || null,
+      leadTime: formData.leadTime.trim() || null,
       status,
-      terms: formData.terms,
+      terms: syncPaymentTermsLine(formData.terms, formData.paymentTerms),
       notes: formData.notes,
       includeGst: formData.includeGst,
       gstNumber: formData.includeGst ? formData.gstNumber : null,
@@ -243,6 +264,31 @@ Packaging: Standard export packaging`,
               </div>}
             </div>
             
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="paymentTerms">Payment Terms</Label>
+                <Input
+                  id="paymentTerms"
+                  value={formData.paymentTerms}
+                  onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
+                  maxLength={255}
+                  placeholder="e.g., 30 days net or as per agreement"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div>
+                <Label htmlFor="leadTime">Lead Time</Label>
+                <Input
+                  id="leadTime"
+                  value={formData.leadTime}
+                  onChange={(e) => setFormData({ ...formData, leadTime: e.target.value })}
+                  maxLength={100}
+                  placeholder="e.g., 2–3 weeks after order confirmation"
+                  className="min-h-[44px]"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="currency">Currency</Label>

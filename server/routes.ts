@@ -3993,6 +3993,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         discountAmount: req.body.discountAmount,
         currency: req.body.currency,
         priceType: req.body.priceType,
+        paymentTerms: req.body.paymentTerms,
+        leadTime: req.body.leadTime,
         terms: req.body.terms,
         notes: req.body.notes,
         includeGst: req.body.includeGst,
