@@ -2743,7 +2743,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       const filters: any = {
         customerId,
-        statuses: ["sent", "accepted", "rejected", "expired"],
+        statuses: ["sent", "accepted", "rejected", "expired", "converted"],
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
@@ -2752,8 +2752,22 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         filters.status = status as string;
       }
 
-      const result = await storage.getQuotations(filters);
-      res.json(result);
+      const [result, drafts] = await Promise.all([
+        storage.getQuotations(filters),
+        storage.getQuotations({
+          customerId,
+          statuses: ["draft"],
+          limit: 50,
+          offset: 0,
+        }),
+      ]);
+      const preparationNotices = drafts.quotations.map((draft: any) => ({
+        id: draft.id,
+        quotationId: draft.quotationId,
+        inquiryId: draft.inquiryId,
+        updatedAt: draft.updatedAt,
+      }));
+      res.json({ ...result, preparationNotices });
     } catch (error) {
       console.error("Error fetching customer quotations:", error);
       res.status(500).json({ message: "Failed to fetch quotations" });
@@ -4858,6 +4872,48 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  app.patch('/api/quotations/:id/reject', isCustomerAuthenticated, async (req: any, res) => {
+    try {
+      const quotationId = parseInt(req.params.id);
+      const customerId = req.user.claims.sub;
+      const currentQuotation = await storage.getQuotation(quotationId);
+      if (!currentQuotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      const relatedInquiry = currentQuotation.inquiryId
+        ? await storage.getInquiry(currentQuotation.inquiryId)
+        : undefined;
+      const quotationOwnerId = currentQuotation.customerId ?? relatedInquiry?.customerId;
+      if (quotationOwnerId !== customerId) {
+        return res.status(403).json({ message: "You can only reject your own quotations" });
+      }
+      if (currentQuotation.status !== "sent") {
+        return res.status(409).json({ message: "Only sent quotations can be rejected" });
+      }
+
+      const [quotation] = await db.update(quotations)
+        .set({ status: "rejected", customerId, updatedAt: new Date() })
+        .where(and(eq(quotations.id, quotationId), eq(quotations.status, "sent")))
+        .returning();
+      if (!quotation) {
+        return res.status(409).json({ message: "This quotation has already been accepted, rejected, or is no longer available" });
+      }
+
+      if (quotation.inquiryId) {
+        const inquiry = await storage.getInquiry(quotation.inquiryId);
+        if (inquiry?.inquiryType === "high_volume_bid") {
+          await storage.updateInquiry(quotation.inquiryId, { bidStatus: "customer_rejected" });
+        }
+      }
+
+      return res.json(quotation);
+    } catch (error) {
+      console.error("Error rejecting quotation:", error);
+      return res.status(500).json({ message: "Failed to reject quotation" });
+    }
+  });
+
   // Convert accepted quotation to CRM lead (for admins)
   app.post('/api/quotations/:id/convert-to-lead', isAuthenticated, async (req: any, res) => {
     try {
@@ -5170,7 +5226,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         if (quotationOwnerId !== customerId) {
           return res.status(403).json({ message: "You can only download your own quotations" });
         }
-        if (!["sent", "accepted", "rejected", "expired"].includes(quotation.status)) {
+        if (!["sent", "accepted", "rejected", "expired", "converted"].includes(quotation.status)) {
           return res.status(404).json({ message: "Quotation is not available to the customer" });
         }
       }
@@ -5602,7 +5658,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
 
       const { 
-        quotationId,
+        quotationId: rawQuotationId,
         paymentTermsAdvancePercent,
         paymentTermsCreditDays,
         expectedDeliveryDate,
@@ -5624,14 +5680,31 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         internalNotes
       } = req.body;
 
-      if (!quotationId) {
+      const quotationId = Number(rawQuotationId);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
         return res.status(400).json({ message: "Quotation ID is required" });
       }
 
-      // Verify quotation exists and is in accepted status
+      // Verify quotation exists, is in scope, and has not already been converted.
       const quotation = await storage.getQuotation(quotationId);
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      if (!(await canManageQuotation(userId, user.role, quotation))) {
+        return res.status(403).json({ message: "You can only convert quotations for enquiries assigned to you" });
+      }
+
+      const [linkedOrder] = await db.select({ id: salesOrders.id, soNumber: salesOrders.soNumber })
+        .from(salesOrders)
+        .where(eq(salesOrders.quotationId, quotationId))
+        .limit(1);
+      if (quotation.salesOrderId || quotation.status === "converted" || linkedOrder) {
+        return res.status(409).json({
+          message: "This quotation has already been converted to a sales order",
+          salesOrderId: linkedOrder?.id || quotation.salesOrderId || null,
+          soNumber: linkedOrder?.soNumber || null,
+        });
       }
 
       if (quotation.status !== 'accepted' && quotation.status !== 'sent') {
@@ -5664,6 +5737,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       res.status(201).json(salesOrder);
     } catch (error) {
       console.error("Error converting quotation to sales order:", error);
+      if (error instanceof Error && /already converted|already has a sales order/i.test(error.message)) {
+        return res.status(409).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to convert quotation to sales order", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });

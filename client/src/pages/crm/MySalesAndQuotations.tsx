@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import QuotationForm from "@/components/QuotationForm";
+import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
 import type { Inquiry } from "@shared/schema";
 
 interface SalesMetrics {
@@ -63,6 +64,7 @@ interface Quotation {
   productName: string | null;
   productId: string | null;
   sentAt: string | null;
+  salesOrderId?: number | null;
 }
 
 interface SalesOrder {
@@ -514,6 +516,13 @@ export default function MySalesAndQuotations() {
                                       ? "Download Draft PDF"
                                       : "Download PDF"}
                                 </Button>
+                                {["sent", "accepted"].includes(quotation.status) && !quotation.salesOrderId && (
+                                  <QuotationToSalesOrderButton
+                                    quotationId={quotation.id}
+                                    quotationNumber={quotation.quotationId}
+                                    onConverted={() => setSelectedTab("sales-orders")}
+                                  />
+                                )}
                                 {quotation.status === "draft" && quotation.inquiryId && (
                                   <Button
                                     variant="outline"
@@ -536,6 +545,18 @@ export default function MySalesAndQuotations() {
                                   >
                                     <Send className="mr-1 h-4 w-4" />
                                     Send to customer
+                                  </Button>
+                                )}
+                                {["draft", "sent"].includes(quotation.status) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled
+                                    title="Email delivery is not connected yet. Use Send to customer to publish the quote in the portal."
+                                    data-testid={`button-email-quotation-coming-soon-${quotation.id}`}
+                                  >
+                                    <Mail className="mr-1 h-4 w-4" />
+                                    Email customer (soon)
                                   </Button>
                                 )}
                                 {quotation.status === "draft" && !quotation.sentAt && (

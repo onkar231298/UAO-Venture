@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send, Download, Trash2 } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
+import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 
 import LeadManagement from "./LeadManagement";
@@ -118,6 +119,40 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
         variant: "destructive"
       });
     }
+  });
+
+  const publishQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}/publish-to-customer`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to publish quotation to the customer dashboard");
+      }
+      return result;
+    },
+    onSuccess: (quotation: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      if (quotation.customerId) {
+        queryClient.invalidateQueries({
+          queryKey: [`/api/customer/quotations/${quotation.customerId}`],
+        });
+      }
+      toast({
+        title: "Quotation published",
+        description: "The customer can now view and download it in the dashboard. No email was sent; email delivery will be added later.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not publish quotation",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const assignInquiryMutation = useMutation({
@@ -705,6 +740,15 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                     : relatedQuotation.status === "draft" ? "Download Draft PDF" : "Download PDF"}
                                 </Button>
                               )}
+                              {relatedQuotation &&
+                                ["sent", "accepted"].includes(relatedQuotation.status) &&
+                                !relatedQuotation.salesOrderId && (
+                                  <QuotationToSalesOrderButton
+                                    quotationId={relatedQuotation.id}
+                                    quotationNumber={relatedQuotation.quotationId}
+                                    className="min-h-[44px] w-full sm:w-auto"
+                                  />
+                                )}
                               {relatedQuotation?.status === "draft" && (
                                 <Button
                                   variant="outline"
@@ -715,6 +759,33 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 >
                                   <FileText className="w-4 h-4 mr-1" />
                                   Edit Quote
+                                </Button>
+                              )}
+                              {canManageDraftQuotes && relatedQuotation?.status === "draft" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => publishQuotationMutation.mutate(relatedQuotation.id)}
+                                  disabled={publishQuotationMutation.isPending}
+                                  data-testid={`button-publish-inquiry-quotation-${inquiry.id}`}
+                                  title="Publish this quotation to the customer's dashboard. No email will be sent."
+                                  className="min-h-[44px] w-full sm:w-auto"
+                                >
+                                  <Send className="w-4 h-4 mr-1" />
+                                  {publishQuotationMutation.isPending ? "Publishing..." : "Send to customer"}
+                                </Button>
+                              )}
+                              {relatedQuotation && ["draft", "sent"].includes(relatedQuotation.status) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled
+                                  title="Email delivery is not connected yet. Use Send to customer to publish the quote in the portal."
+                                  data-testid={`button-email-inquiry-quotation-coming-soon-${inquiry.id}`}
+                                  className="min-h-[44px] w-full sm:w-auto"
+                                >
+                                  <Mail className="w-4 h-4 mr-1" />
+                                  Email customer (soon)
                                 </Button>
                               )}
                               {canManageDraftQuotes &&

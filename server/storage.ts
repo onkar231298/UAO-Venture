@@ -3860,151 +3860,179 @@ export class DatabaseStorage implements IStorage {
     internalNotes?: string;
     createdBy: string;
   }): Promise<SalesOrder> {
-    // Get the quotation with items
-    const [quotation] = await db.select().from(quotations).where(eq(quotations.id, quotationId));
-    if (!quotation) {
-      throw new Error('Quotation not found');
-    }
+    return await db.transaction(async (tx) => {
+      const [currentQuotation] = await tx.select().from(quotations).where(eq(quotations.id, quotationId));
+      if (!currentQuotation) {
+        throw new Error('Quotation not found');
+      }
+      if (currentQuotation.salesOrderId || currentQuotation.status === 'converted') {
+        throw new Error('Quotation already converted to a sales order');
+      }
+      if (!['sent', 'accepted'].includes(currentQuotation.status)) {
+        throw new Error('Only sent or accepted quotations can be converted to sales orders');
+      }
 
-    // Get quotation items with product names
-    const quotationItemsList = await db
-      .select({
-        id: quotationItems.id,
-        quotationId: quotationItems.quotationId,
-        productId: quotationItems.productId,
-        quantity: quotationItems.quantity,
-        unit: quotationItems.unit,
-        unitPrice: quotationItems.unitPrice,
-        totalPrice: quotationItems.totalPrice,
-        specifications: quotationItems.specifications,
-        productName: products.name,
-        productSku: products.productId,
-      })
-      .from(quotationItems)
-      .leftJoin(products, eq(quotationItems.productId, products.id))
-      .where(eq(quotationItems.quotationId, quotationId));
+      const [existingOrder] = await tx.select({ id: salesOrders.id })
+        .from(salesOrders)
+        .where(eq(salesOrders.quotationId, quotationId))
+        .limit(1);
+      if (existingOrder) {
+        throw new Error('Quotation already has a sales order');
+      }
 
-    // Get company info if available
-    let companyData: Company | undefined;
-    if (quotation.companyId) {
-      const [c] = await db.select().from(companies).where(eq(companies.id, quotation.companyId));
-      companyData = c;
-    }
+      // Claim the quotation with a conditional update so concurrent requests cannot
+      // create two orders from the same sent or accepted quotation.
+      const [quotation] = await tx.update(quotations)
+        .set({ status: 'converted', updatedAt: new Date() })
+        .where(and(
+          eq(quotations.id, quotationId),
+          eq(quotations.status, currentQuotation.status),
+          isNull(quotations.salesOrderId),
+        ))
+        .returning();
+      if (!quotation) {
+        throw new Error('Quotation was already converted by another user');
+      }
 
-    // Generate SO number
-    const soNumber = await this.getNextSalesOrderNumber();
+      // Get quotation items with product names
+      const quotationItemsList = await tx
+        .select({
+          id: quotationItems.id,
+          quotationId: quotationItems.quotationId,
+          productId: quotationItems.productId,
+          quantity: quotationItems.quantity,
+          unit: quotationItems.unit,
+          unitPrice: quotationItems.unitPrice,
+          totalPrice: quotationItems.totalPrice,
+          specifications: quotationItems.specifications,
+          productName: products.name,
+          productSku: products.productId,
+        })
+        .from(quotationItems)
+        .leftJoin(products, eq(quotationItems.productId, products.id))
+        .where(eq(quotationItems.quotationId, quotationId));
 
-    // Calculate advance and balance amounts
-    const totalAmount = parseFloat(quotation.totalAmount?.toString() || '0');
-    const advancePercent = options.paymentTermsAdvancePercent || 0;
-    const advanceAmountDue = (totalAmount * advancePercent) / 100;
-    const balanceAmountDue = totalAmount - advanceAmountDue;
+      // Get company info if available
+      let companyData: Company | undefined;
+      if (quotation.companyId) {
+        const [c] = await tx.select().from(companies).where(eq(companies.id, quotation.companyId));
+        companyData = c;
+      }
 
-    // Create sales order
-    const orderData: InsertSalesOrder = {
-      orderId: soNumber, // Set orderId same as soNumber for legacy column
-      soNumber,
-      quotationId: quotation.id,
-      companyId: quotation.companyId,
-      leadId: quotation.leadId,
-      emailThreadId: quotation.emailThreadId,
-      customerId: quotation.customerId,
-      assignedToUserId: quotation.createdBy,
-      orderDate: new Date(),
-      expectedDeliveryDate: options.expectedDeliveryDate,
-      subtotal: quotation.subtotal?.toString(),
-      discountPercent: quotation.discountPercent?.toString(),
-      discountAmount: quotation.discountAmount?.toString(),
-      taxPercent: quotation.taxPercent?.toString(),
-      taxAmount: quotation.taxAmount?.toString(),
-      totalAmount: quotation.totalAmount?.toString(),
-      currency: quotation.currency || 'USD',
-      priceType: quotation.priceType || 'ex_warehouse',
-      paymentTermsAdvancePercent: advancePercent.toString(),
-      paymentTermsCreditDays: options.paymentTermsCreditDays ?? 0,
-      advanceAmountDue: advanceAmountDue.toString(),
-      advanceAmountReceived: '0',
-      balanceAmountDue: balanceAmountDue.toString(),
-      balanceAmountReceived: '0',
-      status: 'draft',
-      paymentStatus: 'pending',
-      shippingAddress: options.shippingAddress || companyData?.factoryAddressStreet,
-      shippingCity: options.shippingCity || companyData?.factoryAddressCity,
-      shippingState: options.shippingState || companyData?.factoryAddressState,
-      shippingPostalCode: options.shippingPostalCode || companyData?.factoryAddressZip,
-      shippingCountry: options.shippingCountry || companyData?.factoryAddressCountry,
-      shippingMethod: options.shippingMethod,
-      billingAddress: options.billingAddress || companyData?.factoryAddressStreet,
-      billingCity: options.billingCity || companyData?.factoryAddressCity,
-      billingState: options.billingState || companyData?.factoryAddressState,
-      billingPostalCode: options.billingPostalCode || companyData?.factoryAddressZip,
-      billingCountry: options.billingCountry || companyData?.factoryAddressCountry,
-      portOfLoading: options.portOfLoading,
-      portOfDischarge: options.portOfDischarge,
-      creditPeriod: options.creditPeriod,
-      customerCompanyName: companyData?.companyName || quotation.customerCompanyName,
-      customerContactName: companyData?.primaryContactName,
-      customerEmail: companyData?.primaryEmail || quotation.customerEmail,
-      customerPhone: companyData?.primaryPhone,
-      includeGst: quotation.includeGst || false,
-      gstNumber: quotation.gstNumber,
-      gstPercentage: quotation.gstPercentage?.toString(),
-      internalNotes: options.internalNotes,
-      termsAndConditions: quotation.termsAndConditions,
-      createdBy: options.createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      // Generate SO number
+      const soNumber = await this.getNextSalesOrderNumber();
 
-    const [newOrder] = await db.insert(salesOrders).values(orderData).returning();
+      // Calculate advance and balance amounts
+      const totalAmount = parseFloat(quotation.totalAmount?.toString() || '0');
+      const advancePercent = options.paymentTermsAdvancePercent || 0;
+      const advanceAmountDue = (totalAmount * advancePercent) / 100;
+      const balanceAmountDue = totalAmount - advanceAmountDue;
 
-    // Create sales order items from quotation items
-    for (const item of quotationItemsList) {
-      await db.insert(salesOrderItems).values({
+      // Create sales order
+      const orderData: InsertSalesOrder = {
+        orderId: soNumber, // Set orderId same as soNumber for legacy column
+        soNumber,
+        quotationId: quotation.id,
+        companyId: quotation.companyId,
+        leadId: quotation.leadId,
+        emailThreadId: quotation.emailThreadId,
+        customerId: quotation.customerId,
+        assignedToUserId: quotation.createdBy,
+        orderDate: new Date(),
+        expectedDeliveryDate: options.expectedDeliveryDate,
+        subtotal: quotation.subtotal?.toString(),
+        discountPercent: quotation.discountPercent?.toString(),
+        discountAmount: quotation.discountAmount?.toString(),
+        taxPercent: quotation.taxPercent?.toString(),
+        taxAmount: quotation.taxAmount?.toString(),
+        totalAmount: quotation.totalAmount?.toString(),
+        currency: quotation.currency || 'USD',
+        priceType: quotation.priceType || 'ex_warehouse',
+        paymentTermsAdvancePercent: advancePercent.toString(),
+        paymentTermsCreditDays: options.paymentTermsCreditDays ?? 0,
+        advanceAmountDue: advanceAmountDue.toString(),
+        advanceAmountReceived: '0',
+        balanceAmountDue: balanceAmountDue.toString(),
+        balanceAmountReceived: '0',
+        status: 'draft',
+        paymentStatus: 'pending',
+        shippingAddress: options.shippingAddress || companyData?.factoryAddressStreet,
+        shippingCity: options.shippingCity || companyData?.factoryAddressCity,
+        shippingState: options.shippingState || companyData?.factoryAddressState,
+        shippingPostalCode: options.shippingPostalCode || companyData?.factoryAddressZip,
+        shippingCountry: options.shippingCountry || companyData?.factoryAddressCountry,
+        shippingMethod: options.shippingMethod,
+        billingAddress: options.billingAddress || companyData?.factoryAddressStreet,
+        billingCity: options.billingCity || companyData?.factoryAddressCity,
+        billingState: options.billingState || companyData?.factoryAddressState,
+        billingPostalCode: options.billingPostalCode || companyData?.factoryAddressZip,
+        billingCountry: options.billingCountry || companyData?.factoryAddressCountry,
+        portOfLoading: options.portOfLoading,
+        portOfDischarge: options.portOfDischarge,
+        creditPeriod: options.creditPeriod,
+        customerCompanyName: companyData?.companyName || quotation.customerCompanyName,
+        customerContactName: companyData?.primaryContactName,
+        customerEmail: companyData?.primaryEmail || quotation.customerEmail,
+        customerPhone: companyData?.primaryPhone,
+        includeGst: quotation.includeGst || false,
+        gstNumber: quotation.gstNumber,
+        gstPercentage: quotation.gstPercentage?.toString(),
+        internalNotes: options.internalNotes,
+        termsAndConditions: quotation.termsAndConditions,
+        createdBy: options.createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const [newOrder] = await tx.insert(salesOrders).values(orderData).returning();
+
+      // Create sales order items from quotation items
+      for (const item of quotationItemsList) {
+        await tx.insert(salesOrderItems).values({
+          salesOrderId: newOrder.id,
+          productId: item.productId,
+          productName: item.productName || 'Product',
+          productSku: item.productSku || undefined,
+          description: item.specifications || undefined,
+          quantity: item.quantity?.toString(),
+          unit: item.unit,
+          unitPrice: item.unitPrice?.toString(),
+          totalPrice: item.totalPrice?.toString(),
+          specifications: item.specifications,
+          batchNumber: options.batchNumber || undefined,
+          createdAt: new Date(),
+        });
+      }
+
+      // Add creation activity
+      await tx.insert(salesOrderActivities).values({
         salesOrderId: newOrder.id,
-        productId: item.productId,
-        productName: item.productName || 'Product',
-        productSku: item.productSku || undefined,
-        description: item.specifications || undefined,
-        quantity: item.quantity?.toString(),
-        unit: item.unit,
-        unitPrice: item.unitPrice?.toString(),
-        totalPrice: item.totalPrice?.toString(),
-        specifications: item.specifications,
-        batchNumber: options.batchNumber || undefined,
+        activityType: 'created',
+        title: 'Sales Order Created from Quotation',
+        description: `Sales order ${newOrder.soNumber} was created from quotation ${quotation.quotationNumber}`,
+        performedBy: options.createdBy,
+        metadata: { quotationId, quotationNumber: quotation.quotationNumber },
         createdAt: new Date(),
       });
-    }
 
-    // Add creation activity
-    await db.insert(salesOrderActivities).values({
-      salesOrderId: newOrder.id,
-      activityType: 'created',
-      title: 'Sales Order Created from Quotation',
-      description: `Sales order ${newOrder.soNumber} was created from quotation ${quotation.quotationNumber}`,
-      performedBy: options.createdBy,
-      metadata: { quotationId, quotationNumber: quotation.quotationNumber },
-      createdAt: new Date(),
+      // Add initial status history
+      await tx.insert(salesOrderStatusHistory).values({
+        salesOrderId: newOrder.id,
+        fromStatus: null,
+        toStatus: 'draft',
+        changedBy: options.createdBy,
+        notes: `Created from quotation ${quotation.quotationNumber}`,
+        createdAt: new Date(),
+      });
+
+      // Attach the created order to the quotation before committing the transaction.
+      await tx.update(quotations).set({
+        salesOrderId: newOrder.id,
+        updatedAt: new Date(),
+      }).where(eq(quotations.id, quotationId));
+
+      return newOrder;
     });
-
-    // Add initial status history
-    await db.insert(salesOrderStatusHistory).values({
-      salesOrderId: newOrder.id,
-      fromStatus: null,
-      toStatus: 'draft',
-      changedBy: options.createdBy,
-      notes: `Created from quotation ${quotation.quotationNumber}`,
-      createdAt: new Date(),
-    });
-
-    // Update quotation to mark it as converted and link to sales order
-    await db.update(quotations).set({
-      status: 'converted',
-      salesOrderId: newOrder.id,
-      updatedAt: new Date(),
-    }).where(eq(quotations.id, quotationId));
-
-    return newOrder;
   }
 
   async updateSalesOrder(id: number, order: Partial<InsertSalesOrder>): Promise<SalesOrder> {

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, DollarSign, MessageSquare, Calendar, User, Building, FileText, TrendingDown, TrendingUp, Package, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
 import { formatDistanceToNow } from "date-fns";
 
 export default function QuotationNegotiationsPage() {
@@ -91,7 +92,9 @@ export default function QuotationNegotiationsPage() {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'sent': return 'bg-blue-100 text-blue-800';
       case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
       case 'expired': return 'bg-red-100 text-red-800';
+      case 'converted': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -290,6 +293,12 @@ export default function QuotationNegotiationsPage() {
                     <Badge className="bg-green-100 text-green-800 border border-green-200">
                       Lead Created
                     </Badge>
+                  )}
+                  {['sent', 'accepted'].includes(quotation.status) && !quotation.salesOrderId && (
+                    <QuotationToSalesOrderButton
+                      quotationId={quotation.id}
+                      quotationNumber={quotation.quotationId}
+                    />
                   )}
                   <Button
                     variant="outline"

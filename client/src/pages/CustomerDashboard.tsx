@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Download, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Download, XCircle, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
@@ -73,6 +73,11 @@ export default function CustomerDashboard() {
   };
 
   const isRefreshing = isRefetchingInquiries || isRefetchingSaved || isRefetchingQuotations || isRefetchingSampleRequests;
+  const preparationNotices = ((quotations as any)?.preparationNotices || []) as Array<{
+    id: number;
+    quotationId: string;
+    inquiryId?: number | null;
+  }>;
 
   // Query for bid tracking data (uses the numeric database id)
   const { data: bidTrackingData, isLoading: bidTrackingLoading } = useQuery<any>({
@@ -136,6 +141,41 @@ export default function CustomerDashboard() {
       });
     }
   });
+
+  const rejectQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}/reject`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Failed to reject quotation");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/quotations/${customer?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customer?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/high-volume-bids"], exact: false });
+      toast({
+        title: "Quotation rejected",
+        description: "Your decision has been recorded.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not reject quotation",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const confirmQuotationRejection = (quotationId: number) => {
+    if (window.confirm("Reject this quotation? You will not be able to accept it afterward.")) {
+      rejectQuotationMutation.mutate(quotationId);
+    }
+  };
 
   // Counter-offer mutation
   const counterOfferMutation = useMutation({
@@ -244,6 +284,11 @@ export default function CustomerDashboard() {
       case 'quoted': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-emerald-100 text-emerald-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'sent': return 'bg-blue-100 text-blue-800';
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'expired': return 'bg-orange-100 text-orange-800';
+      case 'converted': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -309,6 +354,25 @@ export default function CustomerDashboard() {
           </Button>
         </div>
       </div>
+
+      {!quotationsLoading && preparationNotices.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950" role="status">
+          <div className="flex items-start gap-3">
+            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+            <div className="min-w-0">
+              <p className="font-semibold">Your quotation is being prepared</p>
+              <p className="mt-1 text-sm">
+                It will appear here with a view and download option after your sales representative finalizes and publishes it.
+              </p>
+              <ul className="mt-2 space-y-1 text-sm">
+                {preparationNotices.map((notice) => (
+                  <li key={notice.id}>Quotation {notice.quotationId} is in preparation.</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -620,6 +684,8 @@ export default function CustomerDashboard() {
                                             <Badge className={`${
                                               quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                               quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                              quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                              quote.status === 'converted' ? 'bg-purple-100 text-purple-800' :
                                               quote.status === 'expired' ? 'bg-red-100 text-red-800' :
                                               'bg-gray-100 text-gray-800'
                                             }`}>
@@ -674,6 +740,7 @@ export default function CustomerDashboard() {
                                               Download PDF
                                             </Button>
                                             {quote.status === 'sent' && (
+                                              <>
                                               <Button 
                                                 size="sm"
                                                 className="bg-green-600 hover:bg-green-700"
@@ -683,6 +750,17 @@ export default function CustomerDashboard() {
                                                 <Package className="w-4 h-4 mr-1" />
                                                 {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quote'}
                                               </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-red-300 text-red-700 hover:bg-red-50"
+                                                onClick={() => confirmQuotationRejection(quote.id)}
+                                                disabled={rejectQuotationMutation.isPending}
+                                              >
+                                                <XCircle className="w-4 h-4 mr-1" />
+                                                Reject Quote
+                                              </Button>
+                                              </>
                                             )}
                                           </div>
                                         </div>
@@ -915,6 +993,8 @@ export default function CustomerDashboard() {
                                               <Badge className={`${
                                                 quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                                 quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                quote.status === 'converted' ? 'bg-purple-100 text-purple-800' :
                                                 quote.status === 'expired' ? 'bg-red-100 text-red-800' :
                                                 'bg-gray-100 text-gray-800'
                                               }`}>
@@ -971,6 +1051,7 @@ export default function CustomerDashboard() {
                                                 Download PDF
                                               </Button>
                                               {quote.status === 'sent' && (
+                                                <>
                                                 <Button 
                                                   size="sm"
                                                   className="bg-green-600 hover:bg-green-700"
@@ -981,6 +1062,18 @@ export default function CustomerDashboard() {
                                                   <Package className="w-4 h-4 mr-1" />
                                                   {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quote'}
                                                 </Button>
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="border-red-300 text-red-700 hover:bg-red-50"
+                                                  onClick={() => confirmQuotationRejection(quote.id)}
+                                                  disabled={rejectQuotationMutation.isPending}
+                                                  data-testid={`button-reject-quote-${quote.id}`}
+                                                >
+                                                  <XCircle className="w-4 h-4 mr-1" />
+                                                  Reject Quote
+                                                </Button>
+                                                </>
                                               )}
                                             </div>
                                           </div>
@@ -1143,6 +1236,8 @@ export default function CustomerDashboard() {
                             <Badge className={`${
                               quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                               quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                              quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              quotation.status === 'converted' ? 'bg-purple-100 text-purple-800' :
                               quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
@@ -1205,6 +1300,8 @@ export default function CustomerDashboard() {
                                           <Badge className={`ml-2 ${
                                             quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                                             quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                            quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                            quotation.status === 'converted' ? 'bg-purple-100 text-purple-800' :
                                             quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
                                             'bg-gray-100 text-gray-800'
                                           }`}>
@@ -1272,6 +1369,7 @@ export default function CustomerDashboard() {
                                 {/* Action Buttons */}
                                 <div className="flex gap-3 pt-4 border-t">
                                   {quotation.status === 'sent' && (
+                                    <>
                                     <Button 
                                       className="bg-green-600 hover:bg-green-700"
                                       onClick={() => acceptQuotationMutation.mutate(quotation.id)}
@@ -1280,6 +1378,16 @@ export default function CustomerDashboard() {
                                       <Package className="w-4 h-4 mr-2" />
                                       {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
                                     </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="border-red-300 text-red-700 hover:bg-red-50"
+                                    onClick={() => confirmQuotationRejection(quotation.id)}
+                                    disabled={rejectQuotationMutation.isPending}
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Reject Quotation
+                                  </Button>
+                                    </>
                                   )}
                                   <Button 
                                     variant="outline"
@@ -1298,6 +1406,7 @@ export default function CustomerDashboard() {
                           </Dialog>
                           
                           {quotation.status === 'sent' && (
+                            <>
                             <Button 
                               size="sm" 
                               className="bg-green-600 hover:bg-green-700"
@@ -1307,6 +1416,17 @@ export default function CustomerDashboard() {
                               <Package className="w-4 h-4 mr-1" />
                               {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept'}
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-700 hover:bg-red-50"
+                              onClick={() => confirmQuotationRejection(quotation.id)}
+                              disabled={rejectQuotationMutation.isPending}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -1504,6 +1624,24 @@ export default function CustomerDashboard() {
           </div>
         </CardHeader>
         <CardContent>
+          {!quotationsLoading && preparationNotices.length > 0 && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950" role="status">
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                <div>
+                  <p className="font-semibold">Quotation being prepared</p>
+                  <p className="mt-1 text-sm">
+                    Your draft quotation will be available to view and download here once it has been finalized and published.
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {preparationNotices.map((notice) => (
+                      <li key={notice.id}>Quotation {notice.quotationId} is in preparation.</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           {quotationsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -1717,6 +1855,16 @@ export default function CustomerDashboard() {
                                     <Package className="w-4 h-4 mr-2" />
                                     {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quotation'}
                                   </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="border-red-300 text-red-700 hover:bg-red-50"
+                                    onClick={() => confirmQuotationRejection(quotation.id)}
+                                    disabled={rejectQuotationMutation.isPending}
+                                    data-testid="button-reject-quote"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Reject Quotation
+                                  </Button>
                                   <Button 
                                     variant="outline"
                                     className="border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -1774,6 +1922,7 @@ export default function CustomerDashboard() {
                         </Button>
                       </div>
                       {quotation.status === 'sent' && (
+                        <>
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700"
@@ -1783,6 +1932,17 @@ export default function CustomerDashboard() {
                           <Package className="w-4 h-4 mr-1" />
                           {acceptQuotationMutation.isPending ? 'Accepting...' : 'Accept Quote'}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50"
+                          onClick={() => confirmQuotationRejection(quotation.id)}
+                          disabled={rejectQuotationMutation.isPending}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Reject Quote
+                        </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -1792,14 +1952,20 @@ export default function CustomerDashboard() {
           ) : (
             <div className="text-center py-8">
               <FileText className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-              <p className="text-gray-500 mb-2">No quotations found</p>
-              <p className="text-xs text-gray-400 mb-4">
-                Submit an inquiry to receive your first quotation
+              <p className="text-gray-500 mb-2">
+                {preparationNotices.length > 0 ? "No published quotations yet" : "No quotations found"}
               </p>
-              <Button onClick={() => setLocation('/customer/inquiries')}>
-                <Plus className="w-4 h-4 mr-2" />
-                Submit New Inquiry
-              </Button>
+              {preparationNotices.length === 0 && (
+                <>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Submit an inquiry to receive your first quotation
+                  </p>
+                  <Button onClick={() => setLocation('/customer/inquiries')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Submit New Inquiry
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </CardContent>
@@ -1897,10 +2063,10 @@ export default function CustomerDashboard() {
         <CardContent>
           {quotationsLoading ? (
             <div className="animate-pulse h-16 rounded bg-gray-100" />
-          ) : (quotations?.quotations || []).filter((quote: any) => ["sent", "accepted"].includes(quote.status)).length ? (
+          ) : (quotations?.quotations || []).filter((quote: any) => ["sent", "accepted", "rejected", "expired", "converted"].includes(quote.status)).length ? (
             <div className="space-y-3">
               {(quotations?.quotations || [])
-                .filter((quote: any) => ["sent", "accepted"].includes(quote.status))
+                .filter((quote: any) => ["sent", "accepted", "rejected", "expired", "converted"].includes(quote.status))
                 .map((quote: any) => (
                   <div key={quote.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
