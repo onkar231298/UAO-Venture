@@ -487,17 +487,23 @@ function createQuotationPDF(
    ];
    const highlightGap = 6;
    const highlightWidth = (510 - highlightGap * 3) / 4;
+    const highlightTextWidth = highlightWidth - 16;
+    doc.font("Helvetica").fontSize(8);
+    const highlightValueHeight = commercialHighlights.reduce((maxHeight, [, value]) => (
+      Math.max(maxHeight, doc.heightOfString(value, { width: highlightTextWidth }))
+    ), 0);
+    const highlightHeight = Math.max(46, 22 + highlightValueHeight + 8);
    commercialHighlights.forEach(([label, value], index) => {
      const x = 40 + index * (highlightWidth + highlightGap);
-     doc.roundedRect(x, yPos, highlightWidth, 46, 5).fill(quotationPalette.pale);
-     doc.roundedRect(x, yPos, highlightWidth, 46, 5)
+      doc.roundedRect(x, yPos, highlightWidth, highlightHeight, 5).fill(quotationPalette.pale);
+      doc.roundedRect(x, yPos, highlightWidth, highlightHeight, 5)
        .strokeColor(quotationPalette.line).lineWidth(0.7).stroke();
      doc.font("Helvetica-Bold").fontSize(7).fillColor(greenColor)
        .text(label, x + 8, yPos + 8, { width: highlightWidth - 16 });
      doc.font("Helvetica").fontSize(8).fillColor(quotationPalette.ink)
-       .text(value, x + 8, yPos + 22, { width: highlightWidth - 16, height: 18 });
+        .text(value, x + 8, yPos + 22, { width: highlightTextWidth });
    });
-    yPos += 56;
+    yPos += highlightHeight + 10;
 
   // Keep the commercial page readable, and continue item tables onto their
   // own pages when a quotation contains more lines than will comfortably fit.
