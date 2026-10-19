@@ -105,51 +105,119 @@ function addGeneralTermsPages(
   palette: QuotationPalette,
 ): void {
   const quotationPalette = palette;
-  const blocks = termsText.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
-  const contentBottom = 758;
-  let y = 0;
-
-  const addPage = () => {
-    doc.addPage({ size: "A4", margin: { top: 40, bottom: 20, left: 40, right: 40 } });
-    doc.font("Helvetica-Bold").fontSize(14).fillColor(quotationPalette.forest)
-      .text("GENERAL TERMS & CONDITIONS OF SALE", 40, 38, { width: 350 });
-    doc.font("Helvetica").fontSize(8).fillColor("#333")
-      .text(quotationCompanyName, 40, 60, { width: 280 });
-    doc.font("Helvetica-Bold").fontSize(8).fillColor("#333")
-      .text(`Quotation: ${quotation.quotationId}`, 390, 40, { width: 160, align: "right" })
-      .text(`Date: ${new Date(quotation.quotationDate).toLocaleDateString("en-GB")}`, 390, 53, { width: 160, align: "right" });
-    doc.moveTo(40, 78).lineTo(555, 78).strokeColor(quotationPalette.gold).lineWidth(1).stroke();
-    y = 92;
-  };
-
+  const columnWidth = 245;
+  const columnX = [40, 310];
+  const contentTop = 92;
+  const contentBottom = 780;
+  const lineGap = 0.35;
+  const blocks = termsText
+    .replace(/\r\n?/g, "\n")
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
   const isClauseHeading = (block: string) =>
     /^\d{1,2}\.\s+[A-Z0-9][A-Z0-9 ,&'’()/-]+$/.test(block);
 
-  addPage();
-  blocks.forEach((block, index) => {
-    const isHeading = isClauseHeading(block);
-    const fontSize = isHeading ? 9 : 8.25;
-    const fontName = isHeading ? "Helvetica-Bold" : "Helvetica";
-    const gapBefore = isHeading ? 5 : 0;
-    const gapAfter = isHeading ? 2 : 5;
-    const height = doc.font(fontName).fontSize(fontSize)
-      .heightOfString(block, { width: 510, lineGap: 1.4 });
-    const nextBlock = isHeading ? blocks[index + 1] : undefined;
-    const nextHeight = nextBlock
-      ? doc.font("Helvetica").fontSize(8.25).heightOfString(nextBlock, { width: 510, lineGap: 1.4 })
-      : 0;
-
-    if (y + gapBefore + height + gapAfter + nextHeight > contentBottom) {
-      addPage();
+  // Keep each heading with its clause while placing the unchanged template
+  // across four columns: two columns on each of the two terms pages.
+  const groups: string[][] = [];
+  blocks.forEach((block) => {
+    if (isClauseHeading(block) || groups.length === 0) {
+      groups.push([block]);
+    } else {
+      groups[groups.length - 1].push(block);
     }
-
-    doc.font(fontName).fontSize(fontSize).fillColor("#222")
-      .text(block, 48, y + gapBefore, { width: 510, lineGap: 1.4 });
-    y += gapBefore + height + gapAfter;
   });
 
-  const pageRange = doc.bufferedPageRange();
-  doc.switchToPage(pageRange.start + pageRange.count - 1);
+  type PlacedBlock = {
+    text: string;
+    heading: boolean;
+    page: number;
+    x: number;
+    y: number;
+    fontSize: number;
+    height: number;
+    gapBefore: number;
+    gapAfter: number;
+  };
+
+  const layoutAtSize = (bodyFontSize: number): PlacedBlock[] | null => {
+    const placements: PlacedBlock[] = [];
+    let column = 0;
+    let y = contentTop;
+
+    for (const group of groups) {
+      const measured = group.map((text) => {
+        const heading = isClauseHeading(text);
+        const fontSize = heading ? bodyFontSize + 0.8 : bodyFontSize;
+        const fontName = heading ? "Helvetica-Bold" : "Helvetica";
+        const gapBefore = heading ? 3 : 0;
+        const gapAfter = heading ? 1.5 : 3;
+        const height = doc.font(fontName).fontSize(fontSize)
+          .heightOfString(text, { width: columnWidth, lineGap });
+        return { text, heading, fontSize, height, gapBefore, gapAfter };
+      });
+      const groupHeight = measured.reduce(
+        (total, block) => total + block.gapBefore + block.height + block.gapAfter,
+        0,
+      );
+      if (groupHeight > contentBottom - contentTop) return null;
+
+      if (y + groupHeight > contentBottom) {
+        column += 1;
+        y = contentTop;
+      }
+      if (column >= 4) return null;
+
+      for (const block of measured) {
+        y += block.gapBefore;
+        placements.push({
+          ...block,
+          page: Math.floor(column / 2),
+          x: columnX[column % 2],
+          y,
+        });
+        y += block.height + block.gapAfter;
+      }
+    }
+
+    return placements;
+  };
+
+  let layout: PlacedBlock[] | null = null;
+  for (let fontSize = 7; fontSize >= 5.5; fontSize -= 0.25) {
+    layout = layoutAtSize(fontSize);
+    if (layout) break;
+  }
+  if (!layout) {
+    throw new Error(
+      `General Terms & Conditions version ${quotation.generalTermsVersion || "—"} cannot fit across two readable pages without truncation.`,
+    );
+  }
+
+  const priorPages = doc.bufferedPageRange();
+  const firstTermsPage = priorPages.start + priorPages.count;
+  for (let page = 0; page < 2; page += 1) {
+    doc.addPage({ size: "A4", margin: { top: 40, bottom: 20, left: 40, right: 40 } });
+    doc.font("Helvetica-Bold").fontSize(13).fillColor(quotationPalette.forest)
+      .text(`GENERAL TERMS & CONDITIONS OF SALE · ${page + 1}/2`, 40, 34, { width: 375 });
+    doc.font("Helvetica").fontSize(7.5).fillColor("#333")
+      .text(quotationCompanyName, 40, 56, { width: 280 });
+    doc.font("Helvetica-Bold").fontSize(7.5).fillColor("#333")
+      .text(`Quotation: ${quotation.quotationId}`, 390, 38, { width: 160, align: "right" })
+      .text(`Version: ${quotation.generalTermsVersion || "—"}  ·  Date: ${new Date(quotation.quotationDate).toLocaleDateString("en-GB")}`, 340, 53, { width: 210, align: "right" });
+    doc.moveTo(40, 78).lineTo(555, 78)
+      .strokeColor(quotationPalette.gold).lineWidth(1).stroke();
+  }
+
+  layout.forEach((block) => {
+    doc.switchToPage(firstTermsPage + block.page);
+    doc.font(block.heading ? "Helvetica-Bold" : "Helvetica")
+      .fontSize(block.fontSize)
+      .fillColor(block.heading ? quotationPalette.forest : "#222")
+      .text(block.text, block.x, block.y, { width: columnWidth, lineGap });
+  });
+  doc.switchToPage(firstTermsPage + 1);
 }
 
 function addQuotationAcceptancePage(

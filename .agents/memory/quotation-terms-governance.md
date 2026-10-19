@@ -15,11 +15,11 @@ The user wants quotation terms and future reusable templates managed together un
 
 **How to apply:** add future reusable template managers to the Template Management library in Settings.
 
-The user requests a three-page standard quotation PDF: quotation first, the saved General Terms & Conditions second, and the acceptance/signature page third. Preserve the saved terms wording.
+The user approved a four-page standard quotation PDF: quotation first, the complete saved General Terms & Conditions across pages two and three, and the acceptance/signature page fourth. Preserve the saved terms wording.
 
-**Why:** the user wants a predictable, compact quotation with the existing approved terms and acceptance page.
+**Why:** the approved saved wording is too long to fit legibly on one page; the user chose readability and completeness over a three-page limit.
 
-**How to apply:** keep this page order when changing PDFs. If the full approved terms cannot fit legibly on one page, ask whether to prioritize exact page count or readable, complete terms before changing the legal text or shrinking it excessively.
+**How to apply:** keep this page order when changing PDFs, do not edit or truncate approved terms to meet a page limit, and retain the acceptance page after the terms.
 
 Quotation PDF layouts are managed separately from terms in the same library. Super admins can create and preview draft versions before activation; the authorised acceptance/signature page stays required, and issued quotations keep the layout snapshot used when sent.
 
